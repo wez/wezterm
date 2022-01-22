@@ -523,7 +523,7 @@ impl<'a> Performer<'a> {
                 self.use_private_color_registers_for_each_graphic = false;
                 self.color_map = default_color_map();
                 self.application_cursor_keys = false;
-                self.sixel_scrolling = true;
+                self.sixel_display_mode = false;
                 self.dec_ansi_mode = false;
                 self.application_keypad = false;
                 self.bracketed_paste = false;

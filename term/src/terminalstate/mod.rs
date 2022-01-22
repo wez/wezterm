@@ -285,9 +285,9 @@ pub struct TerminalState {
 
     dec_ansi_mode: bool,
 
-    /// https://vt100.net/docs/vt3xx-gp/chapter14.html has a discussion
-    /// on what sixel scrolling mode does
-    sixel_scrolling: bool,
+    /// https://vt100.net/dec/ek-vt38t-ug-001.pdf#page=132 has a
+    /// discussion on what sixel dispay mode (DECSDM) does.
+    sixel_display_mode: bool,
     use_private_color_registers_for_each_graphic: bool,
 
     /// Graphics mode color register map.
@@ -469,7 +469,7 @@ impl TerminalState {
             insert: false,
             application_cursor_keys: false,
             dec_ansi_mode: false,
-            sixel_scrolling: true,
+            sixel_display_mode: false,
             use_private_color_registers_for_each_graphic: false,
             color_map,
             application_keypad: false,
@@ -1530,14 +1530,14 @@ impl TerminalState {
                 self.decqrm_response(mode, true, self.application_cursor_keys);
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
-                self.sixel_scrolling = true;
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
+                self.sixel_display_mode = true;
             }
-            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
-                self.sixel_scrolling = false;
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
+                self.sixel_display_mode = false;
             }
-            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
-                self.decqrm_response(mode, true, self.sixel_scrolling);
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
+                self.decqrm_response(mode, true, self.sixel_display_mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
