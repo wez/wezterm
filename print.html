@@ -449,6 +449,7 @@ usually the best available version.</p>
 <li><code>wezterm cli</code>, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use <code>wezterm cli --prefer-mux</code> to ignore the GUI instance and talk only to the mux server. See <code>wezterm cli --help</code> for additional information.</li>
 <li><a href="config/lua/keyassignment/ScrollByPage.html">ScrollByPage</a> now accepts fractional numbers like <code>0.5</code> to scroll by half a page at time. Thanks to <a href="https://github.com/hahuang65">@hahuang65</a>! <a href="https://github.com/wez/wezterm/pull/1534">#1534</a></li>
 <li><a href="config/lua/config/use_ime.html">use_ime</a> now defaults to <code>true</code> on all platforms; previously it was not enabled by default on macOS.</li>
+<li><a href="config/lua/config/canonicalize_pasted_newlines.html">canonicalize_pasted_newlines</a> default has changed to be more compatible for <code>nano</code> users, and now provides more control over the text format that is pasted. <a href="https://github.com/wez/wezterm/issues/1575">#1575</a></li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
@@ -10757,34 +10758,33 @@ assignments.</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="canonicalize_pasted_newlines"><a class="header" href="#canonicalize_pasted_newlines">canonicalize_pasted_newlines</a></h1>
 <p><em>Since: 20211204-082213-a66c61ee9</em></p>
-<p>Controls whether pasted text will have newlines normalized to CRLF form.</p>
-<p>In general wezterm tries to stick with unix line endings as the one-true
-representation because using canonical CRLF can result in excess blank lines
-during a paste operation.</p>
+<p>Controls whether pasted text will have newlines normalized.</p>
+<p>If bracketed paste mode is enabled by the application, the effective
+value of this configuration option is <code>&quot;None&quot;</code>.</p>
+<p>The following values are accepted:</p>
+<table><thead><tr><th>value</th><th>meaning</th><th>version</th></tr></thead><tbody>
+<tr><td><code>true</code></td><td>same as <code>&quot;CarriageReturnAndLineFeed&quot;</code></td><td><em>Since: 20211204-082213-a66c61ee9</em></td></tr>
+<tr><td><code>false</code></td><td>same as <code>&quot;None&quot;</code></td><td><em>Since: 20211204-082213-a66c61ee9</em></td></tr>
+<tr><td><code>&quot;None&quot;</code></td><td>The text is passed through unchanged</td><td><em>Since: nightly builds only</em></td></tr>
+<tr><td><code>&quot;LineFeed&quot;</code></td><td>Newlines of any style are rewritten as LF</td><td><em>Since: nightly builds only</em></td></tr>
+<tr><td><code>&quot;CarriageReturn&quot;</code></td><td>Newlines of any style are rewritten as CR</td><td><em>Since: nightly builds only</em></td></tr>
+<tr><td><code>&quot;CarriageReturnAndLineFeed&quot;</code></td><td>Newlines of any style are rewritten as CRLF</td><td><em>Since: nightly builds only</em></td></tr>
+</tbody></table>
+<p>Note that the string forms of these values are accepted in nightly builds only,
+however, <code>true</code> in all prior versions behaves the same way as
+<code>&quot;CarriageReturnAndLineFeed&quot;</code> behaves in the nightly build.</p>
+<p>The default value has changed in different versions of wezterm:</p>
+<table><thead><tr><th>version</th><th>platform</th><th>default</th></tr></thead><tbody>
+<tr><td>20211204-082213-a66c61ee9</td><td>Windows</td><td><code>&quot;CarriageReturnAndLineFeed&quot;</code></td></tr>
+<tr><td>20211204-082213-a66c61ee9</td><td>NOT Windows</td><td><code>&quot;None&quot;</code></td></tr>
+<tr><td>nightly builds only</td><td>NOT Windows</td><td><code>&quot;CarriageReturn&quot;</code></td></tr>
+</tbody></table>
 <p>On Windows we're in a bit of a frustrating situation: pasting into
 Windows console programs requires CRLF otherwise there is no newline
 at all, but when in WSL, pasting with CRLF gives excess blank lines.</p>
-<p>By default, when <code>canonicalize_pasted_newlines</code> is not set in your
-configuration, if wezterm is running as a native Windows application, then the
-effective value of this setting will be <code>true</code>, otherwise it will be false.</p>
-<p>The behavior of this setting is:</p>
-<ul>
-<li>If bracketed paste mode is enabled by the application, this configuration has no effect on the pasted text</li>
-<li>Otherwise, if <code>canonicalize_line_endings == true</code>, then the line endings will be converted to <code>CRLF</code> form</li>
-</ul>
 <p>In practice, the default setting means that unix shells and vim will get the
 unix newlines in their pastes (which is the UX most users will want) and
 cmd.exe will get CRLF.</p>
-<p>However, it is an imperfect world: some users take great pains to only run
-unixy programs from their Windows wezterm, which means that they end up with
-CRLFs in places where they don't want them.  Those users will likely wish to
-set their configuration like this:</p>
-<pre><code class="language-lua">return {
-  -- I only ever run unix programs, even on my Windows system, so I always
-  -- want my pastes to use unix newlines.
-  canonicalize_pasted_newlines = false,
-}
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="check_for_updates--check_for_updates_interval_seconds"><a class="header" href="#check_for_updates--check_for_updates_interval_seconds"><code>check_for_updates</code> &amp; <code>check_for_updates_interval_seconds</code></a></h1>
 <p>Wezterm checks regularly if there is a new stable version available
 on github, and shows a simple UI to let you know about the update

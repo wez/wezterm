@@ -176,6 +176,7 @@ usually the best available version.</p>
 <li><code>wezterm cli</code>, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use <code>wezterm cli --prefer-mux</code> to ignore the GUI instance and talk only to the mux server. See <code>wezterm cli --help</code> for additional information.</li>
 <li><a href="config/lua/keyassignment/ScrollByPage.html">ScrollByPage</a> now accepts fractional numbers like <code>0.5</code> to scroll by half a page at time. Thanks to <a href="https://github.com/hahuang65">@hahuang65</a>! <a href="https://github.com/wez/wezterm/pull/1534">#1534</a></li>
 <li><a href="config/lua/config/use_ime.html">use_ime</a> now defaults to <code>true</code> on all platforms; previously it was not enabled by default on macOS.</li>
+<li><a href="config/lua/config/canonicalize_pasted_newlines.html">canonicalize_pasted_newlines</a> default has changed to be more compatible for <code>nano</code> users, and now provides more control over the text format that is pasted. <a href="https://github.com/wez/wezterm/issues/1575">#1575</a></li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
