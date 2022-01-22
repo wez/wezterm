@@ -114,7 +114,12 @@ impl Default for NewlineCanon {
         if cfg!(windows) {
             Self::CarriageReturnAndLineFeed
         } else {
-            Self::None
+            // For compatibility with the `nano` editor, which unfortunately
+            // treats \n as a shortcut that justifies text
+            // <https://savannah.gnu.org/bugs/?49176>, we default to
+            // \r which is typically fine.
+            // <https://github.com/wez/wezterm/issues/1575>
+            Self::CarriageReturn
         }
     }
 }
