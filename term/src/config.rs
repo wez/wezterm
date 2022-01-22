@@ -1,6 +1,124 @@
 use crate::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NewlineCanon {
+    None,
+    LineFeed,
+    CarriageReturn,
+    CarriageReturnAndLineFeed,
+}
+
+impl NewlineCanon {
+    fn target(self) -> Option<&'static str> {
+        match self {
+            Self::None => None,
+            Self::LineFeed => Some("\n"),
+            Self::CarriageReturn => Some("\r"),
+            Self::CarriageReturnAndLineFeed => Some("\r\n"),
+        }
+    }
+
+    pub fn canonicalize(self, text: &str) -> String {
+        let target = self.target();
+        let mut buf = String::new();
+        let mut iter = text.chars().peekable();
+        while let Some(c) = iter.next() {
+            match target {
+                None => buf.push(c),
+                Some(canon) => {
+                    if c == '\n' {
+                        buf.push_str(canon);
+                    } else if c == '\r' {
+                        buf.push_str(canon);
+                        if let Some('\n') = iter.peek() {
+                            // Paired with the \r, so consume this one
+                            iter.next();
+                        }
+                    } else {
+                        buf.push(c);
+                    }
+                }
+            }
+        }
+        buf
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_canon() {
+    assert_eq!(
+        "hello\nthere",
+        NewlineCanon::None.canonicalize("hello\nthere")
+    );
+    assert_eq!(
+        "hello\r\nthere",
+        NewlineCanon::CarriageReturnAndLineFeed.canonicalize("hello\nthere")
+    );
+    assert_eq!(
+        "hello\rthere",
+        NewlineCanon::CarriageReturn.canonicalize("hello\nthere")
+    );
+    assert_eq!(
+        "hello\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\nthere")
+    );
+    assert_eq!(
+        "hello\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\nthere")
+    );
+    assert_eq!(
+        "hello\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\rthere")
+    );
+    assert_eq!(
+        "hello\n\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\rthere")
+    );
+    assert_eq!(
+        "hello\n\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\n\rthere")
+    );
+    assert_eq!(
+        "hello\n\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\n\nthere")
+    );
+    assert_eq!(
+        "hello\n\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\n\r\nthere")
+    );
+    assert_eq!(
+        "hello\n\n\nthere",
+        NewlineCanon::LineFeed.canonicalize("hello\r\r\n\nthere")
+    );
+}
+
+impl Default for NewlineCanon {
+    fn default() -> Self {
+        // This is a bit horrible; in general we try to stick with unix line
+        // endings as the one-true representation because using canonical
+        // CRLF can result in excess blank lines during a paste operation.
+        // On Windows we're in a bit of a frustrating situation: pasting into
+        // Windows console programs requires CRLF otherwise there is no newline
+        // at all, but when in WSL, pasting with CRLF gives excess blank lines.
+        //
+        // To come to a compromise, if wezterm is running on Windows then we'll
+        // use canonical CRLF unless the embedded application has enabled
+        // bracketed paste: we can use bracketed paste mode as a signal that
+        // the application will prefer newlines.
+        //
+        // In practice this means that unix shells and vim will get the
+        // unix newlines in their pastes (which is the UX I want) and
+        // cmd.exe will get CRLF.
+        if cfg!(windows) {
+            Self::CarriageReturnAndLineFeed
+        } else {
+            Self::None
+        }
+    }
+}
+
 /// TerminalConfiguration allows for the embedding application to pass configuration
 /// information to the Terminal.
 /// The configuration can be changed at runtime; provided that the implementation
@@ -69,8 +187,8 @@ pub trait TerminalConfiguration: std::fmt::Debug {
         cfg!(windows)
     }
 
-    fn canonicalize_pasted_newlines(&self) -> bool {
-        cfg!(windows)
+    fn canonicalize_pasted_newlines(&self) -> NewlineCanon {
+        NewlineCanon::default()
     }
 
     fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {

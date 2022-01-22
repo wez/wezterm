@@ -3,6 +3,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
+use crate::config::NewlineCanon;
 use log::debug;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
@@ -715,48 +716,14 @@ impl TerminalState {
             buf.push_str("\x1b[200~");
         }
 
-        // This is a bit horrible; in general we try to stick with unix line
-        // endings as the one-true representation because using canonical
-        // CRLF can result in excess blank lines during a paste operation.
-        // On Windows we're in a bit of a frustrating situation: pasting into
-        // Windows console programs requires CRLF otherwise there is no newline
-        // at all, but when in WSL, pasting with CRLF gives excess blank lines.
-        //
-        // To come to a compromise, if wezterm is running on Windows then we'll
-        // use canonical CRLF unless the embedded application has enabled
-        // bracketed paste: we can use bracketed paste mode as a signal that
-        // the application will prefer newlines.
-        //
-        // In practice this means that unix shells and vim will get the
-        // unix newlines in their pastes (which is the UX I want) and
-        // cmd.exe will get CRLF.
-        let canonicalize_line_endings =
-            self.config.canonicalize_pasted_newlines() && !self.bracketed_paste;
-
-        if canonicalize_line_endings {
-            // Convert (\r|\n) -> \r\n, but not if it is \r\n anyway.
-            let mut iter = text.chars();
-            while let Some(c) = iter.next() {
-                if c == '\n' {
-                    buf.push_str("\r\n");
-                } else if c == '\r' {
-                    buf.push_str("\r\n");
-                    match iter.next() {
-                        Some(c) if c == '\n' => {
-                            // Already emitted it above
-                        }
-                        Some(c) => buf.push(c),
-                        None => {
-                            // No more text and we already emitted \r\n above
-                        }
-                    }
-                } else {
-                    buf.push(c);
-                }
-            }
+        let canon = if self.bracketed_paste {
+            NewlineCanon::None
         } else {
-            buf.push_str(text);
-        }
+            self.config.canonicalize_pasted_newlines()
+        };
+
+        let canon = canon.canonicalize(text);
+        buf.push_str(&canon);
 
         if self.bracketed_paste {
             buf.push_str("\x1b[201~");
