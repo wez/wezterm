@@ -1500,10 +1500,14 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
                 self.sixel_display_mode = true;
             }
-            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SixelDisplayMode,
+            )) => {
                 self.sixel_display_mode = false;
             }
-            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelDisplayMode)) => {
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SixelDisplayMode,
+            )) => {
                 self.decqrm_response(mode, true, self.sixel_display_mode);
             }
 
