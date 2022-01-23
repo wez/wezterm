@@ -35,6 +35,7 @@ url = "2"
 pretty_assertions = "0.6"
 pretty_env_logger = "0.4"
 k9 = "0.11.0"
+unicode-normalization = "0.1"
 
 [dependencies.termwiz]
 version = "0.15"

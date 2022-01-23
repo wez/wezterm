@@ -1099,4 +1099,15 @@ mod test {
             vec![raised_fist.to_string()]
         );
     }
+
+    #[test]
+    fn issue_1573() {
+        let sequence = "\u{1112}\u{1161}\u{11ab}";
+        assert_eq!(unicode_column_width(sequence, None), 2);
+        assert_eq!(grapheme_column_width(sequence, None), 2);
+
+        let sequence2 = std::str::from_utf8(b"\xe1\x84\x92\xe1\x85\xa1\xe1\x86\xab").unwrap();
+        assert_eq!(unicode_column_width(sequence2, None), 2);
+        assert_eq!(grapheme_column_width(sequence2, None), 2);
+    }
 }

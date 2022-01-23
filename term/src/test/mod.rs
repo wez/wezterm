@@ -1082,6 +1082,30 @@ fn test_emoji_with_modifier() {
 }
 
 #[test]
+fn test_1573() {
+    let sequence = "\u{1112}\u{1161}\u{11ab}";
+
+    let mut term = TestTerm::new(2, 5, 0);
+    term.print(sequence);
+    term.print("\r\n");
+
+    assert_all_contents(
+        &term,
+        file!(),
+        line!(),
+        &[&format!("{}   ", sequence), "     "],
+    );
+
+    use unicode_normalization::UnicodeNormalization;
+    let recomposed: String = sequence.nfc().collect();
+    assert_eq!(recomposed, "\u{d55c}");
+
+    use unicode_segmentation::UnicodeSegmentation;
+    let graphemes: Vec<_> = sequence.graphemes(true).collect();
+    assert_eq!(graphemes, vec![sequence]);
+}
+
+#[test]
 fn test_hyperlinks() {
     let mut term = TestTerm::new(3, 5, 0);
     let link = Arc::new(Hyperlink::new("http://example.com"));

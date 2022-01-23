@@ -531,7 +531,7 @@ mod test {
     use crate::cell::{Intensity, Underline};
     use crate::color::ColorSpec;
     use crate::escape::csi::{
-        DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtSmGraphics,
+        CharacterPath, DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtSmGraphics,
         XtSmGraphicsItem, XtermKeyModifierResource,
     };
     use crate::escape::{EscCode, OneBased};
@@ -868,6 +868,24 @@ mod test {
                 Action::XtGetTcap(vec!["TN".to_string()]),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
+        );
+    }
+
+    #[test]
+    fn bidi_modes() {
+        assert_eq!(
+            round_trip_parse("\x1b[1 k"),
+            vec![Action::CSI(CSI::SelectCharacterPath(
+                CharacterPath::LeftToRightOrTopToBottom,
+                0
+            ))]
+        );
+        assert_eq!(
+            round_trip_parse("\x1b[2;1 k"),
+            vec![Action::CSI(CSI::SelectCharacterPath(
+                CharacterPath::RightToLeftOrBottomToTop,
+                1
+            ))]
         );
     }
 

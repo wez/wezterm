@@ -412,6 +412,9 @@ impl<'a> Performer<'a> {
             CSI::Device(dev) => self.state.perform_device(*dev),
             CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
             CSI::Window(window) => self.state.perform_csi_window(window),
+            CSI::SelectCharacterPath(path, _) => {
+                log::warn!("unhandled SelectCharacterPath {:?}", path);
+            }
             CSI::Unspecified(unspec) => {
                 log::warn!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }

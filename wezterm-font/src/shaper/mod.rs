@@ -8,9 +8,17 @@ pub mod harfbuzz;
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlyphInfo {
     /// We only retain text in debug mode for diagnostic purposes
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, test))]
     pub text: String,
     pub is_space: bool,
+    /// Number of cells occupied by this single glyph.
+    /// This accounts for eg: the shaper combining adjacent graphemes
+    /// into a single glyph, such as in `!=` and other ligatures.
+    /// Without tracking this version of the width, we may not detect
+    /// the combined case as the corresponding cluster index is simply
+    /// omitted from the shaped result.
+    /// <https://github.com/wez/wezterm/issues/1563>
+    pub num_cells: u8,
     /// Offset within text
     pub cluster: u32,
     /// Which font alternative to use; index into Font.fonts

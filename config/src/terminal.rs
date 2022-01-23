@@ -1,6 +1,6 @@
 //! Bridge our gui config into the terminal crate configuration
 
-use crate::{configuration, ConfigHandle};
+use crate::{configuration, ConfigHandle, NewlineCanon};
 use std::sync::Mutex;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use wezterm_term::color::ColorPalette;
@@ -71,8 +71,18 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().enable_kitty_graphics
     }
 
-    fn canonicalize_pasted_newlines(&self) -> bool {
-        self.configuration().canonicalize_pasted_newlines
+    fn canonicalize_pasted_newlines(&self) -> wezterm_term::config::NewlineCanon {
+        match self.configuration().canonicalize_pasted_newlines {
+            None => wezterm_term::config::NewlineCanon::default(),
+            Some(NewlineCanon::None) => wezterm_term::config::NewlineCanon::None,
+            Some(NewlineCanon::LineFeed) => wezterm_term::config::NewlineCanon::LineFeed,
+            Some(NewlineCanon::CarriageReturn) => {
+                wezterm_term::config::NewlineCanon::CarriageReturn
+            }
+            Some(NewlineCanon::CarriageReturnAndLineFeed) => {
+                wezterm_term::config::NewlineCanon::CarriageReturnAndLineFeed
+            }
+        }
     }
 
     fn unicode_version(&self) -> u8 {

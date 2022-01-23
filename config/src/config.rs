@@ -22,7 +22,7 @@ use crate::{
 use anyhow::Context;
 use luahelper::impl_lua_conversion;
 use portable_pty::{CommandBuilder, PtySize};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Read;
@@ -567,8 +567,8 @@ pub struct Config {
     #[serde(default)]
     pub audible_bell: AudibleBell,
 
-    #[serde(default = "default_canonicalize_pasted_newlines")]
-    pub canonicalize_pasted_newlines: bool,
+    #[serde(default)]
+    pub canonicalize_pasted_newlines: Option<NewlineCanon>,
 
     #[serde(default = "default_unicode_version")]
     pub unicode_version: u8,
@@ -1136,10 +1136,6 @@ fn default_unicode_version() -> u8 {
     9
 }
 
-fn default_canonicalize_pasted_newlines() -> bool {
-    cfg!(windows)
-}
-
 fn default_mux_env_remove() -> Vec<String> {
     vec![
         "SSH_AUTH_SOCK".to_string(),
@@ -1271,6 +1267,66 @@ impl Default for WindowPadding {
             top: default_half_cell(),
             bottom: default_half_cell(),
         }
+    }
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NewlineCanon {
+    None,
+    LineFeed,
+    CarriageReturn,
+    CarriageReturnAndLineFeed,
+}
+impl_lua_conversion!(NewlineCanon);
+
+impl<'de> Deserialize<'de> for NewlineCanon {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Helper;
+
+        impl<'de> serde::de::Visitor<'de> for Helper {
+            type Value = NewlineCanon;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("true, false, \"None\", \"LineFeed\", \"CarriageReturnAndLineFeed\", \"CarriageReturnAndLineFeed\"")
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<NewlineCanon, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(if value {
+                    NewlineCanon::CarriageReturnAndLineFeed
+                } else {
+                    NewlineCanon::LineFeed
+                })
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match v {
+                    "None" => Ok(NewlineCanon::None),
+                    "LineFeed" => Ok(NewlineCanon::LineFeed),
+                    "CarriageReturn" => Ok(NewlineCanon::CarriageReturn),
+                    "CarriageReturnAndLineFeed" => Ok(NewlineCanon::CarriageReturnAndLineFeed),
+                    _ => Err(serde::de::Error::unknown_variant(
+                        v,
+                        &[
+                            "None",
+                            "LineFeed",
+                            "CarriageReturn",
+                            "CarriageReturnAndLineFeed",
+                        ],
+                    )),
+                }
+            }
+        }
+
+        deserializer.deserialize_any(Helper)
     }
 }
 
