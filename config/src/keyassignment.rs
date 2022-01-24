@@ -268,6 +268,12 @@ pub struct QuickSelectArguments {
     /// Label to use in place of "copy" when `action` is set
     #[serde(default)]
     pub label: String,
+    /// How many lines before the viewport are considered, None for everything
+    #[serde(default)]
+    pub lines_before_viewport: Option<usize>,
+    /// How many lines after the viewport are considered, None for everything
+    #[serde(default)]
+    pub lines_after_viewport: Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

@@ -523,8 +523,7 @@ impl QuickSelectRenderable {
 
     fn compute_range(&self) -> Range<StableRowIndex> {
         let dims = self.delegate.get_dimensions();
-        let top = self.viewport.unwrap_or(dims.physical_top);
-        let bottom = (top + dims.viewport_rows as StableRowIndex).saturating_sub(1);
+                .saturating_sub(lines_before as isize)
         top..bottom
     }
 
