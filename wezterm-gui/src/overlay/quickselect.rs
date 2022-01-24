@@ -523,7 +523,20 @@ impl QuickSelectRenderable {
 
     fn compute_range(&self) -> Range<StableRowIndex> {
         let dims = self.delegate.get_dimensions();
+        let top = if let Some(lines_before) = self.args.lines_before_viewport {
+            self.viewport
+                .unwrap_or(dims.physical_top)
                 .saturating_sub(lines_before as isize)
+        } else {
+            dims.scrollback_top
+        };
+        let bottom = if let Some(lines_after) = self.args.lines_after_viewport {
+            (top + dims.viewport_rows as StableRowIndex)
+                .saturating_sub(1)
+                .saturating_add(lines_after as isize)
+        } else {
+            dims.scrollback_top + dims.scrollback_rows as StableRowIndex
+        };
         top..bottom
     }
 
@@ -653,7 +666,7 @@ impl QuickSelectRenderable {
             let pattern = self.pattern.clone();
             let range = self.compute_range();
             promise::spawn::spawn(async move {
-                let mut results = pane.search_range(pattern, range).await?;
+                let mut results = pane.search(pattern, Some(range)).await?;
                 results.sort();
 
                 let pane_id = pane.pane_id();

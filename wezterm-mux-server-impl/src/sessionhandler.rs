@@ -411,7 +411,7 @@ impl SessionHandler {
                         .get_pane(pane_id)
                         .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
 
-                    pane.search(pattern).await.map(|results| {
+                    pane.search(pattern, None).await.map(|results| {
                         Pdu::SearchScrollbackResponse(SearchScrollbackResponse { results })
                     })
                 }

@@ -453,7 +453,7 @@ impl SearchRenderable {
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             promise::spawn::spawn(async move {
-                let mut results = pane.search(pattern).await?;
+                let mut results = pane.search(pattern, None).await?;
                 results.sort();
 
                 let pane_id = pane.pane_id();

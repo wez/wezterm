@@ -447,10 +447,10 @@ impl Pane for LocalPane {
         term.get_semantic_zones()
     }
 
-    async fn search_range(
+    async fn search(
         &self,
         mut pattern: Pattern,
-        range: Range<StableRowIndex>,
+        range: Option<Range<StableRowIndex>>,
     ) -> anyhow::Result<Vec<SearchResult>> {
         let term = self.terminal.borrow();
         let screen = term.screen();
@@ -464,6 +464,13 @@ impl Pane for LocalPane {
         let mut haystack = String::new();
         let mut coords = vec![];
         let mut uniq_matches: HashMap<String, usize> = HashMap::new();
+        let range = range.unwrap_or_else(|| {
+            let dim = self.get_dimensions();
+            dim.scrollback_top
+                ..dim
+                    .scrollback_top
+                    .saturating_add(dim.scrollback_rows as isize)
+        });
 
         #[derive(Copy, Clone)]
         struct Coord {
