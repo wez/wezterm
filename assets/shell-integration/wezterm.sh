@@ -13,12 +13,12 @@
 # WEZTERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting
 
 # shellcheck disable=SC2166
-if [ -z "${BASH_VERSION}" -a -z "${ZSH_NAME}" ] ; then
+if [ -z "${BASH_VERSION-}" -a -z "${ZSH_NAME-}" ] ; then
   # Only for bash or zsh
   return 0
 fi
 
-if [ "${WEZTERM_SHELL_SKIP_ALL}" = "1" ] ; then
+if [ "${WEZTERM_SHELL_SKIP_ALL-}" = "1" ] ; then
   return 0
 fi
 
@@ -27,7 +27,7 @@ if [[ $- != *i* ]] ; then
   return 0
 fi
 
-case "$TERM" in
+case "${TERM-}" in
   linux | dumb )
     # Avoid terminals that don't like OSC sequences
     return 0
@@ -385,7 +385,7 @@ fi;
 
 # blesh provides it's own preexec mechanism which is recommended over bash-preexec
 # See https://github.com/akinomyoga/ble.sh/wiki/Manual-%C2%A71-Introduction#user-content-fn-blehook for more details
-if [[ ! -n "$BLE_VERSION" ]]; then
+if [[ ! -n "${BLE_VERSION-}" ]]; then
   __wezterm_install_bash_prexec
 fi
 
@@ -413,7 +413,7 @@ __wezterm_semantic_precmd() {
     __wezterm_save_ps2="$PS2"
     # Markup the left and right prompts so that the terminal
     # knows that they are semantically prompt output.
-    if [[ -n "$ZSH_NAME" ]] ; then
+    if [[ -n "${ZSH_NAME-}" ]] ; then
       PS1=$'%{\e]133;P;k=i\a%}'$PS1$'%{\e]133;B\a%}'
       PS2=$'%{\e]133;P;k=s\a%}'$PS2$'%{\e]133;B\a%}'
     else
@@ -442,8 +442,8 @@ function __wezterm_semantic_preexec() {
 # Register the various functions; take care to perform osc7 after
 # the semantic zones as we don't want to perturb the last command
 # status before we've had a chance to report it to the terminal
-if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES}" ]]; then
-  if [[ -n "$BLE_VERSION" ]]; then
+if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}" ]]; then
+  if [[ -n "${BLE_VERSION-}" ]]; then
     blehook PRECMD+=__wezterm_semantic_precmd
     blehook PREEXEC+=__wezterm_semantic_preexec
   else
@@ -452,8 +452,8 @@ if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES}" ]]; then
   fi
 fi
 
-if [[ -z "${WEZTERM_SHELL_SKIP_CWD}" ]] ; then
-  if [[ -n "$BLE_VERSION" ]]; then
+if [[ -z "${WEZTERM_SHELL_SKIP_CWD-}" ]] ; then
+  if [[ -n "${BLE_VERSION-}" ]]; then
     blehook PRECMD+=__wezterm_osc7
   else
     precmd_functions+=(__wezterm_osc7)
