@@ -444,8 +444,8 @@ function __wezterm_semantic_preexec() {
 # status before we've had a chance to report it to the terminal
 if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}" ]]; then
   if [[ -n "${BLE_VERSION-}" ]]; then
-    blehook PRECMD+=__wezterm_semantic_precmd
-    blehook PREEXEC+=__wezterm_semantic_preexec
+    blehook PRECMD!=__wezterm_semantic_precmd
+    blehook PREEXEC!=__wezterm_semantic_preexec
   else
     precmd_functions+=(__wezterm_semantic_precmd)
     preexec_functions+=(__wezterm_semantic_preexec)
@@ -454,7 +454,7 @@ fi
 
 if [[ -z "${WEZTERM_SHELL_SKIP_CWD-}" ]] ; then
   if [[ -n "${BLE_VERSION-}" ]]; then
-    blehook PRECMD+=__wezterm_osc7
+    blehook PRECMD!=__wezterm_osc7
   else
     precmd_functions+=(__wezterm_osc7)
   fi
