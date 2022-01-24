@@ -444,6 +444,7 @@ function __wezterm_semantic_preexec() {
 # status before we've had a chance to report it to the terminal
 if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES-}" ]]; then
   if [[ -n "${BLE_VERSION-}" ]]; then
+    bleopt prompt_command_changes_layout:=1
     blehook PRECMD!=__wezterm_semantic_precmd
     blehook PREEXEC!=__wezterm_semantic_preexec
   else
