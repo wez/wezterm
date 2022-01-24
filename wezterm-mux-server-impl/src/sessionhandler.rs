@@ -8,6 +8,7 @@ use mux::tab::TabId;
 use mux::Mux;
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -402,23 +403,31 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::SearchScrollbackRequest(SearchScrollbackRequest { pane_id, pattern }) => {
+            Pdu::SearchScrollbackRequest(SearchScrollbackRequest {
+                pane_id,
+                pattern,
+                range,
+            }) => {
                 use mux::pane::Pattern;
 
-                async fn do_search(pane_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
+                async fn do_search(
+                    pane_id: TabId,
+                    pattern: Pattern,
+                    range: Option<Range<StableRowIndex>>,
+                ) -> anyhow::Result<Pdu> {
                     let mux = Mux::get().unwrap();
                     let pane = mux
                         .get_pane(pane_id)
                         .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
 
-                    pane.search(pattern, None).await.map(|results| {
+                    pane.search(pattern, range).await.map(|results| {
                         Pdu::SearchScrollbackResponse(SearchScrollbackResponse { results })
                     })
                 }
 
                 spawn_into_main_thread(async move {
                     promise::spawn::spawn(async move {
-                        let result = do_search(pane_id, pattern).await;
+                        let result = do_search(pane_id, pattern, range).await;
                         send_response(result);
                     })
                     .detach();
