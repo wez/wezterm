@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_bidi::ParagraphDirectionHint;
 
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
@@ -726,8 +727,17 @@ impl Line {
         })
     }
 
-    pub fn cluster(&self, cursor_idx: Option<usize>) -> Vec<CellCluster> {
-        CellCluster::make_cluster(self.cells.len(), self.visible_cells(), cursor_idx)
+    pub fn cluster(
+        &self,
+        cursor_idx: Option<usize>,
+        bidi_hint: Option<ParagraphDirectionHint>,
+    ) -> Vec<CellCluster> {
+        CellCluster::make_cluster(
+            self.cells.len(),
+            self.visible_cells(),
+            cursor_idx,
+            bidi_hint,
+        )
     }
 
     pub fn cells(&self) -> &[Cell] {

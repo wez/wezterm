@@ -534,6 +534,9 @@ pub struct Config {
     #[serde(default)]
     pub experimental_pixel_positioning: bool,
 
+    #[serde(default)]
+    pub experimental_bidi: bool,
+
     #[serde(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,
 

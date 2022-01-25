@@ -18,6 +18,7 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use termwiz::cell::CellAttributes;
 use termwiz::surface::{Line, SEQ_ZERO};
+use wezterm_bidi::{Direction, ParagraphDirectionHint};
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
@@ -674,14 +675,20 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
     )?;
 
+    let bidi_hint = if config.experimental_bidi {
+        Some(ParagraphDirectionHint::LeftToRight)
+    } else {
+        None
+    };
+
     if let Some(text) = &cmd.text {
         let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
-        let cell_clusters = line.cluster(None);
+        let cell_clusters = line.cluster(None, bidi_hint);
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
             let infos = font
-                .blocking_shape(&cluster.text, Some(cluster.presentation))
+                .blocking_shape(&cluster.text, Some(cluster.presentation), cluster.direction)
                 .unwrap();
 
             // We must grab the handles after shaping, so that we get the
@@ -689,12 +696,31 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             let handles = font.clone_handles();
 
             let mut iter = infos.iter().peekable();
+
+            let mut byte_lens = vec![];
+            for c in cluster.text.chars() {
+                let len = c.len_utf8();
+                for _ in 0..len {
+                    byte_lens.push(len);
+                }
+            }
+
+            println!("{:?}", cluster.direction);
+
             while let Some(info) = iter.next() {
                 let idx = cluster.byte_to_cell_idx(info.cluster as usize);
-                let text = if let Some(ahead) = iter.peek() {
-                    line.columns_as_str(idx..cluster.byte_to_cell_idx(ahead.cluster as usize))
+
+                let text = if cluster.direction == Direction::LeftToRight {
+                    if let Some(next) = iter.peek() {
+                        line.columns_as_str(idx..cluster.byte_to_cell_idx(next.cluster as usize))
+                    } else {
+                        let last_idx = cluster.byte_to_cell_idx(cluster.text.len() - 1);
+                        line.columns_as_str(idx..last_idx + 1)
+                    }
                 } else {
-                    line.columns_as_str(idx..line.cells().len())
+                    let info_len = byte_lens[info.cluster as usize];
+                    let last_idx = cluster.byte_to_cell_idx(info.cluster as usize + info_len - 1);
+                    line.columns_as_str(idx..last_idx + 1)
                 };
 
                 let parsed = &handles[info.font_idx];
@@ -710,7 +736,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 }
 
                 println!(
-                    "{:4} {:12} x_adv={:<2} glyph={:<4} {}\n{:38}{}",
+                    "{:2} {:4} {:12} x_adv={:<2} glyph={:<4} {}\n{:38}{}",
+                    info.cluster,
                     text,
                     escaped,
                     info.x_advance.get(),

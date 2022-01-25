@@ -29,6 +29,7 @@ walkdir = "2"
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
+wezterm-bidi = { path = "../bidi" }
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 fontconfig = { path = "../deps/fontconfig" }

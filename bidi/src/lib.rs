@@ -15,6 +15,13 @@ pub use bidi_class::BidiClass;
 pub use direction::Direction;
 pub use level::Level;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParagraphDirectionHint {
+    LeftToRight,
+    RightToLeft,
+    AutoLeftToRight,
+}
+
 #[derive(Debug, Default)]
 pub struct BidiContext {
     orig_char_types: Vec<BidiClass>,
@@ -275,9 +282,9 @@ impl BidiContext {
     }
 
     /// <http://unicode.org/reports/tr9/>
-    pub fn resolve_paragraph(&mut self, paragraph: &[char], dir: Option<Direction>) {
+    pub fn resolve_paragraph(&mut self, paragraph: &[char], hint: ParagraphDirectionHint) {
         self.populate_char_types(paragraph);
-        self.resolve(dir, paragraph);
+        self.resolve(hint, paragraph);
     }
 
     /// BD1: The bidirectional character types are values assigned to each
@@ -289,21 +296,21 @@ impl BidiContext {
             .extend(paragraph.iter().map(|&c| bidi_class_for_char(c)));
     }
 
-    pub fn set_char_types(&mut self, char_types: &[BidiClass], dir: Option<Direction>) {
+    pub fn set_char_types(&mut self, char_types: &[BidiClass], hint: ParagraphDirectionHint) {
         self.orig_char_types.clear();
         self.orig_char_types.extend(char_types);
-        self.resolve(dir, &[]);
+        self.resolve(hint, &[]);
     }
 
-    fn resolve(&mut self, dir: Option<Direction>, paragraph: &[char]) {
+    fn resolve(&mut self, hint: ParagraphDirectionHint, paragraph: &[char]) {
         trace!("\n**** resolve \n");
         self.char_types.clear();
         self.char_types.extend(self.orig_char_types.iter());
 
-        self.base_level = match dir {
-            Some(Direction::LeftToRight) => Level(0),
-            Some(Direction::RightToLeft) => Level(1),
-            None => paragraph_level(&self.char_types, false),
+        self.base_level = match hint {
+            ParagraphDirectionHint::LeftToRight => Level(0),
+            ParagraphDirectionHint::RightToLeft => Level(1),
+            ParagraphDirectionHint::AutoLeftToRight => paragraph_level(&self.char_types, false),
         };
 
         self.dump_state("before X1-X8");
@@ -1857,7 +1864,7 @@ mod tests {
         let text = vec!['א', 'ב', 'ג', 'a', 'b', 'c'];
 
         let mut context = BidiContext::new();
-        context.resolve_paragraph(&text, None);
+        context.resolve_paragraph(&text, ParagraphDirectionHint::AutoLeftToRight);
         k9::snapshot!(
             context.runs().collect::<Vec<_>>(),
             "
@@ -1971,9 +1978,9 @@ mod tests {
             context.resolve_paragraph(
                 &codepoints,
                 match direction {
-                    0 => Some(Direction::LeftToRight),
-                    1 => Some(Direction::RightToLeft),
-                    2 => None,
+                    0 => ParagraphDirectionHint::LeftToRight,
+                    1 => ParagraphDirectionHint::RightToLeft,
+                    2 => ParagraphDirectionHint::AutoLeftToRight,
                     _ => panic!("invalid direction code {}", direction),
                 },
             );
@@ -2086,15 +2093,15 @@ mod tests {
             let inputs: Vec<BidiClass> = fields[0].split_whitespace().map(class_by_name).collect();
             let bitset: u32 = fields[1].trim().parse().unwrap();
 
-            let mut directions: Vec<Option<Direction>> = vec![];
+            let mut directions: Vec<ParagraphDirectionHint> = vec![];
             if bitset & 1 == 1 {
-                directions.push(None);
+                directions.push(ParagraphDirectionHint::AutoLeftToRight);
             }
             if bitset & 2 == 2 {
-                directions.push(Some(Direction::LeftToRight));
+                directions.push(ParagraphDirectionHint::LeftToRight);
             }
             if bitset & 4 == 4 {
-                directions.push(Some(Direction::RightToLeft));
+                directions.push(ParagraphDirectionHint::RightToLeft);
             }
 
             let mut printed_summary = false;

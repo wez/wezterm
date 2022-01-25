@@ -1,4 +1,4 @@
-use wezterm_bidi::{BidiContext, Direction};
+use wezterm_bidi::{BidiContext, Direction, ParagraphDirectionHint};
 
 fn main() {
     // The UBA is strongly coupled with codepoints and indices into the
@@ -12,10 +12,10 @@ fn main() {
     // Leave it to the algorithm to determine the paragraph direction.
     // If you have some higher level understanding or override for the
     // direction, you can set `direction` accordingly.
-    let direction: Option<Direction> = None;
+    let hint = ParagraphDirectionHint::AutoLeftToRight;
 
     // Resolve the embedding levels for our paragraph.
-    context.resolve_paragraph(&paragraph, direction);
+    context.resolve_paragraph(&paragraph, hint);
 
     /// In order to layout the text, we need to feed information to a shaper.
     /// For the purposes of example, we're sketching out a stub shaper interface

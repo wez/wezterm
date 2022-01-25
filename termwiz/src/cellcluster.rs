@@ -1,6 +1,7 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::emoji::Presentation;
 use std::borrow::Cow;
+use wezterm_bidi::{BidiContext, Direction, ParagraphDirectionHint};
 
 /// A `CellCluster` is another representation of a Line.
 /// A `Vec<CellCluster>` is produced by walking through the Cells in
@@ -13,6 +14,7 @@ pub struct CellCluster {
     pub text: String,
     pub width: usize,
     pub presentation: Presentation,
+    pub direction: Direction,
     byte_to_cell_idx: Vec<usize>,
     byte_to_cell_width: Vec<u8>,
     pub first_cell_idx: usize,
@@ -46,6 +48,7 @@ impl CellCluster {
         hint: usize,
         iter: impl Iterator<Item = (usize, &'a Cell)>,
         cursor_idx: Option<usize>,
+        bidi_hint: Option<ParagraphDirectionHint>,
     ) -> Vec<CellCluster> {
         let mut last_cluster = None;
         let mut clusters = Vec::new();
@@ -64,7 +67,7 @@ impl CellCluster {
                 Cow::Borrowed(c.attrs())
             };
 
-            let is_cursor_boundary = Some(cell_idx) == cursor_idx;
+            let is_cursor_boundary = bidi_hint.is_none() && Some(cell_idx) == cursor_idx;
             let was_cursor = last_was_cursor;
             last_was_cursor = is_cursor_boundary;
 
@@ -143,7 +146,78 @@ impl CellCluster {
             clusters.push(cluster);
         }
 
-        clusters
+        if let Some(hint) = bidi_hint {
+            let mut resolved_clusters = vec![];
+
+            let mut context = BidiContext::new();
+            for cluster in clusters {
+                Self::resolve_bidi(&mut context, hint, cluster, &mut resolved_clusters);
+            }
+
+            resolved_clusters
+        } else {
+            clusters
+        }
+    }
+
+    fn resolve_bidi(
+        context: &mut BidiContext,
+        hint: ParagraphDirectionHint,
+        cluster: CellCluster,
+        resolved: &mut Vec<Self>,
+    ) {
+        let mut paragraph = Vec::with_capacity(cluster.text.len());
+        let mut codepoint_index_to_byte_idx = Vec::with_capacity(cluster.text.len());
+        for (byte_idx, c) in cluster.text.char_indices() {
+            codepoint_index_to_byte_idx.push(byte_idx);
+            paragraph.push(c);
+        }
+
+        context.resolve_paragraph(&paragraph, hint);
+        for run in context.runs() {
+            let mut text = String::with_capacity(run.range.end - run.range.start);
+            let mut byte_to_cell_idx = vec![];
+            let mut byte_to_cell_width = vec![];
+            let mut width = 0usize;
+            let mut first_cell_idx = None;
+
+            for cp_idx in run.indices() {
+                let cp = paragraph[cp_idx];
+                text.push(cp);
+
+                let original_byte = codepoint_index_to_byte_idx[cp_idx];
+                let cell_width = cluster.byte_to_cell_width(original_byte);
+                width += cell_width as usize;
+
+                let cell_idx = cluster.byte_to_cell_idx(original_byte);
+                if first_cell_idx.is_none() {
+                    first_cell_idx.replace(cell_idx);
+                }
+
+                if !cluster.byte_to_cell_width.is_empty() {
+                    for _ in 0..cp.len_utf8() {
+                        byte_to_cell_width.push(cell_width);
+                    }
+                }
+
+                if !cluster.byte_to_cell_idx.is_empty() {
+                    for _ in 0..cp.len_utf8() {
+                        byte_to_cell_idx.push(cell_idx);
+                    }
+                }
+            }
+
+            resolved.push(CellCluster {
+                attrs: cluster.attrs.clone(),
+                text,
+                width,
+                direction: run.direction,
+                presentation: cluster.presentation,
+                byte_to_cell_width,
+                byte_to_cell_idx,
+                first_cell_idx: first_cell_idx.unwrap(),
+            });
+        }
     }
 
     /// Start off a new cluster with some initial data
@@ -182,6 +256,7 @@ impl CellCluster {
             byte_to_cell_idx: idx,
             byte_to_cell_width,
             first_cell_idx: cell_idx,
+            direction: Direction::LeftToRight,
         }
     }
 

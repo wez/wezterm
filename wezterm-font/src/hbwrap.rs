@@ -98,6 +98,12 @@ impl Buffer {
             unsafe { hb_buffer_allocation_successful(buf) } != 0,
             "hb_buffer_create failed"
         );
+        unsafe {
+            hb_buffer_set_content_type(
+                buf,
+                harfbuzz::hb_buffer_content_type_t::HB_BUFFER_CONTENT_TYPE_UNICODE,
+            )
+        };
         Ok(Buffer { buf })
     }
 

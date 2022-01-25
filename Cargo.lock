@@ -4125,6 +4125,7 @@ dependencies = [
  "unicode-segmentation",
  "varbincode",
  "vtparse",
+ "wezterm-bidi",
  "winapi 0.3.9",
 ]
 
@@ -4728,6 +4729,7 @@ dependencies = [
  "unicode-general-category",
  "unicode-segmentation",
  "walkdir",
+ "wezterm-bidi",
  "wezterm-input-types",
  "wezterm-term",
  "wezterm-toast-notification",
@@ -4795,6 +4797,7 @@ dependencies = [
  "unicode-width",
  "url",
  "walkdir",
+ "wezterm-bidi",
  "wezterm-client",
  "wezterm-font",
  "wezterm-gui-subcommands",

@@ -33,6 +33,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
+use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
@@ -1759,6 +1760,12 @@ impl super::TermWindow {
 
         let mut composition_width = 0;
 
+        let bidi_hint = if self.config.experimental_bidi {
+            Some(ParagraphDirectionHint::LeftToRight)
+        } else {
+            None
+        };
+
         // Do we need to shape immediately, or can we use the pre-shaped data?
         let to_shape = if let Some(composing) = composing {
             // Create an updated line with the composition overlaid
@@ -1769,11 +1776,11 @@ impl super::TermWindow {
                 CellAttributes::blank(),
                 termwiz::surface::SEQ_ZERO,
             );
-            cell_clusters = line.cluster(cursor_idx);
+            cell_clusters = line.cluster(cursor_idx, bidi_hint);
             composition_width = unicode_column_width(composing, None);
             Some(&cell_clusters)
         } else if params.pre_shaped.is_none() {
-            cell_clusters = params.line.cluster(cursor_idx);
+            cell_clusters = params.line.cluster(cursor_idx, bidi_hint);
             Some(&cell_clusters)
         } else {
             None
@@ -2678,6 +2685,7 @@ impl super::TermWindow {
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
                     BlockKey::filter_out_synthetic,
                     Some(cluster.presentation),
+                    cluster.direction,
                 ) {
                     Ok(info) => {
                         let glyphs = self.glyph_infos_to_glyphs(
