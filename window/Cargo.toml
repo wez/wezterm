@@ -42,6 +42,7 @@ resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
 tiny-skia = "0.6"
 glium = { version = "0.30", default-features = false, git = "https://github.com/glium/glium.git", rev="aed95270f0714036003589d6e52de196e7ff75d1" }
+wezterm-bidi = { path = "../bidi" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 

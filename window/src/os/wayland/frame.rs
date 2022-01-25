@@ -462,6 +462,7 @@ impl ConceptFrame {
                     // We don't do synthesis here, so no need to filter
                 },
                 None,
+                wezterm_bidi::Direction::LeftToRight,
             )
             .ok()?;
 

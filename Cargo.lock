@@ -5052,6 +5052,7 @@ dependencies = [
  "wayland-client",
  "wayland-egl",
  "wayland-protocols",
+ "wezterm-bidi",
  "wezterm-font",
  "wezterm-input-types",
  "winapi 0.3.9",
