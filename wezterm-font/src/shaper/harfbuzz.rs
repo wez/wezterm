@@ -364,9 +364,13 @@ impl HarfbuzzShaper {
         let mut direct_clusters = 0;
 
         for infos in &info_clusters {
-            let cluster_len: usize = infos.iter().map(|info| info.len).sum();
             let cluster_start = infos.iter().map(|info| info.cluster).min().unwrap_or(0);
-            let substr = &s[cluster_start..cluster_start + cluster_len];
+            let cluster_end: usize = infos
+                .iter()
+                .map(|info| info.cluster + info.len)
+                .max()
+                .unwrap();
+            let substr = &s[cluster_start..cluster_end];
 
             let incomplete = infos.iter().find(|info| info.codepoint == 0).is_some();
 
