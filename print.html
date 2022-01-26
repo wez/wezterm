@@ -13546,8 +13546,9 @@ panes and tabs.  The following values are recognized for <code>assume_shell</cod
 <ul>
 <li><code>&quot;Unknown&quot;</code> - this is the default. We can't make any assumptions about the
 remote shell.</li>
-<li><code>&quot;Posix&quot;</code> - the remote host uses a Bourne Shell compatible shell that allows
-the syntax <code>cd DIR ; exec CMD</code> and <code>cd DIR ; exec $SHELL</code>.</li>
+<li><code>&quot;Posix&quot;</code> - the remote host uses a POSIX/Bourne Shell compatible environment
+that allows the syntax <code>env -c DIR ENV1=VAL1 ENV2=VAL2 CMD</code> and
+<code>env -c DIR ENV1=VAL1 ENV2=VAL2 $SHELL</code>.</li>
 </ul>
 <pre><code class="language-lua">return {
   ssh_domains = {
@@ -13564,7 +13565,7 @@ the syntax <code>cd DIR ; exec CMD</code> and <code>cd DIR ; exec $SHELL</code>.
       default_prog = {&quot;fish&quot;},
 
       -- assume that we can use syntax like:
-      -- &quot;cd /some/where ; exec $SHELL&quot;
+      -- &quot;env -C /some/where $SHELL&quot;
       -- using whatever the default command shell is on this
       -- remote host, so that shell integration will respect
       -- the current directory on the remote host.
