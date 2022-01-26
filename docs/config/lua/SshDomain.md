@@ -76,9 +76,9 @@ panes and tabs.  The following values are recognized for `assume_shell`:
 
 * `"Unknown"` - this is the default. We can't make any assumptions about the
   remote shell.
-* `"Posix"` - the remote host uses a Bourne Shell compatible shell that allows
-  the syntax `cd DIR ; exec CMD` and `cd DIR ; exec $SHELL`.
-
+* `"Posix"` - the remote host uses a POSIX/Bourne Shell compatible environment
+  that allows the syntax `env -c DIR ENV1=VAL1 ENV2=VAL2 CMD` and
+  `env -c DIR ENV1=VAL1 ENV2=VAL2 $SHELL`.
 
 ```lua
 return {
@@ -96,7 +96,7 @@ return {
       default_prog = {"fish"},
 
       -- assume that we can use syntax like:
-      -- "cd /some/where ; exec $SHELL"
+      -- "env -C /some/where $SHELL"
       -- using whatever the default command shell is on this
       -- remote host, so that shell integration will respect
       -- the current directory on the remote host.

@@ -2323,6 +2323,7 @@ dependencies = [
  "ratelim",
  "regex",
  "serde",
+ "shell-words",
  "smol",
  "terminfo",
  "termwiz",

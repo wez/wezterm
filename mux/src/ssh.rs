@@ -213,13 +213,43 @@ impl RemoteSshDomain {
             .iter_extra_env_as_str()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+
+        // FIXME: this isn't useful without a way to talk to the remote mux.
+        // One option is to forward the mux via unix domain, another is to
+        // embed the mux protocol in an escape sequence and just use the
+        // existing terminal connection
+        env.insert("WEZTERM_REMOTE_PANE".to_string(), pane_id.to_string());
+
+        fn build_env_command(
+            dir: Option<String>,
+            cmd: &CommandBuilder,
+            env: &HashMap<String, String>,
+        ) -> anyhow::Result<String> {
+            let mut env_cmd = vec!["env".to_string()];
+            if let Some(dir) = dir {
+                env_cmd.push("-C".to_string());
+                env_cmd.push(dir.clone());
+            } else if let Some(dir) = cmd.get_cwd() {
+                let dir = dir.to_str().context("converting cwd to string")?;
+                env_cmd.push("-C".to_string());
+                env_cmd.push(dir.to_string());
+            }
+
+            for (k, v) in env {
+                env_cmd.push(format!("{}={}", k, v));
+            }
+
+            let cmd = if cmd.is_default_prog() {
+                "$SHELL".to_string()
+            } else {
+                cmd.as_unix_command_line()?
+            };
+
+            Ok(shell_words::join(env_cmd) + " " + &cmd)
+        }
 
         let command_line = match (cmd.is_default_prog(), self.dom.assume_shell, command_dir) {
-            (true, Shell::Posix, Some(dir)) => Some(format!("cd {} ; exec $SHELL", dir)),
-            (false, Shell::Posix, Some(dir)) => {
-                Some(format!("cd {} ; exec {}", dir, cmd.as_unix_command_line()?))
-            }
+            (_, Shell::Posix, dir) => Some(build_env_command(dir, &cmd, &env)?),
             (true, _, _) => None,
             (false, _, _) => Some(cmd.as_unix_command_line()?),
         };
