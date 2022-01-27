@@ -133,6 +133,21 @@ impl<'a> Iterator for RunIter<'a> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReorderedRun {
+    /// The direction for this run.  Derived from the level.
+    pub direction: Direction,
+
+    /// Embedding level of this run.
+    pub level: Level,
+
+    /// The starting and ending codepoint indices for this run
+    pub range: Range<usize>,
+
+    /// The indices in their adjusted order
+    pub indices: Vec<usize>,
+}
+
 fn span_len(start: usize, levels: &[Level]) -> usize {
     let starting_level = levels[start];
     levels
@@ -169,6 +184,28 @@ impl BidiContext {
             levels: levels.into(),
             line_range,
         }
+    }
+
+    pub fn reordered_runs(&self, line_range: Range<usize>) -> Vec<ReorderedRun> {
+        let (levels, reordered) = self.reorder_line(line_range);
+        let mut runs = vec![];
+
+        let mut idx = 0;
+        while idx < levels.len() {
+            let len = span_len(idx, &levels);
+            let level = levels[idx];
+            if !level.removed_by_x9() {
+                runs.push(ReorderedRun {
+                    direction: level.direction(),
+                    level,
+                    range: idx..idx + len,
+                    indices: reordered[idx..idx + len].to_vec(),
+                });
+            }
+            idx += len;
+        }
+
+        runs
     }
 
     /// `line_range` indicates a contiguous range of character indices
@@ -274,10 +311,7 @@ impl BidiContext {
             }
         }
 
-        log::error!("visual before retain: {:?}", visual);
         visual.retain(|&i| i != DELETED);
-        log::error!("visual after retain: {:?}", visual);
-
         visual
     }
 
