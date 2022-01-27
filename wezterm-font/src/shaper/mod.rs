@@ -1,5 +1,6 @@
 use crate::parser::ParsedFont;
 use crate::units::PixelLength;
+use std::ops::Range;
 use termwiz::cell::Presentation;
 
 pub mod harfbuzz;
@@ -81,6 +82,7 @@ pub trait FontShaper {
         no_glyphs: &mut Vec<char>,
         presentation: Option<termwiz::cell::Presentation>,
         direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font

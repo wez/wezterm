@@ -11,6 +11,7 @@ use config::{
 use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
@@ -116,6 +117,7 @@ impl LoadedFont {
         text: &str,
         presentation: Option<Presentation>,
         direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         loop {
             let (tx, rx) = channel();
@@ -128,6 +130,7 @@ impl LoadedFont {
                 |_| {},
                 presentation,
                 direction,
+                range.clone(),
             ) {
                 Ok(tuple) => tuple,
                 Err(err) if err.downcast_ref::<ClearShapeCache>().is_some() => {
@@ -152,6 +155,7 @@ impl LoadedFont {
         filter_out_synthetic: FS,
         presentation: Option<Presentation>,
         direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let (_async_resolve, res) = self.shape_impl(
             text,
@@ -159,6 +163,7 @@ impl LoadedFont {
             filter_out_synthetic,
             presentation,
             direction,
+            range,
         )?;
         Ok(res)
     }
@@ -170,6 +175,7 @@ impl LoadedFont {
         filter_out_synthetic: FS,
         presentation: Option<Presentation>,
         direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<(bool, Vec<GlyphInfo>)> {
         let mut no_glyphs = vec![];
 
@@ -193,6 +199,7 @@ impl LoadedFont {
             &mut no_glyphs,
             presentation,
             direction,
+            range,
         );
 
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');

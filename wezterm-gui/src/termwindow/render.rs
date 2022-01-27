@@ -2686,6 +2686,7 @@ impl super::TermWindow {
                     BlockKey::filter_out_synthetic,
                     Some(cluster.presentation),
                     cluster.direction,
+                    None, // FIXME: need more paragraph context
                 ) {
                     Ok(info) => {
                         let glyphs = self.glyph_infos_to_glyphs(

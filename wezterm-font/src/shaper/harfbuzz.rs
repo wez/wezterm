@@ -8,6 +8,7 @@ use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
+use std::ops::Range;
 use termwiz::cell::{unicode_column_width, Presentation};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
@@ -187,6 +188,7 @@ impl HarfbuzzShaper {
         no_glyphs: &mut Vec<char>,
         presentation: Option<Presentation>,
         direction: Direction,
+        range: Range<usize>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut buf = harfbuzz::Buffer::new()?;
         // We deliberately omit setting the script and leave it to harfbuzz
@@ -201,7 +203,7 @@ impl HarfbuzzShaper {
         });
         buf.set_language(self.lang);
 
-        buf.add_str(s);
+        buf.add_str(s, range.clone());
         let mut cluster_to_len = vec![];
         for c in s.chars() {
             let len = c.len_utf8();
@@ -288,6 +290,7 @@ impl HarfbuzzShaper {
                     no_glyphs,
                     None,
                     direction,
+                    range,
                 );
             }
         }
@@ -370,7 +373,8 @@ impl HarfbuzzShaper {
                 .map(|info| info.cluster + info.len)
                 .max()
                 .unwrap();
-            let substr = &s[cluster_start..cluster_end];
+            let sub_range = cluster_start..cluster_end;
+            let substr = &s[sub_range.clone()];
 
             let incomplete = infos.iter().find(|info| info.codepoint == 0).is_some();
 
@@ -386,12 +390,13 @@ impl HarfbuzzShaper {
 
                 let mut shape = match self.do_shape(
                     font_idx + 1,
-                    substr,
+                    s,
                     font_size,
                     dpi,
                     no_glyphs,
                     presentation,
                     direction,
+                    sub_range.clone(),
                 ) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
@@ -404,14 +409,11 @@ impl HarfbuzzShaper {
                             no_glyphs,
                             presentation,
                             direction,
+                            0..substr.len(),
                         )
                     }
                 }?;
 
-                // Fixup the cluster member to match our current offset
-                for mut info in &mut shape {
-                    info.cluster += cluster_start as u32;
-                }
                 cluster.append(&mut shape);
                 continue;
             }
@@ -485,10 +487,22 @@ impl FontShaper for HarfbuzzShaper {
         no_glyphs: &mut Vec<char>,
         presentation: Option<Presentation>,
         direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
+        let range = range.unwrap_or_else(|| 0..text.len());
+
         log::trace!("shape byte_len={} `{}`", text.len(), text.escape_debug());
         let start = std::time::Instant::now();
-        let result = self.do_shape(0, text, size, dpi, no_glyphs, presentation, direction);
+        let result = self.do_shape(
+            0,
+            text,
+            size,
+            dpi,
+            no_glyphs,
+            presentation,
+            direction,
+            range,
+        );
         metrics::histogram!("shape.harfbuzz", start.elapsed());
         /*
         if let Ok(glyphs) = &result {

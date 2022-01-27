@@ -688,7 +688,12 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
             let infos = font
-                .blocking_shape(&cluster.text, Some(cluster.presentation), cluster.direction)
+                .blocking_shape(
+                    &cluster.text,
+                    Some(cluster.presentation),
+                    cluster.direction,
+                    None,
+                )
                 .unwrap();
 
             // We must grab the handles after shaping, so that we get the

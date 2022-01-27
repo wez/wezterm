@@ -463,6 +463,7 @@ impl ConceptFrame {
                 },
                 None,
                 wezterm_bidi::Direction::LeftToRight,
+                None,
             )
             .ok()?;
 

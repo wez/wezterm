@@ -4,6 +4,7 @@ use freetype;
 pub use harfbuzz::*;
 
 use anyhow::{ensure, Error};
+use std::ops::Range;
 use std::os::raw::c_char;
 use std::{mem, slice};
 
@@ -121,7 +122,6 @@ impl Buffer {
         }
     }
 
-    #[allow(dead_code)]
     pub fn set_direction(&mut self, direction: hb_direction_t) {
         unsafe {
             hb_buffer_set_direction(self.buf, direction);
@@ -148,20 +148,24 @@ impl Buffer {
         }
     }
 
-    pub fn add_utf8(&mut self, buf: &[u8]) {
+    #[allow(dead_code)]
+    pub fn reverse(&mut self) {
         unsafe {
-            hb_buffer_add_utf8(
-                self.buf,
-                buf.as_ptr() as *const c_char,
-                buf.len() as i32,
-                0,
-                buf.len() as i32,
-            );
+            hb_buffer_reverse_clusters(self.buf);
         }
     }
 
-    pub fn add_str(&mut self, s: &str) {
-        self.add_utf8(s.as_bytes())
+    pub fn add_str(&mut self, paragraph: &str, range: Range<usize>) {
+        let bytes = paragraph.as_bytes();
+        unsafe {
+            hb_buffer_add_utf8(
+                self.buf,
+                bytes.as_ptr() as *const c_char,
+                bytes.len() as i32,
+                range.start as u32,
+                (range.end - range.start) as i32,
+            );
+        }
     }
 
     /// Returns glyph information.  This is only valid after calling
