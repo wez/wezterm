@@ -271,6 +271,22 @@ to an appropriate invocation of netcat/socat on Windows:</p>
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify the round-trip latency threshold for enabling predictive
+local echo using <code>local_echo_threshold_ms</code>. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</code>.</p>
+<pre><code class="language-lua">return {
+  unix_domains = {
+    {
+      name = &quot;unix&quot;,
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+</code></pre>
 <h3 id="connecting-into-windows-subsystem-for-linux"><a class="header" href="#connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
 <p><em>Note: this only works with WSL 1. <a href="https://github.com/microsoft/WSL/issues/5961">WSL 2 doesn't support AF_UNIX interop</a></em></p>
 <p>Inside your WSL instance, configure <code>.wezterm.lua</code> with this snippet:</p>

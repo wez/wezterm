@@ -244,6 +244,22 @@ that allows the syntax <code>env -c DIR ENV1=VAL1 ENV2=VAL2 CMD</code> and
   default_domain = &quot;my.server&quot;,
 }
 </code></pre>
+<p>You may now specify the round-trip latency threshold for enabling predictive
+local echo using <code>local_echo_threshold_ms</code>. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</code>.</p>
+<pre><code class="language-lua">return {
+  ssh_domains = {
+    {
+      name = &quot;my.server&quot;,
+      remote_address = &quot;192.168.1.1&quot;,
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+</code></pre>
 
                     </main>
 

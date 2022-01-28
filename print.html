@@ -4921,6 +4921,22 @@ to an appropriate invocation of netcat/socat on Windows:</p>
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify the round-trip latency threshold for enabling predictive
+local echo using <code>local_echo_threshold_ms</code>. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</code>.</p>
+<pre><code class="language-lua">return {
+  unix_domains = {
+    {
+      name = &quot;unix&quot;,
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+</code></pre>
 <h3 id="connecting-into-windows-subsystem-for-linux"><a class="header" href="#connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
 <p><em>Note: this only works with WSL 1. <a href="https://github.com/microsoft/WSL/issues/5961">WSL 2 doesn't support AF_UNIX interop</a></em></p>
 <p>Inside your WSL instance, configure <code>.wezterm.lua</code> with this snippet:</p>
@@ -13576,6 +13592,22 @@ that allows the syntax <code>env -c DIR ENV1=VAL1 ENV2=VAL2 CMD</code> and
   default_domain = &quot;my.server&quot;,
 }
 </code></pre>
+<p>You may now specify the round-trip latency threshold for enabling predictive
+local echo using <code>local_echo_threshold_ms</code>. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</code>.</p>
+<pre><code class="language-lua">return {
+  ssh_domains = {
+    {
+      name = &quot;my.server&quot;,
+      remote_address = &quot;192.168.1.1&quot;,
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="spawncommand"><a class="header" href="#spawncommand">SpawnCommand</a></h1>
 <p>The <code>SpawnCommand</code> struct specifies information about a new command
 to be spawned.</p>
@@ -13694,6 +13726,24 @@ to a <a href="config/lua/../../multiplexing.html#tls-domains">TLS Domain</a>.</p
 
     -- The path to the wezterm binary on the remote host
     -- remote_wezterm_path = &quot;/home/myname/bin/wezterm&quot;
+}
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify the round-trip latency threshold for enabling predictive
+local echo using <code>local_echo_threshold_ms</code>. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</code>.</p>
+<pre><code class="language-lua">return {
+  tls_domains = {
+    {
+      name = &quot;server,name&quot;,
+      bootstrap_via_ssh = &quot;server.hostname&quot;,
+      remote_address = &quot;server.hostname:8080&quot;,
+      local_echo_threshold_ms = 10,
+    }
+  },
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="tlsdomainserver"><a class="header" href="#tlsdomainserver">TlsDomainServer</a></h1>
