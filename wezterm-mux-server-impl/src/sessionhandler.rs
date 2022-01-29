@@ -99,14 +99,10 @@ impl PerPane {
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
-            .filter_map(|(idx, line)| {
-                if line.changed_since(self.seqno) {
-                    let stable_row = first_line + idx as StableRowIndex;
-                    all_dirty_lines.remove(stable_row);
-                    Some((stable_row, line))
-                } else {
-                    None
-                }
+            .map(|(idx, line)| {
+                let stable_row = first_line + idx as StableRowIndex;
+                all_dirty_lines.remove(stable_row);
+                (stable_row, line)
             })
             .collect::<Vec<_>>();
 
