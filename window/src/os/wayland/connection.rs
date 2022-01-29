@@ -60,14 +60,18 @@ impl WaylandConnection {
             toolkit::new_default_environment!(MyEnvironment, desktop)?;
 
         let mut pointer = None;
+        let mut seat_keyboards = HashMap::new();
 
         for seat in environment.get_all_seats() {
-            if let Some((has_kbd, has_ptr)) = toolkit::seat::with_seat_data(&seat, |seat_data| {
-                (
-                    seat_data.has_keyboard && !seat_data.defunct,
-                    seat_data.has_pointer && !seat_data.defunct,
-                )
-            }) {
+            if let Some((has_kbd, has_ptr, name)) =
+                toolkit::seat::with_seat_data(&seat, |seat_data| {
+                    (
+                        seat_data.has_keyboard && !seat_data.defunct,
+                        seat_data.has_pointer && !seat_data.defunct,
+                        seat_data.name.clone(),
+                    )
+                })
+            {
                 if has_kbd {
                     let keyboard = seat.get_keyboard();
                     keyboard.quick_assign(|keyboard, event, _| {
@@ -76,6 +80,7 @@ impl WaylandConnection {
                             log::error!("keyboard_event: {:#}", err);
                         }
                     });
+                    seat_keyboards.insert(name, keyboard);
                 }
                 if has_ptr {
                     pointer.replace(PointerDispatcher::register(
@@ -94,14 +99,38 @@ impl WaylandConnection {
             seat_listener = environment.listen_for_seats(move |seat, seat_data, _| {
                 if seat_data.has_keyboard {
                     if !seat_data.defunct {
-                        let keyboard = seat.get_keyboard();
-                        keyboard.quick_assign(|keyboard, event, _| {
-                            let conn = Connection::get().unwrap().wayland();
-                            if let Err(err) = conn.keyboard_event(keyboard, event) {
-                                log::error!("keyboard_event: {:#}", err);
-                            }
-                        });
+                        // We only want to assign a new keyboard object if we don't already have
+                        // one for this seat. When a seat is being created or updated, the listener
+                        // can receive the same seat multiple times: for example, when switching
+                        // back from another virtual console, the same seat is usually seen four
+                        // times with different data flags:
+                        //
+                        // has_pointer: true;  has_keyboard: false
+                        // has_pointer: false; has_keyboard: false
+                        // has_pointer: false; has_keyboard: true
+                        // has_pointer: true;  has_keyboard: true
+                        //
+                        // This is essentially telling the client to re-assign its keyboard and
+                        // pointer, but that means that this listener will fire twice with
+                        // has_keyboard set to true. If we assign a handler both times, then we end
+                        // up handling key events twice.
+                        if !seat_keyboards.contains_key(&seat_data.name) {
+                            let keyboard = seat.get_keyboard();
+                            keyboard.quick_assign(|keyboard, event, _| {
+                                let conn = Connection::get().unwrap().wayland();
+                                if let Err(err) = conn.keyboard_event(keyboard, event) {
+                                    log::error!("keyboard_event: {:#}", err);
+                                }
+                            });
+                            seat_keyboards.insert(seat_data.name.clone(), keyboard);
+                        }
                     }
+                } else {
+                    // If we previously had a keyboard object on this seat, it's no longer valid if
+                    // has_keyboard is false, so we remove the keyboard object we knew about and
+                    // thereby ensure that we assign a new keyboard object next time the listener
+                    // fires for this seat with has_keyboard = true.
+                    seat_keyboards.remove(&seat_data.name);
                 }
                 if seat_data.has_pointer {
                     // TODO: ideally do something similar to the keyboard state,
