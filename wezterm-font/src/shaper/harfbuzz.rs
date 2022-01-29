@@ -656,7 +656,15 @@ mod test {
         {
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("abc", 10., 72, &mut no_glyphs, None, Direction::LeftToRight)
+                .shape(
+                    "abc",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
@@ -706,7 +714,15 @@ mod test {
         {
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("<", 10., 72, &mut no_glyphs, None, Direction::LeftToRight)
+                .shape(
+                    "<",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
@@ -734,7 +750,15 @@ mod test {
             // from this info :-/
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("<-", 10., 72, &mut no_glyphs, None, Direction::LeftToRight)
+                .shape(
+                    "<-",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
@@ -772,7 +796,15 @@ mod test {
         {
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("<--", 10., 72, &mut no_glyphs, None, Direction::LeftToRight)
+                .shape(
+                    "<--",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
@@ -823,7 +855,15 @@ mod test {
         {
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("x x", 10., 72, &mut no_glyphs, None, Direction::LeftToRight)
+                .shape(
+                    "x x",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
@@ -881,6 +921,7 @@ mod test {
                     &mut no_glyphs,
                     None,
                     Direction::LeftToRight,
+                    None,
                 )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
