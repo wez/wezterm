@@ -28,14 +28,12 @@ const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 enum LineEntry {
     // Up to date wrt. server and has been rendered at least once
     Line(Line),
-    // Up to date wrt. server but needs to be rendered
-    Dirty(Line),
     // Currently being downloaded from the server
     Fetching(Instant),
     // We have a version of the line locally and are treating it
     // as needing rendering because we are also in the process of
     // downloading a newer version from the server
-    DirtyAndFetching(Line, Instant),
+    LineAndFetching(Line, Instant),
     // We have a local copy but it is stale and will need to be
     // fetched again
     Stale(Line),
@@ -45,9 +43,8 @@ impl LineEntry {
     fn kind(&self) -> (&'static str, Option<Instant>) {
         match self {
             Self::Line(_) => ("Line", None),
-            Self::Dirty(_) => ("Dirty", None),
             Self::Fetching(since) => ("Fetching", Some(*since)),
-            Self::DirtyAndFetching(_, since) => ("DirtyAndFetching", Some(*since)),
+            Self::LineAndFetching(_, since) => ("LineAndFetching", Some(*since)),
             Self::Stale(_) => ("Stale", None),
         }
     }
@@ -228,16 +225,14 @@ impl RenderableInner {
 
         let row = self.cursor_position.y;
         match self.lines.pop(&row) {
-            Some(LineEntry::Stale(mut line))
-            | Some(LineEntry::Line(mut line))
-            | Some(LineEntry::Dirty(mut line)) => {
+            Some(LineEntry::Stale(mut line)) | Some(LineEntry::Line(mut line)) => {
                 self.apply_prediction(c, &mut line);
-                self.lines.put(row, LineEntry::Dirty(line));
+                self.lines.put(row, LineEntry::Line(line));
             }
-            Some(LineEntry::DirtyAndFetching(mut line, instant)) => {
+            Some(LineEntry::LineAndFetching(mut line, instant)) => {
                 self.apply_prediction(c, &mut line);
                 self.lines
-                    .put(row, LineEntry::DirtyAndFetching(line, instant));
+                    .put(row, LineEntry::LineAndFetching(line, instant));
             }
             Some(entry) => {
                 self.lines.put(row, entry);
@@ -278,16 +273,14 @@ impl RenderableInner {
             let row = self.cursor_position.y + idx as StableRowIndex;
 
             match self.lines.pop(&row) {
-                Some(LineEntry::Stale(mut line))
-                | Some(LineEntry::Line(mut line))
-                | Some(LineEntry::Dirty(mut line)) => {
+                Some(LineEntry::Stale(mut line)) | Some(LineEntry::Line(mut line)) => {
                     self.apply_paste_prediction(idx, paste_line, &mut line);
-                    self.lines.put(row, LineEntry::Dirty(line));
+                    self.lines.put(row, LineEntry::Line(line));
                 }
-                Some(LineEntry::DirtyAndFetching(mut line, instant)) => {
+                Some(LineEntry::LineAndFetching(mut line, instant)) => {
                     self.apply_paste_prediction(idx, paste_line, &mut line);
                     self.lines
-                        .put(row, LineEntry::DirtyAndFetching(line, instant));
+                        .put(row, LineEntry::LineAndFetching(line, instant));
                 }
                 Some(entry) => {
                     self.lines.put(row, entry);
@@ -344,10 +337,12 @@ impl RenderableInner {
         self.dimensions = delta.dimensions;
         self.title = delta.title;
         self.working_dir = delta.working_dir.map(Into::into);
+        log::trace!("server says: seqno from {} -> {}", self.seqno, delta.seqno);
         self.seqno = delta.seqno;
 
         let config = configuration();
         for (stable_row, line) in delta.bonus_lines.lines() {
+            log::trace!("bonus line {} seqno={}", stable_row, line.current_seqno());
             self.put_line(stable_row, line, &config, None);
             dirty.remove(stable_row);
         }
@@ -357,6 +352,7 @@ impl RenderableInner {
             .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
 
         let mut to_fetch = RangeSet::new();
+        log::trace!("dirty as of seq {} -> {:?}", delta.seqno, dirty);
         for r in dirty.iter() {
             for stable_row in r.clone() {
                 // If a line is in the (probable) viewport region,
@@ -367,16 +363,16 @@ impl RenderableInner {
                 let prior = self.lines.pop(&stable_row);
                 let prior_kind = prior.as_ref().map(|e| e.kind());
                 if !fetchable {
+                    log::trace!("make {} stale bcos not fetchable", stable_row);
                     self.make_stale(stable_row);
                     continue;
                 }
                 to_fetch.add(stable_row);
                 let entry = match prior {
                     Some(LineEntry::Fetching(_)) | None => LineEntry::Fetching(now),
-                    Some(LineEntry::DirtyAndFetching(old, ..))
+                    Some(LineEntry::LineAndFetching(old, ..))
                     | Some(LineEntry::Stale(old))
-                    | Some(LineEntry::Dirty(old))
-                    | Some(LineEntry::Line(old)) => LineEntry::DirtyAndFetching(old, now),
+                    | Some(LineEntry::Line(old)) => LineEntry::LineAndFetching(old, now),
                 };
                 log::trace!(
                     "row {} {:?} -> {:?} due to dirty and IN viewport",
@@ -405,9 +401,7 @@ impl RenderableInner {
         let mut lines = LruCache::unbounded();
         while let Some((stable_row, entry)) = self.lines.pop_lru() {
             let entry = match entry {
-                LineEntry::Dirty(old) | LineEntry::Stale(old) | LineEntry::Line(old) => {
-                    LineEntry::Stale(old)
-                }
+                LineEntry::Stale(old) | LineEntry::Line(old) => LineEntry::Stale(old),
                 entry => entry,
             };
             lines.put(stable_row, entry);
@@ -417,10 +411,9 @@ impl RenderableInner {
 
     fn make_stale(&mut self, stable_row: StableRowIndex) {
         match self.lines.pop(&stable_row) {
-            Some(LineEntry::Dirty(old))
-            | Some(LineEntry::Stale(old))
+            Some(LineEntry::Stale(old))
             | Some(LineEntry::Line(old))
-            | Some(LineEntry::DirtyAndFetching(old, _)) => {
+            | Some(LineEntry::LineAndFetching(old, _)) => {
                 self.lines.put(stable_row, LineEntry::Stale(old));
             }
             Some(LineEntry::Fetching(_)) | None => {}
@@ -443,11 +436,17 @@ impl RenderableInner {
             // the state, so we should leave it alone
 
             match self.lines.pop(&stable_row) {
-                Some(LineEntry::DirtyAndFetching(_, then)) | Some(LineEntry::Fetching(then))
+                Some(LineEntry::LineAndFetching(_, then)) | Some(LineEntry::Fetching(then))
                     if fetch_start == then =>
                 {
-                    log::trace!("row {} fetch done -> Dirty", stable_row,);
-                    LineEntry::Dirty(line)
+                    log::trace!(
+                        "row {} fetch done -> Line seq={} vs self.seq={}",
+                        stable_row,
+                        line.current_seqno(),
+                        self.seqno
+                    );
+                    line.update_last_change_seqno(self.seqno);
+                    LineEntry::Line(line)
                 }
                 Some(e) => {
                     // It changed since we started: leave it alone!
@@ -463,15 +462,7 @@ impl RenderableInner {
                 None => return,
             }
         } else {
-            if let Some(LineEntry::Line(prior)) = self.lines.pop(&stable_row) {
-                if prior == line {
-                    LineEntry::Line(line)
-                } else {
-                    LineEntry::Dirty(line)
-                }
-            } else {
-                LineEntry::Dirty(line)
-            }
+            LineEntry::Line(line)
         };
         self.lines.put(stable_row, entry);
     }
@@ -538,9 +529,9 @@ impl RenderableInner {
                                     // leave it popped
                                     continue;
                                 }
-                                Some(LineEntry::DirtyAndFetching(line, then)) if then == now => {
-                                    // revert to just dirty
-                                    LineEntry::Dirty(line)
+                                Some(LineEntry::LineAndFetching(line, then)) if then == now => {
+                                    // revert to just a line
+                                    LineEntry::Line(line)
                                 }
                                 Some(entry) => entry,
                                 None => continue,
@@ -623,16 +614,16 @@ impl RenderableState {
             let entry = match inner.lines.pop(&idx) {
                 Some(LineEntry::Line(line)) => {
                     result.push(line.clone());
-                    LineEntry::Line(line)
+                    if line.changed_since(inner.seqno) {
+                        to_fetch.add(idx);
+                        LineEntry::Stale(line)
+                    } else {
+                        LineEntry::Line(line)
+                    }
                 }
-                Some(LineEntry::Dirty(line)) => {
+                Some(LineEntry::LineAndFetching(line, then)) => {
                     result.push(line.clone());
-                    // Clear the dirty status as part of this retrieval
-                    LineEntry::Line(line)
-                }
-                Some(LineEntry::DirtyAndFetching(line, then)) => {
-                    result.push(line.clone());
-                    LineEntry::DirtyAndFetching(line, then)
+                    LineEntry::LineAndFetching(line, then)
                 }
                 Some(LineEntry::Fetching(then)) => {
                     result.push(Line::with_width(inner.dimensions.cols, SEQ_ZERO));
@@ -641,7 +632,7 @@ impl RenderableState {
                 Some(LineEntry::Stale(line)) => {
                     result.push(line.clone());
                     to_fetch.add(idx);
-                    LineEntry::DirtyAndFetching(line, now)
+                    LineEntry::LineAndFetching(line, now)
                 }
                 None => {
                     result.push(Line::with_width(inner.dimensions.cols, SEQ_ZERO));
@@ -676,6 +667,13 @@ impl RenderableState {
             inner.lines.put(idx, entry);
         }
 
+        log::trace!(
+            "get_lines: {:?}, num result lines={}, will fetch {:?}",
+            lines,
+            result.len(),
+            to_fetch
+        );
+
         inner.schedule_fetch_lines(to_fetch, now);
         (lines.start, result)
     }
@@ -687,7 +685,7 @@ impl RenderableState {
     pub fn get_changed_since(
         &self,
         lines: Range<StableRowIndex>,
-        _seqno: SequenceNo,
+        seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
         if let Err(err) = inner.poll() {
@@ -704,7 +702,14 @@ impl RenderableState {
         let mut result = RangeSet::new();
         for r in lines {
             match inner.lines.get(&r) {
-                None | Some(LineEntry::Dirty(_)) | Some(LineEntry::DirtyAndFetching(..)) => {
+                None => {
+                    result.add(r);
+                }
+                Some(
+                    LineEntry::Line(line)
+                    | LineEntry::Stale(line)
+                    | LineEntry::LineAndFetching(line, _),
+                ) if line.changed_since(seqno) => {
                     result.add(r);
                 }
                 _ => {}
@@ -723,7 +728,7 @@ impl RenderableState {
         }
 
         if !result.is_empty() {
-            log::trace!("get_changed_since: {:?}", result);
+            log::trace!("get_changed_since: {} -> {:?}", seqno, result);
         }
 
         result
