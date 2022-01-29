@@ -135,6 +135,8 @@ impl TerminalState {
         }) {
             log::error!("set sixel image: {:#}", err);
         }
-        self.cursor = old_cursor;
+        if self.sixel_display_mode {
+            self.cursor = old_cursor;
+        }
     }
 }
