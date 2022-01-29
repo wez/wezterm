@@ -379,8 +379,24 @@ struct UnicodeVersionStackEntry {
 
 fn default_color_map() -> HashMap<u16, RgbColor> {
     let mut color_map = HashMap::new();
+    // Match colors to the VT340 color table:
+    // https://github.com/hackerb9/vt340test/blob/main/colormap/showcolortable.png
     color_map.insert(0, RgbColor::new_8bpc(0, 0, 0));
-    color_map.insert(3, RgbColor::new_8bpc(0, 255, 0));
+    color_map.insert(1, RgbColor::new_8bpc(0x33, 0x33, 0xcc));
+    color_map.insert(2, RgbColor::new_8bpc(0xcc, 0x23, 0x23));
+    color_map.insert(3, RgbColor::new_8bpc(0x33, 0xcc, 0x33));
+    color_map.insert(4, RgbColor::new_8bpc(0xcc, 0x33, 0xcc));
+    color_map.insert(5, RgbColor::new_8bpc(0x33, 0xcc, 0xcc));
+    color_map.insert(6, RgbColor::new_8bpc(0xcc, 0xcc, 0xcc));
+    color_map.insert(7, RgbColor::new_8bpc(0x77, 0x77, 0x77));
+    color_map.insert(8, RgbColor::new_8bpc(0x44, 0x44, 0x44));
+    color_map.insert(9, RgbColor::new_8bpc(0x56, 0x56, 0x99));
+    color_map.insert(10, RgbColor::new_8bpc(0x99, 0x44, 0x44));
+    color_map.insert(11, RgbColor::new_8bpc(0x56, 0x99, 0x56));
+    color_map.insert(12, RgbColor::new_8bpc(0x99, 0x56, 0x99));
+    color_map.insert(13, RgbColor::new_8bpc(0x56, 0x99, 0x99));
+    color_map.insert(14, RgbColor::new_8bpc(0x99, 0x99, 0x56));
+    color_map.insert(15, RgbColor::new_8bpc(0xcc, 0xcc, 0xcc));
     color_map
 }
 
@@ -1419,6 +1435,11 @@ impl TerminalState {
                 self.left_and_right_margins = 0..self.screen().physical_cols;
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::Select132Columns,
+            )) => {
+                self.decqrm_response(mode, true, false);
             }
 
             Mode::SetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
