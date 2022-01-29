@@ -1873,12 +1873,17 @@ impl super::TermWindow {
 
         let mut overlay_images = vec![];
 
+        // Number of cells we've rendered, starting from the left edge of the line
+        let mut visual_cell_idx = 0;
+
         for item in shaped {
             let style_params = &item.style;
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
 
-            let mut current_idx = cluster.first_cell_idx;
+            // TODO: remember logical/visual mapping for selection
+            #[allow(unused_variables)]
+            let mut phys_cell_idx = cluster.first_cell_idx;
             let mut cluster_x_pos = item.x_pos;
 
             for info in glyph_info.iter() {
@@ -1901,7 +1906,7 @@ impl super::TermWindow {
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
                 for glyph_idx in 0..info.pos.num_cells as usize {
-                    let cell_idx = current_idx + glyph_idx;
+                    let cell_idx = visual_cell_idx + glyph_idx;
 
                     if cell_idx >= num_cols {
                         // terminal line data is wider than the window.
@@ -1910,7 +1915,7 @@ impl super::TermWindow {
                         break;
                     }
 
-                    last_cell_idx = current_idx;
+                    last_cell_idx = visual_cell_idx;
 
                     let in_composition = composition_width > 0
                         && cell_idx >= params.cursor.x
@@ -1923,7 +1928,7 @@ impl super::TermWindow {
                         cursor_border_color,
                     } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                         stable_line_idx: params.stable_line_idx,
-                        // We pass the current_idx instead of the cell_idx when
+                        // We pass the visual_cell_idx instead of the cell_idx when
                         // computing the cursor/background color because we may
                         // have a series of ligatured glyphs that compose over the
                         // top of each other to form a double-wide grapheme cell.
@@ -1938,7 +1943,7 @@ impl super::TermWindow {
                         // well, so this assumption is probably good in all
                         // cases!
                         // <https://github.com/wez/wezterm/issues/478>
-                        cell_idx: current_idx,
+                        cell_idx: visual_cell_idx,
                         cursor: params.cursor,
                         selection: &params.selection,
                         fg_color: style_params.fg_color,
@@ -2172,7 +2177,8 @@ impl super::TermWindow {
                         }
                     }
                 }
-                current_idx += info.pos.num_cells as usize;
+                phys_cell_idx += info.pos.num_cells as usize;
+                visual_cell_idx += info.pos.num_cells as usize;
                 cluster_x_pos += glyph.x_advance.get() as f32;
             }
         }
