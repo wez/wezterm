@@ -174,14 +174,19 @@ impl CellCluster {
         }
 
         context.resolve_paragraph(&paragraph, hint);
-        for run in context.runs() {
+        for run in context.reordered_runs(0..paragraph.len()) {
             let mut text = String::with_capacity(run.range.end - run.range.start);
             let mut byte_to_cell_idx = vec![];
             let mut byte_to_cell_width = vec![];
             let mut width = 0usize;
             let mut first_cell_idx = None;
 
-            for cp_idx in run.indices() {
+            // Note: if we wanted the actual bidi-re-ordered
+            // text we should iterate over run.indices here,
+            // however, cluster.text will be fed into harfbuzz
+            // and that requires the original logical order
+            // for the text, so we look at run.range instead.
+            for cp_idx in run.range.clone() {
                 let cp = paragraph[cp_idx];
                 text.push(cp);
 

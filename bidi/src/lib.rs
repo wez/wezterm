@@ -187,19 +187,34 @@ impl BidiContext {
     }
 
     pub fn reordered_runs(&self, line_range: Range<usize>) -> Vec<ReorderedRun> {
+        // reorder_line's `level` result includes entries that were
+        // removed_by_x9() but `reordered` does NOT (for compatibility with
+        // the UCD test suite).
+        // We need to account for that when we reorder the levels here!
         let (levels, reordered) = self.reorder_line(line_range);
+        let mut reordered_levels = vec![Level(NO_LEVEL); reordered.len()];
+
+        for (vis_idx, &log_idx) in reordered.iter().enumerate() {
+            reordered_levels[vis_idx] = levels[log_idx];
+        }
+
+        reordered_levels.retain(|l| !l.removed_by_x9());
+
         let mut runs = vec![];
 
         let mut idx = 0;
-        while idx < levels.len() {
-            let len = span_len(idx, &levels);
-            let level = levels[idx];
+        while idx < reordered_levels.len() {
+            let len = span_len(idx, &reordered_levels);
+            let level = reordered_levels[idx];
             if !level.removed_by_x9() {
+                let idx_range = idx..idx + len;
+                let start = reordered[idx_range.clone()].iter().min().unwrap();
+                let end = reordered[idx_range.clone()].iter().max().unwrap();
                 runs.push(ReorderedRun {
                     direction: level.direction(),
                     level,
-                    range: idx..idx + len,
-                    indices: reordered[idx..idx + len].to_vec(),
+                    range: *start..*end + 1,
+                    indices: reordered[idx_range].to_vec(),
                 });
             }
             idx += len;
