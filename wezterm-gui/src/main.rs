@@ -733,19 +733,20 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 if config.custom_block_glyphs {
                     if let Some(block) = customglyph::BlockKey::from_str(&text) {
                         println!(
-                            "{:4} {:12} drawn by wezterm: {:?}",
-                            cluster.text, escaped, block
+                            "{:2} {:4} {:12} drawn by wezterm: {:?}",
+                            info.cluster, cluster.text, escaped, block
                         );
                         continue;
                     }
                 }
 
                 println!(
-                    "{:2} {:4} {:12} x_adv={:<2} glyph={:<4} {}\n{:38}{}",
+                    "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={:<4} {}\n{:38}{}",
                     info.cluster,
                     text,
                     escaped,
                     info.x_advance.get(),
+                    info.num_cells,
                     info.glyph_pos,
                     parsed.lua_name(),
                     "",
