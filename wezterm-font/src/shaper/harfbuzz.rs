@@ -8,9 +8,11 @@ use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
+use std::ops::Range;
 use termwiz::cell::{unicode_column_width, Presentation};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_bidi::Direction;
 
 #[derive(Clone, Debug)]
 struct Info {
@@ -185,6 +187,8 @@ impl HarfbuzzShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
         presentation: Option<Presentation>,
+        direction: Direction,
+        range: Range<usize>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut buf = harfbuzz::Buffer::new()?;
         // We deliberately omit setting the script and leave it to harfbuzz
@@ -193,9 +197,20 @@ impl HarfbuzzShaper {
         // <https://github.com/wez/wezterm/issues/1474> and
         // <https://github.com/wez/wezterm/issues/1573>
         // buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
-        buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
+        buf.set_direction(match direction {
+            Direction::LeftToRight => harfbuzz::hb_direction_t::HB_DIRECTION_LTR,
+            Direction::RightToLeft => harfbuzz::hb_direction_t::HB_DIRECTION_RTL,
+        });
         buf.set_language(self.lang);
-        buf.add_str(s);
+
+        buf.add_str(s, range.clone());
+        let mut cluster_to_len = vec![];
+        for c in s.chars() {
+            let len = c.len_utf8();
+            for _ in 0..len {
+                cluster_to_len.push(len as u8);
+            }
+        }
         buf.guess_segment_properties();
         buf.set_cluster_level(
             harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
@@ -267,7 +282,16 @@ impl HarfbuzzShaper {
                 // but might potentially discover the text presentation for
                 // that glyph in a fallback font and swap it out a little
                 // later after a flash of showing the emoji one.
-                return self.do_shape(initial_font_idx, s, font_size, dpi, no_glyphs, None);
+                return self.do_shape(
+                    initial_font_idx,
+                    s,
+                    font_size,
+                    dpi,
+                    no_glyphs,
+                    None,
+                    direction,
+                    range,
+                );
             }
         }
 
@@ -291,14 +315,11 @@ impl HarfbuzzShaper {
         let mut info_clusters: Vec<Vec<Info>> = Vec::with_capacity(s.len());
         let mut info_iter = hb_infos.iter().zip(positions.iter()).peekable();
         while let Some((info, pos)) = info_iter.next() {
-            let next_pos = info_iter
-                .peek()
-                .map(|(info, _)| info.cluster as usize)
-                .unwrap_or(s.len());
+            let len = cluster_to_len[info.cluster as usize] as usize;
 
-            let info = Info {
+            let mut info = Info {
                 cluster: info.cluster as usize,
-                len: next_pos - info.cluster as usize,
+                len,
                 codepoint: info.codepoint,
                 x_advance: pos.x_advance,
                 y_advance: pos.y_advance,
@@ -311,13 +332,27 @@ impl HarfbuzzShaper {
                     cluster.push(info);
                     continue;
                 }
-                // Don't fragment runs of unresolve codepoints; they could be a sequence
+                // Don't fragment runs of unresolved codepoints; they could be a sequence
                 // that shapes together in a fallback font.
                 if info.codepoint == 0 {
                     let prior = cluster.last_mut().unwrap();
+                    // This logic essentially merges `info` into `prior` by
+                    // extending the length of prior by `info`.
+                    // We can only do that if they are contiguous.
+                    // Take care, as the shaper may have re-ordered things!
                     if prior.codepoint == 0 {
-                        prior.len = next_pos - prior.cluster;
-                        continue;
+                        if prior.cluster + prior.len == info.cluster {
+                            // Coalesce with prior
+                            prior.len += info.len;
+                            continue;
+                        } else if info.cluster + info.len == prior.cluster {
+                            // We actually precede prior; we must have been
+                            // re-ordered by the shaper. Re-arrange and
+                            // coalesce
+                            std::mem::swap(&mut info, prior);
+                            prior.len += info.len;
+                            continue;
+                        }
                     }
                 }
             }
@@ -332,9 +367,14 @@ impl HarfbuzzShaper {
         let mut direct_clusters = 0;
 
         for infos in &info_clusters {
-            let cluster_len: usize = infos.iter().map(|info| info.len).sum();
-            let cluster_start = infos.first().unwrap().cluster;
-            let substr = &s[cluster_start..cluster_start + cluster_len];
+            let cluster_start = infos.iter().map(|info| info.cluster).min().unwrap_or(0);
+            let cluster_end: usize = infos
+                .iter()
+                .map(|info| info.cluster + info.len)
+                .max()
+                .unwrap();
+            let sub_range = cluster_start..cluster_end;
+            let substr = &s[sub_range.clone()];
 
             let incomplete = infos.iter().find(|info| info.codepoint == 0).is_some();
 
@@ -350,11 +390,13 @@ impl HarfbuzzShaper {
 
                 let mut shape = match self.do_shape(
                     font_idx + 1,
-                    substr,
+                    s,
                     font_size,
                     dpi,
                     no_glyphs,
                     presentation,
+                    direction,
+                    sub_range.clone(),
                 ) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
@@ -366,14 +408,12 @@ impl HarfbuzzShaper {
                             dpi,
                             no_glyphs,
                             presentation,
+                            direction,
+                            0..substr.len(),
                         )
                     }
                 }?;
 
-                // Fixup the cluster member to match our current offset
-                for mut info in &mut shape {
-                    info.cluster += cluster_start as u32;
-                }
                 cluster.append(&mut shape);
                 continue;
             }
@@ -446,10 +486,23 @@ impl FontShaper for HarfbuzzShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
         presentation: Option<Presentation>,
+        direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
+        let range = range.unwrap_or_else(|| 0..text.len());
+
         log::trace!("shape byte_len={} `{}`", text.len(), text.escape_debug());
         let start = std::time::Instant::now();
-        let result = self.do_shape(0, text, size, dpi, no_glyphs, presentation);
+        let result = self.do_shape(
+            0,
+            text,
+            size,
+            dpi,
+            no_glyphs,
+            presentation,
+            direction,
+            range,
+        );
         metrics::histogram!("shape.harfbuzz", start.elapsed());
         /*
         if let Ok(glyphs) = &result {
@@ -602,7 +655,17 @@ mod test {
         let shaper = HarfbuzzShaper::new(&config, &[handle]).unwrap();
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("abc", 10., 72, &mut no_glyphs, None).unwrap();
+            let info = shaper
+                .shape(
+                    "abc",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
+                .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
                 info,
@@ -650,7 +713,17 @@ mod test {
         }
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<", 10., 72, &mut no_glyphs, None).unwrap();
+            let info = shaper
+                .shape(
+                    "<",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
+                .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
                 info,
@@ -676,7 +749,17 @@ mod test {
             // This is a ligatured sequence, but you wouldn't know
             // from this info :-/
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<-", 10., 72, &mut no_glyphs, None).unwrap();
+            let info = shaper
+                .shape(
+                    "<-",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
+                .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
                 info,
@@ -712,7 +795,17 @@ mod test {
         }
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<--", 10., 72, &mut no_glyphs, None).unwrap();
+            let info = shaper
+                .shape(
+                    "<--",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
+                .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
                 info,
@@ -761,7 +854,17 @@ mod test {
 
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("x x", 10., 72, &mut no_glyphs, None).unwrap();
+            let info = shaper
+                .shape(
+                    "x x",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
+                .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(
                 info,
@@ -811,7 +914,15 @@ mod test {
         {
             let mut no_glyphs = vec![];
             let info = shaper
-                .shape("x\u{3000}x", 10., 72, &mut no_glyphs, None)
+                .shape(
+                    "x\u{3000}x",
+                    10.,
+                    72,
+                    &mut no_glyphs,
+                    None,
+                    Direction::LeftToRight,
+                    None,
+                )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             k9::snapshot!(

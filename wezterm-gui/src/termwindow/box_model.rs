@@ -258,7 +258,7 @@ impl Element {
     pub fn with_line(font: &Rc<LoadedFont>, line: &Line, palette: &ColorPalette) -> Self {
         let mut content = vec![];
 
-        for cluster in line.cluster(None) {
+        for cluster in line.cluster(None, None) {
             let child =
                 Element::new(font, ElementContent::Text(cluster.text)).colors(ElementColors {
                     border: BorderColor::default(),
@@ -540,11 +540,14 @@ impl super::TermWindow {
         match &element.content {
             ElementContent::Text(s) => {
                 let window = self.window.as_ref().unwrap().clone();
+                let direction = wezterm_bidi::Direction::LeftToRight;
                 let infos = element.font.shape(
                     &s,
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
                     BlockKey::filter_out_synthetic,
                     element.presentation,
+                    direction,
+                    None,
                 )?;
                 let mut computed_cells = vec![];
                 let mut glyph_cache = context.gl_state.glyph_cache.borrow_mut();

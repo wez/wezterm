@@ -94,7 +94,7 @@ class CheckoutStep(ActionStep):
         params = {}
         if submodules:
             params["submodules"] = "recursive"
-        super().__init__(name, action="actions/checkout@v2", params=params)
+        super().__init__(name, action="actions/checkout@v2.4.0", params=params)
 
 
 class Job(object):
@@ -460,7 +460,7 @@ cargo build --all --release""",
             steps += [
                 ActionStep(
                     "Checkout homebrew tap",
-                    action="actions/checkout@v2",
+                    action="actions/checkout@v2.4.0",
                     params={
                         "repository": "wez/homebrew-wezterm",
                         "path": "homebrew-wezterm",
@@ -484,7 +484,7 @@ cargo build --all --release""",
             steps += [
                 ActionStep(
                     "Checkout linuxbrew tap",
-                    action="actions/checkout@v2",
+                    action="actions/checkout@v2.4.0",
                     params={
                         "repository": "wez/homebrew-wezterm-linuxbrew",
                         "path": "linuxbrew-wezterm",

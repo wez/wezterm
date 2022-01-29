@@ -1,8 +1,10 @@
 use crate::parser::ParsedFont;
 use crate::units::PixelLength;
+use std::ops::Range;
 use termwiz::cell::Presentation;
 
 pub mod harfbuzz;
+pub use wezterm_bidi::Direction;
 
 /// Holds information about a shaped glyph
 #[derive(Clone, Debug, PartialEq)]
@@ -79,6 +81,8 @@ pub trait FontShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
         presentation: Option<termwiz::cell::Presentation>,
+        direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font

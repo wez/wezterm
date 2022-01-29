@@ -80,6 +80,9 @@ pub struct TlsDomainClient {
     #[serde(default = "default_write_timeout")]
     pub write_timeout: Duration,
 
+    #[serde(default = "default_local_echo_threshold_ms")]
+    pub local_echo_threshold_ms: Option<u64>,
+
     /// The path to the wezterm binary on the remote host
     pub remote_wezterm_path: Option<String>,
 }

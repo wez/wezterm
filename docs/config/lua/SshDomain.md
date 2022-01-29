@@ -76,9 +76,9 @@ panes and tabs.  The following values are recognized for `assume_shell`:
 
 * `"Unknown"` - this is the default. We can't make any assumptions about the
   remote shell.
-* `"Posix"` - the remote host uses a Bourne Shell compatible shell that allows
-  the syntax `cd DIR ; exec CMD` and `cd DIR ; exec $SHELL`.
-
+* `"Posix"` - the remote host uses a POSIX/Bourne Shell compatible environment
+  that allows the syntax `env -c DIR ENV1=VAL1 ENV2=VAL2 CMD` and
+  `env -c DIR ENV1=VAL1 ENV2=VAL2 $SHELL`.
 
 ```lua
 return {
@@ -96,7 +96,7 @@ return {
       default_prog = {"fish"},
 
       -- assume that we can use syntax like:
-      -- "cd /some/where ; exec $SHELL"
+      -- "env -C /some/where $SHELL"
       -- using whatever the default command shell is on this
       -- remote host, so that shell integration will respect
       -- the current directory on the remote host.
@@ -108,3 +108,21 @@ return {
 }
 ```
 
+You may now specify the round-trip latency threshold for enabling predictive
+local echo using `local_echo_threshold_ms`. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when `multiplexing = "WezTerm"`.
+
+```lua
+return {
+  ssh_domains = {
+    {
+      name = "my.server",
+      remote_address = "192.168.1.1",
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+```

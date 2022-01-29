@@ -37,6 +37,7 @@ thiserror = "1.0"
 unicode-segmentation = "1.8"
 ucd-trie = "0.1"
 vtparse = { version="0.6", path="../vtparse" }
+wezterm-bidi = { path = "../bidi" }
 
 [features]
 widgets = ["cassowary", "fnv"]

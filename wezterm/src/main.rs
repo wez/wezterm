@@ -659,7 +659,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 }
             };
 
-            let workspace = workspace.unwrap_or_else(|| Mux::get().unwrap().active_workspace());
+            let workspace = workspace.unwrap_or_else(|| mux::DEFAULT_WORKSPACE.to_string());
 
             let spawned = client
                 .spawn_v2(codec::SpawnV2 {

@@ -11,12 +11,14 @@ use config::{
 use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::cell::Presentation;
 use thiserror::Error;
+use wezterm_bidi::Direction;
 use wezterm_term::CellAttributes;
 use wezterm_toast_notification::ToastNotification;
 
@@ -114,6 +116,8 @@ impl LoadedFont {
         &self,
         text: &str,
         presentation: Option<Presentation>,
+        direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         loop {
             let (tx, rx) = channel();
@@ -125,6 +129,8 @@ impl LoadedFont {
                 },
                 |_| {},
                 presentation,
+                direction,
+                range.clone(),
             ) {
                 Ok(tuple) => tuple,
                 Err(err) if err.downcast_ref::<ClearShapeCache>().is_some() => {
@@ -148,9 +154,17 @@ impl LoadedFont {
         completion: F,
         filter_out_synthetic: FS,
         presentation: Option<Presentation>,
+        direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        let (_async_resolve, res) =
-            self.shape_impl(text, completion, filter_out_synthetic, presentation)?;
+        let (_async_resolve, res) = self.shape_impl(
+            text,
+            completion,
+            filter_out_synthetic,
+            presentation,
+            direction,
+            range,
+        )?;
         Ok(res)
     }
 
@@ -160,6 +174,8 @@ impl LoadedFont {
         completion: F,
         filter_out_synthetic: FS,
         presentation: Option<Presentation>,
+        direction: Direction,
+        range: Option<Range<usize>>,
     ) -> anyhow::Result<(bool, Vec<GlyphInfo>)> {
         let mut no_glyphs = vec![];
 
@@ -182,6 +198,8 @@ impl LoadedFont {
             self.dpi,
             &mut no_glyphs,
             presentation,
+            direction,
+            range,
         );
 
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');

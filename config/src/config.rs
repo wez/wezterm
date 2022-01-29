@@ -534,6 +534,9 @@ pub struct Config {
     #[serde(default)]
     pub experimental_pixel_positioning: bool,
 
+    #[serde(default)]
+    pub experimental_bidi: bool,
+
     #[serde(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,
 
@@ -1121,6 +1124,10 @@ pub fn default_read_timeout() -> Duration {
 
 pub fn default_write_timeout() -> Duration {
     Duration::from_secs(60)
+}
+
+pub fn default_local_echo_threshold_ms() -> Option<u64> {
+    Some(100)
 }
 
 fn default_bypass_mouse_reporting_modifiers() -> Modifiers {

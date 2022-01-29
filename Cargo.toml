@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "bidi",
+  "bidi/generate",
   "strip-ansi-escapes",
   "wezterm",
   "wezterm-gui",

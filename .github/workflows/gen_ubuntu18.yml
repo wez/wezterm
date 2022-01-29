@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: "sudo -n apt-get install -y git"
       - name: "checkout repo"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.4.0
         with:
           submodules: "recursive"
       - name: "Install Rust"

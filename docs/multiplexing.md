@@ -157,6 +157,26 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+You may now specify the round-trip latency threshold for enabling predictive
+local echo using `local_echo_threshold_ms`. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when `multiplexing = "WezTerm"`.
+
+```lua
+return {
+  unix_domains = {
+    {
+      name = "unix",
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+```
+
 ### Connecting into Windows Subsystem for Linux
 
 *Note: this only works with WSL 1. [WSL 2 doesn't support AF_UNIX interop](https://github.com/microsoft/WSL/issues/5961)*
