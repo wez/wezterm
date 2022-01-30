@@ -15,6 +15,9 @@ pub use bidi_class::BidiClass;
 pub use direction::Direction;
 pub use level::Level;
 
+/// Placeholder codepoint index that corresponds to NO_LEVEL
+const DELETED: usize = usize::max_value();
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParagraphDirectionHint {
     LeftToRight,
@@ -29,6 +32,7 @@ pub struct BidiContext {
     levels: Vec<Level>,
     base_level: Level,
     runs: Vec<Run>,
+    reorder_nsm: bool,
 }
 
 /// Represents a formatting character that has been removed by the X9 rule
@@ -163,6 +167,14 @@ impl BidiContext {
         Self::default()
     }
 
+    /// When `reorder` is set to true, reordering will apply rule L3 to
+    /// non-spacing marks.  This is likely more desirable for terminal
+    /// based applications than it is for more modern GUI applications
+    /// that feed into eg: harfbuzz.
+    pub fn set_reorder_non_spacing_marks(&mut self, reorder: bool) {
+        self.reorder_nsm = reorder;
+    }
+
     /// Produces a sequence of `BidiRun` structs that represent runs of
     /// text and their direction (and level) across the entire paragraph.
     pub fn runs<'a>(&'a self) -> impl Iterator<Item = BidiRun> + 'a {
@@ -236,6 +248,55 @@ impl BidiContext {
         (levels, reordered)
     }
 
+    /// Performs Rule L3.
+    /// This rule is optional and must be enabled by calling the
+    /// set_reorder_non_spacing_marks method
+    fn reorder_non_spacing_marks(&self, levels: &mut [Level], visual: &mut [usize]) {
+        let mut idx = levels.len() - 1;
+        loop {
+            if idx > 0
+                && !levels[idx].removed_by_x9()
+                && levels[idx].direction() == Direction::RightToLeft
+                && self.orig_char_types[visual[idx]] == BidiClass::NonspacingMark
+            {
+                // Keep scanning backwards within this level
+                let level = levels[idx];
+                let seq_end = idx;
+
+                idx -= 1;
+                while idx > 0 && levels[idx].removed_by_x9()
+                    || (levels[idx] == level
+                        && matches!(
+                            self.orig_char_types[visual[idx]],
+                            BidiClass::LeftToRightEmbedding
+                                | BidiClass::RightToLeftEmbedding
+                                | BidiClass::LeftToRightOverride
+                                | BidiClass::RightToLeftOverride
+                                | BidiClass::PopDirectionalFormat
+                                | BidiClass::BoundaryNeutral
+                                | BidiClass::NonspacingMark
+                        ))
+                {
+                    idx -= 1;
+                }
+
+                if levels[idx] != level {
+                    idx += 1;
+                }
+
+                if seq_end > idx {
+                    visual[idx..=seq_end].reverse();
+                    levels[idx..=seq_end].reverse();
+                }
+            }
+
+            if idx == 0 {
+                return;
+            }
+            idx -= 1;
+        }
+    }
+
     /// This function runs Rule L2.
     ///
     /// Find the highest level among the resolved levels.
@@ -265,8 +326,6 @@ impl BidiContext {
             return vec![];
         }
 
-        const DELETED: usize = usize::max_value();
-
         // Initial visual order
         let mut visual = vec![];
         for i in 0..levels.len() {
@@ -277,6 +336,13 @@ impl BidiContext {
             }
         }
 
+        // Apply L3. UAX9 has this occur after L2, but we do it
+        // before that for consistency with FriBidi's implementation.
+        if self.reorder_nsm {
+            self.reorder_non_spacing_marks(levels, &mut visual);
+        }
+
+        // Apply L2.
         for level in (lowest_odd_level..=highest_level).rev() {
             let level = Level(level);
             let mut i = 0;
@@ -1955,6 +2021,30 @@ mod tests {
         assert_eq!(bidi_class_for_char('\u{590}'), BidiClass::RightToLeft);
         assert_eq!(bidi_class_for_char('\u{5d0}'), BidiClass::RightToLeft);
         assert_eq!(bidi_class_for_char('\u{5d1}'), BidiClass::RightToLeft);
+    }
+
+    /// This example is taken from
+    /// <https://terminal-wg.pages.freedesktop.org/bidi/recommendation/combining.html>
+    #[test]
+    fn reorder_nsm() {
+        let shalom: Vec<char> = vec![
+            '\u{5e9}', '\u{5b8}', '\u{5c1}', '\u{5dc}', '\u{5d5}', '\u{05b9}', '\u{5dd}',
+        ];
+        let mut context = BidiContext::new();
+        context.set_reorder_non_spacing_marks(true);
+        context.resolve_paragraph(&shalom, ParagraphDirectionHint::LeftToRight);
+
+        let mut reordered = vec![];
+        for run in context.reordered_runs(0..shalom.len()) {
+            for idx in run.indices {
+                reordered.push(shalom[idx]);
+            }
+        }
+
+        let explicit_ltr = vec![
+            '\u{5dd}', '\u{5d5}', '\u{5b9}', '\u{5dc}', '\u{5e9}', '\u{5b8}', '\u{5c1}',
+        ];
+        assert_eq!(reordered, explicit_ltr);
     }
 
     #[test]
