@@ -26,4 +26,4 @@ pub use sftp::*;
 // NOTE: Re-exported as is exposed in a public API of this crate
 pub use camino::{Utf8Path, Utf8PathBuf};
 pub use filedescriptor::FileDescriptor;
-pub use portable_pty::{Child, PtySize};
+pub use portable_pty::{Child, ChildKiller, MasterPty, PtySize};
