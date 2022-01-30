@@ -18,7 +18,7 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use termwiz::cell::CellAttributes;
 use termwiz::surface::{Line, SEQ_ZERO};
-use wezterm_bidi::{Direction, ParagraphDirectionHint};
+use wezterm_bidi::Direction;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
@@ -675,8 +675,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
     )?;
 
-    let bidi_hint = if config.experimental_bidi {
-        Some(ParagraphDirectionHint::LeftToRight)
+    let bidi_hint = if config.bidi_enabled {
+        Some(config.bidi_direction)
     } else {
         None
     };

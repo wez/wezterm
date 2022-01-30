@@ -33,7 +33,6 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
-use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
@@ -1760,8 +1759,9 @@ impl super::TermWindow {
 
         let mut composition_width = 0;
 
-        let bidi_hint = if self.config.experimental_bidi {
-            Some(ParagraphDirectionHint::LeftToRight)
+        let (bidi_enabled, bidi_direction) = params.line.bidi_info();
+        let bidi_hint = if bidi_enabled {
+            Some(bidi_direction)
         } else {
             None
         };

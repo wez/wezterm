@@ -31,6 +31,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
+use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -535,7 +536,10 @@ pub struct Config {
     pub experimental_pixel_positioning: bool,
 
     #[serde(default)]
-    pub experimental_bidi: bool,
+    pub bidi_enabled: bool,
+
+    #[serde(default)]
+    pub bidi_direction: ParagraphDirectionHint,
 
     #[serde(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,

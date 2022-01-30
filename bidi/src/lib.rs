@@ -14,15 +14,42 @@ use bidi_brackets::BracketType;
 pub use bidi_class::BidiClass;
 pub use direction::Direction;
 pub use level::Level;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 
 /// Placeholder codepoint index that corresponds to NO_LEVEL
 const DELETED: usize = usize::max_value();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum ParagraphDirectionHint {
     LeftToRight,
     RightToLeft,
+    /// Attempt to auto-detect but fall back to LTR
     AutoLeftToRight,
+    /// Attempt to auto-detect but fall back to RTL
+    AutoRightToLeft,
+}
+
+impl Default for ParagraphDirectionHint {
+    fn default() -> Self {
+        Self::LeftToRight
+    }
+}
+
+impl ParagraphDirectionHint {
+    /// Returns just the direction portion of the hint, independent
+    /// of the auto-detection state.
+    pub fn direction(self) -> Direction {
+        match self {
+            ParagraphDirectionHint::AutoLeftToRight | ParagraphDirectionHint::LeftToRight => {
+                Direction::LeftToRight
+            }
+            ParagraphDirectionHint::AutoRightToLeft | ParagraphDirectionHint::RightToLeft => {
+                Direction::RightToLeft
+            }
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -425,7 +452,12 @@ impl BidiContext {
         self.base_level = match hint {
             ParagraphDirectionHint::LeftToRight => Level(0),
             ParagraphDirectionHint::RightToLeft => Level(1),
-            ParagraphDirectionHint::AutoLeftToRight => paragraph_level(&self.char_types, false),
+            ParagraphDirectionHint::AutoLeftToRight => {
+                paragraph_level(&self.char_types, false, Direction::LeftToRight)
+            }
+            ParagraphDirectionHint::AutoRightToLeft => {
+                paragraph_level(&self.char_types, false, Direction::RightToLeft)
+            }
         };
 
         self.dump_state("before X1-X8");
@@ -1373,7 +1405,8 @@ impl BidiContext {
                 }
                 // X5c
                 BidiClass::FirstStrongIsolate => {
-                    let level = paragraph_level(&self.char_types[idx + 1..], true);
+                    let level =
+                        paragraph_level(&self.char_types[idx + 1..], true, Direction::LeftToRight);
                     self.levels[idx] = stack.embedding_level();
                     stack.apply_override(&mut self.char_types[idx]);
                     let level = if level.0 == 1 {
@@ -1802,7 +1835,7 @@ fn span_one_run(types: &[BidiClass], levels: &[Level], start: usize) -> (Level, 
 /// 3.3.1 Paragraph level.
 /// We've been fed a single paragraph, which takes care of rule P1.
 /// This function implements rules P2 and P3.
-fn paragraph_level(types: &[BidiClass], respect_pdi: bool) -> Level {
+fn paragraph_level(types: &[BidiClass], respect_pdi: bool, fallback: Direction) -> Level {
     let mut isolate_count = 0;
     for &t in types {
         match t {
@@ -1813,18 +1846,21 @@ fn paragraph_level(types: &[BidiClass], respect_pdi: bool) -> Level {
                 if isolate_count > 0 {
                     isolate_count -= 1;
                 } else if respect_pdi {
-                    return Level(0);
+                    break;
                 }
             }
             BidiClass::LeftToRight if isolate_count == 0 => return Level(0),
-
             BidiClass::RightToLeft | BidiClass::ArabicLetter if isolate_count == 0 => {
                 return Level(1)
             }
             _ => {}
         }
     }
-    Level(0)
+    if fallback == Direction::LeftToRight {
+        Level(0)
+    } else {
+        Level(1)
+    }
 }
 
 struct Pair {

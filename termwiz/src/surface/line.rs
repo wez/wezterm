@@ -8,13 +8,12 @@ use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
-use wezterm_bidi::ParagraphDirectionHint;
+use wezterm_bidi::{Direction, ParagraphDirectionHint};
 
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
-    struct LineBits : u8 {
+    struct LineBits : u16 {
         const NONE = 0;
-        const _UNUSED = 1;
         /// The line contains 1+ cells with explicit hyperlinks set
         const HAS_HYPERLINK = 1<<1;
         /// true if we have scanned for implicit hyperlinks
@@ -43,6 +42,24 @@ bitflags! {
             Self::DOUBLE_HEIGHT_TOP.bits |
             Self::DOUBLE_HEIGHT_BOTTOM.bits;
 
+        /// true if the line should have the bidi algorithm
+        /// applied as part of presentation.
+        /// This corresponds to the "implicit" bidi modes
+        /// described in
+        /// <https://terminal-wg.pages.freedesktop.org/bidi/recommendation/basic-modes.html>
+        const BIDI_ENABLED = 1<<0;
+
+        /// true if the line base direction is RTL.
+        /// When BIDI_ENABLED is also true, this is passed to the bidi algorithm.
+        /// When rendering, the line will be rendered from RTL.
+        const RTL = 1<<8;
+
+        /// true if the direction for the line should be auto-detected
+        /// when BIDI_ENABLED is also true.
+        /// If false, the direction is taken from the RTL bit only.
+        /// Otherwise, the auto-detect direction is used, falling back
+        /// to the direction specified by the RTL bit.
+        const AUTO_DETECT_DIRECTION = 1<<9;
     }
 }
 
@@ -290,6 +307,61 @@ impl Line {
         self.bits
             .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM);
         self.update_last_change_seqno(seqno);
+    }
+
+    /// Set a flag the indicate whether the line should have the bidi
+    /// algorithm applied during rendering
+    pub fn set_bidi_enabled(&mut self, enabled: bool, seqno: SequenceNo) {
+        self.bits.set(LineBits::BIDI_ENABLED, enabled);
+        self.update_last_change_seqno(seqno);
+    }
+
+    /// Set the bidi direction for the line.
+    /// This affects both the bidi algorithm (if enabled via set_bidi_enabled)
+    /// and the layout direction of the line.
+    /// `auto_detect` specifies whether the direction should be auto-detected
+    /// before falling back to the specified direction.
+    pub fn set_direction(&mut self, direction: Direction, auto_detect: bool, seqno: SequenceNo) {
+        self.bits
+            .set(LineBits::RTL, direction == Direction::LeftToRight);
+        self.bits.set(LineBits::AUTO_DETECT_DIRECTION, auto_detect);
+        self.update_last_change_seqno(seqno);
+    }
+
+    pub fn set_bidi_info(
+        &mut self,
+        enabled: bool,
+        direction: ParagraphDirectionHint,
+        seqno: SequenceNo,
+    ) {
+        self.bits.set(LineBits::BIDI_ENABLED, enabled);
+        let (auto, rtl) = match direction {
+            ParagraphDirectionHint::AutoRightToLeft => (true, true),
+            ParagraphDirectionHint::AutoLeftToRight => (true, false),
+            ParagraphDirectionHint::LeftToRight => (false, false),
+            ParagraphDirectionHint::RightToLeft => (false, true),
+        };
+        self.bits.set(LineBits::AUTO_DETECT_DIRECTION, auto);
+        self.bits.set(LineBits::RTL, rtl);
+        self.update_last_change_seqno(seqno);
+    }
+
+    /// Returns a tuple of (BIDI_ENABLED, Direction), indicating whether
+    /// the line should have the bidi algorithm applied and its base
+    /// direction, respectively.
+    pub fn bidi_info(&self) -> (bool, ParagraphDirectionHint) {
+        (
+            self.bits.contains(LineBits::BIDI_ENABLED),
+            match (
+                self.bits.contains(LineBits::AUTO_DETECT_DIRECTION),
+                self.bits.contains(LineBits::RTL),
+            ) {
+                (true, true) => ParagraphDirectionHint::AutoRightToLeft,
+                (false, true) => ParagraphDirectionHint::RightToLeft,
+                (true, false) => ParagraphDirectionHint::AutoLeftToRight,
+                (false, false) => ParagraphDirectionHint::LeftToRight,
+            },
+        )
     }
 
     fn invalidate_zones(&mut self) {

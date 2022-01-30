@@ -1,5 +1,7 @@
 use crate::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
+use termwiz::surface::{Line, SequenceNo};
+use wezterm_bidi::ParagraphDirectionHint;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NewlineCanon {
@@ -221,5 +223,26 @@ pub trait TerminalConfiguration: std::fmt::Debug {
 
     fn debug_key_events(&self) -> bool {
         false
+    }
+
+    /// Returns (bidi_enabled, direction hint) that should be used
+    /// unless an escape sequence has changed the default mode
+    fn bidi_mode(&self) -> BidiMode {
+        BidiMode {
+            enabled: false,
+            hint: ParagraphDirectionHint::LeftToRight,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BidiMode {
+    pub enabled: bool,
+    pub hint: ParagraphDirectionHint,
+}
+
+impl BidiMode {
+    pub fn apply_to_line(&self, line: &mut Line, seqno: SequenceNo) {
+        line.set_bidi_info(self.enabled, self.hint, seqno);
     }
 }

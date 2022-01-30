@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
+use crate::config::BidiMode;
 use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -57,6 +58,7 @@ impl Screen {
         config: &Arc<dyn TerminalConfiguration>,
         allow_scrollback: bool,
         seqno: SequenceNo,
+        bidi_mode: BidiMode,
     ) -> Screen {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
@@ -64,7 +66,9 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            lines.push_back(Line::with_width(physical_cols, seqno));
+            let mut line = Line::with_width(physical_cols, seqno);
+            bidi_mode.apply_to_line(&mut line, seqno);
+            lines.push_back(line);
         }
 
         Screen {
@@ -216,6 +220,7 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
+            // FIXME: borrow bidi mode from line
             self.lines
                 .push_back(Line::with_width(self.physical_cols, seqno));
         }
@@ -238,6 +243,7 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
+                // FIXME: borrow bidi mode from line
                 self.lines
                     .push_back(Line::with_width(self.physical_cols, seqno));
             }
@@ -363,9 +369,13 @@ impl Screen {
         cols: Range<usize>,
         attr: &CellAttributes,
         seqno: SequenceNo,
+        bidi_mode: BidiMode,
     ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
+        if cols.start == 0 {
+            bidi_mode.apply_to_line(line, seqno);
+        }
         line.fill_range(cols, &Cell::blank_with_attrs(attr.clone()), seqno);
     }
 
@@ -460,6 +470,7 @@ impl Screen {
         num_rows: usize,
         seqno: SequenceNo,
         blank_attr: CellAttributes,
+        bidi_mode: BidiMode,
     ) {
         log::debug!(
             "scroll_up_within_margins region:{:?} margins:{:?} rows={}",
@@ -469,7 +480,7 @@ impl Screen {
         );
 
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_up(scroll_region, num_rows, seqno, blank_attr);
+            return self.scroll_up(scroll_region, num_rows, seqno, blank_attr, bidi_mode);
         }
 
         // Need to do the slower, more complex left and right bounded scroll
@@ -557,6 +568,7 @@ impl Screen {
         num_rows: usize,
         seqno: SequenceNo,
         blank_attr: CellAttributes,
+        bidi_mode: BidiMode,
     ) {
         let phys_scroll = self.phys_range(scroll_region);
         let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
@@ -627,25 +639,19 @@ impl Screen {
             self.stable_row_index_offset += lines_removed;
         }
 
-        if scroll_region.end as usize == self.physical_rows {
-            // It's cheaper to push() than it is insert() at the end
-            for _ in 0..to_add {
-                self.lines.push_back(Line::with_width_and_cell(
-                    self.physical_cols,
-                    Cell::blank_with_attrs(blank_attr.clone()),
-                    seqno,
-                ));
-            }
-        } else {
-            for _ in 0..to_add {
-                self.lines.insert(
-                    phys_scroll.end,
-                    Line::with_width_and_cell(
-                        self.physical_cols,
-                        Cell::blank_with_attrs(blank_attr.clone()),
-                        seqno,
-                    ),
-                );
+        // It's cheaper to push() than it is insert() at the end
+        let push = scroll_region.end as usize == self.physical_rows;
+        for _ in 0..to_add {
+            let mut line = Line::with_width_and_cell(
+                self.physical_cols,
+                Cell::blank_with_attrs(blank_attr.clone()),
+                seqno,
+            );
+            bidi_mode.apply_to_line(&mut line, seqno);
+            if push {
+                self.lines.push_back(line);
+            } else {
+                self.lines.insert(phys_scroll.end, line);
             }
         }
     }
@@ -677,6 +683,7 @@ impl Screen {
         num_rows: usize,
         seqno: SequenceNo,
         blank_attr: CellAttributes,
+        bidi_mode: BidiMode,
     ) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
@@ -694,14 +701,13 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(
-                phys_scroll.start,
-                Line::with_width_and_cell(
-                    self.physical_cols,
-                    Cell::blank_with_attrs(blank_attr.clone()),
-                    seqno,
-                ),
+            let mut line = Line::with_width_and_cell(
+                self.physical_cols,
+                Cell::blank_with_attrs(blank_attr.clone()),
+                seqno,
             );
+            bidi_mode.apply_to_line(&mut line, seqno);
+            self.lines.insert(phys_scroll.start, line);
         }
     }
 
@@ -712,9 +718,10 @@ impl Screen {
         num_rows: usize,
         seqno: SequenceNo,
         blank_attr: CellAttributes,
+        bidi_mode: BidiMode,
     ) {
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_down(scroll_region, num_rows, seqno, blank_attr);
+            return self.scroll_down(scroll_region, num_rows, seqno, blank_attr, bidi_mode);
         }
 
         // Need to do the slower, more complex left and right bounded scroll

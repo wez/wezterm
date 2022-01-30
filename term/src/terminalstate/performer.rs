@@ -8,7 +8,7 @@ use num_traits::FromPrimitive;
 use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
 use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType, UnicodeVersion};
-use termwiz::escape::csi::EraseInDisplay;
+use termwiz::escape::csi::{CharacterPath, EraseInDisplay};
 use termwiz::escape::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary,
     ITermUnicodeVersionOp, Selection,
@@ -18,6 +18,7 @@ use termwiz::escape::{
 };
 use termwiz::input::KeyboardEncoding;
 use url::Url;
+use wezterm_bidi::ParagraphDirectionHint;
 
 /// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
 /// the terminal state and the embedding/host terminal interface
@@ -412,8 +413,18 @@ impl<'a> Performer<'a> {
             CSI::Device(dev) => self.state.perform_device(*dev),
             CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
             CSI::Window(window) => self.state.perform_csi_window(window),
-            CSI::SelectCharacterPath(path, _) => {
-                log::warn!("unhandled SelectCharacterPath {:?}", path);
+            CSI::SelectCharacterPath(CharacterPath::ImplementationDefault, _) => {
+                self.state.bidi_hint.take();
+            }
+            CSI::SelectCharacterPath(CharacterPath::LeftToRightOrTopToBottom, _) => {
+                self.state
+                    .bidi_hint
+                    .replace(ParagraphDirectionHint::LeftToRight);
+            }
+            CSI::SelectCharacterPath(CharacterPath::RightToLeftOrBottomToTop, _) => {
+                self.state
+                    .bidi_hint
+                    .replace(ParagraphDirectionHint::RightToLeft);
             }
             CSI::Unspecified(unspec) => {
                 log::warn!("unknown unspecified CSI: {:?}", format!("{}", unspec))

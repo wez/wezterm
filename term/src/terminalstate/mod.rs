@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
-use crate::config::NewlineCanon;
+use crate::config::{BidiMode, NewlineCanon};
 use log::debug;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
@@ -21,6 +21,7 @@ use termwiz::image::ImageData;
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use url::Url;
+use wezterm_bidi::ParagraphDirectionHint;
 
 mod image;
 mod iterm;
@@ -172,9 +173,17 @@ impl ScreenOrAlt {
         physical_cols: usize,
         config: &Arc<dyn TerminalConfiguration>,
         seqno: SequenceNo,
+        bidi_mode: BidiMode,
     ) -> Self {
-        let screen = Screen::new(physical_rows, physical_cols, config, true, seqno);
-        let alt_screen = Screen::new(physical_rows, physical_cols, config, false, seqno);
+        let screen = Screen::new(physical_rows, physical_cols, config, true, seqno, bidi_mode);
+        let alt_screen = Screen::new(
+            physical_rows,
+            physical_cols,
+            config,
+            false,
+            seqno,
+            bidi_mode,
+        );
 
         Self {
             screen,
@@ -369,6 +378,17 @@ pub struct TerminalState {
 
     lost_focus_seqno: SequenceNo,
     focused: bool,
+
+    /// True if lines should be marked as bidi-enabled, and thus
+    /// have the renderer apply the bidi algorithm.
+    /// true is equivalent to "implicit" bidi mode as described in
+    /// <https://terminal-wg.pages.freedesktop.org/bidi/recommendation/basic-modes.html>
+    /// If none, then the default value specified by the config is used.
+    bidi_enabled: Option<bool>,
+    /// When set, specifies the bidi direction information that should be
+    /// applied to lines.
+    /// If none, then the default value specified by the config is used.
+    bidi_hint: Option<ParagraphDirectionHint>,
 }
 
 #[derive(Debug)]
@@ -445,7 +465,13 @@ impl TerminalState {
     ) -> TerminalState {
         let writer = Box::new(ThreadedWriter::new(writer));
         let seqno = 1;
-        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config, seqno);
+        let screen = ScreenOrAlt::new(
+            size.physical_rows,
+            size.physical_cols,
+            &config,
+            seqno,
+            config.bidi_mode(),
+        );
 
         let color_map = default_color_map();
 
@@ -513,6 +539,8 @@ impl TerminalState {
             accumulating_title: None,
             lost_focus_seqno: seqno,
             focused: true,
+            bidi_enabled: None,
+            bidi_hint: None,
         }
     }
 
@@ -914,12 +942,14 @@ impl TerminalState {
         let blank_attr = self.pen.clone_sgr_only();
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
+        let bidi_mode = self.get_bidi_mode();
         self.screen_mut().scroll_up_within_margins(
             &top_and_bottom_margins,
             &left_and_right_margins,
             num_rows,
             seqno,
             blank_attr,
+            bidi_mode,
         )
     }
 
@@ -928,12 +958,14 @@ impl TerminalState {
         let blank_attr = self.pen.clone_sgr_only();
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
+        let bidi_mode = self.get_bidi_mode();
         self.screen_mut().scroll_down_within_margins(
             &top_and_bottom_margins,
             &left_and_right_margins,
             num_rows,
             seqno,
             blank_attr,
+            bidi_mode,
         )
     }
 
@@ -1130,6 +1162,8 @@ impl TerminalState {
 
                 self.reverse_wraparound_mode = false;
                 self.reverse_video_mode = false;
+                self.bidi_enabled.take();
+                self.bidi_hint.take();
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -1419,6 +1453,21 @@ impl TerminalState {
                 self.left_and_right_margins = 0..self.screen().physical_cols;
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
+            }
+
+            Mode::SetMode(TerminalMode::Code(TerminalModeCode::BiDirectionalSupportMode)) => {
+                self.bidi_enabled.replace(true);
+            }
+            Mode::ResetMode(TerminalMode::Code(TerminalModeCode::BiDirectionalSupportMode)) => {
+                self.bidi_enabled.replace(false);
+            }
+            Mode::QueryMode(TerminalMode::Code(TerminalModeCode::BiDirectionalSupportMode)) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    self.bidi_enabled
+                        .unwrap_or_else(|| self.config.bidi_mode().enabled),
+                );
             }
 
             Mode::SetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
@@ -1834,11 +1883,23 @@ impl TerminalState {
         };
 
         {
+            let bidi_mode = self.get_bidi_mode();
             let screen = self.screen_mut();
             for y in row_range.clone() {
-                screen.clear_line(y, col_range.clone(), &pen, seqno);
+                screen.clear_line(y, col_range.clone(), &pen, seqno, bidi_mode);
             }
         }
+    }
+
+    fn get_bidi_mode(&self) -> BidiMode {
+        let mut mode = self.config.bidi_mode();
+        if let Some(enabled) = &self.bidi_enabled {
+            mode.enabled = *enabled;
+        }
+        if let Some(hint) = &self.bidi_hint {
+            mode.hint = *hint;
+        }
+        mode
     }
 
     fn perform_csi_edit(&mut self, edit: Edit) {
@@ -1866,12 +1927,14 @@ impl TerminalState {
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
                     let left_and_right_margins = self.left_and_right_margins.clone();
                     let blank_attr = self.pen.clone_sgr_only();
+                    let bidi_mode = self.get_bidi_mode();
                     self.screen_mut().scroll_up_within_margins(
                         &top_and_bottom_margins,
                         &left_and_right_margins,
                         n as usize,
                         seqno,
                         blank_attr,
+                        bidi_mode,
                     );
                 }
             }
@@ -1893,13 +1956,15 @@ impl TerminalState {
                 let cy = self.cursor.y;
                 let pen = self.pen.clone_sgr_only();
                 let cols = self.screen().physical_cols;
+                let bidi_mode = self.get_bidi_mode();
                 let range = match erase {
                     EraseInLine::EraseToEndOfLine => cx..cols,
                     EraseInLine::EraseToStartOfLine => 0..cx + 1,
                     EraseInLine::EraseLine => 0..cols,
                 };
 
-                self.screen_mut().clear_line(cy, range.clone(), &pen, seqno);
+                self.screen_mut()
+                    .clear_line(cy, range.clone(), &pen, seqno, bidi_mode);
             }
             Edit::InsertCharacter(n) => {
                 // https://vt100.net/docs/vt510-rm/ICH.html
@@ -1924,6 +1989,7 @@ impl TerminalState {
                 if self.top_and_bottom_margins.contains(&self.cursor.y)
                     && self.left_and_right_margins.contains(&self.cursor.x)
                 {
+                    let bidi_mode = self.get_bidi_mode();
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
                     let left_and_right_margins = self.left_and_right_margins.clone();
                     let blank_attr = self.pen.clone_sgr_only();
@@ -1933,6 +1999,7 @@ impl TerminalState {
                         n as usize,
                         seqno,
                         blank_attr,
+                        bidi_mode,
                     );
                 }
             }

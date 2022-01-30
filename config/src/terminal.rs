@@ -4,6 +4,7 @@ use crate::{configuration, ConfigHandle, NewlineCanon};
 use std::sync::Mutex;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use wezterm_term::color::ColorPalette;
+use wezterm_term::config::BidiMode;
 
 #[derive(Debug)]
 pub struct TermConfig {
@@ -91,5 +92,13 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
 
     fn debug_key_events(&self) -> bool {
         self.configuration().debug_key_events
+    }
+
+    fn bidi_mode(&self) -> BidiMode {
+        let config = self.configuration();
+        BidiMode {
+            enabled: config.bidi_enabled,
+            hint: config.bidi_direction,
+        }
     }
 }
