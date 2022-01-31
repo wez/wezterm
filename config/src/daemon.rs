@@ -10,6 +10,23 @@ pub struct DaemonOptions {
 }
 impl_lua_conversion!(DaemonOptions);
 
+/// Set the sticky bit on path.
+/// This is used in a couple of situations where we want files that
+/// we create in the RUNTIME_DIR to not be removed by a potential
+/// tmpwatch daemon.
+pub fn set_sticky_bit(path: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = path.metadata() {
+            let mut perms = metadata.permissions();
+            let mode = perms.mode();
+            perms.set_mode(mode | libc::S_ISVTX);
+            let _ = std::fs::set_permissions(&path, perms);
+        }
+    }
+}
+
 fn open_log(path: PathBuf) -> anyhow::Result<File> {
     create_user_owned_dirs(
         path.parent()

@@ -350,10 +350,22 @@ pub fn discover_gui_socks() -> Vec<PathBuf> {
         age: Duration,
     }
 
-    fn meta_age(t: std::io::Result<SystemTime>) -> Duration {
-        t.ok()
-            .and_then(|t| SystemTime::now().duration_since(t).ok())
-            .unwrap_or(Duration::from_millis(300))
+    /// Get an idea of the age of the entry.
+    /// Some filesystems don't support reporting `created`,
+    /// so fall back on `modified`.
+    fn meta_age(meta: &std::fs::Metadata) -> Duration {
+        let t = if let Ok(created) = meta.created() {
+            created
+        } else if let Ok(changed) = meta.modified() {
+            changed
+        } else {
+            return Duration::from_millis(300);
+        };
+        if let Ok(d) = SystemTime::now().duration_since(t) {
+            d
+        } else {
+            Duration::from_millis(300)
+        }
     }
 
     if let Ok(dir) = std::fs::read_dir(&*config::RUNTIME_DIR) {
@@ -363,7 +375,7 @@ pub fn discover_gui_socks() -> Vec<PathBuf> {
                     if name.starts_with("gui-sock-") {
                         let path = entry.path();
                         if let Ok(meta) = entry.metadata() {
-                            let age = meta_age(meta.created());
+                            let age = meta_age(&meta);
                             if is_sock_dead(&path) && age > Duration::from_secs(1) {
                                 let _ = std::fs::remove_file(&path);
                             } else {

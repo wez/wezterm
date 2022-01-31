@@ -51,6 +51,7 @@ fn lock_pid_file(config: &config::ConfigHandle) -> anyhow::Result<std::fs::File>
         .write(true)
         .open(&pid_file)
         .with_context(|| format!("opening pid file {}", pid_file.display()))?;
+    config::set_sticky_bit(&pid_file);
     let res = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
     if res != 0 {
         let err = std::io::Error::last_os_error();

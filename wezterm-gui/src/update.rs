@@ -363,6 +363,14 @@ fn update_checker() {
     let my_sock = config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
 
     loop {
+        // Figure out which other wezterm-guis are running.
+        // We have a little "consensus protocol" to decide which
+        // of us will show the toast notification or show the update
+        // window: the one of us that sorts first in the list will
+        // own doing that, so that if there are a dozen gui processes
+        // running, we don't spam the user with a lot of notifications.
+        let socks = wezterm_client::discovery::discover_gui_socks();
+
         if configuration().check_for_updates {
             if let Ok(latest) = get_latest_release_info() {
                 schedule_set_banner_from_release_info(&latest);
@@ -378,14 +386,6 @@ fn update_checker() {
                         "https://wezfurlong.org/wezterm/changelog.html#{}",
                         latest.tag_name
                     );
-
-                    // Figure out which other wezterm-guis are running.
-                    // We have a little "consensus protocol" to decide which
-                    // of us will show the toast notification or show the update
-                    // window: the one of us that sorts first in the list will
-                    // own doing that, so that if there are a dozen gui processes
-                    // running, we don't spam the user with a lot of notifications.
-                    let socks = wezterm_client::discovery::discover_gui_socks();
 
                     if force_ui || socks.is_empty() || socks[0] == my_sock {
                         persistent_toast_notification_with_click_to_open_url(
