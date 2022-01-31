@@ -28,6 +28,7 @@ DisableProgramGroupPage=yes
 OutputDir=..
 OutputBaseFilename=WezTerm-Setup
 SetupIconFile=..\assets\windows\terminal.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
