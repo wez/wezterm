@@ -33,6 +33,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
+use wezterm_bidi::Direction;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
@@ -1765,6 +1766,7 @@ impl super::TermWindow {
         } else {
             None
         };
+        let direction = bidi_direction.direction();
 
         // Do we need to shape immediately, or can we use the pre-shaped data?
         let to_shape = if let Some(composing) = composing {
@@ -1799,6 +1801,13 @@ impl super::TermWindow {
             params.pixel_width,
             cell_height,
         );
+
+        fn phys(x: usize, num_cols: usize, direction: Direction) -> usize {
+            match direction {
+                Direction::LeftToRight => x,
+                Direction::RightToLeft => num_cols - x,
+            }
+        }
 
         // Make a pass to compute background colors.
         // Need to consider:
@@ -1838,7 +1847,7 @@ impl super::TermWindow {
                         + if params.use_pixel_positioning {
                             item.x_pos
                         } else {
-                            cluster.first_cell_idx as f32 * cell_width
+                            phys(cluster.first_cell_idx, num_cols, direction) as f32 * cell_width
                         },
                     params.top_pixel_y,
                     if params.use_pixel_positioning {
@@ -1855,7 +1864,9 @@ impl super::TermWindow {
             }
         }
 
-        // Render the selection background color
+        // Render the selection background color.
+        // This always uses a physical x position, regardles of the line
+        // direction.
         if !params.selection.is_empty() {
             let mut quad = self.filled_rectangle(
                 &mut layers[0],
@@ -1871,10 +1882,18 @@ impl super::TermWindow {
             quad.set_hsv(hsv);
         }
 
+        let directional_selection = phys(params.selection.start, num_cols, direction)
+            ..phys(params.selection.end, num_cols, direction);
+
         let mut overlay_images = vec![];
 
-        // Number of cells we've rendered, starting from the left edge of the line
+        // Number of cells we've rendered, starting from the edge of the line
         let mut visual_cell_idx = 0;
+
+        let mut cluster_x_pos = match direction {
+            Direction::LeftToRight => 0.,
+            Direction::RightToLeft => params.pixel_width,
+        };
 
         for item in shaped {
             let style_params = &item.style;
@@ -1884,7 +1903,16 @@ impl super::TermWindow {
             // TODO: remember logical/visual mapping for selection
             #[allow(unused_variables)]
             let mut phys_cell_idx = cluster.first_cell_idx;
-            let mut cluster_x_pos = item.x_pos;
+
+            // Pre-decrement by the cluster width when doing RTL,
+            // so that we can render it right-justified
+            if direction == Direction::RightToLeft {
+                cluster_x_pos -= if params.use_pixel_positioning {
+                    item.pixel_width
+                } else {
+                    cluster.width as f32 * cell_width
+                };
+            }
 
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
@@ -1945,7 +1973,7 @@ impl super::TermWindow {
                         // <https://github.com/wez/wezterm/issues/478>
                         cell_idx: visual_cell_idx,
                         cursor: params.cursor,
-                        selection: &params.selection,
+                        selection: &directional_selection,
                         fg_color: style_params.fg_color,
                         bg_color: style_params.bg_color,
                         palette: params.palette,
@@ -1962,10 +1990,11 @@ impl super::TermWindow {
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                         + params.left_pixel_x
+                        + cluster_x_pos
                         + if params.use_pixel_positioning {
-                            cluster_x_pos + (glyph.x_offset + glyph.bearing_x).get() as f32
+                            (glyph.x_offset + glyph.bearing_x).get() as f32
                         } else {
-                            cell_idx as f32 * cell_width
+                            0.
                         };
 
                     if pos_x > params.left_pixel_x + params.pixel_width {
@@ -2181,6 +2210,15 @@ impl super::TermWindow {
                 visual_cell_idx += info.pos.num_cells as usize;
                 cluster_x_pos += glyph.x_advance.get() as f32;
             }
+
+            // And decrement it again
+            if direction == Direction::RightToLeft {
+                cluster_x_pos -= if params.use_pixel_positioning {
+                    item.pixel_width
+                } else {
+                    cluster.width as f32 * cell_width
+                };
+            }
         }
 
         for (cell_idx, img, glyph_color) in overlay_images {
@@ -2188,7 +2226,7 @@ impl super::TermWindow {
                 &img,
                 gl_state,
                 &mut layers[2],
-                cell_idx,
+                phys(cell_idx, num_cols, direction),
                 &params,
                 hsv,
                 glyph_color,
@@ -2197,7 +2235,7 @@ impl super::TermWindow {
 
         // If the clusters don't extend to the full physical width of the display,
         // we have a little bit more work to do to ensure that we correctly paint:
-        // * Selection
+        // * Reversed background
         // * Cursor
         let right_fill_start = Instant::now();
         if last_cell_idx < num_cols {
@@ -2205,7 +2243,8 @@ impl super::TermWindow {
                 let mut quad = self.filled_rectangle(
                     &mut layers[0],
                     euclid::rect(
-                        params.left_pixel_x + (last_cell_idx as f32 * cell_width),
+                        params.left_pixel_x
+                            + (phys(last_cell_idx, num_cols, direction) as f32 * cell_width),
                         params.top_pixel_y,
                         (num_cols - last_cell_idx) as f32 * cell_width,
                         cell_height,
@@ -2228,7 +2267,7 @@ impl super::TermWindow {
                     stable_line_idx: params.stable_line_idx,
                     cell_idx: params.cursor.x,
                     cursor: params.cursor,
-                    selection: &params.selection,
+                    selection: &directional_selection,
                     fg_color: params.foreground,
                     bg_color: params.default_bg,
                     palette: params.palette,
@@ -2245,7 +2284,7 @@ impl super::TermWindow {
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                     + params.left_pixel_x
-                    + (params.cursor.x as f32 * cell_width);
+                    + (phys(params.cursor.x, num_cols, direction) as f32 * cell_width);
 
                 let overflow = pos_x > params.left_pixel_x + params.pixel_width;
 
@@ -2262,7 +2301,9 @@ impl super::TermWindow {
                         let mut quad = self.filled_rectangle(
                             &mut layers[2],
                             euclid::rect(
-                                params.left_pixel_x + (params.cursor.x as f32 * cell_width),
+                                params.left_pixel_x
+                                    + phys(params.cursor.x, num_cols, direction) as f32
+                                        * cell_width,
                                 params.top_pixel_y,
                                 cell_width,
                                 cell_height,
