@@ -13,9 +13,6 @@ jobs:
       - name: "Install config manager"
         shell: bash
         run: "dnf install -y 'dnf-command(config-manager)'"
-      - name: "Enable PowerTools"
-        shell: bash
-        run: "dnf config-manager --set-enabled powertools"
       - name: "Install git"
         shell: bash
         run: "yum install -y git"

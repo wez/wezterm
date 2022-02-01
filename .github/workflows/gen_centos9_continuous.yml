@@ -27,11 +27,6 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           dnf install -y 'dnf-command(config-manager)'
-      - name: "Enable PowerTools"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          dnf config-manager --set-enabled powertools
       - name: "Install git"
         shell: bash
         run: |

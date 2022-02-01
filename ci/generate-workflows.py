@@ -536,7 +536,7 @@ cargo build --all --release""",
                         "dnf install -y 'dnf-command(config-manager)'",
                     ),
                 ]
-            if "centos" in self.container:
+            if "centos:stream8" in self.container:
                 steps += [
                     RunStep(
                         "Enable PowerTools",
