@@ -32,11 +32,11 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           yum install -y git
-      - name: "Install curl"
+      - name: "Install curl-minimal"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          yum install -y curl
+          yum install -y curl-minimal
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: |

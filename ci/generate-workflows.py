@@ -166,7 +166,10 @@ class Target(object):
 
     def install_curl(self):
         if self.uses_yum() or (self.uses_apt() and self.container):
-            return self.install_system_package("curl")
+            if "centos:stream9" in self.container:
+                return self.install_system_package("curl-minimal")
+            else:
+                return self.install_system_package("curl")
         return []
 
     def install_openssh_server(self):
