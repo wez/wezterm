@@ -1994,7 +1994,7 @@ impl super::TermWindow {
                         + if params.use_pixel_positioning {
                             (glyph.x_offset + glyph.bearing_x).get() as f32
                         } else {
-                            0.
+                            glyph_idx as f32 * cell_width
                         };
 
                     if pos_x > params.left_pixel_x + params.pixel_width {
@@ -2211,13 +2211,22 @@ impl super::TermWindow {
                 cluster_x_pos += glyph.x_advance.get() as f32;
             }
 
-            // And decrement it again
-            if direction == Direction::RightToLeft {
-                cluster_x_pos -= if params.use_pixel_positioning {
-                    item.pixel_width
-                } else {
-                    cluster.width as f32 * cell_width
-                };
+            match direction {
+                Direction::RightToLeft => {
+                    // And decrement it again
+                    cluster_x_pos -= if params.use_pixel_positioning {
+                        item.pixel_width
+                    } else {
+                        cluster.width as f32 * cell_width
+                    };
+                }
+                Direction::LeftToRight => {
+                    if !params.use_pixel_positioning {
+                        // Ensure clusters are aligned to cell boundaries
+                        cluster_x_pos +=
+                            (item.cluster.width as f32 * cell_width) - item.pixel_width;
+                    }
+                }
             }
         }
 
