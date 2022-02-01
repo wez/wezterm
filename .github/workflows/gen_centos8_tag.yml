@@ -10,9 +10,6 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "centos:8"
     steps:
-      - name: "Migrate to CentOS 8 Stream"
-        shell: bash
-        run: "dnf --disablerepo '*' --enablerepo extras swap centos-linux-repos centos-stream-repos && dnf distro-sync"
       - name: "Install config manager"
         shell: bash
         run: "dnf install -y 'dnf-command(config-manager)'"

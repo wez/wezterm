@@ -529,13 +529,6 @@ cargo build --all --release""",
             ]
 
         if self.container:
-            if self.container == "centos:8":
-                steps += [
-                    RunStep(
-                        "Migrate to CentOS 8 Stream",
-                        "dnf --disablerepo '*' --enablerepo extras swap centos-linux-repos centos-stream-repos && dnf distro-sync"
-                    ),
-                ]
             if ("fedora" in self.container) or ("centos" in self.container):
                 steps += [
                     RunStep(
