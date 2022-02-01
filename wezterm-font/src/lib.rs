@@ -2,7 +2,7 @@ use crate::db::FontDatabase;
 use crate::locator::{new_locator, FontLocator};
 use crate::parser::ParsedFont;
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
-use crate::shaper::{new_shaper, FontShaper};
+use crate::shaper::{new_shaper, FontShaper, PresentationWidth};
 use anyhow::{Context, Error};
 use config::{
     configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontStretch, FontWeight,
@@ -118,6 +118,7 @@ impl LoadedFont {
         presentation: Option<Presentation>,
         direction: Direction,
         range: Option<Range<usize>>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         loop {
             let (tx, rx) = channel();
@@ -131,6 +132,7 @@ impl LoadedFont {
                 presentation,
                 direction,
                 range.clone(),
+                presentation_width,
             ) {
                 Ok(tuple) => tuple,
                 Err(err) if err.downcast_ref::<ClearShapeCache>().is_some() => {
@@ -156,6 +158,7 @@ impl LoadedFont {
         presentation: Option<Presentation>,
         direction: Direction,
         range: Option<Range<usize>>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let (_async_resolve, res) = self.shape_impl(
             text,
@@ -164,6 +167,7 @@ impl LoadedFont {
             presentation,
             direction,
             range,
+            presentation_width,
         )?;
         Ok(res)
     }
@@ -176,6 +180,7 @@ impl LoadedFont {
         presentation: Option<Presentation>,
         direction: Direction,
         range: Option<Range<usize>>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<(bool, Vec<GlyphInfo>)> {
         let mut no_glyphs = vec![];
 
@@ -200,6 +205,7 @@ impl LoadedFont {
             presentation,
             direction,
             range,
+            presentation_width,
         );
 
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');

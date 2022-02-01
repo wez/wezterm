@@ -1,5 +1,5 @@
 use crate::parser::ParsedFont;
-use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
+use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo, PresentationWidth};
 use crate::units::*;
 use crate::{ftwrap, hbwrap as harfbuzz};
 use anyhow::{anyhow, Context};
@@ -25,13 +25,8 @@ struct Info {
     y_offset: harfbuzz::hb_position_t,
 }
 
-fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
+fn make_glyphinfo(text: &str, num_cells: u8, font_idx: usize, info: &Info) -> GlyphInfo {
     let is_space = text == " ";
-    // TODO: this is problematic if the actual text in
-    // the terminal specified a different unicode version.
-    // We need to find a way to plumb that version through shaping
-    // so that it can be used here.
-    let num_cells = unicode_column_width(text, None) as u8;
     GlyphInfo {
         #[cfg(any(debug_assertions, test))]
         text: text.into(),
@@ -189,6 +184,7 @@ impl HarfbuzzShaper {
         presentation: Option<Presentation>,
         direction: Direction,
         range: Range<usize>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut buf = harfbuzz::Buffer::new()?;
         // We deliberately omit setting the script and leave it to harfbuzz
@@ -291,6 +287,7 @@ impl HarfbuzzShaper {
                     None,
                     direction,
                     range,
+                    presentation_width,
                 );
             }
         }
@@ -397,6 +394,7 @@ impl HarfbuzzShaper {
                     presentation,
                     direction,
                     sub_range.clone(),
+                    presentation_width,
                 ) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
@@ -410,6 +408,7 @@ impl HarfbuzzShaper {
                             presentation,
                             direction,
                             0..substr.len(),
+                            presentation_width,
                         )
                     }
                 }?;
@@ -438,12 +437,18 @@ impl HarfbuzzShaper {
                     len = nom_width;
                 }
 
-                let glyph = if len > 0 {
-                    let text = &substr[next_idx..next_idx + len];
-                    make_glyphinfo(text, font_idx, info)
+                let text = if len > 0 {
+                    &substr[next_idx..next_idx + len]
                 } else {
-                    make_glyphinfo("__", font_idx, info)
+                    "__"
                 };
+
+                let num_cells = match presentation_width {
+                    Some(pw) if len > 0 => pw.num_cells(next_idx..next_idx + len),
+                    _ => unicode_column_width(text, None) as u8,
+                };
+
+                let glyph = make_glyphinfo(text, num_cells, font_idx, info);
 
                 if glyph.x_advance != PixelLength::new(0.0) {
                     // log::error!("glyph: {:?}, nominal width: {:?}/{:?} = {:?}", glyph, glyph.x_advance, cell_width, nom_width);
@@ -488,6 +493,7 @@ impl FontShaper for HarfbuzzShaper {
         presentation: Option<Presentation>,
         direction: Direction,
         range: Option<Range<usize>>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let range = range.unwrap_or_else(|| 0..text.len());
 
@@ -502,6 +508,7 @@ impl FontShaper for HarfbuzzShaper {
             presentation,
             direction,
             range,
+            presentation_width,
         );
         metrics::histogram!("shape.harfbuzz", start.elapsed());
         /*
@@ -664,6 +671,7 @@ mod test {
                     None,
                     Direction::LeftToRight,
                     None,
+                    None,
                 )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
@@ -722,6 +730,7 @@ mod test {
                     None,
                     Direction::LeftToRight,
                     None,
+                    None,
                 )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
@@ -757,6 +766,7 @@ mod test {
                     &mut no_glyphs,
                     None,
                     Direction::LeftToRight,
+                    None,
                     None,
                 )
                 .unwrap();
@@ -803,6 +813,7 @@ mod test {
                     &mut no_glyphs,
                     None,
                     Direction::LeftToRight,
+                    None,
                     None,
                 )
                 .unwrap();
@@ -863,6 +874,7 @@ mod test {
                     None,
                     Direction::LeftToRight,
                     None,
+                    None,
                 )
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
@@ -921,6 +933,7 @@ mod test {
                     &mut no_glyphs,
                     None,
                     Direction::LeftToRight,
+                    None,
                     None,
                 )
                 .unwrap();

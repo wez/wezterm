@@ -34,6 +34,7 @@ use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_bidi::Direction;
+use wezterm_font::shaper::PresentationWidth;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
@@ -2736,6 +2737,9 @@ impl super::TermWindow {
                     None => self.fonts.resolve_font(style)?,
                 };
                 let window = self.window.as_ref().unwrap().clone();
+
+                let presentation_width = PresentationWidth::with_cluster(&cluster);
+
                 match font.shape(
                     &cluster.text,
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
@@ -2743,6 +2747,7 @@ impl super::TermWindow {
                     Some(cluster.presentation),
                     cluster.direction,
                     None, // FIXME: need more paragraph context
+                    Some(&presentation_width),
                 ) {
                     Ok(info) => {
                         let glyphs = self.glyph_infos_to_glyphs(

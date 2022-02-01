@@ -20,6 +20,7 @@ use termwiz::cell::CellAttributes;
 use termwiz::surface::{Line, SEQ_ZERO};
 use wezterm_bidi::Direction;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
+use wezterm_font::shaper::PresentationWidth;
 use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
 
@@ -687,12 +688,14 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
+            let presentation_width = PresentationWidth::with_cluster(&cluster);
             let infos = font
                 .blocking_shape(
                     &cluster.text,
                     Some(cluster.presentation),
                     cluster.direction,
                     None,
+                    Some(&presentation_width),
                 )
                 .unwrap();
 

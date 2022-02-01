@@ -262,6 +262,7 @@ mod test {
     use termwiz::cell::CellAttributes;
     use termwiz::surface::{Line, SEQ_ZERO};
     use wezterm_bidi::Direction;
+    use wezterm_font::shaper::PresentationWidth;
     use wezterm_font::{FontConfiguration, LoadedFont};
 
     fn cluster_and_shape<T>(
@@ -280,6 +281,7 @@ mod test {
         let cell_clusters = line.cluster(None, None);
         assert_eq!(cell_clusters.len(), 1);
         let cluster = &cell_clusters[0];
+        let presentation_width = PresentationWidth::with_cluster(&cluster);
         let infos = font
             .shape(
                 &cluster.text,
@@ -288,6 +290,7 @@ mod test {
                 None,
                 Direction::LeftToRight,
                 None,
+                Some(&presentation_width),
             )
             .unwrap();
         let glyphs = infos
@@ -406,6 +409,7 @@ mod test {
                 let line = Line::from_text(&text, &CellAttributes::default(), SEQ_ZERO);
                 let cell_clusters = line.cluster(None, None);
                 let cluster = &cell_clusters[0];
+                let presentation_width = PresentationWidth::with_cluster(&cluster);
 
                 measurer.measure(|| {
                     let _x = font
@@ -416,6 +420,7 @@ mod test {
                             None,
                             Direction::LeftToRight,
                             None,
+                            Some(&presentation_width),
                         )
                         .unwrap();
                     // println!("{:?}", &x[0..2]);

@@ -2,6 +2,7 @@ use crate::parser::ParsedFont;
 use crate::units::PixelLength;
 use std::ops::Range;
 use termwiz::cell::Presentation;
+use termwiz::cellcluster::CellCluster;
 
 pub mod harfbuzz;
 pub use wezterm_bidi::Direction;
@@ -72,6 +73,31 @@ pub struct FontMetrics {
     pub presentation: Presentation,
 }
 
+pub struct PresentationWidth<'a> {
+    cluster: &'a CellCluster,
+}
+
+impl<'a> PresentationWidth<'a> {
+    pub fn with_cluster(cluster: &'a CellCluster) -> Self {
+        Self { cluster }
+    }
+
+    pub fn num_cells(&self, cluster_range: Range<usize>) -> u8 {
+        let mut width = 0;
+        let mut done_cells = vec![];
+
+        for byte_idx in cluster_range {
+            let cell_idx = self.cluster.byte_to_cell_idx(byte_idx);
+            if done_cells.contains(&cell_idx) {
+                continue;
+            }
+            done_cells.push(cell_idx);
+            width += self.cluster.byte_to_cell_width(byte_idx);
+        }
+        width
+    }
+}
+
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
     fn shape(
@@ -83,6 +109,7 @@ pub trait FontShaper {
         presentation: Option<termwiz::cell::Presentation>,
         direction: Direction,
         range: Option<Range<usize>>,
+        presentation_width: Option<&PresentationWidth>,
     ) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font
