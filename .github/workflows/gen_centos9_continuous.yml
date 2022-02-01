@@ -27,6 +27,11 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           dnf install -y 'dnf-command(config-manager)'
+      - name: "Enable CRB repo for X bits"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          dnf config-manager --set-enabled crb
       - name: "Install git"
         shell: bash
         run: |

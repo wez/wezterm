@@ -546,6 +546,14 @@ cargo build --all --release""",
                         "dnf config-manager --set-enabled powertools",
                     ),
                 ]
+            if "centos:stream9" in self.container:
+                steps += [
+                    # This holds the xcb bits
+                    RunStep(
+                        "Enable CRB repo for X bits",
+                        "dnf config-manager --set-enabled crb",
+                    ),
+                ]
         steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
