@@ -200,19 +200,11 @@ impl HarfbuzzShaper {
         buf.set_language(self.lang);
 
         buf.add_str(s, range.clone());
-        let mut cluster_to_len = vec![];
-        for c in s.chars() {
-            let len = c.len_utf8();
-            for _ in 0..len {
-                cluster_to_len.push(len as u8);
-            }
-        }
         buf.guess_segment_properties();
         buf.set_cluster_level(
             harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
         );
 
-        let cell_width;
         let shaped_any;
         let initial_font_idx = font_idx;
 
@@ -228,11 +220,10 @@ impl HarfbuzzShaper {
                             }
                         }
                     }
-                    let size = pair.face.set_font_size(font_size, dpi)?;
+                    pair.face.set_font_size(font_size, dpi)?;
                     // Tell harfbuzz to recompute important font metrics!
                     let mut font = pair.font.borrow_mut();
                     font.font_changed();
-                    cell_width = size.width;
                     shaped_any = pair.shaped_any;
                     font.shape(&mut buf, pair.features.as_slice());
                     /*
@@ -296,23 +287,77 @@ impl HarfbuzzShaper {
         let positions = buf.glyph_positions();
 
         let mut cluster = Vec::with_capacity(s.len());
-
-        // Compute the lengths of the text clusters.
-        // Ligatures and combining characters mean
-        // that a single glyph can take the place of
-        // multiple characters.  The 'cluster' member
-        // of the glyph info is set to the position
-        // in the input utf8 text, so we make a pass
-        // over the set of clusters to look for differences
-        // greater than 1 and backfill the length of
-        // the corresponding text fragment.  We need
-        // the fragments to properly handle fallback,
-        // and they're handy to have for debugging
-        // purposes too.
         let mut info_clusters: Vec<Vec<Info>> = Vec::with_capacity(s.len());
+
+        // At this point we have a list of glyphs from the shaper.
+        // Each glyph will have `info.cluster` set to the byte index
+        // into `s`.  Multiple byte positions can be coalesced into
+        // the same `info.cluster` value, representing text that combines
+        // into a ligature.
+        // It is important for the terminal to understand this relationship
+        // because the cell width of that range of text depends on the unicode
+        // version at the time that the text was added to the terminal.
+        // To calculate the width per glyph:
+        // * Make a pass over the clusters to identify the `info.cluster` starting
+        //   positions of all of the glyphs
+        // * Sort by info.cluster
+        // * Dedup
+        // * We can now get the byte length of each cluster by looking at the difference
+        //   between the `info.cluster` values.
+        // * `presentation_width` can be used to resolve the cell width of those
+        //   byte ranges.
+        // * Then distribute the glyphs across that cell width when assigning them
+        //   to a GlyphInfo.
+
+        #[derive(Debug)]
+        struct ClusterInfo {
+            start: usize,
+            byte_len: usize,
+            cell_width: u8,
+            indices: Vec<usize>,
+            incomplete: bool,
+        }
+        let mut cluster_info: HashMap<usize, ClusterInfo> = HashMap::new();
+
+        {
+            for (info_idx, info) in hb_infos.iter().enumerate() {
+                let entry = cluster_info
+                    .entry(info.cluster as usize)
+                    .or_insert_with(|| ClusterInfo {
+                        start: info.cluster as usize,
+                        byte_len: 0,
+                        cell_width: 0,
+                        indices: vec![],
+                        incomplete: false,
+                    });
+                entry.indices.push(info_idx);
+            }
+
+            let mut cluster_starts: Vec<usize> = cluster_info.keys().copied().collect();
+            cluster_starts.sort();
+
+            let mut iter = cluster_starts.iter().peekable();
+            while let Some(start) = iter.next().copied() {
+                let start = start as usize;
+                let next_start = iter.peek().map(|&&s| s).unwrap_or(range.end);
+                let byte_len = next_start - start;
+                let cell_width = match presentation_width {
+                    Some(p) => p.num_cells(start..next_start),
+                    None => unicode_column_width(&s[start..next_start], None) as u8,
+                };
+                cluster_info.entry(start).and_modify(|e| {
+                    e.byte_len = byte_len;
+                    e.cell_width = cell_width;
+                });
+            }
+        }
+
         let mut info_iter = hb_infos.iter().zip(positions.iter()).peekable();
         while let Some((info, pos)) = info_iter.next() {
-            let len = cluster_to_len[info.cluster as usize] as usize;
+            let cluster_info = cluster_info
+                .get_mut(&(info.cluster as usize))
+                .expect("assigned above");
+            let len = cluster_info.byte_len;
 
             let mut info = Info {
                 cluster: info.cluster as usize,
@@ -323,6 +368,10 @@ impl HarfbuzzShaper {
                 x_offset: pos.x_offset,
                 y_offset: pos.y_offset,
             };
+
+            if info.codepoint == 0 {
+                cluster_info.incomplete = true;
+            }
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
                 if cluster.last().unwrap().cluster == info.cluster {
@@ -355,27 +404,16 @@ impl HarfbuzzShaper {
             }
             info_clusters.push(vec![info]);
         }
-        /*
-        if font_idx > 0 {
-            log::error!("do_shape: font_idx={} {:?} {:?}", font_idx, s, info_clusters);
-        }
-        */
+        //  log::error!("do_shape: font_idx={} {:?} {:#?}", font_idx, &s[range.clone()], info_clusters);
 
         let mut direct_clusters = 0;
 
         for infos in &info_clusters {
-            let cluster_start = infos.iter().map(|info| info.cluster).min().unwrap_or(0);
-            let cluster_end: usize = infos
-                .iter()
-                .map(|info| info.cluster + info.len)
-                .max()
-                .unwrap();
-            let sub_range = cluster_start..cluster_end;
+            let cluster_info = cluster_info.get(&infos[0].cluster).expect("assigned above");
+            let sub_range = cluster_info.start..cluster_info.start + cluster_info.byte_len;
             let substr = &s[sub_range.clone()];
 
-            let incomplete = infos.iter().find(|info| info.codepoint == 0).is_some();
-
-            if incomplete {
+            if cluster_info.incomplete {
                 // One or more entries didn't have a corresponding glyph,
                 // so try a fallback
 
@@ -384,6 +422,9 @@ impl HarfbuzzShaper {
                     log::error!("incomplete cluster for text={:?} {:?}", s, info_clusters);
                 }
                 */
+                //println!("Incomplete: {:?}.  infos: {:?}", cluster_info, infos);
+
+                let first_info = &infos[0];
 
                 let mut shape = match self.do_shape(
                     font_idx + 1,
@@ -393,7 +434,8 @@ impl HarfbuzzShaper {
                     no_glyphs,
                     presentation,
                     direction,
-                    sub_range.clone(),
+                    // NOT! substr; this is a coalesced sequence of incomplete clusters!
+                    first_info.cluster..first_info.cluster + first_info.len,
                     presentation_width,
                 ) {
                     Ok(shape) => Ok(shape),
@@ -407,7 +449,7 @@ impl HarfbuzzShaper {
                             no_glyphs,
                             presentation,
                             direction,
-                            0..substr.len(),
+                            sub_range,
                             presentation_width,
                         )
                     }
@@ -417,46 +459,26 @@ impl HarfbuzzShaper {
                 continue;
             }
 
-            let mut next_idx = 0;
+            let total_width: f64 = infos.iter().map(|info| info.x_advance as f64).sum();
+            let mut remaining_cells = cluster_info.cell_width;
+
             for info in infos.iter() {
                 if info.x_advance == 0 {
                     continue;
                 }
 
-                let nom_width = ((f64::from(info.x_advance) / 64.0) / cell_width).ceil() as usize;
+                // Proportional width based on relative pixel dimensions vs. other glyphs in
+                // this same cluster
+                let weighted_cell_width = (cluster_info.cell_width as f64 * info.x_advance as f64
+                    / total_width)
+                    .ceil() as u8;
+                let weighted_cell_width = weighted_cell_width.min(remaining_cells);
+                remaining_cells = remaining_cells.saturating_sub(weighted_cell_width);
 
-                let len;
-                if nom_width == 0 || !substr.is_char_boundary(next_idx + nom_width) {
-                    let remainder = &substr[next_idx..];
-                    if let Some(g) = remainder.graphemes(true).next() {
-                        len = g.len();
-                    } else {
-                        len = remainder.len();
-                    }
-                } else {
-                    len = nom_width;
-                }
+                let glyph = make_glyphinfo(substr, weighted_cell_width, font_idx, info);
 
-                let text = if len > 0 {
-                    &substr[next_idx..next_idx + len]
-                } else {
-                    "__"
-                };
-
-                let num_cells = match presentation_width {
-                    Some(pw) if len > 0 => pw.num_cells(next_idx..next_idx + len),
-                    _ => unicode_column_width(text, None) as u8,
-                };
-
-                let glyph = make_glyphinfo(text, num_cells, font_idx, info);
-
-                if glyph.x_advance != PixelLength::new(0.0) {
-                    // log::error!("glyph: {:?}, nominal width: {:?}/{:?} = {:?}", glyph, glyph.x_advance, cell_width, nom_width);
-                    cluster.push(glyph);
-                    direct_clusters += 1;
-                }
-
-                next_idx += len;
+                cluster.push(glyph);
+                direct_clusters += 1;
             }
         }
 

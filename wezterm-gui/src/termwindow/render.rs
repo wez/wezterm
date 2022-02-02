@@ -2022,8 +2022,7 @@ impl super::TermWindow {
                             // width.  We only use that if we're the first cell that
                             // comprises this glyph; if for some reason the cursor position
                             // is in the middle of a glyph we just use a single cell.
-                            let cursor_width =
-                                cursor_shape.map(|_| info.pos.num_cells).unwrap_or(1);
+                            let cursor_width = params.line.cells()[cell_idx].width() as u8;
 
                             let mut quad = layers[0].allocate()?;
                             quad.set_position(
@@ -2209,7 +2208,11 @@ impl super::TermWindow {
                 }
                 phys_cell_idx += info.pos.num_cells as usize;
                 visual_cell_idx += info.pos.num_cells as usize;
-                cluster_x_pos += glyph.x_advance.get() as f32;
+                cluster_x_pos += if params.use_pixel_positioning {
+                    glyph.x_advance.get() as f32
+                } else {
+                    info.pos.num_cells as f32 * cell_width
+                };
             }
 
             match direction {
@@ -2672,7 +2675,6 @@ impl super::TermWindow {
         let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
             let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
-            let num_cells = cluster.byte_to_cell_width(info.cluster as usize);
 
             if self.config.custom_block_glyphs {
                 if let Some(cell) = line.cells().get(cell_idx) {
@@ -2707,7 +2709,7 @@ impl super::TermWindow {
                 followed_by_space,
                 font,
                 metrics,
-                num_cells,
+                info.num_cells,
             )?);
         }
         Ok(glyphs)
