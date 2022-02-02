@@ -8,7 +8,7 @@ if test -z "${SUDO+x}" && hash sudo 2>/dev/null; then
   SUDO="sudo"
 fi
 
-# Centos may not have lsb_release installed
+# Centos may not have lsb_release installed (or even available at all)
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
   if test -x /bin/dnf ; then
     YUM="$SUDO dnf"
@@ -34,8 +34,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     xcb-util-keysyms-devel \
     xcb-util-image-devel \
     xcb-util-wm-devel \
-    rpm-build \
-    redhat-lsb-core
+    rpm-build
   exit $?
 fi
 
@@ -154,6 +153,7 @@ case $OSTYPE in
   *)
     echo "Please contribute the commands to install the deps"
     echo "For `lsb_release -ds`"
+    cat /etc/os-release
     exit 1
   ;;
 esac
