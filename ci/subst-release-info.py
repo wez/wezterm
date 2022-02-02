@@ -8,6 +8,8 @@ CATEGORIZE = {
     r".centos7.rpm$": "centos7_rpm",
     r".el8.x86_64.rpm$": "centos8_rpm",
     r".centos8.rpm$": "centos8_rpm",
+    r".el9.x86_64.rpm$": "centos9_rpm",
+    r".centos9.rpm$": "centos9_rpm",
     r".fc31.x86_64.rpm$": "fedora31_rpm",
     r".fedora31.rpm$": "fedora31_rpm",
     r".fc32.x86_64.rpm$": "fedora32_rpm",
