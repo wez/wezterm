@@ -1989,8 +1989,7 @@ impl super::TermWindow {
                         in_composition,
                     });
 
-                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                        + params.left_pixel_x
+                    let pos_x = params.left_pixel_x
                         + cluster_x_pos
                         + if params.use_pixel_positioning {
                             (glyph.x_offset + glyph.bearing_x).get() as f32
@@ -2007,6 +2006,7 @@ impl super::TermWindow {
                         );
                         break;
                     }
+                    let pos_x = (self.dimensions.pixel_width as f32 / -2.) + pos_x;
 
                     let pixel_width = glyph.x_advance.get() as f32;
 
@@ -2224,13 +2224,7 @@ impl super::TermWindow {
                         cluster.width as f32 * cell_width
                     };
                 }
-                Direction::LeftToRight => {
-                    if !params.use_pixel_positioning {
-                        // Ensure clusters are aligned to cell boundaries
-                        cluster_x_pos +=
-                            (item.cluster.width as f32 * cell_width) - item.pixel_width;
-                    }
-                }
+                Direction::LeftToRight => {}
             }
         }
 
