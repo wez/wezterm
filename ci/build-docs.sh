@@ -8,5 +8,6 @@ python3 ci/generate-docs.py || exit 1
 mdbook build docs
 
 rm gh_pages/html/README.markdown
+cp assets/fonts/Symbols-Nerd-Font-Mono.ttf gh_pages/html/fonts/
 cp assets/icon/terminal.png gh_pages/html/favicon.png
 cp "assets/icon/wezterm-icon.svg" gh_pages/html/favicon.svg
