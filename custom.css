@@ -39,3 +39,17 @@
 	top:1px;
 }
 
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url(fonts/Symbols-Nerd-Font-Mono.ttf) format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.nf {
+  font-family: "Symbols Nerd Font Mono";
+  speak: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
