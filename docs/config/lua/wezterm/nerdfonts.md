@@ -1452,13 +1452,13 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xf581;</span>|mdi_battery_90|
 |<span class="nf big">&#xf582;</span>|mdi_battery_alert|
 |<span class="nf big">&#xf583;</span>|mdi_battery_charging|
-|<span class="nf big">&#xf584;</span>|mdi_battery_charging_100|
 |<span class="nf big">&#xf585;</span>|mdi_battery_charging_20|
 |<span class="nf big">&#xf586;</span>|mdi_battery_charging_30|
 |<span class="nf big">&#xf587;</span>|mdi_battery_charging_40|
 |<span class="nf big">&#xf588;</span>|mdi_battery_charging_60|
 |<span class="nf big">&#xf589;</span>|mdi_battery_charging_80|
 |<span class="nf big">&#xf58a;</span>|mdi_battery_charging_90|
+|<span class="nf big">&#xf584;</span>|mdi_battery_charging_100|
 |<span class="nf big">&#xfd05;</span>|mdi_battery_charging_wireless|
 |<span class="nf big">&#xfd06;</span>|mdi_battery_charging_wireless_10|
 |<span class="nf big">&#xfd07;</span>|mdi_battery_charging_wireless_20|
@@ -1906,11 +1906,11 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xf6cc;</span>|mdi_dice_4|
 |<span class="nf big">&#xf6cd;</span>|mdi_dice_5|
 |<span class="nf big">&#xf6ce;</span>|mdi_dice_6|
-|<span class="nf big">&#xfc6d;</span>|mdi_dice_d10|
-|<span class="nf big">&#xfae9;</span>|mdi_dice_d20|
 |<span class="nf big">&#xfaea;</span>|mdi_dice_d4|
 |<span class="nf big">&#xfaeb;</span>|mdi_dice_d6|
 |<span class="nf big">&#xfaec;</span>|mdi_dice_d8|
+|<span class="nf big">&#xfc6d;</span>|mdi_dice_d10|
+|<span class="nf big">&#xfae9;</span>|mdi_dice_d20|
 |<span class="nf big">&#xfc6c;</span>|mdi_dice_multiple|
 |<span class="nf big">&#xfb1c;</span>|mdi_dictionary|
 |<span class="nf big">&#xfcbf;</span>|mdi_dip_switch|
@@ -3140,8 +3140,8 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xfc23;</span>|mdi_tilde|
 |<span class="nf big">&#xfa19;</span>|mdi_timelapse|
 |<span class="nf big">&#xfa1a;</span>|mdi_timer|
-|<span class="nf big">&#xfa1b;</span>|mdi_timer_10|
 |<span class="nf big">&#xfa1c;</span>|mdi_timer_3|
+|<span class="nf big">&#xfa1b;</span>|mdi_timer_10|
 |<span class="nf big">&#xfa1d;</span>|mdi_timer_off|
 |<span class="nf big">&#xfa1e;</span>|mdi_timer_sand|
 |<span class="nf big">&#xfbab;</span>|mdi_timer_sand_empty|
@@ -3831,9 +3831,6 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xe34f;</span>|weather_thermometer_internal|
 |<span class="nf big">&#xe31d;</span>|weather_thunderstorm|
 |<span class="nf big">&#xe382;</span>|weather_time_1|
-|<span class="nf big">&#xe38b;</span>|weather_time_10|
-|<span class="nf big">&#xe38c;</span>|weather_time_11|
-|<span class="nf big">&#xe381;</span>|weather_time_12|
 |<span class="nf big">&#xe383;</span>|weather_time_2|
 |<span class="nf big">&#xe384;</span>|weather_time_3|
 |<span class="nf big">&#xe385;</span>|weather_time_4|
@@ -3842,6 +3839,9 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xe388;</span>|weather_time_7|
 |<span class="nf big">&#xe389;</span>|weather_time_8|
 |<span class="nf big">&#xe38a;</span>|weather_time_9|
+|<span class="nf big">&#xe38b;</span>|weather_time_10|
+|<span class="nf big">&#xe38c;</span>|weather_time_11|
+|<span class="nf big">&#xe381;</span>|weather_time_12|
 |<span class="nf big">&#xe351;</span>|weather_tornado|
 |<span class="nf big">&#xe3c3;</span>|weather_train|
 |<span class="nf big">&#xe3bd;</span>|weather_tsunami|
@@ -3849,9 +3849,6 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xe3c0;</span>|weather_volcano|
 |<span class="nf big">&#xe3af;</span>|weather_wind_beaufort_0|
 |<span class="nf big">&#xe3b0;</span>|weather_wind_beaufort_1|
-|<span class="nf big">&#xe3b9;</span>|weather_wind_beaufort_10|
-|<span class="nf big">&#xe3ba;</span>|weather_wind_beaufort_11|
-|<span class="nf big">&#xe3bb;</span>|weather_wind_beaufort_12|
 |<span class="nf big">&#xe3b1;</span>|weather_wind_beaufort_2|
 |<span class="nf big">&#xe3b2;</span>|weather_wind_beaufort_3|
 |<span class="nf big">&#xe3b3;</span>|weather_wind_beaufort_4|
@@ -3860,6 +3857,9 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xe3b6;</span>|weather_wind_beaufort_7|
 |<span class="nf big">&#xe3b7;</span>|weather_wind_beaufort_8|
 |<span class="nf big">&#xe3b8;</span>|weather_wind_beaufort_9|
+|<span class="nf big">&#xe3b9;</span>|weather_wind_beaufort_10|
+|<span class="nf big">&#xe3ba;</span>|weather_wind_beaufort_11|
+|<span class="nf big">&#xe3bb;</span>|weather_wind_beaufort_12|
 |<span class="nf big">&#xe3a9;</span>|weather_wind_direction|
 |<span class="nf big">&#xe35b;</span>|weather_wind_east|
 |<span class="nf big">&#xe35a;</span>|weather_wind_north|
@@ -3870,4 +3870,3 @@ cargo run --example gennerdfonts 2>/dev/null
 |<span class="nf big">&#xe355;</span>|weather_wind_south_west|
 |<span class="nf big">&#xe354;</span>|weather_wind_west|
 |<span class="nf big">&#xe31e;</span>|weather_windy|
-

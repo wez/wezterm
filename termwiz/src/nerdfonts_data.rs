@@ -1410,13 +1410,13 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("mdi_battery_90", '\u{f581}'),                              // 
     ("mdi_battery_alert", '\u{f582}'),                           // 
     ("mdi_battery_charging", '\u{f583}'),                        // 
-    ("mdi_battery_charging_100", '\u{f584}'),                    // 
     ("mdi_battery_charging_20", '\u{f585}'),                     // 
     ("mdi_battery_charging_30", '\u{f586}'),                     // 
     ("mdi_battery_charging_40", '\u{f587}'),                     // 
     ("mdi_battery_charging_60", '\u{f588}'),                     // 
     ("mdi_battery_charging_80", '\u{f589}'),                     // 
     ("mdi_battery_charging_90", '\u{f58a}'),                     // 
+    ("mdi_battery_charging_100", '\u{f584}'),                    // 
     ("mdi_battery_charging_wireless", '\u{fd05}'),               // ﴅ
     ("mdi_battery_charging_wireless_10", '\u{fd06}'),            // ﴆ
     ("mdi_battery_charging_wireless_20", '\u{fd07}'),            // ﴇ
@@ -1864,11 +1864,11 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("mdi_dice_4", '\u{f6cc}'),                                  // 
     ("mdi_dice_5", '\u{f6cd}'),                                  // 
     ("mdi_dice_6", '\u{f6ce}'),                                  // 
-    ("mdi_dice_d10", '\u{fc6d}'),                                // ﱭ
-    ("mdi_dice_d20", '\u{fae9}'),                                // 﫩
     ("mdi_dice_d4", '\u{faea}'),                                 // 﫪
     ("mdi_dice_d6", '\u{faeb}'),                                 // 﫫
     ("mdi_dice_d8", '\u{faec}'),                                 // 﫬
+    ("mdi_dice_d10", '\u{fc6d}'),                                // ﱭ
+    ("mdi_dice_d20", '\u{fae9}'),                                // 﫩
     ("mdi_dice_multiple", '\u{fc6c}'),                           // ﱬ
     ("mdi_dictionary", '\u{fb1c}'),                              // ﬜
     ("mdi_dip_switch", '\u{fcbf}'),                              // ﲿ
@@ -2102,7 +2102,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("mdi_format_header_increase", '\u{f772}'),                  // 
     ("mdi_format_header_pound", '\u{f773}'),                     // 
     ("mdi_format_horizontal_align_center", '\u{fb1d}'),          // יִ
-    ("mdi_format_horizontal_align_left", '\u{fb1e}'),            // ﬞ
+    ("mdi_format_horizontal_align_left", '\u{fb1e}'),            //
     ("mdi_format_horizontal_align_right", '\u{fb1f}'),           // ײַ
     ("mdi_format_indent_decrease", '\u{f774}'),                  // 
     ("mdi_format_indent_increase", '\u{f775}'),                  // 
@@ -3098,8 +3098,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("mdi_tilde", '\u{fc23}'),                                   // ﰣ
     ("mdi_timelapse", '\u{fa19}'),                               // 神
     ("mdi_timer", '\u{fa1a}'),                                   // 祥
-    ("mdi_timer_10", '\u{fa1b}'),                                // 福
     ("mdi_timer_3", '\u{fa1c}'),                                 // 靖
+    ("mdi_timer_10", '\u{fa1b}'),                                // 福
     ("mdi_timer_off", '\u{fa1d}'),                               // 精
     ("mdi_timer_sand", '\u{fa1e}'),                              // 羽
     ("mdi_timer_sand_empty", '\u{fbab}'),                        // ﮫ
@@ -3789,9 +3789,6 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("weather_thermometer_internal", '\u{e34f}'),                // 
     ("weather_thunderstorm", '\u{e31d}'),                        // 
     ("weather_time_1", '\u{e382}'),                              // 
-    ("weather_time_10", '\u{e38b}'),                             // 
-    ("weather_time_11", '\u{e38c}'),                             // 
-    ("weather_time_12", '\u{e381}'),                             // 
     ("weather_time_2", '\u{e383}'),                              // 
     ("weather_time_3", '\u{e384}'),                              // 
     ("weather_time_4", '\u{e385}'),                              // 
@@ -3800,6 +3797,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("weather_time_7", '\u{e388}'),                              // 
     ("weather_time_8", '\u{e389}'),                              // 
     ("weather_time_9", '\u{e38a}'),                              // 
+    ("weather_time_10", '\u{e38b}'),                             // 
+    ("weather_time_11", '\u{e38c}'),                             // 
+    ("weather_time_12", '\u{e381}'),                             // 
     ("weather_tornado", '\u{e351}'),                             // 
     ("weather_train", '\u{e3c3}'),                               // 
     ("weather_tsunami", '\u{e3bd}'),                             // 
@@ -3807,9 +3807,6 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("weather_volcano", '\u{e3c0}'),                             // 
     ("weather_wind_beaufort_0", '\u{e3af}'),                     // 
     ("weather_wind_beaufort_1", '\u{e3b0}'),                     // 
-    ("weather_wind_beaufort_10", '\u{e3b9}'),                    // 
-    ("weather_wind_beaufort_11", '\u{e3ba}'),                    // 
-    ("weather_wind_beaufort_12", '\u{e3bb}'),                    // 
     ("weather_wind_beaufort_2", '\u{e3b1}'),                     // 
     ("weather_wind_beaufort_3", '\u{e3b2}'),                     // 
     ("weather_wind_beaufort_4", '\u{e3b3}'),                     // 
@@ -3818,6 +3815,9 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("weather_wind_beaufort_7", '\u{e3b6}'),                     // 
     ("weather_wind_beaufort_8", '\u{e3b7}'),                     // 
     ("weather_wind_beaufort_9", '\u{e3b8}'),                     // 
+    ("weather_wind_beaufort_10", '\u{e3b9}'),                    // 
+    ("weather_wind_beaufort_11", '\u{e3ba}'),                    // 
+    ("weather_wind_beaufort_12", '\u{e3bb}'),                    // 
     ("weather_wind_direction", '\u{e3a9}'),                      // 
     ("weather_wind_east", '\u{e35b}'),                           // 
     ("weather_wind_north", '\u{e35a}'),                          // 
