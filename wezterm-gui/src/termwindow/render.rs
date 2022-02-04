@@ -154,9 +154,8 @@ pub struct RenderScreenLineOpenGLParams<'a> {
 }
 
 pub struct ComputeCellFgBgParams<'a> {
-    pub stable_line_idx: Option<StableRowIndex>,
     pub cell_idx: usize,
-    pub cursor: &'a StableCursorPosition,
+    pub cursor: Option<&'a StableCursorPosition>,
     pub selection: &'a Range<usize>,
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
@@ -168,7 +167,6 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
-    pub in_composition: bool,
     pub pane: Option<&'a Rc<dyn Pane>>,
 }
 
@@ -1936,8 +1934,8 @@ impl super::TermWindow {
                     last_cell_idx = visual_cell_idx;
 
                     let in_composition = composition_width > 0
-                        && cell_idx >= params.cursor.x
-                        && cell_idx <= params.cursor.x + composition_width;
+                        && visual_cell_idx >= params.cursor.x
+                        && visual_cell_idx <= params.cursor.x + composition_width;
 
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
@@ -1945,7 +1943,6 @@ impl super::TermWindow {
                         cursor_shape,
                         cursor_border_color,
                     } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                        stable_line_idx: params.stable_line_idx,
                         // We pass the visual_cell_idx instead of the cell_idx when
                         // computing the cursor/background color because we may
                         // have a series of ligatured glyphs that compose over the
@@ -1962,7 +1959,13 @@ impl super::TermWindow {
                         // cases!
                         // <https://github.com/wez/wezterm/issues/478>
                         cell_idx: visual_cell_idx,
-                        cursor: params.cursor,
+                        cursor: if params.stable_line_idx == Some(params.cursor.y)
+                            && (in_composition || params.cursor.x == visual_cell_idx)
+                        {
+                            Some(params.cursor)
+                        } else {
+                            None
+                        },
                         selection: &directional_selection,
                         fg_color: style_params.fg_color,
                         bg_color: style_params.bg_color,
@@ -1975,7 +1978,6 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pane,
-                        in_composition,
                     });
 
                     let pos_x = params.left_pixel_x
@@ -2260,9 +2262,8 @@ impl super::TermWindow {
                     cursor_shape,
                     cursor_border_color,
                 } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                    stable_line_idx: params.stable_line_idx,
                     cell_idx: params.cursor.x,
-                    cursor: params.cursor,
+                    cursor: Some(params.cursor),
                     selection: &directional_selection,
                     fg_color: params.foreground,
                     bg_color: params.default_bg,
@@ -2275,7 +2276,6 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
                     pane: params.pane,
-                    in_composition: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2452,14 +2452,10 @@ impl super::TermWindow {
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         let selected = params.selection.contains(&params.cell_idx);
-        let is_cursor = params.in_composition
-            || params.pane.is_some()
-                && params.stable_line_idx == Some(params.cursor.y)
-                && params.cursor.x == params.cell_idx;
 
-        if is_cursor {
+        if params.cursor.is_some() {
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
-                params.pane.expect("is_cursor only true is pane present"),
+                params.pane.expect("cursor only set if pane present"),
                 params.config,
                 VisualBellTarget::CursorColor,
             ) {
@@ -2520,8 +2516,8 @@ impl super::TermWindow {
             }
         }
 
-        let (cursor_shape, visibility) =
-            if is_cursor && params.cursor.visibility == CursorVisibility::Visible {
+        let (cursor_shape, visibility) = match params.cursor {
+            Some(cursor) if cursor.visibility == CursorVisibility::Visible => {
                 // This logic figures out whether the cursor is visible or not.
                 // If the cursor is explicitly hidden then it is obviously not
                 // visible.
@@ -2530,7 +2526,7 @@ impl super::TermWindow {
                 let shape = params
                     .config
                     .default_cursor_style
-                    .effective_shape(params.cursor.shape);
+                    .effective_shape(cursor.shape);
                 // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
                 // and the window is focused.
                 let blinking = params.is_active_pane
@@ -2581,9 +2577,9 @@ impl super::TermWindow {
                 } else {
                     (shape, CursorVisibility::Visible)
                 }
-            } else {
-                (params.cursor.shape, CursorVisibility::Hidden)
-            };
+            }
+            _ => (CursorShape::default(), CursorVisibility::Hidden),
+        };
 
         let focused_and_active = self.focused.is_some() && params.is_active_pane;
 
