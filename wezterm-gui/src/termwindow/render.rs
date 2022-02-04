@@ -2755,7 +2755,7 @@ impl super::TermWindow {
                             &font,
                             metrics,
                         )?;
-                        let shaped = Rc::new(ShapedInfo::process(metrics, cluster, &info, &glyphs));
+                        let shaped = Rc::new(ShapedInfo::process(&info, &glyphs));
 
                         self.shape_cache
                             .borrow_mut()

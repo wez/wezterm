@@ -530,9 +530,6 @@ pub struct Config {
     pub status_update_interval: u64,
 
     #[serde(default)]
-    pub experimental_shape_post_processing: bool,
-
-    #[serde(default)]
     pub experimental_pixel_positioning: bool,
 
     #[serde(default)]

@@ -1,9 +1,7 @@
 use crate::glyphcache::CachedGlyph;
-use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::Texture2d;
 use config::TextStyle;
 use std::rc::Rc;
-use termwiz::cellcluster::CellCluster;
 use wezterm_font::shaper::GlyphInfo;
 use wezterm_font::units::*;
 
@@ -37,150 +35,27 @@ where
     T: Texture2d,
     T: std::fmt::Debug,
 {
-    /// Process the results from the shaper.
-    /// Ideally this would not be needed, but the shaper doesn't
-    /// merge certain forms of ligatured cluster, and won't merge
-    /// certain combining sequences for which no glyph could be
-    /// found for the resultant grapheme.
-    /// This function's goal is to handle those two cases.
-    pub fn process(
-        render_metrics: &RenderMetrics,
-        cluster: &CellCluster,
-        infos: &[GlyphInfo],
-        glyphs: &[Rc<CachedGlyph<T>>],
-    ) -> Vec<ShapedInfo<T>> {
-        let mut pos: Vec<Option<ShapedInfo<T>>> = Vec::with_capacity(infos.len());
-        let mut x = 0.;
-        let mut prior_info: Option<&GlyphInfo> = None;
-
-        let cell_width = render_metrics.cell_size.width as f64;
-        let simple_mode = !config::configuration().experimental_shape_post_processing;
+    /// Process the results from the shaper, stitching together glyph
+    /// and positioning information
+    pub fn process(infos: &[GlyphInfo], glyphs: &[Rc<CachedGlyph<T>>]) -> Vec<ShapedInfo<T>> {
+        let mut pos: Vec<ShapedInfo<T>> = Vec::with_capacity(infos.len());
 
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
-            // info.num_cells accounts for ligatures that have combined
-            // two or more single width cells into one glyph
-            let info_num_cells = info
-                .num_cells
-                .max(cluster.byte_to_cell_width(info.cluster as usize));
-            if simple_mode {
-                pos.push(Some(ShapedInfo {
-                    pos: GlyphPosition {
-                        glyph_idx: info.glyph_pos,
-                        bitmap_pixel_width: glyph
-                            .texture
-                            .as_ref()
-                            .map_or(0, |t| t.coords.width() as u32),
-                        num_cells: info_num_cells,
-                        x_offset: info.x_offset,
-                        bearing_x: glyph.bearing_x.get() as f32,
-                    },
-                    glyph: Rc::clone(glyph),
-                }));
-                continue;
-            }
-
-            let glyph_width = (info.x_advance - glyph.bearing_x).get().ceil();
-
-            let x_offset = info.x_offset.get();
-            let bearing_x = glyph.bearing_x.get();
-
-            let idx = (((x + x_offset)
-                        // Only jump cells if the width of this one is large enough.
-                        // This is important because operator mono italic's `_`
-                        // glyph is 1 pixel wider than the computed cell width
-                + (if bearing_x.abs() > cell_width {
-                    bearing_x
-                } else {
-                    0.
-                }))
-                / cell_width)
-                .floor() as usize;
-
-            if idx >= pos.len() {
-                pos.resize_with(idx + 1, || None);
-            }
-
-            if let Some(prior) = prior_info.take() {
-                if prior.cluster == info.cluster {
-                    // This is a tricky case: if we have a cluster such as
-                    // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
-                    // and the font doesn't define a glyph for it, the shaper
-                    // may give us a sequence of three output clusters, each
-                    // comprising: veil, skin tone and female respectively.
-                    // Those all have the same info.cluster which
-                    // means that they all resolve to the same cell_idx.
-                    // In this case, the cluster is logically a single cell,
-                    // and the best presentation is of the veil, so we pick
-                    // that one and ignore the rest of the glyphs that map to
-                    // this same cell.
-                    // Ideally we'd overlay this with a "something is broken"
-                    // glyph in the corner.
-                    prior_info.replace(info);
-                    continue;
-                }
-            }
-            prior_info.replace(info);
-
-            if glyph.texture.is_some() {
-                if let Some(Some(existing)) = pos.get(idx) {
-                    log::warn!(
-                        "idx={} is already assigned to {:#?} in: {:#?}.  infos={:#?}, glyphs={:#?}",
-                        idx,
-                        existing,
-                        pos,
-                        infos,
-                        glyphs
-                    );
-                }
-                let bitmap_pixel_width = glyph
-                    .texture
-                    .as_ref()
-                    .map_or(0, |t| t.coords.width() as u32);
-                let num_cells = if info_num_cells == 1
-                    // Only adjust the cell count if this glyph is wide enough
-                    && glyph_width > (1.5 * render_metrics.cell_size.width as f64)
-                {
-                    (glyph_width / render_metrics.cell_size.width as f64).ceil() as u8
-                } else {
-                    info_num_cells
-                };
-                let bearing_x = if num_cells > info_num_cells && glyph.bearing_x.get() < 0. {
-                    ((num_cells - info_num_cells) as f64 * render_metrics.cell_size.width as f64)
-                        + glyph.bearing_x.get()
-                } else {
-                    glyph.bearing_x.get()
-                };
-                pos[idx].replace(ShapedInfo {
-                    glyph: Rc::clone(&glyph),
-                    pos: GlyphPosition {
-                        glyph_idx: info.glyph_pos,
-                        num_cells,
-                        x_offset: info.x_offset,
-                        bearing_x: bearing_x as f32,
-                        bitmap_pixel_width,
-                    },
-                });
-            } else if info.is_space {
-                pos[idx].replace(ShapedInfo {
-                    pos: GlyphPosition {
-                        glyph_idx: info.glyph_pos,
-                        bitmap_pixel_width: glyph
-                            .texture
-                            .as_ref()
-                            .map_or(0, |t| t.coords.width() as u32),
-                        num_cells: info_num_cells,
-                        x_offset: info.x_offset,
-                        bearing_x: glyph.bearing_x.get() as f32,
-                    },
-                    glyph: Rc::clone(glyph),
-                });
-            }
-            x += info.x_advance.get();
+            pos.push(ShapedInfo {
+                pos: GlyphPosition {
+                    glyph_idx: info.glyph_pos,
+                    bitmap_pixel_width: glyph
+                        .texture
+                        .as_ref()
+                        .map_or(0, |t| t.coords.width() as u32),
+                    num_cells: info.num_cells,
+                    x_offset: info.x_offset,
+                    bearing_x: glyph.bearing_x.get() as f32,
+                },
+                glyph: Rc::clone(glyph),
+            });
         }
-
-        // log::info!("{:#?}\n{:#?}\n{:#?}", infos, glyphs, pos);
-
-        pos.into_iter().filter_map(|n| n).collect()
+        pos
     }
 }
 
@@ -319,7 +194,7 @@ mod test {
 
         eprintln!("infos: {:#?}", infos);
         eprintln!("glyphs: {:#?}", glyphs);
-        ShapedInfo::process(render_metrics, &cluster, &infos, &glyphs)
+        ShapedInfo::process(&infos, &glyphs)
             .into_iter()
             .map(|p| p.pos)
             .collect()
@@ -334,9 +209,6 @@ mod test {
             .try_init();
 
         let config = config::configuration();
-        if !config.experimental_shape_post_processing {
-            return;
-        }
 
         let mut config: config::Config = (*config).clone();
         config.font = TextStyle {
@@ -360,24 +232,40 @@ mod test {
         let style = TextStyle::default();
         let font = fonts.resolve_font(&style).unwrap();
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a..."),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 637,
-                    num_cells: 3,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 4.0,
-                    bitmap_pixel_width: 16,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 180,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 637,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -15.0,
+        bitmap_pixel_width: 20,
+    },
+]
+"
         );
     }
 
@@ -439,9 +327,6 @@ mod test {
             .filter_level(log::LevelFilter::Trace)
             .try_init();
         let config = config::configuration();
-        if !config.experimental_shape_post_processing {
-            return;
-        }
 
         let fonts = Rc::new(
             FontConfiguration::new(
@@ -456,183 +341,247 @@ mod test {
         let style = TextStyle::default();
         let font = fonts.resolve_font(&style).unwrap();
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "ab"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 180,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 205,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a b"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 180,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 686,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 205,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a..."),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 637,
-                    num_cells: 3,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 4.0,
-                    bitmap_pixel_width: 16,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 180,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 637,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -15.0,
+        bitmap_pixel_width: 20,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "e_or_"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 216,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-                GlyphPosition {
-                    glyph_idx: 610,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 8,
-                },
-                GlyphPosition {
-                    glyph_idx: 279,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-                GlyphPosition {
-                    glyph_idx: 308,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-                GlyphPosition {
-                    glyph_idx: 610,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 8,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 216,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 610,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 9,
+    },
+    GlyphPosition {
+        glyph_idx: 279,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 308,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 610,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 9,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a  b"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 180,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+    GlyphPosition {
+        glyph_idx: 686,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 686,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 205,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 1.0,
+        bitmap_pixel_width: 8,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<-"),
-            vec![GlyphPosition {
-                glyph_idx: 1065,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 1.0,
-                bitmap_pixel_width: 14,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1065,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -9.0,
+        bitmap_pixel_width: 17,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<>"),
-            vec![GlyphPosition {
-                glyph_idx: 1089,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 2.0,
-                bitmap_pixel_width: 12,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1089,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -8.0,
+        bitmap_pixel_width: 16,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "|=>"),
-            vec![GlyphPosition {
-                glyph_idx: 1040,
-                num_cells: 3,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 2.0,
-                bitmap_pixel_width: 21,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1040,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -18.0,
+        bitmap_pixel_width: 27,
+    },
+]
+"
         );
 
         let block_bottom_one_eighth = "\u{2581}";
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(
                 &render_metrics,
                 &mut glyph_cache,
@@ -640,17 +589,21 @@ mod test {
                 &font,
                 block_bottom_one_eighth
             ),
-            vec![GlyphPosition {
-                glyph_idx: 790,
-                num_cells: 1,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 0.0,
-                bitmap_pixel_width: 8,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 790,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 10,
+    },
+]
+"
         );
 
         let powerline_extra_honeycomb = "\u{e0cc}";
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(
                 &render_metrics,
                 &mut glyph_cache,
@@ -658,24 +611,53 @@ mod test {
                 &font,
                 powerline_extra_honeycomb,
             ),
-            vec![GlyphPosition {
-                glyph_idx: 32,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 7.0,
-                bitmap_pixel_width: 15,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 42,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 12,
+    },
+]
+"
         );
 
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<!--"),
-            vec![GlyphPosition {
-                glyph_idx: 1071,
-                num_cells: 4,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 1.0,
-                bitmap_pixel_width: 30,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1212,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 0,
+    },
+    GlyphPosition {
+        glyph_idx: 1071,
+        num_cells: 1,
+        x_offset: 0.0,
+        bearing_x: -28.0,
+        bitmap_pixel_width: 37,
+    },
+]
+"
         );
 
         let deaf_man_medium_light_skin_tone = "\u{1F9CF}\u{1F3FC}\u{200D}\u{2642}\u{FE0F}";
@@ -683,7 +665,7 @@ mod test {
             "deaf_man_medium_light_skin_tone: {}",
             deaf_man_medium_light_skin_tone
         );
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(
                 &render_metrics,
                 &mut glyph_cache,
@@ -691,18 +673,22 @@ mod test {
                 &font,
                 deaf_man_medium_light_skin_tone
             ),
-            vec![GlyphPosition {
-                glyph_idx: 298,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 1.0666667,
-                bitmap_pixel_width: 14,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 3249,
+        num_cells: 2,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 17,
+    },
+]
+"
         );
 
         let england_flag = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
         println!("england_flag: {}", england_flag);
-        assert_eq!(
+        k9::snapshot!(
             cluster_and_shape(
                 &render_metrics,
                 &mut glyph_cache,
@@ -710,13 +696,17 @@ mod test {
                 &font,
                 england_flag
             ),
-            vec![GlyphPosition {
-                glyph_idx: 1583,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 0.,
-                bitmap_pixel_width: 14,
-            }]
+            "
+[
+    GlyphPosition {
+        glyph_idx: 1857,
+        num_cells: 2,
+        x_offset: 0.0,
+        bearing_x: 0.0,
+        bitmap_pixel_width: 20,
+    },
+]
+"
         );
     }
 }
