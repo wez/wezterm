@@ -238,3 +238,37 @@ impl TerminalState {
         }
     }
 }
+
+pub(crate) fn check_image_dimensions(width: u32, height: u32) -> anyhow::Result<()> {
+    const MAX_IMAGE_SIZE: u32 = 100_000_000;
+    let size = width.saturating_mul(height).saturating_mul(4);
+    if size > MAX_IMAGE_SIZE {
+        anyhow::bail!(
+            "Ignoring image data {}x{} because {} bytes > max allowed {}",
+            width,
+            height,
+            size,
+            MAX_IMAGE_SIZE
+        );
+    }
+    Ok(())
+}
+
+pub(crate) struct ImageInfo {
+    pub width: u32,
+    pub height: u32,
+    pub format: image::ImageFormat,
+}
+
+pub(crate) fn dimensions(data: &[u8]) -> anyhow::Result<ImageInfo> {
+    let reader = image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+    let format = reader
+        .format()
+        .ok_or_else(|| anyhow::anyhow!("unknown format!?"))?;
+    let (width, height) = reader.into_dimensions()?;
+    Ok(ImageInfo {
+        width,
+        height,
+        format,
+    })
+}

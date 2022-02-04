@@ -21,26 +21,6 @@ impl TerminalState {
             return;
         }
 
-        struct Info {
-            width: u32,
-            height: u32,
-            format: ImageFormat,
-        }
-
-        fn dimensions(data: &[u8]) -> anyhow::Result<Info> {
-            let reader =
-                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
-            let format = reader
-                .format()
-                .ok_or_else(|| anyhow::anyhow!("unknown format!?"))?;
-            let (width, height) = reader.into_dimensions()?;
-            Ok(Info {
-                width,
-                height,
-                format,
-            })
-        }
-
         let info = match dimensions(&image.data) {
             Ok(dims) => dims,
             Err(e) => {
@@ -54,16 +34,8 @@ impl TerminalState {
             }
         };
 
-        const MAX_IMAGE_SIZE: u32 = 100_000_000;
-        let size = info.width.saturating_mul(info.height).saturating_mul(4);
-        if size > MAX_IMAGE_SIZE {
-            log::error!(
-                "Ignoring iterm image data {}x{} because {} bytes > max allowed {}",
-                info.width,
-                info.height,
-                size,
-                MAX_IMAGE_SIZE
-            );
+        if let Err(err) = check_image_dimensions(info.width, info.height) {
+            log::error!("{}", err);
             return;
         }
 

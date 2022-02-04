@@ -9,16 +9,9 @@ use termwiz::image::ImageDataType;
 impl TerminalState {
     pub(crate) fn sixel(&mut self, sixel: Box<Sixel>) {
         let (width, height) = sixel.dimensions();
-        const MAX_IMAGE_SIZE: u32 = 100_000_000;
-        let size = width.saturating_mul(height).saturating_mul(4);
-        if size > MAX_IMAGE_SIZE {
-            log::error!(
-                "Ignoring sixel image data {}x{} because {} bytes > max allowed {}",
-                width,
-                height,
-                size,
-                MAX_IMAGE_SIZE
-            );
+
+        if let Err(err) = check_image_dimensions(width, height) {
+            log::error!("{}", err);
             return;
         }
 

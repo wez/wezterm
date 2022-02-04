@@ -784,6 +784,8 @@ impl TerminalState {
                     }
                 };
 
+                check_image_dimensions(width, height)?;
+
                 let data = match transmit.format {
                     Some(KittyImageFormat::Rgb) => {
                         let img = DynamicImage::ImageRgb8(
@@ -808,6 +810,8 @@ impl TerminalState {
                 ImageDataType::new_single_frame(width, height, data)
             }
             Some(KittyImageFormat::Png) => {
+                let info = dimensions(&data)?;
+                check_image_dimensions(info.width, info.height)?;
                 let decoded = image::load_from_memory(&data).context("decode png")?;
                 let (width, height) = decoded.dimensions();
                 let data = decoded.into_rgba8().into_vec();
