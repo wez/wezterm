@@ -149,7 +149,6 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// If true, use the shaper-determined pixel positions,
     /// rather than using monospace cell based positions.
     pub use_pixel_positioning: bool,
-    pub pre_shaped: Option<&'a Vec<ShapedCluster<'a>>>,
 
     pub render_metrics: RenderMetrics,
 }
@@ -927,7 +926,6 @@ impl super::TermWindow {
                 style: None,
                 font: None,
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
-                pre_shaped: None,
                 render_metrics: self.render_metrics,
             },
             &mut layers,
@@ -1322,7 +1320,6 @@ impl super::TermWindow {
                     font: None,
                     style: None,
                     use_pixel_positioning: self.config.experimental_pixel_positioning,
-                    pre_shaped: None,
                     render_metrics: self.render_metrics,
                 },
                 &mut layers,
@@ -1736,7 +1733,6 @@ impl super::TermWindow {
 
         let mut last_cell_idx = 0;
 
-        let local_shaped;
         let cell_clusters;
 
         let cursor_idx = if params.pane.is_some()
@@ -1781,20 +1777,13 @@ impl super::TermWindow {
             );
             cell_clusters = line.cluster(cursor_idx, bidi_hint);
             composition_width = unicode_column_width(composing, None);
-            Some(&cell_clusters)
-        } else if params.pre_shaped.is_none() {
-            cell_clusters = params.line.cluster(cursor_idx, bidi_hint);
-            Some(&cell_clusters)
+            &cell_clusters
         } else {
-            None
+            cell_clusters = params.line.cluster(cursor_idx, bidi_hint);
+            &cell_clusters
         };
 
-        let shaped = if let Some(cell_clusters) = to_shape {
-            local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-            &local_shaped
-        } else {
-            params.pre_shaped.unwrap()
-        };
+        let shaped = self.cluster_and_shape(&to_shape, &params)?;
 
         let bounding_rect = euclid::rect(
             params.left_pixel_x,
@@ -1814,7 +1803,7 @@ impl super::TermWindow {
         // Need to consider:
         // * background when it is not the default color
         // * Reverse video attribute
-        for item in shaped {
+        for item in &shaped {
             let cluster = &item.cluster;
             let attrs = &cluster.attrs;
             let cluster_width = cluster.width;
@@ -1896,7 +1885,7 @@ impl super::TermWindow {
             Direction::RightToLeft => params.pixel_width,
         };
 
-        for item in shaped {
+        for item in &shaped {
             let style_params = &item.style;
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
