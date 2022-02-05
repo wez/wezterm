@@ -476,6 +476,7 @@ usually the best available version.</p>
 <li>Hangul text in NFD was not always correctly composed when shaping fonts. <a href="https://github.com/wez/wezterm/issues/1573">#1573</a></li>
 <li>Avoid OOM when processing sixels with huge repeat counts <a href="https://github.com/wez/wezterm/issues/1610">#1610</a></li>
 <li>Set the sticky bit on socket and pid files created in <code>XDG_RUNTIME_DIR</code> to avoid removal by tmpwatch <a href="https://github.com/wez/wezterm/issues/1601">#1601</a></li>
+<li>Shaping combining sequences like <code>e U+20d7</code> could &quot;lose&quot; the vector symbol if the font produced an entry with no <code>x_advance</code>. <a href="https://github.com/wez/wezterm/issues/1617">#1617</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
