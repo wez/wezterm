@@ -1921,7 +1921,11 @@ impl super::TermWindow {
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
-                for glyph_idx in 0..info.pos.num_cells as usize {
+                // Conversely, a combining glyph can produce an entry that is zero
+                // cells wide and which combines with a neighboring glyph that we
+                // (will|did) emit in another iteration of the glyph_info loop
+                // so we must ensure that we iterate and observe that!
+                for glyph_idx in 0..info.pos.num_cells.max(1) as usize {
                     let cell_idx = visual_cell_idx + glyph_idx;
 
                     if cell_idx >= num_cols {
@@ -2013,36 +2017,46 @@ impl super::TermWindow {
                             // width.  We only use that if we're the first cell that
                             // comprises this glyph; if for some reason the cursor position
                             // is in the middle of a glyph we just use a single cell.
-                            let cursor_width = params.line.cells()[cell_idx].width() as u8;
+                            let cursor_width = params
+                                .line
+                                .cells()
+                                .get(cell_idx)
+                                .map(|c| c.width() as u8)
+                                // skip in weird situations, like a combining character
+                                // "e⃗" where we have two glyphs and one of them has
+                                // num_cells=0.
+                                .unwrap_or(0);
 
-                            let mut quad = layers[0].allocate()?;
-                            quad.set_position(
-                                pos_x,
-                                pos_y,
-                                pos_x
-                                    + if params.use_pixel_positioning {
-                                        pixel_width
-                                    } else {
-                                        cursor_width as f32 * cell_width
-                                    },
-                                pos_y + cell_height,
-                            );
-                            quad.set_hsv(hsv);
-                            quad.set_has_color(false);
+                            if cursor_width > 0 {
+                                let mut quad = layers[0].allocate()?;
+                                quad.set_position(
+                                    pos_x,
+                                    pos_y,
+                                    pos_x
+                                        + if params.use_pixel_positioning {
+                                            pixel_width
+                                        } else {
+                                            cursor_width as f32 * cell_width
+                                        },
+                                    pos_y + cell_height,
+                                );
+                                quad.set_hsv(hsv);
+                                quad.set_has_color(false);
 
-                            quad.set_texture(
-                                gl_state
-                                    .glyph_cache
-                                    .borrow_mut()
-                                    .cursor_sprite(
-                                        cursor_shape,
-                                        &params.render_metrics,
-                                        cursor_width,
-                                    )?
-                                    .texture_coords(),
-                            );
+                                quad.set_texture(
+                                    gl_state
+                                        .glyph_cache
+                                        .borrow_mut()
+                                        .cursor_sprite(
+                                            cursor_shape,
+                                            &params.render_metrics,
+                                            cursor_width,
+                                        )?
+                                        .texture_coords(),
+                                );
 
-                            quad.set_fg_color(cursor_border_color);
+                                quad.set_fg_color(cursor_border_color);
+                            }
                         }
                     }
 

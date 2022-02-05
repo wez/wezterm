@@ -463,15 +463,13 @@ impl HarfbuzzShaper {
             let mut remaining_cells = cluster_info.cell_width;
 
             for info in infos.iter() {
-                if info.x_advance == 0 {
-                    continue;
-                }
-
                 // Proportional width based on relative pixel dimensions vs. other glyphs in
                 // this same cluster
                 let weighted_cell_width = (cluster_info.cell_width as f64 * info.x_advance as f64
                     / total_width)
                     .ceil() as u8;
+                // Note that weighted_cell_width can legitimately compute as zero here
+                // for the case where a combining mark composes over another glyph
                 let weighted_cell_width = weighted_cell_width.min(remaining_cells);
                 remaining_cells = remaining_cells.saturating_sub(weighted_cell_width);
 
