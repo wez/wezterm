@@ -1879,6 +1879,29 @@ impl super::TermWindow {
                     quad.set_hsv(hsv);
                 }
             }
+
+            // Underlines
+            if item.style.underline_tex_rect != params.white_space {
+                // Draw one per cell, otherwise curly underlines
+                // stretch across the whole span
+                for i in 0..cluster_width {
+                    let mut quad = layers[0].allocate()?;
+                    let x = gl_x
+                        + params.left_pixel_x
+                        + if params.use_pixel_positioning {
+                            item.x_pos
+                        } else {
+                            phys(cluster.first_cell_idx + i, num_cols, direction) as f32
+                                * cell_width
+                        };
+
+                    quad.set_position(x, pos_y, x + cell_width, pos_y + cell_height);
+                    quad.set_hsv(hsv);
+                    quad.set_has_color(false);
+                    quad.set_texture(item.style.underline_tex_rect);
+                    quad.set_fg_color(item.style.underline_color);
+                }
+            }
         }
 
         // Render the selection background color.
@@ -2149,21 +2172,6 @@ impl super::TermWindow {
 
                             if glyph_color == bg_color {
                                 continue;
-                            }
-
-                            // Underlines
-                            if style_params.underline_tex_rect != params.white_space {
-                                let mut quad = layers[0].allocate()?;
-                                quad.set_position(
-                                    gl_x + range.start,
-                                    pos_y,
-                                    gl_x + range.end,
-                                    pos_y + cell_height,
-                                );
-                                quad.set_hsv(hsv);
-                                quad.set_has_color(false);
-                                quad.set_texture(style_params.underline_tex_rect);
-                                quad.set_fg_color(style_params.underline_color);
                             }
 
                             let pixel_rect = euclid::rect(
