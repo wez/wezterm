@@ -1,3 +1,5 @@
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -209,6 +211,7 @@ impl SrgbaPixel {
 
 /// A pixel value encoded as SRGBA RGBA values in f32 format (range: 0.0-1.0)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct SrgbaTuple(pub f32, pub f32, pub f32, pub f32);
 
 impl From<(f32, f32, f32, f32)> for SrgbaTuple {
@@ -230,6 +233,11 @@ lazy_static::lazy_static! {
 fn build_colors() -> HashMap<String, SrgbaTuple> {
     let mut map = HashMap::new();
     let rgb_txt = include_str!("rgb.txt");
+
+    map.insert("transparent".to_string(), SrgbaTuple(0., 0., 0., 0.));
+    map.insert("none".to_string(), SrgbaTuple(0., 0., 0., 0.));
+    map.insert("clear".to_string(), SrgbaTuple(0., 0., 0., 0.));
+
     for line in rgb_txt.lines() {
         let mut fields = line.split_ascii_whitespace();
         let red = fields.next().unwrap();
@@ -286,6 +294,16 @@ impl SrgbaTuple {
             (self.0 * 255.) as u8,
             (self.1 * 255.) as u8,
             (self.2 * 255.) as u8
+        )
+    }
+
+    pub fn to_rgba_string(self) -> String {
+        format!(
+            "rgba:{} {} {} {}%",
+            (self.0 * 255.) as u8,
+            (self.1 * 255.) as u8,
+            (self.2 * 255.) as u8,
+            (self.3 * 100.) as u8
         )
     }
 
@@ -402,6 +420,31 @@ impl FromStr for SrgbaTuple {
             let blue = digit!();
 
             Ok(Self(red, green, blue, 1.0))
+        } else if s.starts_with("rgba:") {
+            let fields: Vec<_> = s[5..].split_ascii_whitespace().collect();
+            if fields.len() == 4 {
+                fn field(s: &str) -> Result<f32, ()> {
+                    if s.ends_with('%') {
+                        let v: f32 = s[0..s.len() - 1].parse().map_err(|_| ())?;
+                        Ok(v / 100.)
+                    } else {
+                        let v: f32 = s.parse().map_err(|_| ())?;
+                        if v > 255.0 || v < 0. {
+                            Err(())
+                        } else {
+                            Ok(v / 255.)
+                        }
+                    }
+                }
+                let r: f32 = field(fields[0])?;
+                let g: f32 = field(fields[1])?;
+                let b: f32 = field(fields[2])?;
+                let a: f32 = field(fields[3])?;
+
+                Ok(Self(r, g, b, a))
+            } else {
+                Err(())
+            }
         } else if s.starts_with("hsl:") {
             let fields: Vec<_> = s[4..].split_ascii_whitespace().collect();
             if fields.len() == 3 {
@@ -431,7 +474,7 @@ impl FromStr for SrgbaTuple {
                 Err(())
             }
         } else {
-            Err(())
+            Self::from_named(s).ok_or(())
         }
     }
 }
@@ -470,6 +513,20 @@ impl LinearRgba {
 
     pub const TRANSPARENT: Self = Self::with_components(0., 0., 0., 0.);
 
+    /// Returns true if this color is fully transparent
+    pub fn is_fully_transparent(self) -> bool {
+        self.3 == 0.0
+    }
+
+    /// Returns self, except when self is transparent, in which case returns other
+    pub fn when_fully_transparent(self, other: Self) -> Self {
+        if self.is_fully_transparent() {
+            other
+        } else {
+            self
+        }
+    }
+
     /// Convert to an SRGB u32 pixel
     pub fn srgba_pixel(self) -> SrgbaPixel {
         SrgbaPixel::rgba(
@@ -502,6 +559,20 @@ mod tests {
     }
 
     #[test]
+    fn from_rgba() {
+        assert_eq!(
+            SrgbaTuple::from_str("clear").unwrap().to_rgba_string(),
+            "rgba:0 0 0 0%"
+        );
+        assert_eq!(
+            SrgbaTuple::from_str("rgba:100% 0 0 50%")
+                .unwrap()
+                .to_rgba_string(),
+            "rgba:255 0 0 50%"
+        );
+    }
+
+    #[test]
     fn from_rgb() {
         assert!(SrgbaTuple::from_str("").is_err());
         assert!(SrgbaTuple::from_str("#xyxyxy").is_err());
@@ -523,13 +594,5 @@ mod tests {
 
         let grey = SrgbaTuple::from_str("rgb:f0f0/f0f0/f0f0").unwrap();
         assert_eq!(grey.to_rgb_string(), "#f0f0f0");
-    }
-
-    #[cfg(feature = "use_serde")]
-    #[test]
-    fn roundtrip_rgbcolor() {
-        let data = varbincode::serialize(&SrgbaTuple::from_named("DarkGreen").unwrap()).unwrap();
-        eprintln!("serialized as {:?}", data);
-        let _decoded: SrgbaTuple = varbincode::deserialize(data.as_slice()).unwrap();
     }
 }

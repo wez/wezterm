@@ -42,7 +42,7 @@ wezterm-color-types = { path = "../color-types" }
 
 [features]
 widgets = ["cassowary", "fnv"]
-use_serde = ["serde"]
+use_serde = ["serde", "wezterm-color-types/use_serde"]
 use_image = ["image"]
 docs = ["widgets", "use_serde"]
 

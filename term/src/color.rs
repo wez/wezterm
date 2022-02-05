@@ -4,7 +4,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::result::Result;
-pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
+pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, SrgbaTuple};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Palette256(pub [RgbColor; 256]);
@@ -43,7 +43,7 @@ impl std::iter::FromIterator<RgbColor> for Palette256 {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct ColorPalette {
     pub colors: Palette256,
@@ -52,8 +52,8 @@ pub struct ColorPalette {
     pub cursor_fg: RgbColor,
     pub cursor_bg: RgbColor,
     pub cursor_border: RgbColor,
-    pub selection_fg: RgbColor,
-    pub selection_bg: RgbColor,
+    pub selection_fg: SrgbaTuple,
+    pub selection_bg: SrgbaTuple,
     pub scrollbar_thumb: RgbColor,
     pub split: RgbColor,
 }
@@ -114,8 +114,8 @@ impl ColorPalette {
             cursor_fg: grey_out(self.cursor_fg),
             cursor_bg: grey_out(self.cursor_bg),
             cursor_border: grey_out(self.cursor_border),
-            selection_fg: grey_out(self.selection_fg),
-            selection_bg: grey_out(self.selection_bg),
+            selection_fg: grey_out(self.selection_fg.into()).into(),
+            selection_bg: grey_out(self.selection_bg.into()).into(),
             scrollbar_thumb: grey_out(self.scrollbar_thumb),
             split: grey_out(self.split),
         }
@@ -206,8 +206,8 @@ impl ColorPalette {
         let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70);
         let cursor_fg = colors[AnsiColor::Black as usize];
 
-        let selection_fg = colors[AnsiColor::Black as usize];
-        let selection_bg = RgbColor::new_8bpc(0xff, 0xfa, 0xcd);
+        let selection_fg = colors[AnsiColor::Black as usize].into();
+        let selection_bg = RgbColor::new_8bpc(0xff, 0xfa, 0xcd).into();
 
         let scrollbar_thumb = RgbColor::new_8bpc(0x22, 0x22, 0x22);
         let split = RgbColor::new_8bpc(0x44, 0x44, 0x44);

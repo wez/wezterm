@@ -1,8 +1,9 @@
 use crate::lua::{format_as_escapes, FormatItem};
 use crate::*;
 use luahelper::impl_lua_conversion;
+use std::str::FromStr;
 use termwiz::cell::CellAttributes;
-pub use termwiz::color::{ColorSpec, RgbColor};
+pub use termwiz::color::{ColorSpec, RgbColor, SrgbaTuple};
 
 #[derive(Debug, Copy, Deserialize, Serialize, Clone)]
 pub struct HsbTransform {
@@ -44,6 +45,35 @@ where
         .collect())
 }
 
+#[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(try_from = "String", into = "String")]
+pub struct RgbaColor {
+    #[serde(flatten)]
+    color: SrgbaTuple,
+}
+
+impl Into<String> for RgbaColor {
+    fn into(self) -> String {
+        self.color.to_rgb_string()
+    }
+}
+
+impl Into<SrgbaTuple> for RgbaColor {
+    fn into(self) -> SrgbaTuple {
+        self.color
+    }
+}
+
+impl std::convert::TryFrom<String> for RgbaColor {
+    type Error = anyhow::Error;
+    fn try_from(s: String) -> anyhow::Result<RgbaColor> {
+        Ok(RgbaColor {
+            color: SrgbaTuple::from_str(&s)
+                .map_err(|_| anyhow::anyhow!("failed to parse {} as RgbaColor", &s))?,
+        })
+    }
+}
+
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
@@ -55,8 +85,8 @@ pub struct Palette {
     pub cursor_bg: Option<RgbColor>,
     pub cursor_border: Option<RgbColor>,
     /// The color of selected text
-    pub selection_fg: Option<RgbColor>,
-    pub selection_bg: Option<RgbColor>,
+    pub selection_fg: Option<RgbaColor>,
+    pub selection_bg: Option<RgbaColor>,
     /// A list of 8 colors corresponding to the basic ANSI palette
     pub ansi: Option<[RgbColor; 8]>,
     /// A list of 8 colors corresponding to bright versions of the
@@ -87,7 +117,7 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
         macro_rules! apply_color {
             ($name:ident) => {
                 if let Some($name) = cfg.$name {
-                    p.$name = $name;
+                    p.$name = $name.into();
                 }
             };
         }

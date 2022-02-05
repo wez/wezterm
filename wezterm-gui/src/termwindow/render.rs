@@ -1276,8 +1276,8 @@ impl super::TermWindow {
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
 
         let start = Instant::now();
-        let selection_fg = rgbcolor_to_window_color(palette.selection_fg);
-        let selection_bg = rgbcolor_to_window_color(palette.selection_bg);
+        let selection_fg = palette.selection_fg.to_linear();
+        let selection_bg = palette.selection_bg.to_linear();
         let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
         let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
         for (line_idx, line) in lines.iter().enumerate() {
@@ -2495,9 +2495,11 @@ impl super::TermWindow {
             visibility,
         ) {
             // Selected text overrides colors
-            (true, _, _, CursorVisibility::Hidden) => {
-                (params.selection_fg, params.selection_bg, params.cursor_bg)
-            }
+            (true, _, _, CursorVisibility::Hidden) => (
+                params.selection_fg.when_fully_transparent(params.fg_color),
+                params.selection_bg,
+                params.cursor_bg,
+            ),
             // block Cursor cell overrides colors
             (
                 _,

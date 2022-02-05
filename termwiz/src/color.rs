@@ -60,6 +60,12 @@ pub struct RgbColor {
     bits: u32,
 }
 
+impl Into<SrgbaTuple> for RgbColor {
+    fn into(self) -> SrgbaTuple {
+        self.to_tuple_rgba()
+    }
+}
+
 impl RgbColor {
     /// Construct a color from discrete red, green, blue values
     /// in the range 0-255.

@@ -800,13 +800,13 @@ impl<'a> Performer<'a> {
                                     ColorOrQuery::Query => {
                                         let response = OperatingSystemCommand::ChangeDynamicColors(
                                             which_color,
-                                            vec![ColorOrQuery::Color(self.palette().$name)],
+                                            vec![ColorOrQuery::Color(self.palette().$name.into())],
                                         );
                                         log::trace!("Color Query response {:?}", response);
                                         write!(self.writer, "{}", response).ok();
                                         self.writer.flush().ok();
                                     }
-                                    ColorOrQuery::Color(c) => self.palette_mut().$name = c,
+                                    ColorOrQuery::Color(c) => self.palette_mut().$name = c.into(),
                                 }
                             };
                         }
