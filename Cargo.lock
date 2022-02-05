@@ -621,13 +621,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "color-types"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4127,6 +4120,7 @@ dependencies = [
  "varbincode",
  "vtparse",
  "wezterm-bidi",
+ "wezterm-color-types",
  "winapi 0.3.9",
 ]
 
@@ -4703,11 +4697,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-color-types"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "wezterm-font"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "color-types",
  "config",
  "core-foundation 0.9.2",
  "core-text",
@@ -4732,6 +4732,7 @@ dependencies = [
  "unicode-segmentation",
  "walkdir",
  "wezterm-bidi",
+ "wezterm-color-types",
  "wezterm-input-types",
  "wezterm-term",
  "wezterm-toast-notification",
@@ -5024,7 +5025,6 @@ dependencies = [
  "clipboard",
  "clipboard-win",
  "cocoa",
- "color-types",
  "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
@@ -5056,6 +5056,7 @@ dependencies = [
  "wayland-egl",
  "wayland-protocols",
  "wezterm-bidi",
+ "wezterm-color-types",
  "wezterm-font",
  "wezterm-input-types",
  "winapi 0.3.9",

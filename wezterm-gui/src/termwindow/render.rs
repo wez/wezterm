@@ -1165,7 +1165,7 @@ impl super::TermWindow {
                 VisualBellTarget::BackgroundColor,
             ) {
                 // target background color
-                let (r, g, b, _) = config
+                let LinearRgba(r, g, b, _) = config
                     .resolved_palette
                     .visual_bell
                     .unwrap_or(palette.foreground)
@@ -2377,7 +2377,7 @@ impl super::TermWindow {
                     .config
                     .resolved_palette
                     .visual_bell
-                    .map(|c| c.to_linear_tuple_rgba())
+                    .map(|c| c.to_linear_tuple_rgba().tuple())
                     .unwrap_or_else(|| fg_color.tuple());
 
                 let bg_color = LinearRgba::with_components(
@@ -2702,7 +2702,7 @@ pub fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
 }
 
 pub fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
-    let (red, green, blue, _) = color.to_linear_tuple_rgba();
+    let (red, green, blue, _) = color.to_linear_tuple_rgba().tuple();
     LinearRgba::with_components(red, green, blue, alpha)
 }
 

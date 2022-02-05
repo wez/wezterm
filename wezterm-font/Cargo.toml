@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 config = { path = "../config" }
-color-types = { path = "../color-types" }
 enum-display-derive = "0.1"
 euclid = "0.22"
 freetype = { path = "../deps/freetype" }
@@ -26,6 +25,7 @@ thiserror = "1.0"
 unicode-segmentation = "1.8"
 unicode-general-category = "0.3"
 walkdir = "2"
+wezterm-color-types = { path = "../color-types" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }

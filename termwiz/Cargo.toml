@@ -38,6 +38,7 @@ unicode-segmentation = "1.8"
 ucd-trie = "0.1"
 vtparse = { version="0.6", path="../vtparse" }
 wezterm-bidi = { path = "../bidi" }
+wezterm-color-types = { path = "../color-types" }
 
 [features]
 widgets = ["cassowary", "fnv"]

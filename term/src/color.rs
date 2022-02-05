@@ -4,7 +4,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::result::Result;
-pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, RgbaTuple};
+pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Palette256(pub [RgbColor; 256]);

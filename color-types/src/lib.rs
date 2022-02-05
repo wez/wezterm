@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+
 lazy_static::lazy_static! {
     static ref SRGB_TO_F32_TABLE: [f32;256] = generate_srgb8_to_linear_f32_table();
     static ref F32_TO_U8_TABLE: [u32;104] = generate_linear_f32_to_srgb8_table();
@@ -204,9 +207,238 @@ impl SrgbaPixel {
     }
 }
 
+/// A pixel value encoded as SRGBA RGBA values in f32 format (range: 0.0-1.0)
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct SrgbaTuple(pub f32, pub f32, pub f32, pub f32);
+
+impl From<(f32, f32, f32, f32)> for SrgbaTuple {
+    fn from((r, g, b, a): (f32, f32, f32, f32)) -> SrgbaTuple {
+        SrgbaTuple(r, g, b, a)
+    }
+}
+
+impl From<SrgbaTuple> for (f32, f32, f32, f32) {
+    fn from(t: SrgbaTuple) -> (f32, f32, f32, f32) {
+        (t.0, t.1, t.2, t.3)
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref NAMED_COLORS: HashMap<String, SrgbaTuple> = build_colors();
+}
+
+fn build_colors() -> HashMap<String, SrgbaTuple> {
+    let mut map = HashMap::new();
+    let rgb_txt = include_str!("rgb.txt");
+    for line in rgb_txt.lines() {
+        let mut fields = line.split_ascii_whitespace();
+        let red = fields.next().unwrap();
+        let green = fields.next().unwrap();
+        let blue = fields.next().unwrap();
+        let name = fields.collect::<Vec<&str>>().join(" ");
+
+        let name = name.to_ascii_lowercase();
+        map.insert(
+            name,
+            SrgbaTuple(
+                red.parse::<f32>().unwrap() / 255.,
+                green.parse::<f32>().unwrap() / 255.,
+                blue.parse::<f32>().unwrap() / 255.,
+                1.0,
+            ),
+        );
+    }
+
+    map
+}
+
+impl SrgbaTuple {
+    /// Construct a color from an X11/SVG/CSS3 color name.
+    /// Returns None if the supplied name is not recognized.
+    /// The list of names can be found here:
+    /// <https://en.wikipedia.org/wiki/X11_color_names>
+    pub fn from_named(name: &str) -> Option<Self> {
+        NAMED_COLORS.get(&name.to_ascii_lowercase()).cloned()
+    }
+
+    pub fn to_linear(self) -> LinearRgba {
+        // See https://docs.rs/palette/0.5.0/src/palette/encoding/srgb.rs.html#43
+        fn to_linear(v: f32) -> f32 {
+            if v <= 0.04045 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        // Note that alpha is always linear
+        LinearRgba(
+            to_linear(self.0),
+            to_linear(self.1),
+            to_linear(self.2),
+            self.3,
+        )
+    }
+
+    /// Returns a string of the form `#RRGGBB`
+    pub fn to_rgb_string(self) -> String {
+        format!(
+            "#{:02x}{:02x}{:02x}",
+            (self.0 * 255.) as u8,
+            (self.1 * 255.) as u8,
+            (self.2 * 255.) as u8
+        )
+    }
+
+    /// Returns a string of the form `rgb:RRRR/GGGG/BBBB`
+    pub fn to_x11_16bit_rgb_string(self) -> String {
+        format!(
+            "rgb:{:04x}/{:04x}/{:04x}",
+            (self.0 * 65535.) as u16,
+            (self.1 * 65535.) as u16,
+            (self.2 * 65535.) as u16
+        )
+    }
+}
+
+impl FromStr for SrgbaTuple {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() > 0 && s.as_bytes()[0] == b'#' {
+            // Probably `#RGB`
+
+            let digits = (s.len() - 1) / 3;
+            if 1 + (digits * 3) != s.len() {
+                return Err(());
+            }
+
+            if digits == 0 || digits > 4 {
+                // Max of 16 bits supported
+                return Err(());
+            }
+
+            let mut chars = s.chars().skip(1);
+
+            macro_rules! digit {
+                () => {{
+                    let mut component = 0u16;
+
+                    for _ in 0..digits {
+                        component = component << 4;
+
+                        let nybble = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => v as u16,
+                            None => return Err(()),
+                        };
+                        component |= nybble;
+                    }
+
+                    // From XParseColor, the `#` syntax takes the most significant
+                    // bits and uses those for the color value.  That function produces
+                    // 16-bit color components but we want 8-bit components so we shift
+                    // or truncate the bits here depending on the number of digits
+                    (match digits {
+                        1 => (component << 4) as f32,
+                        2 => component as f32,
+                        3 => (component >> 4) as f32,
+                        4 => (component >> 8) as f32,
+                        _ => return Err(()),
+                    }) / 255.0
+                }};
+            }
+            Ok(Self(digit!(), digit!(), digit!(), 1.0))
+        } else if s.starts_with("rgb:") && s.len() > 6 {
+            // The string includes two slashes: `rgb:r/g/b`
+            let digits = (s.len() - 3) / 3;
+            if 3 + (digits * 3) != s.len() {
+                return Err(());
+            }
+
+            let digits = digits - 1;
+            if digits == 0 || digits > 4 {
+                // Max of 16 bits supported
+                return Err(());
+            }
+
+            let mut chars = s.chars().skip(4);
+
+            macro_rules! digit {
+                () => {{
+                    let mut component = 0u16;
+
+                    for _ in 0..digits {
+                        component = component << 4;
+
+                        let nybble = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => v as u16,
+                            None => return Err(()),
+                        };
+                        component |= nybble;
+                    }
+
+                    // From XParseColor, the `rgb:` prefixed syntax scales the
+                    // value into 16 bits from the number of bits specified
+                    (match digits {
+                        1 => (component | component << 4) as f32,
+                        2 => component as f32,
+                        3 => (component >> 4) as f32,
+                        4 => (component >> 8) as f32,
+                        _ => return Err(()),
+                    }) / 255.0
+                }};
+            }
+            macro_rules! slash {
+                () => {{
+                    match chars.next() {
+                        Some('/') => {}
+                        _ => return Err(()),
+                    }
+                }};
+            }
+            let red = digit!();
+            slash!();
+            let green = digit!();
+            slash!();
+            let blue = digit!();
+
+            Ok(Self(red, green, blue, 1.0))
+        } else if s.starts_with("hsl:") {
+            let fields: Vec<_> = s[4..].split_ascii_whitespace().collect();
+            if fields.len() == 3 {
+                // Expected to be degrees in range 0-360, but we allow for negative and wrapping
+                let h: i32 = fields[0].parse().map_err(|_| ())?;
+                // Expected to be percentage in range 0-100
+                let s: i32 = fields[1].parse().map_err(|_| ())?;
+                // Expected to be percentage in range 0-100
+                let l: i32 = fields[2].parse().map_err(|_| ())?;
+
+                fn hsl_to_rgb(hue: i32, sat: i32, light: i32) -> (f32, f32, f32) {
+                    let hue = hue % 360;
+                    let hue = if hue < 0 { hue + 360 } else { hue } as f32;
+                    let sat = sat as f32 / 100.;
+                    let light = light as f32 / 100.;
+                    let a = sat * light.min(1. - light);
+                    let f = |n: f32| -> f32 {
+                        let k = (n + hue / 30.) % 12.;
+                        light - a * (k - 3.).min(9. - k).min(1.).max(-1.)
+                    };
+                    (f(0.), f(8.), f(4.))
+                }
+
+                let (r, g, b) = hsl_to_rgb(h, s, l);
+                Ok(Self(r, g, b, 1.0))
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
+        }
+    }
+}
+
 /// A pixel value encoded as linear RGBA values in f32 format (range: 0.0-1.0)
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct LinearRgba(f32, f32, f32, f32);
+pub struct LinearRgba(pub f32, pub f32, pub f32, pub f32);
 
 impl LinearRgba {
     /// Convert SRGBA u8 components to LinearRgba.
@@ -251,5 +483,53 @@ impl LinearRgba {
     /// Returns the individual RGBA channels as f32 components 0.0-1.0
     pub fn tuple(self) -> (f32, f32, f32, f32) {
         (self.0, self.1, self.2, self.3)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn named_rgb() {
+        let dark_green = SrgbaTuple::from_named("DarkGreen").unwrap();
+        assert_eq!(dark_green.to_rgb_string(), "#006400");
+    }
+
+    #[test]
+    fn from_hsl() {
+        let foo = SrgbaTuple::from_str("hsl:235 100  50").unwrap();
+        assert_eq!(foo.to_rgb_string(), "#0015ff");
+    }
+
+    #[test]
+    fn from_rgb() {
+        assert!(SrgbaTuple::from_str("").is_err());
+        assert!(SrgbaTuple::from_str("#xyxyxy").is_err());
+
+        let foo = SrgbaTuple::from_str("#f00f00f00").unwrap();
+        assert_eq!(foo.to_rgb_string(), "#f0f0f0");
+
+        let black = SrgbaTuple::from_str("#000").unwrap();
+        assert_eq!(black.to_rgb_string(), "#000000");
+
+        let black = SrgbaTuple::from_str("#FFF").unwrap();
+        assert_eq!(black.to_rgb_string(), "#f0f0f0");
+
+        let black = SrgbaTuple::from_str("#000000").unwrap();
+        assert_eq!(black.to_rgb_string(), "#000000");
+
+        let grey = SrgbaTuple::from_str("rgb:D6/D6/D6").unwrap();
+        assert_eq!(grey.to_rgb_string(), "#d6d6d6");
+
+        let grey = SrgbaTuple::from_str("rgb:f0f0/f0f0/f0f0").unwrap();
+        assert_eq!(grey.to_rgb_string(), "#f0f0f0");
+    }
+
+    #[cfg(feature = "use_serde")]
+    #[test]
+    fn roundtrip_rgbcolor() {
+        let data = varbincode::serialize(&SrgbaTuple::from_named("DarkGreen").unwrap()).unwrap();
+        eprintln!("serialized as {:?}", data);
+        let _decoded: SrgbaTuple = varbincode::deserialize(data.as_slice()).unwrap();
     }
 }

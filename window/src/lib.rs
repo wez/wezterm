@@ -5,7 +5,7 @@ use std::any::Any;
 use std::rc::Rc;
 use thiserror::Error;
 pub mod bitmaps;
-pub use color_types as color;
+pub use wezterm_color_types as color;
 mod configuration;
 pub mod connection;
 pub mod os;

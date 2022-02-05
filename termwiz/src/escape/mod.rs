@@ -9,6 +9,7 @@
 use crate::tmux_cc::Event;
 use num_derive::*;
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
+use wezterm_color_types::LinearRgba;
 
 pub mod apc;
 pub mod csi;
@@ -388,7 +389,7 @@ impl Display for SixelData {
                 write!(f, "!{}{}", repeat_count, (data + 0x3f) as char)
             }
             Self::DefineColorMapRGB { color_number, rgb } => {
-                let (r, g, b, _) = rgb.to_linear_tuple_rgba();
+                let LinearRgba(r, g, b, _) = rgb.to_linear_tuple_rgba();
                 write!(
                     f,
                     "#{};2;{};{};{}",

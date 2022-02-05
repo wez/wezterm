@@ -1,5 +1,5 @@
 [package]
-name = "color-types"
+name = "wezterm-color-types"
 version = "0.1.0"
 authors = ["Wez Furlong"]
 edition = "2018"
