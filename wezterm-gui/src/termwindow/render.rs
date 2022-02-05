@@ -39,7 +39,6 @@ use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
-use window::bitmaps::atlas::SpriteSlice;
 use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
 
@@ -154,9 +153,8 @@ pub struct RenderScreenLineOpenGLParams<'a> {
 }
 
 pub struct ComputeCellFgBgParams<'a> {
-    pub cell_idx: usize,
+    pub selected: bool,
     pub cursor: Option<&'a StableCursorPosition>,
-    pub selection: &'a Range<usize>,
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
     pub palette: &'a ColorPalette,
@@ -1726,10 +1724,9 @@ impl super::TermWindow {
         let cell_width = params.render_metrics.cell_size.width as f32;
         let cell_height = params.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
+        let gl_x = self.dimensions.pixel_width as f32 / -2.;
 
         let start = Instant::now();
-
-        let mut last_cell_idx = 0;
 
         let cell_clusters;
 
@@ -1773,13 +1770,31 @@ impl super::TermWindow {
                 CellAttributes::blank(),
                 termwiz::surface::SEQ_ZERO,
             );
-            cell_clusters = line.cluster(cursor_idx, bidi_hint);
+            cell_clusters = line.cluster(bidi_hint);
             composition_width = unicode_column_width(composing, None);
             &cell_clusters
         } else {
-            cell_clusters = params.line.cluster(cursor_idx, bidi_hint);
+            cell_clusters = params.line.cluster(bidi_hint);
             &cell_clusters
         };
+
+        let cursor_range = if composition_width > 0 {
+            params.cursor.x..params.cursor.x + composition_width
+        } else if params.stable_line_idx == Some(params.cursor.y) {
+            params.cursor.x
+                ..params.cursor.x
+                    + params
+                        .line
+                        .cells()
+                        .get(params.cursor.x)
+                        .map(|c| c.width())
+                        .unwrap_or(1)
+        } else {
+            0..0
+        };
+
+        let cursor_range_pixels = params.left_pixel_x + cursor_range.start as f32 * cell_width
+            ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
 
         let shaped = self.cluster_and_shape(&to_shape, &params)?;
 
@@ -1795,6 +1810,20 @@ impl super::TermWindow {
                 Direction::LeftToRight => x,
                 Direction::RightToLeft => num_cols - x,
             }
+        }
+
+        if params.line.is_reverse() {
+            let mut quad = self.filled_rectangle(
+                &mut layers[0],
+                euclid::rect(
+                    params.left_pixel_x,
+                    params.top_pixel_y,
+                    params.pixel_width,
+                    cell_height,
+                ),
+                params.foreground,
+            )?;
+            quad.set_hsv(hsv);
         }
 
         // Make a pass to compute background colors.
@@ -1855,23 +1884,74 @@ impl super::TermWindow {
         // Render the selection background color.
         // This always uses a physical x position, regardles of the line
         // direction.
-        if !params.selection.is_empty() {
+        let selection_pixel_range = if !params.selection.is_empty() {
+            let start = params.left_pixel_x + (params.selection.start as f32 * cell_width);
+            let width = (params.selection.end - params.selection.start) as f32 * cell_width;
             let mut quad = self.filled_rectangle(
                 &mut layers[0],
-                euclid::rect(
-                    params.left_pixel_x + (params.selection.start as f32 * cell_width),
-                    params.top_pixel_y,
-                    (params.selection.end - params.selection.start) as f32 * cell_width,
-                    cell_height,
-                ),
+                euclid::rect(start, params.top_pixel_y, width, cell_height),
                 params.selection_bg,
             )?;
 
             quad.set_hsv(hsv);
-        }
 
-        let directional_selection = phys(params.selection.start, num_cols, direction)
-            ..phys(params.selection.end, num_cols, direction);
+            start..start + width
+        } else {
+            0.0..0.0
+        };
+
+        // Consider cursor
+        if !cursor_range.is_empty() {
+            let ComputeCellFgBgResult {
+                fg_color: _glyph_color,
+                bg_color: _bg_color,
+                cursor_shape,
+                cursor_border_color,
+            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
+                cursor: Some(params.cursor),
+                selected: false,
+                fg_color: params.foreground,
+                bg_color: params.default_bg,
+                palette: params.palette,
+                is_active_pane: params.is_active,
+                config: params.config,
+                selection_fg: params.selection_fg,
+                selection_bg: params.selection_bg,
+                cursor_fg: params.cursor_fg,
+                cursor_bg: params.cursor_bg,
+                cursor_border_color: params.cursor_border_color,
+                pane: params.pane,
+            });
+            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                + params.left_pixel_x
+                + (phys(params.cursor.x, num_cols, direction) as f32 * cell_width);
+
+            if cursor_shape.is_some() {
+                let mut quad = layers[0].allocate()?;
+                quad.set_position(
+                    pos_x,
+                    pos_y,
+                    pos_x + (cursor_range.end - cursor_range.start) as f32 * cell_width,
+                    pos_y + cell_height,
+                );
+                quad.set_hsv(hsv);
+                quad.set_has_color(false);
+
+                quad.set_texture(
+                    gl_state
+                        .glyph_cache
+                        .borrow_mut()
+                        .cursor_sprite(
+                            cursor_shape,
+                            &params.render_metrics,
+                            (cursor_range.end - cursor_range.start) as u8,
+                        )?
+                        .texture_coords(),
+                );
+
+                quad.set_fg_color(cursor_border_color);
+            }
+        }
 
         let mut overlay_images = vec![];
 
@@ -1887,6 +1967,7 @@ impl super::TermWindow {
             let style_params = &item.style;
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
+            let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
 
             // TODO: remember logical/visual mapping for selection
             #[allow(unused_variables)]
@@ -1915,299 +1996,216 @@ impl super::TermWindow {
                 let top = cell_height + params.render_metrics.descender.get() as f32
                     - (glyph.y_offset + glyph.bearing_y).get() as f32;
 
-                // We use this to remember the `left` offset value to use for glyph_idx > 0
-                let mut slice_left = 0.;
-
-                // Iterate each cell that comprises this glyph.  There is usually
-                // a single cell per glyph but combining characters, ligatures
-                // and emoji can be 2 or more cells wide.
-                // Conversely, a combining glyph can produce an entry that is zero
-                // cells wide and which combines with a neighboring glyph that we
-                // (will|did) emit in another iteration of the glyph_info loop
-                // so we must ensure that we iterate and observe that!
-                for glyph_idx in 0..info.pos.num_cells.max(1) as usize {
-                    let cell_idx = visual_cell_idx + glyph_idx;
-
-                    if cell_idx >= num_cols {
-                        // terminal line data is wider than the window.
-                        // This happens for example while live resizing the window
-                        // smaller than the terminal.
-                        break;
-                    }
-
-                    last_cell_idx = visual_cell_idx;
-
-                    let in_composition = composition_width > 0
-                        && visual_cell_idx >= params.cursor.x
-                        && visual_cell_idx <= params.cursor.x + composition_width;
-
-                    let ComputeCellFgBgResult {
-                        fg_color: glyph_color,
-                        bg_color,
-                        cursor_shape,
-                        cursor_border_color,
-                    } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                        // We pass the visual_cell_idx instead of the cell_idx when
-                        // computing the cursor/background color because we may
-                        // have a series of ligatured glyphs that compose over the
-                        // top of each other to form a double-wide grapheme cell.
-                        // If we use cell_idx here we could render half of that
-                        // in the cursor colors (good) and the other half in
-                        // the text colors, which is bad because we get a half
-                        // reversed, half not glyph and that is hard to read
-                        // against the cursor background.
-                        // When we cluster, we guarantee that the ligatures are
-                        // broken around the cursor boundary, and clustering
-                        // guarantees that different colors are broken out as
-                        // well, so this assumption is probably good in all
-                        // cases!
-                        // <https://github.com/wez/wezterm/issues/478>
-                        cell_idx: visual_cell_idx,
-                        cursor: if params.stable_line_idx == Some(params.cursor.y)
-                            && (in_composition || params.cursor.x == visual_cell_idx)
-                        {
-                            Some(params.cursor)
-                        } else {
-                            None
-                        },
-                        selection: &directional_selection,
-                        fg_color: style_params.fg_color,
-                        bg_color: style_params.bg_color,
-                        palette: params.palette,
-                        is_active_pane: params.is_active,
-                        config: params.config,
-                        selection_fg: params.selection_fg,
-                        selection_bg: params.selection_bg,
-                        cursor_fg: params.cursor_fg,
-                        cursor_bg: params.cursor_bg,
-                        cursor_border_color: params.cursor_border_color,
-                        pane: params.pane,
-                    });
-
-                    let pos_x = params.left_pixel_x
-                        + cluster_x_pos
-                        + if params.use_pixel_positioning {
-                            (glyph.x_offset + glyph.bearing_x).get() as f32
-                        } else {
-                            glyph_idx as f32 * cell_width
-                        };
-
-                    if pos_x > params.left_pixel_x + params.pixel_width {
-                        log::info!(
-                            "breaking on overflow {} > {} + {}",
-                            pos_x,
-                            params.left_pixel_x,
-                            params.pixel_width
-                        );
-                        break;
-                    }
-                    let pos_x = (self.dimensions.pixel_width as f32 / -2.) + pos_x;
-
-                    let pixel_width = glyph.x_advance.get() as f32;
-
-                    // Note: in use_pixel_positioning mode, we draw backgrounds
-                    // for glyph_idx == 0 based on the whole glyph advance, rather than
-                    // for each of the cells.
-
-                    if cursor_shape.is_some() {
-                        if glyph_idx == 0 {
-                            // We'd like to render the cursor with the cell width
-                            // so that double-wide cells look more reasonable.
-                            // If we have a cursor shape, compute the intended cursor
-                            // width.  We only use that if we're the first cell that
-                            // comprises this glyph; if for some reason the cursor position
-                            // is in the middle of a glyph we just use a single cell.
-                            let cursor_width = params
-                                .line
-                                .cells()
-                                .get(cell_idx)
-                                .map(|c| c.width() as u8)
-                                // skip in weird situations, like a combining character
-                                // "e⃗" where we have two glyphs and one of them has
-                                // num_cells=0.
-                                .unwrap_or(0);
-
-                            if cursor_width > 0 {
-                                let mut quad = layers[0].allocate()?;
-                                quad.set_position(
-                                    pos_x,
-                                    pos_y,
-                                    pos_x
-                                        + if params.use_pixel_positioning {
-                                            pixel_width
-                                        } else {
-                                            cursor_width as f32 * cell_width
-                                        },
-                                    pos_y + cell_height,
-                                );
-                                quad.set_hsv(hsv);
-                                quad.set_has_color(false);
-
-                                quad.set_texture(
-                                    gl_state
-                                        .glyph_cache
-                                        .borrow_mut()
-                                        .cursor_sprite(
-                                            cursor_shape,
-                                            &params.render_metrics,
-                                            cursor_width,
-                                        )?
-                                        .texture_coords(),
-                                );
-
-                                quad.set_fg_color(cursor_border_color);
-                            }
-                        }
-                    }
-
-                    let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
-
+                for glyph_idx in 0..info.pos.num_cells as usize {
                     for img in &images {
                         if img.z_index() < 0 {
                             self.populate_image_quad(
                                 &img,
                                 gl_state,
                                 &mut layers[0],
-                                cell_idx,
+                                visual_cell_idx + glyph_idx,
                                 &params,
                                 hsv,
-                                glyph_color,
+                                style_params.fg_color,
                             )?;
                         }
                     }
+                }
 
-                    // Underlines
-                    if style_params.underline_tex_rect != params.white_space {
-                        if !params.use_pixel_positioning || glyph_idx == 0 {
-                            let mut quad = layers[0].allocate()?;
-                            quad.set_position(
-                                pos_x,
-                                pos_y,
-                                pos_x
-                                    + if params.use_pixel_positioning {
-                                        pixel_width
-                                    } else {
-                                        cell_width
-                                    },
-                                pos_y + cell_height,
-                            );
-                            quad.set_hsv(hsv);
-                            quad.set_has_color(false);
+                {
+                    // First, resolve this glyph to a texture
+                    let mut texture = glyph.texture.as_ref().cloned();
 
-                            quad.set_texture(style_params.underline_tex_rect);
-                            quad.set_fg_color(style_params.underline_color);
-                        }
-                    }
-
-                    let mut did_custom = false;
-
-                    if self.config.custom_block_glyphs && glyph_idx == 0 {
-                        if let Some(cell) = params.line.cells().get(cell_idx) {
+                    if self.config.custom_block_glyphs {
+                        if let Some(cell) = params.line.cells().get(visual_cell_idx) {
                             if let Some(block) = BlockKey::from_cell(cell) {
-                                if glyph_color != bg_color {
-                                    self.populate_block_quad(
-                                        block,
-                                        gl_state,
-                                        &mut layers[0],
-                                        pos_x,
-                                        &params,
-                                        hsv,
-                                        glyph_color,
-                                    )?;
-                                }
-                                did_custom = true;
+                                texture.replace(
+                                    gl_state
+                                        .glyph_cache
+                                        .borrow_mut()
+                                        .cached_block(block, &params.render_metrics)?,
+                                );
                             }
                         }
                     }
 
-                    if !did_custom {
-                        if let Some(texture) = glyph.texture.as_ref() {
-                            if glyph_color != bg_color || glyph.has_color {
-                                if params.use_pixel_positioning {
-                                    // When use_pixel_positioning is in effect, we simply
-                                    // draw the entire glyph at once.
-                                    if glyph_idx == 0 {
-                                        let mut quad = layers[1].allocate()?;
-                                        let pos_y = params.top_pixel_y
-                                            + self.dimensions.pixel_height as f32 / -2.0
-                                            + top;
-                                        quad.set_position(
-                                            pos_x,
-                                            pos_y,
-                                            pos_x + texture.coords.size.width as f32,
-                                            pos_y + texture.coords.size.height as f32,
-                                        );
-                                        quad.set_fg_color(glyph_color);
-                                        quad.set_texture(texture.texture_coords());
-                                        quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                                            let hsv =
-                                                hsv.unwrap_or_else(|| HsbTransform::default());
-                                            Some(HsbTransform {
-                                                brightness: hsv.brightness
-                                                    * glyph.brightness_adjust,
-                                                ..hsv
-                                            })
-                                        } else {
-                                            hsv
-                                        });
-                                        quad.set_has_color(glyph.has_color);
-                                    }
-                                } else {
-                                    let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
-                                    let slice = SpriteSlice {
-                                        cell_idx: glyph_idx,
-                                        num_cells: info.pos.num_cells as usize,
-                                        cell_width: params.render_metrics.cell_size.width as usize,
-                                        scale: glyph.scale as f32,
-                                        left_offset: left,
-                                    };
+                    if let Some(texture) = texture {
+                        // TODO: clipping, but we can do that based on pixels
 
-                                    let pixel_rect = slice.pixel_rect(texture);
-                                    let texture_rect =
-                                        texture.texture.to_texture_coords(pixel_rect);
+                        let pos_x = cluster_x_pos
+                            + params.left_pixel_x
+                            + if params.use_pixel_positioning {
+                                (glyph.x_offset + glyph.bearing_x).get() as f32
+                            } else {
+                                0.
+                            };
 
-                                    let left = if glyph_idx == 0 { left } else { slice_left };
-                                    let bottom =
-                                        (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                                            - params.render_metrics.cell_size.height as f32;
-                                    let right = pixel_rect.size.width as f32 + left
-                                        - params.render_metrics.cell_size.width as f32;
+                        if pos_x > params.pixel_width {
+                            log::info!(
+                                "breaking on overflow {} > {} + {}",
+                                pos_x,
+                                params.left_pixel_x,
+                                params.pixel_width
+                            );
+                            break;
+                        }
 
-                                    // Save the `right` position; we'll use it for the `left` adjust for
-                                    // the next slice that comprises this glyph.
-                                    // This is important because some glyphs (eg: 현재 브랜치) can have
-                                    // fractional advance/offset positions that leave one half slightly
-                                    // out of alignment with the other if we were to simply force the
-                                    // `left` value to be 0 when glyph_idx > 0.
-                                    slice_left = right;
+                        // We need to conceptually slice this texture into
+                        // up into strips that consider the cursor and selection
+                        // background ranges. For ligatures that span cells, we'll
+                        // need to explicitly render each strip independently so that
+                        // we can set its foreground color to the appropriate color
+                        // for the cursor/selection/regular background upon which
+                        // it will be drawn.
 
-                                    let mut quad = layers[1].allocate()?;
-                                    quad.set_position(
-                                        pos_x + left,
-                                        pos_y + top,
-                                        pos_x + cell_width + right,
-                                        pos_y + cell_height + bottom,
-                                    );
-                                    quad.set_fg_color(glyph_color);
-                                    quad.set_texture(texture_rect);
-                                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                                        let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
-                                        Some(HsbTransform {
-                                            brightness: hsv.brightness * glyph.brightness_adjust,
-                                            ..hsv
-                                        })
-                                    } else {
-                                        hsv
-                                    });
-                                    quad.set_has_color(glyph.has_color);
-                                }
+                        /// Computes the intersection between r1 and r2.
+                        /// It may be empty.
+                        fn intersection(r1: &Range<f32>, r2: &Range<f32>) -> Range<f32> {
+                            let start = r1.start.max(r2.start);
+                            let end = r1.end.min(r2.end);
+                            if end > start {
+                                start..end
+                            } else {
+                                // Empty
+                                start..start
                             }
                         }
-                    }
 
-                    for img in images {
+                        /// Assess range `r` relative to `within`. If `r` intersects
+                        /// `within` then return the 3 ranges that are subsets of `r`
+                        /// which are to the left of `within`, intersecting `within`
+                        /// and to the right of `within`.
+                        /// If `r` and `within` do not intersect, returns `r` and
+                        /// two empty ranges.
+                        /// If `r` is itself an empty range, all returned ranges
+                        /// will be empty.
+                        fn range3(
+                            r: &Range<f32>,
+                            within: &Range<f32>,
+                        ) -> (Range<f32>, Range<f32>, Range<f32>) {
+                            if r.is_empty() {
+                                return (r.clone(), r.clone(), r.clone());
+                            }
+                            let i = intersection(r, within);
+                            if i.is_empty() {
+                                return (r.clone(), i.clone(), i.clone());
+                            }
+
+                            let left = if i.start > r.start {
+                                r.start..i.start
+                            } else {
+                                r.start..r.start
+                            };
+
+                            let right = if i.end < r.end {
+                                i.end..r.end
+                            } else {
+                                r.end..r.end
+                            };
+
+                            (left, i, right)
+                        }
+
+                        let adjust = (glyph.x_offset + glyph.bearing_x).get() as f32;
+                        let texture_range =
+                            pos_x + adjust..pos_x + adjust + texture.coords.size.width as f32;
+
+                        // First bucket the ranges according to cursor position
+                        let (left, mid, right) = range3(&texture_range, &cursor_range_pixels);
+                        // Then sub-divide the non-cursor ranges according to selection
+                        let (la, lb, lc) = range3(&left, &selection_pixel_range);
+                        let (ra, rb, rc) = range3(&right, &selection_pixel_range);
+
+                        // and render each of these strips
+                        for range in [la, lb, lc, mid, ra, rb, rc] {
+                            if range.start == range.end {
+                                continue;
+                            }
+
+                            let is_cursor = cursor_range_pixels.contains(&range.start);
+                            let selected =
+                                !is_cursor && selection_pixel_range.contains(&range.start);
+
+                            let ComputeCellFgBgResult {
+                                fg_color: glyph_color,
+                                bg_color,
+                                cursor_shape: _,
+                                cursor_border_color: _,
+                            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
+                                cursor: if is_cursor { Some(params.cursor) } else { None },
+                                selected,
+                                fg_color: style_params.fg_color,
+                                bg_color: style_params.bg_color,
+                                palette: params.palette,
+                                is_active_pane: params.is_active,
+                                config: params.config,
+                                selection_fg: params.selection_fg,
+                                selection_bg: params.selection_bg,
+                                cursor_fg: params.cursor_fg,
+                                cursor_bg: params.cursor_bg,
+                                cursor_border_color: params.cursor_border_color,
+                                pane: params.pane,
+                            });
+
+                            if glyph_color == bg_color {
+                                continue;
+                            }
+
+                            // Underlines
+                            if style_params.underline_tex_rect != params.white_space {
+                                let mut quad = layers[0].allocate()?;
+                                quad.set_position(
+                                    gl_x + range.start,
+                                    pos_y,
+                                    gl_x + range.end,
+                                    pos_y + cell_height,
+                                );
+                                quad.set_hsv(hsv);
+                                quad.set_has_color(false);
+                                quad.set_texture(style_params.underline_tex_rect);
+                                quad.set_fg_color(style_params.underline_color);
+                            }
+
+                            let pixel_rect = euclid::rect(
+                                texture.coords.origin.x + (range.start - (pos_x + adjust)) as isize,
+                                texture.coords.origin.y,
+                                (range.end - range.start) as isize,
+                                texture.coords.size.height,
+                            );
+
+                            let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+
+                            let mut quad = layers[1].allocate()?;
+                            quad.set_position(
+                                gl_x + range.start,
+                                pos_y + top,
+                                gl_x + range.end,
+                                pos_y + top + texture.coords.size.height as f32,
+                            );
+                            quad.set_fg_color(glyph_color);
+                            quad.set_texture(texture_rect);
+                            quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                                let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                                Some(HsbTransform {
+                                    brightness: hsv.brightness * glyph.brightness_adjust,
+                                    ..hsv
+                                })
+                            } else {
+                                hsv
+                            });
+                            quad.set_has_color(glyph.has_color);
+                        }
+                    }
+                }
+
+                for glyph_idx in 0..info.pos.num_cells as usize {
+                    for img in &images {
                         if img.z_index() >= 0 {
-                            overlay_images.push((cell_idx, img, glyph_color));
+                            overlay_images.push((
+                                visual_cell_idx + glyph_idx,
+                                img.clone(),
+                                style_params.fg_color,
+                            ));
                         }
                     }
                 }
@@ -2245,112 +2243,7 @@ impl super::TermWindow {
             )?;
         }
 
-        // If the clusters don't extend to the full physical width of the display,
-        // we have a little bit more work to do to ensure that we correctly paint:
-        // * Reversed background
-        // * Cursor
-        let right_fill_start = Instant::now();
-        if last_cell_idx < num_cols {
-            if params.line.is_reverse() {
-                let mut quad = self.filled_rectangle(
-                    &mut layers[0],
-                    euclid::rect(
-                        params.left_pixel_x
-                            + (phys(last_cell_idx, num_cols, direction) as f32 * cell_width),
-                        params.top_pixel_y,
-                        (num_cols - last_cell_idx) as f32 * cell_width,
-                        cell_height,
-                    ),
-                    params.foreground,
-                )?;
-                quad.set_hsv(hsv);
-            }
-
-            if params.stable_line_idx == Some(params.cursor.y)
-                && ((params.cursor.x > last_cell_idx) || shaped.is_empty())
-            {
-                // Compute the cursor fg/bg
-                let ComputeCellFgBgResult {
-                    fg_color: _glyph_color,
-                    bg_color,
-                    cursor_shape,
-                    cursor_border_color,
-                } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                    cell_idx: params.cursor.x,
-                    cursor: Some(params.cursor),
-                    selection: &directional_selection,
-                    fg_color: params.foreground,
-                    bg_color: params.default_bg,
-                    palette: params.palette,
-                    is_active_pane: params.is_active,
-                    config: params.config,
-                    selection_fg: params.selection_fg,
-                    selection_bg: params.selection_bg,
-                    cursor_fg: params.cursor_fg,
-                    cursor_bg: params.cursor_bg,
-                    cursor_border_color: params.cursor_border_color,
-                    pane: params.pane,
-                });
-
-                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + params.left_pixel_x
-                    + (phys(params.cursor.x, num_cols, direction) as f32 * cell_width);
-
-                let overflow = pos_x > params.left_pixel_x + params.pixel_width;
-
-                if overflow {
-                    log::info!(
-                        "breaking on overflow {} > {} + {}",
-                        pos_x,
-                        params.left_pixel_x,
-                        params.pixel_width
-                    );
-                } else {
-                    if bg_color != LinearRgba::TRANSPARENT {
-                        // Avoid poking a transparent hole underneath the cursor
-                        let mut quad = self.filled_rectangle(
-                            &mut layers[2],
-                            euclid::rect(
-                                params.left_pixel_x
-                                    + phys(params.cursor.x, num_cols, direction) as f32
-                                        * cell_width,
-                                params.top_pixel_y,
-                                cell_width,
-                                cell_height,
-                            ),
-                            bg_color,
-                        )?;
-                        quad.set_hsv(hsv);
-                    }
-                    {
-                        let mut quad = layers[2].allocate()?;
-                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-
-                        quad.set_has_color(false);
-                        quad.set_hsv(hsv);
-
-                        quad.set_texture(
-                            gl_state
-                                .glyph_cache
-                                .borrow_mut()
-                                .cursor_sprite(cursor_shape, &params.render_metrics, 1)?
-                                .texture_coords(),
-                        );
-                        quad.set_fg_color(cursor_border_color);
-                    }
-                }
-            }
-        }
-        metrics::histogram!(
-            "render_screen_line_opengl.right_fill",
-            right_fill_start.elapsed()
-        );
         metrics::histogram!("render_screen_line_opengl", start.elapsed());
-        log::trace!(
-            "right fill {} -> elapsed {:?}",
-            num_cols.saturating_sub(last_cell_idx),
-            right_fill_start.elapsed()
-        );
 
         Ok(())
     }
@@ -2465,8 +2358,6 @@ impl super::TermWindow {
     }
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
-        let selected = params.selection.contains(&params.cell_idx);
-
         if params.cursor.is_some() {
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
                 params.pane.expect("cursor only set if pane present"),
@@ -2530,13 +2421,13 @@ impl super::TermWindow {
             }
         }
 
+        // This logic figures out whether the cursor is visible or not.
+        // If the cursor is explicitly hidden then it is obviously not
+        // visible.
+        // If the cursor is set to a blinking mode then we are visible
+        // depending on the current time.
         let (cursor_shape, visibility) = match params.cursor {
             Some(cursor) if cursor.visibility == CursorVisibility::Visible => {
-                // This logic figures out whether the cursor is visible or not.
-                // If the cursor is explicitly hidden then it is obviously not
-                // visible.
-                // If the cursor is set to a blinking mode then we are visible
-                // depending on the current time.
                 let shape = params
                     .config
                     .default_cursor_style
@@ -2597,43 +2488,47 @@ impl super::TermWindow {
 
         let focused_and_active = self.focused.is_some() && params.is_active_pane;
 
-        let (fg_color, bg_color, cursor_bg) =
-            match (selected, focused_and_active, cursor_shape, visibility) {
-                // Selected text overrides colors
-                (true, _, _, CursorVisibility::Hidden) => {
-                    (params.selection_fg, params.selection_bg, params.cursor_bg)
+        let (fg_color, bg_color, cursor_bg) = match (
+            params.selected,
+            focused_and_active,
+            cursor_shape,
+            visibility,
+        ) {
+            // Selected text overrides colors
+            (true, _, _, CursorVisibility::Hidden) => {
+                (params.selection_fg, params.selection_bg, params.cursor_bg)
+            }
+            // block Cursor cell overrides colors
+            (
+                _,
+                true,
+                CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
+                CursorVisibility::Visible,
+            ) => {
+                if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg, params.cursor_bg)
                 }
-                // block Cursor cell overrides colors
-                (
-                    _,
-                    true,
-                    CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
-                    CursorVisibility::Visible,
-                ) => {
-                    if self.config.force_reverse_video_cursor {
-                        (params.bg_color, params.fg_color, params.fg_color)
-                    } else {
-                        (params.cursor_fg, params.cursor_bg, params.cursor_bg)
-                    }
+            }
+            (
+                _,
+                true,
+                CursorShape::BlinkingUnderline
+                | CursorShape::SteadyUnderline
+                | CursorShape::BlinkingBar
+                | CursorShape::SteadyBar,
+                CursorVisibility::Visible,
+            ) => {
+                if self.config.force_reverse_video_cursor {
+                    (params.fg_color, params.bg_color, params.fg_color)
+                } else {
+                    (params.fg_color, params.bg_color, params.cursor_bg)
                 }
-                (
-                    _,
-                    true,
-                    CursorShape::BlinkingUnderline
-                    | CursorShape::SteadyUnderline
-                    | CursorShape::BlinkingBar
-                    | CursorShape::SteadyBar,
-                    CursorVisibility::Visible,
-                ) => {
-                    if self.config.force_reverse_video_cursor {
-                        (params.fg_color, params.bg_color, params.fg_color)
-                    } else {
-                        (params.fg_color, params.bg_color, params.cursor_bg)
-                    }
-                }
-                // Normally, render the cell as configured (or if the window is unfocused)
-                _ => (params.fg_color, params.bg_color, params.cursor_border_color),
-            };
+            }
+            // Normally, render the cell as configured (or if the window is unfocused)
+            _ => (params.fg_color, params.bg_color, params.cursor_border_color),
+        };
 
         ComputeCellFgBgResult {
             fg_color,
