@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm cli send-text "hello"` allows sending text, as though pasted, to a pane. See `wezterm cli send-text --help` for more information. [#888](https://github.com/wez/wezterm/issues/888)
 * `local_echo_threshold_ms` option to adjust the predictive local echo timing for [SshDomain](config/lua/SshDomain.md), [TlsDomainClient](config/lua/TlsDomainClient.md) and [unix domains](multiplexing.md). Thanks to [@qperret](https://github.com/qperret)! [#1518](https://github.com/wez/wezterm/pull/1518)
 * It is now possible to set `selection_fg` and `selection_bg` to be fully or partially transparent. [Read more](config/appearance.md). [#1615](https://github.com/wez/wezterm/issues/1615)
+* Experimental (and incomplete!) support for Bidi/RTL can be enabled through the config. [Follow along in the tracking issue](https://github.com/wez/wezterm/issues/784)
 
 #### Changed
 
