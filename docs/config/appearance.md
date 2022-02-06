@@ -88,6 +88,30 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+`selection_fg` and `selection_bg` may set the alpha channel value.
+
+```lua
+return {
+  colors = {
+    -- Make the selection text color fully transparent.
+    -- When fully transparent, the current text color will be used.
+    selection_fg = "none",
+    -- Set the selection background color with alpha;
+    -- The first number is the red channel, set here to 50%.
+    -- If the number doesn't end with a % then it must be in the range
+    -- 0 through 255.
+    -- The second number is the green channel.
+    -- The third number is the blue channel.
+    -- The last number is the alpha channel.
+    -- When selection_bg is transparent, it will be alpha blended over
+    -- the current cell background color, rather than replace it
+    selection_bg = "rgba:50% 50% 50% 50%"
+  }
+}
+```
+
 ### Defining a Color Scheme in your `.wezterm.lua`
 
 If you'd like to keep a couple of color schemes handy in your configuration

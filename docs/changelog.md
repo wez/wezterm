@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Workspaces. Follow work in progress on [#1531](https://github.com/wez/wezterm/issues/1531) and [#1322](https://github.com/wez/wezterm/discussions/1322)! [window:active_workspace()](config/lua/window/active_workspace.md), [default_workspace](config/lua/config/default_workspace.md), [SwitchWorkspaceRelative](config/lua/keyassignment/SwitchWorkspaceRelative.md), [SwitchToWorkspace](config/lua/keyassignment/SwitchToWorkspace.md)
 * `wezterm cli send-text "hello"` allows sending text, as though pasted, to a pane. See `wezterm cli send-text --help` for more information. [#888](https://github.com/wez/wezterm/issues/888)
 * `local_echo_threshold_ms` option to adjust the predictive local echo timing for [SshDomain](config/lua/SshDomain.md), [TlsDomainClient](config/lua/TlsDomainClient.md) and [unix domains](multiplexing.md). Thanks to [@qperret](https://github.com/qperret)! [#1518](https://github.com/wez/wezterm/pull/1518)
+* It is now possible to set `selection_fg` and `selection_bg` to be fully or partially transparent. [Read more](config/appearance.md). [#1615](https://github.com/wez/wezterm/issues/1615)
 
 #### Changed
 
