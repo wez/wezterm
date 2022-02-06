@@ -58,25 +58,6 @@ pub struct ColorPalette {
     pub split: RgbColor,
 }
 
-/// Adjust the color to make it appear disabled.
-/// This is not defined on RgbColor itself in order
-/// to avoid termwiz requiring a dep on the palette crate.
-fn grey_out(color: RgbColor) -> RgbColor {
-    use palette::{Lch, Saturate, Srgba};
-    let (red, green, blue) = color.to_tuple_rgb8();
-    let color = Srgba::new(red, green, blue, 0xff);
-    let color: Srgba = color.into_format();
-    let color = color.into_linear();
-
-    let mut desaturated = Lch::from(color).desaturate(0.2);
-    desaturated.l *= 0.8;
-
-    let result = Srgba::from_linear(desaturated.into());
-    let result = Srgba::<u8>::from_format(result);
-
-    RgbColor::new_8bpc(result.red, result.green, result.blue)
-}
-
 impl fmt::Debug for Palette256 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         // If we wanted to dump all of the entries, we'd use this:
@@ -102,22 +83,6 @@ impl ColorPalette {
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
             | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
-        }
-    }
-
-    /// Returns a greyed out version of the whole palette
-    pub fn grey_out(&self) -> Self {
-        Self {
-            colors: self.colors.0.iter().map(|&c| grey_out(c)).collect(),
-            foreground: grey_out(self.foreground),
-            background: grey_out(self.background),
-            cursor_fg: grey_out(self.cursor_fg),
-            cursor_bg: grey_out(self.cursor_bg),
-            cursor_border: grey_out(self.cursor_border),
-            selection_fg: grey_out(self.selection_fg.into()).into(),
-            selection_bg: grey_out(self.selection_bg.into()).into(),
-            scrollbar_thumb: grey_out(self.scrollbar_thumb),
-            split: grey_out(self.split),
         }
     }
 }

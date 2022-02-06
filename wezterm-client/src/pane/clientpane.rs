@@ -395,13 +395,7 @@ impl Pane for ClientPane {
     }
 
     fn palette(&self) -> ColorPalette {
-        let tardy = self.renderable.borrow().inner.borrow().is_tardy();
-
-        if tardy {
-            self.palette.borrow().grey_out()
-        } else {
-            self.palette.borrow().clone()
-        }
+        self.palette.borrow().clone()
     }
 
     fn domain_id(&self) -> DomainId {
