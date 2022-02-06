@@ -2165,7 +2165,7 @@ impl super::TermWindow {
 
                         // and render each of these strips
                         for range in [la, lb, lc, mid, ra, rb, rc] {
-                            if range.start == range.end {
+                            if range.is_empty() {
                                 continue;
                             }
 
@@ -2195,6 +2195,8 @@ impl super::TermWindow {
                             });
 
                             if glyph_color == bg_color {
+                                // Essentially invisible: don't render it, as anti-aliasing
+                                // can cause a ghostly outline of the invisible glyph to appear.
                                 continue;
                             }
 
