@@ -2035,11 +2035,6 @@ impl super::TermWindow {
                     break;
                 }
 
-                let top = cell_height
-                    + (params.render_metrics.descender.get() as f32
-                        - (glyph.y_offset + glyph.bearing_y).get() as f32)
-                        * height_scale;
-
                 for glyph_idx in 0..info.pos.num_cells as usize {
                     for img in &images {
                         if img.z_index() < 0 {
@@ -2059,6 +2054,10 @@ impl super::TermWindow {
                 {
                     // First, resolve this glyph to a texture
                     let mut texture = glyph.texture.as_ref().cloned();
+                    let mut top = cell_height
+                        + (params.render_metrics.descender.get() as f32
+                            - (glyph.y_offset + glyph.bearing_y).get() as f32)
+                            * height_scale;
 
                     if self.config.custom_block_glyphs {
                         if let Some(cell) = params.line.cells().get(visual_cell_idx) {
@@ -2069,6 +2068,10 @@ impl super::TermWindow {
                                         .borrow_mut()
                                         .cached_block(block, &params.render_metrics)?,
                                 );
+                                // Custom glyphs don't have the same offsets as computed
+                                // by the shaper, and are rendered relative to the cell
+                                // top left, rather than the baseline.
+                                top = 0.;
                             }
                         }
                     }
