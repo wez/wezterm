@@ -1721,8 +1721,27 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
-        let cell_width = params.render_metrics.cell_size.width as f32;
-        let cell_height = params.render_metrics.cell_size.height as f32;
+        let width_scale = if !params.line.is_single_width() {
+            2.0
+        } else {
+            1.0
+        };
+
+        if params.line.is_double_height_bottom() {
+            // The top and bottom lines are required to have the same content.
+            // For the sake of simplicity, we render both of them as part of
+            // rendering the top row, so we have nothing more to do here.
+            return Ok(());
+        }
+
+        let height_scale = if params.line.is_double_height_top() {
+            2.0
+        } else {
+            1.0
+        };
+
+        let cell_width = params.render_metrics.cell_size.width as f32 * width_scale;
+        let cell_height = params.render_metrics.cell_size.height as f32 * height_scale;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
         let gl_x = self.dimensions.pixel_width as f32 / -2.;
 
@@ -2016,8 +2035,10 @@ impl super::TermWindow {
                     break;
                 }
 
-                let top = cell_height + params.render_metrics.descender.get() as f32
-                    - (glyph.y_offset + glyph.bearing_y).get() as f32;
+                let top = cell_height
+                    + (params.render_metrics.descender.get() as f32
+                        - (glyph.y_offset + glyph.bearing_y).get() as f32)
+                        * height_scale;
 
                 for glyph_idx in 0..info.pos.num_cells as usize {
                     for img in &images {
@@ -2130,8 +2151,8 @@ impl super::TermWindow {
                         }
 
                         let adjust = (glyph.x_offset + glyph.bearing_x).get() as f32;
-                        let texture_range =
-                            pos_x + adjust..pos_x + adjust + texture.coords.size.width as f32;
+                        let texture_range = pos_x + adjust
+                            ..pos_x + adjust + (texture.coords.size.width as f32 * width_scale);
 
                         // First bucket the ranges according to cursor position
                         let (left, mid, right) = range3(&texture_range, &cursor_range_pixels);
@@ -2177,7 +2198,7 @@ impl super::TermWindow {
                             let pixel_rect = euclid::rect(
                                 texture.coords.origin.x + (range.start - (pos_x + adjust)) as isize,
                                 texture.coords.origin.y,
-                                (range.end - range.start) as isize,
+                                ((range.end - range.start) / width_scale) as isize,
                                 texture.coords.size.height,
                             );
 
@@ -2188,7 +2209,7 @@ impl super::TermWindow {
                                 gl_x + range.start,
                                 pos_y + top,
                                 gl_x + range.end,
-                                pos_y + top + texture.coords.size.height as f32,
+                                pos_y + top + texture.coords.size.height as f32 * height_scale,
                             );
                             quad.set_fg_color(glyph_color);
                             quad.set_texture(texture_rect);
@@ -2220,7 +2241,7 @@ impl super::TermWindow {
                 phys_cell_idx += info.pos.num_cells as usize;
                 visual_cell_idx += info.pos.num_cells as usize;
                 cluster_x_pos += if params.use_pixel_positioning {
-                    glyph.x_advance.get() as f32
+                    glyph.x_advance.get() as f32 * width_scale
                 } else {
                     info.pos.num_cells as f32 * cell_width
                 };
@@ -2230,7 +2251,7 @@ impl super::TermWindow {
                 Direction::RightToLeft => {
                     // And decrement it again
                     cluster_x_pos -= if params.use_pixel_positioning {
-                        item.pixel_width
+                        item.pixel_width * width_scale
                     } else {
                         cluster.width as f32 * cell_width
                     };
