@@ -68,15 +68,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
 
 [[package]]
-name = "approx"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0e60b75072ecd4168020818c0107f2857bb6c4e64252d8d3983f6263b40a5c3"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2710,30 +2701,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "palette"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a05c0334468e62a4dfbda34b29110aa7d70d58c7fdb2c9857b5874dd9827cc59"
-dependencies = [
- "approx",
- "num-traits",
- "palette_derive",
- "phf",
- "phf_codegen",
-]
-
-[[package]]
-name = "palette_derive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b4b5f600e60dd3a147fb57b4547033d382d1979eb087af310e91cb45a63b1f4"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4700,6 +4667,7 @@ dependencies = [
 name = "wezterm-color-types"
 version = "0.1.0"
 dependencies = [
+ "csscolorparser",
  "lazy_static",
  "serde",
 ]
@@ -4774,7 +4742,6 @@ dependencies = [
  "mux",
  "open",
  "ordered-float",
- "palette",
  "portable-pty",
  "pretty_env_logger",
  "promise",
@@ -4918,6 +4885,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
+ "csscolorparser",
  "hex",
  "image",
  "k9",
@@ -4927,7 +4895,6 @@ dependencies = [
  "miniz_oxide 0.4.4",
  "num-traits",
  "ordered-float",
- "palette",
  "pretty_assertions",
  "pretty_env_logger",
  "serde",

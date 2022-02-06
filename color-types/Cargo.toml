@@ -11,5 +11,6 @@ license = "MIT"
 use_serde = ["serde"]
 
 [dependencies]
+csscolorparser = "0.5"
 lazy_static = "1.4"
 serde = {version="1.0", features = ["derive"], optional=true}

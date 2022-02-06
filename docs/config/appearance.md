@@ -90,7 +90,30 @@ return {
 
 *Since: nightly builds only*
 
-`selection_fg` and `selection_bg` may set the alpha channel value.
+Colors now also accept the following CSS-style color specifications:
+
+```
+#00ff00ff
+rgb(0,255,0)
+rgb(0% 100% 0%)
+rgb(0 255 0 / 100%)
+rgba(0,255,0,1)
+hsl(120,100%,50%)
+hsl(120deg 100% 50%)
+hsl(-240 100% 50%)
+hsl(-240deg 100% 50%)
+hsl(0.3333turn 100% 50%)
+hsl(133.333grad 100% 50%)
+hsl(2.0944rad 100% 50%)
+hsla(120,100%,50%,100%)
+hwb(120 0% 0%)
+hwb(480deg 0% 0% / 100%)
+hsv(120,100%,100%)
+hsv(120deg 100% 100% / 100%)
+```
+
+The alpha value is ignored except when used with `selection_fg` and
+`selection_bg`:
 
 ```lua
 return {
@@ -98,16 +121,10 @@ return {
     -- Make the selection text color fully transparent.
     -- When fully transparent, the current text color will be used.
     selection_fg = "none",
-    -- Set the selection background color with alpha;
-    -- The first number is the red channel, set here to 50%.
-    -- If the number doesn't end with a % then it must be in the range
-    -- 0 through 255.
-    -- The second number is the green channel.
-    -- The third number is the blue channel.
-    -- The last number is the alpha channel.
+    -- Set the selection background color with alpha.
     -- When selection_bg is transparent, it will be alpha blended over
     -- the current cell background color, rather than replace it
-    selection_bg = "rgba:50% 50% 50% 50%"
+    selection_bg = "rgba(50% 50% 50% 50%)"
   }
 }
 ```

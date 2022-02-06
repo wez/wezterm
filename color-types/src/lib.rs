@@ -473,6 +473,8 @@ impl FromStr for SrgbaTuple {
             } else {
                 Err(())
             }
+        } else if let Ok(c) = csscolorparser::parse(s) {
+            Ok(Self(c.r as f32, c.g as f32, c.b as f32, c.a as f32))
         } else {
             Self::from_named(s).ok_or(())
         }
@@ -569,6 +571,22 @@ mod tests {
                 .unwrap()
                 .to_rgba_string(),
             "rgba:255 0 0 50%"
+        );
+    }
+
+    #[test]
+    fn from_css() {
+        assert_eq!(
+            SrgbaTuple::from_str("rgb(255,0,0)")
+                .unwrap()
+                .to_rgb_string(),
+            "#ff0000"
+        );
+        assert_eq!(
+            SrgbaTuple::from_str("rgba(255,0,0,1)")
+                .unwrap()
+                .to_rgba_string(),
+            "rgba:255 0 0 100%"
         );
     }
 
