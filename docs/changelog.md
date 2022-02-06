@@ -40,7 +40,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * IME and dead key composition state now shows inline in the terminal using the terminal font (All platforms, except Wayland where we only support dead key composition)
 * macOS: `use_ime=true` no longer prevents key repeat from working with some keys [#1131](https://github.com/wez/wezterm/issues/1131)
-* Bundled harfbuzz to 3.3.1
+* Bundled harfbuzz to 3.3.2
 
 #### Fixed
 
