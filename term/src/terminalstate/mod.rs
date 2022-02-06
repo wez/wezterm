@@ -1887,6 +1887,8 @@ impl TerminalState {
             let screen = self.screen_mut();
             for y in row_range.clone() {
                 screen.clear_line(y, col_range.clone(), &pen, seqno, bidi_mode);
+                let line_idx = screen.phys_row(y);
+                screen.line_mut(line_idx).set_single_width(seqno);
             }
         }
     }
