@@ -1,7 +1,7 @@
 use crate::*;
 
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function>
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum EasingFunction {
     Linear,
     CubicBezier(f32, f32, f32, f32),

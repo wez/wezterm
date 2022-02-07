@@ -25,6 +25,7 @@ use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
 
 mod cache;
+mod colorease;
 mod customglyph;
 mod download;
 mod frontend;

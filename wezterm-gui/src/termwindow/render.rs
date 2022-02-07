@@ -1,4 +1,5 @@
 use super::box_model::*;
+use crate::colorease::ColorEase;
 use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
@@ -342,33 +343,15 @@ impl super::TermWindow {
         let mut per_pane = self.pane_state(pane.pane_id());
         if let Some(ringing) = per_pane.bell_start {
             if config.visual_bell.target == target {
-                let elapsed = ringing.elapsed().as_secs_f32();
+                let mut color_ease = ColorEase::new(
+                    config.visual_bell.fade_in_duration_ms,
+                    config.visual_bell.fade_in_function,
+                    config.visual_bell.fade_out_duration_ms,
+                    config.visual_bell.fade_out_function,
+                    Some(ringing),
+                );
 
-                let in_duration =
-                    Duration::from_millis(config.visual_bell.fade_in_duration_ms).as_secs_f32();
-                let out_duration =
-                    Duration::from_millis(config.visual_bell.fade_out_duration_ms).as_secs_f32();
-
-                let intensity = if elapsed < in_duration {
-                    Some(
-                        config
-                            .visual_bell
-                            .fade_in_function
-                            .evaluate_at_position(elapsed / in_duration),
-                    )
-                } else {
-                    let completion = (elapsed - in_duration) / out_duration;
-                    if completion >= 1.0 {
-                        None
-                    } else {
-                        Some(
-                            1.0 - config
-                                .visual_bell
-                                .fade_out_function
-                                .evaluate_at_position(completion),
-                        )
-                    }
-                };
+                let intensity = color_ease.intensity_one_shot();
 
                 match intensity {
                     None => {
