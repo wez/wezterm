@@ -2082,7 +2082,6 @@ impl super::TermWindow {
                         // TODO: clipping, but we can do that based on pixels
 
                         let pos_x = cluster_x_pos
-                            + params.left_pixel_x
                             + if params.use_pixel_positioning {
                                 (glyph.x_offset + glyph.bearing_x).get() as f32
                             } else {
@@ -2090,14 +2089,10 @@ impl super::TermWindow {
                             };
 
                         if pos_x > params.pixel_width {
-                            log::info!(
-                                "breaking on overflow {} > {} + {}",
-                                pos_x,
-                                params.left_pixel_x,
-                                params.pixel_width
-                            );
+                            log::info!("breaking on overflow {} > {}", pos_x, params.pixel_width);
                             break;
                         }
+                        let pos_x = pos_x + params.left_pixel_x;
 
                         // We need to conceptually slice this texture into
                         // up into strips that consider the cursor and selection
