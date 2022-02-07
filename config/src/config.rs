@@ -1,5 +1,5 @@
 use crate::background::Gradient;
-use crate::bell::{AudibleBell, VisualBell};
+use crate::bell::{AudibleBell, EasingFunction, VisualBell};
 use crate::color::{ColorSchemeFile, HsbTransform, Palette, TabBarStyle, WindowFrameConfig};
 use crate::daemon::DaemonOptions;
 use crate::font::{
@@ -451,6 +451,10 @@ pub struct Config {
     /// interval specified with some degree of slop.
     #[serde(default = "default_text_blink_rate")]
     pub text_blink_rate: u64,
+    #[serde(default)]
+    pub text_blink_ease_in: EasingFunction,
+    #[serde(default)]
+    pub text_blink_ease_out: EasingFunction,
 
     /// Specifies how often blinking text (rapid speed) transitions
     /// between visible and invisible, expressed in milliseconds.
@@ -460,6 +464,10 @@ pub struct Config {
     /// interval specified with some degree of slop.
     #[serde(default = "default_text_blink_rate_rapid")]
     pub text_blink_rate_rapid: u64,
+    #[serde(default)]
+    pub text_blink_rapid_ease_in: EasingFunction,
+    #[serde(default)]
+    pub text_blink_rapid_ease_out: EasingFunction,
 
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of

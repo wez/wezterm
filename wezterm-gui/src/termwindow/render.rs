@@ -30,7 +30,7 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -1578,6 +1578,8 @@ impl super::TermWindow {
                 let bg_color = params.palette.resolve_bg(attrs.background());
 
                 let fg_color = resolve_fg_color_attr(&attrs, attrs.foreground(), &params, style);
+                let fg_color = rgbcolor_to_window_color(fg_color);
+                let bg_color = rgbcolor_to_window_color(bg_color);
 
                 let (fg_color, bg_color, bg_is_default) = {
                     let mut fg = fg_color;
@@ -1596,49 +1598,48 @@ impl super::TermWindow {
                     // features.
                     let blink_rate = match attrs.blink() {
                         Blink::None => None,
-                        Blink::Slow => Some((
-                            params.config.text_blink_rate,
-                            self.last_text_blink_paint.borrow_mut(),
-                        )),
+                        Blink::Slow => {
+                            Some((params.config.text_blink_rate, self.blink_state.borrow_mut()))
+                        }
                         Blink::Rapid => Some((
                             params.config.text_blink_rate_rapid,
-                            self.last_text_blink_paint_rapid.borrow_mut(),
+                            self.rapid_blink_state.borrow_mut(),
                         )),
                     };
-                    if let Some((blink_rate, mut last_time)) = blink_rate {
+                    if let Some((blink_rate, mut colorease)) = blink_rate {
                         if blink_rate != 0 {
-                            let milli_uptime = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap()
-                                .as_millis();
+                            let intensity = colorease.intensity_continuous();
 
-                            let ticks = milli_uptime / blink_rate as u128;
-                            if (ticks & 1) == 0 {
-                                fg = bg;
-                            }
+                            let (r1, g1, b1, a) = bg.tuple();
+                            let (r, g, b, _a) = fg.tuple();
+                            fg = LinearRgba::with_components(
+                                r1 + (r - r1) * intensity,
+                                g1 + (g - g1) * intensity,
+                                b1 + (b - b1) * intensity,
+                                a,
+                            );
 
-                            let interval = Duration::from_millis(blink_rate);
-                            if last_time.elapsed() >= interval {
-                                *last_time = Instant::now();
-                            }
-                            let due = *last_time + interval;
-
-                            self.update_next_frame_time(Some(due));
+                            self.update_next_frame_time(Some(
+                                Instant::now()
+                                    + Duration::from_millis(1000 / self.config.max_fps as u64),
+                            ));
                         }
                     }
 
                     (fg, bg, bg_default)
                 };
 
-                let glyph_color = rgbcolor_to_window_color(fg_color);
+                let glyph_color = fg_color;
                 let underline_color = match attrs.underline_color() {
                     ColorAttribute::Default => fg_color,
-                    c => resolve_fg_color_attr(&attrs, c, &params, style),
+                    c => rgbcolor_to_window_color(resolve_fg_color_attr(&attrs, c, &params, style)),
                 };
-                let underline_color = rgbcolor_to_window_color(underline_color);
 
-                let bg_color = rgbcolor_alpha_to_window_color(
-                    bg_color,
+                let (bg_r, bg_g, bg_b, _) = bg_color.tuple();
+                let bg_color = LinearRgba::with_components(
+                    bg_r,
+                    bg_g,
+                    bg_b,
                     if params.window_is_transparent && bg_is_default {
                         0.0
                     } else {

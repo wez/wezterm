@@ -2,6 +2,7 @@
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::cache::LruCache;
+use crate::colorease::ColorEase;
 use crate::frontend::front_end;
 use crate::glium::texture::SrgbTexture2d;
 use crate::overlay::{
@@ -333,8 +334,8 @@ pub struct TermWindow {
 
     next_blink_paint: RefCell<Instant>,
     last_status_call: Instant,
-    last_text_blink_paint: RefCell<Instant>,
-    last_text_blink_paint_rapid: RefCell<Instant>,
+    blink_state: RefCell<ColorEase>,
+    rapid_blink_state: RefCell<ColorEase>,
 
     palette: Option<ColorPalette>,
 
@@ -725,8 +726,20 @@ impl TermWindow {
             )),
             next_blink_paint: RefCell::new(Instant::now()),
             last_status_call: Instant::now(),
-            last_text_blink_paint: RefCell::new(Instant::now()),
-            last_text_blink_paint_rapid: RefCell::new(Instant::now()),
+            blink_state: RefCell::new(ColorEase::new(
+                config.text_blink_rate,
+                config.text_blink_ease_in,
+                config.text_blink_rate,
+                config.text_blink_ease_out,
+                None,
+            )),
+            rapid_blink_state: RefCell::new(ColorEase::new(
+                config.text_blink_rate_rapid,
+                config.text_blink_rapid_ease_in,
+                config.text_blink_rate_rapid,
+                config.text_blink_rapid_ease_out,
+                None,
+            )),
             event_states: HashMap::new(),
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),
@@ -1361,6 +1374,20 @@ impl TermWindow {
         } else {
             self.show_tab_bar = config.enable_tab_bar;
         }
+        *self.blink_state.borrow_mut() = ColorEase::new(
+            config.text_blink_rate,
+            config.text_blink_ease_in,
+            config.text_blink_rate,
+            config.text_blink_ease_out,
+            None,
+        );
+        *self.rapid_blink_state.borrow_mut() = ColorEase::new(
+            config.text_blink_rate_rapid,
+            config.text_blink_rapid_ease_in,
+            config.text_blink_rate_rapid,
+            config.text_blink_rapid_ease_out,
+            None,
+        );
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();

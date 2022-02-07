@@ -13,3 +13,11 @@ return {
   text_blink_rate = 500
 }
 ```
+
+*Since: nightly builds only*
+
+Blinking is no longer a binary blink, but interpolates between invisible and
+visible text using an easing function.  See
+[text_blink_ease_in](text_blink_ease_in.md) and
+[text_blink_ease_out](text_blink_ease_out.md) for more information.
+
