@@ -288,7 +288,7 @@ impl ImageDataType {
                     }
                 };
                 match format {
-                    ImageFormat::Gif => image::gif::GifDecoder::new(&*data)
+                    ImageFormat::Gif => image::codecs::gif::GifDecoder::new(&*data)
                         .and_then(|decoder| decoder.into_frames().collect_frames())
                         .and_then(|frames| Ok(Self::decode_frames(frames)))
                         .unwrap_or_else(|err| {
@@ -299,7 +299,7 @@ impl ImageDataType {
                             Self::decode_single(data)
                         }),
                     ImageFormat::Png => {
-                        let decoder = match image::png::PngDecoder::new(&*data) {
+                        let decoder = match image::codecs::png::PngDecoder::new(&*data) {
                             Ok(d) => d,
                             _ => return Self::EncodedFile(data),
                         };

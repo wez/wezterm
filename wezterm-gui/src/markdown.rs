@@ -162,7 +162,6 @@ impl RenderState {
             }
 
             Event::Start(Tag::Image(_linktype, img_url, _title)) => {
-                use image::GenericImageView;
                 use termwiz::image::TextureCoordinate;
 
                 let url: &str = img_url.as_ref();

@@ -945,7 +945,7 @@ fn clip_view(
     let view = src.view(src_x, src_y, view_width, view_height);
 
     let mut tmp = RgbaImage::new(view_width, view_height);
-    tmp.copy_from(&view, 0, 0).context("copy source image")?;
+    tmp.copy_from(&*view, 0, 0).context("copy source image")?;
     Ok(tmp)
 }
 
@@ -962,10 +962,10 @@ where
 {
     match mode {
         KittyFrameCompositionMode::Overwrite => {
-            ::image::imageops::replace(dest, src, x, y);
+            ::image::imageops::replace(dest, src, x.into(), y.into());
         }
         KittyFrameCompositionMode::AlphaBlending => {
-            ::image::imageops::overlay(dest, src, x, y);
+            ::image::imageops::overlay(dest, src, x.into(), y.into());
         }
     }
     Ok(())
