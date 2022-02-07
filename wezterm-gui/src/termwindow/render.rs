@@ -1928,6 +1928,24 @@ impl super::TermWindow {
 
         // Consider cursor
         if !cursor_range.is_empty() {
+            let (fg_color, bg_color) = if let Some(c) = params.line.cells().get(cursor_range.start)
+            {
+                let attrs = c.attrs();
+                let bg_color =
+                    rgbcolor_to_window_color(params.palette.resolve_bg(attrs.background()));
+
+                let fg_color = rgbcolor_to_window_color(resolve_fg_color_attr(
+                    &attrs,
+                    attrs.foreground(),
+                    &params,
+                    &Default::default(),
+                ));
+
+                (fg_color, bg_color)
+            } else {
+                (params.foreground, params.default_bg)
+            };
+
             let ComputeCellFgBgResult {
                 fg_color: _glyph_color,
                 bg_color: _bg_color,
@@ -1936,8 +1954,8 @@ impl super::TermWindow {
             } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                 cursor: Some(params.cursor),
                 selected: false,
-                fg_color: params.foreground,
-                bg_color: params.default_bg,
+                fg_color,
+                bg_color,
                 palette: params.palette,
                 is_active_pane: params.is_active,
                 config: params.config,
@@ -2439,74 +2457,20 @@ impl super::TermWindow {
             }
         }
 
-        // This logic figures out whether the cursor is visible or not.
-        // If the cursor is explicitly hidden then it is obviously not
-        // visible.
-        // If the cursor is set to a blinking mode then we are visible
-        // depending on the current time.
         let (cursor_shape, visibility) = match params.cursor {
-            Some(cursor) if cursor.visibility == CursorVisibility::Visible => {
-                let shape = params
+            Some(cursor) => (
+                params
                     .config
                     .default_cursor_style
-                    .effective_shape(cursor.shape);
-                // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
-                // and the window is focused.
-                let blinking = params.is_active_pane
-                    && shape.is_blinking()
-                    && params.config.cursor_blink_rate != 0
-                    && self.focused.is_some();
-                if blinking {
-                    let now = std::time::Instant::now();
-
-                    // schedule an invalidation so that we can paint the next
-                    // cycle at the right time.
-                    if let Some(window) = self.window.clone() {
-                        let interval = Duration::from_millis(params.config.cursor_blink_rate);
-                        let next = *self.next_blink_paint.borrow();
-                        if next < now {
-                            let target = next + interval;
-                            let target = if target <= now {
-                                now + interval
-                            } else {
-                                target
-                            };
-
-                            *self.next_blink_paint.borrow_mut() = target;
-                            promise::spawn::spawn(async move {
-                                Timer::at(target).await;
-                                window.invalidate();
-                            })
-                            .detach();
-                        }
-                    }
-
-                    // Divide the time since we last moved by the blink rate.
-                    // If the result is even then the cursor is "on", else it
-                    // is "off"
-
-                    let milli_uptime = now
-                        .duration_since(self.prev_cursor.last_cursor_movement())
-                        .as_millis();
-                    let ticks = milli_uptime / params.config.cursor_blink_rate as u128;
-                    (
-                        shape,
-                        if (ticks & 1) == 0 {
-                            CursorVisibility::Visible
-                        } else {
-                            CursorVisibility::Hidden
-                        },
-                    )
-                } else {
-                    (shape, CursorVisibility::Visible)
-                }
-            }
+                    .effective_shape(cursor.shape),
+                cursor.visibility,
+            ),
             _ => (CursorShape::default(), CursorVisibility::Hidden),
         };
 
         let focused_and_active = self.focused.is_some() && params.is_active_pane;
 
-        let (fg_color, bg_color, cursor_bg) = match (
+        let (mut fg_color, bg_color, mut cursor_bg) = match (
             params.selected,
             focused_and_active,
             cursor_shape,
@@ -2549,6 +2513,49 @@ impl super::TermWindow {
             // Normally, render the cell as configured (or if the window is unfocused)
             _ => (params.fg_color, params.bg_color, params.cursor_border_color),
         };
+
+        let blinking = params.cursor.is_some()
+            && params.is_active_pane
+            && cursor_shape.is_blinking()
+            && params.config.cursor_blink_rate != 0
+            && self.focused.is_some();
+
+        if blinking {
+            let mut color_ease = self.cursor_blink_state.borrow_mut();
+            color_ease.update_start(self.prev_cursor.last_cursor_movement());
+            let intensity = color_ease.intensity_continuous();
+
+            // Invert the intensity: we want to start with a visible
+            // cursor whenever the cursor moves, then fade out, then back.
+            let bg_intensity = 1.0 - intensity;
+
+            let (r1, g1, b1, a) = params.bg_color.tuple();
+            let (r, g, b, _a) = cursor_bg.tuple();
+            cursor_bg = LinearRgba::with_components(
+                r1 + (r - r1) * bg_intensity,
+                g1 + (g - g1) * bg_intensity,
+                b1 + (b - b1) * bg_intensity,
+                a,
+            );
+
+            if matches!(
+                cursor_shape,
+                CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
+            ) {
+                let (r1, g1, b1, a) = fg_color.tuple();
+                let (r, g, b, _a) = params.fg_color.tuple();
+                fg_color = LinearRgba::with_components(
+                    r1 + (r - r1) * intensity,
+                    g1 + (g - g1) * intensity,
+                    b1 + (b - b1) * intensity,
+                    a,
+                );
+            }
+
+            self.update_next_frame_time(Some(
+                Instant::now() + Duration::from_millis(1000 / self.config.max_fps as u64),
+            ));
+        }
 
         ComputeCellFgBgResult {
             fg_color,

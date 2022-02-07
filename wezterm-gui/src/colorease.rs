@@ -27,6 +27,14 @@ impl ColorEase {
         }
     }
 
+    pub fn update_start(&mut self, start: Instant) {
+        let start = match self.start.take() {
+            Some(prior) if prior >= start => prior,
+            _ => start,
+        };
+        self.start.replace(start);
+    }
+
     pub fn intensity_continuous(&mut self) -> f32 {
         match self.intensity_one_shot() {
             Some(intensity) => intensity,

@@ -428,6 +428,10 @@ pub struct Config {
     /// least the interval specified with some degree of slop.
     #[serde(default = "default_cursor_blink_rate")]
     pub cursor_blink_rate: u64,
+    #[serde(default = "linear_ease")]
+    pub cursor_blink_ease_in: EasingFunction,
+    #[serde(default = "linear_ease")]
+    pub cursor_blink_ease_out: EasingFunction,
 
     #[serde(default)]
     pub force_reverse_video_cursor: bool,
@@ -451,9 +455,9 @@ pub struct Config {
     /// interval specified with some degree of slop.
     #[serde(default = "default_text_blink_rate")]
     pub text_blink_rate: u64,
-    #[serde(default)]
+    #[serde(default = "linear_ease")]
     pub text_blink_ease_in: EasingFunction,
-    #[serde(default)]
+    #[serde(default = "linear_ease")]
     pub text_blink_ease_out: EasingFunction,
 
     /// Specifies how often blinking text (rapid speed) transitions
@@ -464,9 +468,9 @@ pub struct Config {
     /// interval specified with some degree of slop.
     #[serde(default = "default_text_blink_rate_rapid")]
     pub text_blink_rate_rapid: u64,
-    #[serde(default)]
+    #[serde(default = "linear_ease")]
     pub text_blink_rapid_ease_in: EasingFunction,
-    #[serde(default)]
+    #[serde(default = "linear_ease")]
     pub text_blink_rapid_ease_out: EasingFunction,
 
     /// If non-zero, specifies the period (in seconds) at which various
@@ -1252,6 +1256,10 @@ impl DefaultCursorStyle {
             _ => shape,
         }
     }
+}
+
+const fn linear_ease() -> EasingFunction {
+    EasingFunction::Linear
 }
 
 const fn default_one_cell() -> Dimension {

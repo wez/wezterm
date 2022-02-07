@@ -332,8 +332,8 @@ pub struct TermWindow {
     shape_cache:
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
 
-    next_blink_paint: RefCell<Instant>,
     last_status_call: Instant,
+    cursor_blink_state: RefCell<ColorEase>,
     blink_state: RefCell<ColorEase>,
     rapid_blink_state: RefCell<ColorEase>,
 
@@ -724,8 +724,14 @@ impl TermWindow {
                 "shape_cache.miss.rate",
                 65536,
             )),
-            next_blink_paint: RefCell::new(Instant::now()),
             last_status_call: Instant::now(),
+            cursor_blink_state: RefCell::new(ColorEase::new(
+                config.cursor_blink_rate,
+                config.cursor_blink_ease_in,
+                config.cursor_blink_rate,
+                config.cursor_blink_ease_out,
+                None,
+            )),
             blink_state: RefCell::new(ColorEase::new(
                 config.text_blink_rate,
                 config.text_blink_ease_in,
@@ -1374,6 +1380,13 @@ impl TermWindow {
         } else {
             self.show_tab_bar = config.enable_tab_bar;
         }
+        *self.cursor_blink_state.borrow_mut() = ColorEase::new(
+            config.cursor_blink_rate,
+            config.cursor_blink_ease_in,
+            config.cursor_blink_rate,
+            config.cursor_blink_ease_out,
+            None,
+        );
         *self.blink_state.borrow_mut() = ColorEase::new(
             config.text_blink_rate,
             config.text_blink_ease_in,

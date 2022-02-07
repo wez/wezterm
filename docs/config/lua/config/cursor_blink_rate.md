@@ -15,3 +15,9 @@ return {
   cursor_blink_rate = 800,
 }
 ```
+
+*Since: nightly builds only*
+
+The cursor blink is controlled by the easing functions specified by the
+[cursor_blink_ease_in](cursor_blink_ease_in.md) and
+[cursor_blink_ease_out](cursor_blink_ease_out.md).

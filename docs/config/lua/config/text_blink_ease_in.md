@@ -1,4 +1,4 @@
-# text_blink_ease_in = "Ease"
+# text_blink_ease_in = "Linear"
 
 *Since: nightly builds only*
 
@@ -9,4 +9,7 @@ foreground color.
 
 See [visual_bell](visual_bell.md) for more information about
 easing functions.
+
+See [cursor_blink_rate](cursor_blink_rate.md) to control the rate
+at which the cursor blinks.
 

@@ -1,4 +1,4 @@
-# text_blink_rapid_ease_out = "Ease"
+# text_blink_rapid_ease_out = "Linear"
 
 *Since: nightly builds only*
 

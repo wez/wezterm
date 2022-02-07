@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [use_ime](config/lua/config/use_ime.md) now defaults to `true` on all platforms; previously it was not enabled by default on macOS.
 * [canonicalize_pasted_newlines](config/lua/config/canonicalize_pasted_newlines.md) default has changed to be more compatible for `nano` users, and now provides more control over the text format that is pasted. [#1575](https://github.com/wez/wezterm/issues/1575)
 * Blinking text is now eased rather than binary-blinked. See [text_blink_ease_in](config/lua/config/text_blink_ease_in.md) and [text_blink_ease_out](config/lua/config/text_blink_ease_out.md), [text_blink_rapid_ease_in](config/lua/config/text_blink_rapid_ease_in.md) and [text_blink_rapid_ease_out](config/lua/config/text_blink_rapid_ease_out.md) for more information.
+* Blinking text cursor is now eased rather than binary-blinked. See [cursor_blink_ease_in](config/lua/config/cursor_blink_ease_in.md) and [cursor_blink_ease_out](config/lua/config/cursor_blink_ease_out.md).
 
 #### Updated and Improved
 
