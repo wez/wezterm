@@ -481,6 +481,7 @@ usually the best available version.</p>
 <li>Avoid OOM when processing sixels with huge repeat counts <a href="https://github.com/wez/wezterm/issues/1610">#1610</a></li>
 <li>Set the sticky bit on socket and pid files created in <code>XDG_RUNTIME_DIR</code> to avoid removal by tmpwatch <a href="https://github.com/wez/wezterm/issues/1601">#1601</a></li>
 <li>Shaping combining sequences like <code>e U+20d7</code> could &quot;lose&quot; the vector symbol if the font produced an entry with no <code>x_advance</code>. <a href="https://github.com/wez/wezterm/issues/1617">#1617</a></li>
+<li>Setting the cursor color via escape sequences now take precedence over <code>force_reverse_video_cursor</code>. <a href="https://github.com/wez/wezterm/issues/1625">#1625</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
@@ -11467,6 +11468,10 @@ cursor to use reverse video colors based on the <code>foreground</code> and <cod
 colors.</p>
 <p>When <code>force_reverse_video_cursor = false</code> (the default), <code>cursor_fg</code>,
 <code>cursor_bg</code> and <code>cursor_border</code> color scheme settings are applied as normal.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>If escape sequences are used to change the cursor color, they will take
+precedence over <code>force_reverse_video_cursor</code>.  In earlier releases, setting
+<code>force_reverse_video_cursor = true</code> always ignored the configured cursor color.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="foreground_text_hsb"><a class="header" href="#foreground_text_hsb">foreground_text_hsb</a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Configures a Hue, Saturation, Brightness transformation that is applied to

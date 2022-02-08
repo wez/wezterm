@@ -154,6 +154,10 @@ cursor to use reverse video colors based on the <code>foreground</code> and <cod
 colors.</p>
 <p>When <code>force_reverse_video_cursor = false</code> (the default), <code>cursor_fg</code>,
 <code>cursor_bg</code> and <code>cursor_border</code> color scheme settings are applied as normal.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>If escape sequences are used to change the cursor color, they will take
+precedence over <code>force_reverse_video_cursor</code>.  In earlier releases, setting
+<code>force_reverse_video_cursor = true</code> always ignored the configured cursor color.</p>
 
                     </main>
 
