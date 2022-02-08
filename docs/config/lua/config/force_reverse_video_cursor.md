@@ -9,3 +9,9 @@ colors.
 
 When `force_reverse_video_cursor = false` (the default), `cursor_fg`,
 `cursor_bg` and `cursor_border` color scheme settings are applied as normal.
+
+*Since: nightly builds only*
+
+If escape sequences are used to change the cursor color, they will take
+precedence over `force_reverse_video_cursor`.  In earlier releases, setting
+`force_reverse_video_cursor = true` always ignored the configured cursor color.

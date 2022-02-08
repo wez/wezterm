@@ -137,6 +137,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub selection_bg: LinearRgba,
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
+    pub cursor_is_default_color: bool,
 
     pub window_is_transparent: bool,
     pub default_bg: LinearRgba,
@@ -165,6 +166,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub selection_bg: LinearRgba,
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
+    pub cursor_is_default_color: bool,
     pub cursor_border_color: LinearRgba,
     pub pane: Option<&'a Rc<dyn Pane>>,
 }
@@ -902,6 +904,7 @@ impl super::TermWindow {
                 selection_bg: LinearRgba::default(),
                 cursor_fg: LinearRgba::default(),
                 cursor_bg: LinearRgba::default(),
+                cursor_is_default_color: true,
                 white_space,
                 filled_box,
                 window_is_transparent,
@@ -940,6 +943,8 @@ impl super::TermWindow {
         */
 
         let global_bg_color = self.palette().background;
+        let global_cursor_fg = self.palette().cursor_fg;
+        let global_cursor_bg = self.palette().cursor_bg;
         let config = &self.config;
         let palette = pos.pane.palette();
 
@@ -1267,6 +1272,9 @@ impl super::TermWindow {
         let selection_bg = palette.selection_bg.to_linear();
         let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
         let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
+        let cursor_is_default_color =
+            palette.cursor_fg == global_cursor_fg && palette.cursor_bg == global_cursor_bg;
+
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
 
@@ -1296,6 +1304,7 @@ impl super::TermWindow {
                     selection_bg,
                     cursor_fg,
                     cursor_bg,
+                    cursor_is_default_color,
                     white_space,
                     filled_box,
                     window_is_transparent,
@@ -1964,6 +1973,7 @@ impl super::TermWindow {
                 selection_bg: params.selection_bg,
                 cursor_fg: params.cursor_fg,
                 cursor_bg: params.cursor_bg,
+                cursor_is_default_color: params.cursor_is_default_color,
                 cursor_border_color: params.cursor_border_color,
                 pane: params.pane,
             });
@@ -2188,6 +2198,7 @@ impl super::TermWindow {
                                 selection_bg: params.selection_bg,
                                 cursor_fg: params.cursor_fg,
                                 cursor_bg: params.cursor_bg,
+                                cursor_is_default_color: params.cursor_is_default_color,
                                 cursor_border_color: params.cursor_border_color,
                                 pane: params.pane,
                             });
@@ -2396,11 +2407,12 @@ impl super::TermWindow {
                 params.config,
                 VisualBellTarget::CursorColor,
             ) {
-                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
-                    (params.bg_color, params.fg_color)
-                } else {
-                    (params.cursor_fg, params.cursor_bg)
-                };
+                let (fg_color, bg_color) =
+                    if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
+                        (params.bg_color, params.fg_color)
+                    } else {
+                        (params.cursor_fg, params.cursor_bg)
+                    };
 
                 // interpolate between the background color
                 // and the the target color
@@ -2431,11 +2443,12 @@ impl super::TermWindow {
                 self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
 
             if dead_key_or_leader {
-                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
-                    (params.bg_color, params.fg_color)
-                } else {
-                    (params.cursor_fg, params.cursor_bg)
-                };
+                let (fg_color, bg_color) =
+                    if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
+                        (params.bg_color, params.fg_color)
+                    } else {
+                        (params.cursor_fg, params.cursor_bg)
+                    };
 
                 let color = params
                     .config
@@ -2485,7 +2498,7 @@ impl super::TermWindow {
                 CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
                 CursorVisibility::Visible,
             ) => {
-                if self.config.force_reverse_video_cursor {
+                if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
                     (params.bg_color, params.fg_color, params.fg_color)
                 } else {
                     (params.cursor_fg, params.cursor_bg, params.cursor_bg)
@@ -2500,7 +2513,7 @@ impl super::TermWindow {
                 | CursorShape::SteadyBar,
                 CursorVisibility::Visible,
             ) => {
-                if self.config.force_reverse_video_cursor {
+                if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
                     (params.fg_color, params.bg_color, params.fg_color)
                 } else {
                     (params.fg_color, params.bg_color, params.cursor_bg)

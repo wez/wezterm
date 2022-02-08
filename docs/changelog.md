@@ -64,6 +64,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Avoid OOM when processing sixels with huge repeat counts [#1610](https://github.com/wez/wezterm/issues/1610)
 * Set the sticky bit on socket and pid files created in `XDG_RUNTIME_DIR` to avoid removal by tmpwatch [#1601](https://github.com/wez/wezterm/issues/1601)
 * Shaping combining sequences like `e U+20d7` could "lose" the vector symbol if the font produced an entry with no `x_advance`. [#1617](https://github.com/wez/wezterm/issues/1617)
+* Setting the cursor color via escape sequences now take precedence over `force_reverse_video_cursor`. [#1625](https://github.com/wez/wezterm/issues/1625)
 
 ### 20220101-133340-7edc5b5a
 
