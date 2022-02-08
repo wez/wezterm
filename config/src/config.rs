@@ -433,6 +433,9 @@ pub struct Config {
     #[serde(default = "linear_ease")]
     pub cursor_blink_ease_out: EasingFunction,
 
+    #[serde(default = "default_anim_fps")]
+    pub animation_fps: u8,
+
     #[serde(default)]
     pub force_reverse_video_cursor: bool,
 
@@ -1162,6 +1165,10 @@ fn default_mux_env_remove() -> Vec<String> {
         "SSH_CLIENT".to_string(),
         "SSH_CONNECTION".to_string(),
     ]
+}
+
+fn default_anim_fps() -> u8 {
+    10
 }
 
 fn default_max_fps() -> u8 {

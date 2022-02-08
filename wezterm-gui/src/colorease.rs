@@ -8,6 +8,7 @@ pub struct ColorEase {
     out_duration: f32,
     out_function: EasingFunction,
     start: Option<Instant>,
+    last_render: Instant,
 }
 
 impl ColorEase {
@@ -24,6 +25,7 @@ impl ColorEase {
             out_duration: Duration::from_millis(out_duration_ms).as_secs_f32(),
             out_function,
             start,
+            last_render: Instant::now(),
         }
     }
 
@@ -35,7 +37,7 @@ impl ColorEase {
         self.start.replace(start);
     }
 
-    pub fn intensity_continuous(&mut self) -> f32 {
+    pub fn intensity_continuous(&mut self) -> (f32, Instant) {
         match self.intensity_one_shot() {
             Some(intensity) => intensity,
             None => {
@@ -46,7 +48,7 @@ impl ColorEase {
         }
     }
 
-    pub fn intensity_one_shot(&mut self) -> Option<f32> {
+    pub fn intensity_one_shot(&mut self) -> Option<(f32, Instant)> {
         let start = self.start?;
         let elapsed = start.elapsed().as_secs_f32();
 
@@ -64,9 +66,37 @@ impl ColorEase {
             }
         };
 
-        if intensity.is_none() {
-            self.start.take();
+        match intensity {
+            Some(i) => {
+                let now = Instant::now();
+                let fps = config::configuration().animation_fps as u64;
+                let next = match fps {
+                    1 if elapsed < self.in_duration => {
+                        start + Duration::from_secs_f32(self.in_duration)
+                    }
+                    1 => {
+                        start
+                            + Duration::from_secs_f32(self.in_duration)
+                            + Duration::from_secs_f32(self.out_duration)
+                    }
+                    _ => {
+                        let frame_interval = 1000 / fps as u64;
+                        let elapsed = (elapsed * 1000.).ceil() as u64;
+                        let remain = elapsed % frame_interval;
+                        if remain != 0 {
+                            now + Duration::from_millis(remain)
+                        } else {
+                            now + Duration::from_millis(frame_interval)
+                        }
+                    }
+                };
+                self.last_render = now;
+                Some((i, next))
+            }
+            None => {
+                self.start.take();
+                None
+            }
         }
-        intensity
     }
 }

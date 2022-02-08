@@ -30,7 +30,7 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -302,18 +302,24 @@ impl super::TermWindow {
         // invalidate the viewport when the next frame is due
         if self.focused.is_some() {
             if let Some(next_due) = *self.has_animation.borrow() {
-                if Some(next_due) != *self.scheduled_animation.borrow() {
-                    self.scheduled_animation.borrow_mut().replace(next_due);
-                    let window = self.window.clone().take().unwrap();
-                    promise::spawn::spawn(async move {
-                        Timer::at(next_due).await;
-                        let win = window.clone();
-                        window.notify(TermWindowNotif::Apply(Box::new(move |tw| {
-                            tw.scheduled_animation.borrow_mut().take();
-                            win.invalidate();
-                        })));
-                    })
-                    .detach();
+                let prior = self.scheduled_animation.borrow_mut().take();
+                match prior {
+                    Some(prior) if prior <= next_due => {
+                        // Already due before that time
+                    }
+                    _ => {
+                        self.scheduled_animation.borrow_mut().replace(next_due);
+                        let window = self.window.clone().take().unwrap();
+                        promise::spawn::spawn(async move {
+                            Timer::at(next_due).await;
+                            let win = window.clone();
+                            window.notify(TermWindowNotif::Apply(Box::new(move |tw| {
+                                tw.scheduled_animation.borrow_mut().take();
+                                win.invalidate();
+                            })));
+                        })
+                        .detach();
+                    }
                 }
             }
         }
@@ -357,10 +363,8 @@ impl super::TermWindow {
                     None => {
                         per_pane.bell_start.take();
                     }
-                    Some(intensity) => {
-                        self.update_next_frame_time(Some(
-                            Instant::now() + Duration::from_millis(1000 / config.max_fps as u64),
-                        ));
+                    Some((intensity, next)) => {
+                        self.update_next_frame_time(Some(next));
                         return Some(intensity);
                     }
                 }
@@ -1608,7 +1612,7 @@ impl super::TermWindow {
                     };
                     if let Some((blink_rate, mut colorease)) = blink_rate {
                         if blink_rate != 0 {
-                            let intensity = colorease.intensity_continuous();
+                            let (intensity, next) = colorease.intensity_continuous();
 
                             let (r1, g1, b1, a) = bg.tuple();
                             let (r, g, b, _a) = fg.tuple();
@@ -1619,10 +1623,7 @@ impl super::TermWindow {
                                 a,
                             );
 
-                            self.update_next_frame_time(Some(
-                                Instant::now()
-                                    + Duration::from_millis(1000 / self.config.max_fps as u64),
-                            ));
+                            self.update_next_frame_time(Some(next));
                         }
                     }
 
@@ -2518,7 +2519,7 @@ impl super::TermWindow {
         if blinking {
             let mut color_ease = self.cursor_blink_state.borrow_mut();
             color_ease.update_start(self.prev_cursor.last_cursor_movement());
-            let intensity = color_ease.intensity_continuous();
+            let (intensity, next) = color_ease.intensity_continuous();
 
             // Invert the intensity: we want to start with a visible
             // cursor whenever the cursor moves, then fade out, then back.
@@ -2547,9 +2548,7 @@ impl super::TermWindow {
                 );
             }
 
-            self.update_next_frame_time(Some(
-                Instant::now() + Duration::from_millis(1000 / self.config.max_fps as u64),
-            ));
+            self.update_next_frame_time(Some(next));
         }
 
         ComputeCellFgBgResult {
