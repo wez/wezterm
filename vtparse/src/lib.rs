@@ -29,12 +29,21 @@ fn lookup(state: State, b: u8) -> (Action, State) {
 }
 
 #[inline(always)]
+#[cfg(not(test))]
 fn lookup_entry(state: State) -> Action {
     unsafe { *ENTRY.get_unchecked(state as usize) }
 }
 
 #[inline(always)]
-#[cfg(debug_assertions)]
+#[cfg(test)]
+fn lookup_entry(state: State) -> Action {
+    *ENTRY
+        .get(state as usize)
+        .unwrap_or_else(|| panic!("State {:?} has no entry in ENTRY", state))
+}
+
+#[inline(always)]
+#[cfg(test)]
 fn lookup_exit(state: State) -> Action {
     *EXIT
         .get(state as usize)
@@ -42,7 +51,7 @@ fn lookup_exit(state: State) -> Action {
 }
 
 #[inline(always)]
-#[cfg(not(debug_assertions))]
+#[cfg(not(test))]
 fn lookup_exit(state: State) -> Action {
     unsafe { *EXIT.get_unchecked(state as usize) }
 }

@@ -308,7 +308,7 @@ pub(crate) static TRANSITIONS: [[u16; 256]; 15] = [
     define_table!(apc_string),
 ];
 
-pub(crate) static ENTRY: [Action; 15] = [
+pub(crate) static ENTRY: [Action; 17] = [
     Action::None,     // Ground
     Action::Clear,    // Escape
     Action::None,     // EscapeIntermediate
@@ -324,9 +324,11 @@ pub(crate) static ENTRY: [Action; 15] = [
     Action::OscStart, // OscString
     Action::None,     // SosPmString
     Action::ApcStart, // ApcString
+    Action::None,     // Anywhere
+    Action::None,     // Utf8Sequence
 ];
 
-pub(crate) static EXIT: [Action; 15] = [
+pub(crate) static EXIT: [Action; 17] = [
     Action::None,   // Ground
     Action::None,   // Escape
     Action::None,   // EscapeIntermediate
@@ -342,6 +344,8 @@ pub(crate) static EXIT: [Action; 15] = [
     Action::OscEnd, // OscString
     Action::None,   // SosPmString
     Action::ApcEnd, // ApcString
+    Action::None,   // Anywhere
+    Action::None,   // Utf8Sequence
 ];
 
 #[cfg(test)]
