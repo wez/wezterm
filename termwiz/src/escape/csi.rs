@@ -747,8 +747,8 @@ pub enum DecPrivateModeCode {
     /// https://vt100.net/docs/vt510-rm/DECLRMM.html
     LeftRightMarginMode = 69,
 
-    /// DECSDM - https://vt100.net/docs/vt3xx-gp/chapter14.html
-    SixelScrolling = 80,
+    /// DECSDM - https://vt100.net/dec/ek-vt38t-ug-001.pdf#page=132
+    SixelDisplayMode = 80,
     /// Enable mouse button press/release reporting
     MouseTracking = 1000,
     /// Warning: this requires a cooperative and timely response from

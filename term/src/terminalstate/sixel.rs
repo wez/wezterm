@@ -111,6 +111,14 @@ impl TerminalState {
         let image_data = ImageDataType::new_single_frame(width, height, data);
 
         let image_data = self.raw_image_to_image_data(image_data);
+        let old_cursor = self.cursor;
+        if self.sixel_display_mode {
+            // Sixel Display Mode (DECSDM) requires placing the image
+            // at the top-left corner, but not moving the text cursor
+            // position.
+            self.cursor.x = 0;
+            self.cursor.y = 0;
+        }
         if let Err(err) = self.assign_image_to_cells(ImageAttachParams {
             image_width: width,
             image_height: height,
@@ -127,9 +135,12 @@ impl TerminalState {
             z_index: 0,
             image_id: None,
             placement_id: None,
-            do_not_move_cursor: false,
+            do_not_move_cursor: self.sixel_display_mode,
         }) {
             log::error!("set sixel image: {:#}", err);
+        }
+        if self.sixel_display_mode {
+            self.cursor = old_cursor;
         }
     }
 }
