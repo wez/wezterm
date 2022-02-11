@@ -920,6 +920,55 @@ impl XWindowInner {
         self.set_fullscreen_hint(!fullscreen).ok();
     }
 
+    fn alert(&mut self) {
+        let hintreply = xcb_util::icccm::get_wm_hints(self.conn().conn(), self.window_id).get_reply();
+        let hints = match hintreply {
+            Ok(h) => h,
+            // This is, admittingly, a bit scary. But apparently, wmhints may be unset for the
+            // window on first call. This means that 0 is return as the result of the wrapped
+            // xcb_icccm_get_wm_hints, which the rust wrapping discharges to Err(null),
+            // but subsequent setting then works.
+            Err(_) => xcb_util::icccm::WmHints::empty().build()
+        };
+        let is_urgent = false; // hints.is_urgent().unwrap_or(false);
+        if !is_urgent {
+            let mut builder = xcb_util::icccm::WmHints::empty();
+            builder = match hints.input() {
+                Some(b) => builder.input(b),
+                None => builder
+            };
+            if hints.is_iconic() {
+                builder = builder.is_iconic();
+            }
+            if hints.is_normal() {
+                builder = builder.is_normal();
+            }
+            if hints.is_withdrawn() {
+                builder = builder.is_withdrawn();
+            }
+            if hints.is_none() {
+                builder = builder.is_none();
+            }
+            builder = match hints.icon_pixmap() {
+                Some(i) => builder.icon_pixmap(i),
+                None => builder
+            };
+            builder = match hints.icon_mask() {
+                Some(i) => builder.icon_mask(i),
+                None => builder
+            };
+            builder = match hints.icon_window() {
+                Some(i) => builder.icon_window(i),
+                None => builder
+            };
+            builder = match hints.window_group() {
+                Some(i) => builder.icon_window(i),
+                None => builder
+            };
+            xcb_util::icccm::set_wm_hints(self.conn().conn(), self.window_id, &builder.is_urgent().build());
+        }
+    }
+
     fn config_did_change(&mut self, config: &ConfigHandle) {
         self.config = config.clone();
         let _ = self.adjust_decorations(config.window_decorations);
@@ -1077,6 +1126,13 @@ impl WindowOps for XWindow {
     fn toggle_fullscreen(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.toggle_fullscreen();
+            Ok(())
+        });
+    }
+
+    fn alert(&self) {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.alert();
             Ok(())
         });
     }

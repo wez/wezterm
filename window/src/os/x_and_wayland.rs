@@ -237,6 +237,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn alert(&self) {
+        match self {
+            Self::X11(x) => x.alert(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.alert(),
+        }
+    }
+
     fn config_did_change(&self, config: &ConfigHandle) {
         match self {
             Self::X11(x) => x.config_did_change(config),

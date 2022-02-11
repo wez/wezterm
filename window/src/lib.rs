@@ -271,6 +271,9 @@ pub trait WindowOps {
 
     fn toggle_fullscreen(&self) {}
 
+    /// Set the window urgent/important/flashing/alerted
+    fn alert(&self) {}
+
     fn config_did_change(&self, _config: &config::ConfigHandle) {}
 
     /// Configure the Window so that the desktop environment
