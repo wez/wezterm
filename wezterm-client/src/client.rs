@@ -24,6 +24,8 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::marker::Unpin;
 use std::net::TcpStream;
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
@@ -626,6 +628,16 @@ impl Reconnectable {
 
                 let mut cmd = std::process::Command::new(&argv[0]);
                 cmd.args(&argv[1..]);
+
+                #[cfg(unix)]
+                if let Some(mask) = umask::UmaskSaver::saved_umask() {
+                    unsafe {
+                        cmd.pre_exec(move || {
+                            libc::umask(mask);
+                            Ok(())
+                        });
+                    }
+                }
 
                 log::warn!("Running: {:?}", cmd);
                 ui.output_str(&format!("Running: {:?}\n", cmd));

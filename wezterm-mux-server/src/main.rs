@@ -126,6 +126,15 @@ fn run() -> anyhow::Result<()> {
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
+            if let Some(mask) = umask::UmaskSaver::saved_umask() {
+                unsafe {
+                    cmd.pre_exec(move || {
+                        libc::umask(mask);
+                        Ok(())
+                    });
+                }
+            }
+
             return Err(anyhow::anyhow!("failed to re-exec: {:?}", cmd.exec()));
         }
     }
