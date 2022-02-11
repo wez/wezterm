@@ -921,21 +921,22 @@ impl XWindowInner {
     }
 
     fn alert(&mut self) {
-        let hintreply = xcb_util::icccm::get_wm_hints(self.conn().conn(), self.window_id).get_reply();
+        let hintreply =
+            xcb_util::icccm::get_wm_hints(self.conn().conn(), self.window_id).get_reply();
         let hints = match hintreply {
             Ok(h) => h,
             // This is, admittingly, a bit scary. But apparently, wmhints may be unset for the
             // window on first call. This means that 0 is return as the result of the wrapped
             // xcb_icccm_get_wm_hints, which the rust wrapping discharges to Err(null),
             // but subsequent setting then works.
-            Err(_) => xcb_util::icccm::WmHints::empty().build()
+            Err(_) => xcb_util::icccm::WmHints::empty().build(),
         };
         let is_urgent = false; // hints.is_urgent().unwrap_or(false);
         if !is_urgent {
             let mut builder = xcb_util::icccm::WmHints::empty();
             builder = match hints.input() {
                 Some(b) => builder.input(b),
-                None => builder
+                None => builder,
             };
             if hints.is_iconic() {
                 builder = builder.is_iconic();
@@ -951,21 +952,25 @@ impl XWindowInner {
             }
             builder = match hints.icon_pixmap() {
                 Some(i) => builder.icon_pixmap(i),
-                None => builder
+                None => builder,
             };
             builder = match hints.icon_mask() {
                 Some(i) => builder.icon_mask(i),
-                None => builder
+                None => builder,
             };
             builder = match hints.icon_window() {
                 Some(i) => builder.icon_window(i),
-                None => builder
+                None => builder,
             };
             builder = match hints.window_group() {
                 Some(i) => builder.icon_window(i),
-                None => builder
+                None => builder,
             };
-            xcb_util::icccm::set_wm_hints(self.conn().conn(), self.window_id, &builder.is_urgent().build());
+            xcb_util::icccm::set_wm_hints(
+                self.conn().conn(),
+                self.window_id,
+                &builder.is_urgent().build(),
+            );
         }
     }
 
