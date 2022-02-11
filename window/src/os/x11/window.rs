@@ -931,7 +931,7 @@ impl XWindowInner {
             // but subsequent setting then works.
             Err(_) => xcb_util::icccm::WmHints::empty().build(),
         };
-        let is_urgent = false; // hints.is_urgent().unwrap_or(false);
+        let is_urgent = hints.is_urgent().unwrap_or(false);
         if !is_urgent {
             let mut builder = xcb_util::icccm::WmHints::empty();
             builder = match hints.input() {
