@@ -10,7 +10,7 @@ use crate::{
     SlavePty,
 };
 use anyhow::{ensure, Context};
-use filedescriptor::FileDescriptor;
+use filedescriptor::{poll, pollfd, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use serial::{
     BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
 };
@@ -107,7 +107,7 @@ impl SlavePty for Slave {
             "can only use default prog commands with serial tty implementations"
         );
         Ok(Box::new(SerialChild {
-            _port: Arc::clone(&self.port),
+            port: Arc::clone(&self.port),
         }))
     }
 }
@@ -115,7 +115,7 @@ impl SlavePty for Slave {
 /// There isn't really a child process on the end of the serial connection,
 /// so all of the Child trait impls are NOP
 struct SerialChild {
-    _port: Handle,
+    port: Handle,
 }
 
 // An anemic impl of Debug to satisfy some indirect trait bounds
@@ -131,10 +131,24 @@ impl Child for SerialChild {
     }
 
     fn wait(&mut self) -> IoResult<ExitStatus> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::WouldBlock,
-            "cannot wait for a serial connection to die",
-        ))
+        // There isn't really a child process to wait for,
+        // as the serial connection never really "dies",
+        // however, for something like a USB serial port,
+        // if it is unplugged then it logically is terminated.
+        // We read the CD (carrier detect) signal periodically
+        // to see if the device has gone away: we actually discard
+        // the CD value itself and just look for an error state.
+        // We could potentially also decide to call CD==false the
+        // same thing as the "child" completing.
+        loop {
+            std::thread::sleep(Duration::from_secs(5));
+
+            let mut port = self.port.lock().unwrap();
+            if let Err(err) = port.read_cd() {
+                log::error!("Error reading carrier detect: {:#}", err);
+                return Ok(ExitStatus::with_exit_code(1));
+            }
+        }
     }
 
     fn process_id(&self) -> Option<u32> {
@@ -221,18 +235,42 @@ struct Reader {
 
 impl Read for Reader {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        // On windows, this self.fd.read will block for up to the time we set
+        // as the timeout when we set up the port, but on unix it will
+        // never block.
         loop {
+            #[cfg(unix)]
+            {
+                // The serial crate puts the serial port in non-blocking mode,
+                // so we must explicitly poll for ourselves here to avoid a
+                // busy loop.
+                let mut poll_array = [pollfd {
+                    fd: self.fd.as_socket_descriptor(),
+                    events: POLLIN,
+                    revents: 0,
+                }];
+                let _ = poll(&mut poll_array, None);
+            }
+
             match self.fd.read(buf) {
-                Ok(size) => {
-                    if size == 0 {
-                        // Read timeout, but we expect to mostly hit this.
-                        // It just means that there was no data available
-                        // right now.
+                Ok(0) => {
+                    if cfg!(windows) {
+                        // Read timeout with no data available yet;
+                        // loop and try again.
                         continue;
                     }
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "EOF on serial port",
+                    ));
+                }
+                Ok(size) => {
                     return Ok(size);
                 }
                 Err(e) => {
+                    if e.kind() == std::io::ErrorKind::WouldBlock {
+                        continue;
+                    }
                     log::error!("serial read error: {}", e);
                     return Err(e);
                 }
