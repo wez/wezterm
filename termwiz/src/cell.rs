@@ -1007,6 +1007,16 @@ mod test {
         );
         assert_eq!(
             unicode_column_width(man_dancing, Some(UnicodeVersion(8))),
+            2
+        );
+
+        let raised_fist = "\u{270a}";
+        assert_eq!(
+            unicode_column_width(raised_fist, Some(UnicodeVersion(9))),
+            2
+        );
+        assert_eq!(
+            unicode_column_width(raised_fist, Some(UnicodeVersion(8))),
             1
         );
 
