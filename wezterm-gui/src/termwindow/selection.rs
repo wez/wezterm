@@ -21,13 +21,21 @@ impl super::TermWindow {
                 if !s.is_empty() && !last_was_wrapped {
                     s.push('\n');
                 }
+                let last_idx = line.physical_lines.len().saturating_sub(1);
                 for (idx, phys) in line.physical_lines.iter().enumerate() {
                     let this_row = line.first_row + idx as StableRowIndex;
                     if this_row >= first_row && this_row < last_row {
                         let last_phys_idx = phys.cells().len().saturating_sub(1);
                         let cols = sel.cols_for_row(this_row);
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
-                        s.push_str(phys.columns_as_str(cols).trim_end());
+                        let col_span = phys.columns_as_str(cols);
+                        // Only trim trailing whitespace if we are the last line
+                        // in a wrapped sequence
+                        if idx == last_idx {
+                            s.push_str(col_span.trim_end());
+                        } else {
+                            s.push_str(&col_span);
+                        }
 
                         last_was_wrapped = last_col_idx == last_phys_idx
                             && phys
