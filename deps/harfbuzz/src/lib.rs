@@ -6,6 +6,12 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub type __int8_t = ::std::os::raw::c_schar;
+pub type __uint8_t = ::std::os::raw::c_uchar;
+pub type __int16_t = ::std::os::raw::c_short;
+pub type __uint16_t = ::std::os::raw::c_ushort;
+pub type __int32_t = ::std::os::raw::c_int;
+pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -235,6 +241,7 @@ pub enum hb_script_t {
     HB_SCRIPT_TANGSA = 1416524641,
     HB_SCRIPT_TOTO = 1416590447,
     HB_SCRIPT_VITHKUQI = 1449751656,
+    HB_SCRIPT_MATH = 1517122664,
     HB_SCRIPT_INVALID = 0,
     _HB_SCRIPT_MAX_VALUE = 2147483647,
 }
@@ -1755,6 +1762,7 @@ pub enum hb_buffer_flags_t {
     HB_BUFFER_FLAG_PRESERVE_DEFAULT_IGNORABLES = 4,
     HB_BUFFER_FLAG_REMOVE_DEFAULT_IGNORABLES = 8,
     HB_BUFFER_FLAG_DO_NOT_INSERT_DOTTED_CIRCLE = 16,
+    HB_BUFFER_FLAG_VERIFY = 32,
 }
 extern "C" {
     pub fn hb_buffer_set_flags(buffer: *mut hb_buffer_t, flags: hb_buffer_flags_t);
@@ -1883,7 +1891,7 @@ extern "C" {
 extern "C" {
     pub fn hb_buffer_append(
         buffer: *mut hb_buffer_t,
-        source: *mut hb_buffer_t,
+        source: *const hb_buffer_t,
         start: ::std::os::raw::c_uint,
         end: ::std::os::raw::c_uint,
     );

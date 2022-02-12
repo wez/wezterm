@@ -30,6 +30,7 @@ fn harfbuzz() {
         "hb-aat-map.cc",
         "hb-blob.cc",
         "hb-buffer-serialize.cc",
+        "hb-buffer-verify.cc",
         "hb-buffer.cc",
         "hb-common.cc",
         "hb-face.cc",
