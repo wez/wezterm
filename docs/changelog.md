@@ -67,6 +67,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Setting the cursor color via escape sequences now take precedence over `force_reverse_video_cursor`. [#1625](https://github.com/wez/wezterm/issues/1625)
 * Fixed Detection of DECSDM support via DECRQM/DECRPM, Correct sixel image placement when DECSDM is set and VT340 default sixel colors. Thanks to [Autumn](https://github.com/autumnmeowmeow)! [#1577](https://github.com/wez/wezterm/pull/1577)
 * Fixed missing whitespace from intermediate lines when copying a wrapped logical line [#1635](https://github.com/wez/wezterm/issues/1635)
+* Unable to match `Iosevka Term` when multiple iosevka ttc files were installed on macOS [#1630](https://github.com/wez/wezterm/issues/1630)
 
 ### 20220101-133340-7edc5b5a
 

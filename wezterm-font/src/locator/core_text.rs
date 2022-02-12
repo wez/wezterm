@@ -79,6 +79,24 @@ impl FontLocator for CoreTextFontLocator {
                         handles.append(&mut handles_from_descriptor(&descriptor));
                     }
                     log::trace!("core text matched {:?} to {:#?}", attr, handles);
+
+                    // If we got a series of .ttc files, we may have a selection of
+                    // different font families.  Let's make a first pass a limit
+                    // ourselves to name matches
+                    let name_matches: Vec<_> = handles
+                        .iter()
+                        .filter_map(|p| {
+                            if p.matches_name(attr) {
+                                Some(p.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    if !name_matches.is_empty() {
+                        handles = name_matches;
+                    }
+
                     if let Some(parsed) = ParsedFont::best_match(attr, pixel_size, handles) {
                         log::trace!("best match from core text is {:?}", parsed);
                         fonts.push(parsed);
