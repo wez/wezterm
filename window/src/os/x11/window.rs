@@ -574,16 +574,21 @@ impl XWindowInner {
         let conn = self.conn();
 
         log::trace!(
-            "SELECTION_NOTIFY received selection={} (prim={} clip={}) target={} property={}",
+            "SELECTION_NOTIFY received selection={} (prim={} clip={}) target={} property={} utf8={}",
             selection.selection(),
             xcb::ATOM_PRIMARY,
             conn.atom_clipboard,
             selection.target(),
-            selection.property()
+            selection.property(),
+            self.conn().atom_utf8_string,
         );
 
         if let Some(clipboard) = self.selection_atom_to_clipboard(selection.selection()) {
-            if selection.property() != xcb::NONE {
+            if selection.property() != xcb::NONE
+                // Restrict to strictly UTF-8 to avoid crashing; see
+                // <https://github.com/meh/rust-xcb-util/issues/21>
+                && selection.target() == self.conn().atom_utf8_string
+            {
                 match xcb_util::icccm::get_text_property(
                     &conn,
                     selection.requestor(),
