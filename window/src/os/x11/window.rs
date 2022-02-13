@@ -920,7 +920,7 @@ impl XWindowInner {
         self.set_fullscreen_hint(!fullscreen).ok();
     }
 
-    fn alert(&mut self) {
+    fn set_attention_hint(&mut self, new_state: bool) {
         let hintreply =
             xcb_util::icccm::get_wm_hints(self.conn().conn(), self.window_id).get_reply();
         let hints = match hintreply {
@@ -931,47 +931,57 @@ impl XWindowInner {
             // but subsequent setting then works.
             Err(_) => xcb_util::icccm::WmHints::empty().build(),
         };
-        let is_urgent = hints.is_urgent().unwrap_or(false);
-        if !is_urgent {
-            let mut builder = xcb_util::icccm::WmHints::empty();
-            builder = match hints.input() {
-                Some(b) => builder.input(b),
-                None => builder,
-            };
-            if hints.is_iconic() {
-                builder = builder.is_iconic();
-            }
-            if hints.is_normal() {
-                builder = builder.is_normal();
-            }
-            if hints.is_withdrawn() {
-                builder = builder.is_withdrawn();
-            }
-            if hints.is_none() {
-                builder = builder.is_none();
-            }
-            builder = match hints.icon_pixmap() {
-                Some(i) => builder.icon_pixmap(i),
-                None => builder,
-            };
-            builder = match hints.icon_mask() {
-                Some(i) => builder.icon_mask(i),
-                None => builder,
-            };
-            builder = match hints.icon_window() {
-                Some(i) => builder.icon_window(i),
-                None => builder,
-            };
-            builder = match hints.window_group() {
-                Some(i) => builder.icon_window(i),
-                None => builder,
-            };
-            xcb_util::icccm::set_wm_hints(
-                self.conn().conn(),
-                self.window_id,
-                &builder.is_urgent().build(),
-            );
+        // Note: unfortunately, hints.is_urgent seems buggy as of xcb-util 0.3.0,
+        //       always returning false, so we for now do not do the "smart" thing
+        //       of checking is_urgent != new_state as shown below, but instead always
+        //       assign hints unconditionally, setting urgency as per new_state.
+        //
+        // let is_urgent = hints.is_urgent().unwrap_or(false);
+        // if is_urgent != new_state {
+
+        // Copy all but urgency information from the old WmHints
+        let mut builder = xcb_util::icccm::WmHints::empty();
+        builder = match hints.input() {
+            Some(b) => builder.input(b),
+            None => builder,
+        };
+        if hints.is_iconic() {
+            builder = builder.is_iconic();
         }
+        if hints.is_normal() {
+            builder = builder.is_normal();
+        }
+        if hints.is_withdrawn() {
+            builder = builder.is_withdrawn();
+        }
+        if hints.is_none() {
+            builder = builder.is_none();
+        }
+        builder = match hints.icon_pixmap() {
+            Some(i) => builder.icon_pixmap(i),
+            None => builder,
+        };
+        builder = match hints.icon_mask() {
+            Some(i) => builder.icon_mask(i),
+            None => builder,
+        };
+        builder = match hints.icon_window() {
+            Some(i) => builder.icon_window(i),
+            None => builder,
+        };
+        builder = match hints.window_group() {
+            Some(i) => builder.icon_window(i),
+            None => builder,
+        };
+        // Do we have to set urgency?
+        if new_state {
+            builder = builder.is_urgent();
+        }
+        xcb_util::icccm::set_wm_hints(
+            self.conn().conn(),
+            self.window_id,
+            &builder.build(),
+        );
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
@@ -1135,9 +1145,9 @@ impl WindowOps for XWindow {
         });
     }
 
-    fn alert(&self) {
-        XConnection::with_window_inner(self.0, |inner| {
-            inner.alert();
+    fn set_attention_hint(&self, new_state: bool) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.set_attention_hint(new_state);
             Ok(())
         });
     }

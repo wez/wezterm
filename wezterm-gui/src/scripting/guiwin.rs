@@ -44,8 +44,8 @@ impl UserData for GuiWin {
                 Ok(())
             },
         );
-        methods.add_method("alert", |_, this, _: ()| {
-            this.window.alert();
+        methods.add_method("request_attention", |_, this, new_state: bool| {
+            this.window.set_attention_hint(new_state);
             Ok(())
         });
         methods.add_method("get_appearance", |_, _, _: ()| {

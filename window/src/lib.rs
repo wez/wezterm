@@ -272,7 +272,7 @@ pub trait WindowOps {
     fn toggle_fullscreen(&self) {}
 
     /// Set the window urgent/important/flashing/alerted
-    fn alert(&self) {}
+    fn set_attention_hint(&self, _new_state: bool) {}
 
     fn config_did_change(&self, _config: &config::ConfigHandle) {}
 

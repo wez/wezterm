@@ -237,11 +237,11 @@ impl WindowOps for Window {
         }
     }
 
-    fn alert(&self) {
+    fn set_attention_hint(&self, new_state: bool) {
         match self {
-            Self::X11(x) => x.alert(),
+            Self::X11(x) => x.set_attention_hint(new_state),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.alert(),
+            Self::Wayland(w) => w.set_attention_hint(new_state),
         }
     }
 
