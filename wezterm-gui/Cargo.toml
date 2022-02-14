@@ -34,7 +34,7 @@ euclid = "0.22"
 fastrand = "1.6"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 fuzzy-matcher = "0.3"
-hdrhistogram = "7.1"
+hdrhistogram = "7.5"
 http_req = "0.8"
 image = "0.24"
 lazy_static = "1.4"
