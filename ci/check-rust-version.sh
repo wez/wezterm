@@ -1,49 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-min_rust=(1 57 0)
-rust_ver=()
-
-parse_rustc_version() {
-  local IFS
-  IFS=' '
-  local FIELDS
-  read -ra FIELDS <<< $(rustc --version)
-  IFS='.'
-  read -ra rust_ver <<< "${FIELDS[1]}"
-}
+min_rust="1.57.0"
+rust_ver="$(rustc --version | cut -d' ' -f2)"
 
 check_rust_version() {
-  parse_rustc_version
-  # rust_ver=(1 46 0) for testing purposes
-
-  if [[ "${rust_ver[0]}" -gt "${min_rust[0]}" ]] ; then
+  ver=$(printf "%s\n%s\n" "$min_rust" "$rust_ver" | sort --version-sort | head -n1)
+  if test "$ver" = "$min_rust"; then
     return 0
-  fi
-  if [[ "${rust_ver[0]}" -lt "${min_rust[0]}" ]] ; then
+  else
     return 1
   fi
-  if [[ "${rust_ver[1]}" -gt "${min_rust[1]}" ]] ; then
-    return 0
-  fi
-  if [[ "${rust_ver[1]}" -lt "${min_rust[1]}" ]] ; then
-    return 1
-  fi
-  if [[ "${rust_ver[2]}" -gt "${min_rust[2]}" ]] ; then
-    return 0
-  fi
-  if [[ "${rust_ver[2]}" -lt "${min_rust[2]}" ]] ; then
-    return 1
-  fi
-
-  return 0
 }
 
 if ! check_rust_version ; then
-  rust_ver=$(IFS=. ; echo "${rust_ver[*]}")
-  min_rust=$(IFS=. ; echo "${min_rust[*]}")
-  echo "Installed rustc version $rust_ver is less than required $min_rust"
+  echo "Installed rustc version '$rust_ver' is less than required '$min_rust'"
   echo
-  echo "Using rustup to manage your installed version of Rust is recommended"
+  echo "Check if your OS provides newer version of Rust, if not"
+  echo "use rustup to manage installed versions of Rust"
   echo "https://www.rust-lang.org/en-US/install.html"
   echo
   echo "See https://wezfurlong.org/wezterm/install/source.html for complete"
