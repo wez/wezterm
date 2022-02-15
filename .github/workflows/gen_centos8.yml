@@ -19,6 +19,7 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "quay.io/centos/centos:stream8"
+
     steps:
       - name: "Install config manager"
         shell: bash

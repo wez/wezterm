@@ -1,51 +1,37 @@
-name: ubuntu20.04_continuous
+name: alpine3.12_tag
 
 on:
-  schedule:
-    - cron: "10 3 * * *"
   push:
-    branches:
-      - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    tags:
+      - "20*"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "ubuntu:20.04"
+    container: "alpine:3.12"
     env:
+      RUSTFLAGS: "-C target-feature=-crt-static"
       BUILD_REASON: "Schedule"
 
     steps:
-      - name: "set APT to non-interactive"
+      - name: "Upgrade system"
+        shell: sh
+        run: "apk upgrade --update-cache"
+      - name: "Install CI dependencies"
+        shell: sh
+        run: "apk add nodejs zstd wget bash"
+      - name: "Allow root login"
         shell: bash
-        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
-      - name: "Update APT"
-        shell: bash
-        run: "apt update"
+        run: "sed 's/root:!/root:*/g' -i /etc/shadow"
       - name: "Install git"
         shell: bash
-        run: "apt-get install -y git"
+        run: "apk add git"
       - name: "Install curl"
         shell: bash
-        run: "apt-get install -y curl"
-      - name: "Update APT"
+        run: "apk add curl"
+      - name: "Install openssh"
         shell: bash
-        run: "apt update"
-      - name: "Ensure /run/sshd exists"
-        shell: bash
-        run: "mkdir -p /run/sshd"
-      - name: "Install openssh-server"
-        shell: bash
-        run: "apt-get install -y openssh-server"
+        run: "apk add openssh"
       - name: "Workaround git permissions issue"
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
@@ -69,7 +55,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: "ubuntu20.04-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "alpine3.12-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env PATH=$PATH ./get-deps"
@@ -85,11 +71,10 @@ jobs:
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "ubuntu20.04"
+          name: "alpine3.12"
           path: |
-            wezterm-*.deb
-            wezterm-*.xz
-          retention-days: 5
+            ~/packages/x86_64/wezterm-*.apk
+            ~/.abuild/*.pub
 
   upload:
     runs-on: ubuntu-latest
@@ -104,9 +89,14 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "ubuntu20.04"
-      - name: "Upload to Nightly Release"
+          name: "alpine3.12"
+      - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz"
+        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
+      - name: "Upload to Tagged Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) ~/packages/x86_64/wezterm-*.apk ~/.abuild/*.pub"

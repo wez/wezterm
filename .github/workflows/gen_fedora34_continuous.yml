@@ -21,37 +21,28 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "fedora:34"
+    env:
+      BUILD_REASON: "Schedule"
+
     steps:
       - name: "Install config manager"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          dnf install -y 'dnf-command(config-manager)'
+        run: "dnf install -y 'dnf-command(config-manager)'"
       - name: "Install git"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          yum install -y git
+        run: "yum install -y git"
       - name: "Install curl"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          yum install -y curl
+        run: "yum install -y curl"
       - name: "Ensure /run/sshd exists"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          mkdir -p /run/sshd
+        run: "mkdir -p /run/sshd"
       - name: "Install openssh-server"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          yum install -y openssh-server
+        run: "yum install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git config --global --add safe.directory /__w/wezterm/wezterm
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
         uses: actions/checkout@v3
         with:
@@ -75,29 +66,19 @@ jobs:
           key: "fedora34-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          env PATH=$PATH ./get-deps
+        run: "env PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          cargo build --all --release
+        run: "cargo build --all --release"
       - name: "Test (Release mode)"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          cargo test --all --release
+        run: "cargo test --all --release"
       - name: "Package"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          bash ci/deploy.sh
+        run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora34.rpm
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora34.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
@@ -108,6 +89,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: "Workaround git permissions issue"
         shell: bash
