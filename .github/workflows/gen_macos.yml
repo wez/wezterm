@@ -19,6 +19,9 @@ jobs:
   build:
     runs-on: "macos-11"
     
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.9"
+
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v3
@@ -35,34 +38,22 @@ jobs:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: "Install Rust (ARM)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          rustup target add aarch64-apple-darwin
+        run: "rustup target add aarch64-apple-darwin"
       - name: "Install System Deps"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          env PATH=$PATH ./get-deps
+        run: "env PATH=$PATH ./get-deps"
       - name: "Build (Release mode Intel)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo build --target x86_64-apple-darwin --all --release
+        run: "cargo build --target x86_64-apple-darwin --all --release"
       - name: "Build (Release mode ARM)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo build --target aarch64-apple-darwin --all --release
+        run: "cargo build --target aarch64-apple-darwin --all --release"
       - name: "Test (Release mode)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo test --target x86_64-apple-darwin --all --release
+        run: "cargo test --target x86_64-apple-darwin --all --release"
       - name: "Package"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          bash ci/deploy.sh
+        run: "bash ci/deploy.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:

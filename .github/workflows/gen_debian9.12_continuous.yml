@@ -21,17 +21,16 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "debian:9.12"
+    env:
+      BUILD_REASON: "Schedule"
+
     steps:
       - name: "set APT to non-interactive"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
       - name: "Update APT"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt update
+        run: "apt update"
       - name: "Cache Git installation"
         uses: actions/cache@v3
         with:
@@ -40,7 +39,6 @@ jobs:
       - name: "Install Git from source"
         shell: bash
         run: |
-          export BUILD_REASON=Schedule
           apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
           if test ! -x /usr/local/git/bin/git ; then
               cd /tmp
@@ -52,29 +50,19 @@ jobs:
           ln -s /usr/local/git/bin/git /usr/local/bin/git
       - name: "Install curl"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt-get install -y curl
+        run: "apt-get install -y curl"
       - name: "Update APT"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt update
+        run: "apt update"
       - name: "Ensure /run/sshd exists"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          mkdir -p /run/sshd
+        run: "mkdir -p /run/sshd"
       - name: "Install openssh-server"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt-get install -y openssh-server
+        run: "apt-get install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git config --global --add safe.directory /__w/wezterm/wezterm
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
         uses: actions/checkout@v3
         with:
@@ -98,24 +86,16 @@ jobs:
           key: "debian9.12-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          env PATH=$PATH ./get-deps
+        run: "env PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          cargo build --all --release
+        run: "cargo build --all --release"
       - name: "Test (Release mode)"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          cargo test --all --release
+        run: "cargo test --all --release"
       - name: "Package"
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          bash ci/deploy.sh
+        run: "bash ci/deploy.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
@@ -128,6 +108,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: "Workaround git permissions issue"
         shell: bash

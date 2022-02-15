@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "debian:9.12"
+    env:
+      BUILD_REASON: "Schedule"
+
     steps:
       - name: "set APT to non-interactive"
         shell: bash
@@ -92,6 +95,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: "Workaround git permissions issue"
         shell: bash

@@ -9,6 +9,10 @@ jobs:
   build:
     runs-on: "macos-11"
     
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.9"
+      BUILD_REASON: "Schedule"
+
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v3
@@ -25,29 +29,19 @@ jobs:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: "Install Rust (ARM)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          rustup target add aarch64-apple-darwin
+        run: "rustup target add aarch64-apple-darwin"
       - name: "Install System Deps"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          env PATH=$PATH ./get-deps
+        run: "env PATH=$PATH ./get-deps"
       - name: "Build (Release mode Intel)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo build --target x86_64-apple-darwin --all --release
+        run: "cargo build --target x86_64-apple-darwin --all --release"
       - name: "Build (Release mode ARM)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo build --target aarch64-apple-darwin --all --release
+        run: "cargo build --target aarch64-apple-darwin --all --release"
       - name: "Test (Release mode)"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cargo test --target x86_64-apple-darwin --all --release
+        run: "cargo test --target x86_64-apple-darwin --all --release"
       - name: "Package"
         env:
           MACOS_CERT: ${{ secrets.MACOS_CERT }}
@@ -56,9 +50,7 @@ jobs:
           MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}
           MACOS_APP_PW: ${{ secrets.MACOS_APP_PW }}
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          bash ci/deploy.sh
+        run: "bash ci/deploy.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
@@ -72,9 +64,7 @@ jobs:
           token: "${{ secrets.GH_PAT }}"
       - name: "Update homebrew tap formula"
         shell: bash
-        run: |
-          export MACOSX_DEPLOYMENT_TARGET=10.9
-          cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb
+        run: "cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb"
       - name: "Commit homebrew tap changes"
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -84,6 +74,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v3
