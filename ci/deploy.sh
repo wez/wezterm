@@ -12,6 +12,10 @@ if test -z "${SUDO+x}" && hash sudo 2>/dev/null; then
   SUDO="sudo"
 fi
 
+if test -e /etc/os-release; then
+  . /etc/os-release
+fi
+
 
 case $OSTYPE in
   darwin*)
@@ -241,6 +245,59 @@ EOF
         mv pkg/debian pkg/wezterm
         tar cJf $debname.tar.xz -C pkg wezterm
         rm -rf pkg
+      ;;
+    esac
+    ;;
+  linux-musl)
+    case $ID in
+      alpine)
+        export SUDO=''
+        abuild-keygen -a -n -b 8192
+        pkgver="${TAG_NAME#nightly-}"
+        cat > APKBUILD <<EOF
+# Maintainer: Wez Furlong <wez@wezfurlong.org>
+pkgname=wezterm
+pkgver=$(echo "$pkgver" | cut -d'-' -f1-2 | tr - .)
+_pkgver=$pkgver
+pkgrel=0
+pkgdesc="A GPU-accelerated cross-platform terminal emulator and multiplexer written in Rust"
+license="MIT"
+arch="all"
+options="!check"
+url="https://wezfurlong.org/wezterm/"
+makedepends="cmd:tic"
+source="
+  target/release/wezterm
+  target/release/wezterm-gui
+  target/release/wezterm-mux-server
+  assets/wezterm.desktop
+  assets/wezterm.appdata.xml
+  assets/icon/terminal.png
+  assets/icon/wezterm-icon.svg
+  termwiz/data/wezterm.terminfo
+"
+builddir="\$srcdir"
+
+build() {
+  tic -x -o "\$builddir"/wezterm.terminfo "\$srcdir"/wezterm.terminfo
+}
+
+package() {
+  install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm
+  install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm-gui
+  install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm-mux-server
+
+  install -Dm644 -t "\$pkgdir"/usr/share/applications "\$srcdir"/wezterm.desktop
+  install -Dm644 -t "\$pkgdir"/usr/share/metainfo "\$srcdir"/wezterm.appdata.xml
+  install -Dm644 "\$srcdir"/terminal.png "\$pkgdir"/usr/share/pixmaps/wezterm.png
+  install -Dm644 "\$srcdir"/wezterm-icon.svg "\$pkgdir"/usr/share/pixmaps/wezterm.svg
+  install -Dm644 "\$srcdir"/terminal.png "\$pkgdir"/usr/share/icons/hicolor/128x128/apps/wezterm.png
+  install -Dm644 "\$srcdir"/wezterm-icon.svg "\$pkgdir"/usr/share/icons/hicolor/scalable/apps/wezterm.svg
+  install -Dm644 "\$builddir"/wezterm.terminfo "\$pkgdir"/usr/share/terminfo/w/wezterm
+}
+EOF
+        abuild -F checksum
+        abuild -Fr
       ;;
     esac
     ;;
