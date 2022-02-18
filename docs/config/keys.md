@@ -154,15 +154,6 @@ The default key bindings are:
 | `CTRL+SHIFT`     | `PageDown`      | `MoveTabRelative=1` |
 | `SHIFT`          | `PageUp`      | `ScrollByPage=-1` |
 | `SHIFT`          | `PageDown`    | `ScrollByPage=1` |
-| `ALT`            | `1`    | `ActivateTab=0` |
-| `ALT`            | `2`    | `ActivateTab=1` |
-| `ALT`            | `3`    | `ActivateTab=2` |
-| `ALT`            | `4`    | `ActivateTab=3` |
-| `ALT`            | `5`    | `ActivateTab=4` |
-| `ALT`            | `6`    | `ActivateTab=5` |
-| `ALT`            | `7`    | `ActivateTab=6` |
-| `ALT`            | `8`    | `ActivateTab=7` |
-| `ALT`            | `9`    | `ShowTabNavigator` |
 | `SUPER`          | `r`    | `ReloadConfiguration` |
 | `CTRL+SHIFT`     | `R`    | `ReloadConfiguration` |
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
@@ -217,6 +208,21 @@ The `action` value can be one of the [available key
 assignments](lua/keyassignment/index.md).  Every action has an example that shows
 how to use it.
 
+Possible Modifier labels are:
+
+ * `SUPER`, `CMD`, `WIN` - these are all equivalent: on macOS the `Command` key,
+   on Windows the `Windows` key, on Linux this can also be the `Super` or `Hyper`
+   key.  Left and right are equivalent.
+ * `SHIFT` - The shift key.  Left and right are equivalent.
+ * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
+   on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
+ * `VoidSymbol` - This keycode is emitted in special cases where the original
+   function of the key has been removed. Such as in Linux and using `setxkbmap`.
+   `setxkbmap -option caps:none`. The `CapsLock` will no longer function as
+   before in all applications, instead emitting `VoidSymbol`.
+
+You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
+
 The `key` value can be one of the following keycode identifiers.  Note that not
 all of these are meaningful on all platforms:
 
@@ -240,20 +246,32 @@ all of these are meaningful on all platforms:
 Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.
 
-Possible Modifier labels are:
+### Physical vs Mapped Key Assignments
 
- * `SUPER`, `CMD`, `WIN` - these are all equivalent: on macOS the `Command` key,
-   on Windows the `Windows` key, on Linux this can also be the `Super` or `Hyper`
-   key.  Left and right are equivalent.
- * `SHIFT` - The shift key.  Left and right are equivalent.
- * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
-   on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
- * `VoidSymbol` - This keycode is emitted in special cases where the original
-   function of the key has been removed. Such as in Linux and using `setxkbmap`.
-   `setxkbmap -option caps:none`. The `CapsLock` will no longer function as
-   before in all applications, instead emitting `VoidSymbol`.
+*Since: nightly builds only*
 
-You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
+The `key` value can refer either to the physical position of a key on an ANSI
+US keyboard or to the post-keyboard-layout-mapped value produced by a key
+press.
+
+You can explicitly assign using the physical position by adding a `phys:` prefix
+to the value, for example: `key="phys:A"`.  This will match key presses for
+the key that would be in the position of the `A` key on an ANSI US keyboard.
+
+You can explicitly assign the mapped key by adding a `mapped:` prefix to the
+value, for example: `key="mapped:a"` will match a key press where the OS
+keyboard layout produces `a`, regardless of its physical position.
+
+If you omit an explicit prefix, wezterm will assume `phys:` and use the
+physical position of the specified key.
+
+The default key assignments listed above use `phys:`.  In previous releases
+there was no physical position support and those assignments were all `mapped:`.
+
+When upgrading from earlier releases, if you had `{key="N", mods="CMD", ..}` in
+your config, you will need to change it either
+`{key="N", mods="CMD|SHIFT", ..}` or `{key="mapped:N", mods="CMD", ..}`
+in order to continue to respect the `SHIFT` modifier.
 
 ### Leader Key
 
