@@ -264,15 +264,6 @@ the normal key processing.</p>
 <tr><td><code>CTRL+SHIFT</code></td><td><code>PageDown</code></td><td><code>MoveTabRelative=1</code></td></tr>
 <tr><td><code>SHIFT</code></td><td><code>PageUp</code></td><td><code>ScrollByPage=-1</code></td></tr>
 <tr><td><code>SHIFT</code></td><td><code>PageDown</code></td><td><code>ScrollByPage=1</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>1</code></td><td><code>ActivateTab=0</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>2</code></td><td><code>ActivateTab=1</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>3</code></td><td><code>ActivateTab=2</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>4</code></td><td><code>ActivateTab=3</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>5</code></td><td><code>ActivateTab=4</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>6</code></td><td><code>ActivateTab=5</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>7</code></td><td><code>ActivateTab=6</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>8</code></td><td><code>ActivateTab=7</code></td></tr>
-<tr><td><code>ALT</code></td><td><code>9</code></td><td><code>ShowTabNavigator</code></td></tr>
 <tr><td><code>SUPER</code></td><td><code>r</code></td><td><code>ReloadConfiguration</code></td></tr>
 <tr><td><code>CTRL+SHIFT</code></td><td><code>R</code></td><td><code>ReloadConfiguration</code></td></tr>
 <tr><td><code>SUPER</code></td><td><code>h</code></td><td><code>HideApplication</code> (macOS only)</td></tr>
@@ -318,6 +309,20 @@ return {
 <p>The <code>action</code> value can be one of the <a href="lua/keyassignment/index.html">available key
 assignments</a>.  Every action has an example that shows
 how to use it.</p>
+<p>Possible Modifier labels are:</p>
+<ul>
+<li><code>SUPER</code>, <code>CMD</code>, <code>WIN</code> - these are all equivalent: on macOS the <code>Command</code> key,
+on Windows the <code>Windows</code> key, on Linux this can also be the <code>Super</code> or <code>Hyper</code>
+key.  Left and right are equivalent.</li>
+<li><code>SHIFT</code> - The shift key.  Left and right are equivalent.</li>
+<li><code>ALT</code>, <code>OPT</code>, <code>META</code> - these are all equivalent: on macOS the <code>Option</code> key,
+on other systems the <code>Alt</code> or <code>Meta</code> key.  Left and right are equivalent.</li>
+<li><code>VoidSymbol</code> - This keycode is emitted in special cases where the original
+function of the key has been removed. Such as in Linux and using <code>setxkbmap</code>.
+<code>setxkbmap -option caps:none</code>. The <code>CapsLock</code> will no longer function as
+before in all applications, instead emitting <code>VoidSymbol</code>.</li>
+</ul>
+<p>You can combine modifiers using the <code>|</code> symbol (eg: <code>&quot;CMD|CTRL&quot;</code>).</p>
 <p>The <code>key</code> value can be one of the following keycode identifiers.  Note that not
 all of these are meaningful on all platforms:</p>
 <p><code>Hyper</code>, <code>Super</code>, <code>Meta</code>, <code>Cancel</code>, <code>Backspace</code>, <code>Tab</code>, <code>Clear</code>, <code>Enter</code>,
@@ -338,20 +343,25 @@ all of these are meaningful on all platforms:</p>
 <code>F16</code>, <code>F17</code>, <code>F18</code>, <code>F19</code>, <code>F20</code>, <code>F21</code>, <code>F22</code>, <code>F23</code>, <code>F24</code>.</p>
 <p>Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.</p>
-<p>Possible Modifier labels are:</p>
-<ul>
-<li><code>SUPER</code>, <code>CMD</code>, <code>WIN</code> - these are all equivalent: on macOS the <code>Command</code> key,
-on Windows the <code>Windows</code> key, on Linux this can also be the <code>Super</code> or <code>Hyper</code>
-key.  Left and right are equivalent.</li>
-<li><code>SHIFT</code> - The shift key.  Left and right are equivalent.</li>
-<li><code>ALT</code>, <code>OPT</code>, <code>META</code> - these are all equivalent: on macOS the <code>Option</code> key,
-on other systems the <code>Alt</code> or <code>Meta</code> key.  Left and right are equivalent.</li>
-<li><code>VoidSymbol</code> - This keycode is emitted in special cases where the original
-function of the key has been removed. Such as in Linux and using <code>setxkbmap</code>.
-<code>setxkbmap -option caps:none</code>. The <code>CapsLock</code> will no longer function as
-before in all applications, instead emitting <code>VoidSymbol</code>.</li>
-</ul>
-<p>You can combine modifiers using the <code>|</code> symbol (eg: <code>&quot;CMD|CTRL&quot;</code>).</p>
+<h3 id="physical-vs-mapped-key-assignments"><a class="header" href="#physical-vs-mapped-key-assignments">Physical vs Mapped Key Assignments</a></h3>
+<p><em>Since: nightly builds only</em></p>
+<p>The <code>key</code> value can refer either to the physical position of a key on an ANSI
+US keyboard or to the post-keyboard-layout-mapped value produced by a key
+press.</p>
+<p>You can explicitly assign using the physical position by adding a <code>phys:</code> prefix
+to the value, for example: <code>key=&quot;phys:A&quot;</code>.  This will match key presses for
+the key that would be in the position of the <code>A</code> key on an ANSI US keyboard.</p>
+<p>You can explicitly assign the mapped key by adding a <code>mapped:</code> prefix to the
+value, for example: <code>key=&quot;mapped:a&quot;</code> will match a key press where the OS
+keyboard layout produces <code>a</code>, regardless of its physical position.</p>
+<p>If you omit an explicit prefix, wezterm will assume <code>phys:</code> and use the
+physical position of the specified key.</p>
+<p>The default key assignments listed above use <code>phys:</code>.  In previous releases
+there was no physical position support and those assignments were all <code>mapped:</code>.</p>
+<p>When upgrading from earlier releases, if you had <code>{key=&quot;N&quot;, mods=&quot;CMD&quot;, ..}</code> in
+your config, you will need to change it either
+<code>{key=&quot;N&quot;, mods=&quot;CMD|SHIFT&quot;, ..}</code> or <code>{key=&quot;mapped:N&quot;, mods=&quot;CMD&quot;, ..}</code>
+in order to continue to respect the <code>SHIFT</code> modifier.</p>
 <h3 id="leader-key"><a class="header" href="#leader-key">Leader Key</a></h3>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>A <em>leader</em> key is a a modal modifier key.  If leader is specified in the
