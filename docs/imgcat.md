@@ -18,3 +18,9 @@ $ wezterm imgcat /path/to/image.png
 at this time**.
 
 
+*Since: nightly builds only*
+
+WezTerm supports an extension to the protocol; passing `doNotMoveCursor=1` as
+an argument to the `File` escape sequence causes wezterm to not move the cursor
+position after processing the image.
+
