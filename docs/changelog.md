@@ -15,7 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * [window:composition_status()](config/lua/window/composition_status.md) and [window:leader_is_active()](config/lua/window/leader_is_active.md) methods that can help populate [window:set_right_status()](config/lua/window/set_right_status.md) [#686](https://github.com/wez/wezterm/issues/686)
 * You may now use `colors = { compose_cursor = "orange" }` to change the cursor color when IME, dead key or leader key composition states are active.
-* Support for SGR-Pixels mouse reporting. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#1457](https://github.com/wez/wezterm/issues/1457)
+* Support for SGR-Pixels mouse reporting. Thanks to [Autumn Lamonte](https://gitlab.com/autumnmeowmeow)! [#1457](https://github.com/wez/wezterm/issues/1457)
 * [ActivatePaneByIndex](config/lua/keyassignment/ActivatePaneByIndex.md) key assignment action. [#1517](https://github.com/wez/wezterm/issues/1517)
 * Windows: wezterm may now use [win32-input-mode](https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md) to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as [FAR Manager](https://github.com/FarGroup/FarManager) that use the low level `INPUT_RECORD` API will now receive key-up events as well as events for modifier-only key presses. Use `allow_win32_input_mode=true` to enable this. [#318](https://github.com/wez/wezterm/issues/318) [#1509](https://github.com/wez/wezterm/issues/1509) [#1510](https://github.com/wez/wezterm/issues/1510)
 * Windows: [default_domain](config/lua/config/default_domain.md), [wsl_domains](config/lua/config/wsl_domains.md) options and [wezterm.default_wsl_domains()](config/lua/wezterm/default_wsl_domains.md) provide more flexibility for WSL users.
@@ -261,7 +261,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: closing last pane in a tab via `CloseCurrentPane` could cause the window to close [#890](https://github.com/wez/wezterm/issues/890)
 * Improved: `wezterm ls-fonts --list-system` shows all available fonts, `wezterm ls-fonts --text "hello"` explains which fonts are used for each glyph in the supplied text
 * Fixed: mouse cursor is now Arrow rather than I-beam when the application in the terminal has enabled mouse reporting [#859](https://github.com/wez/wezterm/issues/859)
-* Improved: DEC Special Graphics mode conformance and complete coverage of the graphics character set. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#891](https://github.com/wez/wezterm/pull/891)
+* Improved: DEC Special Graphics mode conformance and complete coverage of the graphics character set. Thanks to [Autumn Lamonte](https://gitlab.com/autumnmeowmeow)! [#891](https://github.com/wez/wezterm/pull/891)
 * Fixed: click to focus now focuses the pane under the mouse cursor [#881](https://github.com/wez/wezterm/issues/881)
 * Removed: `Parasio Dark` color scheme; it was a duplicate of the correctly named `Paraiso Dark` scheme. Thanks to [@adrian5](https://github.com/adrian5)! [#906](https://github.com/wez/wezterm/pull/906)
 * Fixed: key repeat on Wayland now respects the system specified key repeat rate, and doesn't "stick". [#669](https://github.com/wez/wezterm/issues/669)
@@ -277,8 +277,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: [improve the new-tab button formatting](config/lua/config/tab_bar_style.md). Thanks to [@sdrik](https://github.com/sdrik)! [#950](https://github.com/wez/wezterm/pull/950)
 * Fixed: if a line of text was exactly the width of the terminal it would get marked as wrappable even when followed by a newline, causing text to reflow incorrectly on resize. [#971](https://github.com/wez/wezterm/issues/971)
 * Fixed: `wezterm ssh` could loop forever in the background if the connection drops and the window is closed. [#857](https://github.com/wez/wezterm/issues/857)
-* Improved: VT102 conformance. Many thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
-* New: [text_blink_rate](config/lua/config/text_blink_rate.md) and [text_blink_rate_rapid](config/lua/config/text_blink_rate_rapid.md) options to control blinking text. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
+* Improved: VT102 conformance. Many thanks to [Autumn Lamonte](https://gitlab.com/autumnmeowmeow)! [#904](https://github.com/wez/wezterm/pull/904)
+* New: [text_blink_rate](config/lua/config/text_blink_rate.md) and [text_blink_rate_rapid](config/lua/config/text_blink_rate_rapid.md) options to control blinking text. Thanks to [Autumn Lamonte](https://gitlab.com/autumnmeowmeow)! [#904](https://github.com/wez/wezterm/pull/904)
 * New: Added support for [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036) [#882](https://github.com/wez/wezterm/issues/882)
 * New: wezterm now draws its own pixel-perfect versions of more block drawing glyphs.  See [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more details. [#584](https://github.com/wez/wezterm/issues/584)
 * Fixed: wayland: CursorNotFound error with the whiteglass theme. [#532](https://github.com/wez/wezterm/issues/532)
