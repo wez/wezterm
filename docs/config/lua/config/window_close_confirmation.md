@@ -2,7 +2,7 @@
 
 Whether to display a confirmation prompt when the window is closed by the
 windowing environment, either because the user closed it with the window
-decorations, or instructed their window managed to close it.
+decorations, or instructed their window manager to close it.
 
 Set this to `"NeverPrompt"` if you don't like confirming closing
 windows every time.
