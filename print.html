@@ -12344,7 +12344,7 @@ subsequently stretched to fill the dimensions of the window.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="window_close_confirmation"><a class="header" href="#window_close_confirmation"><code>window_close_confirmation</code></a></h1>
 <p>Whether to display a confirmation prompt when the window is closed by the
 windowing environment, either because the user closed it with the window
-decorations, or instructed their window managed to close it.</p>
+decorations, or instructed their window manager to close it.</p>
 <p>Set this to <code>&quot;NeverPrompt&quot;</code> if you don't like confirming closing
 windows every time.</p>
 <pre><code class="language-lua">return {
@@ -14753,7 +14753,7 @@ wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config, hove
 
   -- ensure that the titles fit in the available space,
   -- and that we have room for the edges.
-  local title = wezterm.truncate_to_width(tab.active_pane.title, max_width-2)
+  local title = wezterm.truncate_right(tab.active_pane.title, max_width-2)
 
   return {
     {Background={Color=edge_background}},
