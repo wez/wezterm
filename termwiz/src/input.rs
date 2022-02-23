@@ -187,6 +187,9 @@ pub enum KeyCode {
     Function(u8),
     NumLock,
     ScrollLock,
+    Copy,
+    Cut,
+    Paste,
     BrowserBack,
     BrowserForward,
     BrowserRefresh,
@@ -491,10 +494,10 @@ impl KeyCode {
             Control | LeftControl | RightControl | Alt | LeftAlt | RightAlt | Menu | LeftMenu
             | RightMenu | Super | Hyper | Shift | LeftShift | RightShift | Meta | LeftWindows
             | RightWindows | NumLock | ScrollLock | Cancel | Clear | Pause | CapsLock | Select
-            | Print | PrintScreen | Execute | Help | Applications | Sleep | BrowserBack
-            | BrowserForward | BrowserRefresh | BrowserStop | BrowserSearch | BrowserFavorites
-            | BrowserHome | VolumeMute | VolumeDown | VolumeUp | MediaNextTrack
-            | MediaPrevTrack | MediaStop | MediaPlayPause | InternalPasteStart
+            | Print | PrintScreen | Execute | Help | Applications | Sleep | Copy | Cut | Paste
+            | BrowserBack | BrowserForward | BrowserRefresh | BrowserStop | BrowserSearch
+            | BrowserFavorites | BrowserHome | VolumeMute | VolumeDown | VolumeUp
+            | MediaNextTrack | MediaPrevTrack | MediaStop | MediaPlayPause | InternalPasteStart
             | InternalPasteEnd => {}
         };
 

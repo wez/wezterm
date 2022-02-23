@@ -109,6 +109,8 @@ The default key bindings are:
 | `SUPER`     | `v`   | `PasteFrom="Clipboard"`  |
 | `CTRL+SHIFT`     | `c`   | `CopyTo="Clipboard"`  |
 | `CTRL+SHIFT`     | `v`   | `PasteFrom="Clipboard"`  |
+|      | `Copy`   | `CopyTo="Clipboard"`  |
+|      | `Paste`   | `PasteFrom="Clipboard"`  |
 | `CTRL`     | `Insert` | `CopyTo="PrimarySelection"` (*since: 20210203-095643-70a364eb*) |
 | `SHIFT`     | `Insert` | `PasteFrom="PrimarySelection"` |
 | `SUPER`     | `m`      | `Hide`  |

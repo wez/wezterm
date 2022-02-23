@@ -416,6 +416,16 @@ impl InputMap {
                     KeyCode::Physical(PhysKeyCode::V),
                     PasteFrom(ClipboardPasteSource::Clipboard)
                 ],
+                [
+                    Modifiers::NONE,
+                    KeyCode::Copy,
+                    CopyTo(ClipboardCopyDestination::Clipboard)
+                ],
+                [
+                    Modifiers::NONE,
+                    KeyCode::Paste,
+                    PasteFrom(ClipboardPasteSource::Clipboard)
+                ],
                 // Window management
                 [
                     Modifiers::ALT,
