@@ -6,7 +6,7 @@ macOS.
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   [Install rustup](https://www.rust-lang.org/en-US/install.html)
-* Rust version 1.51 or later is required
+* Rust version 1.56 or later is required
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release --bin wezterm` or `target/release/wezterm`
 
