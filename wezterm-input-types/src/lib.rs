@@ -77,6 +77,9 @@ pub enum KeyCode {
     Function(u8),
     NumLock,
     ScrollLock,
+    Copy,
+    Cut,
+    Paste,
     BrowserBack,
     BrowserForward,
     BrowserRefresh,
@@ -264,6 +267,9 @@ impl KeyCode {
             | Self::MediaPrevTrack
             | Self::MediaStop
             | Self::MediaPlayPause
+            | Self::Copy
+            | Self::Cut
+            | Self::Paste
             | Self::BrowserBack
             | Self::BrowserForward
             | Self::BrowserRefresh

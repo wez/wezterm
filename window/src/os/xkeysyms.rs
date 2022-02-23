@@ -109,6 +109,10 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
 
         i @ KEY_KP_0..=KEY_KP_9 => KeyCode::Numpad((i - KEY_KP_0) as u8),
 
+        KEY_XF86Copy => KeyCode::Copy,
+        KEY_XF86Cut => KeyCode::Cut,
+        KEY_XF86Paste => KeyCode::Paste,
+
         KEY_XF86Back => KeyCode::BrowserBack,
         KEY_XF86Forward => KeyCode::BrowserForward,
         KEY_XF86Stop => KeyCode::BrowserStop,
