@@ -69,6 +69,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed missing whitespace from intermediate lines when copying a wrapped logical line [#1635](https://github.com/wez/wezterm/issues/1635)
 * Unable to match `Iosevka Term` when multiple iosevka ttc files were installed on macOS [#1630](https://github.com/wez/wezterm/issues/1630)
 * Incorrect umask for panes spawned via the multiplexer server [#1633](https://github.com/wez/wezterm/issues/1633)
+* Fall back from `top_left_arrow` to `left_ptr` when loading XCursor themes [#1655](https://github.com/wez/wezterm/issues/1655)
 
 ### 20220101-133340-7edc5b5a
 

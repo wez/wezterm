@@ -283,30 +283,32 @@ impl CursorInfo {
             return None;
         }
 
-        let name = match cursor.unwrap_or(MouseCursor::Arrow) {
-            MouseCursor::Arrow => "top_left_arrow",
-            MouseCursor::Hand => "hand2",
-            MouseCursor::Text => "xterm",
-            MouseCursor::SizeUpDown => "sb_v_double_arrow",
-            MouseCursor::SizeLeftRight => "sb_h_double_arrow",
+        let names: &[&str] = match cursor.unwrap_or(MouseCursor::Arrow) {
+            MouseCursor::Arrow => &["top_left_arrow", "left_ptr"],
+            MouseCursor::Hand => &["hand2"],
+            MouseCursor::Text => &["xterm"],
+            MouseCursor::SizeUpDown => &["sb_v_double_arrow"],
+            MouseCursor::SizeLeftRight => &["sb_h_double_arrow"],
         };
 
         for dir in &self.icon_path {
-            let candidate = dir.join(theme).join("cursors").join(name);
-            if let Ok(file) = std::fs::File::open(&candidate) {
-                match self.parse_cursor_file(conn, file) {
-                    Ok(cursor_id) => {
-                        self.cursors.insert(
-                            cursor,
-                            XcbCursor {
-                                id: cursor_id,
-                                conn: Rc::downgrade(&conn),
-                            },
-                        );
+            for name in names {
+                let candidate = dir.join(theme).join("cursors").join(name);
+                if let Ok(file) = std::fs::File::open(&candidate) {
+                    match self.parse_cursor_file(conn, file) {
+                        Ok(cursor_id) => {
+                            self.cursors.insert(
+                                cursor,
+                                XcbCursor {
+                                    id: cursor_id,
+                                    conn: Rc::downgrade(&conn),
+                                },
+                            );
 
-                        return Some(cursor_id);
+                            return Some(cursor_id);
+                        }
+                        Err(err) => log::error!("{:#}", err),
                     }
-                    Err(err) => log::error!("{:#}", err),
                 }
             }
         }
