@@ -12,9 +12,9 @@ return {
   keys = {
     -- Clears only the scrollback and leaves the viewport intact.
     -- This is the default behavior.
-    {key="K", mods="CTRL|SHIFT", action=wezterm.action{ClearScrollback="ScrollbackOnly"}}
+    {key="K", mods="CTRL|SHIFT", action=wezterm.action{ClearScrollback="ScrollbackOnly"}},
     -- Clears the scrollback and viewport leaving the prompt line the new first line.
-    {key="K", mods="CTRL|SHIFT", action=wezterm.action{ClearScrollback="ScrollbackAndViewport"}}
+    {key="K", mods="CTRL|SHIFT", action=wezterm.action{ClearScrollback="ScrollbackAndViewport"}},
   }
 }
 ```

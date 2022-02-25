@@ -12,8 +12,10 @@ panes, respectively:
 local wezterm = require 'wezterm';
 
 return {
+  keys = {
     {key="a", mods="ALT", action=wezterm.action{ActivatePaneByIndex=0}},
     {key="b", mods="ALT", action=wezterm.action{ActivatePaneByIndex=1}},
     {key="c", mods="ALT", action=wezterm.action{ActivatePaneByIndex=2}},
+  }
 }
 ```

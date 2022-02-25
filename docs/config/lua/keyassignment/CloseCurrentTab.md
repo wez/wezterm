@@ -19,8 +19,7 @@ a boolean `confirm` parameter:
 ```lua
 return {
   keys = {
-    {key="w", mods="CMD",
-     action=wezterm.action{CloseCurrentTab={confirm=true}}
+    {key="w", mods="CMD", action=wezterm.action{CloseCurrentTab={confirm=true}}},
   }
 }
 ```

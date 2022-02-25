@@ -10,8 +10,7 @@ then kills the process associated with that pane.
 ```lua
 return {
   keys = {
-    {key="w", mods="CMD",
-     action=wezterm.action{CloseCurrentPane={confirm=true}}
+    {key="w", mods="CMD", action=wezterm.action{CloseCurrentPane={confirm=true}}},
   }
 }
 ```
