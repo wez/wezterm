@@ -12564,9 +12564,11 @@ panes, respectively:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 return {
+  keys = {
     {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=0}},
     {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=1}},
     {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=2}},
+  }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="activatepanedirection"><a class="header" href="#activatepanedirection">ActivatePaneDirection</a></h1>
@@ -12689,9 +12691,9 @@ the scrollbar thumb to the full height of the window.</p>
   keys = {
     -- Clears only the scrollback and leaves the viewport intact.
     -- This is the default behavior.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackOnly&quot;}}
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackOnly&quot;}},
     -- Clears the scrollback and viewport leaving the prompt line the new first line.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackAndViewport&quot;}}
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackAndViewport&quot;}},
   }
 }
 </code></pre>
@@ -12703,8 +12705,7 @@ wezterm terminates.</p>
 then kills the process associated with that pane.</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;,
-     action=wezterm.action{CloseCurrentPane={confirm=true}}
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentPane={confirm=true}}},
   }
 }
 </code></pre>
@@ -12727,8 +12728,7 @@ tab, closes that window.  If that was the last window, wezterm terminates.</p>
 a boolean <code>confirm</code> parameter:</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;,
-     action=wezterm.action{CloseCurrentTab={confirm=true}}
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentTab={confirm=true}}},
   }
 }
 </code></pre>

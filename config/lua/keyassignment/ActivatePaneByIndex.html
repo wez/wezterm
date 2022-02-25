@@ -155,9 +155,11 @@ panes, respectively:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 return {
+  keys = {
     {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=0}},
     {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=1}},
     {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=2}},
+  }
 }
 </code></pre>
 

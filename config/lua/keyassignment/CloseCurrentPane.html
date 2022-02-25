@@ -154,8 +154,7 @@ wezterm terminates.</p>
 then kills the process associated with that pane.</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;,
-     action=wezterm.action{CloseCurrentPane={confirm=true}}
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentPane={confirm=true}}},
   }
 }
 </code></pre>
