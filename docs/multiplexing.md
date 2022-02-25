@@ -40,7 +40,7 @@ return {
     {
       -- This name identifies the domain
       name = "my.server",
-      -- The address to connect to
+      -- The address to connect to or the 'host' name from user's ssh config file
       remote_address = "192.168.1.1",
       -- The username to use on the remote host
       username = "wez",
