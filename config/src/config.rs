@@ -1,3 +1,27 @@
+extern crate dirs;
+
+use std::collections::HashMap;
+use std::ffi::OsStr;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::Ordering;
+use std::time::Duration;
+
+use anyhow::Context;
+use serde::{Deserialize, Deserializer, Serialize};
+
+use luahelper::impl_lua_conversion;
+use portable_pty::{CommandBuilder, PtySize};
+use termwiz::hyperlink;
+use termwiz::surface::CursorShape;
+use wezterm_bidi::ParagraphDirectionHint;
+use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
+
+use crate::{
+    CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES,
+    CONFIG_SKIP, de_number, default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
+    default_true, HOME_DIR, LoadedConfig, make_lua_context,
+};
 use crate::background::Gradient;
 use crate::bell::{AudibleBell, EasingFunction, VisualBell};
 use crate::color::{ColorSchemeFile, HsbTransform, Palette, TabBarStyle, WindowFrameConfig};
@@ -14,25 +38,6 @@ use crate::tls::{TlsDomainClient, TlsDomainServer};
 use crate::units::{de_pixels, Dimension};
 use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
-use crate::{
-    de_number, default_config_with_overrides_applied, default_one_point_oh,
-    default_one_point_oh_f64, default_true, make_lua_context, LoadedConfig, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
-};
-use anyhow::Context;
-use luahelper::impl_lua_conversion;
-use portable_pty::{CommandBuilder, PtySize};
-use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering;
-use std::time::Duration;
-use termwiz::hyperlink;
-use termwiz::surface::CursorShape;
-use wezterm_bidi::ParagraphDirectionHint;
-use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
@@ -252,8 +257,8 @@ pub struct Config {
     #[serde(default)]
     pub keys: Vec<Key>,
     #[serde(
-        default = "default_bypass_mouse_reporting_modifiers",
-        deserialize_with = "crate::keys::de_modifiers"
+    default = "default_bypass_mouse_reporting_modifiers",
+    deserialize_with = "crate::keys::de_modifiers"
     )]
     pub bypass_mouse_reporting_modifiers: Modifiers,
 
@@ -804,10 +809,16 @@ impl Config {
             }
 
             if let Some(path) = &self.window_background_image {
-                if !path.is_absolute() {
-                    cfg.window_background_image.replace(config_dir.join(path));
+                let path_with_home = expand_tilde(path);
+                if path_with_home.is_some() {
+                    cfg.window_background_image.replace(path_with_home.unwrap());
+                }else{
+                    if !path.is_absolute() {
+                        cfg.window_background_image.replace(config_dir.join(path));
+                    }
                 }
             }
+
         }
 
         // Add some reasonable default font rules
@@ -1187,9 +1198,9 @@ fn default_stateless_process_list() -> Vec<String> {
         "pwsh.exe",
         "powershell.exe",
     ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect()
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 fn default_status_update_interval() -> u64 {
@@ -1312,8 +1323,8 @@ impl_lua_conversion!(NewlineCanon);
 
 impl<'de> Deserialize<'de> for NewlineCanon {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         struct Helper;
 
@@ -1325,8 +1336,8 @@ impl<'de> Deserialize<'de> for NewlineCanon {
             }
 
             fn visit_bool<E>(self, value: bool) -> Result<NewlineCanon, E>
-            where
-                E: serde::de::Error,
+                where
+                    E: serde::de::Error,
             {
                 Ok(if value {
                     NewlineCanon::CarriageReturnAndLineFeed
@@ -1336,8 +1347,8 @@ impl<'de> Deserialize<'de> for NewlineCanon {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
+                where
+                    E: serde::de::Error,
             {
                 match v {
                     "None" => Ok(NewlineCanon::None),
@@ -1380,6 +1391,7 @@ struct PathPossibility {
     path: PathBuf,
     is_required: bool,
 }
+
 impl PathPossibility {
     pub fn required(path: PathBuf) -> PathPossibility {
         PathPossibility {
@@ -1410,4 +1422,22 @@ impl Default for ExitBehavior {
     fn default() -> Self {
         ExitBehavior::CloseOnCleanExit
     }
+}
+
+fn expand_tilde<P: AsRef<Path>>(path_user_input: P) -> Option<PathBuf> {
+    let p = path_user_input.as_ref();
+    if !p.starts_with("~") {
+        return Some(p.to_path_buf());
+    }
+    if p == Path::new("~") {
+        return dirs::home_dir();
+    }
+    dirs::home_dir().map(|mut h| {
+        if h == Path::new("/") {
+            p.strip_prefix("~").unwrap().to_path_buf()
+        } else {
+            h.push(p.strip_prefix("~/").unwrap());
+            h
+        }
+    })
 }
