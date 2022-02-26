@@ -687,14 +687,16 @@ impl super::TermWindow {
                         ElementContent::Text(_) => unreachable!(),
                         ElementContent::Poly { .. } => unreachable!(),
                         ElementContent::Children(mut kids) => {
+                            let x_dimension =
+                                Dimension::Pixels(metrics.cell_size.width as f32 * 0.5);
                             let x_button = Element::new(
                                 &font,
                                 ElementContent::Poly {
                                     line_width: metrics.underline_height.max(2),
                                     poly: SizedPoly {
                                         poly: X_BUTTON,
-                                        width: Dimension::Cells(0.5),
-                                        height: Dimension::Cells(0.5),
+                                        width: x_dimension,
+                                        height: x_dimension,
                                     },
                                 },
                             )
