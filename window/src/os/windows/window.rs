@@ -822,7 +822,7 @@ unsafe fn wm_nccalcsize(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow_mut();
 
         if !(_wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
             return None;
@@ -860,7 +860,7 @@ unsafe fn wm_nchittest(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow_mut();
 
         if inner.config.window_decorations != WindowDecorations::RESIZE {
             return None;
