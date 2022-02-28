@@ -308,12 +308,14 @@ impl TmuxCommand for CapturePane {
 
         let unescaped = termwiz::tmux_cc::unvis(&result.output).context("unescape pane content")?;
         let unescaped = unescaped.replace("\n", "\r\n");
+        // capturep contents returned from guarded lines which always contain a tailing '\n'
+        let trim_unescaped = &unescaped[0..unescaped.len() - 1];
 
         let pane_map = tmux_domain.inner.remote_panes.borrow();
         if let Some(pane) = pane_map.get(&self.0) {
             let mut pane = pane.lock().expect("Grant lock of tmux cmd queue failed");
             pane.output_write
-                .write_all(unescaped.as_bytes())
+                .write_all(trim_unescaped.as_bytes())
                 .context("writing capture pane result to output")?;
         }
 
