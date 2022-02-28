@@ -61,7 +61,7 @@ structopt = "0.3"
 tabout = { path = "../tabout" }
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
-textwrap = "0.14"
+textwrap = "0.15"
 thiserror = "1.0"
 tiny-skia = "0.6"
 umask = { path = "../umask" }
