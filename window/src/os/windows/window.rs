@@ -863,15 +863,15 @@ unsafe fn wm_nchittest(
         let mut inner = inner.borrow_mut();
 
         if inner.config.window_decorations != WindowDecorations::RESIZE {
-            return None
+            return None;
         }
 
         // Let the default procedure handle resizing areas
         let result = DefWindowProcW(hwnd, _msg, _wparam, _lparam);
 
         match result {
-            HTNOWHERE | HTRIGHT | HTLEFT | HTTOPLEFT | HTTOP | HTTOPRIGHT
-            | HTBOTTOMRIGHT | HTBOTTOM | HTBOTTOMLEFT => {
+            HTNOWHERE | HTRIGHT | HTLEFT | HTTOPLEFT | HTTOP | HTTOPRIGHT | HTBOTTOMRIGHT
+            | HTBOTTOM | HTBOTTOMLEFT => {
                 return Some(result);
             }
             _ => {}
