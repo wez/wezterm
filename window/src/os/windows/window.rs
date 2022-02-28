@@ -32,7 +32,7 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::uxtheme::{
     CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
 };
-use winapi::um::wingdi::LOGFONTW;
+use winapi::um::wingdi::{LOGFONTW, MAKEPOINTS};
 use winapi::um::winuser::*;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
@@ -272,7 +272,7 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
 
 fn decorations_to_style(decorations: WindowDecorations) -> u32 {
     if decorations == WindowDecorations::RESIZE {
-        WS_THICKFRAME
+        WS_OVERLAPPEDWINDOW
     } else if decorations == WindowDecorations::TITLE {
         WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
     } else if decorations == WindowDecorations::NONE {
@@ -813,6 +813,104 @@ unsafe fn wm_ncdestroy(
     }
 
     None
+}
+
+unsafe fn wm_nccalcsize(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+
+        if !(_wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
+            return None;
+        }
+
+        if inner.saved_placement.is_none() {
+            let dpi = GetDpiForWindow(hwnd);
+            let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
+            let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+            let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+
+            let params = (_lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
+
+            let mut requested_client_rect = &mut params.rgrc[0];
+
+            requested_client_rect.right -= frame_x + padding;
+            requested_client_rect.left += frame_x + padding;
+            requested_client_rect.bottom -= frame_y + padding;
+
+            if window_is_maximized(hwnd) {
+                requested_client_rect.top += padding + 2;
+            }
+        }
+
+        return Some(0);
+    }
+
+    None
+}
+
+unsafe fn wm_nchittest(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+
+        if inner.config.window_decorations != WindowDecorations::RESIZE {
+            return None
+        }
+
+        // Let the default procedure handle resizing areas
+        let result = DefWindowProcW(hwnd, _msg, _wparam, _lparam);
+
+        match result {
+            HTNOWHERE | HTRIGHT | HTLEFT | HTTOPLEFT | HTTOP | HTTOPRIGHT
+            | HTBOTTOMRIGHT | HTBOTTOM | HTBOTTOMLEFT => {
+                return Some(result);
+            }
+            _ => {}
+        }
+
+        // The adjustment in NCCALCSIZE messes with the detection
+        // of the top hit area so manually fixing that.
+        let dpi = GetDpiForWindow(hwnd);
+        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+
+        let cursor_point = MAKEPOINTS(_lparam as u32);
+        let mut cursor_point = POINT {
+            x: cursor_point.x as i32,
+            y: cursor_point.y as i32,
+        };
+        ScreenToClient(hwnd, &mut cursor_point);
+
+        // check if in resize area
+        if cursor_point.y >= 0 && cursor_point.y < frame_y {
+            return Some(HTTOP);
+        }
+
+        return Some(HTCLIENT);
+    }
+
+    None
+}
+
+fn window_is_maximized(hwnd: HWND) -> bool {
+    let mut placement = WINDOWPLACEMENT {
+        length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
+        ..Default::default()
+    };
+
+    if unsafe { GetWindowPlacement(hwnd, &mut placement) } != winapi::shared::minwindef::TRUE {
+        false
+    } else {
+        placement.showCmd == SW_SHOWMAXIMIZED as u32
+    }
 }
 
 /// "Blur behind" is the old vista term for a cool blurring
@@ -1985,6 +2083,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     match msg {
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
+        WM_NCCALCSIZE => wm_nccalcsize(hwnd, msg, wparam, lparam),
+        WM_NCHITTEST => wm_nchittest(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_ENTERSIZEMOVE | WM_EXITSIZEMOVE => wm_enter_exit_size_move(hwnd, msg, wparam, lparam),
         WM_WINDOWPOSCHANGED => wm_windowposchanged(hwnd, msg, wparam, lparam),
