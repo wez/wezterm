@@ -36,7 +36,7 @@ shell-words = "1.1"
 smol = "1.2"
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
-textwrap = "0.14"
+textwrap = "0.15"
 thiserror = "1.0"
 unicode-segmentation = "1.8"
 url = "2"

@@ -26,7 +26,7 @@ rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 smol = "1.2"
 termwiz = { path = "../termwiz" }
-textwrap = "0.14"
+textwrap = "0.15"
 thiserror = "1.0"
 umask = { path = "../umask" }
 url = "2"
