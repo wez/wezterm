@@ -815,16 +815,11 @@ unsafe fn wm_ncdestroy(
     None
 }
 
-unsafe fn wm_nccalcsize(
-    hwnd: HWND,
-    _msg: UINT,
-    _wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow_mut();
 
-        if !(_wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
+        if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
             return None;
         }
 
@@ -834,7 +829,7 @@ unsafe fn wm_nccalcsize(
             let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
             let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
 
-            let params = (_lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
+            let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
 
             let mut requested_client_rect = &mut params.rgrc[0];
 
@@ -853,12 +848,7 @@ unsafe fn wm_nccalcsize(
     None
 }
 
-unsafe fn wm_nchittest(
-    hwnd: HWND,
-    _msg: UINT,
-    _wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow_mut();
 
@@ -867,14 +857,21 @@ unsafe fn wm_nchittest(
         }
 
         // Let the default procedure handle resizing areas
-        let result = DefWindowProcW(hwnd, _msg, _wparam, _lparam);
+        let result = DefWindowProcW(hwnd, msg, wparam, lparam);
 
-        match result {
-            HTNOWHERE | HTRIGHT | HTLEFT | HTTOPLEFT | HTTOP | HTTOPRIGHT | HTBOTTOMRIGHT
-            | HTBOTTOM | HTBOTTOMLEFT => {
-                return Some(result);
-            }
-            _ => {}
+        if matches!(
+            result,
+            HTNOWHERE
+                | HTRIGHT
+                | HTLEFT
+                | HTTOPLEFT
+                | HTTOP
+                | HTTOPRIGHT
+                | HTBOTTOMRIGHT
+                | HTBOTTOM
+                | HTBOTTOMLEFT
+        ) {
+            return Some(result);
         }
 
         // The adjustment in NCCALCSIZE messes with the detection
@@ -882,7 +879,7 @@ unsafe fn wm_nchittest(
         let dpi = GetDpiForWindow(hwnd);
         let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
 
-        let cursor_point = MAKEPOINTS(_lparam as u32);
+        let cursor_point = MAKEPOINTS(lparam as u32);
         let mut cursor_point = POINT {
             x: cursor_point.x as i32,
             y: cursor_point.y as i32,
