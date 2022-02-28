@@ -172,6 +172,8 @@ pub trait Pane: Downcast {
     /// the visible screen
     fn get_cursor_position(&self) -> StableCursorPosition;
 
+    fn set_cursor_position(&self, _x: u64, _y: u64) {}
+
     fn get_current_seqno(&self) -> SequenceNo;
 
     /// Given a range of lines, return the subset of those lines that

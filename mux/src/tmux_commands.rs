@@ -21,21 +21,21 @@ pub(crate) trait TmuxCommand: Send + Debug {
 
 #[derive(Debug)]
 pub(crate) struct PaneItem {
-    session_id: TmuxSessionId,
-    window_id: TmuxWindowId,
-    pane_id: TmuxPaneId,
-    _pane_index: u64,
-    cursor_x: u64,
-    cursor_y: u64,
-    pane_width: u64,
-    pane_height: u64,
-    pane_left: u64,
-    pane_top: u64,
+    pub session_id: TmuxSessionId,
+    pub window_id: TmuxWindowId,
+    pub pane_id: TmuxPaneId,
+    pub _pane_index: u64,
+    pub cursor_x: u64,
+    pub cursor_y: u64,
+    pub pane_width: u64,
+    pub pane_height: u64,
+    pub pane_left: u64,
+    pub pane_top: u64,
 }
 
 impl TmuxDomainState {
     /// check if a PaneItem received from ListAllPanes has been attached
-    fn check_pane_attached(&self, target: &PaneItem) -> bool {
+    fn _check_pane_attached(&self, target: &PaneItem) -> bool {
         let pane_list = self.gui_tabs.borrow();
         let local_tab = match pane_list
             .iter()
@@ -93,7 +93,18 @@ impl TmuxDomainState {
         // 4) update pane state if exist
         let current_session = self.tmux_session.borrow().unwrap_or(0);
         for pane in panes.iter() {
-            if pane.session_id != current_session || self.check_pane_attached(&pane) {
+            if pane.session_id != current_session {
+                continue;
+            }
+
+            let mut pane_map = self.remote_panes.borrow_mut();
+            if pane_map.contains_key(&pane.pane_id) {
+                let mut pane_lock = match pane_map.get_mut(&pane.pane_id).unwrap().lock() {
+                    Ok(lock) => lock,
+                    Err(_) => anyhow::bail!("Failed to lock tmux pane"),
+                };
+
+                pane_lock.update_pane_state(&pane)?;
                 continue;
             }
 
@@ -108,18 +119,13 @@ impl TmuxDomainState {
                 session_id: pane.session_id,
                 window_id: pane.window_id,
                 pane_id: pane.pane_id,
-                cursor_x: pane.cursor_x,
-                cursor_y: pane.cursor_y,
                 pane_width: pane.pane_width,
                 pane_height: pane.pane_height,
                 pane_left: pane.pane_left,
                 pane_top: pane.pane_top,
             }));
 
-            {
-                let mut pane_map = self.remote_panes.borrow_mut();
-                pane_map.insert(pane.pane_id, ref_pane.clone());
-            }
+            pane_map.insert(pane.pane_id, ref_pane.clone());
 
             let pane_pty = TmuxPty {
                 domain_id: self.domain_id,
@@ -172,10 +178,11 @@ impl TmuxDomainState {
             mux.add_tab_to_window(&tab, **gui_window_id)?;
             gui_window_id.notify();
 
-            self.cmd_queue
-                .lock()
-                .unwrap()
-                .push_back(Box::new(CapturePane(pane.pane_id)));
+            {
+                let mut cmd_queue = self.cmd_queue.lock().unwrap();
+                cmd_queue.push_back(Box::new(CapturePane(pane.pane_id)));
+                cmd_queue.push_back(Box::new(ListAllPanes));
+            }
             TmuxDomainState::schedule_send_next_command(self.domain_id);
 
             self.add_attached_pane(&pane, &tab.tab_id())?;

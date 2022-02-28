@@ -24,7 +24,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, DownloadHandler, KeyCode, KeyModifiers,
-    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
+    MouseEvent, SemanticZone, StableRowIndex, Terminal, Position, TerminalConfiguration,
 };
 
 #[derive(Debug)]
@@ -70,6 +70,12 @@ impl Pane for LocalPane {
             cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
         }
         cursor
+    }
+
+    fn set_cursor_position(&self, x: u64, y: u64) {
+        self.terminal
+            .borrow_mut()
+            .set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y as i64));
     }
 
     fn get_keyboard_encoding(&self) -> KeyboardEncoding {

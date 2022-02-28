@@ -901,7 +901,7 @@ impl TerminalState {
 
     /// Sets the cursor position. x and y are 0-based and relative to the
     /// top left of the visible screen.
-    fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
+    pub fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
         let x = match *x {
             Position::Relative(x) => (self.cursor.x as i64 + x)
                 .min(

@@ -1,7 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
 use crate::tab::TabId;
-use crate::tmux_commands::{ListAllPanes, TmuxCommand};
+use crate::tmux_commands::{ListAllPanes, PaneItem, TmuxCommand};
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
@@ -31,12 +31,23 @@ pub(crate) struct TmuxRemotePane {
     pub session_id: TmuxSessionId,
     pub window_id: TmuxWindowId,
     pub pane_id: TmuxPaneId,
-    pub cursor_x: u64,
-    pub cursor_y: u64,
     pub pane_width: u64,
     pub pane_height: u64,
     pub pane_left: u64,
     pub pane_top: u64,
+}
+
+impl TmuxRemotePane {
+    pub fn update_pane_state(&mut self, pane_item: &PaneItem) -> anyhow::Result<()> {
+        // it should be safe to expect since the update process is triggered by a parsing command
+        let mux = Mux::get().expect("to be called on main thread");
+        let local_pane = match mux.get_pane(self.local_pane_id) {
+            Some(pane) => pane,
+            None => anyhow::bail!("Failed to get local pane from tmux pane"),
+        };
+        local_pane.set_cursor_position(pane_item.cursor_x, pane_item.cursor_y);
+        Ok(())
+    }
 }
 
 pub(crate) type RefTmuxRemotePane = Arc<Mutex<TmuxRemotePane>>;
