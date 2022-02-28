@@ -23,6 +23,16 @@ pub enum TabBarItem {
     NewTabButton,
 }
 
+impl Into<::window::TabBarItem> for TabBarItem {
+    fn into(self) -> ::window::TabBarItem {
+        match self {
+            TabBarItem::None => ::window::TabBarItem::None,
+            TabBarItem::Tab { tab_idx, active } => ::window::TabBarItem::Tab { tab_idx, active },
+            TabBarItem::NewTabButton => ::window::TabBarItem::NewTabButton,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabEntry {
     pub item: TabBarItem,

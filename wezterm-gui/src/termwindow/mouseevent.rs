@@ -369,6 +369,7 @@ impl super::TermWindow {
         }
         self.update_title_post_status();
         context.set_cursor(Some(MouseCursor::Arrow));
+        context.mouse_event_tab_bar(item.into(), event.clone());
     }
 
     pub fn mouse_event_above_scroll_thumb(

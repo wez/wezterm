@@ -3,7 +3,8 @@ use crate::connection::ConnectionOps;
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    ScreenPoint, TabBarItem, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -66,6 +67,7 @@ pub(crate) struct WindowInner {
     appearance: Appearance,
 
     config: ConfigHandle,
+    last_tabbar_empty_area_coords: Option<ScreenPoint>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -416,6 +418,7 @@ impl Window {
             dead_pending: None,
             saved_placement: None,
             config: config.clone(),
+            last_tabbar_empty_area_coords: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -780,6 +783,20 @@ impl WindowOps for Window {
             result
         }
     }
+
+    fn mouse_event_tab_bar(&self, item: TabBarItem, event: MouseEvent) {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.last_tabbar_empty_area_coords = match item {
+                TabBarItem::None => match event.kind {
+                    MouseEventKind::Move => Some(event.screen_coords),
+                    _ => None,
+                },
+                _ => None,
+            };
+
+            Ok(())
+        });
+    }
 }
 
 /// Set up bidirectional pointers:
@@ -889,6 +906,13 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         // check if in resize area
         if cursor_point.y >= 0 && cursor_point.y < frame_y {
             return Some(HTTOP);
+        }
+
+        if let Some(coords) = inner.last_tabbar_empty_area_coords {
+            let cursor_point = MAKEPOINTS(lparam as u32);
+            if (cursor_point.x, cursor_point.y) == (coords.x as i16, coords.y as i16) {
+                return Some(HTCAPTION);
+            }
         }
 
         return Some(HTCLIENT);

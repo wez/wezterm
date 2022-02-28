@@ -64,6 +64,12 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
+pub enum TabBarItem {
+    None,
+    Tab { tab_idx: usize, active: bool },
+    NewTabButton,
+}
+
 /// Represents the preferred appearance of the windowing
 /// environment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -283,4 +289,6 @@ pub trait WindowOps {
     fn get_title_font_and_point_size(&self) -> Option<(wezterm_font::parser::ParsedFont, f64)> {
         None
     }
+
+    fn mouse_event_tab_bar(&self, _item: TabBarItem, _event: MouseEvent) {}
 }
