@@ -899,7 +899,8 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
 
         let coords = mouse_coords(lparam);
-        let cursor_point = screen_to_client(hwnd, ScreenPoint::new(coords.x, coords.y));
+        let screen_coords = ScreenPoint::new(coords.x, coords.y);
+        let cursor_point = screen_to_client(hwnd, screen_coords);
 
         // check if in resize area
         if cursor_point.y >= 0 && cursor_point.y < frame_y {
@@ -911,9 +912,8 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             return Some(HTCAPTION);
         }
 
-        if let Some(coords) = inner.last_tabbar_empty_area_coords {
-            let cursor_point = MAKEPOINTS(lparam as u32);
-            if (cursor_point.x, cursor_point.y) == (coords.x as i16, coords.y as i16) {
+        if let Some(tabbar_coords) = inner.last_tabbar_empty_area_coords {
+            if screen_coords == tabbar_coords {
                 return Some(HTCAPTION);
             }
         }
