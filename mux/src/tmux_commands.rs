@@ -307,7 +307,8 @@ impl TmuxCommand for CapturePane {
         };
 
         let unescaped = termwiz::tmux_cc::unvis(&result.output).context("unescape pane content")?;
-        let unescaped = unescaped.replace("\n", "\r\n");
+        // capturep contents returned from guarded lines which always contain a tailing '\n'
+        let unescaped = &unescaped[0..unescaped.len().saturating_sub(1)].replace("\n", "\r\n");
 
         let pane_map = tmux_domain.inner.remote_panes.borrow();
         if let Some(pane) = pane_map.get(&self.0) {
