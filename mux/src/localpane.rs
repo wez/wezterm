@@ -24,7 +24,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, DownloadHandler, KeyCode, KeyModifiers,
-    MouseEvent, SemanticZone, StableRowIndex, Terminal, Position, TerminalConfiguration,
+    MouseEvent, Position, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
 };
 
 #[derive(Debug)]
