@@ -896,14 +896,10 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         // The adjustment in NCCALCSIZE messes with the detection
         // of the top hit area so manually fixing that.
         let dpi = GetDpiForWindow(hwnd);
-        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
 
-        let cursor_point = MAKEPOINTS(lparam as u32);
-        let mut cursor_point = POINT {
-            x: cursor_point.x as i32,
-            y: cursor_point.y as i32,
-        };
-        ScreenToClient(hwnd, &mut cursor_point);
+        let coords = mouse_coords(lparam);
+        let cursor_point = screen_to_client(hwnd, ScreenPoint::new(coords.x, coords.y));
 
         // check if in resize area
         if cursor_point.y >= 0 && cursor_point.y < frame_y {
@@ -1241,11 +1237,8 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
 }
 
 fn mouse_coords(lparam: LPARAM) -> Point {
-    // Take care to get the signedness correct!
-    let x = (lparam & 0xffff) as u16 as i16 as isize;
-    let y = ((lparam >> 16) & 0xffff) as u16 as i16 as isize;
-
-    Point::new(x, y)
+    let point = MAKEPOINTS(lparam as _);
+    Point::new(point.x as _, point.y as _)
 }
 
 fn screen_to_client(hwnd: HWND, point: ScreenPoint) -> Point {
