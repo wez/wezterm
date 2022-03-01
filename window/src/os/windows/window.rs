@@ -68,6 +68,7 @@ pub(crate) struct WindowInner {
 
     config: ConfigHandle,
     last_tabbar_empty_area_coords: Option<ScreenPoint>,
+    is_move_action: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -419,6 +420,7 @@ impl Window {
             saved_placement: None,
             config: config.clone(),
             last_tabbar_empty_area_coords: None,
+            is_move_action: false,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -834,7 +836,7 @@ unsafe fn wm_ncdestroy(
 
 unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow_mut();
+        let inner = inner.borrow();
 
         if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
             return None;
@@ -854,7 +856,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
             requested_client_rect.left += frame_x + padding;
             requested_client_rect.bottom -= frame_y + padding;
 
-            if window_is_maximized(hwnd) {
+            if get_window_placement(hwnd) == SW_SHOWMAXIMIZED {
                 requested_client_rect.top += padding + 2;
             }
         }
@@ -867,7 +869,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow_mut();
+        let inner = inner.borrow();
 
         if inner.config.window_decorations != WindowDecorations::RESIZE {
             return None;
@@ -908,6 +910,11 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             return Some(HTTOP);
         }
 
+        // Aproximate tab bar height with frame_y * 10
+        if inner.is_move_action && cursor_point.y < frame_y * 10 {
+            return Some(HTCAPTION);
+        }
+
         if let Some(coords) = inner.last_tabbar_empty_area_coords {
             let cursor_point = MAKEPOINTS(lparam as u32);
             if (cursor_point.x, cursor_point.y) == (coords.x as i16, coords.y as i16) {
@@ -921,17 +928,84 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     None
 }
 
-fn window_is_maximized(hwnd: HWND) -> bool {
+fn get_window_placement(hwnd: HWND) -> i32 {
     let mut placement = WINDOWPLACEMENT {
         length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
         ..Default::default()
     };
 
     if unsafe { GetWindowPlacement(hwnd, &mut placement) } != winapi::shared::minwindef::TRUE {
-        false
+        0
     } else {
-        placement.showCmd == SW_SHOWMAXIMIZED as u32
+        placement.showCmd as _
     }
+}
+
+unsafe fn wm_initmenu(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow();
+
+        if inner.config.window_decorations != WindowDecorations::RESIZE {
+            return None;
+        }
+
+        let menu = GetSystemMenu(hwnd, winapi::shared::minwindef::FALSE);
+        if menu.is_null() {
+            return None;
+        }
+
+        // we have to manually update title menu items because the default
+        // behavior is not reliable
+
+        if inner.saved_placement.is_none() {
+            let window_placement = get_window_placement(hwnd);
+
+            if window_placement == SW_SHOWMAXIMIZED {
+                EnableMenuItem(menu, SC_RESTORE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_MOVE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_SIZE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_MINIMIZE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_MAXIMIZE as _, MF_DISABLED as _);
+            } else if window_placement == SW_SHOWMINIMIZED {
+                EnableMenuItem(menu, SC_RESTORE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_MOVE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_SIZE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_MINIMIZE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_MAXIMIZE as _, MF_ENABLED as _);
+            } else {
+                EnableMenuItem(menu, SC_RESTORE as _, MF_DISABLED as _);
+                EnableMenuItem(menu, SC_MOVE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_SIZE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_MINIMIZE as _, MF_ENABLED as _);
+                EnableMenuItem(menu, SC_MAXIMIZE as _, MF_ENABLED as _);
+            }
+        } else {
+            EnableMenuItem(menu, SC_RESTORE as _, MF_DISABLED as _);
+            EnableMenuItem(menu, SC_MOVE as _, MF_DISABLED as _);
+            EnableMenuItem(menu, SC_SIZE as _, MF_DISABLED as _);
+            EnableMenuItem(menu, SC_MINIMIZE as _, MF_ENABLED as _);
+            EnableMenuItem(menu, SC_MAXIMIZE as _, MF_DISABLED as _);
+        }
+    }
+
+    None
+}
+
+unsafe fn wm_syscommand(
+    hwnd: HWND,
+    _msg: UINT,
+    wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    // Since we are handling nchittest, we also need to
+    // take care of the move window action
+    if wparam == SC_MOVE {
+        if let Some(inner) = rc_from_hwnd(hwnd) {
+            inner.borrow_mut().is_move_action = true;
+        }
+    }
+
+    None
 }
 
 /// "Blur behind" is the old vista term for a cool blurring
@@ -1212,6 +1286,53 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
     }
 }
 
+unsafe fn check_title_rmouse(hwnd: HWND, msg: UINT, screen_coords: ScreenPoint) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd).unwrap();
+
+    if inner.borrow().config.window_decorations != WindowDecorations::RESIZE {
+        return None;
+    }
+
+    if msg == WM_NCRBUTTONDOWN {
+        // Capture non-client right click to maybe show title context later
+        SetCapture(hwnd);
+        return Some(0);
+    }
+
+    if msg != WM_RBUTTONUP {
+        return None;
+    }
+
+    // Check if right click was in empty tab area and display context
+    // menu if so.
+
+    match inner.borrow().last_tabbar_empty_area_coords {
+        Some(tabbar_coords) => {
+            if screen_coords != tabbar_coords {
+                return None;
+            }
+        }
+        None => return None,
+    }
+
+    let menu = GetSystemMenu(hwnd, winapi::shared::minwindef::FALSE);
+    if !menu.is_null() {
+        let cmd = TrackPopupMenuEx(
+            menu,
+            TPM_RETURNCMD,
+            screen_coords.x as _,
+            screen_coords.y as _,
+            hwnd,
+            null_mut(),
+        );
+        if cmd > 0 {
+            PostMessageW(hwnd, WM_SYSCOMMAND, cmd as _, 0);
+        }
+    }
+
+    Some(0)
+}
+
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         // To support dragging the window, capture when the left
@@ -1220,11 +1341,20 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         // the mouse up outside of the client area.
         if msg == WM_LBUTTONDOWN {
             SetCapture(hwnd);
-        } else if msg == WM_LBUTTONUP {
+        } else if matches!(msg, WM_LBUTTONUP | WM_RBUTTONUP) {
             ReleaseCapture();
         }
-        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+
+        inner.borrow_mut().is_move_action = false;
+
         let coords = mouse_coords(lparam);
+        let screen_coords = client_to_screen(hwnd, coords);
+
+        if let Some(result) = check_title_rmouse(hwnd, msg, screen_coords) {
+            return Some(result);
+        }
+
+        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let event = MouseEvent {
             kind: match msg {
                 WM_LBUTTONDOWN => MouseEventKind::Press(MousePress::Left),
@@ -1236,7 +1366,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
                 _ => return None,
             },
             coords,
-            screen_coords: client_to_screen(hwnd, coords),
+            screen_coords,
             mouse_buttons,
             modifiers,
         };
@@ -1250,8 +1380,15 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     }
 }
 
-unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn mouse_move(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+
+        inner.is_move_action = false;
+        if msg == WM_NCMOUSEMOVE {
+            return None;
+        }
+
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let coords = mouse_coords(lparam);
         let event = MouseEvent {
@@ -1262,10 +1399,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
 
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::MouseEvent(event));
+        inner.events.dispatch(WindowEvent::MouseEvent(event));
         Some(0)
     } else {
         None
@@ -2106,6 +2240,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_NCCALCSIZE => wm_nccalcsize(hwnd, msg, wparam, lparam),
         WM_NCHITTEST => wm_nchittest(hwnd, msg, wparam, lparam),
+        WM_INITMENU => wm_initmenu(hwnd, msg, wparam, lparam),
+        WM_SYSCOMMAND => wm_syscommand(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_ENTERSIZEMOVE | WM_EXITSIZEMOVE => wm_enter_exit_size_move(hwnd, msg, wparam, lparam),
         WM_WINDOWPOSCHANGED => wm_windowposchanged(hwnd, msg, wparam, lparam),
@@ -2120,12 +2256,11 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         }
         WM_SETTINGCHANGE => apply_theme(hwnd),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
-        WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
+        WM_MOUSEMOVE | WM_NCMOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
-        WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK | WM_LBUTTONDOWN | WM_LBUTTONUP
-        | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP => {
-            mouse_button(hwnd, msg, wparam, lparam)
-        }
+        WM_NCRBUTTONDOWN | WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK
+        | WM_LBUTTONDOWN | WM_LBUTTONUP | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN
+        | WM_MBUTTONUP => mouse_button(hwnd, msg, wparam, lparam),
         WM_ERASEBKGND => Some(1),
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
