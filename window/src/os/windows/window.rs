@@ -61,6 +61,7 @@ pub(crate) struct WindowInner {
     in_size_move: bool,
     dead_pending: Option<(Modifiers, u32)>,
     saved_placement: Option<WINDOWPLACEMENT>,
+    track_mouse_leave: bool,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -415,6 +416,7 @@ impl Window {
             in_size_move: false,
             dead_pending: None,
             saved_placement: None,
+            track_mouse_leave: false,
             config: config.clone(),
         }));
 
@@ -1133,6 +1135,21 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+
+        if !inner.track_mouse_leave {
+            inner.track_mouse_leave = true;
+
+            let mut trk = TRACKMOUSEEVENT {
+                cbSize: std::mem::size_of::<TRACKMOUSEEVENT>() as u32,
+                dwFlags: TME_LEAVE,
+                hwndTrack: hwnd,
+                dwHoverTime: 0,
+            };
+
+            inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+        }
+
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let coords = mouse_coords(lparam);
         let event = MouseEvent {
@@ -1143,10 +1160,30 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
 
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::MouseEvent(event));
+        inner.events.dispatch(WindowEvent::MouseEvent(event));
+        Some(0)
+    } else {
+        None
+    }
+}
+
+unsafe fn mouse_leave(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+
+        inner.track_mouse_leave = false;
+
+        let coords = Point::new(-1, -1);
+        let event = MouseEvent {
+            kind: MouseEventKind::Move,
+            coords,
+            screen_coords: client_to_screen(hwnd, coords),
+            mouse_buttons: MouseButtons::default(),
+            modifiers: Modifiers::default(),
+        };
+
+        inner.events.dispatch(WindowEvent::MouseEvent(event));
+
         Some(0)
     } else {
         None
@@ -2000,6 +2037,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_SETTINGCHANGE => apply_theme(hwnd),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
+        WM_MOUSELEAVE => mouse_leave(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
         WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK | WM_LBUTTONDOWN | WM_LBUTTONUP
         | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP => {
