@@ -345,6 +345,9 @@ The table below is keyed by the OSC code.
 |7  |Set Current Working Directory | [See Shell Integration](shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory) ||
 |8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.html#explicit-hyperlinks) | |
 |9  |iTerm2 Show System Notification | Show a "toast" notification | `printf "\e]9;%s\e\\" "hello there"` |
+|10 |Set Default Text Foreground Color| | `\x1b]10;#ff0000\x1b\\` |
+|11 |Set Default Text Background Color| | `\x1b]11;#0000ff\x1b\\` |
+|12 |Set Text Cursor Color| | `\x1b]12;#00ff00\x1b\\` |
 |52 |Manipulate clipboard | Requests to query the clipboard are ignored. Allows setting or clearing the clipboard | |
 |104|ResetColors | Reset color palette entries to their default values | |
 |133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.html) |
