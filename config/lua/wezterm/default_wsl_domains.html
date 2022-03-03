@@ -175,7 +175,7 @@ a <code>WslDomain</code> with the <code>distribution</code> field set to the nam
 local wsl_domains = wezterm.default_wsl_domains()
 
 for idx, dom in ipairs(wsl_domains) do
-  if dom.name == &quot;Ubuntu-18.04&quot; then
+  if dom.name == &quot;WSL:Ubuntu-18.04&quot; then
     dom.default_prog = {&quot;fish&quot;}
   end
 end
