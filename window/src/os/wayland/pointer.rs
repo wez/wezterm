@@ -104,6 +104,7 @@ pub struct PendingMouse {
     surface_coords: Option<(f64, f64)>,
     button: Vec<(MousePress, ButtonState)>,
     scroll: Option<(f64, f64)>,
+    in_window: bool,
 }
 
 impl PendingMouse {
@@ -114,6 +115,7 @@ impl PendingMouse {
             button: vec![],
             scroll: None,
             surface_coords: None,
+            in_window: false,
         }))
     }
 
@@ -126,7 +128,14 @@ impl PendingMouse {
                     .lock()
                     .unwrap()
                     .update_last_serial(serial);
+                self.in_window = true;
                 false
+            }
+            PointerEvent::Leave { .. } => {
+                let changed = self.in_window;
+                self.surface_coords = None;
+                self.in_window = false;
+                changed
             }
             PointerEvent::Motion {
                 surface_x,
@@ -203,6 +212,10 @@ impl PendingMouse {
 
     pub fn scroll(pending: &Arc<Mutex<Self>>) -> Option<(f64, f64)> {
         pending.lock().unwrap().scroll.take()
+    }
+
+    pub fn in_window(pending: &Arc<Mutex<Self>>) -> bool {
+        pending.lock().unwrap().in_window
     }
 }
 
