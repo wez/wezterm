@@ -168,6 +168,7 @@ pub enum WindowEvent {
     KeyEvent(KeyEvent),
 
     MouseEvent(MouseEvent),
+    MouseLeave,
 
     AppearanceChanged(Appearance),
 
