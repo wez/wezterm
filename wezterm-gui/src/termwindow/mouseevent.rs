@@ -200,9 +200,7 @@ impl super::TermWindow {
     }
 
     pub fn mouse_leave_impl(&mut self, context: &dyn WindowOps) {
-        self.last_ui_item = None;
-        self.last_mouse_coords = (0, -1);
-        self.update_title_post_status();
+        self.current_mouse_event = None;
         context.invalidate();
     }
 
