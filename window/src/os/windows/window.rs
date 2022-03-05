@@ -1172,17 +1172,7 @@ unsafe fn mouse_leave(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) 
         let mut inner = inner.borrow_mut();
 
         inner.track_mouse_leave = false;
-
-        let coords = Point::new(-1, -1);
-        let event = MouseEvent {
-            kind: MouseEventKind::Move,
-            coords,
-            screen_coords: client_to_screen(hwnd, coords),
-            mouse_buttons: MouseButtons::default(),
-            modifiers: Modifiers::default(),
-        };
-
-        inner.events.dispatch(WindowEvent::MouseEvent(event));
+        inner.events.dispatch(WindowEvent::MouseLeave);
 
         Some(0)
     } else {
