@@ -138,6 +138,10 @@ fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window
             let msg: &xcb::FocusOutEvent = unsafe { xcb::cast_event(event) };
             Some(msg.event())
         }
+        xcb::LEAVE_NOTIFY => {
+            let msg: &xcb::LeaveNotifyEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.event())
+        }
         _ => None,
     }
 }

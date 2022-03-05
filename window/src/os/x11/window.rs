@@ -414,6 +414,9 @@ impl XWindowInner {
                 log::trace!("Calling focus_change(false)");
                 self.events.dispatch(WindowEvent::FocusChanged(false));
             }
+            xcb::LEAVE_NOTIFY => {
+                self.events.dispatch(WindowEvent::MouseLeave);
+            }
             _ => {
                 eprintln!("unhandled: {:x}", r);
             }
@@ -825,6 +828,7 @@ impl XWindow {
                             | xcb::EVENT_MASK_BUTTON_PRESS
                             | xcb::EVENT_MASK_BUTTON_RELEASE
                             | xcb::EVENT_MASK_POINTER_MOTION
+                            | xcb::EVENT_MASK_LEAVE_WINDOW
                             | xcb::EVENT_MASK_BUTTON_MOTION
                             | xcb::EVENT_MASK_KEY_RELEASE
                             | xcb::EVENT_MASK_PROPERTY_CHANGE
