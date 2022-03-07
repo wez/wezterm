@@ -9,7 +9,7 @@ pub use connection::*;
 pub use event::*;
 
 /// Convert a rust string to a windows wide string
-fn wide_string(s: &str) -> Vec<u16> {
+pub fn wide_string(s: &str) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
     std::ffi::OsStr::new(s)
         .encode_wide()

@@ -844,12 +844,6 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     Ok(())
 }
 
-#[cfg(windows)]
-mod win_bindings {
-    ::windows::include_bindings!();
-    pub use self::Windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
-}
-
 fn run() -> anyhow::Result<()> {
     // Inform the system of our AppUserModelID.
     // Without this, our toast notifications won't be correctly
@@ -857,7 +851,10 @@ fn run() -> anyhow::Result<()> {
     #[cfg(windows)]
     {
         unsafe {
-            win_bindings::SetCurrentProcessExplicitAppUserModelID("org.wezfurlong.wezterm").is_ok();
+            ::windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
+                ::windows::core::PCWSTR(wide_string("org.wezfurlong.wezterm").as_ptr()),
+            )
+            .unwrap();
         }
     }
 
