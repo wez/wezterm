@@ -3,23 +3,18 @@
 use crate::ToastNotification as TN;
 use xml::escape::escape_str_pcdata;
 
-#[allow(dead_code)]
-mod bindings {
-    ::windows::include_bindings!();
-}
-
-use bindings::Windows::Data::Xml::Dom::XmlDocument;
-use bindings::Windows::Foundation::*;
-use bindings::Windows::UI::Notifications::*;
-use windows::{Error as WinError, IInspectable, Interface};
+use windows::core::{Error as WinError, IInspectable, Interface, HSTRING};
+use windows::Data::Xml::Dom::XmlDocument;
+use windows::Foundation::TypedEventHandler;
+use windows::Win32::Foundation::E_POINTER;
+use windows::UI::Notifications::{
+    ToastActivatedEventArgs, ToastNotification, ToastNotificationManager,
+};
 
 fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     match a {
         Some(t) => Ok(t),
-        None => Err(WinError::new(
-            crate::windows::bindings::Windows::Win32::Foundation::E_POINTER,
-            "option is none",
-        )),
+        None => Err(WinError::new(E_POINTER, HSTRING::from("option is none"))),
     }
 }
 
@@ -36,7 +31,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         ""
     };
 
-    xml.LoadXml(format!(
+    xml.LoadXml(HSTRING::from(format!(
         r#"<toast duration="long">
         <visual>
             <binding template="ToastGeneric">
@@ -49,7 +44,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         escape_str_pcdata(&toast.title),
         escape_str_pcdata(&toast.message),
         url_actions
-    ))?;
+    )))?;
 
     let notif = ToastNotification::CreateToastNotification(xml)?;
 
@@ -82,7 +77,9 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     }))?;
     */
 
-    let notifier = ToastNotificationManager::CreateToastNotifierWithId("org.wezfurlong.wezterm")?;
+    let notifier = ToastNotificationManager::CreateToastNotifierWithId(HSTRING::from(
+        "org.wezfurlong.wezterm",
+    ))?;
 
     notifier.Show(&notif)?;
 

@@ -24,8 +24,10 @@ core-foundation = "0.7"
 objc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows = "0.11"
+windows = { version="0.33.0", features = [
+    "Data_Xml_Dom",
+    "Foundation",
+    "UI_Notifications",
+    "Win32_Foundation",
+]}
 xml-rs = "0.8"
-
-[target.'cfg(windows)'.build-dependencies]
-windows = "0.11"
