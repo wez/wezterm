@@ -3,6 +3,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use toolkit::primary_selection::{PrimarySelectionDevice, PrimarySelectionDeviceManager};
 use toolkit::reexports::client::protocol::wl_data_device::{
     Event as DataDeviceEvent, WlDataDevice,
 };
@@ -91,6 +92,7 @@ impl Inner {
 pub struct PointerDispatcher {
     inner: Arc<Mutex<Inner>>,
     pub(crate) data_device: Main<WlDataDevice>,
+    pub(crate) primary_selection_device: Option<PrimarySelectionDevice>,
     auto_pointer: ThemedPointer,
     #[allow(dead_code)]
     themer: ThemeManager,
@@ -225,6 +227,7 @@ impl PointerDispatcher {
         compositor: Attached<WlCompositor>,
         shm: Attached<WlShm>,
         dev_mgr: Attached<WlDataDeviceManager>,
+        selection_manager: Option<PrimarySelectionDeviceManager>,
     ) -> anyhow::Result<Self> {
         let inner = Arc::new(Mutex::new(Inner::default()));
         let pointer = seat.get_pointer();
@@ -246,9 +249,13 @@ impl PointerDispatcher {
             }
         });
 
+        let primary_selection_device =
+            selection_manager.map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
+
         Ok(Self {
             inner,
             data_device,
+            primary_selection_device,
             themer,
             auto_pointer,
             seat: seat.clone(),

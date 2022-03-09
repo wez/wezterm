@@ -20,18 +20,16 @@ use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
 use std::convert::TryInto;
-use std::io::{Read, Write};
-use std::os::unix::io::{AsRawFd, FromRawFd};
+use std::io::Read;
+use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use toolkit::get_surface_scale_factor;
-use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_pointer::ButtonState;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::window::{Decorations, Event as SCTKWindowEvent, State};
 use wayland_client::protocol::wl_callback::WlCallback;
-use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_client::{Attached, Main};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
@@ -872,12 +870,16 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
+    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
         let promise = Arc::new(Mutex::new(promise));
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            let read = inner.copy_and_paste.lock().unwrap().get_clipboard_data()?;
+            let read = inner
+                .copy_and_paste
+                .lock()
+                .unwrap()
+                .get_clipboard_data(clipboard)?;
             let promise = Arc::clone(&promise);
             std::thread::spawn(move || {
                 let mut promise = promise.lock().unwrap();
@@ -899,59 +901,16 @@ impl WindowOps for WaylandWindow {
         future
     }
 
-    fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            let text = text.clone();
-            let conn = Connection::get().unwrap().wayland();
-
-            let source = conn
-                .environment
-                .borrow()
-                .require_global::<WlDataDeviceManager>()
-                .create_data_source();
-            source.quick_assign(move |_source, event, _dispatch_data| {
-                if let DataSourceEvent::Send { fd, .. } = event {
-                    let fd = unsafe { FileDescriptor::from_raw_fd(fd) };
-                    if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
-                        log::error!("while sending paste to pipe: {}", e);
-                    }
-                }
-            });
-            source.offer(TEXT_MIME_TYPE.to_string());
-            inner.copy_and_paste.lock().unwrap().set_selection(&source);
-
+            inner
+                .copy_and_paste
+                .lock()
+                .unwrap()
+                .set_clipboard_data(clipboard, text);
             Ok(())
         });
     }
-}
-
-fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> anyhow::Result<()> {
-    file.set_non_blocking(true)?;
-    let mut pfd = libc::pollfd {
-        fd: file.as_raw_fd(),
-        events: libc::POLLOUT,
-        revents: 0,
-    };
-
-    let mut buf = data;
-
-    while !buf.is_empty() {
-        if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
-            match file.write(buf) {
-                Ok(size) if size == 0 => {
-                    bail!("zero byte write");
-                }
-                Ok(size) => {
-                    buf = &buf[size..];
-                }
-                Err(e) => bail!("error writing to pipe: {}", e),
-            }
-        } else {
-            bail!("timed out writing to pipe");
-        }
-    }
-
-    Ok(())
 }
 
 fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
