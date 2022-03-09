@@ -778,7 +778,7 @@ impl TermWindow {
         tw.borrow_mut().window.replace(window.clone());
 
         Self::apply_icon(&window)?;
-        Self::setup_clipboard(&window, mux_window_id);
+        Self::setup_clipboard(&window, mux_window_id)?;
 
         let config_subscription = config::subscribe_to_config_reload({
             let window = window.clone();

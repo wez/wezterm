@@ -34,7 +34,7 @@ impl wezterm_term::Clipboard for ClipboardHelper {
 }
 
 impl TermWindow {
-    pub fn setup_clipboard(window: &Window, mux_window_id: MuxWindowId) {
+    pub fn setup_clipboard(window: &Window, mux_window_id: MuxWindowId) -> anyhow::Result<()> {
         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
         });
@@ -42,7 +42,9 @@ impl TermWindow {
             Arc::new(crate::download::Downloader::new());
         let mux = Mux::get().unwrap();
 
-        let mut mux_window = mux.get_window_mut(mux_window_id).unwrap();
+        let mut mux_window = mux
+            .get_window_mut(mux_window_id)
+            .ok_or_else(|| anyhow::anyhow!("mux doesn't know about window yet!?"))?;
 
         mux_window.set_clipboard(&clipboard);
         for tab in mux_window.iter() {
@@ -51,6 +53,8 @@ impl TermWindow {
                 pos.pane.set_download_handler(&downloader);
             }
         }
+
+        Ok(())
     }
 
     pub fn copy_to_clipboard(&self, clipboard: ClipboardCopyDestination, text: String) {
