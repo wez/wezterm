@@ -73,10 +73,10 @@ directory you can do so via the config, CLI, and when using
   ```
 
 * The [`SpawnCommandInNewTab`](lua/keyassignment/SpawnCommandInNewTab.md),
-  [`SpawnCommandInNewWindow`](lua/keyassignment/SpawnCommandInNewWindow.md),
-  [`SpawnTab`](lua/keyassignment/SpawnTab.md) key assignments, and the
-  [Launcher Menu](#the-launcher-menu) described below all accept a
-  [`SpawnCommand`](lua/SpawnCommand.md) object that accepts an optional `cwd` field:
+  and [`SpawnCommandInNewWindow`](lua/keyassignment/SpawnCommandInNewWindow.md)
+  key assignments, and the [Launcher Menu](#the-launcher-menu) described below
+  all accept a [`SpawnCommand`](lua/SpawnCommand.md) object that accepts an
+  optional `cwd` field:
 
   ```lua
   {
