@@ -83,6 +83,7 @@ impl WaylandConnection {
                         environment.require_global(),
                         environment.require_global(),
                         environment.require_global(),
+                        environment.get_primary_selection_manager(),
                     )?);
                 }
             }

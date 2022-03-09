@@ -2,7 +2,7 @@
 
 Paste the specified clipboard to the current pane.
 
-This is only really meaningful on X11 systems that have multiple clipboards.
+This is only really meaningful on X11 and some Wayland systems that have multiple clipboards.
 
 Possible values for source are:
 
@@ -24,3 +24,6 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+`PrimarySelection` is now also supported on Wayland systems that support [primary-selection-unstable-v1](https://wayland.app/protocols/primary-selection-unstable-v1) or the older Gtk primary selection protocol.
