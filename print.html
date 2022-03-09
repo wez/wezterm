@@ -1405,10 +1405,10 @@ directory you can do so via the config, CLI, and when using
 </li>
 <li>
 <p>The <a href="config/lua/keyassignment/SpawnCommandInNewTab.html"><code>SpawnCommandInNewTab</code></a>,
-and <a href="config/lua/keyassignment/SpawnCommandInNewWindow.html"><code>SpawnCommandInNewWindow</code></a>
-key assignments, and the <a href="config/launch.html#the-launcher-menu">Launcher Menu</a> described below
-all accept a <a href="config/lua/SpawnCommand.html"><code>SpawnCommand</code></a> object that accepts an
-optional <code>cwd</code> field:</p>
+<a href="config/lua/keyassignment/SpawnCommandInNewWindow.html"><code>SpawnCommandInNewWindow</code></a>,
+<a href="config/lua/keyassignment/SpawnTab.html"><code>SpawnTab</code></a> key assignments, and the
+<a href="config/launch.html#the-launcher-menu">Launcher Menu</a> described below all accept a
+<a href="config/lua/SpawnCommand.html"><code>SpawnCommand</code></a> object that accepts an optional <code>cwd</code> field:</p>
 <pre><code class="language-lua">{
   label = &quot;List files in /some/path&quot;,
   args = {&quot;ls&quot;, &quot;-al&quot;},
