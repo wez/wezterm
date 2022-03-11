@@ -70,6 +70,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Unable to match `Iosevka Term` when multiple iosevka ttc files were installed on macOS [#1630](https://github.com/wez/wezterm/issues/1630)
 * Incorrect umask for panes spawned via the multiplexer server [#1633](https://github.com/wez/wezterm/issues/1633)
 * Fall back from `top_left_arrow` to `left_ptr` when loading XCursor themes [#1655](https://github.com/wez/wezterm/issues/1655)
+* Fixed lingering hover state in titlebar when the mouse pointer left the window. Thanks to [@davidrios](https://github.com/davidrios)! [#1434](https://github.com/wez/wezterm/issues/1434)
 
 ### 20220101-133340-7edc5b5a
 
