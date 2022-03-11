@@ -10,6 +10,7 @@ install -Dsm755 -t AppDir/usr/bin target/release/strip-ansi-escapes
 install -Dm644 assets/icon/terminal.png AppDir/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop AppDir/usr/share/applications/org.wezfurlong.wezterm.desktop
 install -Dm644 assets/wezterm.appdata.xml AppDir/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+install -Dm644 assets/wezterm-nautilus.py AppDir/usr/share/nautilus-python/extensions/wezterm-nautilus.py
 
 [ -x /tmp/linuxdeploy ] || ( curl -L 'https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage' -o /tmp/linuxdeploy && chmod +x /tmp/linuxdeploy )
 
