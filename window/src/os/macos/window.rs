@@ -414,6 +414,7 @@ impl Window {
                 screen_changed: false,
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
+                tracking_rect_tag: 0,
                 hscroll_remainder: 0.,
                 vscroll_remainder: 0.,
                 last_wheel: Instant::now(),
@@ -1045,6 +1046,7 @@ struct Inner {
     screen_changed: bool,
     gl_context_pair: Option<GlContextPair>,
     text_cursor_position: Rect,
+    tracking_rect_tag: NSInteger,
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     last_wheel: Instant,
@@ -1679,6 +1681,35 @@ impl WindowView {
         }
     }
 
+    extern "C" fn update_tracking_areas(this: &mut Object, _sel: Sel) {
+        let frame = unsafe { NSView::frame(this as *mut _) };
+
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+            if let Some(ref view) = inner.view_id {
+                let view = view.load();
+                if view.is_null() {
+                    return;
+                }
+
+                let tag = inner.tracking_rect_tag;
+                if tag != 0 {
+                    unsafe {
+                        let () = msg_send![*view, removeTrackingRect: tag];
+                    }
+                }
+
+                let rect = NSRect::new(
+                    NSPoint::new(0.0, 0.0),
+                    NSSize::new(frame.size.width, frame.size.height),
+                );
+                inner.tracking_rect_tag = unsafe {
+                    msg_send![*view, addTrackingRect: rect owner: *view userData: nil assumeInside: NO]
+                };
+            }
+        }
+    }
+
     extern "C" fn window_should_close(this: &mut Object, _sel: Sel, _id: id) -> BOOL {
         unsafe {
             let () = msg_send![this, setNeedsDisplay: YES];
@@ -1879,6 +1910,16 @@ impl WindowView {
 
     extern "C" fn mouse_moved_or_dragged(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::mouse_common(this, nsevent, MouseEventKind::Move);
+    }
+
+    extern "C" fn mouse_exited(this: &mut Object, _sel: Sel, _nsevent: id) {
+        if let Some(myself) = Self::get_this(this) {
+            myself
+                .inner
+                .borrow_mut()
+                .events
+                .dispatch(WindowEvent::MouseLeave);
+        }
     }
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
@@ -2443,6 +2484,10 @@ impl WindowView {
                 sel!(scrollWheel:),
                 Self::scroll_wheel as extern "C" fn(&mut Object, Sel, id),
             );
+            cls.add_method(
+                sel!(mouseExited:),
+                Self::mouse_exited as extern "C" fn(&mut Object, Sel, id),
+            );
 
             cls.add_method(
                 sel!(keyDown:),
@@ -2466,6 +2511,11 @@ impl WindowView {
             cls.add_method(
                 sel!(viewDidChangeEffectiveAppearance),
                 Self::view_did_change_effective_appearance as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(updateTrackingAreas),
+                Self::update_tracking_areas as extern "C" fn(&mut Object, Sel),
             );
 
             // NSTextInputClient

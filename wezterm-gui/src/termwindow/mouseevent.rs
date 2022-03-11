@@ -199,6 +199,11 @@ impl super::TermWindow {
         }
     }
 
+    pub fn mouse_leave_impl(&mut self, context: &dyn WindowOps) {
+        self.current_mouse_event = None;
+        context.invalidate();
+    }
+
     fn drag_split(
         &mut self,
         mut item: UIItem,

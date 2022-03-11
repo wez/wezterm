@@ -537,6 +537,11 @@ impl WaylandWindowInner {
                 self.events.dispatch(WindowEvent::MouseEvent(event));
             }
         }
+
+        if !PendingMouse::in_window(&pending_mouse) {
+            self.events.dispatch(WindowEvent::MouseLeave);
+            self.refresh_frame();
+        }
     }
 
     fn get_dpi_factor(&self) -> i32 {

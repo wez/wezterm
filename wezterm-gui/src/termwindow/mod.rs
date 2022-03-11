@@ -837,6 +837,10 @@ impl TermWindow {
                 self.mouse_event_impl(event, window);
                 Ok(true)
             }
+            WindowEvent::MouseLeave => {
+                self.mouse_leave_impl(window);
+                Ok(true)
+            }
             WindowEvent::Resized {
                 dimensions,
                 window_state,
