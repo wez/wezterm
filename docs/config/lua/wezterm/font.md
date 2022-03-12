@@ -94,4 +94,17 @@ The following options can be specified in the same way:
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
 
+*Since: nightly builds only*
+
+You may now specify `style="Normal"`, `style="Italic"` or `style="Oblique"`
+instead of simply specifying a boolean `italic` value such as `italic=true`.
+
+`italic=false` is equivalent to `style="Normal"`, and `italic=true` is
+equivalent to `style="Italic"`.
+
+`"Oblique"` and `"Italic"` fonts are similar in the sense that the glyphs
+are presented at an angle.  `"Italic"` fonts usually have a distinctive
+design difference from the `"Normal"` style in a given font family,
+whereas `"Oblique"` usually looks very similar to `"Normal"`, but skewed
+at an angle.
 
