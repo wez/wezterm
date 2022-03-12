@@ -444,6 +444,7 @@ usually the best available version.</p>
 <li><code>local_echo_threshold_ms</code> option to adjust the predictive local echo timing for <a href="config/lua/SshDomain.html">SshDomain</a>, <a href="config/lua/TlsDomainClient.html">TlsDomainClient</a> and <a href="multiplexing.html">unix domains</a>. Thanks to <a href="https://github.com/qperret">@qperret</a>! <a href="https://github.com/wez/wezterm/pull/1518">#1518</a></li>
 <li>It is now possible to set <code>selection_fg</code> and <code>selection_bg</code> to be fully or partially transparent. <a href="config/appearance.html">Read more</a>. <a href="https://github.com/wez/wezterm/issues/1615">#1615</a></li>
 <li>Experimental (and incomplete!) support for Bidi/RTL can be enabled through the config. <a href="https://github.com/wez/wezterm/issues/784">Follow along in the tracking issue</a></li>
+<li>Primary selection is now supported on Wayland systems that implement <a href="https://wayland.app/protocols/primary-selection-unstable-v1">primary-selection-unstable-v1</a> or the older Gtk primary selection protocol. Thanks to <a href="https://github.com/lunaryorn">@lunaryorn</a>! <a href="https://github.com/wez/wezterm/issues/1423">#1423</a></li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
