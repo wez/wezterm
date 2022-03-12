@@ -2,7 +2,7 @@
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
-use config::{FontAttributes, FontStretch, FontWeight};
+use config::{FontAttributes, FontSlant, FontStretch, FontWeight};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
