@@ -1,6 +1,6 @@
 use crate::locator::{FontDataHandle, FontDataSource, FontOrigin};
 use crate::shaper::GlyphInfo;
-use config::{FontAttributes, FreeTypeLoadFlags, FreeTypeLoadTarget};
+use config::{FontAttributes, FontSlant, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use config::{FontStretch, FontWeight};
 use rangeset::RangeSet;
 use std::cmp::Ordering;
@@ -17,7 +17,7 @@ pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
     stretch: FontStretch,
-    italic: bool,
+    slant: FontSlant,
     cap_height: Option<f64>,
     pub handle: FontDataHandle,
     coverage: Mutex<RangeSet<u32>>,
@@ -39,7 +39,7 @@ impl std::fmt::Debug for ParsedFont {
             .field("names", &self.names)
             .field("weight", &self.weight)
             .field("stretch", &self.stretch)
-            .field("italic", &self.italic)
+            .field("slant", &self.slant)
             .field("handle", &self.handle)
             .field("cap_height", &self.cap_height)
             .field("synthesize_italic", &self.synthesize_italic)
@@ -57,7 +57,7 @@ impl Clone for ParsedFont {
             names: self.names.clone(),
             weight: self.weight,
             stretch: self.stretch,
-            italic: self.italic,
+            slant: self.slant,
             synthesize_italic: self.synthesize_italic,
             synthesize_bold: self.synthesize_bold,
             synthesize_dim: self.synthesize_dim,
@@ -80,7 +80,7 @@ impl PartialEq for ParsedFont {
     fn eq(&self, rhs: &Self) -> bool {
         self.stretch == rhs.stretch
             && self.weight == rhs.weight
-            && self.italic == rhs.italic
+            && self.slant == rhs.slant
             && self.names == rhs.names
     }
 }
@@ -93,7 +93,7 @@ impl Ord for ParsedFont {
                 o @ Ordering::Less | o @ Ordering::Greater => o,
                 Ordering::Equal => match self.weight.cmp(&rhs.weight) {
                     o @ Ordering::Less | o @ Ordering::Greater => o,
-                    Ordering::Equal => match self.italic.cmp(&rhs.italic) {
+                    Ordering::Equal => match self.slant.cmp(&rhs.slant) {
                         o @ Ordering::Less | o @ Ordering::Greater => o,
                         Ordering::Equal => self.handle.cmp(&rhs.handle),
                     },
@@ -151,8 +151,8 @@ impl ParsedFont {
 
     pub fn lua_name(&self) -> String {
         format!(
-            "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", italic={}}})",
-            self.names.family, self.weight, self.stretch, self.italic
+            "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", slant={}}})",
+            self.names.family, self.weight, self.stretch, self.slant
         )
     }
 
@@ -178,7 +178,7 @@ impl ParsedFont {
 
             if p.weight == FontWeight::REGULAR
                 && p.stretch == FontStretch::Normal
-                && !p.italic
+                && p.slant == FontSlant::Normal
                 && p.freetype_render_target.is_none()
                 && p.freetype_load_target.is_none()
                 && p.freetype_load_flags.is_none()
@@ -193,8 +193,8 @@ impl ParsedFont {
                 if p.stretch != FontStretch::Normal {
                     code.push_str(&format!(", stretch=\"{}\"", p.stretch));
                 }
-                if p.italic {
-                    code.push_str(", italic=true");
+                if p.slant != FontSlant::Normal {
+                    code.push_str(&format!(", slant=\"{}\"", p.slant));
                 }
                 if let Some(item) = p.freetype_load_flags {
                     code.push_str(&format!(", freetype_load_flags=\"{}\"", item.to_string()));
@@ -226,7 +226,11 @@ impl ParsedFont {
     }
 
     pub fn from_face(face: &crate::ftwrap::Face, handle: FontDataHandle) -> anyhow::Result<Self> {
-        let italic = face.italic();
+        let slant = if face.italic() {
+            FontSlant::Italic
+        } else {
+            FontSlant::Normal
+        };
         let (ot_weight, width) = face.weight_and_width();
         let weight = FontWeight::from_opentype_weight(ot_weight);
         let stretch = FontStretch::from_opentype_stretch(width);
@@ -238,19 +242,28 @@ impl ParsedFont {
         let assume_emoji_presentation = has_color;
 
         let names = Names::from_ft_face(&face);
-        let italic = italic || {
-            // Objectively gross, but freetype's italic property isn't always
-            // set for italic fonts.
-            // fontconfig resorts to name matching, so we do too :-/
-            let lower = names.full_name.to_lowercase();
-            lower.contains("italic") || lower.contains("kursiv")
+        let slant = match slant {
+            FontSlant::Normal => {
+                // Objectively gross, but freetype's italic property isn't always
+                // set for italic fonts.
+                // fontconfig resorts to name matching, so we do too :-/
+                let lower = names.full_name.to_lowercase();
+                if lower.contains("italic") || lower.contains("kursiv") {
+                    FontSlant::Italic
+                } else if lower.contains("oblique") {
+                    FontSlant::Oblique
+                } else {
+                    FontSlant::Normal
+                }
+            }
+            slant => slant,
         };
 
         Ok(Self {
             names,
             weight,
             stretch,
-            italic,
+            slant,
             synthesize_italic: false,
             synthesize_bold: false,
             synthesize_dim: false,
@@ -300,8 +313,8 @@ impl ParsedFont {
         self.stretch
     }
 
-    pub fn italic(&self) -> bool {
-        self.italic
+    pub fn slant(&self) -> FontSlant {
+        self.slant
     }
 
     pub fn matches_name(&self, attr: &FontAttributes) -> bool {
@@ -391,15 +404,19 @@ impl ParsedFont {
         // Reduce to matching stretches
         candidates.retain(|&idx| fonts[idx].stretch == stretch);
 
-        // Now match style: italics
-        let styles = [attr.italic, !attr.italic];
-        let italic = *styles
+        // Now match style: italics.
+        let styles = match attr.slant {
+            FontSlant::Normal => [FontSlant::Normal, FontSlant::Italic, FontSlant::Oblique],
+            FontSlant::Italic => [FontSlant::Italic, FontSlant::Oblique, FontSlant::Normal],
+            FontSlant::Oblique => [FontSlant::Oblique, FontSlant::Italic, FontSlant::Normal],
+        };
+        let slant = *styles
             .iter()
-            .filter(|&&italic| candidates.iter().any(|&idx| fonts[idx].italic == italic))
+            .filter(|&&slant| candidates.iter().any(|&idx| fonts[idx].slant == slant))
             .next()?;
 
         // Reduce to matching italics
-        candidates.retain(|&idx| fonts[idx].italic == italic);
+        candidates.retain(|&idx| fonts[idx].slant == slant);
 
         // And now match by font weight
         let query_weight = attr.weight.to_opentype_weight();
@@ -500,7 +517,7 @@ impl ParsedFont {
         self.freetype_load_target = attr.freetype_load_target;
         self.freetype_load_flags = attr.freetype_load_flags;
 
-        self.synthesize_italic = !self.italic && attr.italic;
+        self.synthesize_italic = self.slant == FontSlant::Normal && attr.slant != FontSlant::Normal;
         self.synthesize_bold = attr.weight >= FontWeight::BOLD
             && attr.weight > self.weight
             && self.weight <= FontWeight::REGULAR;

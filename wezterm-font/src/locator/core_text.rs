@@ -190,7 +190,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         family: "Apple Symbols".to_string(),
         weight: FontWeight::REGULAR,
         stretch: FontStretch::Normal,
-        italic: false,
+        slant: FontSlant::Normal,
         is_fallback: true,
         is_synthetic: true,
         harfbuzz_features: None,
@@ -206,7 +206,9 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
 
     // Constrain to default weight/stretch/style
     fonts.retain(|f| {
-        f.weight() == FontWeight::REGULAR && f.stretch() == FontStretch::Normal && !f.italic()
+        f.weight() == FontWeight::REGULAR
+            && f.stretch() == FontStretch::Normal
+            && f.slant() == FontSlant::Normal
     });
 
     let mut seen = HashSet::new();

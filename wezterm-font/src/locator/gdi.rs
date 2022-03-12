@@ -2,7 +2,10 @@
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::{best_matching_font, parse_and_collect_font_info, ParsedFont};
-use config::{FontAttributes, FontStretch as WTFontStretch, FontWeight as WTFontWeight};
+use config::{
+    FontAttributes, FontSlant as WTFontSlant, FontStretch as WTFontStretch,
+    FontWeight as WTFontWeight,
+};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -99,7 +102,11 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
         lfEscapement: 0,
         lfOrientation: 0,
         lfWeight: font_attr.weight.to_opentype_weight() as _,
-        lfItalic: if font_attr.italic { 1 } else { 0 },
+        lfItalic: if font_attr.slant != WTFontSlant::Normal {
+            1
+        } else {
+            0
+        },
         lfUnderline: 0,
         lfStrikeOut: 0,
         lfCharSet: 0,
@@ -143,7 +150,7 @@ pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFo
         let mut attr = FontAttributes::new(&name);
         attr.weight = config::FontWeight::from_opentype_weight(log_font.lfWeight as u16);
         if log_font.lfItalic == 1 {
-            attr.italic = true;
+            attr.slant = WTFontSlant::Italic;
         }
 
         let mut font_info = vec![];
@@ -163,10 +170,10 @@ fn attributes_to_descriptor(font_attr: &FontAttributes) -> FontDescriptor {
         family_name: font_attr.family.to_string(),
         weight: FontWeight::from_u32(font_attr.weight.to_opentype_weight() as u32),
         stretch: FontStretch::Normal,
-        style: if font_attr.italic {
-            FontStyle::Italic
-        } else {
-            FontStyle::Normal
+        style: match font_attr.slant {
+            WTFontSlant::Italic => FontStyle::Italic,
+            WTFontSlant::Oblique => FontStyle::Oblique,
+            WTFontSlant::Normal => FontStyle::Normal,
         },
     }
 }
@@ -312,7 +319,7 @@ impl FontLocator for GdiFontLocator {
                     let attr = FontAttributes {
                         weight: WTFontWeight::from_opentype_weight(font.weight().to_u32() as _),
                         stretch: WTFontStretch::from_opentype_stretch(font.stretch().to_u32() as _),
-                        italic: false,
+                        slant: WTFontSlant::Normal,
                         family: font.family_name(),
                         is_fallback: true,
                         is_synthetic: true,

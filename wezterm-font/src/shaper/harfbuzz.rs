@@ -666,7 +666,7 @@ mod test {
                     weight: Default::default(),
                     is_fallback: false,
                     is_synthetic: false,
-                    italic: false,
+                    slant: Default::default(),
                     freetype_load_flags: None,
                     freetype_load_target: None,
                     freetype_render_target: None,

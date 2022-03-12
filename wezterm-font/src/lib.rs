@@ -5,8 +5,8 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, PresentationWidth};
 use anyhow::{Context, Error};
 use config::{
-    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontStretch, FontWeight,
-    TextStyle,
+    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontSlant, FontStretch,
+    FontWeight, TextStyle,
 };
 use rangeset::RangeSet;
 use std::cell::RefCell;
@@ -697,7 +697,7 @@ impl FontConfigInner {
         for attr in &attributes {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
                 let styled_extra = if attr.weight != FontWeight::default()
-                    || attr.italic
+                    || attr.slant != FontSlant::default()
                     || attr.stretch != FontStretch::default()
                 {
                     ". An alternative variant of the font was requested; \

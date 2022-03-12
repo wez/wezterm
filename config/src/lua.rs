@@ -1,5 +1,7 @@
 use crate::keyassignment::KeyAssignment;
-use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle};
+use crate::{
+    FontAttributes, FontSlant, FontStretch, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle,
+};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
@@ -449,14 +451,30 @@ struct TextStyleAttributes {
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
-    pub italic: bool,
+    pub slant: FontSlant,
+    // Ideally we'd simply use serde's aliasing functionality on the `slant`
+    // field to support backwards compatibility, but aliases are invisible
+    // to serde_lua, so we do a little fixup here ourselves in our from_lua impl.
+    italic: Option<bool>,
     /// If set, when rendering text that is set to the default
     /// foreground color, use this color instead.  This is most
     /// useful in a `[[font_rules]]` section to implement changing
     /// the text color for eg: bold text.
     pub foreground: Option<termwiz::color::RgbColor>,
 }
-impl_lua_conversion!(TextStyleAttributes);
+impl<'lua> FromLua<'lua> for TextStyleAttributes {
+    fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
+        let mut attr: TextStyleAttributes = from_lua_value(value)?;
+        if let Some(italic) = attr.italic.take() {
+            attr.slant = if italic {
+                FontSlant::Italic
+            } else {
+                FontSlant::Normal
+            };
+        }
+        Ok(attr)
+    }
+}
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 struct LuaFontAttributes {
@@ -469,7 +487,12 @@ struct LuaFontAttributes {
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
-    pub italic: bool,
+    pub slant: FontSlant,
+    // Ideally we'd simply use serde's aliasing functionality on the `slant`
+    // field to support backwards compatibility, but aliases are invisible
+    // to serde_lua, so we do a little fixup here ourselves in our from_lua impl.
+    #[serde(default)]
+    italic: Option<bool>,
 
     #[serde(default)]
     pub harfbuzz_features: Option<Vec<String>>,
@@ -488,7 +511,17 @@ impl<'lua> FromLua<'lua> for LuaFontAttributes {
                 attr.family = s.to_str()?.to_string();
                 Ok(attr)
             }
-            v => Ok(from_lua_value(v)?),
+            v => {
+                let mut attr: LuaFontAttributes = from_lua_value(v)?;
+                if let Some(italic) = attr.italic.take() {
+                    attr.slant = if italic {
+                        FontSlant::Italic
+                    } else {
+                        FontSlant::Normal
+                    };
+                }
+                Ok(attr)
+            }
         }
     }
 }
@@ -516,7 +549,7 @@ fn font<'lua>(
             None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
         };
         attrs.stretch = map_defaults.stretch;
-        attrs.italic = map_defaults.italic;
+        attrs.slant = map_defaults.slant;
         text_style.foreground = map_defaults.foreground;
     }
 
@@ -524,7 +557,7 @@ fn font<'lua>(
         family: attrs.family,
         stretch: attrs.stretch,
         weight: attrs.weight,
-        italic: attrs.italic,
+        slant: attrs.slant,
         is_fallback: false,
         is_synthetic: false,
         harfbuzz_features: attrs.harfbuzz_features,
@@ -561,7 +594,7 @@ fn font_with_fallback<'lua>(
                 None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
             };
             attrs.stretch = map_defaults.stretch;
-            attrs.italic = map_defaults.italic;
+            attrs.slant = map_defaults.slant;
             text_style.foreground = map_defaults.foreground;
         }
 
@@ -569,7 +602,7 @@ fn font_with_fallback<'lua>(
             family: attrs.family,
             stretch: attrs.stretch,
             weight: attrs.weight,
-            italic: attrs.italic,
+            slant: attrs.slant,
             is_fallback: idx != 0,
             is_synthetic: false,
             harfbuzz_features: attrs.harfbuzz_features,
