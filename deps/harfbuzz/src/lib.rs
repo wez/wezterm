@@ -27,6 +27,18 @@ pub union _hb_var_int_t {
     pub i8_: [i8; 4usize],
 }
 pub type hb_var_int_t = _hb_var_int_t;
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union _hb_var_num_t {
+    pub f: f32,
+    pub u32_: u32,
+    pub i32_: i32,
+    pub u16_: [u16; 2usize],
+    pub i16_: [i16; 2usize],
+    pub u8_: [u8; 4usize],
+    pub i8_: [i8; 4usize],
+}
+pub type hb_var_num_t = _hb_var_num_t;
 pub type hb_tag_t = u32;
 extern "C" {
     pub fn hb_tag_from_string(
@@ -912,6 +924,185 @@ extern "C" {
     ) -> hb_bool_t;
 }
 #[repr(C)]
+#[derive(Copy, Clone)]
+pub struct hb_draw_state_t {
+    pub path_open: hb_bool_t,
+    pub path_start_x: f32,
+    pub path_start_y: f32,
+    pub current_x: f32,
+    pub current_y: f32,
+    pub reserved1: hb_var_num_t,
+    pub reserved2: hb_var_num_t,
+    pub reserved3: hb_var_num_t,
+    pub reserved4: hb_var_num_t,
+    pub reserved5: hb_var_num_t,
+    pub reserved6: hb_var_num_t,
+    pub reserved7: hb_var_num_t,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_draw_funcs_t {
+    _unused: [u8; 0],
+}
+pub type hb_draw_move_to_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_draw_line_to_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_draw_quadratic_to_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        control_x: f32,
+        control_y: f32,
+        to_x: f32,
+        to_y: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_draw_cubic_to_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        control1_x: f32,
+        control1_y: f32,
+        control2_x: f32,
+        control2_y: f32,
+        to_x: f32,
+        to_y: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_draw_close_path_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    pub fn hb_draw_funcs_set_move_to_func(
+        dfuncs: *mut hb_draw_funcs_t,
+        func: hb_draw_move_to_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_draw_funcs_set_line_to_func(
+        dfuncs: *mut hb_draw_funcs_t,
+        func: hb_draw_line_to_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_draw_funcs_set_quadratic_to_func(
+        dfuncs: *mut hb_draw_funcs_t,
+        func: hb_draw_quadratic_to_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_draw_funcs_set_cubic_to_func(
+        dfuncs: *mut hb_draw_funcs_t,
+        func: hb_draw_cubic_to_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_draw_funcs_set_close_path_func(
+        dfuncs: *mut hb_draw_funcs_t,
+        func: hb_draw_close_path_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_draw_funcs_create() -> *mut hb_draw_funcs_t;
+}
+extern "C" {
+    pub fn hb_draw_funcs_reference(dfuncs: *mut hb_draw_funcs_t) -> *mut hb_draw_funcs_t;
+}
+extern "C" {
+    pub fn hb_draw_funcs_destroy(dfuncs: *mut hb_draw_funcs_t);
+}
+extern "C" {
+    pub fn hb_draw_funcs_make_immutable(dfuncs: *mut hb_draw_funcs_t);
+}
+extern "C" {
+    pub fn hb_draw_funcs_is_immutable(dfuncs: *mut hb_draw_funcs_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_draw_move_to(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+    );
+}
+extern "C" {
+    pub fn hb_draw_line_to(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+    );
+}
+extern "C" {
+    pub fn hb_draw_quadratic_to(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        control_x: f32,
+        control_y: f32,
+        to_x: f32,
+        to_y: f32,
+    );
+}
+extern "C" {
+    pub fn hb_draw_cubic_to(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+        control1_x: f32,
+        control1_y: f32,
+        control2_x: f32,
+        control2_y: f32,
+        to_x: f32,
+        to_y: f32,
+    );
+}
+extern "C" {
+    pub fn hb_draw_close_path(
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        st: *mut hb_draw_state_t,
+    );
+}
+#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct hb_font_t {
     _unused: [u8; 0],
@@ -1105,6 +1296,16 @@ pub type hb_font_get_glyph_from_name_func_t = ::std::option::Option<
         user_data: *mut ::std::os::raw::c_void,
     ) -> hb_bool_t,
 >;
+pub type hb_font_get_glyph_shape_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        draw_funcs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
 extern "C" {
     pub fn hb_font_funcs_set_font_h_extents_func(
         ffuncs: *mut hb_font_funcs_t,
@@ -1234,6 +1435,14 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn hb_font_funcs_set_glyph_shape_func(
+        ffuncs: *mut hb_font_funcs_t,
+        func: hb_font_get_glyph_shape_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
     pub fn hb_font_get_h_extents(
         font: *mut hb_font_t,
         extents: *mut hb_font_extents_t,
@@ -1356,6 +1565,14 @@ extern "C" {
         len: ::std::os::raw::c_int,
         glyph: *mut hb_codepoint_t,
     ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_font_get_glyph_shape(
+        font: *mut hb_font_t,
+        glyph: hb_codepoint_t,
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+    );
 }
 extern "C" {
     pub fn hb_font_get_glyph(
@@ -1763,6 +1980,7 @@ pub enum hb_buffer_flags_t {
     HB_BUFFER_FLAG_REMOVE_DEFAULT_IGNORABLES = 8,
     HB_BUFFER_FLAG_DO_NOT_INSERT_DOTTED_CIRCLE = 16,
     HB_BUFFER_FLAG_VERIFY = 32,
+    HB_BUFFER_FLAG_PRODUCE_UNSAFE_TO_CONCAT = 64,
 }
 extern "C" {
     pub fn hb_buffer_set_flags(buffer: *mut hb_buffer_t, flags: hb_buffer_flags_t);
