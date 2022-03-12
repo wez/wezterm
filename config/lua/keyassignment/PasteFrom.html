@@ -148,7 +148,7 @@
                     <main>
                         <h1 id="pastefromsource"><a class="header" href="#pastefromsource">PasteFrom(source)</a></h1>
 <p>Paste the specified clipboard to the current pane.</p>
-<p>This is only really meaningful on X11 systems that have multiple clipboards.</p>
+<p>This is only really meaningful on X11 and some Wayland systems that have multiple clipboards.</p>
 <p>Possible values for source are:</p>
 <ul>
 <li><code>Clipboard</code> - paste from the system clipboard</li>
@@ -166,6 +166,8 @@ return {
   },
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p><code>PrimarySelection</code> is now also supported on Wayland systems that support <a href="https://wayland.app/protocols/primary-selection-unstable-v1">primary-selection-unstable-v1</a> or the older Gtk primary selection protocol.</p>
 
                     </main>
 

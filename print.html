@@ -12809,7 +12809,7 @@ return {
 <p>Possible values for destination are:</p>
 <ul>
 <li><code>Clipboard</code> - copy the text to the system clipboard.</li>
-<li><code>PrimarySelection</code> - Copy the test to the primary selection buffer (applicable to X11 systems only)</li>
+<li><code>PrimarySelection</code> - Copy the test to the primary selection buffer (applicable to X11 and some Wayland systems only)</li>
 <li><code>ClipboardAndPrimarySelection</code> - Copy to both the clipboard and the primary selection.</li>
 </ul>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -12819,6 +12819,8 @@ return {
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p><code>PrimarySelection</code> is now also supported on Wayland systems that support <a href="https://wayland.app/protocols/primary-selection-unstable-v1">primary-selection-unstable-v1</a> or the older Gtk primary selection protocol.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="decreasefontsize"><a class="header" href="#decreasefontsize">DecreaseFontSize</a></h1>
 <p>Decreases the font size of the current window by 10%</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -12992,7 +12994,7 @@ return {
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="pastefromsource"><a class="header" href="#pastefromsource">PasteFrom(source)</a></h1>
 <p>Paste the specified clipboard to the current pane.</p>
-<p>This is only really meaningful on X11 systems that have multiple clipboards.</p>
+<p>This is only really meaningful on X11 and some Wayland systems that have multiple clipboards.</p>
 <p>Possible values for source are:</p>
 <ul>
 <li><code>Clipboard</code> - paste from the system clipboard</li>
@@ -13010,6 +13012,8 @@ return {
   },
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p><code>PrimarySelection</code> is now also supported on Wayland systems that support <a href="https://wayland.app/protocols/primary-selection-unstable-v1">primary-selection-unstable-v1</a> or the older Gtk primary selection protocol.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="pasteprimaryselection"><a class="header" href="#pasteprimaryselection">PastePrimarySelection</a></h1>
 <p>X11: Paste the Primary Selection to the current tab.
 On other systems, this behaves identically to <a href="config/lua/keyassignment/Paste.html">Paste</a>.</p>
