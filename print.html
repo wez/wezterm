@@ -489,6 +489,7 @@ usually the best available version.</p>
 <li>Incorrect umask for panes spawned via the multiplexer server <a href="https://github.com/wez/wezterm/issues/1633">#1633</a></li>
 <li>Fall back from <code>top_left_arrow</code> to <code>left_ptr</code> when loading XCursor themes <a href="https://github.com/wez/wezterm/issues/1655">#1655</a></li>
 <li>Fixed lingering hover state in titlebar when the mouse pointer left the window. Thanks to <a href="https://github.com/davidrios">@davidrios</a>! <a href="https://github.com/wez/wezterm/issues/1434">#1434</a></li>
+<li>We now respect the difference between <code>Italic</code> and <code>Oblique</code> font styles when matching fonts. You may explicitly specify <code>style=&quot;Oblique&quot;</code> rather than using <code>italic=true</code> for fonts that offer both italic and oblique variants. <a href="https://github.com/wez/wezterm/issues/1646">#1646</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
@@ -5983,6 +5984,16 @@ return {
 <li><a href="config/lua/wezterm/../config/freetype_render_target.html">freetype_render_target</a></li>
 <li><a href="config/lua/wezterm/../config/freetype_load_flags.html">freetype_load_flags</a></li>
 </ul>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify <code>style=&quot;Normal&quot;</code>, <code>style=&quot;Italic&quot;</code> or <code>style=&quot;Oblique&quot;</code>
+instead of simply specifying a boolean <code>italic</code> value such as <code>italic=true</code>.</p>
+<p><code>italic=false</code> is equivalent to <code>style=&quot;Normal&quot;</code>, and <code>italic=true</code> is
+equivalent to <code>style=&quot;Italic&quot;</code>.</p>
+<p><code>&quot;Oblique&quot;</code> and <code>&quot;Italic&quot;</code> fonts are similar in the sense that the glyphs
+are presented at an angle.  <code>&quot;Italic&quot;</code> fonts usually have a distinctive
+design difference from the <code>&quot;Normal&quot;</code> style in a given font family,
+whereas <code>&quot;Oblique&quot;</code> usually looks very similar to <code>&quot;Normal&quot;</code>, but skewed
+at an angle.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermfont_with_fallbackfamilies--attributes"><a class="header" href="#weztermfont_with_fallbackfamilies--attributes"><code>wezterm.font_with_fallback(families [, attributes])</code></a></h1>
 <p>This function constructs a lua table that configures a font with fallback processing.
 Glyphs are looked up in the first font in the list but if missing the next font is

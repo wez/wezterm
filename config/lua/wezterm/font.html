@@ -223,6 +223,16 @@ return {
 <li><a href="../config/freetype_render_target.html">freetype_render_target</a></li>
 <li><a href="../config/freetype_load_flags.html">freetype_load_flags</a></li>
 </ul>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify <code>style=&quot;Normal&quot;</code>, <code>style=&quot;Italic&quot;</code> or <code>style=&quot;Oblique&quot;</code>
+instead of simply specifying a boolean <code>italic</code> value such as <code>italic=true</code>.</p>
+<p><code>italic=false</code> is equivalent to <code>style=&quot;Normal&quot;</code>, and <code>italic=true</code> is
+equivalent to <code>style=&quot;Italic&quot;</code>.</p>
+<p><code>&quot;Oblique&quot;</code> and <code>&quot;Italic&quot;</code> fonts are similar in the sense that the glyphs
+are presented at an angle.  <code>&quot;Italic&quot;</code> fonts usually have a distinctive
+design difference from the <code>&quot;Normal&quot;</code> style in a given font family,
+whereas <code>&quot;Oblique&quot;</code> usually looks very similar to <code>&quot;Normal&quot;</code>, but skewed
+at an angle.</p>
 
                     </main>
 
