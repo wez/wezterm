@@ -2,7 +2,7 @@ use crate::fcwrap;
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use anyhow::Context;
-use config::{FontAttributes, FontSlant, FontWeight};
+use config::{FontAttributes, FontStyle, FontWeight};
 use fcwrap::{CharSet, FontSet, Pattern as FontPattern, FC_DUAL, FC_MONO};
 use std::collections::HashSet;
 use std::convert::TryInto;
@@ -118,10 +118,10 @@ impl FontLocator for FontConfigFontLocator {
                 pattern.add_integer("weight", to_fc_weight(attr.weight))?;
                 pattern.add_integer(
                     "slant",
-                    match attr.slant {
-                        FontSlant::Normal => fcwrap::FC_SLANT_ROMAN,
-                        FontSlant::Italic => fcwrap::FC_SLANT_ITALIC,
-                        FontSlant::Oblique => fcwrap::FC_SLANT_OBLIQUE,
+                    match attr.style {
+                        FontStyle::Normal => fcwrap::FC_SLANT_ROMAN,
+                        FontStyle::Italic => fcwrap::FC_SLANT_ITALIC,
+                        FontStyle::Oblique => fcwrap::FC_SLANT_OBLIQUE,
                     },
                 )?;
                 pattern.config_substitute(fcwrap::MatchKind::Pattern)?;

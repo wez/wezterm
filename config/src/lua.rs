@@ -1,6 +1,6 @@
 use crate::keyassignment::KeyAssignment;
 use crate::{
-    FontAttributes, FontSlant, FontStretch, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle,
+    FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle,
 };
 use anyhow::anyhow;
 use bstr::BString;
@@ -451,8 +451,8 @@ struct TextStyleAttributes {
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
-    pub slant: FontSlant,
-    // Ideally we'd simply use serde's aliasing functionality on the `slant`
+    pub style: FontStyle,
+    // Ideally we'd simply use serde's aliasing functionality on the `style`
     // field to support backwards compatibility, but aliases are invisible
     // to serde_lua, so we do a little fixup here ourselves in our from_lua impl.
     italic: Option<bool>,
@@ -466,10 +466,10 @@ impl<'lua> FromLua<'lua> for TextStyleAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
         let mut attr: TextStyleAttributes = from_lua_value(value)?;
         if let Some(italic) = attr.italic.take() {
-            attr.slant = if italic {
-                FontSlant::Italic
+            attr.style = if italic {
+                FontStyle::Italic
             } else {
-                FontSlant::Normal
+                FontStyle::Normal
             };
         }
         Ok(attr)
@@ -487,8 +487,8 @@ struct LuaFontAttributes {
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
-    pub slant: FontSlant,
-    // Ideally we'd simply use serde's aliasing functionality on the `slant`
+    pub style: FontStyle,
+    // Ideally we'd simply use serde's aliasing functionality on the `style`
     // field to support backwards compatibility, but aliases are invisible
     // to serde_lua, so we do a little fixup here ourselves in our from_lua impl.
     #[serde(default)]
@@ -514,10 +514,10 @@ impl<'lua> FromLua<'lua> for LuaFontAttributes {
             v => {
                 let mut attr: LuaFontAttributes = from_lua_value(v)?;
                 if let Some(italic) = attr.italic.take() {
-                    attr.slant = if italic {
-                        FontSlant::Italic
+                    attr.style = if italic {
+                        FontStyle::Italic
                     } else {
-                        FontSlant::Normal
+                        FontStyle::Normal
                     };
                 }
                 Ok(attr)
@@ -549,7 +549,7 @@ fn font<'lua>(
             None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
         };
         attrs.stretch = map_defaults.stretch;
-        attrs.slant = map_defaults.slant;
+        attrs.style = map_defaults.style;
         text_style.foreground = map_defaults.foreground;
     }
 
@@ -557,7 +557,7 @@ fn font<'lua>(
         family: attrs.family,
         stretch: attrs.stretch,
         weight: attrs.weight,
-        slant: attrs.slant,
+        style: attrs.style,
         is_fallback: false,
         is_synthetic: false,
         harfbuzz_features: attrs.harfbuzz_features,
@@ -594,7 +594,7 @@ fn font_with_fallback<'lua>(
                 None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
             };
             attrs.stretch = map_defaults.stretch;
-            attrs.slant = map_defaults.slant;
+            attrs.style = map_defaults.style;
             text_style.foreground = map_defaults.foreground;
         }
 
@@ -602,7 +602,7 @@ fn font_with_fallback<'lua>(
             family: attrs.family,
             stretch: attrs.stretch,
             weight: attrs.weight,
-            slant: attrs.slant,
+            style: attrs.style,
             is_fallback: idx != 0,
             is_synthetic: false,
             harfbuzz_features: attrs.harfbuzz_features,

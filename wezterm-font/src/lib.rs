@@ -5,7 +5,7 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, PresentationWidth};
 use anyhow::{Context, Error};
 use config::{
-    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontSlant, FontStretch,
+    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontStretch, FontStyle,
     FontWeight, TextStyle,
 };
 use rangeset::RangeSet;
@@ -697,7 +697,7 @@ impl FontConfigInner {
         for attr in &attributes {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
                 let styled_extra = if attr.weight != FontWeight::default()
-                    || attr.slant != FontSlant::default()
+                    || attr.style != FontStyle::default()
                     || attr.stretch != FontStretch::default()
                 {
                     ". An alternative variant of the font was requested; \

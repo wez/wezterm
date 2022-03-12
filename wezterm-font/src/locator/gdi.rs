@@ -3,7 +3,7 @@
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::{best_matching_font, parse_and_collect_font_info, ParsedFont};
 use config::{
-    FontAttributes, FontSlant as WTFontSlant, FontStretch as WTFontStretch,
+    FontAttributes, FontStretch as WTFontStretch, FontStyle as WTFontStyle,
     FontWeight as WTFontWeight,
 };
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
@@ -102,7 +102,7 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
         lfEscapement: 0,
         lfOrientation: 0,
         lfWeight: font_attr.weight.to_opentype_weight() as _,
-        lfItalic: if font_attr.slant != WTFontSlant::Normal {
+        lfItalic: if font_attr.slant != WTFontStyle::Normal {
             1
         } else {
             0
@@ -150,7 +150,7 @@ pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFo
         let mut attr = FontAttributes::new(&name);
         attr.weight = config::FontWeight::from_opentype_weight(log_font.lfWeight as u16);
         if log_font.lfItalic == 1 {
-            attr.slant = WTFontSlant::Italic;
+            attr.slant = WTFontStyle::Italic;
         }
 
         let mut font_info = vec![];
@@ -171,9 +171,9 @@ fn attributes_to_descriptor(font_attr: &FontAttributes) -> FontDescriptor {
         weight: FontWeight::from_u32(font_attr.weight.to_opentype_weight() as u32),
         stretch: FontStretch::Normal,
         style: match font_attr.slant {
-            WTFontSlant::Italic => FontStyle::Italic,
-            WTFontSlant::Oblique => FontStyle::Oblique,
-            WTFontSlant::Normal => FontStyle::Normal,
+            WTFontStyle::Italic => FontStyle::Italic,
+            WTFontStyle::Oblique => FontStyle::Oblique,
+            WTFontStyle::Normal => FontStyle::Normal,
         },
     }
 }
@@ -319,7 +319,7 @@ impl FontLocator for GdiFontLocator {
                     let attr = FontAttributes {
                         weight: WTFontWeight::from_opentype_weight(font.weight().to_u32() as _),
                         stretch: WTFontStretch::from_opentype_stretch(font.stretch().to_u32() as _),
-                        slant: WTFontSlant::Normal,
+                        slant: WTFontStyle::Normal,
                         family: font.family_name(),
                         is_fallback: true,
                         is_synthetic: true,

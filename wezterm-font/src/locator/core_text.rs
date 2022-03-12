@@ -2,7 +2,7 @@
 
 use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
-use config::{FontAttributes, FontSlant, FontStretch, FontWeight};
+use config::{FontAttributes, FontStretch, FontStyle, FontWeight};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
@@ -190,7 +190,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         family: "Apple Symbols".to_string(),
         weight: FontWeight::REGULAR,
         stretch: FontStretch::Normal,
-        slant: FontSlant::Normal,
+        slant: FontStyle::Normal,
         is_fallback: true,
         is_synthetic: true,
         harfbuzz_features: None,
@@ -208,7 +208,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     fonts.retain(|f| {
         f.weight() == FontWeight::REGULAR
             && f.stretch() == FontStretch::Normal
-            && f.slant() == FontSlant::Normal
+            && f.slant() == FontStyle::Normal
     });
 
     let mut seen = HashSet::new();

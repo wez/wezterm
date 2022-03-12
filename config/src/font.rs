@@ -10,13 +10,13 @@ use termwiz::color::RgbColor;
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Hash, Display, PartialOrd, Ord,
 )]
-pub enum FontSlant {
+pub enum FontStyle {
     Normal,
     Italic,
     Oblique,
 }
 
-impl Default for FontSlant {
+impl Default for FontStyle {
     fn default() -> Self {
         Self::Normal
     }
@@ -350,7 +350,7 @@ pub struct FontAttributes {
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
-    pub slant: FontSlant,
+    pub style: FontStyle,
     pub is_fallback: bool,
     pub is_synthetic: bool,
 
@@ -369,8 +369,8 @@ impl std::fmt::Display for FontAttributes {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "wezterm.font('{}', {{weight={}, stretch='{}', slant={}}})",
-            self.family, self.weight, self.stretch, self.slant
+            "wezterm.font('{}', {{weight={}, stretch='{}', style={}}})",
+            self.family, self.weight, self.stretch, self.style
         )
     }
 }
@@ -381,7 +381,7 @@ impl FontAttributes {
             family: family.into(),
             weight: FontWeight::default(),
             stretch: FontStretch::default(),
-            slant: FontSlant::Normal,
+            style: FontStyle::Normal,
             is_fallback: false,
             is_synthetic: false,
             harfbuzz_features: None,
@@ -396,7 +396,7 @@ impl FontAttributes {
             family: family.into(),
             weight: FontWeight::default(),
             stretch: FontStretch::default(),
-            slant: FontSlant::Normal,
+            style: FontStyle::Normal,
             is_fallback: true,
             is_synthetic: false,
             harfbuzz_features: None,
@@ -413,7 +413,7 @@ impl Default for FontAttributes {
             family: "JetBrains Mono".into(),
             weight: FontWeight::default(),
             stretch: FontStretch::default(),
-            slant: FontSlant::Normal,
+            style: FontStyle::Normal,
             is_fallback: false,
             is_synthetic: false,
             harfbuzz_features: None,
@@ -550,7 +550,7 @@ impl TextStyle {
                 .iter()
                 .map(|attr| {
                     let mut attr = attr.clone();
-                    attr.slant = FontSlant::Italic;
+                    attr.style = FontStyle::Italic;
                     attr.is_synthetic = true;
                     attr
                 })
