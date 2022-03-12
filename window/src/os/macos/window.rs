@@ -2186,6 +2186,20 @@ impl WindowView {
                 }
             } else if chars.is_empty() || chars == unmod {
                 (key, None)
+            } else if !chars.is_empty()
+                && !unmod.is_empty()
+                && modifiers.contains(Modifiers::SHIFT)
+                && modifiers.contains(Modifiers::ALT)
+            {
+                // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
+                // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
+                // In this case, we take the key from unmod.
+                // We leave `raw` set to None as we want to preserve the value of modifiers.
+                // <https://github.com/wez/wezterm/issues/1706>
+                match key_string_to_key_code(unmod) {
+                    Some(key) => (key, None),
+                    None => return,
+                }
             } else {
                 let raw = key_string_to_key_code(unmod);
                 match (&key, &raw) {
