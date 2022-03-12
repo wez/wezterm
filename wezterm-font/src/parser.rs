@@ -242,11 +242,10 @@ impl ParsedFont {
         let assume_emoji_presentation = has_color;
 
         let names = Names::from_ft_face(&face);
+        // Objectively gross, but freetype's italic property is very coarse grained.
+        // fontconfig resorts to name matching, so we do too :-/
         let slant = match slant {
             FontSlant::Normal => {
-                // Objectively gross, but freetype's italic property isn't always
-                // set for italic fonts.
-                // fontconfig resorts to name matching, so we do too :-/
                 let lower = names.full_name.to_lowercase();
                 if lower.contains("italic") || lower.contains("kursiv") {
                     FontSlant::Italic
@@ -256,7 +255,16 @@ impl ParsedFont {
                     FontSlant::Normal
                 }
             }
-            slant => slant,
+            FontSlant::Italic => {
+                let lower = names.full_name.to_lowercase();
+                if lower.contains("oblique") {
+                    FontSlant::Oblique
+                } else {
+                    FontSlant::Italic
+                }
+            }
+            // Currently "impossible" because freetype only knows italic or normal
+            FontSlant::Oblique => FontSlant::Oblique,
         };
 
         Ok(Self {
