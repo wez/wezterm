@@ -73,6 +73,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fall back from `top_left_arrow` to `left_ptr` when loading XCursor themes [#1655](https://github.com/wez/wezterm/issues/1655)
 * Fixed lingering hover state in titlebar when the mouse pointer left the window. Thanks to [@davidrios](https://github.com/davidrios)! [#1434](https://github.com/wez/wezterm/issues/1434)
 * We now respect the difference between `Italic` and `Oblique` font styles when matching fonts. You may explicitly specify `style="Oblique"` rather than using `italic=true` for fonts that offer both italic and oblique variants. [#1646](https://github.com/wez/wezterm/issues/1646)
+* Hang when clicking a URL would launch the browser for the first time on unix systems [#1721](https://github.com/wez/wezterm/issues/1721)
 
 ### 20220101-133340-7edc5b5a
 
