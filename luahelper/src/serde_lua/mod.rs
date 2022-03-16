@@ -125,6 +125,24 @@ impl<'lua> Ord for ValueWrapper<'lua> {
     }
 }
 
+fn table_has_cycle(top: &Table, value: &Value) -> bool {
+    if let Value::Table(table) = value {
+        for pair in table.clone().pairs::<Value, Value>() {
+            if let Ok(pair) = pair {
+                if let Value::Table(child) = pair.1 {
+                    if child == *top || child == *table {
+                        return true;
+                    }
+                    if table_has_cycle(top, &Value::Table(child)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
 impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         match &self.0 {
@@ -140,10 +158,14 @@ impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
                 if let Ok(true) = t.contains_key(1) {
                     // Treat as list
                     let mut list = fmt.debug_list();
-                    for value in t.clone().sequence_values() {
+                    for (idx, value) in t.clone().sequence_values().enumerate() {
                         match value {
                             Ok(value) => {
-                                list.entry(&ValueWrapper(value));
+                                if !table_has_cycle(t, &value) {
+                                    list.entry(&ValueWrapper(value));
+                                } else {
+                                    log::warn!("Ignoring value at ordinal position {} which has cyclical reference", idx);
+                                }
                             }
                             Err(err) => {
                                 list.entry(&err);
@@ -158,7 +180,14 @@ impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
                     for pair in t.clone().pairs::<Value, Value>() {
                         match pair {
                             Ok(pair) => {
-                                map.insert(ValueWrapper(pair.0), ValueWrapper(pair.1));
+                                if !table_has_cycle(t, &pair.1) {
+                                    map.insert(ValueWrapper(pair.0), ValueWrapper(pair.1));
+                                } else {
+                                    log::warn!(
+                                        "Ignoring field {:?} which has cyclical reference",
+                                        ValueWrapper(pair.0)
+                                    );
+                                }
                             }
                             Err(err) => {
                                 log::error!("error while retrieving map entry: {}", err);
