@@ -58,3 +58,41 @@ end)
 return {
 }
 ```
+
+*Since: nightly builds only*
+
+The `has_unseen_output` field returns true if the there has been output
+in the pane since the last time it was focused.
+
+This example shows how to use this event to change the color of the
+tab in the tab bar when there is unseen output.
+
+```lua
+local wezterm = require 'wezterm'
+
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
+  if tab.is_active then
+    return {
+      {Background={Color="blue"}},
+      {Text=" " .. tab.active_pane.title .. " "},
+    }
+  end
+  local has_unseen_output = false
+  for _, pane in ipairs(tab.panes) do
+    if pane.has_unseen_output then
+      has_unseen_output = true
+      break;
+    end
+  end
+  if has_unseen_output then
+    return {
+      {Background={Color="Orange"}},
+      {Text=" " .. tab.active_pane.title .. " "},
+    }
+  end
+  return tab.active_pane.title
+end)
+
+return {
+}
+```
