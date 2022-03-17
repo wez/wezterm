@@ -6,7 +6,7 @@ use serde::de::{
 };
 use serde::{serde_if_integer128, Deserialize};
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::convert::TryInto;
 use thiserror::*;
 
@@ -127,18 +127,39 @@ impl<'lua> Ord for ValueWrapper<'lua> {
 
 fn table_has_cycle(top: &Table, value: &Value) -> bool {
     if let Value::Table(table) = value {
-        for pair in table.clone().pairs::<Value, Value>() {
-            if let Ok(pair) = pair {
-                if let Value::Table(child) = pair.1 {
-                    if child == *top || child == *table {
-                        return true;
-                    }
-                    if table_has_cycle(top, &Value::Table(child)) {
-                        return true;
+        let mut seen = HashSet::new();
+
+        /// Capture the lua reference number. There's no direct accessor,
+        /// but the debug struct includes that number.
+        fn lref(t: &Table) -> String {
+            format!("{:?}", t)
+        }
+
+        seen.insert(lref(top));
+
+        fn check_cycle(seen: &mut HashSet<String>, table: &Table, depth: usize) -> bool {
+            let cref = lref(table);
+            if seen.contains(&cref) {
+                return true;
+            }
+            if depth > 128 {
+                // Seems suspicious
+                return true;
+            }
+            seen.insert(cref);
+            for pair in table.clone().pairs::<Value, Value>() {
+                if let Ok(pair) = pair {
+                    if let Value::Table(child) = pair.1 {
+                        if check_cycle(seen, &child, depth + 1) {
+                            return true;
+                        }
                     }
                 }
             }
+            false
         }
+
+        return check_cycle(&mut seen, table, 0);
     }
     false
 }
