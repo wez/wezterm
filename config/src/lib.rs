@@ -703,6 +703,9 @@ where
     deserializer.deserialize_any(Number)
 }
 
+/// Helper for deserializing a Vec<T> from lua code.
+/// In lua, `{}` could be either an empty map or an empty vec.
+/// This helper allows an empty map to be specified and treated as an empty vec.
 pub fn de_vec_table<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
