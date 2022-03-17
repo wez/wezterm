@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Experimental (and incomplete!) support for Bidi/RTL can be enabled through the config. [Follow along in the tracking issue](https://github.com/wez/wezterm/issues/784)
 * Primary selection is now supported on Wayland systems that implement [primary-selection-unstable-v1](https://wayland.app/protocols/primary-selection-unstable-v1) or the older Gtk primary selection protocol. Thanks to [@lunaryorn](https://github.com/lunaryorn)! [#1423](https://github.com/wez/wezterm/issues/1423)
 * [pane:has_unseen_output()](config/lua/pane/has_unseen_output.md) and [PaneInformation.has_unseen_output](config/lua/PaneInformation.md) allow coloring or marking up tabs based on unseen output. [#796](https://github.com/wez/wezterm/discussions/796)
+* Context menu extension for Nautilus. Thanks to [@lunaryorn](https://github.com/lunaryorn)! [#1092](https://github.com/wez/wezterm/issues/1092)
 
 #### Changed
 
