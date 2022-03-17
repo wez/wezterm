@@ -15,7 +15,7 @@ use crate::units::{de_pixels, Dimension};
 use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
-    de_number, default_config_with_overrides_applied, default_one_point_oh,
+    de_number, de_vec_table, default_config_with_overrides_applied, default_one_point_oh,
     default_one_point_oh_f64, default_true, make_lua_context, LoadedConfig, CONFIG_DIR,
     CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
@@ -246,7 +246,7 @@ pub struct Config {
     #[serde(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
-    #[serde(default = "default_mux_env_remove")]
+    #[serde(default = "default_mux_env_remove", deserialize_with = "de_vec_table")]
     pub mux_env_remove: Vec<String>,
 
     #[serde(default)]

@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::DirBuilder;
+use std::marker::PhantomData;
 #[cfg(unix)]
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
@@ -700,6 +701,61 @@ where
     }
 
     deserializer.deserialize_any(Number)
+}
+
+pub fn de_vec_table<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    struct V<T> {
+        phantom: PhantomData<T>,
+    }
+
+    impl<'de, T> serde::de::Visitor<'de> for V<T>
+    where
+        T: Deserialize<'de>,
+    {
+        type Value = Vec<T>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Empty table or vector-like table")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut values = if let Some(hint) = seq.size_hint() {
+                Vec::with_capacity(hint)
+            } else {
+                Vec::new()
+            };
+            while let Some(ele) = seq.next_element::<T>()? {
+                values.push(ele);
+            }
+            Ok(values)
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            if map.next_entry::<String, T>()?.is_some() {
+                use serde::de::Error;
+                Err(A::Error::custom(
+                    "expected empty table or vector-like table",
+                ))
+            } else {
+                // Empty map is equivalent to empty vec
+                Ok(vec![])
+            }
+        }
+    }
+
+    deserializer.deserialize_any(V {
+        phantom: PhantomData,
+    })
 }
 
 pub struct LoadedConfig {
