@@ -171,13 +171,26 @@ pub fn get_entries() -> Vec<Entry> {
 fn setup_pretty() -> (LevelFilter, Option<Box<dyn log::Log>>) {
     #[cfg(windows)]
     {
+        use std::os::windows::io::IntoRawHandle;
         use winapi::um::winbase::STD_ERROR_HANDLE;
-        // Working around <https://github.com/rust-lang/rust/issues/88576>
-        // wherein Rust 1.56 panics in the case that stderr is NULL.
-        // That can legitimately occur in a Windows subsystem executable.
-        // We detect that here and avoid initializing the pretty env logger.
+
+        // When launched as a GUI, stderr is null.
+        // Let's redirect it to a log file to aid in debugging.
         if unsafe { winapi::um::processenv::GetStdHandle(STD_ERROR_HANDLE).is_null() } {
-            return (LevelFilter::Info, None);
+            let log_file_name =
+                config::RUNTIME_DIR.join(format!("gui-log-{}.txt", unsafe { libc::getpid() }));
+            if let Ok(file) = std::fs::OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(log_file_name)
+            {
+                let handle = file.into_raw_handle();
+                unsafe { winapi::um::processenv::SetStdHandle(STD_ERROR_HANDLE, handle) };
+            } else {
+                // If we fail to init a log file, skip setting up a logger to
+                // avoid a panic when built with 1.56
+                return (LevelFilter::Info, None);
+            }
         }
     }
 

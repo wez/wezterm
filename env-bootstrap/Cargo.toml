@@ -11,6 +11,7 @@ chrono = {version="0.4", features=["unstable-locales"]}
 config = { path = "../config" }
 dirs-next = "2.0"
 lazy_static = "1.4"
+libc = "0.2"
 log = "0.4"
 pretty_env_logger = "0.4"
 
@@ -19,6 +20,5 @@ winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20"
-libc = "0.2"
 objc = "0.2"
 
