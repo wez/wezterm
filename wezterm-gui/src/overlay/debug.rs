@@ -141,7 +141,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
 
             let expr = format!("return {}", line);
             let chunk = host.lua.load(&expr);
-            match chunk.eval::<Value>() {
+            match smol::block_on(chunk.eval_async::<Value>()) {
                 Ok(result) => {
                     let text = format!("{:?}", ValueWrapper(result));
                     term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
