@@ -26,6 +26,9 @@ depends=(
   'xcb-util-keysyms'
   'xcb-util-wm'
 )
+optdepends=(
+  'python-nautilus: WezTerm context menu in Nautilus'
+)
 source=(
   "wezterm::https://github.com/wez/wezterm/releases/download/${_tag}/WezTerm-${_tag}-Ubuntu16.04.AppImage"
   'LICENSE::https://github.com/wez/wezterm/raw/main/LICENSE.md'
@@ -56,4 +59,6 @@ package() {
                  "${pkgdir}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png"
   install -Dm644 squashfs-root/usr/share/applications/org.wezfurlong.wezterm.desktop \
                  "${pkgdir}/usr/share/applications/org.wezfurlong.wezterm.desktop"
+  install -Dm644 squashfs-root/usr/share/nautilus-python/extensions/wezterm-nautilus.py \
+                 "${pkgdir}/usr/share/nautilus-python/extensions/wezterm-nautilus.py"
 }

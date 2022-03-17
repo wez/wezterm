@@ -156,6 +156,7 @@ install -Dm644 assets/shell-integration/* -t %{buildroot}/etc/profile.d
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
 install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python/extensions/wezterm-nautilus.py
 
 %files
 /usr/bin/wezterm
@@ -165,6 +166,7 @@ install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.we
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/applications/org.wezfurlong.wezterm.desktop
 /usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+/usr/share/nautilus-python/extensions/wezterm-nautilus.py
 /etc/profile.d/*
 EOF
 
@@ -203,6 +205,7 @@ EOF
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+        install -Dm644 assets/wezterm-nautilus.py pkg/debian/usr/share/nautilus-python/extensions/wezterm-nautilus.py
         install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
