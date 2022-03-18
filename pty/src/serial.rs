@@ -10,7 +10,7 @@ use crate::{
     SlavePty,
 };
 use anyhow::{ensure, Context};
-use filedescriptor::{poll, pollfd, AsRawSocketDescriptor, FileDescriptor, POLLIN};
+use filedescriptor::FileDescriptor;
 use serial::{
     BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
 };
@@ -241,6 +241,7 @@ impl Read for Reader {
         loop {
             #[cfg(unix)]
             {
+                use filedescriptor::{poll, pollfd, AsRawSocketDescriptor, POLLIN};
                 // The serial crate puts the serial port in non-blocking mode,
                 // so we must explicitly poll for ourselves here to avoid a
                 // busy loop.
