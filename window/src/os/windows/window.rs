@@ -1875,18 +1875,25 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             .normalize_shift()
                             .normalize_ctrl();
 
-                            inner.events.dispatch(WindowEvent::KeyEvent(key));
+                            inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
 
                             // And then we'll perform normal processing on the
                             // current key press
-                            if inner
-                                .keyboard_info
-                                .is_dead_key_leader(modifiers, vk)
-                                .is_some()
+                            if let Some(new_dead_char) =
+                                inner.keyboard_info.is_dead_key_leader(modifiers, vk)
                             {
-                                // Happens to be the start of its own new
-                                // dead key sequence
-                                inner.dead_pending.replace((modifiers, vk));
+                                if new_dead_char != c {
+                                    // Happens to be the start of its own new,
+                                    // different, dead key sequence
+                                    inner.dead_pending.replace((modifiers, vk));
+                                    return Some(0);
+                                }
+
+                                // They pressed the same dead key twice,
+                                // emit the underlying char again and call
+                                // it done.
+                                // <https://github.com/wez/wezterm/issues/1729>
+                                inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
                                 return Some(0);
                             }
 
