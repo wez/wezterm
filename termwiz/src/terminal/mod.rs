@@ -83,8 +83,8 @@ pub trait Terminal {
     /// will not return until an event is available.  If wait is
     /// `Some(duration)` then `poll_input` will wait up to the given
     /// duration for an event before returning with a value of
-    /// `Ok(None)`.  If wait is `Some(Duration::new(0, 0))` then
-    /// the poll is non-blocking.
+    /// `Ok(None)`.  If wait is `Some(Duration::ZERO)` then the
+    /// poll is non-blocking.
     ///
     /// The possible values returned as `InputEvent`s depend on the
     /// mode of the terminal.  Most values are not returned unless
