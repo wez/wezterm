@@ -30,6 +30,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Primary selection is now supported on Wayland systems that implement [primary-selection-unstable-v1](https://wayland.app/protocols/primary-selection-unstable-v1) or the older Gtk primary selection protocol. Thanks to [@lunaryorn](https://github.com/lunaryorn)! [#1423](https://github.com/wez/wezterm/issues/1423)
 * [pane:has_unseen_output()](config/lua/pane/has_unseen_output.md) and [PaneInformation.has_unseen_output](config/lua/PaneInformation.md) allow coloring or marking up tabs based on unseen output. [#796](https://github.com/wez/wezterm/discussions/796)
 * Context menu extension for Nautilus. Thanks to [@lunaryorn](https://github.com/lunaryorn)! [#1092](https://github.com/wez/wezterm/issues/1092)
+* [wezterm.enumerate_ssh_hosts()](config/lua/wezterm/enumerate_ssh_hosts.md) function that can be used to auto-generate ssh domain configuration
 
 #### Changed
 

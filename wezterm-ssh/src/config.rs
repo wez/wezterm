@@ -1,7 +1,7 @@
 //! Parse an ssh_config(5) formatted config file
 use regex::{Captures, Regex};
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub type ConfigMap = BTreeMap<String, String>;
 
@@ -10,24 +10,29 @@ pub type ConfigMap = BTreeMap<String, String>;
 struct Pattern {
     negated: bool,
     pattern: String,
+    original: String,
+    is_literal: bool,
 }
 
 /// Compile a glob style pattern string into a regex pattern string
-fn wildcard_to_pattern(s: &str) -> String {
+fn wildcard_to_pattern(s: &str) -> (String, bool) {
     let mut pattern = String::new();
+    let mut is_literal = true;
     pattern.push('^');
     for c in s.chars() {
         if c == '*' {
             pattern.push_str(".*");
+            is_literal = false;
         } else if c == '?' {
             pattern.push('.');
+            is_literal = false;
         } else {
             let s = regex::escape(&c.to_string());
             pattern.push_str(&s);
         }
     }
     pattern.push('$');
-    pattern
+    (pattern, is_literal)
 }
 
 impl Pattern {
@@ -41,9 +46,12 @@ impl Pattern {
     }
 
     fn new(text: &str, negated: bool) -> Self {
+        let (pattern, is_literal) = wildcard_to_pattern(text);
         Self {
-            pattern: wildcard_to_pattern(text),
+            pattern,
+            is_literal,
             negated,
+            original: text.to_string(),
         }
     }
 
@@ -137,16 +145,27 @@ struct ParsedConfigFile {
     options: ConfigMap,
     /// options inside a `Host` stanza
     groups: Vec<MatchGroup>,
+    /// list of loaded file names
+    loaded_files: Vec<PathBuf>,
 }
 
 impl ParsedConfigFile {
-    fn parse(s: &str, cwd: Option<&Path>) -> Self {
+    fn parse(s: &str, cwd: Option<&Path>, source_file: Option<&Path>) -> Self {
         let mut options = ConfigMap::new();
         let mut groups = vec![];
+        let mut loaded_files = vec![];
 
-        Self::parse_impl(s, cwd, &mut options, &mut groups);
+        if let Some(source) = source_file {
+            loaded_files.push(source.to_path_buf());
+        }
 
-        Self { options, groups }
+        Self::parse_impl(s, cwd, &mut options, &mut groups, &mut loaded_files);
+
+        Self {
+            options,
+            groups,
+            loaded_files,
+        }
     }
 
     fn do_include(
@@ -154,6 +173,7 @@ impl ParsedConfigFile {
         cwd: Option<&Path>,
         options: &mut ConfigMap,
         groups: &mut Vec<MatchGroup>,
+        loaded_files: &mut Vec<PathBuf>,
     ) {
         match filenamegen::Glob::new(&pattern) {
             Ok(g) => {
@@ -171,7 +191,14 @@ impl ParsedConfigFile {
                             };
                             match std::fs::read_to_string(&path) {
                                 Ok(data) => {
-                                    Self::parse_impl(&data, Some(&cwd), options, groups);
+                                    loaded_files.push(path.clone());
+                                    Self::parse_impl(
+                                        &data,
+                                        Some(&cwd),
+                                        options,
+                                        groups,
+                                        loaded_files,
+                                    );
                                 }
                                 Err(err) => {
                                     log::error!(
@@ -203,6 +230,7 @@ impl ParsedConfigFile {
         cwd: Option<&Path>,
         options: &mut ConfigMap,
         groups: &mut Vec<MatchGroup>,
+        loaded_files: &mut Vec<PathBuf>,
     ) {
         for line in s.lines() {
             let line = line.trim();
@@ -250,7 +278,7 @@ impl ParsedConfigFile {
                 }
 
                 if k == "include" {
-                    Self::do_include(v, cwd, options, groups);
+                    Self::do_include(v, cwd, options, groups, loaded_files);
                     continue;
                 }
 
@@ -422,15 +450,18 @@ impl Config {
     /// and add that to the list of configs.
     pub fn add_config_string(&mut self, config_string: &str) {
         self.config_files
-            .push(ParsedConfigFile::parse(config_string, None));
+            .push(ParsedConfigFile::parse(config_string, None, None));
     }
 
     /// Open `path`, read its contents and parse it as an `ssh_config` file,
     /// adding that to the list of configs
     pub fn add_config_file<P: AsRef<Path>>(&mut self, path: P) {
         if let Ok(data) = std::fs::read_to_string(path.as_ref()) {
-            self.config_files
-                .push(ParsedConfigFile::parse(&data, path.as_ref().parent()));
+            self.config_files.push(ParsedConfigFile::parse(
+                &data,
+                path.as_ref().parent(),
+                Some(path.as_ref()),
+            ));
         }
     }
 
@@ -484,7 +515,7 @@ impl Config {
         }
 
         if needs_reparse {
-            log::warn!(
+            log::debug!(
                 "ssh configuration uses options that require two-phase \
                 parsing, which isn't supported"
             );
@@ -637,6 +668,47 @@ impl Config {
             })
             .to_string();
     }
+
+    /// Returns the list of file names that were loaded as part of parsing
+    /// the ssh config
+    pub fn loaded_config_files(&self) -> Vec<PathBuf> {
+        let mut files = vec![];
+
+        for config in &self.config_files {
+            for file in &config.loaded_files {
+                if !files.contains(file) {
+                    files.push(file.to_path_buf());
+                }
+            }
+        }
+
+        files
+    }
+
+    /// Returns the list of host names that have defined ssh config entries.
+    /// The host names are literal (non-pattern), non-negated hosts extracted
+    /// from `Host` and `Match` stanzas in the ssh config.
+    pub fn enumerate_hosts(&self) -> Vec<String> {
+        let mut hosts = vec![];
+
+        for config in &self.config_files {
+            for group in &config.groups {
+                for c in &group.criteria {
+                    if let Criteria::Host(patterns) = c {
+                        for pattern in patterns {
+                            if pattern.is_literal && !pattern.negated {
+                                if !hosts.contains(&pattern.original) {
+                                    hosts.push(pattern.original.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        hosts
+    }
 }
 
 #[cfg(test)]
@@ -677,6 +749,8 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^foo$",
+                                    original: "foo",
+                                    is_literal: true,
                                 },
                             ],
                         ),
@@ -689,6 +763,7 @@ Config {
                     },
                 },
             ],
+            loaded_files: [],
         },
     ],
     options: {},
@@ -834,10 +909,14 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^192\\.168\\.1\\.8$",
+                                    original: "192.168.1.8",
+                                    is_literal: true,
                                 },
                                 Pattern {
                                     negated: false,
                                     pattern: "^wopr$",
+                                    original: "wopr",
+                                    is_literal: true,
                                 },
                             ],
                         ),
@@ -855,10 +934,14 @@ Config {
                                 Pattern {
                                     negated: true,
                                     pattern: "^a\\.b$",
+                                    original: "a.b",
+                                    is_literal: true,
                                 },
                                 Pattern {
                                     negated: false,
                                     pattern: "^.*\\.b$",
+                                    original: "*.b",
+                                    is_literal: false,
                                 },
                             ],
                         ),
@@ -867,6 +950,8 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^fred$",
+                                    original: "fred",
+                                    is_literal: true,
                                 },
                             ],
                         ),
@@ -884,10 +969,14 @@ Config {
                                 Pattern {
                                     negated: true,
                                     pattern: "^a\\.b$",
+                                    original: "a.b",
+                                    is_literal: true,
                                 },
                                 Pattern {
                                     negated: false,
                                     pattern: "^.*\\.b$",
+                                    original: "*.b",
+                                    is_literal: false,
                                 },
                             ],
                         ),
@@ -896,6 +985,8 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^me$",
+                                    original: "me",
+                                    is_literal: true,
                                 },
                             ],
                         ),
@@ -913,6 +1004,8 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^.*$",
+                                    original: "*",
+                                    is_literal: false,
                                 },
                             ],
                         ),
@@ -923,6 +1016,7 @@ Config {
                     },
                 },
             ],
+            loaded_files: [],
         },
     ],
     options: {},
@@ -934,6 +1028,16 @@ Config {
         },
     ),
 }
+"#
+        );
+
+        snapshot!(
+            config.enumerate_hosts(),
+            r#"
+[
+    "192.168.1.8",
+    "wopr",
+]
 "#
         );
 
@@ -1068,10 +1172,14 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^192\\.168\\.1\\.8$",
+                                    original: "192.168.1.8",
+                                    is_literal: true,
                                 },
                                 Pattern {
                                     negated: false,
                                     pattern: "^wopr$",
+                                    original: "wopr",
+                                    is_literal: true,
                                 },
                             ],
                         ),
@@ -1089,10 +1197,14 @@ Config {
                                 Pattern {
                                     negated: true,
                                     pattern: "^a\\.b$",
+                                    original: "a.b",
+                                    is_literal: true,
                                 },
                                 Pattern {
                                     negated: false,
                                     pattern: "^.*\\.b$",
+                                    original: "*.b",
+                                    is_literal: false,
                                 },
                             ],
                         ),
@@ -1110,6 +1222,8 @@ Config {
                                 Pattern {
                                     negated: false,
                                     pattern: "^.*$",
+                                    original: "*",
+                                    is_literal: false,
                                 },
                             ],
                         ),
@@ -1120,6 +1234,7 @@ Config {
                     },
                 },
             ],
+            loaded_files: [],
         },
     ],
     options: {},

@@ -687,6 +687,7 @@ dependencies = [
  "unicode-segmentation",
  "wezterm-bidi",
  "wezterm-input-types",
+ "wezterm-ssh",
  "wezterm-term",
  "winapi 0.3.9",
 ]

@@ -42,6 +42,7 @@ umask = { path = "../umask" }
 unicode-segmentation = "1.8"
 wezterm-bidi = { path = "../bidi", features=["use_serde"] }
 wezterm-input-types = { path = "../wezterm-input-types" }
+wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]

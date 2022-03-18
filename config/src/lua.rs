@@ -8,6 +8,7 @@ pub use luahelper::*;
 use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
 use serde::*;
 use smol::prelude::*;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::Path;
 use termwiz::cell::{grapheme_column_width, unicode_column_width, AttributeChange, CellAttributes};
@@ -92,12 +93,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         lua.set_named_registry_value("wezterm-watch-paths", Vec::<String>::new())?;
         wezterm_mod.set(
             "add_to_config_reload_watch_list",
-            lua.create_function(|lua, args: Variadic<String>| {
-                let mut watch_paths: Vec<String> =
-                    lua.named_registry_value("wezterm-watch-paths")?;
-                watch_paths.extend_from_slice(&args);
-                lua.set_named_registry_value("wezterm-watch-paths", watch_paths)
-            })?,
+            lua.create_function(add_to_config_reload_watch_list)?,
         )?;
 
         wezterm_mod.set("target_triple", crate::wezterm_target_triple())?;
@@ -241,6 +237,10 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
         wezterm_mod.set("battery_info", lua.create_function(battery_info)?)?;
         wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
+        wezterm_mod.set(
+            "enumerate_ssh_hosts",
+            lua.create_function(enumerate_ssh_hosts)?,
+        )?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -919,6 +919,43 @@ fn gradient_colors<'lua>(
         .into_iter()
         .map(|c| c.to_hex_string())
         .collect())
+}
+
+fn add_to_config_reload_watch_list<'lua>(
+    lua: &'lua Lua,
+    args: Variadic<String>,
+) -> mlua::Result<()> {
+    let mut watch_paths: Vec<String> = lua.named_registry_value("wezterm-watch-paths")?;
+    watch_paths.extend_from_slice(&args);
+    lua.set_named_registry_value("wezterm-watch-paths", watch_paths)?;
+    Ok(())
+}
+
+fn enumerate_ssh_hosts<'lua>(
+    lua: &'lua Lua,
+    config_files: Variadic<String>,
+) -> mlua::Result<HashMap<String, wezterm_ssh::ConfigMap>> {
+    let mut config = wezterm_ssh::Config::new();
+    for file in config_files {
+        config.add_config_file(file);
+    }
+    config.add_default_config_files();
+
+    // Trigger a config reload if any of the parsed ssh config files change
+    let files: Variadic<String> = config
+        .loaded_config_files()
+        .into_iter()
+        .filter_map(|p| p.to_str().map(|s| s.to_string()))
+        .collect();
+    add_to_config_reload_watch_list(lua, files)?;
+
+    let mut map = HashMap::new();
+    for host in config.enumerate_hosts() {
+        let host_config = config.for_host(&host);
+        map.insert(host, host_config);
+    }
+
+    Ok(map)
 }
 
 #[cfg(test)]
