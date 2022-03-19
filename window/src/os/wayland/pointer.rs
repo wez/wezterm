@@ -91,7 +91,9 @@ impl Inner {
 
 pub struct PointerDispatcher {
     inner: Arc<Mutex<Inner>>,
+    dev_mgr: Attached<WlDataDeviceManager>,
     pub(crate) data_device: Main<WlDataDevice>,
+    selection_manager: Option<PrimarySelectionDeviceManager>,
     pub(crate) primary_selection_device: Option<PrimarySelectionDevice>,
     auto_pointer: ThemedPointer,
     #[allow(dead_code)]
@@ -249,17 +251,48 @@ impl PointerDispatcher {
             }
         });
 
-        let primary_selection_device =
-            selection_manager.map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
+        let primary_selection_device = selection_manager
+            .as_ref()
+            .map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
 
         Ok(Self {
             inner,
+            dev_mgr,
             data_device,
+            selection_manager,
             primary_selection_device,
             themer,
             auto_pointer,
             seat: seat.clone(),
         })
+    }
+
+    pub fn seat_changed(&mut self, seat: &WlSeat) {
+        let inner = Arc::clone(&self.inner);
+
+        let pointer = seat.get_pointer();
+        pointer.quick_assign({
+            let inner = Arc::clone(&inner);
+            move |_, evt, _| {
+                inner.lock().unwrap().handle_event(evt);
+            }
+        });
+        let data_device = self.dev_mgr.get_data_device(seat);
+        data_device.quick_assign({
+            let inner = Arc::clone(&inner);
+            move |_device, event, _| {
+                inner.lock().unwrap().handle_data_event(event, &inner);
+            }
+        });
+
+        let primary_selection_device = self
+            .selection_manager
+            .as_ref()
+            .map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
+
+        self.data_device = data_device;
+        self.primary_selection_device = primary_selection_device;
+        self.seat = seat.clone();
     }
 
     pub fn add_window(&self, surface: &WlSurface, pending: &Arc<Mutex<PendingMouse>>) {

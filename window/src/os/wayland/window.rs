@@ -334,7 +334,7 @@ impl WaylandWindow {
         let copy_and_paste = CopyAndPaste::create();
         let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
-        conn.pointer.add_window(&surface, &pending_mouse);
+        conn.pointer.borrow().add_window(&surface, &pending_mouse);
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             window_id,
@@ -985,7 +985,7 @@ impl WaylandWindowInner {
             None => return,
         };
         let conn = Connection::get().unwrap().wayland();
-        conn.pointer.set_cursor(cursor, None);
+        conn.pointer.borrow().set_cursor(cursor, None);
     }
 
     fn invalidate(&mut self) {
@@ -1035,7 +1035,7 @@ impl WaylandWindowInner {
         if let Some(window) = self.window.as_ref() {
             let serial = self.copy_and_paste.lock().unwrap().last_serial;
             let conn = Connection::get().unwrap().wayland();
-            window.start_interactive_move(&conn.pointer.seat, serial);
+            window.start_interactive_move(&conn.pointer.borrow().seat, serial);
         }
     }
 

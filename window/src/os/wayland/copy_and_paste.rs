@@ -43,8 +43,9 @@ impl CopyAndPaste {
 
     pub fn get_clipboard_data(&mut self, clipboard: Clipboard) -> anyhow::Result<FileDescriptor> {
         let conn = crate::Connection::get().unwrap().wayland();
+        let pointer = conn.pointer.borrow();
         let primary_selection = if let Clipboard::PrimarySelection = clipboard {
-            conn.pointer.primary_selection_device.as_ref()
+            pointer.primary_selection_device.as_ref()
         } else {
             None
         };
@@ -74,11 +75,12 @@ impl CopyAndPaste {
 
     pub fn set_clipboard_data(&mut self, clipboard: Clipboard, data: String) {
         let conn = crate::Connection::get().unwrap().wayland();
+        let pointer = conn.pointer.borrow();
         let primary_selection = if let Clipboard::PrimarySelection = clipboard {
             conn.environment
                 .borrow()
                 .get_primary_selection_manager()
-                .zip(conn.pointer.primary_selection_device.as_ref())
+                .zip(pointer.primary_selection_device.as_ref())
         } else {
             None
         };
@@ -94,6 +96,7 @@ impl CopyAndPaste {
                                 .unwrap()
                                 .wayland()
                                 .pointer
+                                .borrow()
                                 .data_device
                                 .set_selection(None, 0);
                         }
@@ -119,6 +122,7 @@ impl CopyAndPaste {
                 });
                 source.offer(TEXT_MIME_TYPE.to_string());
                 conn.pointer
+                    .borrow()
                     .data_device
                     .set_selection(Some(&source), self.last_serial);
             }

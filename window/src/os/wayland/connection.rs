@@ -37,7 +37,7 @@ pub struct WaylandConnection {
     // bottom of this list, and opengl, which depends on everything
     // must be ahead of the rest.
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
-    pub(crate) pointer: PointerDispatcher,
+    pub(crate) pointer: RefCell<PointerDispatcher>,
     pub(crate) keyboard_mapper: RefCell<Option<Keyboard>>,
     pub(crate) keyboard_window_id: RefCell<Option<usize>>,
     pub(crate) surface_to_window_id: RefCell<HashMap<u32, usize>>,
@@ -132,16 +132,9 @@ impl WaylandConnection {
                     // fires for this seat with has_keyboard = true.
                     seat_keyboards.remove(&seat_data.name);
                 }
-                if seat_data.has_pointer {
-                    // TODO: ideally do something similar to the keyboard state,
-                    // but the pointer state has a lot of other stuff floating
-                    // around it so it's not so clear cut right now.
-                    log::error!(
-                        "seat {} changed; it has a pointer that is
-                        defunct={} and we don't know what to do about it",
-                        seat_data.name,
-                        seat_data.defunct
-                    );
+                if seat_data.has_pointer && !seat_data.defunct {
+                    let conn = Connection::get().unwrap().wayland();
+                    conn.pointer.borrow_mut().seat_changed(&seat);
                 }
             });
         }
@@ -153,7 +146,7 @@ impl WaylandConnection {
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
             event_q: RefCell::new(event_q),
-            pointer: pointer.unwrap(),
+            pointer: RefCell::new(pointer.unwrap()),
             seat_listener,
             gl_connection: RefCell::new(None),
             keyboard_mapper: RefCell::new(None),
