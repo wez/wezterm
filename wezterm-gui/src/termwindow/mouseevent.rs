@@ -465,7 +465,7 @@ impl super::TermWindow {
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
-        let mut is_click_to_focus = false;
+        let mut is_click_to_focus_pane = false;
 
         let mut x = position.column;
         let mut y = position.row;
@@ -485,7 +485,7 @@ impl super::TermWindow {
                                 .map(|tab| tab.set_active_idx(pos.index));
 
                             pane = Rc::clone(&pos.pane);
-                            is_click_to_focus = true;
+                            is_click_to_focus_pane = true;
                         }
                         WMEK::Move => {
                             if self.config.pane_focus_follows_mouse {
@@ -513,29 +513,32 @@ impl super::TermWindow {
         }
 
         let is_focused = if let Some(focused) = self.focused.as_ref() {
-            focused.elapsed() > Duration::from_millis(200)
+            !self.config.swallow_mouse_click_on_window_focus
+                || (focused.elapsed() > Duration::from_millis(200))
         } else {
             false
         };
 
         if self.focused.is_some() && !is_focused {
-            if matches!(&event.kind, WMEK::Press(_)) {
+            if matches!(&event.kind, WMEK::Press(_))
+                && self.config.swallow_mouse_click_on_window_focus
+            {
                 // Entering click to focus state
-                self.is_click_to_focus = true;
+                self.is_click_to_focus_window = true;
                 context.invalidate();
                 log::trace!("enter click to focus");
                 return;
             }
         }
-        if self.is_click_to_focus && matches!(&event.kind, WMEK::Release(_)) {
+        if self.is_click_to_focus_window && matches!(&event.kind, WMEK::Release(_)) {
             // Exiting click to focus state
-            self.is_click_to_focus = false;
+            self.is_click_to_focus_window = false;
             context.invalidate();
             log::trace!("exit click to focus");
             return;
         }
 
-        let allow_action = if self.is_click_to_focus || !is_focused {
+        let allow_action = if self.is_click_to_focus_window || !is_focused {
             matches!(&event.kind, WMEK::VertWheel(_) | WMEK::HorzWheel(_))
         } else {
             true
@@ -731,7 +734,9 @@ impl super::TermWindow {
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
-        if allow_action && !(self.config.swallow_mouse_click_on_pane_focus && is_click_to_focus) {
+        if allow_action
+            && !(self.config.swallow_mouse_click_on_pane_focus && is_click_to_focus_pane)
+        {
             pane.mouse_event(mouse_event).ok();
         }
 

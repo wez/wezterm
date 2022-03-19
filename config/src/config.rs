@@ -571,6 +571,9 @@ pub struct Config {
     #[serde(default)]
     pub swallow_mouse_click_on_pane_focus: bool,
 
+    #[serde(default = "default_swallow_mouse_click_on_window_focus")]
+    pub swallow_mouse_click_on_window_focus: bool,
+
     #[serde(default)]
     pub pane_focus_follows_mouse: bool,
 
@@ -1056,6 +1059,10 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_swallow_mouse_click_on_window_focus() -> bool {
+    cfg!(target_os = "macos")
 }
 
 fn default_mux_output_parser_buffer_size() -> usize {
