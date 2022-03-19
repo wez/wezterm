@@ -358,7 +358,7 @@ impl SixelBuilder {
 
         let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
         let raster_re = Regex::new("^\"(\\d+);(\\d+)(;(\\d+))?(;(\\d+))?").unwrap();
-        let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
+        let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+);?").unwrap();
         let coloruse_re = Regex::new("^#(\\d+)([^;\\d]|$)").unwrap();
 
         Self {
