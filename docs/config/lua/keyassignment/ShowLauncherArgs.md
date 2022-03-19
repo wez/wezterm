@@ -1,6 +1,6 @@
 # ShowLauncherArgs
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Activate the [Launcher Menu](../../launch.md#the-launcher-menu)
 in the current tab, scoping it to a set of items and with an optional title.

@@ -1,6 +1,6 @@
 # wezterm:leader_is_active()
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Returns `true` if the [Leader Key](../../keys.md) is active in the window, or false otherwise.
 

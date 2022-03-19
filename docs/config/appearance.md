@@ -61,7 +61,7 @@ return {
       -- Arbitrary colors of the palette in the range from 16 to 255
       indexed = {[136] = "#af8700"},
 
-      -- Since: nightly builds only
+      -- Since: 20220319-142410-0fcdea07
       -- When the IME, a dead key or a leader key are being processed and are effectively
       -- holding input pending the result of input composition, change the cursor
       -- to this color to give a visual cue about the compose state.
@@ -88,7 +88,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Colors now also accept the following CSS-style color specifications:
 

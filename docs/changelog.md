@@ -12,6 +12,13 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### New
+#### Changed
+#### Updated and Improved
+#### Fixed
+
+### 20220319-142410-0fcdea07
+
+#### New
 
 * [window:composition_status()](config/lua/window/composition_status.md) and [window:leader_is_active()](config/lua/window/leader_is_active.md) methods that can help populate [window:set_right_status()](config/lua/window/set_right_status.md) [#686](https://github.com/wez/wezterm/issues/686)
 * You may now use `colors = { compose_cursor = "orange" }` to change the cursor color when IME, dead key or leader key composition states are active.

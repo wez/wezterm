@@ -66,7 +66,7 @@ It is a lua object with the following fields:
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 You may now specify the round-trip latency threshold for enabling predictive
 local echo using `local_echo_threshold_ms`. If the measured round-trip latency

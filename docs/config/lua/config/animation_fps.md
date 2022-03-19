@@ -1,6 +1,6 @@
 # `animation_fps = 10`
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 This setting controls the maximum frame rate used when rendering easing effects
 for blinking cursors, blinking text and visual bell.

@@ -1,6 +1,6 @@
 # SwitchToWorkspace
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Switch to a different workspace, creating it if it doesn't already exist.
 

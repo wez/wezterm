@@ -250,7 +250,7 @@ pressing the corresponding key.
 
 ### Physical vs Mapped Key Assignments
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 The `key` value can refer either to the physical position of a key on an ANSI
 US keyboard or to the post-keyboard-layout-mapped value produced by a key

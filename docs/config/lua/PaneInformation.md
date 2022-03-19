@@ -59,7 +59,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 The `has_unseen_output` field returns true if the there has been output
 in the pane since the last time it was focused.

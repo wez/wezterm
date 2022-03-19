@@ -1,6 +1,6 @@
 # `wsl_domains`
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Configures [WSL](https://docs.microsoft.com/en-us/windows/wsl/about) domains.
 

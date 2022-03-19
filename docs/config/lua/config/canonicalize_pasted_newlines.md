@@ -13,12 +13,12 @@ The following values are accepted:
 |-----|-------|---------------|
 |`true` |same as `"CarriageReturnAndLineFeed"`|*Since: 20211204-082213-a66c61ee9*|
 |`false` |same as `"None"`|*Since: 20211204-082213-a66c61ee9*|
-|`"None"` |The text is passed through unchanged|*Since: nightly builds only*|
-|`"LineFeed"` |Newlines of any style are rewritten as LF|*Since: nightly builds only*|
-|`"CarriageReturn"` |Newlines of any style are rewritten as CR|*Since: nightly builds only*|
-|`"CarriageReturnAndLineFeed"` |Newlines of any style are rewritten as CRLF|*Since: nightly builds only*|
+|`"None"` |The text is passed through unchanged|*Since: 20220319-142410-0fcdea07*|
+|`"LineFeed"` |Newlines of any style are rewritten as LF|*Since: 20220319-142410-0fcdea07*|
+|`"CarriageReturn"` |Newlines of any style are rewritten as CR|*Since: 20220319-142410-0fcdea07*|
+|`"CarriageReturnAndLineFeed"` |Newlines of any style are rewritten as CRLF|*Since: 20220319-142410-0fcdea07*|
 
-Note that the string forms of these values are accepted in nightly builds only,
+Note that the string forms of these values are accepted in 20220319-142410-0fcdea07,
 however, `true` in all prior versions behaves the same way as
 `"CarriageReturnAndLineFeed"` behaves in the nightly build.
 
@@ -28,7 +28,7 @@ The default value has changed in different versions of wezterm:
 |-------|--------|-------|
 |20211204-082213-a66c61ee9|Windows|`"CarriageReturnAndLineFeed"`|
 |20211204-082213-a66c61ee9|NOT Windows|`"None"`|
-|nightly builds only|NOT Windows|`"CarriageReturn"`|
+|20220319-142410-0fcdea07|NOT Windows|`"CarriageReturn"`|
 
 On Windows we're in a bit of a frustrating situation: pasting into
 Windows console programs requires CRLF otherwise there is no newline

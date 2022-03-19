@@ -16,7 +16,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 The cursor blink is controlled by the easing functions specified by the
 [cursor_blink_ease_in](cursor_blink_ease_in.md) and

@@ -1,6 +1,6 @@
 # `wezterm.nerdfonts`
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 A special userdata value that can be used to resolve the symbolic name
 of a glyph from the [Nerd Fonts](https://www.nerdfonts.com/cheat-sheet)

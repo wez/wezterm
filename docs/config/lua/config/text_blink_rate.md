@@ -14,7 +14,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Blinking is no longer a binary blink, but interpolates between invisible and
 visible text using an easing function.  See

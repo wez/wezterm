@@ -94,7 +94,7 @@ The following options can be specified in the same way:
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 You may now specify `style="Normal"`, `style="Italic"` or `style="Oblique"`
 instead of simply specifying a boolean `italic` value such as `italic=true`.

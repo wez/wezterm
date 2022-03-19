@@ -33,6 +33,6 @@ environment variable or the new [xim_im_name](xim_im_name.md) configuration
 option is set appropriately before wezterm is launched!  For
 example, Gnome users will probably want to set `XMODIFIERS=@im=ibus`.
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 The default for all systems is now `true`

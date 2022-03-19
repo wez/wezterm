@@ -54,7 +54,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 You may now specify the type of `multiplexing` used by an ssh domain.
 The following values are possible:

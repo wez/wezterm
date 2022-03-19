@@ -1,6 +1,6 @@
 # text_blink_ease_in = "Linear"
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Specifies the *easing function* to use when computing the color
 for text that has the blinking attribute in the fading-in

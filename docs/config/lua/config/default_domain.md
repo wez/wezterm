@@ -1,6 +1,6 @@
 # `default_domain = "local"`
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 When starting the GUI (not using the `serial` or `connect` subcommands), by default wezterm will set the built-in `"local"` domain as the default multiplexing domain.
 

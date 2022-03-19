@@ -1,6 +1,6 @@
 # window:active_workspace()
 
-*Since: nightly builds only*
+*Since: 20220319-142410-0fcdea07*
 
 Returns the name of the active workspace.
 
