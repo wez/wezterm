@@ -16,3 +16,6 @@ return {
 }
 ```
 
+Using a blinking style puts more load on the graphics subsystem.
+[animation_fps](animation_fps.md) can be used to tune the frame
+rate used for easing in the blink animation.
