@@ -155,19 +155,19 @@ value of this configuration option is <code>&quot;None&quot;</code>.</p>
 <table><thead><tr><th>value</th><th>meaning</th><th>version</th></tr></thead><tbody>
 <tr><td><code>true</code></td><td>same as <code>&quot;CarriageReturnAndLineFeed&quot;</code></td><td><em>Since: 20211204-082213-a66c61ee9</em></td></tr>
 <tr><td><code>false</code></td><td>same as <code>&quot;None&quot;</code></td><td><em>Since: 20211204-082213-a66c61ee9</em></td></tr>
-<tr><td><code>&quot;None&quot;</code></td><td>The text is passed through unchanged</td><td><em>Since: nightly builds only</em></td></tr>
-<tr><td><code>&quot;LineFeed&quot;</code></td><td>Newlines of any style are rewritten as LF</td><td><em>Since: nightly builds only</em></td></tr>
-<tr><td><code>&quot;CarriageReturn&quot;</code></td><td>Newlines of any style are rewritten as CR</td><td><em>Since: nightly builds only</em></td></tr>
-<tr><td><code>&quot;CarriageReturnAndLineFeed&quot;</code></td><td>Newlines of any style are rewritten as CRLF</td><td><em>Since: nightly builds only</em></td></tr>
+<tr><td><code>&quot;None&quot;</code></td><td>The text is passed through unchanged</td><td><em>Since: 20220319-142410-0fcdea07</em></td></tr>
+<tr><td><code>&quot;LineFeed&quot;</code></td><td>Newlines of any style are rewritten as LF</td><td><em>Since: 20220319-142410-0fcdea07</em></td></tr>
+<tr><td><code>&quot;CarriageReturn&quot;</code></td><td>Newlines of any style are rewritten as CR</td><td><em>Since: 20220319-142410-0fcdea07</em></td></tr>
+<tr><td><code>&quot;CarriageReturnAndLineFeed&quot;</code></td><td>Newlines of any style are rewritten as CRLF</td><td><em>Since: 20220319-142410-0fcdea07</em></td></tr>
 </tbody></table>
-<p>Note that the string forms of these values are accepted in nightly builds only,
+<p>Note that the string forms of these values are accepted in 20220319-142410-0fcdea07,
 however, <code>true</code> in all prior versions behaves the same way as
 <code>&quot;CarriageReturnAndLineFeed&quot;</code> behaves in the nightly build.</p>
 <p>The default value has changed in different versions of wezterm:</p>
 <table><thead><tr><th>version</th><th>platform</th><th>default</th></tr></thead><tbody>
 <tr><td>20211204-082213-a66c61ee9</td><td>Windows</td><td><code>&quot;CarriageReturnAndLineFeed&quot;</code></td></tr>
 <tr><td>20211204-082213-a66c61ee9</td><td>NOT Windows</td><td><code>&quot;None&quot;</code></td></tr>
-<tr><td>nightly builds only</td><td>NOT Windows</td><td><code>&quot;CarriageReturn&quot;</code></td></tr>
+<tr><td>20220319-142410-0fcdea07</td><td>NOT Windows</td><td><code>&quot;CarriageReturn&quot;</code></td></tr>
 </tbody></table>
 <p>On Windows we're in a bit of a frustrating situation: pasting into
 Windows console programs requires CRLF otherwise there is no newline
