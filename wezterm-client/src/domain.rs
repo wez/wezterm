@@ -26,6 +26,7 @@ pub struct ClientInner {
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
     remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
+    pub focused_remote_pane_id: Mutex<Option<PaneId>>,
 }
 
 impl ClientInner {
@@ -179,6 +180,7 @@ impl ClientInner {
             remote_to_local_window: Mutex::new(HashMap::new()),
             remote_to_local_tab: Mutex::new(HashMap::new()),
             remote_to_local_pane: Mutex::new(HashMap::new()),
+            focused_remote_pane_id: Mutex::new(None),
         }
     }
 }

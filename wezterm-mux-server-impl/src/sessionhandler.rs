@@ -303,6 +303,16 @@ impl SessionHandler {
                 .detach();
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
             }
+            Pdu::SetFocusedPane(SetFocusedPane { pane_id }) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    let mux = Mux::get().unwrap();
+                    let _identity = mux.with_identity(client_id);
+                    mux.record_focus_for_current_identity(pane_id);
+                })
+                .detach();
+                send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
+            }
             Pdu::GetClientList(GetClientList) => {
                 spawn_into_main_thread(async move {
                     catch(

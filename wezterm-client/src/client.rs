@@ -1173,4 +1173,5 @@ impl Client {
     rpc!(set_client_id, SetClientId, UnitResponse);
     rpc!(list_clients, GetClientList, GetClientListResponse);
     rpc!(set_window_workspace, SetWindowWorkspace, UnitResponse);
+    rpc!(set_focused_pane_id, SetFocusedPane, UnitResponse);
 }

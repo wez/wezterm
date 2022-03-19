@@ -359,6 +359,18 @@ impl Mux {
         }
     }
 
+    pub fn record_focus_for_current_identity(&self, pane_id: PaneId) {
+        if let Some(ident) = self.identity.borrow().as_ref() {
+            self.record_focus_for_client(ident, pane_id);
+        }
+    }
+
+    pub fn record_focus_for_client(&self, client_id: &ClientId, pane_id: PaneId) {
+        if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+            info.update_focused_pane(pane_id);
+        }
+    }
+
     pub fn register_client(&self, client_id: Arc<ClientId>) {
         self.clients
             .borrow_mut()

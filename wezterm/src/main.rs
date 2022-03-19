@@ -409,6 +409,33 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     }
 }
 
+async fn resolve_pane_id(client: &Client, pane_id: Option<PaneId>) -> anyhow::Result<PaneId> {
+    let pane_id: PaneId = match pane_id {
+        Some(p) => p,
+        None => {
+            if let Ok(pane) = std::env::var("WEZTERM_PANE") {
+                pane.parse()?
+            } else {
+                let mut clients = client.list_clients(codec::GetClientList).await?.clients;
+                clients.retain(|client| client.focused_pane_id.is_some());
+                clients.sort_by(|a, b| b.last_input.cmp(&a.last_input));
+                if clients.is_empty() {
+                    anyhow::bail!(
+                        "--pane-id was not specified and $WEZTERM_PANE
+                         is not set in the environment, and I couldn't
+                         determine which pane was currently focused"
+                    );
+                }
+
+                clients[0]
+                    .focused_pane_id
+                    .expect("to have filtered out above")
+            }
+        }
+    };
+    Ok(pane_id)
+}
+
 async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
     let mut ui = mux::connui::ConnectionUI::new_headless();
     let initial = true;
@@ -450,6 +477,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     name: "WORKSPACE".to_string(),
                     alignment: Alignment::Left,
                 },
+                Column {
+                    name: "FOCUS".to_string(),
+                    alignment: Alignment::Right,
+                },
             ];
             let mut data = vec![];
             let clients = client.list_clients(codec::GetClientList).await?;
@@ -473,6 +504,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     duration_string(connected),
                     duration_string(idle),
                     info.active_workspace.as_deref().unwrap_or("").to_string(),
+                    info.focused_pane_id
+                        .map(|id| id.to_string())
+                        .unwrap_or_else(String::new),
                 ]);
             }
 
@@ -547,17 +581,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             prog,
             horizontal,
         } => {
-            let pane_id: PaneId = match pane_id {
-                Some(p) => p,
-                None => std::env::var("WEZTERM_PANE")
-                    .map_err(|_| {
-                        anyhow!(
-                            "--pane-id was not specified and $WEZTERM_PANE
-                                    is not set in the environment"
-                        )
-                    })?
-                    .parse()?,
-            };
+            let pane_id = resolve_pane_id(&client, pane_id).await?;
 
             let spawned = client
                 .split_pane(codec::SplitPane {
@@ -582,17 +606,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             println!("{}", spawned.pane_id);
         }
         CliSubCommand::SendText { pane_id, text } => {
-            let pane_id: PaneId = match pane_id {
-                Some(p) => p,
-                None => std::env::var("WEZTERM_PANE")
-                    .map_err(|_| {
-                        anyhow!(
-                            "--pane-id was not specified and $WEZTERM_PANE \
-                             is not set in the environment."
-                        )
-                    })?
-                    .parse()?,
-            };
+            let pane_id = resolve_pane_id(&client, pane_id).await?;
+
             let data = match text {
                 Some(text) => text,
                 None => {
@@ -623,18 +638,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 match window_id {
                     Some(w) => Some(w),
                     None => {
-                        let pane_id: PaneId = match pane_id {
-                            Some(p) => p,
-                            None => std::env::var("WEZTERM_PANE")
-                                .map_err(|_| {
-                                    anyhow!(
-                                        "--pane-id was not specified and $WEZTERM_PANE \
-                                         is not set in the environment. \
-                                         Consider using --new-window?"
-                                    )
-                                })?
-                                .parse()?,
-                        };
+                        let pane_id = resolve_pane_id(&client, pane_id).await?;
 
                         let panes = client.list_panes().await?;
                         let mut window_id = None;

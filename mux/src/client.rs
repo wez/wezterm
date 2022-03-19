@@ -1,3 +1,4 @@
+use crate::PaneId;
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
 use serde::*;
@@ -47,6 +48,8 @@ pub struct ClientInfo {
     /// The last time we received input from this client
     #[serde(with = "ts_seconds")]
     pub last_input: DateTime<Utc>,
+    /// The currently-focused pane
+    pub focused_pane_id: Option<PaneId>,
 }
 
 impl ClientInfo {
@@ -56,10 +59,15 @@ impl ClientInfo {
             connected_at: Utc::now(),
             active_workspace: None,
             last_input: Utc::now(),
+            focused_pane_id: None,
         }
     }
 
     pub fn update_last_input(&mut self) {
         self.last_input = Utc::now();
+    }
+
+    pub fn update_focused_pane(&mut self, pane_id: PaneId) {
+        self.focused_pane_id.replace(pane_id);
     }
 }

@@ -415,6 +415,24 @@ impl Pane for ClientPane {
         self.renderable.borrow().inner.borrow().working_dir.clone()
     }
 
+    fn advise_focus(&self) {
+        let mut focused_pane = self.client.focused_remote_pane_id.lock().unwrap();
+        if *focused_pane != Some(self.remote_pane_id) {
+            focused_pane.replace(self.remote_pane_id);
+            let client = Arc::clone(&self.client);
+            let remote_pane_id = self.remote_pane_id;
+            promise::spawn::spawn(async move {
+                client
+                    .client
+                    .set_focused_pane_id(SetFocusedPane {
+                        pane_id: remote_pane_id,
+                    })
+                    .await
+            })
+            .detach();
+        }
+    }
+
     fn can_close_without_prompting(&self, reason: CloseReason) -> bool {
         match reason {
             CloseReason::Window => true,
