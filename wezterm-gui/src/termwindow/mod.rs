@@ -159,6 +159,7 @@ pub struct PaneState {
     pub overlay: Option<Rc<dyn Pane>>,
 
     bell_start: Option<Instant>,
+    pub mouse_terminal_coords: Option<(usize, StableRowIndex)>,
 }
 
 /// Data used when synchronously formatting pane and window titles
@@ -309,7 +310,6 @@ pub struct TermWindow {
     /// If so, we ignore mouse events until released
     is_click_to_focus: bool,
     last_mouse_coords: (usize, i64),
-    last_mouse_terminal_coords: (usize, StableRowIndex),
     window_drag_position: Option<MouseEvent>,
     current_mouse_event: Option<MouseEvent>,
     prev_cursor: PrevCursorPos,
@@ -709,7 +709,6 @@ impl TermWindow {
             fancy_tab_bar: None,
             right_status: String::new(),
             last_mouse_coords: (0, -1),
-            last_mouse_terminal_coords: (0, 0),
             window_drag_position: None,
             current_mouse_event: None,
             prev_cursor: PrevCursorPos::new(),

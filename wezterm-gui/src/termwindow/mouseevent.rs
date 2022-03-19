@@ -554,7 +554,9 @@ impl super::TermWindow {
             .unwrap_or(dims.physical_top)
             + y as StableRowIndex;
 
-        self.last_mouse_terminal_coords = (x, stable_row); // FIXME: per-pane
+        self.pane_state(pane.pane_id())
+            .mouse_terminal_coords
+            .replace((x, stable_row));
 
         let (top, mut lines) = pane.get_lines_with_hyperlinks_applied(
             stable_row..stable_row + 1,

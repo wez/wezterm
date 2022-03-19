@@ -58,7 +58,10 @@ impl super::TermWindow {
     ) {
         self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
         let mode = mode.unwrap_or(SelectionMode::Cell);
-        let (x, y) = self.last_mouse_terminal_coords;
+        let (x, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
+            Some(coords) => coords,
+            None => return,
+        };
         match mode {
             SelectionMode::Cell => {
                 let end = SelectionCoordinate { x, y };
@@ -145,7 +148,10 @@ impl super::TermWindow {
     }
 
     pub fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Rc<dyn Pane>) {
-        let (x, y) = self.last_mouse_terminal_coords;
+        let (x, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
+            Some(coords) => coords,
+            None => return,
+        };
         match mode {
             SelectionMode::Line => {
                 let start = SelectionCoordinate { x, y };
