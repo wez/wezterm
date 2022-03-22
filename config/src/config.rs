@@ -606,6 +606,12 @@ pub struct Config {
 
     #[serde(default)]
     pub default_workspace: Option<String>,
+
+    #[serde(default)]
+    pub xcursor_theme: Option<String>,
+
+    #[serde(default)]
+    pub xcursor_size: Option<u32>,
 }
 impl_lua_conversion!(Config);
 

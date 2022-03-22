@@ -2,9 +2,10 @@
 //! in smithay_client_toolkit 0.11 which is Copyright (c) 2018 Victor Berger
 //! and provided under the terms of the MIT license.
 
+use crate::os::wayland::pointer::make_theme_manager;
 use config::{ConfigHandle, RgbColor, WindowFrameConfig};
 use smithay_client_toolkit::output::{add_output_listener, with_output_info, OutputListener};
-use smithay_client_toolkit::seat::pointer::{ThemeManager, ThemeSpec, ThemedPointer};
+use smithay_client_toolkit::seat::pointer::{ThemeManager, ThemedPointer};
 use smithay_client_toolkit::shm::DoubleMemPool;
 use smithay_client_toolkit::window::{ButtonState, Frame, FrameRequest, State, WindowState};
 use std::cell::RefCell;
@@ -544,10 +545,7 @@ impl Frame for ConceptFrame {
         let (themer, theme_over_surface) = if let Some(theme_manager) = theme_manager {
             (theme_manager, false)
         } else {
-            (
-                ThemeManager::init(ThemeSpec::System, compositor.clone(), shm.clone()),
-                true,
-            )
+            (make_theme_manager(compositor.clone(), shm.clone()), true)
         };
 
         let inner = Rc::new(RefCell::new(Inner {

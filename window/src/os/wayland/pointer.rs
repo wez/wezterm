@@ -223,6 +223,31 @@ impl PendingMouse {
     }
 }
 
+pub fn make_theme_manager(
+    compositor: Attached<WlCompositor>,
+    shm: Attached<WlShm>,
+) -> ThemeManager {
+    let config = config::configuration();
+    let name = config
+        .xcursor_theme
+        .as_ref()
+        .map(|s| s.to_string())
+        .or_else(|| std::env::var("XCURSOR_THEME").ok())
+        .unwrap_or_else(|| "default".to_string());
+    let size = match config.xcursor_size {
+        Some(size) => size,
+        None => match std::env::var("XCURSOR_SIZE").ok() {
+            Some(size_str) => size_str.parse().ok(),
+            None => None,
+        }
+        .unwrap_or(24),
+    };
+
+    let theme = ThemeSpec::Precise { name: &name, size };
+
+    ThemeManager::init(theme, compositor, shm)
+}
+
 impl PointerDispatcher {
     pub fn register(
         seat: &WlSeat,
@@ -240,7 +265,7 @@ impl PointerDispatcher {
             }
         });
 
-        let themer = ThemeManager::init(ThemeSpec::System, compositor, shm);
+        let themer = make_theme_manager(compositor, shm);
         let auto_pointer = themer.theme_pointer(pointer.detach());
 
         let data_device = dev_mgr.get_data_device(seat);

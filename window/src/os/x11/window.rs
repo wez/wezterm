@@ -858,7 +858,7 @@ impl XWindow {
                 height: height.try_into()?,
                 dpi: conn.default_dpi(),
                 copy_and_paste: CopyAndPaste::default(),
-                cursors: CursorInfo::new(&conn),
+                cursors: CursorInfo::new(&config, &conn),
                 config: config.clone(),
                 has_focus: false,
                 last_cursor_position: Rect::default(),

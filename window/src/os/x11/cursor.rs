@@ -1,6 +1,7 @@
 use crate::x11::XConnection;
 use crate::MouseCursor;
 use anyhow::{ensure, Context};
+use config::ConfigHandle;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::OsStr;
@@ -84,7 +85,11 @@ fn icon_path() -> Vec<PathBuf> {
     std::env::split_paths(&path).map(tilde_expand).collect()
 }
 
-fn cursor_size(map: &HashMap<String, String>) -> u32 {
+fn cursor_size(xcursor_size: &Option<u32>, map: &HashMap<String, String>) -> u32 {
+    if let Some(size) = xcursor_size {
+        return *size;
+    }
+
     if let Ok(size) = std::env::var("XCURSOR_SIZE") {
         if let Ok(size) = size.parse::<u32>() {
             return size;
@@ -108,7 +113,7 @@ fn cursor_size(map: &HashMap<String, String>) -> u32 {
 }
 
 impl CursorInfo {
-    pub fn new(conn: &Rc<XConnection>) -> Self {
+    pub fn new(config: &ConfigHandle, conn: &Rc<XConnection>) -> Self {
         let mut size = None;
         let mut theme = None;
         let mut pict_format_id = None;
@@ -128,8 +133,12 @@ impl CursorInfo {
             {
                 // 0.5 and later have the required support
                 if (vers.major_version(), vers.minor_version()) >= (0, 5) {
-                    size.replace(cursor_size(&*conn.xrm.borrow()));
-                    theme = conn.xrm.borrow().get("Xcursor.theme").cloned();
+                    size.replace(cursor_size(&config.xcursor_size, &*conn.xrm.borrow()));
+                    theme = config
+                        .xcursor_theme
+                        .as_ref()
+                        .map(|s| s.to_string())
+                        .or_else(|| conn.xrm.borrow().get("Xcursor.theme").cloned());
 
                     // Locate the Pictformat corresponding to ARGB32
                     if let Ok(formats) = xcb::render::query_pict_formats(conn.conn()).get_reply() {
