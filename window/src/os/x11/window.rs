@@ -248,8 +248,19 @@ impl XWindowInner {
                 if width == self.width && height == self.height && dpi == self.dpi {
                     // Effectively unchanged; perhaps it was simply moved?
                     // Do nothing!
+                    log::trace!("Ignoring CONFIGURE_NOTIFY because width,height,dpi are unchanged");
                     return Ok(());
                 }
+
+                log::trace!(
+                    "CONFIGURE_NOTIFY: width {} -> {}, height {} -> {}, dpi {} -> {}",
+                    self.width,
+                    width,
+                    self.height,
+                    height,
+                    self.dpi,
+                    dpi
+                );
 
                 self.width = width;
                 self.height = height;
