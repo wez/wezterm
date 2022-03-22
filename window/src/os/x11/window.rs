@@ -70,6 +70,7 @@ pub(crate) struct XWindowInner {
     invalidated: bool,
     paint_throttled: bool,
     pending: Vec<WindowEvent>,
+    dispatched_any_resize: bool,
 }
 
 impl Drop for XWindowInner {
@@ -198,6 +199,7 @@ impl XWindowInner {
         }
 
         if let Some(resize) = resize.take() {
+            self.dispatched_any_resize = true;
             self.events.dispatch(resize);
         }
 
@@ -206,6 +208,39 @@ impl XWindowInner {
                 self.invalidated = true;
             } else {
                 self.invalidated = false;
+
+                if !self.dispatched_any_resize {
+                    self.dispatched_any_resize = true;
+
+                    log::trace!(
+                        "About to paint, but we've never dispatched a Resized \
+                         event, and thus never received a CONFIGURE_NOTIFY; \
+                         querying WM for geometry"
+                    );
+                    let geom =
+                        xcb::xproto::get_geometry(&self.conn(), self.window_id).get_reply()?;
+                    log::trace!(
+                        "geometry is {}x{} vs. our initial {}x{}",
+                        geom.width(),
+                        geom.height(),
+                        self.width,
+                        self.height
+                    );
+
+                    self.width = geom.width();
+                    self.height = geom.height();
+
+                    self.events.dispatch(WindowEvent::Resized {
+                        dimensions: Dimensions {
+                            pixel_width: self.width as usize,
+                            pixel_height: self.height as usize,
+                            dpi: self.dpi as usize,
+                        },
+                        window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                        live_resizing: false,
+                    });
+                }
+
                 self.events.dispatch(WindowEvent::NeedRepaint);
 
                 self.paint_throttled = true;
@@ -876,6 +911,7 @@ impl XWindow {
                 paint_throttled: false,
                 invalidated: false,
                 pending: vec![],
+                dispatched_any_resize: false,
             }))
         };
 
