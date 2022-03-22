@@ -576,13 +576,17 @@ fn ctrl_mapping(c: char) -> Option<char> {
     })
 }
 
+fn is_ascii(c: char) -> bool {
+    (c as u32) < 0x80
+}
+
 fn csi_u_encode(
     buf: &mut String,
     c: char,
     mods: Modifiers,
     encoding: KeyboardEncoding,
 ) -> Result<()> {
-    if encoding == KeyboardEncoding::CsiU {
+    if encoding == KeyboardEncoding::CsiU && is_ascii(c) {
         write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
     } else {
         let c = if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() {

@@ -15,6 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 #### Updated and Improved
 #### Fixed
+* Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)
 
 ### 20220319-142410-0fcdea07
 
