@@ -40,7 +40,9 @@ impl super::TermWindow {
             return;
         }
         self.window_state = window_state;
-        if live_resizing {
+        // For simple, user-interactive resizes where the dpi doesn't change,
+        // skip our scaling recalculation
+        if live_resizing && self.dimensions.dpi == dimensions.dpi {
             self.apply_dimensions(&dimensions, None, window);
         } else {
             self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
