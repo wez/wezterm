@@ -1059,12 +1059,12 @@ impl TermWindow {
     fn apply_icon(window: &Window) -> anyhow::Result<()> {
         let image = image::load_from_memory(ICON_DATA)?.into_rgba8();
         let (width, height) = image.dimensions();
-        window.set_icon(Image::with_rgba32(
-            width as usize,
-            height as usize,
-            width as usize * 4,
-            image.as_raw(),
-        ));
+
+        // Convert RGBA to BGRA
+        let mut image_data = image.into_raw();
+        image_data.chunks_mut(4).for_each(|chunk| chunk.swap(0, 2));
+
+        window.set_icon(Image::from_raw(width as usize, height as usize, image_data));
         Ok(())
     }
 
