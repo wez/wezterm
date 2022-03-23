@@ -1057,7 +1057,12 @@ impl XWindowInner {
         let mut icon_data = Vec::with_capacity((2 + (width * height)) * 4);
         icon_data.push(width as u32);
         icon_data.push(height as u32);
-        icon_data.extend_from_slice(image.pixels());
+        // `BitmapImage` is rgba32, so we need to munge to get argb32.
+        // We also need to put the data into big endian format.
+        for pixel in image.pixels() {
+            let [r, g, b, a] = pixel.to_ne_bytes();
+            icon_data.push(u32::from_be_bytes([a, r, g, b]));
+        }
 
         xcb_util::ewmh::set_wm_icon(
             self.conn().ewmh_conn(),
