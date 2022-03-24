@@ -5018,6 +5018,7 @@ dependencies = [
  "wezterm-font",
  "wezterm-input-types",
  "winapi 0.3.9",
+ "windows",
  "winreg 0.6.2",
  "x11",
  "xcb 0.9.0",

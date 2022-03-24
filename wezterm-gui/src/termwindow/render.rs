@@ -920,6 +920,58 @@ impl super::TermWindow {
         Ok(())
     }
 
+    fn paint_window_borders(&mut self) -> anyhow::Result<()> {
+        if let Some(ref os_params) = self.os_parameters {
+            if let Some(ref border_dimensions) = os_params.border_dimensions {
+                let gl_state = self.render_state.as_ref().unwrap();
+                let vb = &gl_state.vb[1];
+                let mut vb_mut = vb.current_vb_mut();
+                let mut layer1 = vb.map(&mut vb_mut);
+
+                let height = self.dimensions.pixel_height as f32;
+                let width = self.dimensions.pixel_width as f32;
+
+                let border_top = border_dimensions.top.get() as f32;
+                if border_top > 0.0 {
+                    self.filled_rectangle(
+                        &mut layer1,
+                        euclid::rect(0.0, 0.0, width, border_top),
+                        border_dimensions.color,
+                    )?;
+                }
+
+                let border_left = border_dimensions.left.get() as f32;
+                if border_left > 0.0 {
+                    self.filled_rectangle(
+                        &mut layer1,
+                        euclid::rect(0.0, 0.0, border_left, height),
+                        border_dimensions.color,
+                    )?;
+                }
+
+                let border_bottom = border_dimensions.bottom.get() as f32;
+                if border_bottom > 0.0 {
+                    self.filled_rectangle(
+                        &mut layer1,
+                        euclid::rect(0.0, height - border_bottom, width, height),
+                        border_dimensions.color,
+                    )?;
+                }
+
+                let border_right = border_dimensions.right.get() as f32;
+                if border_right > 0.0 {
+                    self.filled_rectangle(
+                        &mut layer1,
+                        euclid::rect(width - border_right, 0.0, width, height),
+                        border_dimensions.color,
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn paint_pane_opengl(
         &mut self,
         pos: &PositionedPane,
@@ -1556,6 +1608,8 @@ impl super::TermWindow {
         if self.show_tab_bar {
             self.paint_tab_bar()?;
         }
+
+        self.paint_window_borders()?;
 
         Ok(())
     }

@@ -1,9 +1,11 @@
 use super::*;
 use crate::connection::ConnectionOps;
+use crate::parameters::Parameters;
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Length,
+    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point,
+    RawKeyEvent, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -22,6 +24,7 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
@@ -29,11 +32,15 @@ use winapi::shared::windef::*;
 use winapi::shared::winerror::S_OK;
 use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::sysinfoapi::{GetTickCount, GetVersionExW};
 use winapi::um::uxtheme::{
     CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
 };
-use winapi::um::wingdi::LOGFONTW;
+use winapi::um::wingdi::{LOGFONTW, MAKEPOINTS};
+use winapi::um::winnt::OSVERSIONINFOW;
 use winapi::um::winuser::*;
+use windows::UI::Color as WUIColor;
+use windows::UI::ViewManagement::{UIColorType, UISettings};
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -51,6 +58,7 @@ unsafe impl Sync for HWindow {}
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
+    is_win10: bool,
     events: WindowEventSender,
     gl_state: Option<Rc<glium::backend::Context>>,
     /// Fraction of mouse scroll
@@ -62,6 +70,7 @@ pub(crate) struct WindowInner {
     dead_pending: Option<(Modifiers, u32)>,
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
+    last_resize_type: WPARAM,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -71,6 +80,10 @@ pub(crate) struct WindowInner {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Window(HWindow);
+
+fn wuicolor_to_linearrgba(color: WUIColor) -> LinearRgba {
+    LinearRgba::with_srgba(color.R, color.G, color.B, 255)
+}
 
 fn rect_width(r: &RECT) -> i32 {
     r.right - r.left
@@ -266,14 +279,19 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
             0,
             0,
             0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
+            SWP_NOACTIVATE
+                | SWP_NOMOVE
+                | SWP_NOSIZE
+                | SWP_NOZORDER
+                | SWP_NOOWNERZORDER
+                | SWP_FRAMECHANGED,
         );
     }
 }
 
 fn decorations_to_style(decorations: WindowDecorations) -> u32 {
     if decorations == WindowDecorations::RESIZE {
-        WS_THICKFRAME
+        WS_OVERLAPPEDWINDOW
     } else if decorations == WindowDecorations::TITLE {
         WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
     } else if decorations == WindowDecorations::NONE {
@@ -294,12 +312,6 @@ impl Window {
         height: usize,
         lparam: *const RefCell<WindowInner>,
     ) -> anyhow::Result<HWND> {
-        // Jamming this in here; it should really live in the application manifest,
-        // but having it here means that we don't have to create a manifest
-        unsafe {
-            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        }
-
         let class_name = wide_string(class_name);
         let h_inst = unsafe { GetModuleHandleW(null()) };
         let class = WNDCLASSW {
@@ -404,8 +416,10 @@ impl Window {
             None => config::configuration(),
         };
         let appearance = get_appearance();
+
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
+            is_win10: is_win10(),
             appearance,
             events,
             gl_state: None,
@@ -417,6 +431,7 @@ impl Window {
             dead_pending: None,
             saved_placement: None,
             track_mouse_leave: false,
+            last_resize_type: SIZE_RESTORED,
             config: config.clone(),
         }));
 
@@ -569,6 +584,10 @@ impl WindowInner {
                 })
                 .detach();
             }
+            promise::spawn::spawn(async move {
+                PostMessageW(hwnd, extra_constants::UM_APPEARANCE_CHANGED, 0, 0);
+            })
+            .detach();
         }
     }
 }
@@ -716,71 +735,128 @@ impl WindowOps for Window {
         clipboard_win::set_clipboard_string(&text).ok();
     }
 
-    fn get_title_font_and_point_size(&self) -> Option<(wezterm_font::parser::ParsedFont, f64)> {
-        const TMT_CAPTIONFONT: i32 = 801;
-        const HP_HEADERITEM: i32 = 1;
-        const HIS_NORMAL: i32 = 1;
-
-        unsafe fn populate_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
-            let mut log_font = LOGFONTW {
-                lfHeight: 0,
-                lfWidth: 0,
-                lfEscapement: 0,
-                lfOrientation: 0,
-                lfWeight: 0,
-                lfItalic: 0,
-                lfUnderline: 0,
-                lfStrikeOut: 0,
-                lfCharSet: 0,
-                lfOutPrecision: 0,
-                lfClipPrecision: 0,
-                lfQuality: 0,
-                lfPitchAndFamily: 0,
-                lfFaceName: [0u16; 32],
-            };
-            let theme = OpenThemeData(
-                hwnd,
-                [
-                    'H' as u16, 'E' as u16, 'A' as u16, 'D' as u16, 'E' as u16, 'R' as u16, 0u16,
-                ]
-                .as_ptr(),
-            );
-            if !theme.is_null() {
-                let res = GetThemeFont(
-                    theme,
-                    hdc,
-                    HP_HEADERITEM,
-                    HIS_NORMAL,
-                    TMT_CAPTIONFONT,
-                    &mut log_font,
-                );
-                if res == S_OK {
-                    CloseThemeData(theme);
-                    return Some(log_font);
-                }
-            }
-
-            let res = GetThemeSysFont(theme, TMT_CAPTIONFONT, &mut log_font);
-            if !theme.is_null() {
-                CloseThemeData(theme);
-            }
-
-            if res == S_OK {
-                Some(log_font)
-            } else {
-                None
-            }
+    fn get_os_parameters(&self, config: &ConfigHandle) -> anyhow::Result<Option<Parameters>> {
+        let hwnd = self.0 .0;
+        if hwnd.is_null() {
+            return Err(anyhow::anyhow!("HWND is null"));
         }
-        unsafe {
-            let hwnd = self.0 .0;
+
+        let has_focus = !unsafe { GetFocus() }.is_null();
+        let is_maximized = window_is_maximized(hwnd);
+
+        let is_full_screen = unsafe {
+            let mut mi = MONITORINFO {
+                cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+                ..Default::default()
+            };
+            if GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mut mi)
+                == winapi::shared::minwindef::TRUE
+            {
+                let mut client_rect = RECT::default();
+                if GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE {
+                    client_rect.right >= mi.rcMonitor.right - mi.rcMonitor.left
+                        && client_rect.bottom >= mi.rcMonitor.bottom - mi.rcMonitor.top
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
+
+        let title_font = unsafe {
             let hdc = GetDC(hwnd);
-            let result = match populate_log_font(hwnd, hdc) {
-                Some(lf) => wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok(),
+            if hdc.is_null() {
+                return Err(anyhow::anyhow!("Could not get device context"));
+            }
+            let result = match get_title_log_font(hwnd, hdc) {
+                Some(lf) => Some(wezterm_font::locator::gdi::parse_log_font(&lf, hdc)?),
                 None => None,
             };
             ReleaseDC(hwnd, hdc);
             result
+        };
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let use_accent = hkcu
+            .open_subkey("SOFTWARE\\Microsoft\\Windows\\DWM")?
+            .get_value::<u32, _>("ColorPrevalence")?;
+        let settings = UISettings::new()?;
+        let top_border_color = if has_focus {
+            if use_accent == 1 {
+                wuicolor_to_linearrgba(settings.GetColorValue(UIColorType::Accent)?)
+            } else {
+                if is_win10() {
+                    LinearRgba(0.01, 0.01, 0.01, 0.67)
+                } else {
+                    LinearRgba(0.026, 0.026, 0.026, 0.5)
+                }
+            }
+        } else {
+            if is_win10() {
+                LinearRgba(0.024, 0.024, 0.024, 0.5)
+            } else {
+                LinearRgba(0.028, 0.028, 0.028, 0.5)
+            }
+        };
+
+        const BASE_BORDER: Length = Length::new(0);
+        let is_resize = config.window_decorations == WindowDecorations::RESIZE;
+
+        let is_win10 = is_win10();
+        Ok(Some(Parameters {
+            title_bar: crate::parameters::TitleBar {
+                padding_left: Length::new(0),
+                padding_right: Length::new(0),
+                height: None,
+                font_and_size: title_font,
+            },
+            border_dimensions: Some(crate::parameters::Border {
+                top: if is_resize && !is_win10 && !is_maximized && !is_full_screen {
+                    BASE_BORDER + Length::new(1)
+                } else {
+                    BASE_BORDER
+                },
+                left: BASE_BORDER,
+                bottom: if is_resize && is_win10 && !is_maximized && !is_full_screen {
+                    BASE_BORDER + Length::new(2)
+                } else {
+                    BASE_BORDER
+                },
+                right: BASE_BORDER,
+                color: top_border_color,
+            }),
+        }))
+    }
+}
+
+unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
+    let mut log_font = LOGFONTW::default();
+    let theme = OpenThemeData(hwnd, wide_string("HEADER").as_ptr());
+    if !theme.is_null() {
+        let res = GetThemeFont(
+            theme,
+            hdc,
+            extra_constants::HP_HEADERITEM,
+            extra_constants::HIS_NORMAL,
+            extra_constants::TMT_CAPTIONFONT,
+            &mut log_font,
+        );
+        if res == S_OK {
+            CloseThemeData(theme);
+            return Some(log_font);
         }
+    }
+
+    let res = GetThemeSysFont(theme, extra_constants::TMT_CAPTIONFONT, &mut log_font);
+    if !theme.is_null() {
+        CloseThemeData(theme);
+    }
+
+    if res == S_OK {
+        Some(log_font)
+    } else {
+        None
     }
 }
 
@@ -815,6 +891,152 @@ unsafe fn wm_ncdestroy(
     }
 
     None
+}
+
+unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow_mut();
+
+        if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
+            return None;
+        }
+
+        if inner.saved_placement.is_none() {
+            let dpi = GetDpiForWindow(hwnd);
+            let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
+            let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+            let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+
+            let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
+
+            let mut requested_client_rect = &mut params.rgrc[0];
+
+            requested_client_rect.right -= frame_x + padding;
+            requested_client_rect.left += frame_x + padding;
+
+            // Handle bugged top window border on Windows 10
+            if inner.is_win10 {
+                if window_is_maximized(hwnd) {
+                    requested_client_rect.top += frame_y + padding;
+                    requested_client_rect.bottom -= frame_y + padding;
+                } else {
+                    requested_client_rect.top += 1;
+                    requested_client_rect.bottom -= frame_y - padding;
+                }
+            } else {
+                requested_client_rect.bottom -= frame_y + padding;
+
+                if window_is_maximized(hwnd) {
+                    requested_client_rect.top += frame_y + padding;
+                }
+            }
+        }
+
+        return Some(0);
+    }
+
+    None
+}
+
+unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow_mut();
+
+        if inner.config.window_decorations != WindowDecorations::RESIZE {
+            return None;
+        }
+
+        // Let the default procedure handle resizing areas
+        let result = DefWindowProcW(hwnd, msg, wparam, lparam);
+
+        if matches!(
+            result,
+            HTNOWHERE
+                | HTRIGHT
+                | HTLEFT
+                | HTTOPLEFT
+                | HTTOP
+                | HTTOPRIGHT
+                | HTBOTTOMRIGHT
+                | HTBOTTOM
+                | HTBOTTOMLEFT
+        ) {
+            return Some(result);
+        }
+
+        // The adjustment in NCCALCSIZE messes with the detection
+        // of the top hit area so manually fixing that.
+        let dpi = GetDpiForWindow(hwnd);
+        let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi) as isize;
+        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
+        let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi) as isize;
+
+        let coords = mouse_coords(lparam);
+        let cursor_point = screen_to_client(hwnd, ScreenPoint::new(coords.x, coords.y));
+        let is_maximized = window_is_maximized(hwnd);
+
+        // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
+
+        let mut client_rect = RECT::default();
+        let client_rect_is_valid =
+            GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE;
+
+        // Since we are eating the bottom window frame to deal with a Windows 10 bug,
+        // we detect resizing in the window client area as a workaround
+        if !is_maximized
+            && inner.is_win10
+            && client_rect_is_valid
+            && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
+        {
+            if cursor_point.x <= (frame_x + padding) {
+                return Some(HTBOTTOMLEFT);
+            } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
+                return Some(HTBOTTOMRIGHT);
+            } else {
+                return Some(HTBOTTOM);
+            }
+        }
+
+        if !is_maximized && cursor_point.y >= 0 && cursor_point.y < frame_y {
+            if cursor_point.x <= (frame_x + padding) {
+                return Some(HTTOPLEFT);
+            } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
+                return Some(HTTOPRIGHT);
+            } else {
+                return Some(HTTOP);
+            }
+        }
+
+        return Some(HTCLIENT);
+    }
+
+    None
+}
+
+fn window_is_maximized(hwnd: HWND) -> bool {
+    let mut placement = WINDOWPLACEMENT {
+        length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
+        ..Default::default()
+    };
+
+    if unsafe { GetWindowPlacement(hwnd, &mut placement) } != winapi::shared::minwindef::TRUE {
+        false
+    } else {
+        placement.showCmd == SW_SHOWMAXIMIZED as u32
+    }
+}
+
+fn is_win10() -> bool {
+    let osver = OSVERSIONINFOW {
+        dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as _,
+        ..Default::default()
+    };
+
+    if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+        osver.dwBuildNumber < 22000
+    } else {
+        true
+    }
 }
 
 /// "Blur behind" is the old vista term for a cool blurring
@@ -913,6 +1135,17 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     None
 }
 
+fn dispatch_appearance_changed(hwnd: HWND) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+        let appearance = inner.appearance;
+        inner
+            .events
+            .dispatch(WindowEvent::AppearanceChanged(appearance));
+    }
+    None
+}
+
 unsafe fn wm_enter_exit_size_move(
     hwnd: HWND,
     msg: UINT,
@@ -947,6 +1180,23 @@ unsafe fn wm_windowposchanged(
     Some(0)
 }
 
+unsafe fn wm_sizeraw(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    if wparam == SIZE_RESTORED || wparam == SIZE_MAXIMIZED {
+        if let Some(inner) = rc_from_hwnd(hwnd) {
+            let mut inner = inner.borrow_mut();
+            if inner.last_resize_type != wparam {
+                inner.last_resize_type = wparam;
+                let appearance = inner.appearance;
+                inner
+                    .events
+                    .dispatch(WindowEvent::AppearanceChanged(appearance));
+            }
+        }
+    }
+
+    None
+}
+
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let mut should_paint = false;
     let mut should_pump = false;
@@ -974,10 +1224,12 @@ unsafe fn wm_set_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+        inner.events.dispatch(WindowEvent::FocusChanged(true));
+        let appearance = inner.appearance;
         inner
-            .borrow_mut()
             .events
-            .dispatch(WindowEvent::FocusChanged(true));
+            .dispatch(WindowEvent::AppearanceChanged(appearance));
     }
     None
 }
@@ -989,10 +1241,12 @@ unsafe fn wm_kill_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+        inner.events.dispatch(WindowEvent::FocusChanged(false));
+        let appearance = inner.appearance;
         inner
-            .borrow_mut()
             .events
-            .dispatch(WindowEvent::FocusChanged(false));
+            .dispatch(WindowEvent::AppearanceChanged(appearance));
     }
     None
 }
@@ -1050,11 +1304,8 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
 }
 
 fn mouse_coords(lparam: LPARAM) -> Point {
-    // Take care to get the signedness correct!
-    let x = (lparam & 0xffff) as u16 as i16 as isize;
-    let y = ((lparam >> 16) & 0xffff) as u16 as i16 as isize;
-
-    Point::new(x, y)
+    let point = MAKEPOINTS(lparam as _);
+    Point::new(point.x as _, point.y as _)
 }
 
 fn screen_to_client(hwnd: HWND, point: ScreenPoint) -> Point {
@@ -1660,7 +1911,6 @@ impl KeyboardLayoutInfo {
 
 /// Generate a MSG and call TranslateMessage upon it
 unsafe fn translate_message(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) {
-    use winapi::um::sysinfoapi::GetTickCount;
     TranslateMessage(&MSG {
         hwnd,
         message: msg,
@@ -2019,7 +2269,10 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     match msg {
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
+        WM_NCCALCSIZE => wm_nccalcsize(hwnd, msg, wparam, lparam),
+        WM_NCHITTEST => wm_nchittest(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
+        WM_SIZE => wm_sizeraw(hwnd, msg, wparam, lparam),
         WM_ENTERSIZEMOVE | WM_EXITSIZEMOVE => wm_enter_exit_size_move(hwnd, msg, wparam, lparam),
         WM_WINDOWPOSCHANGED => wm_windowposchanged(hwnd, msg, wparam, lparam),
         WM_SETFOCUS => wm_set_focus(hwnd, msg, wparam, lparam),
@@ -2050,6 +2303,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             }
             None
         }
+        extra_constants::UM_APPEARANCE_CHANGED => dispatch_appearance_changed(hwnd),
         _ => None,
     }
 }

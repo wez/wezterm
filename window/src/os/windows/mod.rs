@@ -1,5 +1,6 @@
 pub mod connection;
 pub mod event;
+mod extra_constants;
 mod keycodes;
 mod wgl;
 pub mod window;

@@ -285,6 +285,7 @@ pub struct TermWindow {
     pub window: Option<Window>,
     pub config: ConfigHandle,
     pub config_overrides: serde_json::Value,
+    os_parameters: Option<parameters::Parameters>,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
@@ -445,6 +446,8 @@ impl TermWindow {
                 log::error!("failed to create OpenGLRenderState: {}", err);
             }
         }
+
+        self.os_parameters = window.get_os_parameters(&self.config).unwrap_or(None);
 
         window.show();
 
@@ -690,6 +693,7 @@ impl TermWindow {
 
         let myself = Self {
             config_subscription: None,
+            os_parameters: None,
             gl: None,
             window: None,
             window_background,
@@ -1432,6 +1436,14 @@ impl TermWindow {
         };
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
+            self.os_parameters = match window.get_os_parameters(&config) {
+                Ok(os_parameters) => os_parameters,
+                Err(_) => {
+                    log::warn!("Error while getting OS parameters");
+                    None
+                }
+            };
+
             self.apply_scale_change(&dimensions, self.fonts.get_font_scale(), &window);
             self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);
