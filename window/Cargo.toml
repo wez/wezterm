@@ -47,18 +47,22 @@ wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [target."cfg(windows)".dependencies]
+clipboard-win = "2.2"
+shared_library = "0.1"
 winapi = { version = "0.3", features = [
     "dwmapi",
     "handleapi",
     "imm",
     "libloaderapi",
     "synchapi",
+    "sysinfoapi",
     "winerror",
     "winuser",
 ]}
+windows = { version="0.33.0", features = [
+    "UI_ViewManagement",
+]}
 winreg = "0.6"
-clipboard-win = "2.2"
-shared_library = "0.1"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 dirs-next = "2.0"

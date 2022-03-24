@@ -103,8 +103,8 @@ fn main() {
 #include <winres.h>
 // This ID is coupled with code in window/src/os/windows/window.rs
 #define IDI_ICON 0x101
+1 RT_MANIFEST "{win}\\manifest.manifest"
 IDI_ICON ICON "{win}\\terminal.ico"
-APP_MANIFEST RT_MANIFEST "{win}\\manifest.manifest"
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION     1,0,0,0
 PRODUCTVERSION  1,0,0,0

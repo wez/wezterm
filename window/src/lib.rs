@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
+use config::ConfigHandle;
 use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
@@ -50,6 +51,8 @@ pub struct Dimensions {
     pub dpi: usize,
 }
 
+pub type Length = euclid::Length<isize, PixelUnit>;
+pub type LengthF = euclid::Length<f32, PixelUnit>;
 pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type RectF = euclid::Rect<f32, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
@@ -281,7 +284,10 @@ pub trait WindowOps {
     /// environment.
     fn set_resize_increments(&self, _x: u16, _y: u16) {}
 
-    fn get_title_font_and_point_size(&self) -> Option<(wezterm_font::parser::ParsedFont, f64)> {
-        None
+    fn get_os_parameters(
+        &self,
+        _config: &ConfigHandle,
+    ) -> anyhow::Result<Option<os::parameters::Parameters>> {
+        Ok(None)
     }
 }
