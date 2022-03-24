@@ -2,7 +2,6 @@
 
 use crate::{configuration, ConfigHandle, NewlineCanon};
 use std::sync::Mutex;
-use termwiz::hyperlink::Rule as HyperlinkRule;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::config::BidiMode;
 
@@ -43,11 +42,6 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
 
     fn scrollback_size(&self) -> usize {
         self.configuration().scrollback_lines
-    }
-
-    fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
-        let config = self.configuration();
-        (config.generation(), config.hyperlink_rules.clone())
     }
 
     fn enable_csi_u_key_encoding(&self) -> bool {

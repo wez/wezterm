@@ -1,5 +1,4 @@
 use crate::color::ColorPalette;
-use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::surface::{Line, SequenceNo};
 use wezterm_bidi::ParagraphDirectionHint;
 
@@ -151,13 +150,6 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     /// <http://www.leonerd.org.uk/hacks/fixterms/>
     fn enable_csi_u_key_encoding(&self) -> bool {
         false
-    }
-
-    /// Returns the current generation and its associated hyperlink rules.
-    /// hyperlink rules are used to recognize and automatically generate
-    /// hyperlink attributes for runs of text that match the provided rules.
-    fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
-        (self.generation(), vec![])
     }
 
     /// Returns the default color palette for the application.
