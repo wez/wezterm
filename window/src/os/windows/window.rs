@@ -753,19 +753,16 @@ impl WindowOps for Window {
         let has_focus = unsafe { GetFocus() } == hwnd;
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
 
-        // let title_font = unsafe {
-        //     let hdc = GetDC(hwnd);
-        //     if hdc.is_null() {
-        //         return Err(anyhow::anyhow!("Could not get device context"));
-        //     }
-        //     let result = match get_title_log_font(hwnd, hdc) {
-        //         Some(lf) => Some(wezterm_font::locator::gdi::parse_log_font(&lf, hdc)?),
-        //         None => None,
-        //     };
-        //     ReleaseDC(hwnd, hdc);
-        //     result
-        // };
-        let title_font = None;
+        let title_font = unsafe {
+            let hdc = GetDC(hwnd);
+            anyhow::ensure!(!hdc.is_null(), "Could not get device context");
+            let result = match get_title_log_font(hwnd, hdc) {
+                Some(lf) => wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok(),
+                None => None,
+            };
+            ReleaseDC(hwnd, hdc);
+            result
+        };
 
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let use_accent = hkcu
