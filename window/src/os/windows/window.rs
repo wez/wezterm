@@ -50,6 +50,21 @@ extern "system" {
     pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
 }
 
+lazy_static! {
+    static ref IS_WIN10: bool = {
+        let osver = OSVERSIONINFOW {
+            dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as _,
+            ..Default::default()
+        };
+
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+            osver.dwBuildNumber < 22000
+        } else {
+            true
+        }
+    };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub(crate) struct HWindow(HWND);
 unsafe impl Send for HWindow {}
@@ -58,7 +73,6 @@ unsafe impl Sync for HWindow {}
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
-    is_win10: bool,
     events: WindowEventSender,
     gl_state: Option<Rc<glium::backend::Context>>,
     /// Fraction of mouse scroll
@@ -70,7 +84,6 @@ pub(crate) struct WindowInner {
     dead_pending: Option<(Modifiers, u32)>,
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
-    last_resize_type: WPARAM,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -419,7 +432,6 @@ impl Window {
 
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
-            is_win10: is_win10(),
             appearance,
             events,
             gl_state: None,
@@ -431,7 +443,6 @@ impl Window {
             dead_pending: None,
             saved_placement: None,
             track_mouse_leave: false,
-            last_resize_type: SIZE_RESTORED,
             config: config.clone(),
         }));
 
@@ -584,10 +595,6 @@ impl WindowInner {
                 })
                 .detach();
             }
-            promise::spawn::spawn(async move {
-                PostMessageW(hwnd, extra_constants::UM_APPEARANCE_CHANGED, 0, 0);
-            })
-            .detach();
         }
     }
 }
@@ -735,47 +742,32 @@ impl WindowOps for Window {
         clipboard_win::set_clipboard_string(&text).ok();
     }
 
-    fn get_os_parameters(&self, config: &ConfigHandle) -> anyhow::Result<Option<Parameters>> {
+    fn get_os_parameters(
+        &self,
+        config: &ConfigHandle,
+        window_state: WindowState,
+    ) -> anyhow::Result<Option<Parameters>> {
         let hwnd = self.0 .0;
         if hwnd.is_null() {
             return Err(anyhow::anyhow!("HWND is null"));
         }
 
         let has_focus = !unsafe { GetFocus() }.is_null();
-        let is_maximized = window_is_maximized(hwnd);
+        let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
 
-        let is_full_screen = unsafe {
-            let mut mi = MONITORINFO {
-                cbSize: std::mem::size_of::<MONITORINFO>() as u32,
-                ..Default::default()
-            };
-            if GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mut mi)
-                == winapi::shared::minwindef::TRUE
-            {
-                let mut client_rect = RECT::default();
-                if GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE {
-                    client_rect.right >= mi.rcMonitor.right - mi.rcMonitor.left
-                        && client_rect.bottom >= mi.rcMonitor.bottom - mi.rcMonitor.top
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        };
-
-        let title_font = unsafe {
-            let hdc = GetDC(hwnd);
-            if hdc.is_null() {
-                return Err(anyhow::anyhow!("Could not get device context"));
-            }
-            let result = match get_title_log_font(hwnd, hdc) {
-                Some(lf) => Some(wezterm_font::locator::gdi::parse_log_font(&lf, hdc)?),
-                None => None,
-            };
-            ReleaseDC(hwnd, hdc);
-            result
-        };
+        // let title_font = unsafe {
+        //     let hdc = GetDC(hwnd);
+        //     if hdc.is_null() {
+        //         return Err(anyhow::anyhow!("Could not get device context"));
+        //     }
+        //     let result = match get_title_log_font(hwnd, hdc) {
+        //         Some(lf) => Some(wezterm_font::locator::gdi::parse_log_font(&lf, hdc)?),
+        //         None => None,
+        //     };
+        //     ReleaseDC(hwnd, hdc);
+        //     result
+        // };
+        let title_font = None;
 
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let use_accent = hkcu
@@ -786,14 +778,14 @@ impl WindowOps for Window {
             if use_accent == 1 {
                 wuicolor_to_linearrgba(settings.GetColorValue(UIColorType::Accent)?)
             } else {
-                if is_win10() {
+                if *IS_WIN10 {
                     LinearRgba(0.01, 0.01, 0.01, 0.67)
                 } else {
                     LinearRgba(0.026, 0.026, 0.026, 0.5)
                 }
             }
         } else {
-            if is_win10() {
+            if *IS_WIN10 {
                 LinearRgba(0.024, 0.024, 0.024, 0.5)
             } else {
                 LinearRgba(0.028, 0.028, 0.028, 0.5)
@@ -803,7 +795,6 @@ impl WindowOps for Window {
         const BASE_BORDER: Length = Length::new(0);
         let is_resize = config.window_decorations == WindowDecorations::RESIZE;
 
-        let is_win10 = is_win10();
         Ok(Some(Parameters {
             title_bar: crate::parameters::TitleBar {
                 padding_left: Length::new(0),
@@ -812,13 +803,13 @@ impl WindowOps for Window {
                 font_and_size: title_font,
             },
             border_dimensions: Some(crate::parameters::Border {
-                top: if is_resize && !is_win10 && !is_maximized && !is_full_screen {
+                top: if is_resize && !*IS_WIN10 && !is_full_screen {
                     BASE_BORDER + Length::new(1)
                 } else {
                     BASE_BORDER
                 },
                 left: BASE_BORDER,
-                bottom: if is_resize && is_win10 && !is_maximized && !is_full_screen {
+                bottom: if is_resize && *IS_WIN10 && !is_full_screen {
                     BASE_BORDER + Length::new(2)
                 } else {
                     BASE_BORDER
@@ -914,11 +905,13 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
             requested_client_rect.right -= frame_x + padding;
             requested_client_rect.left += frame_x + padding;
 
+            let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
+
             // Handle bugged top window border on Windows 10
-            if inner.is_win10 {
-                if window_is_maximized(hwnd) {
+            if *IS_WIN10 {
+                if is_maximized {
                     requested_client_rect.top += frame_y + padding;
-                    requested_client_rect.bottom -= frame_y + padding;
+                    requested_client_rect.bottom -= frame_y + padding - 2;
                 } else {
                     requested_client_rect.top += 1;
                     requested_client_rect.bottom -= frame_y - padding;
@@ -926,7 +919,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
             } else {
                 requested_client_rect.bottom -= frame_y + padding;
 
-                if window_is_maximized(hwnd) {
+                if is_maximized {
                     requested_client_rect.top += frame_y + padding;
                 }
             }
@@ -973,7 +966,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
         let coords = mouse_coords(lparam);
         let cursor_point = screen_to_client(hwnd, ScreenPoint::new(coords.x, coords.y));
-        let is_maximized = window_is_maximized(hwnd);
+        let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
 
         // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
 
@@ -984,7 +977,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         // Since we are eating the bottom window frame to deal with a Windows 10 bug,
         // we detect resizing in the window client area as a workaround
         if !is_maximized
-            && inner.is_win10
+            && *IS_WIN10
             && client_rect_is_valid
             && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
         {
@@ -1013,29 +1006,16 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     None
 }
 
-fn window_is_maximized(hwnd: HWND) -> bool {
+fn get_window_state(hwnd: HWND) -> i32 {
     let mut placement = WINDOWPLACEMENT {
         length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
         ..Default::default()
     };
 
-    if unsafe { GetWindowPlacement(hwnd, &mut placement) } != winapi::shared::minwindef::TRUE {
-        false
+    if unsafe { GetWindowPlacement(hwnd, &mut placement) } == winapi::shared::minwindef::TRUE {
+        placement.showCmd as i32
     } else {
-        placement.showCmd == SW_SHOWMAXIMIZED as u32
-    }
-}
-
-fn is_win10() -> bool {
-    let osver = OSVERSIONINFOW {
-        dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as _,
-        ..Default::default()
-    };
-
-    if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
-        osver.dwBuildNumber < 22000
-    } else {
-        true
+        0
     }
 }
 
@@ -1180,23 +1160,6 @@ unsafe fn wm_windowposchanged(
     Some(0)
 }
 
-unsafe fn wm_sizeraw(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if wparam == SIZE_RESTORED || wparam == SIZE_MAXIMIZED {
-        if let Some(inner) = rc_from_hwnd(hwnd) {
-            let mut inner = inner.borrow_mut();
-            if inner.last_resize_type != wparam {
-                inner.last_resize_type = wparam;
-                let appearance = inner.appearance;
-                inner
-                    .events
-                    .dispatch(WindowEvent::AppearanceChanged(appearance));
-            }
-        }
-    }
-
-    None
-}
-
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let mut should_paint = false;
     let mut should_pump = false;
@@ -1224,12 +1187,10 @@ unsafe fn wm_set_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
-        inner.events.dispatch(WindowEvent::FocusChanged(true));
-        let appearance = inner.appearance;
         inner
+            .borrow_mut()
             .events
-            .dispatch(WindowEvent::AppearanceChanged(appearance));
+            .dispatch(WindowEvent::FocusChanged(true));
     }
     None
 }
@@ -1241,12 +1202,10 @@ unsafe fn wm_kill_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
-        inner.events.dispatch(WindowEvent::FocusChanged(false));
-        let appearance = inner.appearance;
         inner
+            .borrow_mut()
             .events
-            .dispatch(WindowEvent::AppearanceChanged(appearance));
+            .dispatch(WindowEvent::FocusChanged(false));
     }
     None
 }
@@ -2272,7 +2231,6 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCCALCSIZE => wm_nccalcsize(hwnd, msg, wparam, lparam),
         WM_NCHITTEST => wm_nchittest(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
-        WM_SIZE => wm_sizeraw(hwnd, msg, wparam, lparam),
         WM_ENTERSIZEMOVE | WM_EXITSIZEMOVE => wm_enter_exit_size_move(hwnd, msg, wparam, lparam),
         WM_WINDOWPOSCHANGED => wm_windowposchanged(hwnd, msg, wparam, lparam),
         WM_SETFOCUS => wm_set_focus(hwnd, msg, wparam, lparam),
@@ -2303,7 +2261,6 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             }
             None
         }
-        extra_constants::UM_APPEARANCE_CHANGED => dispatch_appearance_changed(hwnd),
         _ => None,
     }
 }

@@ -39,7 +39,11 @@ impl super::TermWindow {
             log::trace!("dimensions didn't change NOP!");
             return;
         }
+        let last_state = self.window_state;
         self.window_state = window_state;
+        if last_state != self.window_state {
+            self.load_os_parameters();
+        }
         // For simple, user-interactive resizes where the dpi doesn't change,
         // skip our scaling recalculation
         if live_resizing && self.dimensions.dpi == dimensions.dpi {

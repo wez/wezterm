@@ -355,6 +355,18 @@ pub struct TermWindow {
 }
 
 impl TermWindow {
+    fn load_os_parameters(&mut self) {
+        if let Some(ref window) = self.window {
+            self.os_parameters = match window.get_os_parameters(&self.config, self.window_state) {
+                Ok(os_parameters) => os_parameters,
+                Err(err) => {
+                    log::warn!("Error while getting OS parameters: {:#}", err);
+                    None
+                }
+            };
+        }
+    }
+
     fn close_requested(&mut self, window: &Window) {
         let mux = Mux::get().unwrap();
         match self.config.window_close_confirmation {
@@ -402,6 +414,7 @@ impl TermWindow {
     fn focus_changed(&mut self, focused: bool, window: &Window) {
         log::trace!("Setting focus to {:?}", focused);
         self.focused = if focused { Some(Instant::now()) } else { None };
+        self.load_os_parameters();
 
         if self.focused.is_none() {
             self.last_mouse_click = None;
@@ -447,7 +460,7 @@ impl TermWindow {
             }
         }
 
-        self.os_parameters = window.get_os_parameters(&self.config).unwrap_or(None);
+        self.load_os_parameters();
 
         window.show();
 
@@ -1436,14 +1449,7 @@ impl TermWindow {
         };
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
-            self.os_parameters = match window.get_os_parameters(&config) {
-                Ok(os_parameters) => os_parameters,
-                Err(_) => {
-                    log::warn!("Error while getting OS parameters");
-                    None
-                }
-            };
-
+            self.load_os_parameters();
             self.apply_scale_change(&dimensions, self.fonts.get_font_scale(), &window);
             self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);

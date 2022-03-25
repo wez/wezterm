@@ -287,6 +287,7 @@ pub trait WindowOps {
     fn get_os_parameters(
         &self,
         _config: &ConfigHandle,
+        _window_state: WindowState,
     ) -> anyhow::Result<Option<os::parameters::Parameters>> {
         Ok(None)
     }
