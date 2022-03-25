@@ -17,6 +17,8 @@ use umask::UmaskSaver;
 use wezterm_client::client::{unix_connect_with_retry, Client};
 use wezterm_gui_subcommands::*;
 
+mod asciicast;
+
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 
 #[derive(Debug, StructOpt)]
@@ -83,6 +85,12 @@ enum SubCommand {
                  emitting an OSC 7 escape sequence"
     )]
     SetCwd(SetCwdCommand),
+
+    #[structopt(name = "record", about = "Record a terminal session as an asciicast")]
+    Record(asciicast::RecordCommand),
+
+    #[structopt(name = "replay", about = "Replay an asciicast terminal session")]
+    Replay(asciicast::PlayCommand),
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -360,6 +368,8 @@ fn run() -> anyhow::Result<()> {
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::SetCwd(cmd) => cmd.run(),
         SubCommand::Cli(cli) => run_cli(config, cli),
+        SubCommand::Record(cmd) => cmd.run(config),
+        SubCommand::Replay(cmd) => cmd.run(),
     }
 }
 

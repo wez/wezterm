@@ -17,13 +17,17 @@ config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 hostname = "0.3"
+libc = "0.2"
 log = "0.4"
 mux = { path = "../mux" }
 portable-pty = { path = "../pty" }
 promise = { path = "../promise" }
+serde = {version="1.0", features = ["derive"]}
+serde_json = "1.0"
 smol = "1.2"
 structopt = "0.3"
 tabout = { path = "../tabout" }
+tempfile = "3.3"
 termwiz = { path = "../termwiz" }
 textwrap = "0.15"
 umask = { path = "../umask" }
@@ -32,3 +36,5 @@ wezterm-client = { path = "../wezterm-client" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-term = { path = "../term" }
 
+[target."cfg(unix)".dependencies]
+termios = "0.3"
