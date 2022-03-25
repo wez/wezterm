@@ -752,7 +752,7 @@ impl WindowOps for Window {
             return Err(anyhow::anyhow!("HWND is null"));
         }
 
-        let has_focus = !unsafe { GetFocus() }.is_null();
+        let has_focus = unsafe { GetFocus() } == hwnd;
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
 
         // let title_font = unsafe {
