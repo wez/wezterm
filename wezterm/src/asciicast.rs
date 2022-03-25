@@ -6,7 +6,7 @@ use filedescriptor::FileDescriptor;
 use portable_pty::{native_pty_system, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
@@ -57,11 +57,22 @@ pub struct Header {
 }
 
 impl Header {
-    fn new(config: &ConfigHandle, size: PtySize) -> Self {
+    fn new(config: &ConfigHandle, size: PtySize, prog: &[&OsStr]) -> Self {
         let mut env = HashMap::new();
         env.insert("TERM".to_string(), config.term.to_string());
+        env.insert(
+            "WEZTERM_VERSION".to_string(),
+            config::wezterm_version().to_string(),
+        );
+        env.insert(
+            "WEZTERM_TARGET_TRIPLE".to_string(),
+            config::wezterm_target_triple().to_string(),
+        );
         if let Ok(shell) = std::env::var("SHELL") {
             env.insert("SHELL".to_string(), shell.to_string());
+        }
+        if let Ok(lang) = std::env::var("LANG") {
+            env.insert("LANG".to_string(), lang.to_string());
         }
 
         let palette: ColorPalette = config.resolved_palette.clone().into();
@@ -76,11 +87,23 @@ impl Header {
             palette: ansi_colors.join(":"),
         };
 
+        let command = if prog.is_empty() {
+            None
+        } else {
+            let args: Vec<String> = prog
+                .iter()
+                .map(|s| s.to_string_lossy().to_string())
+                .collect();
+            Some(shell_words::join(&args))
+        };
+
         Header {
             version: 2,
             height: size.rows.into(),
             width: size.cols.into(),
+            timestamp: Some(Utc::now()),
             env,
+            command,
             theme: Some(theme),
             ..Default::default()
         }
@@ -318,14 +341,17 @@ pub struct RecordCommand {
 
 impl RecordCommand {
     pub fn run(&self, config: ConfigHandle) -> anyhow::Result<()> {
+        let prog = self.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
+
         let mut tty = Tty::new()?;
         let size = tty.get_size()?;
 
-        let header = Header::new(&config, size);
+        let header = Header::new(&config, size, &prog);
 
         let (cast_file, cast_file_name) = tempfile::Builder::new()
             .prefix("wezterm-recording-")
-            .suffix(".cast")
+            // We use a .txt suffix for convenice when uploading to GH
+            .suffix(".cast.txt")
             .tempfile()?
             .keep()?;
         let mut cast_file = BufWriter::new(cast_file);
@@ -334,7 +360,6 @@ impl RecordCommand {
         let pty_system = native_pty_system();
         let mut pair = pty_system.openpty(size)?;
 
-        let prog = self.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
         let cmd = config.build_prog(
             if self.prog.is_empty() {
                 None

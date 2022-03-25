@@ -24,6 +24,7 @@ portable-pty = { path = "../pty" }
 promise = { path = "../promise" }
 serde = {version="1.0", features = ["derive"]}
 serde_json = "1.0"
+shell-words = "1.1"
 smol = "1.2"
 structopt = "0.3"
 tabout = { path = "../tabout" }

@@ -4584,6 +4584,7 @@ dependencies = [
  "promise",
  "serde",
  "serde_json",
+ "shell-words",
  "smol",
  "structopt",
  "tabout",
