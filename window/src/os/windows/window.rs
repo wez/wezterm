@@ -1115,17 +1115,6 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     None
 }
 
-fn dispatch_appearance_changed(hwnd: HWND) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
-        let appearance = inner.appearance;
-        inner
-            .events
-            .dispatch(WindowEvent::AppearanceChanged(appearance));
-    }
-    None
-}
-
 unsafe fn wm_enter_exit_size_move(
     hwnd: HWND,
     msg: UINT,
