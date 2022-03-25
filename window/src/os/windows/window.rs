@@ -748,9 +748,7 @@ impl WindowOps for Window {
         window_state: WindowState,
     ) -> anyhow::Result<Option<Parameters>> {
         let hwnd = self.0 .0;
-        if hwnd.is_null() {
-            return Err(anyhow::anyhow!("HWND is null"));
-        }
+        anyhow::ensure!(!hwnd.is_null(), "HWND is null");
 
         let has_focus = unsafe { GetFocus() } == hwnd;
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
