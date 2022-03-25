@@ -38,3 +38,16 @@ wezterm-term = { path = "../term" }
 
 [target."cfg(unix)".dependencies]
 termios = "0.3"
+
+[target."cfg(windows)".dependencies.winapi]
+features = [
+    "winbase",
+    "winerror",
+    "winnls",
+    "winuser",
+    "consoleapi",
+    "handleapi",
+    "fileapi",
+    "synchapi",
+]
+version = "0.3"

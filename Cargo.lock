@@ -4596,6 +4596,7 @@ dependencies = [
  "wezterm-client",
  "wezterm-gui-subcommands",
  "wezterm-term",
+ "winapi 0.3.9",
 ]
 
 [[package]]
