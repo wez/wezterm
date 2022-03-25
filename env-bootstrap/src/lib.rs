@@ -89,7 +89,14 @@ pub fn set_lang_from_locale() {
     use objc::runtime::Object;
     use objc::*;
 
-    if std::env::var_os("LANG").is_none() {
+    fn lang_is_set() -> bool {
+        match std::env::var_os("LANG") {
+            None => false,
+            Some(lang) => !lang.is_empty(),
+        }
+    }
+
+    if !lang_is_set() {
         unsafe fn nsstring_to_str<'a>(ns: *mut Object) -> &'a str {
             let data = NSString::UTF8String(ns as id) as *const u8;
             let len = NSString::len(ns as id);
@@ -115,6 +122,9 @@ pub fn set_lang_from_locale() {
                 let old = libc::setlocale(libc::LC_CTYPE, std::ptr::null());
                 if !libc::setlocale(libc::LC_CTYPE, candidate_cstr.as_ptr()).is_null() {
                     std::env::set_var("LANG", &candidate);
+                } else {
+                    log::warn!("setlocale({}) failed, fall back to en_US.UTF-8", candidate);
+                    std::env::set_var("LANG", "en_US.UTF-8");
                 }
                 libc::setlocale(libc::LC_CTYPE, old);
             }
@@ -127,12 +137,12 @@ pub fn set_lang_from_locale() {
 }
 
 pub fn bootstrap() {
+    setup_logger();
+
     set_wezterm_executable();
 
     #[cfg(target_os = "macos")]
     set_lang_from_locale();
 
     fixup_appimage();
-
-    setup_logger();
 }
