@@ -1,6 +1,6 @@
 use super::*;
 use crate::connection::ConnectionOps;
-use crate::parameters::Parameters;
+use crate::parameters::{self, Parameters};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Length,
     Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point,
@@ -24,6 +24,7 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use std::sync::Mutex;
 use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
 use winapi::shared::minwindef::*;
@@ -63,6 +64,7 @@ lazy_static! {
             true
         }
     };
+    static ref TITLE_FONT: Mutex<Option<parameters::FontAndSize>> = Mutex::new(None);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -753,17 +755,6 @@ impl WindowOps for Window {
         let has_focus = unsafe { GetFocus() } == hwnd;
         let is_full_screen = window_state.contains(WindowState::FULL_SCREEN);
 
-        let title_font = unsafe {
-            let hdc = GetDC(hwnd);
-            anyhow::ensure!(!hdc.is_null(), "Could not get device context");
-            let result = match get_title_log_font(hwnd, hdc) {
-                Some(lf) => wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok(),
-                None => None,
-            };
-            ReleaseDC(hwnd, hdc);
-            result
-        };
-
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let use_accent = hkcu
             .open_subkey("SOFTWARE\\Microsoft\\Windows\\DWM")?
@@ -790,14 +781,24 @@ impl WindowOps for Window {
         const BASE_BORDER: Length = Length::new(0);
         let is_resize = config.window_decorations == WindowDecorations::RESIZE;
 
+        let title_font = if let Ok(lock) = TITLE_FONT.try_lock() {
+            if let Some(ref font_and_size) = *lock {
+                Some((font_and_size.0.clone(), font_and_size.1))
+            } else {
+                None
+            }
+        } else {
+            anyhow::bail!("Could not get lock on title_font")
+        };
+
         Ok(Some(Parameters {
-            title_bar: crate::parameters::TitleBar {
+            title_bar: parameters::TitleBar {
                 padding_left: Length::new(0),
                 padding_right: Length::new(0),
                 height: None,
                 font_and_size: title_font,
             },
-            border_dimensions: Some(crate::parameters::Border {
+            border_dimensions: Some(parameters::Border {
                 top: if is_resize && !*IS_WIN10 && !is_full_screen {
                     BASE_BORDER + Length::new(1)
                 } else {
@@ -844,6 +845,21 @@ unsafe fn get_title_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
     } else {
         None
     }
+}
+
+unsafe fn update_title_font(hwnd: HWND) {
+    let hdc = GetDC(hwnd);
+    if hdc.is_null() {
+        return;
+    }
+
+    if let Ok(mut lock) = TITLE_FONT.try_lock() {
+        if let Some(lf) = get_title_log_font(hwnd, hdc) {
+            *lock = wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok();
+        }
+    }
+
+    ReleaseDC(hwnd, hdc);
 }
 
 /// Set up bidirectional pointers:
@@ -1064,6 +1080,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
 
     const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
     unsafe {
+        update_title_font(hwnd);
+
         let appearance = get_appearance();
         let theme_string = if appearance == Appearance::Dark {
             "DarkMode_Explorer"

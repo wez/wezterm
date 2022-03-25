@@ -3,11 +3,13 @@ use wezterm_font::parser::ParsedFont;
 
 use crate::Length;
 
+pub type FontAndSize = (ParsedFont, f64);
+
 pub struct TitleBar {
     pub padding_left: Length,
     pub padding_right: Length,
     pub height: Option<Length>,
-    pub font_and_size: Option<(ParsedFont, f64)>,
+    pub font_and_size: Option<FontAndSize>,
 }
 
 pub struct Border {
