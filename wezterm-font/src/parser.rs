@@ -151,7 +151,7 @@ impl ParsedFont {
 
     pub fn lua_name(&self) -> String {
         format!(
-            "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", style={}}})",
+            "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", style=\"{}\"}})",
             self.names.family, self.weight, self.stretch, self.style
         )
     }

@@ -17,6 +17,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)
 * X11 `_NET_WM_ICON` had red/blue channels swapped [#1754](https://github.com/wez/wezterm/issues/1754)
+* ls-fonts output didn't quote the `style` field [#1762](https://github.com/wez/wezterm/issues/1762)
 
 ### 20220319-142410-0fcdea07
 
