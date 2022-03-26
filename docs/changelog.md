@@ -18,6 +18,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)
 * X11 `_NET_WM_ICON` had red/blue channels swapped [#1754](https://github.com/wez/wezterm/issues/1754)
 * ls-fonts output didn't quote the `style` field [#1762](https://github.com/wez/wezterm/issues/1762)
+* `window_decorations = "RESIZE"` on Windows prevented minimize/maximize and aerosnap, and had an ugly top border. Many thanks to [@davidrios](https://github.com/davidrios)! [#1674](https://github.com/wez/wezterm/issues/1674) [#1675](https://github.com/wez/wezterm/pull/1675)
+* On Windows, explorer shortcut icons with the maximized setting would fall out of maximized state on startup. Thanks to [@davidrios](https://github.com/davidrios)! [#1502](https://github.com/wez/wezterm/issues/1502)
 
 ### 20220319-142410-0fcdea07
 
