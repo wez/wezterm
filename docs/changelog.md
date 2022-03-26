@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `LANG` environment variable was not always set on macOS, leading to mojibake when entering CJK.  [#1761](https://github.com/wez/wezterm/issues/1761) [#1765](https://github.com/wez/wezterm/issues/1765)
 * Fonts with only non-unicode names (eg: only using a Chinese multibyte string encoding) were treated as having names like `?????` and were not accessible. [#1761](https://github.com/wez/wezterm/issues/1761)
 * Hover state of leftmost retro style tab was overly sticky when the mouse moved out of the tab. [#1764](https://github.com/wez/wezterm/issues/1764)
+* On macOS, the font size could incorrectly double or halve after waking from sleep or moving the window to/from an external monitor. [#1566](https://github.com/wez/wezterm/issues/1566) [#1745](https://github.com/wez/wezterm/issues/1745)
 
 ### 20220319-142410-0fcdea07
 
