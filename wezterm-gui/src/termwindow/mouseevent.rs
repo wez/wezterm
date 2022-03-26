@@ -201,6 +201,7 @@ impl super::TermWindow {
 
     pub fn mouse_leave_impl(&mut self, context: &dyn WindowOps) {
         self.current_mouse_event = None;
+        self.update_title();
         context.invalidate();
     }
 

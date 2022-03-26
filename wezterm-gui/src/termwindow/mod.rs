@@ -1531,9 +1531,19 @@ impl TermWindow {
             0
         };
 
+        let tab_bar_height = self.tab_bar_pixel_height().unwrap_or(0.);
+
+        let hovering_in_tab_bar = match &self.current_mouse_event {
+            Some(event) => {
+                let mouse_y = event.coords.y as f32;
+                mouse_y >= tab_bar_y as f32 && mouse_y < tab_bar_y as f32 + tab_bar_height
+            }
+            None => false,
+        };
+
         let new_tab_bar = TabBarState::new(
             self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
-            if self.last_mouse_coords.1 == tab_bar_y {
+            if hovering_in_tab_bar {
                 Some(self.last_mouse_coords.0)
             } else {
                 None

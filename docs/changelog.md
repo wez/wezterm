@@ -22,6 +22,7 @@ As features stabilize some brief notes about them will accumulate here.
 * On Windows, explorer shortcut icons with the maximized setting would fall out of maximized state on startup. Thanks to [@davidrios](https://github.com/davidrios)! [#1502](https://github.com/wez/wezterm/issues/1502)
 * `LANG` environment variable was not always set on macOS, leading to mojibake when entering CJK.  [#1761](https://github.com/wez/wezterm/issues/1761) [#1765](https://github.com/wez/wezterm/issues/1765)
 * Fonts with only non-unicode names (eg: only using a Chinese multibyte string encoding) were treated as having names like `?????` and were not accessible. [#1761](https://github.com/wez/wezterm/issues/1761)
+* Hover state of leftmost retro style tab was overly sticky when the mouse moved out of the tab. [#1764](https://github.com/wez/wezterm/issues/1764)
 
 ### 20220319-142410-0fcdea07
 
