@@ -1417,10 +1417,14 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             delta * (*WHEEL_SCROLL_CHARS)
         };
         let mut position = scaled_delta / WHEEL_DELTA;
-        let remainder = delta % WHEEL_DELTA;
+        let remainder = scaled_delta % WHEEL_DELTA;
         let event = MouseEvent {
             kind: if msg == WM_MOUSEHWHEEL {
                 let mut inner = inner.borrow_mut();
+                if inner.hscroll_remainder.signum() != remainder.signum() {
+                    // Reset remainder when changing scroll direction
+                    inner.hscroll_remainder = 0;
+                }
                 inner.hscroll_remainder += remainder;
                 position += inner.hscroll_remainder / WHEEL_DELTA;
                 inner.hscroll_remainder %= WHEEL_DELTA;
@@ -1431,9 +1435,16 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                     inner.hscroll_remainder,
                     position
                 );
+                if position == 0 {
+                    return Some(0);
+                }
                 MouseEventKind::HorzWheel(position)
             } else {
                 let mut inner = inner.borrow_mut();
+                if inner.vscroll_remainder.signum() != remainder.signum() {
+                    // Reset remainder when changing scroll direction
+                    inner.vscroll_remainder = 0;
+                }
                 inner.vscroll_remainder += remainder;
                 position += inner.vscroll_remainder / WHEEL_DELTA;
                 inner.vscroll_remainder %= WHEEL_DELTA;
@@ -1444,6 +1455,9 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                     inner.vscroll_remainder,
                     position
                 );
+                if position == 0 {
+                    return Some(0);
+                }
                 MouseEventKind::VertWheel(position)
             },
             coords,
