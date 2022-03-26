@@ -259,7 +259,11 @@ impl WindowInner {
                 window_state: if self.saved_placement.is_some() {
                     WindowState::FULL_SCREEN
                 } else {
-                    WindowState::default()
+                    match get_window_state(self.hwnd.0) {
+                        SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
+                        SW_SHOWMINIMIZED => WindowState::HIDDEN,
+                        _ => WindowState::default(),
+                    }
                 },
                 live_resizing: self.in_size_move,
             });
