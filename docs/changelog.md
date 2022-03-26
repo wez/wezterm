@@ -20,6 +20,8 @@ As features stabilize some brief notes about them will accumulate here.
 * ls-fonts output didn't quote the `style` field [#1762](https://github.com/wez/wezterm/issues/1762)
 * `window_decorations = "RESIZE"` on Windows prevented minimize/maximize and aerosnap, and had an ugly top border. Many thanks to [@davidrios](https://github.com/davidrios)! [#1674](https://github.com/wez/wezterm/issues/1674) [#1675](https://github.com/wez/wezterm/pull/1675)
 * On Windows, explorer shortcut icons with the maximized setting would fall out of maximized state on startup. Thanks to [@davidrios](https://github.com/davidrios)! [#1502](https://github.com/wez/wezterm/issues/1502)
+* `LANG` environment variable was not always set on macOS, leading to mojibake when entering CJK.  [#1761](https://github.com/wez/wezterm/issues/1761) [#1765](https://github.com/wez/wezterm/issues/1765)
+* Fonts with only non-unicode names (eg: only using a Chinese multibyte string encoding) were treated as having names like `?????` and were not accessible. [#1761](https://github.com/wez/wezterm/issues/1761)
 
 ### 20220319-142410-0fcdea07
 
