@@ -11,6 +11,13 @@ utilization.
 If you are running with a CPU renderer (eg: you have [front_end](front_end.md)
 = `"Software"`, or your system doesn't have a GPU), then setting `animation_fps
 = 1` is recommended, as doing so will disable easing effects and use
-transitions.
+transitions:
 
+```lua
+return {
+  animation_fps = 1,
+  cursor_blink_ease_in = "Constant",
+  cursor_blink_ease_out = "Constant",
+}
+```
 

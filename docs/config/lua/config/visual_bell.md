@@ -27,6 +27,7 @@ The following easing functions are supported:
 * `EaseInOut` - The fade starts slowly, speeds up, and then slows down towards the end.
 * `EaseOut` - The fade starts abruptly, and then progressively slows down towards the end.
 * `{CubicBezier={0.0, 0.0, 0.58, 1.0}}` - an arbitrary cubic bezier with the specified parameters.
+* `Constant` - Evaluates as 0 regardless of time. Useful to implement a step transition at the end of the duration. (*Since: nightly builds only*)
 
 The following configuration enables a low intensity visual bell that takes a total of 300ms to "flash" the screen:
 

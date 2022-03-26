@@ -9,6 +9,7 @@ pub enum EasingFunction {
     EaseIn,
     EaseInOut,
     EaseOut,
+    Constant,
 }
 impl_lua_conversion!(EasingFunction);
 
@@ -22,6 +23,7 @@ impl EasingFunction {
         }
 
         match self {
+            Self::Constant => 0.,
             Self::Linear => cubic_bezier(0., 0., 1.0, 1.0, position),
             Self::CubicBezier(a, b, c, d) => cubic_bezier(*a, *b, *c, *d, position),
             Self::Ease => cubic_bezier(0.25, 0.1, 0.25, 1.0, position),
