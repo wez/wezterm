@@ -379,7 +379,7 @@ impl super::TermWindow {
             },
             WMEK::Move => match item {
                 TabBarItem::None => {
-                    context.set_mouse_drag_position(event.screen_coords);
+                    context.set_window_drag_position(event.screen_coords);
                 }
                 _ => {}
             },

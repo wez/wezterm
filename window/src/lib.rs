@@ -255,7 +255,7 @@ pub trait WindowOps {
     /// This is only implemented on backends that need to
     /// know if the mouse is in a drag area to handle the
     /// click before forwarding the event (Windows).
-    fn set_mouse_drag_position(&self, _coords: ScreenPoint) {}
+    fn set_window_drag_position(&self, _coords: ScreenPoint) {}
 
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the
