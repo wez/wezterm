@@ -7,6 +7,7 @@ use config::{configuration, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use freetype::*;
 use memmap2::{Mmap, MmapOptions};
 use rangeset::RangeSet;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::CStr;
 use std::fs::File;
@@ -191,10 +192,10 @@ impl Face {
         }
     }
 
-    pub fn get_sfnt_names(&self) -> Vec<String> {
+    pub fn get_sfnt_names(&self) -> HashMap<u32, Vec<NameRecord>> {
         let num_names = unsafe { FT_Get_Sfnt_Name_Count(self.face) };
 
-        let mut names = vec![];
+        let mut names = HashMap::new();
 
         let mut sfnt_name = FT_SfntName {
             platform_id: 0,
@@ -214,42 +215,62 @@ impl Face {
                 continue;
             }
 
-            if sfnt_name.name_id != TT_NAME_ID_FONT_FAMILY as u16
-                && sfnt_name.name_id != TT_NAME_ID_FULL_NAME as u16
-            {
+            if !matches!(
+                sfnt_name.name_id as u32,
+                TT_NAME_ID_TYPOGRAPHIC_FAMILY
+                    | TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY
+                    | TT_NAME_ID_FONT_FAMILY
+                    | TT_NAME_ID_FONT_SUBFAMILY
+                    | TT_NAME_ID_PS_NAME
+            ) {
                 continue;
             }
 
-            let is_unicode = sfnt_name.platform_id == TT_PLATFORM_APPLE_UNICODE as u16
-                || sfnt_name.encoding_id == TT_MS_ID_SYMBOL_CS as u16
-                || sfnt_name.encoding_id == TT_MS_ID_UNICODE_CS as u16;
-
-            if !is_unicode {
-                continue;
-            }
-            let utf16 = unsafe {
+            let bytes = unsafe {
                 std::slice::from_raw_parts(
-                    sfnt_name.string as *const u16,
-                    sfnt_name.string_len as usize / 2,
+                    sfnt_name.string as *const u8,
+                    sfnt_name.string_len as usize,
                 )
             };
 
-            match String::from_utf16(utf16) {
-                Ok(name) => names.push(name),
-                Err(err) => {
+            let encoding = match (sfnt_name.platform_id as u32, sfnt_name.encoding_id as u32) {
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_JAPANESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_SJIS) => encoding_rs::SHIFT_JIS,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_SIMPLIFIED_CHINESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_PRC) => encoding_rs::GBK,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_TRADITIONAL_CHINESE)
+                | (TT_PLATFORM_MICROSOFT, TT_MS_ID_BIG_5) => encoding_rs::BIG5,
+                (
+                    TT_PLATFORM_MICROSOFT,
+                    TT_MS_ID_UCS_4 | TT_MS_ID_UNICODE_CS | TT_MS_ID_SYMBOL_CS,
+                ) => encoding_rs::UTF_16BE,
+                (TT_PLATFORM_MICROSOFT, TT_MS_ID_WANSUNG) => encoding_rs::EUC_KR,
+                (TT_PLATFORM_APPLE_UNICODE | TT_PLATFORM_ISO, _) => encoding_rs::UTF_16BE,
+                (TT_PLATFORM_MACINTOSH, TT_MAC_ID_ROMAN) => encoding_rs::MACINTOSH,
+                _ => {
                     log::trace!(
-                        "Failed to convert: {:#}, string_len={} (bytes), {:x?} -> {}",
-                        err,
-                        sfnt_name.string_len,
-                        utf16,
-                        String::from_utf16_lossy(utf16)
+                        "Skipping name_id={} because platform_id={} encoding_id={}",
+                        sfnt_name.name_id,
+                        sfnt_name.platform_id,
+                        sfnt_name.encoding_id
                     );
+                    continue;
                 }
-            }
-        }
+            };
 
-        names.sort();
-        names.dedup();
+            let (name, _) = encoding.decode_with_bom_removal(bytes);
+
+            names
+                .entry(sfnt_name.name_id as u32)
+                .or_insert_with(|| vec![])
+                .push(NameRecord {
+                    platform_id: sfnt_name.platform_id,
+                    encoding_id: sfnt_name.encoding_id,
+                    name_id: sfnt_name.name_id,
+                    language_id: sfnt_name.language_id,
+                    name: name.to_string(),
+                });
+        }
         names
     }
 
@@ -1081,4 +1102,13 @@ impl FreeTypeStream {
         let myself = Box::from_raw((*stream).descriptor.pointer as *mut Self);
         drop(myself);
     }
+}
+
+#[derive(Debug)]
+pub struct NameRecord {
+    pub platform_id: u16,
+    pub encoding_id: u16,
+    pub language_id: u16,
+    pub name_id: u16,
+    pub name: String,
 }

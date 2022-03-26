@@ -118,11 +118,110 @@ pub struct Names {
     pub aliases: Vec<String>,
 }
 
+/// Returns the "best" name from a set of records.
+/// Best is English from a MS entry if available, as freetype's
+/// source claims that a number of Mac entries have somewhat
+/// broken encodings.
+fn best_name(records: &[crate::ftwrap::NameRecord]) -> String {
+    let mut win = None;
+    let mut uni = None;
+    let mut apple = None;
+
+    for rec in records {
+        match rec.platform_id as u32 {
+            freetype::TT_PLATFORM_APPLE_UNICODE | freetype::TT_PLATFORM_ISO => {
+                uni.replace(rec);
+            }
+            freetype::TT_PLATFORM_MACINTOSH => {
+                apple.replace(rec);
+            }
+            freetype::TT_PLATFORM_MICROSOFT => {
+                let is_english = (rec.language_id & 0x3ff) == 0x9;
+                if is_english {
+                    return rec.name.clone();
+                }
+                win.replace(rec);
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(rec) = apple {
+        return rec.name.clone();
+    }
+    if let Some(rec) = win {
+        return rec.name.clone();
+    }
+    if let Some(rec) = uni {
+        return rec.name.clone();
+    }
+    records[0].name.clone()
+}
+
+/// Return a single name from a table.
+/// The list of ids are tried in order: the first id with corresponding
+/// names is taken, and the "best" of those names is returned.
+fn name_from_table(
+    names: &std::collections::HashMap<u32, Vec<crate::ftwrap::NameRecord>>,
+    ids: &[u32],
+) -> Option<String> {
+    for id in ids {
+        if let Some(name_list) = names.get(id) {
+            return Some(best_name(name_list));
+        }
+    }
+    None
+}
+
+/// Returns the sorted, deduplicated set of names across the list of ids
+fn names_from_table(
+    names: &std::collections::HashMap<u32, Vec<crate::ftwrap::NameRecord>>,
+    ids: &[u32],
+) -> Vec<String> {
+    let mut result = vec![];
+
+    for id in ids {
+        if let Some(name_list) = names.get(id) {
+            for rec in name_list {
+                result.push(rec.name.clone());
+            }
+        }
+    }
+    result.sort();
+    result.dedup();
+    result
+}
+
 impl Names {
     pub fn from_ft_face(face: &crate::ftwrap::Face) -> Names {
-        let postscript_name = face.postscript_name();
-        let family = face.family_name();
-        let sub_family = face.style_name();
+        // We don't simply use the freetype functions to retrieve names,
+        // as freetype has a limited set of encodings that it supports.
+        // We process the name table for ourselves to increase our chances
+        // of returning a good version of the name.
+        // See <https://github.com/wez/wezterm/issues/1761#issuecomment-1079150560>
+        // for a case where freetype returns `?????` for a name.
+        let names = face.get_sfnt_names();
+
+        let family = name_from_table(
+            &names,
+            &[
+                freetype::TT_NAME_ID_TYPOGRAPHIC_FAMILY,
+                freetype::TT_NAME_ID_FONT_FAMILY,
+            ],
+        )
+        .unwrap_or_else(|| face.family_name());
+
+        let sub_family = name_from_table(
+            &names,
+            &[
+                freetype::TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY,
+                freetype::TT_NAME_ID_FONT_SUBFAMILY,
+            ],
+        )
+        .unwrap_or_else(|| face.style_name());
+
+        let postscript_name = name_from_table(&names, &[freetype::TT_NAME_ID_PS_NAME])
+            .unwrap_or_else(|| face.postscript_name());
 
         let full_name = if sub_family.is_empty() {
             family.to_string()
@@ -130,7 +229,13 @@ impl Names {
             format!("{} {}", family, sub_family)
         };
 
-        let aliases = face.get_sfnt_names();
+        let aliases = names_from_table(
+            &names,
+            &[
+                freetype::TT_NAME_ID_TYPOGRAPHIC_FAMILY,
+                freetype::TT_NAME_ID_FONT_FAMILY,
+            ],
+        );
 
         Names {
             full_name,

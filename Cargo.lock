@@ -1044,6 +1044,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7896dc8abb250ffdda33912550faa54c88ec8b998dec0b2c55ab224921ce11df"
+dependencies = [
+ "cfg-if 1.0.0",
+]
+
+[[package]]
 name = "enum-display-derive"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4661,6 +4670,7 @@ dependencies = [
  "core-foundation 0.9.3",
  "core-text",
  "dwrote",
+ "encoding_rs",
  "enum-display-derive",
  "euclid",
  "fontconfig",
