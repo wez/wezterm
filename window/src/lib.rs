@@ -249,6 +249,14 @@ pub trait WindowOps {
     /// window movement on the server side (Wayland).
     fn request_drag_move(&self) {}
 
+    /// Signal to the windowing system that the mouse is over
+    /// a window dragging area.
+    ///
+    /// This is only implemented on backends that need to
+    /// know if the mouse is in a drag area to handle the
+    /// click before forwarding the event (Windows).
+    fn set_mouse_drag_position(&self, _coords: ScreenPoint) {}
+
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the
     /// client area.

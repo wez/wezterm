@@ -86,6 +86,7 @@ pub(crate) struct WindowInner {
     dead_pending: Option<(Modifiers, u32)>,
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
+    mouse_drag_position: Option<ScreenPoint>,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -449,6 +450,7 @@ impl Window {
             dead_pending: None,
             saved_placement: None,
             track_mouse_leave: false,
+            mouse_drag_position: None,
             config: config.clone(),
         }));
 
@@ -748,6 +750,14 @@ impl WindowOps for Window {
         clipboard_win::set_clipboard_string(&text).ok();
     }
 
+    fn set_mouse_drag_position(&self, coords: ScreenPoint) {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.mouse_drag_position = Some(coords);
+
+            Ok(())
+        });
+    }
+
     fn get_os_parameters(
         &self,
         config: &ConfigHandle,
@@ -974,7 +984,8 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi) as isize;
 
         let coords = mouse_coords(lparam);
-        let cursor_point = screen_to_client(hwnd, ScreenPoint::new(coords.x, coords.y));
+        let screen_point = ScreenPoint::new(coords.x, coords.y);
+        let cursor_point = screen_to_client(hwnd, screen_point);
         let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
 
         // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
@@ -1006,6 +1017,12 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
                 return Some(HTTOPRIGHT);
             } else {
                 return Some(HTTOP);
+            }
+        }
+
+        if let Some(coords) = inner.mouse_drag_position {
+            if coords == screen_point && inner.saved_placement.is_none() {
+                return Some(HTCAPTION);
             }
         }
 

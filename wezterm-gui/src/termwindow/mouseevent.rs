@@ -3,6 +3,7 @@ use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
 use crate::termwindow::{PositionedSplit, ScrollHit, UIItem, UIItemType, TMB};
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
+    WindowState,
 };
 use config::keyassignment::{MouseEventTrigger, SpawnTabDomain};
 use mux::pane::Pane;
@@ -352,7 +353,12 @@ impl super::TermWindow {
                 }
                 TabBarItem::None => {
                     // Potentially starting a drag by the tab bar
-                    self.window_drag_position.replace(event.clone());
+                    if !self
+                        .window_state
+                        .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN)
+                    {
+                        self.window_drag_position.replace(event.clone());
+                    }
                     context.request_drag_move();
                 }
             },
@@ -370,6 +376,12 @@ impl super::TermWindow {
                     self.show_launcher();
                 }
                 TabBarItem::None => {}
+            },
+            WMEK::Move => match item {
+                TabBarItem::None => {
+                    context.set_mouse_drag_position(event.screen_coords);
+                }
+                _ => {}
             },
             _ => {}
         }
