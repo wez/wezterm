@@ -154,7 +154,13 @@ for blinking cursors, blinking text and visual bell.</p>
 utilization.</p>
 <p>If you are running with a CPU renderer (eg: you have <a href="front_end.html">front_end</a>
 = <code>&quot;Software&quot;</code>, or your system doesn't have a GPU), then setting <code>animation_fps = 1</code> is recommended, as doing so will disable easing effects and use
-transitions.</p>
+transitions:</p>
+<pre><code class="language-lua">return {
+  animation_fps = 1,
+  cursor_blink_ease_in = &quot;Constant&quot;,
+  cursor_blink_ease_out = &quot;Constant&quot;,
+}
+</code></pre>
 
                     </main>
 
