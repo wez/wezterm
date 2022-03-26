@@ -6,12 +6,6 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
 
-pub type __int8_t = ::std::os::raw::c_schar;
-pub type __uint8_t = ::std::os::raw::c_uchar;
-pub type __int16_t = ::std::os::raw::c_short;
-pub type __uint16_t = ::std::os::raw::c_ushort;
-pub type __int32_t = ::std::os::raw::c_int;
-pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -756,6 +750,13 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_set_add_range(set: *mut hb_set_t, first: hb_codepoint_t, last: hb_codepoint_t);
+}
+extern "C" {
+    pub fn hb_set_add_sorted_array(
+        set: *mut hb_set_t,
+        sorted_codepoints: *const hb_codepoint_t,
+        num_codepoints: ::std::os::raw::c_uint,
+    );
 }
 extern "C" {
     pub fn hb_set_del(set: *mut hb_set_t, codepoint: hb_codepoint_t);
