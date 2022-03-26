@@ -362,6 +362,8 @@ pub struct FontAttributes {
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
     #[serde(default)]
     pub freetype_load_flags: Option<FreeTypeLoadFlags>,
+    #[serde(default)]
+    pub scale: Option<NotNan<f64>>,
 }
 impl_lua_conversion!(FontAttributes);
 
@@ -388,6 +390,7 @@ impl FontAttributes {
             freetype_load_target: None,
             freetype_render_target: None,
             freetype_load_flags: None,
+            scale: None,
         }
     }
 
@@ -403,6 +406,7 @@ impl FontAttributes {
             freetype_load_target: None,
             freetype_render_target: None,
             freetype_load_flags: None,
+            scale: None,
         }
     }
 }
@@ -420,6 +424,7 @@ impl Default for FontAttributes {
             freetype_load_target: None,
             freetype_render_target: None,
             freetype_load_flags: None,
+            scale: None,
         }
     }
 }

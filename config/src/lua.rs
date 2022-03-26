@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
 use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
+use ordered_float::NotNan;
 use serde::*;
 use smol::prelude::*;
 use std::collections::HashMap;
@@ -502,6 +503,8 @@ struct LuaFontAttributes {
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
     #[serde(default)]
     pub freetype_load_flags: Option<String>,
+    #[serde(default)]
+    pub scale: Option<NotNan<f64>>,
 }
 impl<'lua> FromLua<'lua> for LuaFontAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
@@ -567,6 +570,7 @@ fn font<'lua>(
             Some(flags) => Some(TryFrom::try_from(flags).map_err(|e| mlua::Error::external(e))?),
             None => None,
         },
+        scale: attrs.scale,
     });
 
     Ok(text_style)
@@ -614,6 +618,7 @@ fn font_with_fallback<'lua>(
                 }
                 None => None,
             },
+            scale: attrs.scale,
         });
     }
 

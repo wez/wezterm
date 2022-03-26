@@ -18,6 +18,7 @@ pub struct FreeTypeRasterizer {
     freetype_load_target: Option<FreeTypeLoadTarget>,
     freetype_render_target: Option<FreeTypeLoadTarget>,
     freetype_load_flags: Option<FreeTypeLoadFlags>,
+    scale: f64,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -27,7 +28,9 @@ impl FontRasterizer for FreeTypeRasterizer {
         size: f64,
         dpi: u32,
     ) -> anyhow::Result<RasterizedGlyph> {
-        self.face.borrow_mut().set_font_size(size, dpi)?;
+        self.face
+            .borrow_mut()
+            .set_font_size(size * self.scale, dpi)?;
 
         let (load_flags, render_mode) = ftwrap::compute_load_flags_from_config(
             self.freetype_load_flags,
@@ -318,6 +321,7 @@ impl FreeTypeRasterizer {
             freetype_load_flags: parsed.freetype_load_flags,
             freetype_load_target: parsed.freetype_load_target,
             freetype_render_target: parsed.freetype_render_target,
+            scale: parsed.scale.unwrap_or(1.),
         })
     }
 }

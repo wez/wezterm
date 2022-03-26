@@ -31,6 +31,7 @@ pub struct ParsedFont {
     pub freetype_load_target: Option<FreeTypeLoadTarget>,
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
     pub freetype_load_flags: Option<FreeTypeLoadFlags>,
+    pub scale: Option<f64>,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -47,6 +48,11 @@ impl std::fmt::Debug for ParsedFont {
             .field("synthesize_dim", &self.synthesize_dim)
             .field("assume_emoji_presentation", &self.assume_emoji_presentation)
             .field("pixel_sizes", &self.pixel_sizes)
+            .field("harfbuzz_features", &self.harfbuzz_features)
+            .field("freetype_load_target", &self.freetype_load_target)
+            .field("freetype_render_target", &self.freetype_render_target)
+            .field("freetype_load_flags", &self.freetype_load_flags)
+            .field("scale", &self.scale)
             .finish()
     }
 }
@@ -70,6 +76,7 @@ impl Clone for ParsedFont {
             freetype_load_target: self.freetype_load_target,
             freetype_render_target: self.freetype_render_target,
             freetype_load_flags: self.freetype_load_flags,
+            scale: self.scale,
         }
     }
 }
@@ -288,6 +295,7 @@ impl ParsedFont {
                 && p.freetype_load_target.is_none()
                 && p.freetype_load_flags.is_none()
                 && p.harfbuzz_features.is_none()
+                && p.scale.is_none()
             {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
             } else {
@@ -300,6 +308,9 @@ impl ParsedFont {
                 }
                 if p.style != FontStyle::Normal {
                     code.push_str(&format!(", style=\"{}\"", p.style));
+                }
+                if let Some(scale) = p.scale {
+                    code.push_str(&format!(", scale={}", scale));
                 }
                 if let Some(item) = p.freetype_load_flags {
                     code.push_str(&format!(", freetype_load_flags=\"{}\"", item.to_string()));
@@ -389,6 +400,7 @@ impl ParsedFont {
             freetype_render_target: None,
             freetype_load_target: None,
             freetype_load_flags: None,
+            scale: None,
         })
     }
 
@@ -629,6 +641,7 @@ impl ParsedFont {
         self.freetype_render_target = attr.freetype_render_target;
         self.freetype_load_target = attr.freetype_load_target;
         self.freetype_load_flags = attr.freetype_load_flags;
+        self.scale = attr.scale.map(|f| *f);
 
         self.synthesize_italic = self.style == FontStyle::Normal && attr.style != FontStyle::Normal;
         self.synthesize_bold = attr.weight >= FontWeight::BOLD

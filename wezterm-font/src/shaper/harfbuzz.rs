@@ -220,7 +220,10 @@ impl HarfbuzzShaper {
                             }
                         }
                     }
-                    pair.face.set_font_size(font_size, dpi)?;
+                    pair.face.set_font_size(
+                        font_size * self.handles[font_idx].scale.unwrap_or(1.),
+                        dpi,
+                    )?;
                     // Tell harfbuzz to recompute important font metrics!
                     let mut font = pair.font.borrow_mut();
                     font.font_changed();
