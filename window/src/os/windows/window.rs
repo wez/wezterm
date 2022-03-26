@@ -785,14 +785,9 @@ impl WindowOps for Window {
         const BASE_BORDER: Length = Length::new(0);
         let is_resize = config.window_decorations == WindowDecorations::RESIZE;
 
-        let title_font = if let Ok(lock) = TITLE_FONT.try_lock() {
-            if let Some(ref font_and_size) = *lock {
-                Some((font_and_size.0.clone(), font_and_size.1))
-            } else {
-                None
-            }
-        } else {
-            anyhow::bail!("Could not get lock on title_font")
+        let title_font = {
+            let font = TITLE_FONT.lock().expect("locking title_font");
+            (*font).clone()
         };
 
         Ok(Some(Parameters {
@@ -857,10 +852,9 @@ unsafe fn update_title_font(hwnd: HWND) {
         return;
     }
 
-    if let Ok(mut lock) = TITLE_FONT.try_lock() {
-        if let Some(lf) = get_title_log_font(hwnd, hdc) {
-            *lock = wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok();
-        }
+    let mut font = TITLE_FONT.lock().expect("locking title_font");
+    if let Some(lf) = get_title_log_font(hwnd, hdc) {
+        *font = wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok();
     }
 
     ReleaseDC(hwnd, hdc);

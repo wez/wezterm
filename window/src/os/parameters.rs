@@ -22,5 +22,6 @@ pub struct Border {
 
 pub struct Parameters {
     pub title_bar: TitleBar,
-    pub border_dimensions: Option<Border>, // If present, the application should draw it
+    /// If present, the application should draw it
+    pub border_dimensions: Option<Border>,
 }
