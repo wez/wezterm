@@ -431,9 +431,6 @@ usually the best available version.</p>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
-<ul>
-<li>Bundled harfbuzz to 4.1.0</li>
-</ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li>Incorrect csi-u encoding with non-ascii characters. <a href="https://github.com/wez/wezterm/issues/1746">#1746</a></li>
@@ -10947,13 +10944,7 @@ for blinking cursors, blinking text and visual bell.</p>
 utilization.</p>
 <p>If you are running with a CPU renderer (eg: you have <a href="config/lua/config/front_end.html">front_end</a>
 = <code>&quot;Software&quot;</code>, or your system doesn't have a GPU), then setting <code>animation_fps = 1</code> is recommended, as doing so will disable easing effects and use
-transitions:</p>
-<pre><code class="language-lua">return {
-  animation_fps = 1,
-  cursor_blink_ease_in = &quot;Constant&quot;,
-  cursor_blink_ease_out = &quot;Constant&quot;,
-}
-</code></pre>
+transitions.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="audible_bell"><a class="header" href="#audible_bell">audible_bell</a></h1>
 <p><em>Since: 20211204-082213-a66c61ee9</em></p>
 <p>When the BEL ascii sequence is sent to a pane, the bell is &quot;rung&quot; in that pane.</p>
@@ -12338,7 +12329,6 @@ by having the background color of the pane briefly change color.</p>
 <li><code>EaseInOut</code> - The fade starts slowly, speeds up, and then slows down towards the end.</li>
 <li><code>EaseOut</code> - The fade starts abruptly, and then progressively slows down towards the end.</li>
 <li><code>{CubicBezier={0.0, 0.0, 0.58, 1.0}}</code> - an arbitrary cubic bezier with the specified parameters.</li>
-<li><code>Constant</code> - Evaluates as 0 regardless of time. Useful to implement a step transition at the end of the duration. (<em>Since: nightly builds only</em>)</li>
 </ul>
 <p>The following configuration enables a low intensity visual bell that takes a total of 300ms to &quot;flash&quot; the screen:</p>
 <pre><code class="language-lua">return {
