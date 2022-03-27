@@ -306,20 +306,19 @@ impl super::TermWindow {
         // where the window manager also decides to tile/resize the window.
         // In the latter case, we don't want to preserve the terminal rows/cols.
         let simple_dpi_change = dimensions.dpi != self.dimensions.dpi
-            && (close_enough(
+            && ((close_enough(
                 dpi_adjusted(dimensions.pixel_height, dimensions.dpi),
                 dpi_adjusted(self.dimensions.pixel_height, self.dimensions.dpi),
             ) && close_enough(
                 dpi_adjusted(dimensions.pixel_width, dimensions.dpi),
                 dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi),
-            ))
-            || (close_enough(
+            )) || (close_enough(
                 dimensions.pixel_width as f32,
                 self.dimensions.pixel_width as f32,
             ) && close_enough(
                 dimensions.pixel_height as f32,
                 self.dimensions.pixel_height as f32,
-            ));
+            )));
 
         let dpi_changed = dimensions.dpi != self.dimensions.dpi;
         let font_scale_changed = font_scale != self.fonts.get_font_scale();
