@@ -1,6 +1,5 @@
 use crate::color::RgbColor;
 use crate::escape::{Sixel, SixelData};
-use std::time::Instant;
 
 const MAX_PARAMS: usize = 5;
 const MAX_SIXEL_SIZE: usize = 100_000_000;
@@ -10,7 +9,6 @@ pub struct SixelBuilder {
     params: [i64; MAX_PARAMS],
     param_no: usize,
     current_command: u8,
-    start: Instant,
 }
 
 impl SixelBuilder {
@@ -41,7 +39,6 @@ impl SixelBuilder {
             param_no: 0,
             params: [-1; MAX_PARAMS],
             current_command: 0,
-            start: Instant::now(),
         }
     }
 
