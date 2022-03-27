@@ -1,14 +1,16 @@
 use crate::color::RgbColor;
 use crate::escape::{Sixel, SixelData};
-use regex::bytes::Regex;
+use std::time::Instant;
+
+const MAX_PARAMS: usize = 5;
+const MAX_SIXEL_SIZE: usize = 100_000_000;
 
 pub struct SixelBuilder {
     pub sixel: Sixel,
-    buf: Vec<u8>,
-    repeat_re: Regex,
-    raster_re: Regex,
-    colordef_re: Regex,
-    coloruse_re: Regex,
+    params: [i64; MAX_PARAMS],
+    param_no: usize,
+    current_command: u8,
+    start: Instant,
 }
 
 impl SixelBuilder {
@@ -26,11 +28,6 @@ impl SixelBuilder {
         };
         let horizontal_grid_size = params.get(2).map(|&x| x);
 
-        let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
-        let raster_re = Regex::new("^\"(\\d+);(\\d+)(;(\\d+))?(;(\\d+))?").unwrap();
-        let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+);?").unwrap();
-        let coloruse_re = Regex::new("^#(\\d+)([^;\\d]|$)").unwrap();
-
         Self {
             sixel: Sixel {
                 pan,
@@ -41,114 +38,73 @@ impl SixelBuilder {
                 horizontal_grid_size,
                 data: vec![],
             },
-            buf: vec![],
-            repeat_re,
-            raster_re,
-            colordef_re,
-            coloruse_re,
+            param_no: 0,
+            params: [-1; MAX_PARAMS],
+            current_command: 0,
+            start: Instant::now(),
         }
     }
 
     pub fn push(&mut self, data: u8) {
-        self.buf.push(data);
+        match data {
+            b'$' => {
+                self.finish_command();
+                self.sixel.data.push(SixelData::CarriageReturn);
+            }
+            b'-' => {
+                self.finish_command();
+                self.sixel.data.push(SixelData::NewLine);
+            }
+            0x3f..=0x7e if self.current_command == b'!' => {
+                self.sixel.data.push(SixelData::Repeat {
+                    repeat_count: self.params[0] as u32,
+                    data: data - 0x3f,
+                });
+                self.finish_command();
+            }
+            0x3f..=0x7e => {
+                self.finish_command();
+                self.sixel.data.push(SixelData::Data(data - 0x3f));
+            }
+            b'#' | b'!' | b'"' => {
+                self.finish_command();
+                self.current_command = data;
+            }
+            b'0'..=b'9' if self.current_command != 0 => {
+                let pos = self.param_no;
+                if pos >= MAX_PARAMS {
+                    return;
+                }
+                if self.params[pos] == -1 {
+                    self.params[pos] = 0;
+                }
+                self.params[pos] = self.params[pos]
+                    .saturating_mul(10)
+                    .saturating_add((data - b'0') as i64);
+            }
+            b';' if self.current_command != 0 => {
+                let pos = self.param_no;
+                if pos >= MAX_PARAMS {
+                    return;
+                }
+                self.param_no += 1;
+            }
+            _ => {
+                // Invalid; break out of current command
+                self.finish_command();
+            }
+        }
     }
 
-    pub fn finish(&mut self) {
-        fn cap_int<T: std::str::FromStr>(m: regex::bytes::Match) -> Option<T> {
-            let bytes = m.as_bytes();
-            // Safe because we matched digits from the regex
-            let s = unsafe { std::str::from_utf8_unchecked(bytes) };
-            s.parse::<T>().ok()
-        }
-
-        let mut remainder = &self.buf[..];
-
-        while !remainder.is_empty() {
-            let data = remainder[0];
-
-            if data == b'$' {
-                self.sixel.data.push(SixelData::CarriageReturn);
-                remainder = &remainder[1..];
-                continue;
-            }
-
-            if data == b'-' {
-                self.sixel.data.push(SixelData::NewLine);
-                remainder = &remainder[1..];
-                continue;
-            }
-
-            if data >= 0x3f && data <= 0x7e {
-                self.sixel.data.push(SixelData::Data(data - 0x3f));
-                remainder = &remainder[1..];
-                continue;
-            }
-
-            if let Some(c) = self.raster_re.captures(remainder) {
-                let all = c.get(0).unwrap();
-                let matched_len = all.as_bytes().len();
-
-                let pan = cap_int(c.get(1).unwrap()).unwrap_or(2);
-                let pad = cap_int(c.get(2).unwrap()).unwrap_or(1);
-                let pixel_width = c.get(4).and_then(cap_int);
-                let pixel_height = c.get(6).and_then(cap_int);
-
-                self.sixel.pan = pan;
-                self.sixel.pad = pad;
-                self.sixel.pixel_width = pixel_width;
-                self.sixel.pixel_height = pixel_height;
-
-                if let (Some(w), Some(h)) = (pixel_width, pixel_height) {
-                    let size = w as usize * h as usize;
-                    // Ideally we'd just use `try_reserve` here, but that is
-                    // nightly Rust only at the time of writing this comment:
-                    // <https://github.com/rust-lang/rust/issues/48043>
-                    const MAX_SIXEL_SIZE: usize = 100_000_000;
-                    if size > MAX_SIXEL_SIZE {
-                        log::error!(
-                            "Ignoring sixel data {}x{} because {} bytes > max allowed {}",
-                            w,
-                            h,
-                            size,
-                            MAX_SIXEL_SIZE
-                        );
-                        self.sixel.pixel_width = None;
-                        self.sixel.pixel_height = None;
-                        self.sixel.data.clear();
-                        return;
-                    }
-                    self.sixel.data.reserve(size);
-                }
-
-                remainder = &remainder[matched_len..];
-                continue;
-            }
-
-            if let Some(c) = self.coloruse_re.captures(remainder) {
-                let all = c.get(0).unwrap();
-                let matched_len = all.as_bytes().len();
-
-                let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
-
-                self.sixel
-                    .data
-                    .push(SixelData::SelectColorMapEntry(color_number));
-
-                let pop_len = matched_len - c.get(2).unwrap().as_bytes().len();
-
-                remainder = &remainder[pop_len..];
-                continue;
-            }
-
-            if let Some(c) = self.colordef_re.captures(remainder) {
-                let all = c.get(0).unwrap();
-                let matched_len = all.as_bytes().len();
-
-                let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
-                let system = cap_int(c.get(2).unwrap()).unwrap_or(1);
-                let a = cap_int(c.get(3).unwrap()).unwrap_or(0);
-                let b = cap_int(c.get(4).unwrap()).unwrap_or(0);
-                let c = cap_int(c.get(5).unwrap()).unwrap_or(0);
+    fn finish_command(&mut self) {
+        match self.current_command {
+            b'#' if self.param_no >= 4 => {
+                // Define a color
+                let color_number = self.params[0] as u16;
+                let system = self.params[1] as u16;
+                let a = self.params[2] as u16;
+                let b = self.params[3] as u8;
+                let c = self.params[4] as u8;
 
                 if system == 1 {
                     self.sixel.data.push(SixelData::DefineColorMapHSL {
@@ -166,32 +122,66 @@ impl SixelBuilder {
                         .data
                         .push(SixelData::DefineColorMapRGB { color_number, rgb });
                 }
-
-                remainder = &remainder[matched_len..];
-                continue;
             }
+            b'#' => {
+                // Use a color
+                let color_number = self.params[0] as u16;
 
-            if let Some(c) = self.repeat_re.captures(remainder) {
-                let all = c.get(0).unwrap();
-                let matched_len = all.as_bytes().len();
-
-                let repeat_count = cap_int(c.get(1).unwrap()).unwrap_or(1);
-                let data = c.get(2).unwrap().as_bytes()[0] - 0x3f;
                 self.sixel
                     .data
-                    .push(SixelData::Repeat { repeat_count, data });
-                remainder = &remainder[matched_len..];
-                continue;
+                    .push(SixelData::SelectColorMapEntry(color_number));
             }
+            b'"' => {
+                // Set raster attributes
+                let pan = if self.params[0] == -1 {
+                    2
+                } else {
+                    self.params[0]
+                };
+                let pad = if self.params[1] == -1 {
+                    1
+                } else {
+                    self.params[1]
+                };
+                let pixel_width = self.params[2];
+                let pixel_height = self.params[3];
 
-            log::error!(
-                "finished sixel parse with {} bytes pending {:?}",
-                remainder.len(),
-                std::str::from_utf8(&remainder[0..24.min(remainder.len())])
-            );
+                self.sixel.pan = pan;
+                self.sixel.pad = pad;
 
-            break;
+                if self.param_no >= 3 {
+                    self.sixel.pixel_width.replace(pixel_width as u32);
+                    self.sixel.pixel_height.replace(pixel_height as u32);
+
+                    let size = pixel_width as usize * pixel_height as usize;
+                    // Ideally we'd just use `try_reserve` here, but that is
+                    // nightly Rust only at the time of writing this comment:
+                    // <https://github.com/rust-lang/rust/issues/48043>
+                    if size > MAX_SIXEL_SIZE {
+                        log::error!(
+                            "Ignoring sixel data {}x{} because {} bytes > max allowed {}",
+                            pixel_width,
+                            pixel_height,
+                            size,
+                            MAX_SIXEL_SIZE
+                        );
+                        self.sixel.pixel_width = None;
+                        self.sixel.pixel_height = None;
+                        self.sixel.data.clear();
+                        return;
+                    }
+                    self.sixel.data.reserve(size);
+                }
+            }
+            _ => {}
         }
+        self.param_no = 0;
+        self.params = [-1; MAX_PARAMS];
+        self.current_command = 0;
+    }
+
+    pub fn finish(&mut self) {
+        self.finish_command();
     }
 }
 
