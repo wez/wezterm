@@ -674,6 +674,7 @@ mod test {
                     freetype_load_target: None,
                     freetype_render_target: None,
                     harfbuzz_features: None,
+                    scale: None,
                 },
                 14,
             )

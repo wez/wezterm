@@ -327,6 +327,7 @@ impl FontLocator for GdiFontLocator {
                         freetype_load_target: None,
                         freetype_render_target: None,
                         freetype_load_flags: None,
+                        scale: None,
                     };
 
                     if !resolved.contains(&attr) {
