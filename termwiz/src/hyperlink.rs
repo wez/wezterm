@@ -205,7 +205,11 @@ impl<'t> Match<'t> {
         // This avoids ambiguity when replacing $11 vs $1.
         for n in (0..self.captures.len()).rev() {
             let search = format!("${}", n);
-            result = result.replace(&search, self.captures.get(n).unwrap().as_str());
+            if let Some(rep) = self.captures.get(n) {
+                result = result.replace(&search, rep.as_str());
+            } else {
+                result = result.replace(&search, "");
+            }
         }
         result
     }
