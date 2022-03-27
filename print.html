@@ -12290,9 +12290,8 @@ natively supported by the attached keyboard hardware.</p>
 <p>IME support is a platform dependent feature</p>
 <table><thead><tr><th>Platform</th><th>Supported since</th><th>Notes</th></tr></thead><tbody>
 <tr><td>Windows</td><td>Forever</td><td>Always enabled, cannot be disabled</td></tr>
-<tr><td>macOS</td><td>20200113-214446-bb6251f</td><td>defaults to enabled starting in 20220319-142410-0fcdea07. Earlier versions had problems with key repeat when enabled</td></tr>
+<tr><td>macOS</td><td>20200113-214446-bb6251f</td><td>Causes some issues with <a href="https://github.com/wez/wezterm/issues/1131">key repeat</a>, defaults to disabled</td></tr>
 <tr><td>X11</td><td>20211204-082213-a66c61ee9</td><td><a href="https://en.wikipedia.org/wiki/X_Input_Method">XIM</a> based. Your system needs to have a running input method engine (such as ibus or fcitx) that support the XIM protocol in order for wezterm to use it.</td></tr>
-<tr><td>Wayland</td><td>Not yet</td><td><a href="https://github.com/wez/wezterm/issues/1772">#1772</a> is tracking IME support</td></tr>
 </tbody></table>
 <p>You can control whether the IME is enabled in your configuration file:</p>
 <pre><code class="language-lua">return {
