@@ -65,7 +65,7 @@ pub(crate) struct XWindowInner {
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
-    has_focus: bool,
+    has_focus: Option<bool>,
     last_cursor_position: Rect,
     invalidated: bool,
     paint_throttled: bool,
@@ -208,6 +208,19 @@ impl XWindowInner {
                 self.invalidated = true;
             } else {
                 self.invalidated = false;
+
+                if self.has_focus.is_none() {
+                    log::trace!(
+                        "About to paint, but we've never received a FOCUS_IN/FOCUS_OUT \
+                         event; querying WM to determine focus state"
+                    );
+
+                    let focus = xcb::xproto::get_input_focus(&self.conn()).get_reply()?;
+                    let focused = focus.focus() == self.window_id;
+                    log::trace!("Do I have focus? {}", focused);
+                    self.has_focus.replace(focused);
+                    self.events.dispatch(WindowEvent::FocusChanged(focused));
+                }
 
                 if !self.dispatched_any_resize {
                     self.dispatched_any_resize = true;
@@ -450,13 +463,13 @@ impl XWindowInner {
                 }
             }
             xcb::FOCUS_IN => {
-                self.has_focus = true;
+                self.has_focus.replace(true);
                 self.update_ime_position();
                 log::trace!("Calling focus_change(true)");
                 self.events.dispatch(WindowEvent::FocusChanged(true));
             }
             xcb::FOCUS_OUT => {
-                self.has_focus = false;
+                self.has_focus.replace(false);
                 log::trace!("Calling focus_change(false)");
                 self.events.dispatch(WindowEvent::FocusChanged(false));
             }
@@ -906,7 +919,7 @@ impl XWindow {
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&config, &conn),
                 config: config.clone(),
-                has_focus: false,
+                has_focus: None,
                 last_cursor_position: Rect::default(),
                 paint_throttled: false,
                 invalidated: false,
@@ -1037,7 +1050,7 @@ impl XWindowInner {
     }
 
     fn update_ime_position(&mut self) {
-        if !self.has_focus {
+        if !self.has_focus.unwrap_or(false) {
             return;
         }
         self.conn().ime.borrow_mut().update_pos(
