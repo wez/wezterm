@@ -702,7 +702,7 @@ impl WindowOps for Window {
                 let main_screen = unsafe { NSScreen::mainScreen(nil) };
                 let has_safe_area_insets: BOOL =
                     unsafe { msg_send![main_screen, respondsToSelector: sel!(safeAreaInsets)] };
-                if has_safe_area_insets {
+                if has_safe_area_insets == YES {
                     #[derive(Debug)]
                     struct NSEdgeInsets {
                         top: CGFloat,
