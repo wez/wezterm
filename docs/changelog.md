@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Hover state of leftmost retro style tab was overly sticky when the mouse moved out of the tab. [#1764](https://github.com/wez/wezterm/issues/1764)
 * On macOS, the font size could incorrectly double or halve after waking from sleep or moving the window to/from an external monitor. [#1566](https://github.com/wez/wezterm/issues/1566) [#1745](https://github.com/wez/wezterm/issues/1745)
 * On Windows, touchpad scrolling was janky. Many thanks to [@davidrios](https://github.coim/davidrios)! [#1773](https://github.com/wez/wezterm/pull/1773) [#1725](https://github.com/wez/wezterm/pull/1725) [#949](https://github.com/wez/wezterm/pull/949)
+* X11: workaround i3-gaps not sending initial CONFIGURE_NOTIFY or FOCUS events, leading to weird initial window size and broken focus status. [#1710](https://github.com/wez/wezterm/issues/1710) [#1757](https://github.com/wez/wezterm/issues/1757)
 
 ### 20220319-142410-0fcdea07
 
