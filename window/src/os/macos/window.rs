@@ -1871,6 +1871,14 @@ impl WindowView {
 
             inner.last_wheel = Instant::now();
 
+            // Reset remainder when changing scroll direction
+            if vert_delta.signum() != inner.vscroll_remainder.signum() {
+                inner.vscroll_remainder = 0.;
+            }
+            if horz_delta.signum() != inner.hscroll_remainder.signum() {
+                inner.hscroll_remainder = 0.;
+            }
+
             vert_delta += inner.vscroll_remainder;
             horz_delta += inner.hscroll_remainder;
 
