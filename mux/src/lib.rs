@@ -366,8 +366,23 @@ impl Mux {
     }
 
     pub fn record_focus_for_client(&self, client_id: &ClientId, pane_id: PaneId) {
+        let mut prior = None;
         if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+            prior = info.focused_pane_id;
             info.update_focused_pane(pane_id);
+        }
+
+        if prior == Some(pane_id) {
+            return;
+        }
+        // Synthesize focus events
+        if let Some(prior_id) = prior {
+            if let Some(pane) = self.get_pane(prior_id) {
+                pane.focus_changed(false);
+            }
+        }
+        if let Some(pane) = self.get_pane(pane_id) {
+            pane.focus_changed(true);
         }
     }
 

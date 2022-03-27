@@ -415,6 +415,12 @@ impl Pane for ClientPane {
         self.renderable.borrow().inner.borrow().working_dir.clone()
     }
 
+    fn focus_changed(&self, focused: bool) {
+        if focused {
+            self.advise_focus();
+        }
+    }
+
     fn advise_focus(&self) {
         let mut focused_pane = self.client.focused_remote_pane_id.lock().unwrap();
         if *focused_pane != Some(self.remote_pane_id) {
