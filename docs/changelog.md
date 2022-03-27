@@ -20,12 +20,13 @@ As features stabilize some brief notes about them will accumulate here.
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)
 * X11 `_NET_WM_ICON` had red/blue channels swapped [#1754](https://github.com/wez/wezterm/issues/1754)
 * ls-fonts output didn't quote the `style` field [#1762](https://github.com/wez/wezterm/issues/1762)
-* `window_decorations = "RESIZE"` on Windows prevented minimize/maximize and aerosnap, and had an ugly top border. Many thanks to [@davidrios](https://github.com/davidrios)! [#1674](https://github.com/wez/wezterm/issues/1674) [#1675](https://github.com/wez/wezterm/pull/1675)
+* `window_decorations = "RESIZE"` on Windows prevented minimize/maximize and aerosnap, double click to maximize, and had an ugly top border. Many thanks to [@davidrios](https://github.com/davidrios)! [#1674](https://github.com/wez/wezterm/issues/1674) [#1675](https://github.com/wez/wezterm/pull/1675) [#1771](https://github.com/wez/wezterm/pull/1771)
 * On Windows, explorer shortcut icons with the maximized setting would fall out of maximized state on startup. Thanks to [@davidrios](https://github.com/davidrios)! [#1502](https://github.com/wez/wezterm/issues/1502)
 * `LANG` environment variable was not always set on macOS, leading to mojibake when entering CJK.  [#1761](https://github.com/wez/wezterm/issues/1761) [#1765](https://github.com/wez/wezterm/issues/1765)
 * Fonts with only non-unicode names (eg: only using a Chinese multibyte string encoding) were treated as having names like `?????` and were not accessible. [#1761](https://github.com/wez/wezterm/issues/1761)
 * Hover state of leftmost retro style tab was overly sticky when the mouse moved out of the tab. [#1764](https://github.com/wez/wezterm/issues/1764)
 * On macOS, the font size could incorrectly double or halve after waking from sleep or moving the window to/from an external monitor. [#1566](https://github.com/wez/wezterm/issues/1566) [#1745](https://github.com/wez/wezterm/issues/1745)
+* On Windows, touchpad scrolling was janky. Many thanks to [@davidrios](https://github.coim/davidrios)! [#1773](https://github.com/wez/wezterm/pull/1773) [#1725](https://github.com/wez/wezterm/pull/1725) [#949](https://github.com/wez/wezterm/pull/949)
 
 ### 20220319-142410-0fcdea07
 
