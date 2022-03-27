@@ -14,6 +14,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import time
 import os.path
 
 from gi import require_version
@@ -21,21 +22,58 @@ require_version('Nautilus', '3.0')
 from gi.repository import Nautilus, GObject, Gio, GLib
 
 
-class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
-    def __init__(self):
-        super().__init__()
-        session = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-        self._systemd = None
-        # Check if the this system runs under systemd, per sd_booted(3)
-        if os.path.isdir('/run/systemd/system/'):
-            self._systemd = Gio.DBusProxy.new_sync(session,
+def sd_booted():
+    """
+    Check if this system runs under systemd, per sd_booted(3).
+    """
+    return os.path.isdir('/run/systemd/system/')
+
+
+class SystemdManager():
+    def __init__(self, proxy):
+        self._proxy = proxy
+
+    def move_to_dedicated_scope(self, pid):
+        props = [("PIDs", GLib.Variant('au', [pid])),
+            ('CollectMode', GLib.Variant('s', 'inactive-or-failed'))]
+        name = f'app-nautilus-org.wezfurlong.wezterm-{pid}.scope'
+        args = GLib.Variant('(ssa(sv)a(sa(sv)))', (name, 'fail', props, []))
+        self._proxy.call_sync('StartTransientUnit', args,
+                Gio.DBusCallFlags.NO_AUTO_START, 500, None)
+
+    @classmethod
+    def try_connect(cls, bus):
+        if sd_booted():
+            proxy = Gio.DBusProxy.new_sync(bus,
                     Gio.DBusProxyFlags.NONE,
                     None,
                     "org.freedesktop.systemd1",
                     "/org/freedesktop/systemd1",
                     "org.freedesktop.systemd1.Manager", None)
+            return cls(proxy)
+        else:
+            return None
 
-    def _open_terminal(self, path):
+
+def _open_in_existing_terminal(path):
+    cmd = ['wezterm', 'cli', 'spawn', '--cwd', path]
+    child = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
+    child.wait_check()
+
+def _wezterm_running():
+    cmd = ['wezterm', 'cli', 'list']
+    flags = Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
+    child = Gio.Subprocess.new(cmd, flags)
+    child.wait()
+    return child.get_if_exited() and child.get_exit_status() == 0
+
+
+class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
+    def __init__(self):
+        super().__init__()
+        self._systemd = SystemdManager.try_connect(Gio.bus_get_sync(Gio.BusType.SESSION, None))
+
+    def _open_new_terminal(self, path):
         cmd = ['wezterm', 'start', '--cwd', path]
         child = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
         if self._systemd:
@@ -44,17 +82,20 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
             # keep a separate CPU and memory account for Wezterm which in turn
             # ensures that oomd doesn't take nautilus down if a process in
             # wezterm consumes a lot of memory.
-            pid = int(child.get_identifier())
-            props = [("PIDs", GLib.Variant('au', [pid])),
-                ('CollectMode', GLib.Variant('s', 'inactive-or-failed'))]
-            name = f'app-nautilus-org.wezfurlong.wezterm-{pid}.scope'
-            args = GLib.Variant('(ssa(sv)a(sa(sv)))', (name, 'fail', props, []))
-            self._systemd.call_sync('StartTransientUnit', args,
-                    Gio.DBusCallFlags.NO_AUTO_START, 500, None)
+            self._systemd.move_to_dedicated_scope(int(child.get_identifier()))
+
+    def _open_paths_in_new_or_existing_terminal(self, paths):
+        if _wezterm_running():
+            for path in paths:
+                _open_in_existing_terminal(path)
+        else:
+            self._open_new_terminal(paths[0])
+            time.sleep(0.5)
+            for path in paths[1:]:
+                _open_in_existing_terminal(path)
 
     def _menu_item_activated(self, _menu, paths):
-        for path in paths:
-            self._open_terminal(path)
+        self._open_paths_in_new_or_existing_terminal(paths)
 
     def _make_item(self, name, paths):
         item = Nautilus.MenuItem(name=name, label='Open in WezTerm',
