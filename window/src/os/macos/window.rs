@@ -3,18 +3,20 @@
 
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
+use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Length,
+    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point,
+    RawKeyEvent, Rect, ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
 use cocoa::appkit::{
-    self, NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
-    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSOpenGLContext, NSOpenGLPixelFormat,
-    NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
-    NSWindowStyleMask,
+    self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
+    NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
+    NSOpenGLContext, NSOpenGLPixelFormat, NSRunningApplication, NSScreen, NSView,
+    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{
@@ -674,6 +676,65 @@ impl WindowOps for Window {
             inner.config_did_change(&config);
             Ok(())
         });
+    }
+
+    fn get_os_parameters(
+        &self,
+        _config: &ConfigHandle,
+        window_state: WindowState,
+    ) -> anyhow::Result<Option<Parameters>> {
+        let raw = self.raw_window_handle();
+
+        // We implement this method primarily to provide Notch-avoidance for
+        // systems with a notch.
+        // We only need this for non-native full screen mode.
+
+        let native_full_screen = match raw {
+            RawWindowHandle::MacOS(raw) => {
+                let style_mask = unsafe { NSWindow::styleMask(raw.ns_window as *mut Object) };
+                style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+            }
+            _ => false,
+        };
+
+        let border_dimensions =
+            if window_state.contains(WindowState::FULL_SCREEN) && !native_full_screen {
+                let main_screen = unsafe { NSScreen::mainScreen(nil) };
+                let has_safe_area_insets: BOOL =
+                    unsafe { msg_send![main_screen, respondsToSelector: sel!(safeAreaInsets)] };
+                if has_safe_area_insets {
+                    #[derive(Debug)]
+                    struct NSEdgeInsets {
+                        top: CGFloat,
+                        left: CGFloat,
+                        bottom: CGFloat,
+                        right: CGFloat,
+                    }
+                    let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
+                    log::trace!("{:?}", insets);
+                    Some(Border {
+                        top: Length::new(insets.top.ceil() as isize),
+                        left: Length::new(insets.left.ceil() as isize),
+                        right: Length::new(insets.right.ceil() as isize),
+                        bottom: Length::new(insets.bottom.ceil() as isize),
+                        color: crate::color::LinearRgba::with_components(0., 0., 0., 1.),
+                    })
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+        Ok(Some(Parameters {
+            title_bar: TitleBar {
+                padding_left: Length::new(0),
+                padding_right: Length::new(0),
+                height: None,
+                font_and_size: None,
+            },
+            border_dimensions,
+        }))
     }
 }
 

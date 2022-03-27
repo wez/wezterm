@@ -15,6 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 #### Updated and Improved
 * Bundled harfbuzz to 4.1.0
+* On macOS, non-native fullscreen mode now attempts to avoid the notch on systems that have one. [#1737](https://github.com/wez/wezterm/issues/1737)
 
 #### Fixed
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)

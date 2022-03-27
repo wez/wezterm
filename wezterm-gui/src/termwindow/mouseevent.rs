@@ -61,11 +61,13 @@ impl super::TermWindow {
 
         self.current_mouse_event.replace(event.clone());
 
+        let border = self.get_os_border();
+
         let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height().unwrap_or(0.) as isize
         } else {
             0
-        };
+        } + border.top.get();
 
         let (padding_left, padding_top) = self.padding_left_top();
 

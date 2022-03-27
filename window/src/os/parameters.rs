@@ -12,6 +12,7 @@ pub struct TitleBar {
     pub font_and_size: Option<FontAndSize>,
 }
 
+#[derive(Default, Clone)]
 pub struct Border {
     pub top: Length,
     pub left: Length,

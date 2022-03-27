@@ -777,6 +777,8 @@ impl super::TermWindow {
             .min_width(Some(Dimension::Pixels(self.dimensions.pixel_width as f32)))
             .colors(bar_colors);
 
+        let border = self.get_os_border();
+
         let mut computed = self.compute_element(
             &LayoutContext {
                 height: DimensionContext {
@@ -790,10 +792,10 @@ impl super::TermWindow {
                     pixel_cell: metrics.cell_size.width as f32,
                 },
                 bounds: euclid::rect(
+                    border.left.get() as f32,
                     0.,
-                    0.,
-                    self.dimensions.pixel_width as f32,
-                    self.dimensions.pixel_height as f32,
+                    self.dimensions.pixel_width as f32 - (border.left + border.right).get() as f32,
+                    self.dimensions.pixel_height as f32 - (border.top + border.bottom).get() as f32,
                 ),
                 metrics: &metrics,
                 gl_state: self.render_state.as_ref().unwrap(),
@@ -801,12 +803,15 @@ impl super::TermWindow {
             &tabs,
         )?;
 
-        if self.config.tab_bar_at_bottom {
-            computed.translate(euclid::vec2(
-                0.,
-                self.dimensions.pixel_height as f32 - computed.bounds.height(),
-            ));
-        }
+        computed.translate(euclid::vec2(
+            0.,
+            if self.config.tab_bar_at_bottom {
+                self.dimensions.pixel_height as f32
+                    - (computed.bounds.height() + border.bottom.get() as f32)
+            } else {
+                border.top.get() as f32
+            },
+        ));
 
         Ok(computed)
     }
@@ -827,6 +832,13 @@ impl super::TermWindow {
         Ok(ui_items)
     }
 
+    pub fn get_os_border(&self) -> window::parameters::Border {
+        self.os_parameters
+            .as_ref()
+            .and_then(|p| p.border_dimensions.clone())
+            .unwrap_or_default()
+    }
+
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
         if self.config.use_fancy_tab_bar {
             if self.fancy_tab_bar.is_none() {
@@ -839,12 +851,15 @@ impl super::TermWindow {
             return Ok(());
         }
 
+        let border = self.get_os_border();
+
         let palette = self.palette().clone();
         let tab_bar_height = self.tab_bar_pixel_height()?;
         let tab_bar_y = if self.config.tab_bar_at_bottom {
-            ((self.dimensions.pixel_height as f32) - tab_bar_height).max(0.)
+            ((self.dimensions.pixel_height as f32) - (tab_bar_height + border.bottom.get() as f32))
+                .max(0.)
         } else {
-            0.
+            border.top.get() as f32
         };
 
         // Register the tab bar location
@@ -1007,7 +1022,9 @@ impl super::TermWindow {
         } else {
             0.
         };
-        let top_pixel_y = tab_bar_height + padding_top;
+
+        let border = self.get_os_border();
+        let top_pixel_y = tab_bar_height + padding_top + border.top.get() as f32;
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -1521,7 +1538,7 @@ impl super::TermWindow {
             self.tab_bar_pixel_height()?
         } else {
             0.
-        };
+        } + self.get_os_border().top.get() as f32;
 
         let (padding_left, padding_top) = self.padding_left_top();
 
