@@ -236,13 +236,14 @@ impl Names {
             format!("{} {}", family, sub_family)
         };
 
-        let aliases = names_from_table(
+        let mut aliases = names_from_table(
             &names,
             &[
                 freetype::TT_NAME_ID_TYPOGRAPHIC_FAMILY,
                 freetype::TT_NAME_ID_FONT_FAMILY,
             ],
         );
+        aliases.retain(|n| *n != full_name && *n != family);
 
         Names {
             full_name,
@@ -286,6 +287,9 @@ impl ParsedFont {
             }
             if !p.pixel_sizes.is_empty() {
                 code.push_str(&format!("  -- Pixel sizes: {:?}\n", p.pixel_sizes));
+            }
+            for aka in &p.names.aliases {
+                code.push_str(&format!("  -- AKA: \"{}\"\n", aka));
             }
 
             if p.weight == FontWeight::REGULAR
