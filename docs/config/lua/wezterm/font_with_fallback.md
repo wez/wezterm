@@ -64,4 +64,43 @@ The following options can be specified in the same way:
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
 
+## Dealing with different fallback font heights
 
+When mixing different font families there is a chance that glyphs from one font
+don't appear to be the same height as the glyphs from your primary font.
+
+For "Roman" fonts there exists a font metric known as *cap-height* which
+indicates the nominal size of a capital (uppercase) letter that can be used to
+compute a scaling factor that can be used to make the fallback font appear to
+have the same size.
+
+Setting
+[use_cap_height_to_scale_fallback_fonts](../config/use_cap_height_to_scale_fallback_fonts.md)
+= `true` will cause wezterm to try to automatically scale using the
+*cap-height* metric (or to compute its own idea of the *cap-height* based on the size of
+glyph(s)).
+
+### Manual fallback scaling
+
+*Since: nightly builds only*
+
+CJK fonts typically won't have a useful *cap-height* metric so it may be
+desirable to manually configure the fallback scaling factor to boost the size
+of the CJK font so that the glyphs are more readable.
+
+The example below shows how to boost the effective size of the `"Microsoft
+YaHei"` fallback font to `1.5` times the normal size.  The boost cannot
+influence font metrics so it may be desirable to also specify
+[line_height](../config/line_height.md) to produce a more pleasing display.
+
+```lua
+local wezterm = require 'wezterm'
+
+return {
+  line_height = 1.2,
+  font = wezterm.font_with_fallback({
+    "JetBrains Mono",
+    {family="Microsoft YaHei", scale=1.5},
+  }),
+}
+```
