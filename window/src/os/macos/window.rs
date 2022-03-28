@@ -2233,7 +2233,8 @@ impl WindowView {
         // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
         // when `use_ime` is true.
         let forward_to_ime = {
-            if modifiers.is_empty() || modifiers == Modifiers::SHIFT {
+            if modifiers.is_empty() || modifiers == Modifiers::SHIFT || modifiers == Modifiers::CTRL
+            {
                 true
             } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
                 false
