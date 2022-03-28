@@ -813,7 +813,12 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             font_dirs.len()
         );
         for font in font_dirs {
-            println!("{} -- {}", font.lua_name(), font.handle.diagnostic_string());
+            println!(
+                "{} -- {}{}",
+                font.lua_name(),
+                font.aka(),
+                font.handle.diagnostic_string()
+            );
         }
 
         match font_config.list_system_fonts() {
@@ -830,8 +835,9 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                         format!(" pixel_sizes={:?}", font.pixel_sizes)
                     };
                     println!(
-                        "{} -- {}{}",
+                        "{} -- {}{}{}",
                         font.lua_name(),
+                        font.aka(),
                         font.handle.diagnostic_string(),
                         pixel_sizes
                     );

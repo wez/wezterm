@@ -262,6 +262,14 @@ impl ParsedFont {
         Self::from_face(&face, handle.clone())
     }
 
+    pub fn aka(&self) -> String {
+        if self.names.aliases.is_empty() {
+            String::new()
+        } else {
+            format!("(AKA: {}) ", self.names.aliases.join(", "))
+        }
+    }
+
     pub fn lua_name(&self) -> String {
         format!(
             "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", style=\"{}\"}})",
