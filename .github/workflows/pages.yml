@@ -26,7 +26,7 @@ jobs:
           source $HOME/.cargo/env
           rustup update stable
       - name: Cache mdBook
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/mdbook-bin
           key: cargo-bin-mdbook-1
