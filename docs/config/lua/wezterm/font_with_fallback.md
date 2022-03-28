@@ -32,7 +32,8 @@ return {
   font = wezterm.font_with_fallback({
     {family="JetBrains Mono", weight="Medium"},
     {family="Terminus", weight="Bold"},
-    "Noto Color Emoji"),
+    "Noto Color Emoji",
+  }),
 }
 ```
 
@@ -53,7 +54,8 @@ return {
       harfbuzz_features={"calt=0", "clig=0", "liga=0"},
     },
     {family="Terminus", weight="Bold"},
-    "Noto Color Emoji"),
+    "Noto Color Emoji",
+  }),
 }
 ```
 
