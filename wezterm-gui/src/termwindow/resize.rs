@@ -150,6 +150,8 @@ impl super::TermWindow {
             0.
         };
 
+        let border = self.get_os_border();
+
         let (size, dims) = if let Some(cell_dims) = scale_changed_cells {
             // Scaling preserves existing terminal dimensions, yielding a new
             // overall set of window dimensions
@@ -210,12 +212,16 @@ impl super::TermWindow {
             let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
             let padding_right = effective_right_padding(&config, h_context);
 
-            let avail_width = dimensions
-                .pixel_width
-                .saturating_sub((padding_left + padding_right) as usize);
+            let avail_width = dimensions.pixel_width.saturating_sub(
+                (padding_left + padding_right) as usize
+                    + (border.left + border.right).get() as usize,
+            );
             let avail_height = dimensions
                 .pixel_height
-                .saturating_sub((padding_top + padding_bottom) as usize)
+                .saturating_sub(
+                    (padding_top + padding_bottom) as usize
+                        + (border.top + border.bottom).get() as usize,
+                )
                 .saturating_sub(tab_bar_height as usize);
 
             let rows = avail_height / self.render_metrics.cell_size.height as usize;
