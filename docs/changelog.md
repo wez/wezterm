@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * On Windows, touchpad scrolling was janky. Many thanks to [@davidrios](https://github.coim/davidrios)! [#1773](https://github.com/wez/wezterm/pull/1773) [#1725](https://github.com/wez/wezterm/pull/1725) [#949](https://github.com/wez/wezterm/pull/949)
 * X11: workaround i3-gaps not sending initial CONFIGURE_NOTIFY or FOCUS events, leading to weird initial window size and broken focus status. [#1710](https://github.com/wez/wezterm/issues/1710) [#1757](https://github.com/wez/wezterm/issues/1757)
 * Hyperlink rules with more captures than replacements could panic wezterm when text matched. [#1780](https://github.com/wez/wezterm/issues/1780)
+* Malformed XTGETTCAP response. [#1781](https://github.com/wez/wezterm/issues/1781)
 
 ### 20220319-142410-0fcdea07
 

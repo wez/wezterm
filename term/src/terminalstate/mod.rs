@@ -1097,13 +1097,12 @@ impl TerminalState {
     }
 
     /// <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Device-Control-functions:DCS-plus-q-Pt-ST.F95>
+    /// XTGETTCAP
     fn xt_get_tcap(&mut self, names: Vec<String>) {
-        let mut res = "\x1bP".to_string();
+        let mut res = String::new();
 
-        for (i, name) in names.iter().enumerate() {
-            if i > 0 {
-                res.push(';');
-            }
+        for name in &names {
+            res.push_str("\x1bP");
 
             let encoded_name = hex::encode_upper(&name);
             match name.as_str() {
@@ -1120,14 +1119,16 @@ impl TerminalState {
                     res.push_str("1+r");
                     res.push_str(&encoded_name);
                     res.push('=');
-                    res.push_str(&256.to_string());
+                    let encoded_val = hex::encode_upper("256");
+                    res.push_str(&encoded_val);
                 }
 
                 "RGB" => {
                     res.push_str("1+r");
                     res.push_str(&encoded_name);
                     res.push('=');
-                    res.push_str("8/8/8");
+                    let encoded_val = hex::encode_upper("8/8/8");
+                    res.push_str(&encoded_val);
                 }
 
                 _ => {
@@ -1135,15 +1136,12 @@ impl TerminalState {
                         res.push_str("1+r");
                         res.push_str(&encoded_name);
                         res.push('=');
-                        match value {
-                            Value::True => res.push('1'),
-                            Value::Number(n) => res.push_str(&n.to_string()),
-                            Value::String(s) => {
-                                for &b in s {
-                                    res.push(b as char);
-                                }
-                            }
-                        }
+                        let value = match value {
+                            Value::True => hex::encode_upper("1"),
+                            Value::Number(n) => hex::encode_upper(&n.to_string()),
+                            Value::String(s) => hex::encode_upper(s),
+                        };
+                        res.push_str(&value);
                     } else {
                         log::trace!("xt_get_tcap: unknown name {}", name);
                         res.push_str("0+r");
@@ -1151,10 +1149,14 @@ impl TerminalState {
                     }
                 }
             }
+            res.push_str("\x1b\\");
         }
 
-        res.push_str("\x1b\\");
-        log::trace!("responding with {}", res.escape_debug());
+        log::trace!(
+            "XTGETTCAP {:?} responding with {}",
+            names,
+            res.escape_debug()
+        );
         self.writer.write_all(res.as_bytes()).ok();
     }
 
