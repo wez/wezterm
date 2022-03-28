@@ -197,6 +197,36 @@ return {
 <li><a href="../config/freetype_render_target.html">freetype_render_target</a></li>
 <li><a href="../config/freetype_load_flags.html">freetype_load_flags</a></li>
 </ul>
+<h2 id="dealing-with-different-fallback-font-heights"><a class="header" href="#dealing-with-different-fallback-font-heights">Dealing with different fallback font heights</a></h2>
+<p>When mixing different font families there is a chance that glyphs from one font
+don't appear to be the same height as the glyphs from your primary font.</p>
+<p>For &quot;Roman&quot; fonts there exists a font metric known as <em>cap-height</em> which
+indicates the nominal size of a capital (uppercase) letter that can be used to
+compute a scaling factor that can be used to make the fallback font appear to
+have the same size.</p>
+<p>Setting
+<a href="../config/use_cap_height_to_scale_fallback_fonts.html">use_cap_height_to_scale_fallback_fonts</a>
+= <code>true</code> will cause wezterm to try to automatically scale using the
+<em>cap-height</em> metric (or to compute its own idea of the <em>cap-height</em> based on the size of
+glyph(s)).</p>
+<h3 id="manual-fallback-scaling"><a class="header" href="#manual-fallback-scaling">Manual fallback scaling</a></h3>
+<p><em>Since: nightly builds only</em></p>
+<p>CJK fonts typically won't have a useful <em>cap-height</em> metric so it may be
+desirable to manually configure the fallback scaling factor to boost the size
+of the CJK font so that the glyphs are more readable.</p>
+<p>The example below shows how to boost the effective size of the <code>&quot;Microsoft YaHei&quot;</code> fallback font to <code>1.5</code> times the normal size.  The boost cannot
+influence font metrics so it may be desirable to also specify
+<a href="../config/line_height.html">line_height</a> to produce a more pleasing display.</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
+  line_height = 1.2,
+  font = wezterm.font_with_fallback({
+    &quot;JetBrains Mono&quot;,
+    {family=&quot;Microsoft YaHei&quot;, scale=1.5},
+  }),
+}
+</code></pre>
 
                     </main>
 
