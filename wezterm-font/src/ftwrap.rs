@@ -765,6 +765,7 @@ impl Face {
                 / (f64::from(0x1_0000) * 64.0);
 
             let mut width = 0.0;
+            let mut num_examined = 0;
             for i in 32..128 {
                 let glyph_pos = FT_Get_Char_Index(self.face, i);
                 if glyph_pos == 0 {
@@ -772,6 +773,7 @@ impl Face {
                 }
                 let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                 if succeeded(res) {
+                    num_examined += 1;
                     let glyph = &(*(*self.face).glyph);
                     if glyph.metrics.horiAdvance as f64 > width {
                         width = glyph.metrics.horiAdvance as f64;
@@ -784,6 +786,7 @@ impl Face {
                 for glyph_pos in 1..8 {
                     let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                     if succeeded(res) {
+                        num_examined += 1;
                         let glyph = &(*(*self.face).glyph);
                         if glyph.metrics.horiAdvance as f64 > width {
                             width = glyph.metrics.horiAdvance as f64;
@@ -792,7 +795,9 @@ impl Face {
                 }
                 if width == 0.0 {
                     log::error!(
-                        "Couldn't find any glyphs for metrics, so guessing width == height"
+                        "Couldn't find usable advance metrics out of {} glyphs \
+                        sampled from the font, so guessing width == height",
+                        num_examined,
                     );
                     width = height * 64.;
                 }
