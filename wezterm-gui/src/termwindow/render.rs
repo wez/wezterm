@@ -442,17 +442,27 @@ impl super::TermWindow {
         config: &ConfigHandle,
         fontconfig: &wezterm_font::FontConfiguration,
         render_metrics: &RenderMetrics,
+        fancy_tab_bar_height: &Option<f32>,
     ) -> anyhow::Result<f32> {
         if config.use_fancy_tab_bar {
-            let font = fontconfig.title_font()?;
-            Ok((font.metrics().cell_height.get() as f32 * 2.).ceil())
+            if let Some(tab_bar_height) = fancy_tab_bar_height {
+                Ok(*tab_bar_height)
+            } else {
+                let font = fontconfig.title_font()?;
+                Ok((font.metrics().cell_height.get() as f32 * 1.75).ceil())
+            }
         } else {
             Ok(render_metrics.cell_size.height as f32)
         }
     }
 
     pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
-        Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
+        Self::tab_bar_pixel_height_impl(
+            &self.config,
+            &self.fonts,
+            &self.render_metrics,
+            &self.fancy_tab_bar_height,
+        )
     }
 
     pub fn invalidate_fancy_tab_bar(&mut self) {
@@ -843,8 +853,10 @@ impl super::TermWindow {
         if self.config.use_fancy_tab_bar {
             if self.fancy_tab_bar.is_none() {
                 let palette = self.palette().clone();
-                self.fancy_tab_bar
-                    .replace(self.build_fancy_tab_bar(&palette)?);
+                let tab_bar = self.build_fancy_tab_bar(&palette)?;
+                self.fancy_tab_bar_height
+                    .replace(tab_bar.content_rect.size.height);
+                self.fancy_tab_bar.replace(tab_bar);
             }
 
             self.ui_items.append(&mut self.paint_fancy_tab_bar()?);
@@ -1017,14 +1029,19 @@ impl super::TermWindow {
 
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+        let tab_bar_height = if self.show_tab_bar {
             self.tab_bar_pixel_height()?
         } else {
             0.
         };
+        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
+            (0.0, tab_bar_height)
+        } else {
+            (tab_bar_height, 0.0)
+        };
 
         let border = self.get_os_border();
-        let top_pixel_y = tab_bar_height + padding_top + border.top.get() as f32;
+        let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -1281,54 +1298,59 @@ impl super::TermWindow {
         // changes to ScrollHit, mouse positioning, PositionedPane
         // and tab size calculation.
         if pos.is_active && self.show_scroll_bar {
+            let thumb_y_offset = top_bar_height as usize + border.top.get();
+
             let info = ScrollHit::thumb(
                 &*pos.pane,
                 current_viewport,
-                &self.dimensions,
-                tab_bar_height,
-                config.tab_bar_at_bottom,
+                self.dimensions.pixel_height.saturating_sub(
+                    thumb_y_offset + border.bottom.get() + bottom_bar_height as usize,
+                ),
+                (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
             );
-            let thumb_top = info.top as f32;
-            let thumb_size = info.height as f32;
+            let abs_thumb_top = thumb_y_offset + info.top;
+            let thumb_size = info.height;
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
 
             // Adjust the scrollbar thumb position
             let config = &self.config;
             let padding = self.effective_right_padding(&config) as f32;
 
+            let thumb_x = self.dimensions.pixel_width - padding as usize - border.right.get();
+
             // Register the scroll bar location
             self.ui_items.push(UIItem {
-                x: self.dimensions.pixel_width - padding as usize,
+                x: thumb_x,
                 width: padding as usize,
-                y: tab_bar_height as usize,
-                height: thumb_top as usize,
+                y: thumb_y_offset,
+                height: info.top,
                 item_type: UIItemType::AboveScrollThumb,
             });
             self.ui_items.push(UIItem {
-                x: self.dimensions.pixel_width - padding as usize,
+                x: thumb_x,
                 width: padding as usize,
-                y: thumb_top as usize,
-                height: thumb_size as usize,
+                y: abs_thumb_top,
+                height: thumb_size,
                 item_type: UIItemType::ScrollThumb,
             });
             self.ui_items.push(UIItem {
-                x: self.dimensions.pixel_width - padding as usize,
+                x: thumb_x,
                 width: padding as usize,
-                y: (thumb_top + thumb_size) as usize,
+                y: abs_thumb_top + thumb_size,
                 height: self
                     .dimensions
                     .pixel_height
-                    .saturating_sub((thumb_top + thumb_size) as usize),
+                    .saturating_sub(abs_thumb_top + thumb_size),
                 item_type: UIItemType::BelowScrollThumb,
             });
 
             self.filled_rectangle(
                 &mut layers[2],
                 euclid::rect(
-                    self.dimensions.pixel_width as f32 - padding,
-                    thumb_top,
+                    thumb_x as f32,
+                    abs_thumb_top as f32,
                     padding,
-                    thumb_size,
+                    thumb_size as f32,
                 ),
                 color,
             )?;

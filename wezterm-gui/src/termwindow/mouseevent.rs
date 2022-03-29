@@ -67,7 +67,7 @@ impl super::TermWindow {
             self.tab_bar_pixel_height().unwrap_or(0.) as isize
         } else {
             0
-        } + border.top.get();
+        } + border.top.get() as isize;
 
         let (padding_left, padding_top) = self.padding_left_top();
 
@@ -252,8 +252,25 @@ impl super::TermWindow {
         let dims = pane.get_dimensions();
         let current_viewport = self.get_viewport(pane.pane_id());
 
+        let tab_bar_height = if self.show_tab_bar {
+            self.tab_bar_pixel_height().unwrap_or(0.)
+        } else {
+            0.
+        };
+        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
+            (0.0, tab_bar_height)
+        } else {
+            (tab_bar_height, 0.0)
+        };
+
+        let y_offset = top_bar_height + self.get_os_border().top.get() as f32;
+
         let from_top = start_event.coords.y.saturating_sub(item.y as isize);
-        let effective_thumb_top = event.coords.y.saturating_sub(from_top).max(0) as usize;
+        let effective_thumb_top = event
+            .coords
+            .y
+            .saturating_sub(y_offset as isize + from_top)
+            .max(0) as usize;
 
         // Convert thumb top into a row index by reversing the math
         // in ScrollHit::thumb
@@ -261,9 +278,10 @@ impl super::TermWindow {
             effective_thumb_top,
             &*pane,
             current_viewport,
-            &self.dimensions,
-            self.tab_bar_pixel_height().unwrap_or(0.),
-            self.config.tab_bar_at_bottom,
+            self.dimensions.pixel_height.saturating_sub(
+                y_offset as usize + self.get_os_border().bottom.get() + bottom_bar_height as usize,
+            ),
+            (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);
         context.invalidate();

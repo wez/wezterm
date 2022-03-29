@@ -5,10 +5,10 @@ use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
-    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Length,
-    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point,
-    RawKeyEvent, Rect, ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventSender,
-    WindowOps, WindowState,
+    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
+    ScreenPoint, Size, ULength, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -713,10 +713,10 @@ impl WindowOps for Window {
                     let insets: NSEdgeInsets = unsafe { msg_send![main_screen, safeAreaInsets] };
                     log::trace!("{:?}", insets);
                     Some(Border {
-                        top: Length::new(insets.top.ceil() as isize),
-                        left: Length::new(insets.left.ceil() as isize),
-                        right: Length::new(insets.right.ceil() as isize),
-                        bottom: Length::new(insets.bottom.ceil() as isize),
+                        top: ULength::new(insets.top.ceil() as usize),
+                        left: ULength::new(insets.left.ceil() as usize),
+                        right: ULength::new(insets.right.ceil() as usize),
+                        bottom: ULength::new(insets.bottom.ceil() as usize),
                         color: crate::color::LinearRgba::with_components(0., 0., 0., 1.),
                     })
                 } else {
@@ -728,8 +728,8 @@ impl WindowOps for Window {
 
         Ok(Some(Parameters {
             title_bar: TitleBar {
-                padding_left: Length::new(0),
-                padding_right: Length::new(0),
+                padding_left: ULength::new(0),
+                padding_right: ULength::new(0),
                 height: None,
                 font_and_size: None,
             },
