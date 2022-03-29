@@ -271,7 +271,7 @@ The default key assignments listed above use `phys:`.  In previous releases
 there was no physical position support and those assignments were all `mapped:`.
 
 When upgrading from earlier releases, if you had `{key="N", mods="CMD", ..}` in
-your config, you will need to change it either
+your config, you will need to change it to either
 `{key="N", mods="CMD|SHIFT", ..}` or `{key="mapped:N", mods="CMD", ..}`
 in order to continue to respect the `SHIFT` modifier.
 
