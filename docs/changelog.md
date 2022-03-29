@@ -13,6 +13,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### New
 #### Changed
+* Disabled ligatures for `"Monaco"` and `"Menlo"` fonts, as those ligatures match even for words such as `find`. [#1786](https://github.com/wez/wezterm/issues/1786) [#1736](https://github.com/wez/wezterm/issues/1736)
 #### Updated and Improved
 * Bundled harfbuzz to 4.1.0
 * On macOS, non-native fullscreen mode now attempts to avoid the notch on systems that have one. [#1737](https://github.com/wez/wezterm/issues/1737)
