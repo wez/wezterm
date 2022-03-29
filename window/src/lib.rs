@@ -51,8 +51,7 @@ pub struct Dimensions {
     pub dpi: usize,
 }
 
-pub type Length = euclid::Length<isize, PixelUnit>;
-pub type LengthF = euclid::Length<f32, PixelUnit>;
+pub type ULength = euclid::Length<usize, PixelUnit>;
 pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type RectF = euclid::Rect<f32, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;

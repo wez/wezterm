@@ -2,9 +2,9 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::parameters::{self, Parameters};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Length,
-    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point,
-    RawKeyEvent, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
+    ScreenPoint, ULength, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
     WindowState,
 };
 use anyhow::{bail, Context};
@@ -792,7 +792,7 @@ impl WindowOps for Window {
             }
         };
 
-        const BASE_BORDER: Length = Length::new(0);
+        const BASE_BORDER: ULength = ULength::new(0);
         let is_resize = config.window_decorations == WindowDecorations::RESIZE;
 
         let title_font = {
@@ -802,20 +802,20 @@ impl WindowOps for Window {
 
         Ok(Some(Parameters {
             title_bar: parameters::TitleBar {
-                padding_left: Length::new(0),
-                padding_right: Length::new(0),
+                padding_left: ULength::new(0),
+                padding_right: ULength::new(0),
                 height: None,
                 font_and_size: title_font,
             },
             border_dimensions: Some(parameters::Border {
                 top: if is_resize && !*IS_WIN10 && !is_full_screen {
-                    BASE_BORDER + Length::new(1)
+                    BASE_BORDER + ULength::new(1)
                 } else {
                     BASE_BORDER
                 },
                 left: BASE_BORDER,
                 bottom: if is_resize && *IS_WIN10 && !is_full_screen {
-                    BASE_BORDER + Length::new(2)
+                    BASE_BORDER + ULength::new(2)
                 } else {
                     BASE_BORDER
                 },
