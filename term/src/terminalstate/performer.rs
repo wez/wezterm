@@ -624,7 +624,7 @@ impl<'a> Performer<'a> {
                 let selection = selection_to_selection(selection);
                 match self.set_clipboard_contents(selection, Some(selection_data)) {
                     Ok(_) => (),
-                    Err(err) => error!("failed to set clipboard in response to OSC 52: {:?}", err),
+                    Err(err) => error!("failed to set clipboard in response to OSC 52: {:#?}", err),
                 }
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {

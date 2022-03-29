@@ -742,14 +742,16 @@ impl Clipboard for RemoteClipboard {
         selection: ClipboardSelection,
         clipboard: Option<String>,
     ) -> anyhow::Result<()> {
-        self.sender.send(DecodedPdu {
-            serial: 0,
-            pdu: Pdu::SetClipboard(SetClipboard {
-                pane_id: self.pane_id,
-                clipboard,
-                selection,
-            }),
-        })?;
+        self.sender
+            .send(DecodedPdu {
+                serial: 0,
+                pdu: Pdu::SetClipboard(SetClipboard {
+                    pane_id: self.pane_id,
+                    clipboard,
+                    selection,
+                }),
+            })
+            .context("RemoteClipboard::set_contents send failed")?;
         Ok(())
     }
 }
