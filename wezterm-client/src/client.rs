@@ -160,7 +160,7 @@ async fn process_unilateral_inner_async(
             decoded.pdu
         )
     })?;
-    client_pane.process_unilateral(decoded.pdu)
+    client_pane.process_unilateral(decoded.pdu).await
 }
 
 fn process_unilateral(
@@ -1174,4 +1174,5 @@ impl Client {
     rpc!(list_clients, GetClientList, GetClientListResponse);
     rpc!(set_window_workspace, SetWindowWorkspace, UnitResponse);
     rpc!(set_focused_pane_id, SetFocusedPane, UnitResponse);
+    rpc!(get_image_cell, GetImageCell, GetImageCellResponse);
 }

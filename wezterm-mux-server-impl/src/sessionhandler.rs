@@ -607,6 +607,46 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::GetImageCell(GetImageCell {
+                pane_id,
+                line_idx,
+                cell_idx,
+                data_hash,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let mut data = None;
+
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+
+                            let (_, lines) = pane.get_lines(line_idx..line_idx + 1);
+                            'found_data: for line in lines {
+                                if let Some(cell) = line.cells().get(cell_idx) {
+                                    if let Some(images) = cell.attrs().images() {
+                                        for im in images {
+                                            if im.image_data().hash() == data_hash {
+                                                data.replace(im.image_data().clone());
+                                                break 'found_data;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Ok(Pdu::GetImageCellResponse(GetImageCellResponse {
+                                pane_id,
+                                data,
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::GetCodecVersion(_) => {
                 match std::env::current_exe().context("resolving current_exe") {
                     Err(err) => send_response(Err(err)),
@@ -653,6 +693,7 @@ impl SessionHandler {
             | Pdu::GetTlsCredsResponse { .. }
             | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
+            | Pdu::GetImageCellResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }

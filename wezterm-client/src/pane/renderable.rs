@@ -4,19 +4,21 @@ use anyhow::anyhow;
 use codec::*;
 use config::{configuration, ConfigHandle};
 use lru::LruCache;
+use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::TabId;
 use mux::Mux;
 use promise::BrokenPromise;
 use rangeset::*;
 use ratelim::RateLimiter;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::cell::{Cell, CellAttributes, Underline};
 use termwiz::color::AnsiColor;
+use termwiz::image::{ImageCell, ImageData};
 use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::{KeyCode, KeyModifiers, Line, StableRowIndex};
@@ -51,9 +53,9 @@ impl LineEntry {
 }
 
 pub struct RenderableInner {
-    client: Arc<ClientInner>,
-    remote_pane_id: TabId,
-    local_pane_id: TabId,
+    pub client: Arc<ClientInner>,
+    remote_pane_id: PaneId,
+    local_pane_id: PaneId,
     last_poll: Instant,
     pub dead: bool,
     poll_in_progress: AtomicBool,
@@ -84,8 +86,8 @@ pub struct RenderableState {
 impl RenderableInner {
     pub fn new(
         client: &Arc<ClientInner>,
-        remote_pane_id: TabId,
-        local_pane_id: TabId,
+        remote_pane_id: PaneId,
+        local_pane_id: PaneId,
         dimensions: RenderableDimensions,
         title: &str,
         fetch_limiter: RateLimiter,
@@ -296,7 +298,11 @@ impl RenderableInner {
         self.poll_interval = BASE_POLL_INTERVAL;
     }
 
-    pub fn apply_changes_to_surface(&mut self, delta: GetPaneRenderChangesResponse) {
+    pub fn apply_changes_to_surface(
+        &mut self,
+        delta: GetPaneRenderChangesResponse,
+        bonus_lines: Vec<(StableRowIndex, Line)>,
+    ) {
         let now = Instant::now();
         self.poll_interval = BASE_POLL_INTERVAL;
         self.last_recv_time = now;
@@ -341,7 +347,7 @@ impl RenderableInner {
         self.seqno = delta.seqno;
 
         let config = configuration();
-        for (stable_row, line) in delta.bonus_lines.lines() {
+        for (stable_row, line) in bonus_lines {
             log::trace!("bonus line {} seqno={}", stable_row, line.current_seqno());
             self.put_line(stable_row, line, &config, None);
             dirty.remove(stable_row);
@@ -491,14 +497,23 @@ impl RenderableInner {
                     lines: to_fetch.clone().into(),
                 })
                 .await;
+
+            let result = match result {
+                Ok(result) => {
+                    let lines =
+                        hydrate_lines(Arc::clone(&client), remote_pane_id, result.lines).await;
+                    Ok(lines)
+                }
+                Err(err) => Err(err),
+            };
             Self::apply_lines(local_pane_id, result, to_fetch, now)
         })
         .detach();
     }
 
     fn apply_lines(
-        local_pane_id: TabId,
-        result: anyhow::Result<GetLinesResponse>,
+        local_pane_id: PaneId,
+        result: anyhow::Result<Vec<(StableRowIndex, Line)>>,
         to_fetch: RangeSet<StableRowIndex>,
         now: Instant,
     ) -> anyhow::Result<()> {
@@ -511,9 +526,8 @@ impl RenderableInner {
             let mut inner = renderable.inner.borrow_mut();
 
             match result {
-                Ok(result) => {
+                Ok(lines) => {
                     let config = configuration();
-                    let lines = result.lines.lines();
 
                     log::trace!("fetch complete for {:?} at {:?}", to_fetch, now);
                     for (stable_row, line) in lines.into_iter() {
@@ -597,6 +611,82 @@ impl RenderableInner {
         .detach();
         Ok(())
     }
+}
+
+lazy_static::lazy_static! {
+    static ref IMAGE_LRU: Mutex<LruCache<[u8;32], Arc<ImageData>>> = Mutex::new(LruCache::new(128));
+}
+
+pub(crate) async fn hydrate_lines(
+    client: Arc<ClientInner>,
+    pane_id: PaneId,
+    serialized_lines: SerializedLines,
+) -> Vec<(StableRowIndex, Line)> {
+    let (lines, image_cells) = serialized_lines.extract_data();
+
+    if image_cells.is_empty() {
+        return lines;
+    }
+
+    let mut requests = HashMap::new();
+    let mut data_by_hash = HashMap::new();
+    for im in &image_cells {
+        if let Some(data) = IMAGE_LRU.lock().unwrap().get(&im.data_hash) {
+            data_by_hash.insert(im.data_hash, Arc::clone(data));
+        } else {
+            requests
+                .entry(&im.data_hash)
+                .or_insert_with(|| GetImageCell {
+                    pane_id,
+                    line_idx: im.line_idx,
+                    cell_idx: im.cell_idx,
+                    data_hash: im.data_hash,
+                });
+        }
+    }
+
+    for (_, request) in requests {
+        log::trace!("requesting {:?}", request);
+        if let Ok(GetImageCellResponse {
+            data: Some(data), ..
+        }) = client.client.get_image_cell(request).await
+        {
+            IMAGE_LRU
+                .lock()
+                .unwrap()
+                .put(data.hash(), Arc::clone(&data));
+            data_by_hash.insert(data.hash(), data);
+        }
+    }
+
+    let mut line_by_idx = HashMap::new();
+    for (line_idx, line) in lines {
+        line_by_idx.insert(line_idx, line);
+    }
+
+    for im in image_cells {
+        if let Some(data) = data_by_hash.get(&im.data_hash) {
+            if let Some(line) = line_by_idx.get_mut(&im.line_idx) {
+                if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(im.cell_idx) {
+                    cell.attrs_mut()
+                        .attach_image(Box::new(ImageCell::with_z_index(
+                            im.top_left,
+                            im.bottom_right,
+                            Arc::clone(data),
+                            im.z_index,
+                            im.padding_left,
+                            im.padding_top,
+                            im.padding_right,
+                            im.padding_bottom,
+                            im.image_id,
+                            im.placement_id,
+                        )));
+                }
+            }
+        }
+    }
+
+    line_by_idx.into_iter().collect()
 }
 
 impl RenderableState {

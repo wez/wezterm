@@ -28,8 +28,8 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
+use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
-use varbincode;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Alert, ClipboardSelection, StableRowIndex};
 
@@ -405,7 +405,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 19;
+pub const CODEC_VERSION: usize = 20;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -449,6 +449,8 @@ pdu! {
     SetWindowWorkspace: 43,
     WindowWorkspaceChanged: 44,
     SetFocusedPane: 45,
+    GetImageCell: 46,
+    GetImageCellResponse: 47,
 }
 
 impl Pdu {
@@ -782,6 +784,24 @@ struct LineHyperlink {
     coords: Vec<CellCoordinates>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct SerializedImageCell {
+    pub line_idx: StableRowIndex,
+    pub cell_idx: usize,
+    // The following fields are taken from termwiz::image::ImageCell
+    pub top_left: TextureCoordinate,
+    pub bottom_right: TextureCoordinate,
+    /// Image::data::hash() for the ImageCell::data field
+    pub data_hash: [u8; 32],
+    pub z_index: i32,
+    pub padding_left: u16,
+    pub padding_top: u16,
+    pub padding_right: u16,
+    pub padding_bottom: u16,
+    pub image_id: Option<u32>,
+    pub placement_id: Option<u32>,
+}
+
 /// What's all this?
 /// Cells hold references to Arc<Hyperlink> and it is important to us to
 /// maintain identity of the hyperlinks in the individual cells, while also
@@ -789,24 +809,50 @@ struct LineHyperlink {
 /// This section of code extracts the hyperlinks from the cells and builds
 /// up a mapping that can be used to restore the identity when the `lines()`
 /// method is called.
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, PartialEq, Debug, Default)]
 pub struct SerializedLines {
     lines: Vec<(StableRowIndex, Line)>,
     hyperlinks: Vec<LineHyperlink>,
-    // TODO: image references
+    images: Vec<SerializedImageCell>,
 }
 
 impl SerializedLines {
-    pub fn lines(self) -> Vec<(StableRowIndex, Line)> {
-        self.into()
+    /// Reconsitute hyperlinks or other attributes that were decomposed for
+    /// serialization, and return the line data.
+    pub fn extract_data(self) -> (Vec<(StableRowIndex, Line)>, Vec<SerializedImageCell>) {
+        let lines = if self.hyperlinks.is_empty() {
+            self.lines
+        } else {
+            let mut lines = self.lines;
+
+            for link in self.hyperlinks {
+                let url = Arc::new(link.link);
+
+                for coord in link.coords {
+                    if let Some((_, line)) = lines.get_mut(coord.line_idx) {
+                        if let Some(cells) =
+                            line.cells_mut_for_attr_changes_only().get_mut(coord.cols)
+                        {
+                            for cell in cells {
+                                cell.attrs_mut().set_hyperlink(Some(Arc::clone(&url)));
+                            }
+                        }
+                    }
+                }
+            }
+
+            lines
+        };
+        (lines, self.images)
     }
 }
 
 impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
     fn from(mut lines: Vec<(StableRowIndex, Line)>) -> Self {
         let mut hyperlinks = vec![];
+        let mut images = vec![];
 
-        for (line_idx, (_, line)) in lines.iter_mut().enumerate() {
+        for (line_idx, (stable_row_idx, line)) in lines.iter_mut().enumerate() {
             let mut current_link: Option<Arc<Hyperlink>> = None;
             let mut current_range = 0..0;
 
@@ -854,7 +900,27 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
                     current_range = 0..0;
                 }
 
-                // TODO: something smart for image cells
+                if let Some(cell_images) = cell.attrs().images() {
+                    for imcell in cell_images {
+                        let (padding_left, padding_top, padding_right, padding_bottom) =
+                            imcell.padding();
+                        images.push(SerializedImageCell {
+                            line_idx: *stable_row_idx,
+                            cell_idx: x,
+                            top_left: imcell.top_left(),
+                            bottom_right: imcell.bottom_right(),
+                            z_index: imcell.z_index(),
+                            padding_left,
+                            padding_top,
+                            padding_right,
+                            padding_bottom,
+                            image_id: imcell.image_id(),
+                            placement_id: imcell.placement_id(),
+                            data_hash: imcell.image_data().hash(),
+                        });
+                    }
+                }
+                cell.attrs_mut().clear_images();
             }
             if let Some(link) = current_link.take() {
                 // Wrap up final streak
@@ -868,36 +934,10 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
             }
         }
 
-        Self { lines, hyperlinks }
-    }
-}
-
-/// Reconsitute hyperlinks or other attributes that were decomposed for
-/// serialization, and return the line data.
-impl Into<Vec<(StableRowIndex, Line)>> for SerializedLines {
-    fn into(self) -> Vec<(StableRowIndex, Line)> {
-        if self.hyperlinks.is_empty() {
-            self.lines
-        } else {
-            let mut lines = self.lines;
-
-            for link in self.hyperlinks {
-                let url = Arc::new(link.link);
-
-                for coord in link.coords {
-                    if let Some((_, line)) = lines.get_mut(coord.line_idx) {
-                        if let Some(cells) =
-                            line.cells_mut_for_attr_changes_only().get_mut(coord.cols)
-                        {
-                            for cell in cells {
-                                cell.attrs_mut().set_hyperlink(Some(Arc::clone(&url)));
-                            }
-                        }
-                    }
-                }
-            }
-
-            lines
+        Self {
+            lines,
+            hyperlinks,
+            images,
         }
     }
 }
@@ -917,6 +957,20 @@ pub struct SearchScrollbackRequest {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SearchScrollbackResponse {
     pub results: Vec<mux::pane::SearchResult>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetImageCell {
+    pub pane_id: PaneId,
+    pub line_idx: StableRowIndex,
+    pub cell_idx: usize,
+    pub data_hash: [u8; 32],
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetImageCellResponse {
+    pub pane_id: PaneId,
+    pub data: Option<Arc<ImageData>>,
 }
 
 #[cfg(test)]

@@ -139,6 +139,14 @@ impl ImageCell {
         self.placement_id.is_some()
     }
 
+    pub fn image_id(&self) -> Option<u32> {
+        self.image_id
+    }
+
+    pub fn placement_id(&self) -> Option<u32> {
+        self.placement_id
+    }
+
     pub fn top_left(&self) -> TextureCoordinate {
         self.top_left
     }
@@ -378,6 +386,7 @@ static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicU
 pub struct ImageData {
     id: usize,
     data: Mutex<ImageDataType>,
+    hash: [u8; 32],
 }
 
 impl Eq for ImageData {}
@@ -390,14 +399,26 @@ impl PartialEq for ImageData {
 impl ImageData {
     /// Create a new ImageData struct with the provided raw data.
     pub fn with_raw_data(data: Vec<u8>) -> Self {
-        Self::with_data(ImageDataType::EncodedFile(data).decode())
+        let hash = ImageDataType::hash_bytes(&data);
+        Self::with_data_and_hash(ImageDataType::EncodedFile(data).decode(), hash)
     }
 
-    pub fn with_data(data: ImageDataType) -> Self {
+    fn with_data_and_hash(data: ImageDataType, hash: [u8; 32]) -> Self {
         let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
         Self {
             id,
             data: Mutex::new(data),
+            hash,
+        }
+    }
+
+    pub fn with_data(data: ImageDataType) -> Self {
+        let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
+        let hash = data.compute_hash();
+        Self {
+            id,
+            data: Mutex::new(data),
+            hash,
         }
     }
 
@@ -419,6 +440,6 @@ impl ImageData {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        self.data().compute_hash()
+        self.hash
     }
 }

@@ -34,6 +34,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11: workaround i3-gaps not sending initial CONFIGURE_NOTIFY or FOCUS events, leading to weird initial window size and broken focus status. [#1710](https://github.com/wez/wezterm/issues/1710) [#1757](https://github.com/wez/wezterm/issues/1757)
 * Hyperlink rules with more captures than replacements could panic wezterm when text matched. [#1780](https://github.com/wez/wezterm/issues/1780)
 * Malformed XTGETTCAP response. [#1781](https://github.com/wez/wezterm/issues/1781)
+* Multiplexer performance with images was unusuable for all but tiny images. [#1237](https://github.com/wez/wezterm/issues/1237)
 
 ### 20220319-142410-0fcdea07
 

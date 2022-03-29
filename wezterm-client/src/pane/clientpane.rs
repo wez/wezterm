@@ -1,6 +1,6 @@
 use crate::domain::ClientInner;
 use crate::pane::mousestate::MouseState;
-use crate::pane::renderable::{RenderableInner, RenderableState};
+use crate::pane::renderable::{hydrate_lines, RenderableInner, RenderableState};
 use anyhow::bail;
 use async_trait::async_trait;
 use codec::*;
@@ -97,15 +97,20 @@ impl ClientPane {
         }
     }
 
-    pub fn process_unilateral(&self, pdu: Pdu) -> anyhow::Result<()> {
+    pub async fn process_unilateral(&self, pdu: Pdu) -> anyhow::Result<()> {
         match pdu {
-            Pdu::GetPaneRenderChangesResponse(delta) => {
+            Pdu::GetPaneRenderChangesResponse(mut delta) => {
                 *self.mouse_grabbed.borrow_mut() = delta.mouse_grabbed;
+
+                let bonus_lines = std::mem::take(&mut delta.bonus_lines);
+                let client = { Arc::clone(&self.renderable.borrow().inner.borrow().client) };
+                let bonus_lines = hydrate_lines(client, delta.pane_id, bonus_lines).await;
+
                 self.renderable
                     .borrow()
                     .inner
                     .borrow_mut()
-                    .apply_changes_to_surface(delta);
+                    .apply_changes_to_surface(delta, bonus_lines);
             }
             Pdu::SetClipboard(SetClipboard {
                 clipboard,
