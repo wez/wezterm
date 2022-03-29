@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Multiplexer performance with images was unusuable for all but tiny images. [#1237](https://github.com/wez/wezterm/issues/1237)
 * `CloseCurrentPane{confirm=false}` would leave behind a phantom tab/pane when used with the multiplexer. [#1277](https://github.com/wez/wezterm/issues/1277)
 * `CloseCurrentPane{confirm=true}` artifacts when used with the multiplexer. [#783](https://github.com/wez/wezterm/issues/783)
+* Scrollbar thumb could jump around/move out of bounds. Thanks to [@davidrios](https://github.com/davidrios)! [#1525](https://github.com/wez/wezterm/issues/1525)
 
 ### 20220319-142410-0fcdea07
 
