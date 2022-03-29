@@ -381,6 +381,12 @@ impl Pane for ClientPane {
                 .await
         })
         .detach();
+        // Explicitly mark ourselves as dead.
+        // Ideally we'd discover this later when polling the
+        // status, but killing the pane prevents the server
+        // side from sending us further data.
+        // <https://github.com/wez/wezterm/issues/1752>
+        self.renderable.borrow().inner.borrow_mut().dead = true;
     }
 
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
