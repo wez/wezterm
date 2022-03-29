@@ -1,4 +1,4 @@
-use crate::domain::ClientInner;
+use crate::domain::{ClientDomain, ClientInner};
 use crate::pane::mousestate::MouseState;
 use crate::pane::renderable::{hydrate_lines, RenderableInner, RenderableState};
 use anyhow::bail;
@@ -372,13 +372,29 @@ impl Pane for ClientPane {
         }
         let client = Arc::clone(&self.client);
         let remote_pane_id = self.remote_pane_id;
+        let local_domain_id = self.client.local_domain_id;
         promise::spawn::spawn(async move {
             client
                 .client
                 .kill_pane(KillPane {
                     pane_id: remote_pane_id,
                 })
-                .await
+                .await?;
+
+            // Arrange to resync the layout, to avoid artifacts
+            // <https://github.com/wez/wezterm/issues/1277>
+            let mux = Mux::get().expect("called on main thread");
+            let client_domain = mux
+                .get_domain(local_domain_id)
+                .ok_or_else(|| anyhow::anyhow!("no such domain {}", local_domain_id))?;
+            let client_domain = client_domain
+                .downcast_ref::<ClientDomain>()
+                .ok_or_else(|| {
+                    anyhow::anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                })?;
+
+            client_domain.resync().await?;
+            anyhow::Result::<()>::Ok(())
         })
         .detach();
         // Explicitly mark ourselves as dead.

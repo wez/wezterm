@@ -36,6 +36,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Malformed XTGETTCAP response. [#1781](https://github.com/wez/wezterm/issues/1781)
 * Multiplexer performance with images was unusuable for all but tiny images. [#1237](https://github.com/wez/wezterm/issues/1237)
 * `CloseCurrentPane{confirm=false}` would leave behind a phantom tab/pane when used with the multiplexer. [#1277](https://github.com/wez/wezterm/issues/1277)
+* `CloseCurrentPane{confirm=true}` artifacts when used with the multiplexer. [#783](https://github.com/wez/wezterm/issues/783)
 
 ### 20220319-142410-0fcdea07
 
