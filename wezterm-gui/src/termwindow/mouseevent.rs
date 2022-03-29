@@ -263,7 +263,8 @@ impl super::TermWindow {
             (tab_bar_height, 0.0)
         };
 
-        let y_offset = top_bar_height + self.get_os_border().top.get() as f32;
+        let border = self.get_os_border();
+        let y_offset = top_bar_height + border.top.get() as f32;
 
         let from_top = start_event.coords.y.saturating_sub(item.y as isize);
         let effective_thumb_top = event
@@ -279,7 +280,7 @@ impl super::TermWindow {
             &*pane,
             current_viewport,
             self.dimensions.pixel_height.saturating_sub(
-                y_offset as usize + self.get_os_border().bottom.get() + bottom_bar_height as usize,
+                y_offset as usize + border.bottom.get() + bottom_bar_height as usize,
             ),
             (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
         );
