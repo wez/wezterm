@@ -305,7 +305,6 @@ pub struct TermWindow {
     show_scroll_bar: bool,
     tab_bar: TabBarState,
     fancy_tab_bar: Option<box_model::ComputedElement>,
-    fancy_tab_bar_height: Option<f32>,
     pub right_status: String,
     last_ui_item: Option<UIItem>,
     /// Tracks whether the current mouse-down event is part of click-focus.
@@ -641,7 +640,7 @@ impl TermWindow {
         // for the tab bar state.
         let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
         let tab_bar_height = if show_tab_bar {
-            Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics, &None)? as usize
+            Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics, None)? as usize
         } else {
             0
         };
@@ -729,7 +728,6 @@ impl TermWindow {
             show_scroll_bar: config.enable_scroll_bar,
             tab_bar: TabBarState::default(),
             fancy_tab_bar: None,
-            fancy_tab_bar_height: None,
             right_status: String::new(),
             last_mouse_coords: (0, -1),
             window_drag_position: None,

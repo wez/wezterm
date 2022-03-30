@@ -442,11 +442,11 @@ impl super::TermWindow {
         config: &ConfigHandle,
         fontconfig: &wezterm_font::FontConfiguration,
         render_metrics: &RenderMetrics,
-        fancy_tab_bar_height: &Option<f32>,
+        fancy_tab_bar_height: Option<f32>,
     ) -> anyhow::Result<f32> {
         if config.use_fancy_tab_bar {
             if let Some(tab_bar_height) = fancy_tab_bar_height {
-                Ok(*tab_bar_height)
+                Ok(tab_bar_height)
             } else {
                 let font = fontconfig.title_font()?;
                 Ok((font.metrics().cell_height.get() as f32 * 1.75).ceil())
@@ -461,7 +461,9 @@ impl super::TermWindow {
             &self.config,
             &self.fonts,
             &self.render_metrics,
-            &self.fancy_tab_bar_height,
+            self.fancy_tab_bar
+                .as_ref()
+                .map(|elem| elem.content_rect.size.height),
         )
     }
 
@@ -854,8 +856,6 @@ impl super::TermWindow {
             if self.fancy_tab_bar.is_none() {
                 let palette = self.palette().clone();
                 let tab_bar = self.build_fancy_tab_bar(&palette)?;
-                self.fancy_tab_bar_height
-                    .replace(tab_bar.content_rect.size.height);
                 self.fancy_tab_bar.replace(tab_bar);
             }
 
