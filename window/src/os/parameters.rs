@@ -5,6 +5,7 @@ use crate::ULength;
 
 pub type FontAndSize = (ParsedFont, f64);
 
+#[derive(Default, Clone, Debug)]
 pub struct TitleBar {
     pub padding_left: ULength,
     pub padding_right: ULength,
@@ -12,7 +13,7 @@ pub struct TitleBar {
     pub font_and_size: Option<FontAndSize>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Border {
     pub top: ULength,
     pub left: ULength,
@@ -21,6 +22,7 @@ pub struct Border {
     pub color: LinearRgba,
 }
 
+#[derive(Default, Clone, Debug)]
 pub struct Parameters {
     pub title_bar: TitleBar,
     /// If present, the application should draw it
