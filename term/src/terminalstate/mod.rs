@@ -201,13 +201,14 @@ impl ScreenOrAlt {
         cursor_main: CursorPosition,
         cursor_alt: CursorPosition,
         seqno: SequenceNo,
+        is_conpty: bool,
     ) -> (CursorPosition, CursorPosition) {
-        let cursor_main = self
-            .screen
-            .resize(physical_rows, physical_cols, cursor_main, seqno);
-        let cursor_alt = self
-            .alt_screen
-            .resize(physical_rows, physical_cols, cursor_alt, seqno);
+        let cursor_main =
+            self.screen
+                .resize(physical_rows, physical_cols, cursor_main, seqno, is_conpty);
+        let cursor_alt =
+            self.alt_screen
+                .resize(physical_rows, physical_cols, cursor_alt, seqno, is_conpty);
         (cursor_main, cursor_alt)
     }
 
@@ -368,6 +369,7 @@ pub struct TerminalState {
     unicode_version: UnicodeVersion,
     unicode_version_stack: Vec<UnicodeVersionStackEntry>,
 
+    enable_conpty_quirks: bool,
     /// On Windows, the ConPTY layer emits an OSC sequence to
     /// set the title shortly after it starts up.
     /// We don't want that, so we use this flag to remember
@@ -556,6 +558,7 @@ impl TerminalState {
             unicode_version,
             unicode_version_stack: vec![],
             suppress_initial_title_change: false,
+            enable_conpty_quirks: false,
             accumulating_title: None,
             lost_focus_seqno: seqno,
             focused: true,
@@ -564,7 +567,8 @@ impl TerminalState {
         }
     }
 
-    pub fn set_supress_initial_title_change(&mut self) {
+    pub fn enable_conpty_quirks(&mut self) {
+        self.enable_conpty_quirks = true;
         self.suppress_initial_title_change = true;
     }
 
@@ -819,6 +823,7 @@ impl TerminalState {
             cursor_main,
             cursor_alt,
             self.seqno,
+            self.enable_conpty_quirks,
         );
         self.top_and_bottom_margins = 0..physical_rows as i64;
         self.left_and_right_margins = 0..physical_cols;

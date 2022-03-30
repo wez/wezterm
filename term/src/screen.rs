@@ -166,6 +166,7 @@ impl Screen {
         physical_cols: usize,
         cursor: CursorPosition,
         seqno: SequenceNo,
+        is_conpty: bool,
     ) -> CursorPosition {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
@@ -227,7 +228,29 @@ impl Screen {
 
         let new_cursor_y;
 
-        if self.config.resize_preserves_scrollback() {
+        // true if a resize operation should consider rows that have
+        // made it to scrollback as being immutable.
+        // When immutable, the resize operation will pad out the screen height
+        // with additional blank rows and due to implementation details means
+        // that the user will need to scroll back the scrollbar post-resize
+        // than they would otherwise.
+        //
+        // When mutable, resizing the window taller won't add extra rows;
+        // instead the resize will tend to have "bottom gravity" meaning that
+        // making the window taller will reveal more history than in the other
+        // mode.
+        //
+        // mutable is generally speaking a nicer experience.
+        //
+        // On Windows, the PTY layer doesn't play well with a mutable scrollback,
+        // frequently moving the cursor up to high and erasing portions of the
+        // screen.
+        //
+        // This behavior only happens with the windows pty layer; it doesn't
+        // manifest when using eg: ssh directly to a remote unix system.
+        let resize_preserves_scrollback = is_conpty;
+
+        if resize_preserves_scrollback {
             new_cursor_y = cursor
                 .y
                 .saturating_add(cursor_y as i64)

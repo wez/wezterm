@@ -284,7 +284,7 @@ impl Domain for LocalDomain {
             Box::new(writer),
         );
         if self.is_conpty() {
-            terminal.set_supress_initial_title_change();
+            terminal.enable_conpty_quirks();
         }
 
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
