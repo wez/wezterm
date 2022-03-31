@@ -159,7 +159,12 @@ impl TabBarState {
     pub fn default() -> Self {
         Self {
             line: Line::with_width(1, SEQ_ZERO),
-            items: vec![],
+            items: vec![TabEntry {
+                item: TabBarItem::None,
+                title: Line::from_text(" ", &CellAttributes::blank(), 1),
+                x: 1,
+                width: 1,
+            }],
         }
     }
 
