@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use termwiz::surface::SequenceNo;
 use url::Url;
-use wezterm_term::terminal::{Alert, Clipboard, ClipboardSelection};
+use wezterm_term::terminal::Alert;
 use wezterm_term::StableRowIndex;
 
 #[derive(Clone)]
@@ -204,17 +204,6 @@ impl Drop for SessionHandler {
 
 impl SessionHandler {
     pub fn new(to_write_tx: PduSender) -> Self {
-        // Fixup the clipboard on the empty initial pane that is
-        // spawned into the mux
-        let mux = Mux::get().unwrap();
-        for pane in mux.iter_panes() {
-            let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-                pane_id: pane.pane_id(),
-                sender: to_write_tx.clone(),
-            });
-            pane.set_clipboard(&clip);
-        }
-
         Self {
             to_write_tx,
             per_pane: HashMap::new(),
@@ -537,19 +526,17 @@ impl SessionHandler {
             }
 
             Pdu::SpawnV2(spawn) => {
-                let sender = self.to_write_tx.clone();
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    schedule_domain_spawn_v2(spawn, sender, send_response, client_id);
+                    schedule_domain_spawn_v2(spawn, send_response, client_id);
                 })
                 .detach();
             }
 
             Pdu::SplitPane(split) => {
-                let sender = self.to_write_tx.clone();
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    schedule_split_pane(split, sender, send_response, client_id);
+                    schedule_split_pane(split, send_response, client_id);
                 })
                 .detach();
             }
@@ -707,60 +694,24 @@ impl SessionHandler {
 // analysis and allow things to compile.
 fn schedule_domain_spawn_v2<SND>(
     spawn: SpawnV2,
-    sender: PduSender,
     send_response: SND,
     client_id: Option<Arc<ClientId>>,
 ) where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(
-        async move { send_response(domain_spawn_v2(spawn, sender, client_id).await) },
-    )
-    .detach();
-}
-
-fn schedule_split_pane<SND>(
-    split: SplitPane,
-    sender: PduSender,
-    send_response: SND,
-    client_id: Option<Arc<ClientId>>,
-) where
-    SND: Fn(anyhow::Result<Pdu>) + 'static,
-{
-    promise::spawn::spawn(async move { send_response(split_pane(split, sender, client_id).await) })
+    promise::spawn::spawn(async move { send_response(domain_spawn_v2(spawn, client_id).await) })
         .detach();
 }
 
-struct RemoteClipboard {
-    sender: PduSender,
-    pane_id: PaneId,
+fn schedule_split_pane<SND>(split: SplitPane, send_response: SND, client_id: Option<Arc<ClientId>>)
+where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(split_pane(split, client_id).await) })
+        .detach();
 }
 
-impl Clipboard for RemoteClipboard {
-    fn set_contents(
-        &self,
-        selection: ClipboardSelection,
-        clipboard: Option<String>,
-    ) -> anyhow::Result<()> {
-        self.sender
-            .send(DecodedPdu {
-                serial: 0,
-                pdu: Pdu::SetClipboard(SetClipboard {
-                    pane_id: self.pane_id,
-                    clipboard,
-                    selection,
-                }),
-            })
-            .context("RemoteClipboard::set_contents send failed")?;
-        Ok(())
-    }
-}
-
-async fn split_pane(
-    split: SplitPane,
-    sender: PduSender,
-    client_id: Option<Arc<ClientId>>,
-) -> anyhow::Result<Pdu> {
+async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
     let _identity = mux.with_identity(client_id);
 
@@ -778,12 +729,6 @@ async fn split_pane(
         )
         .await?;
 
-    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-        pane_id: pane.pane_id(),
-        sender,
-    });
-    pane.set_clipboard(&clip);
-
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
         tab_id: tab_id,
@@ -792,11 +737,7 @@ async fn split_pane(
     }))
 }
 
-async fn domain_spawn_v2(
-    spawn: SpawnV2,
-    sender: PduSender,
-    client_id: Option<Arc<ClientId>>,
-) -> anyhow::Result<Pdu> {
+async fn domain_spawn_v2(spawn: SpawnV2, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
     let _identity = mux.with_identity(client_id);
 
@@ -811,12 +752,6 @@ async fn domain_spawn_v2(
             spawn.workspace,
         )
         .await?;
-
-    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-        pane_id: pane.pane_id(),
-        sender,
-    });
-    pane.set_clipboard(&clip);
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),

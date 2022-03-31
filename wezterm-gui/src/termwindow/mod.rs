@@ -60,7 +60,6 @@ mod render;
 pub mod resize;
 mod selection;
 pub mod spawn;
-use clipboard::ClipboardHelper;
 use prevcursor::PrevCursorPos;
 use spawn::SpawnWhere;
 
@@ -798,7 +797,7 @@ impl TermWindow {
         tw.borrow_mut().window.replace(window.clone());
 
         Self::apply_icon(&window)?;
-        Self::setup_clipboard(&window, mux_window_id)?;
+        Self::setup_clipboard(mux_window_id)?;
 
         let config_subscription = config::subscribe_to_config_reload({
             let window = window.clone();
@@ -1029,6 +1028,9 @@ impl TermWindow {
                 MuxNotification::WindowRemoved(_window_id) => {
                     // Handled by frontend
                 }
+                MuxNotification::AssignClipboard { .. } => {
+                    // Handled by frontend
+                }
                 MuxNotification::PaneAdded(_)
                 | MuxNotification::PaneRemoved(_)
                 | MuxNotification::WindowWorkspaceChanged(_)
@@ -1153,12 +1155,6 @@ impl TermWindow {
                     for tab in mux_window.iter() {
                         for pos in tab.iter_panes() {
                             if pos.pane.pane_id() == pane_id {
-                                let clipboard: Arc<dyn wezterm_term::Clipboard> =
-                                    Arc::new(ClipboardHelper {
-                                        window: window.clone(),
-                                    });
-                                pos.pane.set_clipboard(&clipboard);
-
                                 let downloader: Arc<dyn wezterm_term::DownloadHandler> =
                                     Arc::new(crate::download::Downloader::new());
                                 pos.pane.set_download_handler(&downloader);
@@ -1186,6 +1182,7 @@ impl TermWindow {
                     | Alert::PaletteChanged { .. },
                 ..
             }
+            | MuxNotification::AssignClipboard { .. }
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)
@@ -2252,9 +2249,6 @@ impl TermWindow {
                     let size = self.terminal_size;
                     let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
                     let src_window_id = self.mux_window_id;
-                    let clipboard = ClipboardHelper {
-                        window: self.window.as_ref().unwrap().clone(),
-                    };
 
                     promise::spawn::spawn(async move {
                         if let Err(err) = Self::spawn_command_internal(
@@ -2262,7 +2256,6 @@ impl TermWindow {
                             SpawnWhere::NewWindow,
                             size,
                             src_window_id,
-                            clipboard,
                             term_config,
                         )
                         .await

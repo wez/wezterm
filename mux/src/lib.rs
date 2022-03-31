@@ -24,6 +24,7 @@ use std::time::Instant;
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
+use wezterm_term::{Clipboard, ClipboardSelection};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -61,6 +62,11 @@ pub enum MuxNotification {
         alert: wezterm_term::Alert,
     },
     Empty,
+    AssignClipboard {
+        pane_id: PaneId,
+        selection: ClipboardSelection,
+        clipboard: Option<String>,
+    },
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -566,6 +572,11 @@ impl Mux {
             return Ok(());
         }
 
+        let clipboard: Arc<dyn Clipboard> = Arc::new(MuxClipboard {
+            pane_id: pane.pane_id(),
+        });
+        pane.set_clipboard(&clipboard);
+
         self.panes
             .borrow_mut()
             .insert(pane.pane_id(), Rc::clone(pane));
@@ -1065,5 +1076,26 @@ pub(crate) fn pty_size_to_terminal_size(size: portable_pty::PtySize) -> wezterm_
         physical_cols: size.cols as usize,
         pixel_width: size.pixel_width as usize,
         pixel_height: size.pixel_height as usize,
+    }
+}
+
+struct MuxClipboard {
+    pane_id: PaneId,
+}
+
+impl Clipboard for MuxClipboard {
+    fn set_contents(
+        &self,
+        selection: ClipboardSelection,
+        clipboard: Option<String>,
+    ) -> anyhow::Result<()> {
+        let mux =
+            Mux::get().ok_or_else(|| anyhow::anyhow!("MuxClipboard::set_contents: no Mux?"))?;
+        mux.notify(MuxNotification::AssignClipboard {
+            pane_id: self.pane_id,
+            selection,
+            clipboard,
+        });
+        Ok(())
     }
 }

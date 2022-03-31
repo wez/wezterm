@@ -6,50 +6,20 @@ use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
 use std::rc::Rc;
 use std::sync::Arc;
-use wezterm_term::ClipboardSelection;
-use window::{Clipboard, Window, WindowOps};
-
-/// ClipboardHelper bridges between the window crate clipboard
-/// manipulation and the term crate clipboard interface
-#[derive(Clone)]
-pub struct ClipboardHelper {
-    pub window: Window,
-}
-
-impl wezterm_term::Clipboard for ClipboardHelper {
-    fn set_contents(
-        &self,
-        selection: ClipboardSelection,
-        data: Option<String>,
-    ) -> anyhow::Result<()> {
-        self.window.set_clipboard(
-            match selection {
-                ClipboardSelection::Clipboard => Clipboard::Clipboard,
-                ClipboardSelection::PrimarySelection => Clipboard::PrimarySelection,
-            },
-            data.unwrap_or_else(String::new),
-        );
-        Ok(())
-    }
-}
+use window::{Clipboard, WindowOps};
 
 impl TermWindow {
-    pub fn setup_clipboard(window: &Window, mux_window_id: MuxWindowId) -> anyhow::Result<()> {
-        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
-            window: window.clone(),
-        });
+    pub fn setup_clipboard(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
         let downloader: Arc<dyn wezterm_term::DownloadHandler> =
             Arc::new(crate::download::Downloader::new());
         let mux = Mux::get().unwrap();
 
-        let mut mux_window = mux
-            .get_window_mut(mux_window_id)
+        let mux_window = mux
+            .get_window(mux_window_id)
             .ok_or_else(|| anyhow::anyhow!("mux doesn't know about window yet!?"))?;
 
-        mux_window.set_clipboard(&clipboard);
         for tab in mux_window.iter() {
             for pos in tab.iter_panes() {
-                pos.pane.set_clipboard(&clipboard);
                 pos.pane.set_download_handler(&downloader);
             }
         }
@@ -75,6 +45,11 @@ impl TermWindow {
 
     pub fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: ClipboardPasteSource) {
         let pane_id = pane.pane_id();
+        log::trace!(
+            "paste_from_clipboard in pane {} {:?}",
+            pane.pane_id(),
+            clipboard
+        );
         let window = self.window.as_ref().unwrap().clone();
         let clipboard = match clipboard {
             ClipboardPasteSource::Clipboard => Clipboard::Clipboard,

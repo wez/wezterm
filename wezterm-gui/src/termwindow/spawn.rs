@@ -1,4 +1,4 @@
-use crate::termwindow::{ClipboardHelper, MuxWindowId};
+use crate::termwindow::MuxWindowId;
 use anyhow::{anyhow, bail, Context};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::TermConfig;
@@ -24,16 +24,7 @@ impl super::TermWindow {
         };
         let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
 
-        Self::spawn_command_impl(
-            spawn,
-            spawn_where,
-            size,
-            self.mux_window_id,
-            ClipboardHelper {
-                window: self.window.as_ref().unwrap().clone(),
-            },
-            term_config,
-        )
+        Self::spawn_command_impl(spawn, spawn_where, size, self.mux_window_id, term_config)
     }
 
     fn spawn_command_impl(
@@ -41,21 +32,14 @@ impl super::TermWindow {
         spawn_where: SpawnWhere,
         size: PtySize,
         src_window_id: MuxWindowId,
-        clipboard: ClipboardHelper,
         term_config: Arc<TermConfig>,
     ) {
         let spawn = spawn.clone();
 
         promise::spawn::spawn(async move {
-            if let Err(err) = Self::spawn_command_internal(
-                spawn,
-                spawn_where,
-                size,
-                src_window_id,
-                clipboard,
-                term_config,
-            )
-            .await
+            if let Err(err) =
+                Self::spawn_command_internal(spawn, spawn_where, size, src_window_id, term_config)
+                    .await
             {
                 log::error!("Failed to spawn: {:#}", err);
             }
@@ -68,7 +52,6 @@ impl super::TermWindow {
         spawn_where: SpawnWhere,
         size: PtySize,
         src_window_id: MuxWindowId,
-        clipboard: ClipboardHelper,
         term_config: Arc<TermConfig>,
     ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
@@ -104,7 +87,6 @@ impl super::TermWindow {
             None
         };
 
-        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
         let downloader: Arc<dyn wezterm_term::DownloadHandler> =
             Arc::new(crate::download::Downloader::new());
         let workspace = mux.active_workspace().clone();
@@ -129,7 +111,6 @@ impl super::TermWindow {
                         .await
                         .context("split_pane")?;
                     pane.set_config(term_config);
-                    pane.set_clipboard(&clipboard);
                     pane.set_download_handler(&downloader);
                 } else {
                     bail!("there is no active tab while splitting pane!?");
@@ -157,7 +138,6 @@ impl super::TermWindow {
                 // the new window being created.
                 if window_id == src_window_id {
                     pane.set_config(term_config);
-                    pane.set_clipboard(&clipboard);
                     pane.set_download_handler(&downloader);
                 }
             }

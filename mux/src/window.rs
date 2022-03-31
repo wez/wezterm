@@ -1,8 +1,6 @@
 use crate::pane::CloseReason;
 use crate::{Mux, MuxNotification, Tab, TabId};
 use std::rc::Rc;
-use std::sync::Arc;
-use wezterm_term::Clipboard;
 
 static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type WindowId = usize;
@@ -12,7 +10,6 @@ pub struct Window {
     tabs: Vec<Rc<Tab>>,
     active: usize,
     last_active: Option<TabId>,
-    clipboard: Option<Arc<dyn Clipboard>>,
     workspace: String,
 }
 
@@ -23,7 +20,6 @@ impl Window {
             tabs: vec![],
             active: 0,
             last_active: None,
-            clipboard: None,
             workspace: workspace.unwrap_or_else(|| {
                 Mux::get()
                     .expect("Window::new to be called on mux thread")
@@ -46,10 +42,6 @@ impl Window {
         }
     }
 
-    pub fn set_clipboard(&mut self, clipboard: &Arc<dyn Clipboard>) {
-        self.clipboard.replace(Arc::clone(clipboard));
-    }
-
     pub fn window_id(&self) -> WindowId {
         self.id
     }
@@ -60,14 +52,6 @@ impl Window {
         }
     }
 
-    fn assign_clipboard_to_tab(&self, tab: &Rc<Tab>) {
-        if let Some(clip) = self.clipboard.as_ref() {
-            if let Some(pane) = tab.get_active_pane() {
-                pane.set_clipboard(clip);
-            }
-        }
-    }
-
     fn invalidate(&self) {
         let mux = Mux::get().unwrap();
         mux.notify(MuxNotification::WindowInvalidated(self.id));
@@ -75,14 +59,12 @@ impl Window {
 
     pub fn insert(&mut self, index: usize, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
-        self.assign_clipboard_to_tab(tab);
         self.tabs.insert(index, Rc::clone(tab));
         self.invalidate();
     }
 
     pub fn push(&mut self, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
-        self.assign_clipboard_to_tab(tab);
         self.tabs.push(Rc::clone(tab));
         self.invalidate();
     }

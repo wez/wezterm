@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Arc;
-use wezterm_term::Alert;
+use wezterm_term::{Alert, ClipboardSelection};
 use wezterm_toast_notification::*;
 
 pub struct GuiFrontEnd {
@@ -41,7 +41,7 @@ impl GuiFrontEnd {
         });
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
-            if let Some(_fe) = fe.upgrade() {
+            if let Some(fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowWorkspaceChanged(_)
                     | MuxNotification::ActiveWorkspaceChanged(_) => {}
@@ -92,6 +92,31 @@ impl GuiFrontEnd {
                         if mux::activity::Activity::count() == 0 {
                             log::trace!("Mux is now empty, terminate gui");
                             Connection::get().unwrap().terminate_message_loop();
+                        }
+                    }
+                    MuxNotification::AssignClipboard {
+                        pane_id,
+                        selection,
+                        clipboard,
+                    } => {
+                        log::trace!(
+                            "set clipboard in pane {} {:?} {:?}",
+                            pane_id,
+                            selection,
+                            clipboard
+                        );
+                        if let Some(window) = fe.known_windows.borrow().keys().next() {
+                            window.set_clipboard(
+                                match selection {
+                                    ClipboardSelection::Clipboard => Clipboard::Clipboard,
+                                    ClipboardSelection::PrimarySelection => {
+                                        Clipboard::PrimarySelection
+                                    }
+                                },
+                                clipboard.unwrap_or_else(String::new),
+                            );
+                        } else {
+                            log::error!("Cannot assign clipboard as there are no windows");
                         }
                     }
                 }
