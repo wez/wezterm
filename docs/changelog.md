@@ -19,6 +19,7 @@ As features stabilize some brief notes about them will accumulate here.
 * On macOS, non-native fullscreen mode now attempts to avoid the notch on systems that have one. [#1737](https://github.com/wez/wezterm/issues/1737)
 * Sixel parsing performance has been improved
 * You may now [specify a scaling factor per fallback font](config/lua/wezterm/font_with_fallback.md#manual-fallback-scaling), which is useful when your preferred CJK font renders smaller than your Roman primary font, for example.
+* Color schemes: [Retro](colorschemes/r/index.md#retro), [GitHub Dark](colorschemes/g/index.md#github-dark), [Blazer](colorschemes/b/index.md#blazer)
 
 #### Fixed
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)

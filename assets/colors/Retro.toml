@@ -1,0 +1,12 @@
+# Retro
+[colors]
+foreground = "#13a10e"
+background = "#000000"
+cursor_bg = "#13a10e"
+cursor_border = "#13a10e"
+cursor_fg = "#000000"
+selection_bg = "#ffffff"
+selection_fg = "#000000"
+
+ansi = ["#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e"]
+brights = ["#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10"]
