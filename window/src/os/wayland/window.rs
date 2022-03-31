@@ -505,7 +505,7 @@ impl WaylandWindowInner {
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
             let factor = self.get_dpi_factor() as f64;
-            let discrete_x = value_x.trunc() * factor;
+            let discrete_x = (value_x * factor).trunc();
             if discrete_x != 0. {
                 let event = MouseEvent {
                     kind: MouseEventKind::HorzWheel(-discrete_x as i16),
@@ -520,7 +520,7 @@ impl WaylandWindowInner {
                 self.events.dispatch(WindowEvent::MouseEvent(event));
             }
 
-            let discrete_y = value_y.trunc() * factor;
+            let discrete_y = (value_y * factor).trunc();
             if discrete_y != 0. {
                 let event = MouseEvent {
                     kind: MouseEventKind::VertWheel(-discrete_y as i16),
