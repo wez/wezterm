@@ -717,11 +717,7 @@ impl WindowOps for Window {
                     // a tweak to look good around the notch.
                     // <https://github.com/wez/wezterm/issues/1737#issuecomment-1085923867>
                     let top = insets.top.ceil() as usize;
-                    let top = if top > 0 {
-                        top + 2
-                    } else {
-                        0
-                    };
+                    let top = if top > 0 { top + 2 } else { 0 };
                     Some(Border {
                         top: ULength::new(top),
                         left: ULength::new(insets.left.ceil() as usize),
