@@ -639,7 +639,7 @@ impl TermWindow {
         // for the tab bar state.
         let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
         let tab_bar_height = if show_tab_bar {
-            Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics, None)? as usize
+            Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics)? as usize
         } else {
             0
         };

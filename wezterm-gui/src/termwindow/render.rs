@@ -442,29 +442,17 @@ impl super::TermWindow {
         config: &ConfigHandle,
         fontconfig: &wezterm_font::FontConfiguration,
         render_metrics: &RenderMetrics,
-        fancy_tab_bar_height: Option<f32>,
     ) -> anyhow::Result<f32> {
         if config.use_fancy_tab_bar {
-            if let Some(tab_bar_height) = fancy_tab_bar_height {
-                Ok(tab_bar_height)
-            } else {
-                let font = fontconfig.title_font()?;
-                Ok((font.metrics().cell_height.get() as f32 * 1.75).ceil())
-            }
+            let font = fontconfig.title_font()?;
+            Ok((font.metrics().cell_height.get() as f32 * 1.75).ceil())
         } else {
             Ok(render_metrics.cell_size.height as f32)
         }
     }
 
     pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
-        Self::tab_bar_pixel_height_impl(
-            &self.config,
-            &self.fonts,
-            &self.render_metrics,
-            self.fancy_tab_bar
-                .as_ref()
-                .map(|elem| elem.content_rect.size.height),
-        )
+        Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
     }
 
     pub fn invalidate_fancy_tab_bar(&mut self) {
@@ -472,6 +460,7 @@ impl super::TermWindow {
     }
 
     pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
+        let tab_bar_height = self.tab_bar_pixel_height()?;
         let font = self.fonts.title_font()?;
         let metrics = RenderMetrics::with_font_metrics(&font.metrics());
         let items = self.tab_bar.items();
@@ -807,7 +796,7 @@ impl super::TermWindow {
                     border.left.get() as f32,
                     0.,
                     self.dimensions.pixel_width as f32 - (border.left + border.right).get() as f32,
-                    self.dimensions.pixel_height as f32 - (border.top + border.bottom).get() as f32,
+                    tab_bar_height,
                 ),
                 metrics: &metrics,
                 gl_state: self.render_state.as_ref().unwrap(),
