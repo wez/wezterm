@@ -2,31 +2,11 @@ use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, ClipboardPasteSource};
 use mux::pane::Pane;
-use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
 use std::rc::Rc;
-use std::sync::Arc;
 use window::{Clipboard, WindowOps};
 
 impl TermWindow {
-    pub fn setup_clipboard(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
-        let downloader: Arc<dyn wezterm_term::DownloadHandler> =
-            Arc::new(crate::download::Downloader::new());
-        let mux = Mux::get().unwrap();
-
-        let mux_window = mux
-            .get_window(mux_window_id)
-            .ok_or_else(|| anyhow::anyhow!("mux doesn't know about window yet!?"))?;
-
-        for tab in mux_window.iter() {
-            for pos in tab.iter_panes() {
-                pos.pane.set_download_handler(&downloader);
-            }
-        }
-
-        Ok(())
-    }
-
     pub fn copy_to_clipboard(&self, clipboard: ClipboardCopyDestination, text: String) {
         let clipboard = match clipboard {
             ClipboardCopyDestination::Clipboard => [Some(Clipboard::Clipboard), None],

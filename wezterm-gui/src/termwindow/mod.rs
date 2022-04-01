@@ -797,7 +797,6 @@ impl TermWindow {
         tw.borrow_mut().window.replace(window.clone());
 
         Self::apply_icon(&window)?;
-        Self::setup_clipboard(mux_window_id)?;
 
         let config_subscription = config::subscribe_to_config_reload({
             let window = window.clone();
@@ -1031,6 +1030,9 @@ impl TermWindow {
                 MuxNotification::AssignClipboard { .. } => {
                     // Handled by frontend
                 }
+                MuxNotification::SaveToDownloads { .. } => {
+                    // Handled by frontend
+                }
                 MuxNotification::PaneAdded(_)
                 | MuxNotification::PaneRemoved(_)
                 | MuxNotification::WindowWorkspaceChanged(_)
@@ -1147,27 +1149,11 @@ impl TermWindow {
                 }
                 let _ = pane_id;
             }
-            MuxNotification::PaneAdded(pane_id) => {
+            MuxNotification::PaneAdded(_pane_id) => {
                 // If some other client spawns a pane inside this window, this
                 // gives us an opportunity to attach it to the clipboard.
                 let mux = Mux::get().expect("mux is calling us");
-                if let Some(mux_window) = mux.get_window(mux_window_id) {
-                    for tab in mux_window.iter() {
-                        for pos in tab.iter_panes() {
-                            if pos.pane.pane_id() == pane_id {
-                                let downloader: Arc<dyn wezterm_term::DownloadHandler> =
-                                    Arc::new(crate::download::Downloader::new());
-                                pos.pane.set_download_handler(&downloader);
-
-                                break;
-                            }
-                        }
-                    }
-                    return true;
-                } else {
-                    // Something inconsistent: cancel subscription
-                    return false;
-                };
+                return mux.get_window(mux_window_id).is_some();
             }
             MuxNotification::WindowRemoved(window_id)
             | MuxNotification::WindowInvalidated(window_id) => {
@@ -1183,6 +1169,7 @@ impl TermWindow {
                 ..
             }
             | MuxNotification::AssignClipboard { .. }
+            | MuxNotification::SaveToDownloads { .. }
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)

@@ -96,6 +96,7 @@ where
                 }
                 handler.schedule_pane_push(pane_id);
             }
+            Ok(Item::Notif(MuxNotification::SaveToDownloads { .. })) => {}
             Ok(Item::Notif(MuxNotification::AssignClipboard {
                 pane_id,
                 selection,

@@ -87,8 +87,6 @@ impl super::TermWindow {
             None
         };
 
-        let downloader: Arc<dyn wezterm_term::DownloadHandler> =
-            Arc::new(crate::download::Downloader::new());
         let workspace = mux.active_workspace().clone();
 
         match spawn_where {
@@ -111,7 +109,6 @@ impl super::TermWindow {
                         .await
                         .context("split_pane")?;
                     pane.set_config(term_config);
-                    pane.set_download_handler(&downloader);
                 } else {
                     bail!("there is no active tab while splitting pane!?");
                 }
@@ -138,7 +135,6 @@ impl super::TermWindow {
                 // the new window being created.
                 if window_id == src_window_id {
                     pane.set_config(term_config);
-                    pane.set_download_handler(&downloader);
                 }
             }
         };

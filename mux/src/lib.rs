@@ -24,7 +24,7 @@ use std::time::Instant;
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
-use wezterm_term::{Clipboard, ClipboardSelection};
+use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -66,6 +66,10 @@ pub enum MuxNotification {
         pane_id: PaneId,
         selection: ClipboardSelection,
         clipboard: Option<String>,
+    },
+    SaveToDownloads {
+        name: Option<String>,
+        data: Arc<Vec<u8>>,
     },
 }
 
@@ -576,6 +580,9 @@ impl Mux {
             pane_id: pane.pane_id(),
         });
         pane.set_clipboard(&clipboard);
+
+        let downloader: Arc<dyn DownloadHandler> = Arc::new(MuxDownloader {});
+        pane.set_download_handler(&downloader);
 
         self.panes
             .borrow_mut()
@@ -1097,5 +1104,18 @@ impl Clipboard for MuxClipboard {
             clipboard,
         });
         Ok(())
+    }
+}
+
+struct MuxDownloader {}
+
+impl wezterm_term::DownloadHandler for MuxDownloader {
+    fn save_to_downloads(&self, name: Option<String>, data: Vec<u8>) {
+        if let Some(mux) = Mux::get() {
+            mux.notify(MuxNotification::SaveToDownloads {
+                name,
+                data: Arc::new(data),
+            });
+        }
     }
 }
