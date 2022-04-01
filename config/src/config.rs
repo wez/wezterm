@@ -16,8 +16,8 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     de_number, de_vec_table, default_config_with_overrides_applied, default_one_point_oh,
-    default_one_point_oh_f64, default_true, make_lua_context, LoadedConfig, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_one_point_oh_f64, default_true, make_lua_context, KeyMapPreference, LoadedConfig,
+    CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion;
@@ -249,7 +249,7 @@ pub struct Config {
     #[serde(default = "default_mux_env_remove", deserialize_with = "de_vec_table")]
     pub mux_env_remove: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_vec_table")]
     pub keys: Vec<Key>,
     #[serde(
         default = "default_bypass_mouse_reporting_modifiers",
@@ -612,6 +612,9 @@ pub struct Config {
 
     #[serde(default)]
     pub xcursor_size: Option<u32>,
+
+    #[serde(default)]
+    pub key_map_preference: KeyMapPreference,
 }
 impl_lua_conversion!(Config);
 
@@ -781,7 +784,11 @@ impl Config {
         let mut map = HashMap::new();
 
         for k in &self.keys {
-            let (key, mods) = k.key.key.normalize_shift(k.key.mods);
+            let (key, mods) = k
+                .key
+                .key
+                .resolve(self.key_map_preference)
+                .normalize_shift(k.key.mods);
             map.insert((key, mods), k.action.clone());
         }
 

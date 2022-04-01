@@ -1,12 +1,13 @@
 use crate::keys::KeyNoAction;
-use crate::{de_notnan, ConfigHandle, LeaderKey};
+use crate::{de_notnan, ConfigHandle};
 use luahelper::impl_lua_conversion;
 use ordered_float::NotNan;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::PathBuf;
-use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode};
+use std::time::Duration;
+use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -351,7 +352,7 @@ impl_lua_conversion!(KeyAssignment);
 pub struct InputMap {
     pub keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
     pub mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
-    leader: Option<LeaderKey>,
+    leader: Option<(KeyCode, Modifiers, Duration)>,
 }
 
 impl InputMap {
@@ -360,12 +361,21 @@ impl InputMap {
 
         let mut keys = config.key_bindings();
 
-        let leader = config.leader.clone();
+        let leader = config.leader.as_ref().map(|leader| {
+            (
+                leader.key.key.resolve(config.key_map_preference).clone(),
+                leader.key.mods,
+                Duration::from_millis(leader.timeout_milliseconds),
+            )
+        });
 
         macro_rules! k {
-            ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
+            ($([$mod:expr, $code:literal, $action:expr]),* $(,)?) => {
                 $(
-                keys.entry(($code, $mod)).or_insert($action);
+                let key = crate::DeferredKeyCode::try_from($code)
+                            .unwrap()
+                            .resolve(config.key_map_preference).clone();
+                keys.entry((key, $mod)).or_insert($action);
                 )*
             };
         }
@@ -388,290 +398,177 @@ impl InputMap {
                 // Clipboard
                 [
                     Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::Insert),
+                    "Insert",
                     PasteFrom(ClipboardPasteSource::PrimarySelection)
                 ],
                 [
                     Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::Insert),
+                    "Insert",
                     CopyTo(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
                     Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::C),
+                    "c",
                     CopyTo(ClipboardCopyDestination::Clipboard)
                 ],
                 [
                     Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::V),
+                    "v",
                     PasteFrom(ClipboardPasteSource::Clipboard)
                 ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::C),
-                    CopyTo(ClipboardCopyDestination::Clipboard)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::V),
-                    PasteFrom(ClipboardPasteSource::Clipboard)
-                ],
+                [ctrl_shift, "C", CopyTo(ClipboardCopyDestination::Clipboard)],
+                [ctrl_shift, "c", CopyTo(ClipboardCopyDestination::Clipboard)],
+                [ctrl_shift, "V", PasteFrom(ClipboardPasteSource::Clipboard)],
+                [ctrl_shift, "v", PasteFrom(ClipboardPasteSource::Clipboard)],
                 [
                     Modifiers::NONE,
-                    KeyCode::Copy,
+                    "Copy",
                     CopyTo(ClipboardCopyDestination::Clipboard)
                 ],
                 [
                     Modifiers::NONE,
-                    KeyCode::Paste,
+                    "Paste",
                     PasteFrom(ClipboardPasteSource::Clipboard)
                 ],
                 // Window management
-                [
-                    Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::Return),
-                    ToggleFullScreen
-                ],
-                [Modifiers::SUPER, KeyCode::Physical(PhysKeyCode::M), Hide],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::N),
-                    SpawnWindow
-                ],
-                [ctrl_shift, KeyCode::Physical(PhysKeyCode::M), Hide],
-                [ctrl_shift, KeyCode::Physical(PhysKeyCode::N), SpawnWindow],
+                [Modifiers::ALT, "Return", ToggleFullScreen],
+                [Modifiers::SUPER, "m", Hide],
+                [Modifiers::SUPER, "n", SpawnWindow],
+                [ctrl_shift, "M", Hide],
+                [ctrl_shift, "m", Hide],
+                [ctrl_shift, "N", SpawnWindow],
+                [ctrl_shift, "n", SpawnWindow],
                 [
                     Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K),
+                    "k",
                     ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K),
+                    "K",
+                    ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
+                ],
+                [
+                    ctrl_shift,
+                    "k",
                     ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
                 ],
                 [
                     Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::F),
+                    "f",
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::F),
+                    "F",
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::L),
-                    ShowDebugOverlay
+                    "f",
+                    Search(Pattern::CaseSensitiveString("".into()))
                 ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::Space),
-                    QuickSelect
-                ],
+                [ctrl_shift, "L", ShowDebugOverlay],
+                [ctrl_shift, "l", ShowDebugOverlay],
+                [ctrl_shift, "Space", QuickSelect],
                 // Font size manipulation
-                [
-                    Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::Minus),
-                    DecreaseFontSize
-                ],
-                [
-                    Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::K0),
-                    ResetFontSize
-                ],
-                [
-                    Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::Equal),
-                    IncreaseFontSize
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::Minus),
-                    DecreaseFontSize
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K0),
-                    ResetFontSize
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::Equal),
-                    IncreaseFontSize
-                ],
+                [Modifiers::SUPER, "-", DecreaseFontSize],
+                [Modifiers::SUPER, "0", ResetFontSize],
+                [Modifiers::SUPER, "=", IncreaseFontSize],
+                // Font size, CTRL variant.
+                [Modifiers::CTRL, "-", DecreaseFontSize],
+                [Modifiers::CTRL, "0", ResetFontSize],
+                [Modifiers::CTRL, "=", IncreaseFontSize],
+                // Font size, CTRL+SHIFT variant.
+                // Ugh. Combinations of these to account for varying degrees
+                // of shift/mapping normalizing on different systems.
+                [Modifiers::CTRL | Modifiers::SHIFT, "-", DecreaseFontSize],
+                [Modifiers::CTRL | Modifiers::SHIFT, "_", DecreaseFontSize],
+                [Modifiers::CTRL, "_", DecreaseFontSize],
+                [Modifiers::CTRL | Modifiers::SHIFT, "0", ResetFontSize],
+                [Modifiers::CTRL | Modifiers::SHIFT, ")", ResetFontSize],
+                [Modifiers::CTRL, ")", ResetFontSize],
+                [Modifiers::CTRL | Modifiers::SHIFT, "=", IncreaseFontSize],
+                [Modifiers::CTRL | Modifiers::SHIFT, "+", IncreaseFontSize],
+                [Modifiers::CTRL, "+", IncreaseFontSize],
                 // Tab navigation and management
                 [
                     Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::T),
+                    "t",
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::T),
-                    SpawnTab(SpawnTabDomain::CurrentPaneDomain)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K1),
-                    ActivateTab(0)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K2),
-                    ActivateTab(1)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K3),
-                    ActivateTab(2)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K4),
-                    ActivateTab(3)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K5),
-                    ActivateTab(4)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K6),
-                    ActivateTab(5)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K7),
-                    ActivateTab(6)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K8),
-                    ActivateTab(7)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::K9),
-                    ActivateTab(-1)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::W),
-                    CloseCurrentTab { confirm: true }
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K1),
-                    ActivateTab(0)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K2),
-                    ActivateTab(1)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K3),
-                    ActivateTab(2)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K4),
-                    ActivateTab(3)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K5),
-                    ActivateTab(4)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K6),
-                    ActivateTab(5)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K7),
-                    ActivateTab(6)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K8),
-                    ActivateTab(7)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::K9),
-                    ActivateTab(-1)
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::W),
-                    CloseCurrentTab { confirm: true }
-                ],
+                [ctrl_shift, "t", SpawnTab(SpawnTabDomain::CurrentPaneDomain)],
+                [ctrl_shift, "T", SpawnTab(SpawnTabDomain::CurrentPaneDomain)],
+                [Modifiers::SUPER, "1", ActivateTab(0)],
+                [Modifiers::SUPER, "2", ActivateTab(1)],
+                [Modifiers::SUPER, "3", ActivateTab(2)],
+                [Modifiers::SUPER, "4", ActivateTab(3)],
+                [Modifiers::SUPER, "5", ActivateTab(4)],
+                [Modifiers::SUPER, "6", ActivateTab(5)],
+                [Modifiers::SUPER, "7", ActivateTab(6)],
+                [Modifiers::SUPER, "8", ActivateTab(7)],
+                [Modifiers::SUPER, "9", ActivateTab(-1)],
+                [Modifiers::SUPER, "w", CloseCurrentTab { confirm: true }],
+                [ctrl_shift, "1", ActivateTab(0)],
+                [ctrl_shift, "2", ActivateTab(1)],
+                [ctrl_shift, "3", ActivateTab(2)],
+                [ctrl_shift, "4", ActivateTab(3)],
+                [ctrl_shift, "5", ActivateTab(4)],
+                [ctrl_shift, "6", ActivateTab(5)],
+                [ctrl_shift, "7", ActivateTab(6)],
+                [ctrl_shift, "8", ActivateTab(7)],
+                [ctrl_shift, "9", ActivateTab(-1)],
+                [ctrl_shift, "W", CloseCurrentTab { confirm: true }],
                 [
                     Modifiers::SUPER | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::LeftBracket),
+                    "[",
                     ActivateTabRelative(-1)
                 ],
                 [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::Tab),
+                    Modifiers::SUPER | Modifiers::SHIFT,
+                    "{",
                     ActivateTabRelative(-1)
                 ],
-                [Modifiers::CTRL, KeyCode::PageUp, ActivateTabRelative(-1)],
+                [ctrl_shift, "Tab", ActivateTabRelative(-1)],
+                [Modifiers::CTRL, "PageUp", ActivateTabRelative(-1)],
                 [
                     Modifiers::SUPER | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::RightBracket),
+                    "]",
                     ActivateTabRelative(1)
                 ],
                 [
-                    Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::Tab),
+                    Modifiers::SUPER | Modifiers::SHIFT,
+                    "}",
                     ActivateTabRelative(1)
                 ],
-                [
-                    Modifiers::CTRL,
-                    KeyCode::Physical(PhysKeyCode::PageDown),
-                    ActivateTabRelative(1)
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::R),
-                    ReloadConfiguration
-                ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::R),
-                    ReloadConfiguration
-                ],
-                [ctrl_shift, KeyCode::PageUp, MoveTabRelative(-1)],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::PageDown),
-                    MoveTabRelative(1)
-                ],
+                [Modifiers::CTRL, "Tab", ActivateTabRelative(1)],
+                [Modifiers::CTRL, "PageDown", ActivateTabRelative(1)],
+                [Modifiers::SUPER, "r", ReloadConfiguration],
+                [ctrl_shift, "R", ReloadConfiguration],
+                [ctrl_shift, "PageUp", MoveTabRelative(-1)],
+                [ctrl_shift, "PageDown", MoveTabRelative(1)],
                 [
                     Modifiers::SHIFT,
-                    KeyCode::PageUp,
+                    "PageUp",
                     ScrollByPage(NotNan::new(-1.0).unwrap())
                 ],
                 [
                     Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::PageDown),
+                    "PageDown",
                     ScrollByPage(NotNan::new(1.0).unwrap())
                 ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::X),
-                    ActivateCopyMode
-                ],
+                [ctrl_shift, "X", ActivateCopyMode],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::Quote),
+                    "'",
+                    SplitVertical(SpawnCommand {
+                        domain: SpawnTabDomain::CurrentPaneDomain,
+                        ..Default::default()
+                    })
+                ],
+                [
+                    Modifiers::CTRL | Modifiers::ALT,
+                    "\"",
                     SplitVertical(SpawnCommand {
                         domain: SpawnTabDomain::CurrentPaneDomain,
                         ..Default::default()
@@ -679,7 +576,15 @@ impl InputMap {
                 ],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::K5),
+                    "5",
+                    SplitHorizontal(SpawnCommand {
+                        domain: SpawnTabDomain::CurrentPaneDomain,
+                        ..Default::default()
+                    })
+                ],
+                [
+                    Modifiers::CTRL | Modifiers::ALT,
+                    "%",
                     SplitHorizontal(SpawnCommand {
                         domain: SpawnTabDomain::CurrentPaneDomain,
                         ..Default::default()
@@ -687,63 +592,51 @@ impl InputMap {
                 ],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::LeftArrow),
+                    "LeftArrow",
                     AdjustPaneSize(PaneDirection::Left, 1)
                 ],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::RightArrow),
+                    "RightArrow",
                     AdjustPaneSize(PaneDirection::Right, 1)
                 ],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::UpArrow),
+                    "UpArrow",
                     AdjustPaneSize(PaneDirection::Up, 1)
                 ],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
-                    KeyCode::Physical(PhysKeyCode::DownArrow),
+                    "DownArrow",
                     AdjustPaneSize(PaneDirection::Down, 1)
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::LeftArrow),
+                    "LeftArrow",
                     ActivatePaneDirection(PaneDirection::Left)
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::RightArrow),
+                    "RightArrow",
                     ActivatePaneDirection(PaneDirection::Right)
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::UpArrow),
+                    "UpArrow",
                     ActivatePaneDirection(PaneDirection::Up)
                 ],
                 [
                     ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::DownArrow),
+                    "DownArrow",
                     ActivatePaneDirection(PaneDirection::Down)
                 ],
-                [
-                    ctrl_shift,
-                    KeyCode::Physical(PhysKeyCode::Z),
-                    TogglePaneZoomState
-                ],
+                [ctrl_shift, "Z", TogglePaneZoomState],
             );
 
             #[cfg(target_os = "macos")]
             k!(
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::H),
-                    HideApplication
-                ],
-                [
-                    Modifiers::SUPER,
-                    KeyCode::Physical(PhysKeyCode::Q),
-                    QuitApplication
-                ],
+                [Modifiers::SUPER, "h", HideApplication],
+                [Modifiers::SUPER, "q", QuitApplication],
             );
         }
 
@@ -879,11 +772,9 @@ impl InputMap {
     }
 
     pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
-        if let Some(leader) = self.leader.as_ref() {
-            if leader.key.key == *key && leader.key.mods == mods {
-                return Some(std::time::Duration::from_millis(
-                    leader.timeout_milliseconds,
-                ));
+        if let Some((leader_key, leader_mods, timeout)) = self.leader.as_ref() {
+            if *leader_key == *key && *leader_mods == mods {
+                return Some(timeout.clone());
             }
         }
         None

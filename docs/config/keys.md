@@ -275,6 +275,15 @@ your config, you will need to change it to either
 `{key="N", mods="CMD|SHIFT", ..}` or `{key="mapped:N", mods="CMD", ..}`
 in order to continue to respect the `SHIFT` modifier.
 
+*Since: nightly builds only*
+
+A new `key_map_preference` option controls how keys without an explicit `phys:`
+or `mapped:` prefix are treated. If `key_map_preference = "Mapped"` (the
+default), then `mapped:` is assumed. If `key_map_preference = "Physical"` then
+`phys:` is assumed.
+
+The default key assignments will respect `key_map_preference`.
+
 ### Leader Key
 
 *Since: 20201031-154415-9614e117*

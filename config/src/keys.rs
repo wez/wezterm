@@ -5,10 +5,130 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode};
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum KeyMapPreference {
+    Physical,
+    Mapped,
+}
+impl_lua_conversion!(KeyMapPreference);
+
+impl Default for KeyMapPreference {
+    fn default() -> Self {
+        Self::Mapped
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(into = "String", try_from = "String")]
+pub enum DeferredKeyCode {
+    KeyCode(KeyCode),
+    Either { physical: KeyCode, mapped: KeyCode },
+}
+
+impl DeferredKeyCode {
+    pub fn resolve(&self, position: KeyMapPreference) -> &KeyCode {
+        match (self, position) {
+            (Self::KeyCode(key), _) => key,
+            (Self::Either { mapped, .. }, KeyMapPreference::Mapped) => mapped,
+            (Self::Either { physical, .. }, KeyMapPreference::Physical) => physical,
+        }
+    }
+
+    fn as_string(key: &KeyCode) -> String {
+        if let Some(s) = INV_KEYCODE_MAP.get(key) {
+            s.to_string()
+        } else {
+            key.to_string()
+        }
+    }
+
+    fn parse_str(s: &str) -> anyhow::Result<KeyCode> {
+        if let Some(c) = KEYCODE_MAP.get(s) {
+            return Ok(c.clone());
+        }
+
+        if let Some(phys) = s.strip_prefix("phys:") {
+            let phys = PhysKeyCode::try_from(phys).map_err(|_| {
+                anyhow::anyhow!("expected phys:CODE physical keycode string, got: {}", s)
+            })?;
+            return Ok(KeyCode::Physical(phys));
+        }
+
+        if let Some(raw) = s.strip_prefix("raw:") {
+            let num: u32 = raw.parse().map_err(|_| {
+                anyhow::anyhow!("expected raw:<NUMBER> raw keycode string, got: {}", s)
+            })?;
+            return Ok(KeyCode::RawCode(num));
+        }
+
+        if let Some(mapped) = s.strip_prefix("mapped:") {
+            let chars: Vec<char> = mapped.chars().collect();
+            return if chars.len() == 1 {
+                Ok(KeyCode::Char(chars[0]))
+            } else {
+                anyhow::bail!("invalid KeyCode string {}", s);
+            };
+        }
+
+        let chars: Vec<char> = s.chars().collect();
+        if chars.len() == 1 {
+            let k = KeyCode::Char(chars[0]);
+            if let Some(phys) = k.to_phys() {
+                Ok(KeyCode::Physical(phys))
+            } else {
+                Ok(k)
+            }
+        } else {
+            anyhow::bail!("invalid KeyCode string {}", s);
+        }
+    }
+}
+
+impl Into<String> for DeferredKeyCode {
+    fn into(self) -> String {
+        match self {
+            DeferredKeyCode::KeyCode(key) => Self::as_string(&key),
+            DeferredKeyCode::Either { mapped, .. } => {
+                let mapped = Self::as_string(&mapped);
+                mapped
+                    .strip_prefix("mapped:")
+                    .expect("to have mapped: prefix")
+                    .to_string()
+            }
+        }
+    }
+}
+
+impl TryFrom<String> for DeferredKeyCode {
+    type Error = anyhow::Error;
+    fn try_from(s: String) -> anyhow::Result<DeferredKeyCode> {
+        DeferredKeyCode::try_from(s.as_str())
+    }
+}
+
+impl TryFrom<&str> for DeferredKeyCode {
+    type Error = anyhow::Error;
+    fn try_from(s: &str) -> anyhow::Result<DeferredKeyCode> {
+        if s.starts_with("mapped:") || s.starts_with("phys:") {
+            let key = Self::parse_str(&s)?;
+            return Ok(DeferredKeyCode::KeyCode(key));
+        }
+
+        let mapped = Self::parse_str(&format!("mapped:{}", s));
+        let phys = Self::parse_str(&format!("phys:{}", s));
+
+        match (mapped, phys) {
+            (Ok(mapped), Ok(physical)) => Ok(DeferredKeyCode::Either { mapped, physical }),
+            (Ok(mapped), Err(_)) => Ok(DeferredKeyCode::KeyCode(mapped)),
+            (Err(_), Ok(phys)) => Ok(DeferredKeyCode::KeyCode(phys)),
+            (Err(a), Err(b)) => anyhow::bail!("invalid keycode {}: {:#}, {:#}", s, a, b),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct KeyNoAction {
-    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
-    pub key: KeyCode,
+    pub key: DeferredKeyCode,
     #[serde(
         deserialize_with = "de_modifiers",
         serialize_with = "ser_modifiers",
@@ -60,10 +180,10 @@ fn make_map() -> HashMap<String, KeyCode> {
             $(
                 let v = KeyCode::$val;
                 if let Some(phys) = v.to_phys() {
-                    map.insert(stringify!($val).to_string(), KeyCode::Physical(phys));
+                    map.insert(format!("phys:{}", stringify!($val)), KeyCode::Physical(phys));
                     map.insert(format!("mapped:{}", stringify!($val)), v);
                 } else {
-                    map.insert(stringify!($val).to_string(), v);
+                    map.insert(format!("mapped:{}", stringify!($val)), v);
                 }
             )*
         }
@@ -143,14 +263,14 @@ fn make_map() -> HashMap<String, KeyCode> {
         ("Escape", PhysKeyCode::Escape),
         ("Tab", PhysKeyCode::Tab),
     ] {
-        map.insert(label.to_string(), KeyCode::Physical(*phys));
+        map.insert(format!("phys:{}", label), KeyCode::Physical(*phys));
         map.insert(format!("mapped:{}", label), phys.to_key_code());
     }
 
     for i in 0..=9 {
         let k = KeyCode::Numpad(i);
         map.insert(
-            format!("Numpad{}", i),
+            format!("phys:Numpad{}", i),
             KeyCode::Physical(k.to_phys().unwrap()),
         );
         // Not sure how likely someone is to remap the numpad, but...
@@ -160,11 +280,11 @@ fn make_map() -> HashMap<String, KeyCode> {
     for i in 1..=24 {
         let k = KeyCode::Function(i);
         if let Some(phys) = k.to_phys() {
-            map.insert(format!("F{}", i), KeyCode::Physical(phys));
+            map.insert(format!("phys:F{}", i), KeyCode::Physical(phys));
             map.insert(format!("mapped:F{}", i), k);
         } else {
             // 21 and up don't have phys equivalents
-            map.insert(format!("F{}", i), k);
+            map.insert(format!("mapped:F{}", i), k);
         }
     }
 
@@ -182,76 +302,6 @@ fn make_inv_map() -> HashMap<KeyCode, String> {
 lazy_static::lazy_static! {
     static ref KEYCODE_MAP: HashMap<String, KeyCode> = make_map();
     static ref INV_KEYCODE_MAP: HashMap<KeyCode, String> = make_inv_map();
-}
-
-pub(crate) fn ser_keycode<S>(key: &KeyCode, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if let Some(s) = INV_KEYCODE_MAP.get(key) {
-        serializer.serialize_str(s)
-    } else {
-        let s = key.to_string();
-        serializer.serialize_str(&s)
-    }
-}
-
-fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-
-    if let Some(c) = KEYCODE_MAP.get(&s) {
-        return Ok(c.clone());
-    }
-
-    if s.len() > 5 && s.starts_with("phys:") {
-        let phys = PhysKeyCode::try_from(&s[5..]).map_err(|_| {
-            serde::de::Error::custom(format!(
-                "expected phys:CODE physical keycode string, got: {}",
-                s
-            ))
-        })?;
-        return Ok(KeyCode::Physical(phys));
-    }
-
-    if s.len() > 4 && s.starts_with("raw:") {
-        let num: u32 = s[4..].parse().map_err(|_| {
-            serde::de::Error::custom(format!(
-                "expected raw:<NUMBER> raw keycode string, got: {}",
-                s
-            ))
-        })?;
-        return Ok(KeyCode::RawCode(num));
-    }
-
-    if let Some(mapped) = s.strip_prefix("mapped:") {
-        let chars: Vec<char> = mapped.chars().collect();
-        return if chars.len() == 1 {
-            Ok(KeyCode::Char(chars[0]))
-        } else {
-            Err(serde::de::Error::custom(format!(
-                "invalid KeyCode string {}",
-                s
-            )))
-        };
-    }
-
-    let chars: Vec<char> = s.chars().collect();
-    if chars.len() == 1 {
-        let k = KeyCode::Char(chars[0]);
-        if let Some(phys) = k.to_phys() {
-            Ok(KeyCode::Physical(phys))
-        } else {
-            Ok(k)
-        }
-    } else {
-        Err(serde::de::Error::custom(format!(
-            "invalid KeyCode string {}",
-            s
-        )))
-    }
 }
 
 pub(crate) fn ser_modifiers<S>(mods: &Modifiers, serializer: S) -> Result<S::Ok, S::Error>

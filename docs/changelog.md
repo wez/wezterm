@@ -13,6 +13,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### New
 #### Changed
+* Default key assignments are `mapped:` again. A new [key_map_preference](config/lua/config/key_map_preference.md) option allows the defaults to use `"Mapped"` or `"Physical"`.
 * Disabled ligatures for `"Monaco"` and `"Menlo"` fonts, as those ligatures match even for words such as `find`. [#1786](https://github.com/wez/wezterm/issues/1786) [#1736](https://github.com/wez/wezterm/issues/1736)
 #### Updated and Improved
 * Bundled harfbuzz to 4.1.0

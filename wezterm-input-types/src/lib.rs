@@ -618,7 +618,11 @@ impl PhysKeyCode {
         macro_rules! m {
             ($($val:ident),* $(,)?) => {
                 $(
-                    map.insert(stringify!($val).to_string(), PhysKeyCode::$val);
+                    let key = stringify!($val).to_string();
+                    if key.len() == 1 {
+                        map.insert(key.to_ascii_lowercase(), PhysKeyCode::$val);
+                    }
+                    map.insert(key, PhysKeyCode::$val);
                 )*
             }
         }
