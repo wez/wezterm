@@ -1,7 +1,8 @@
 use crate::selection::{Selection, SelectionCoordinate, SelectionMode, SelectionRange};
 use ::window::WindowOps;
 use mux::pane::{Pane, PaneId};
-use std::{cell::RefMut, rc::Rc};
+use std::cell::RefMut;
+use std::rc::Rc;
 use wezterm_term::StableRowIndex;
 
 impl super::TermWindow {
