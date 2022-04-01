@@ -12,7 +12,7 @@ use wezterm_term::{SemanticZone, StableRowIndex};
 pub struct Selection {
     /// Remembers the starting coordinate of the selection prior to
     /// dragging.
-    pub start: Option<SelectionCoordinate>,
+    pub origin: Option<SelectionCoordinate>,
     /// Holds the not-normalized selection range.
     pub range: Option<SelectionRange>,
     /// When the selection was made wrt. the pane content
@@ -25,12 +25,12 @@ impl Selection {
     #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.range = None;
-        self.start = None;
+        self.origin = None;
     }
 
-    pub fn begin(&mut self, start: SelectionCoordinate) {
+    pub fn begin(&mut self, origin: SelectionCoordinate) {
         self.range = None;
-        self.start = Some(start);
+        self.origin = Some(origin);
     }
 
     #[allow(dead_code)]
