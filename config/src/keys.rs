@@ -20,28 +20,16 @@ impl_lua_conversion!(KeyNoAction);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {
-    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
-    pub key: KeyCode,
-    #[serde(
-        deserialize_with = "de_modifiers",
-        serialize_with = "ser_modifiers",
-        default
-    )]
-    pub mods: Modifiers,
+    #[serde(flatten)]
+    pub key: KeyNoAction,
     pub action: KeyAssignment,
 }
 impl_lua_conversion!(Key);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LeaderKey {
-    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
-    pub key: KeyCode,
-    #[serde(
-        deserialize_with = "de_modifiers",
-        serialize_with = "ser_modifiers",
-        default
-    )]
-    pub mods: Modifiers,
+    #[serde(flatten)]
+    pub key: KeyNoAction,
     #[serde(default = "default_leader_timeout")]
     pub timeout_milliseconds: u64,
 }

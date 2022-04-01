@@ -880,7 +880,7 @@ impl InputMap {
 
     pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
         if let Some(leader) = self.leader.as_ref() {
-            if leader.key == *key && leader.mods == mods {
+            if leader.key.key == *key && leader.key.mods == mods {
                 return Some(std::time::Duration::from_millis(
                     leader.timeout_milliseconds,
                 ));
