@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `CloseCurrentPane{confirm=true}` artifacts when used with the multiplexer. [#783](https://github.com/wez/wezterm/issues/783)
 * Scrollbar thumb could jump around/move out of bounds. Thanks to [@davidrios](https://github.com/davidrios)! [#1525](https://github.com/wez/wezterm/issues/1525)
 * OSC 52 could stop working for tabs/panes spawned into the GUI via the CLI. [#1790](https://github.com/wez/wezterm/issues/1790)
+* Workaround for fonts with broken horizontal advance metrics [#1787](https://github.com/wez/wezterm/issues/1787)
 
 ### 20220319-142410-0fcdea07
 
