@@ -369,13 +369,70 @@ impl InputMap {
             )
         });
 
+        fn us_layout_shift(s: &str) -> String {
+            match s {
+                "0" => ")".to_string(),
+                "5" => "%".to_string(),
+                "[" => "{".to_string(),
+                "]" => "}".to_string(),
+                "=" => "+".to_string(),
+                "-" => "_".to_string(),
+                "'" => "\"".to_string(),
+                s if s.len() == 1 => s.to_ascii_uppercase(),
+                s => s.to_string(),
+            }
+        }
+        let ctrl_shift = Modifiers::CTRL | Modifiers::SHIFT;
+
         macro_rules! k {
             ($([$mod:expr, $code:literal, $action:expr]),* $(,)?) => {
                 $(
-                let key = crate::DeferredKeyCode::try_from($code)
+                    let mut items = vec![];
+
+                    // Blech. Depending on the OS, a shifted key combination
+                    // such as CTRL-SHIFT-L may present as either:
+                    // CTRL+SHIFT + mapped lowercase l
+                    // CTRL+SHIFT + mapped uppercase l
+                    // CTRL       + mapped uppercase l
+                    //
+                    // This logic synthesizes the different combinations so
+                    // that it isn't such a headache to maintain the mapping
+                    // and prevents missing cases.
+                    //
+                    // Note that the mapped form of these things assumes
+                    // US layout for some of the special shifted/punctuation cases.
+                    // It's not perfect.
+                    //
+                    // The synthesis here requires that the defaults in
+                    // the keymap below use the lowercase form of single characters!
+
+                    let key = crate::DeferredKeyCode::try_from($code)
                             .unwrap()
                             .resolve(config.key_map_preference).clone();
-                keys.entry((key, $mod)).or_insert($action);
+
+                    let ukey = crate::DeferredKeyCode::try_from(us_layout_shift($code))
+                            .unwrap()
+                            .resolve(config.key_map_preference).clone();
+
+                    items.push((key.clone(), $mod));
+
+                    if $mod == Modifiers::SUPER {
+                        // We want each SUPER/CMD version of the keys to also have
+                        // CTRL+SHIFT version(s) for environments where SUPER/CMD
+                        // is reserved for the window manager.
+                        // This bit synthesizes those.
+                        items.push((key.clone(), ctrl_shift));
+                        items.push((ukey.clone(), ctrl_shift));
+                        items.push((ukey.clone(), Modifiers::CTRL));
+                    } else if $mod.contains(Modifiers::SHIFT) {
+                        items.push((ukey.clone(), $mod));
+                        items.push((ukey.clone(), $mod - Modifiers::SHIFT));
+                    }
+
+                    for key in items {
+                        keys.entry(key).or_insert($action.clone());
+                    }
+
                 )*
             };
         }
@@ -388,8 +445,6 @@ impl InputMap {
         }
 
         use KeyAssignment::*;
-
-        let ctrl_shift = Modifiers::CTRL | Modifiers::SHIFT;
 
         if !config.disable_default_key_bindings {
             // Apply the default bindings; if the user has already mapped
@@ -416,10 +471,6 @@ impl InputMap {
                     "v",
                     PasteFrom(ClipboardPasteSource::Clipboard)
                 ],
-                [ctrl_shift, "C", CopyTo(ClipboardCopyDestination::Clipboard)],
-                [ctrl_shift, "c", CopyTo(ClipboardCopyDestination::Clipboard)],
-                [ctrl_shift, "V", PasteFrom(ClipboardPasteSource::Clipboard)],
-                [ctrl_shift, "v", PasteFrom(ClipboardPasteSource::Clipboard)],
                 [
                     Modifiers::NONE,
                     "Copy",
@@ -434,22 +485,8 @@ impl InputMap {
                 [Modifiers::ALT, "Return", ToggleFullScreen],
                 [Modifiers::SUPER, "m", Hide],
                 [Modifiers::SUPER, "n", SpawnWindow],
-                [ctrl_shift, "M", Hide],
-                [ctrl_shift, "m", Hide],
-                [ctrl_shift, "N", SpawnWindow],
-                [ctrl_shift, "n", SpawnWindow],
                 [
                     Modifiers::SUPER,
-                    "k",
-                    ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
-                ],
-                [
-                    ctrl_shift,
-                    "K",
-                    ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
-                ],
-                [
-                    ctrl_shift,
                     "k",
                     ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
                 ],
@@ -458,17 +495,6 @@ impl InputMap {
                     "f",
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
-                [
-                    ctrl_shift,
-                    "F",
-                    Search(Pattern::CaseSensitiveString("".into()))
-                ],
-                [
-                    ctrl_shift,
-                    "f",
-                    Search(Pattern::CaseSensitiveString("".into()))
-                ],
-                [ctrl_shift, "L", ShowDebugOverlay],
                 [ctrl_shift, "l", ShowDebugOverlay],
                 [ctrl_shift, "Space", QuickSelect],
                 // Font size manipulation
@@ -479,26 +505,12 @@ impl InputMap {
                 [Modifiers::CTRL, "-", DecreaseFontSize],
                 [Modifiers::CTRL, "0", ResetFontSize],
                 [Modifiers::CTRL, "=", IncreaseFontSize],
-                // Font size, CTRL+SHIFT variant.
-                // Ugh. Combinations of these to account for varying degrees
-                // of shift/mapping normalizing on different systems.
-                [Modifiers::CTRL | Modifiers::SHIFT, "-", DecreaseFontSize],
-                [Modifiers::CTRL | Modifiers::SHIFT, "_", DecreaseFontSize],
-                [Modifiers::CTRL, "_", DecreaseFontSize],
-                [Modifiers::CTRL | Modifiers::SHIFT, "0", ResetFontSize],
-                [Modifiers::CTRL | Modifiers::SHIFT, ")", ResetFontSize],
-                [Modifiers::CTRL, ")", ResetFontSize],
-                [Modifiers::CTRL | Modifiers::SHIFT, "=", IncreaseFontSize],
-                [Modifiers::CTRL | Modifiers::SHIFT, "+", IncreaseFontSize],
-                [Modifiers::CTRL, "+", IncreaseFontSize],
                 // Tab navigation and management
                 [
                     Modifiers::SUPER,
                     "t",
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
-                [ctrl_shift, "t", SpawnTab(SpawnTabDomain::CurrentPaneDomain)],
-                [ctrl_shift, "T", SpawnTab(SpawnTabDomain::CurrentPaneDomain)],
                 [Modifiers::SUPER, "1", ActivateTab(0)],
                 [Modifiers::SUPER, "2", ActivateTab(1)],
                 [Modifiers::SUPER, "3", ActivateTab(2)],
@@ -509,24 +521,9 @@ impl InputMap {
                 [Modifiers::SUPER, "8", ActivateTab(7)],
                 [Modifiers::SUPER, "9", ActivateTab(-1)],
                 [Modifiers::SUPER, "w", CloseCurrentTab { confirm: true }],
-                [ctrl_shift, "1", ActivateTab(0)],
-                [ctrl_shift, "2", ActivateTab(1)],
-                [ctrl_shift, "3", ActivateTab(2)],
-                [ctrl_shift, "4", ActivateTab(3)],
-                [ctrl_shift, "5", ActivateTab(4)],
-                [ctrl_shift, "6", ActivateTab(5)],
-                [ctrl_shift, "7", ActivateTab(6)],
-                [ctrl_shift, "8", ActivateTab(7)],
-                [ctrl_shift, "9", ActivateTab(-1)],
-                [ctrl_shift, "W", CloseCurrentTab { confirm: true }],
                 [
                     Modifiers::SUPER | Modifiers::SHIFT,
                     "[",
-                    ActivateTabRelative(-1)
-                ],
-                [
-                    Modifiers::SUPER | Modifiers::SHIFT,
-                    "{",
                     ActivateTabRelative(-1)
                 ],
                 [ctrl_shift, "Tab", ActivateTabRelative(-1)],
@@ -536,15 +533,9 @@ impl InputMap {
                     "]",
                     ActivateTabRelative(1)
                 ],
-                [
-                    Modifiers::SUPER | Modifiers::SHIFT,
-                    "}",
-                    ActivateTabRelative(1)
-                ],
                 [Modifiers::CTRL, "Tab", ActivateTabRelative(1)],
                 [Modifiers::CTRL, "PageDown", ActivateTabRelative(1)],
                 [Modifiers::SUPER, "r", ReloadConfiguration],
-                [ctrl_shift, "R", ReloadConfiguration],
                 [ctrl_shift, "PageUp", MoveTabRelative(-1)],
                 [ctrl_shift, "PageDown", MoveTabRelative(1)],
                 [
@@ -557,7 +548,7 @@ impl InputMap {
                     "PageDown",
                     ScrollByPage(NotNan::new(1.0).unwrap())
                 ],
-                [ctrl_shift, "X", ActivateCopyMode],
+                [ctrl_shift, "x", ActivateCopyMode],
                 [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     "'",
@@ -567,24 +558,8 @@ impl InputMap {
                     })
                 ],
                 [
-                    Modifiers::CTRL | Modifiers::ALT,
-                    "\"",
-                    SplitVertical(SpawnCommand {
-                        domain: SpawnTabDomain::CurrentPaneDomain,
-                        ..Default::default()
-                    })
-                ],
-                [
                     Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     "5",
-                    SplitHorizontal(SpawnCommand {
-                        domain: SpawnTabDomain::CurrentPaneDomain,
-                        ..Default::default()
-                    })
-                ],
-                [
-                    Modifiers::CTRL | Modifiers::ALT,
-                    "%",
                     SplitHorizontal(SpawnCommand {
                         domain: SpawnTabDomain::CurrentPaneDomain,
                         ..Default::default()
@@ -630,7 +605,7 @@ impl InputMap {
                     "DownArrow",
                     ActivatePaneDirection(PaneDirection::Down)
                 ],
-                [ctrl_shift, "Z", TogglePaneZoomState],
+                [ctrl_shift, "z", TogglePaneZoomState],
             );
 
             #[cfg(target_os = "macos")]
