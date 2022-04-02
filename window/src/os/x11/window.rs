@@ -855,6 +855,14 @@ impl XWindow {
         };
         let width = geometry.width.evaluate_as_pixels(width_context) as usize;
         let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+        let x = geometry
+            .x
+            .map(|x| x.evaluate_as_pixels(width_context) as i16)
+            .unwrap_or(0);
+        let y = geometry
+            .y
+            .map(|y| y.evaluate_as_pixels(height_context) as i16)
+            .unwrap_or(0);
 
         let window_id;
         let window = {
@@ -883,8 +891,8 @@ impl XWindow {
                 window_id,
                 screen.root(),
                 // x, y
-                0,
-                0,
+                x,
+                y,
                 // width, height
                 width.try_into()?,
                 height.try_into()?,
