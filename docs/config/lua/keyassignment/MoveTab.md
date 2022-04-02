@@ -13,7 +13,7 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods="CTRL|ALT",
-    action=wezterm.action{Move=i-1},
+    action=wezterm.action{MoveTab=i-1},
   })
 end
 
