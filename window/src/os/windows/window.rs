@@ -328,8 +328,8 @@ impl Window {
         config: ConfigHandle,
         class_name: &str,
         name: &str,
-        x: i16,
-        y: i16,
+        x: i32,
+        y: i32,
         width: usize,
         height: usize,
         lparam: *const RefCell<WindowInner>,
@@ -473,11 +473,11 @@ impl Window {
         let height = geometry.height.evaluate_as_pixels(height_context) as usize;
         let x = geometry
             .x
-            .map(|x| x.evaluate_as_pixels(width_context) as i16)
+            .map(|x| x.evaluate_as_pixels(width_context) as i32)
             .unwrap_or(CW_USEDEFAULT);
         let y = geometry
             .y
-            .map(|y| y.evaluate_as_pixels(height_context) as i16)
+            .map(|y| y.evaluate_as_pixels(height_context) as i32)
             .unwrap_or(CW_USEDEFAULT);
 
         let hwnd = match Self::create_window(config, class_name, name, x, y, width, height, raw) {
