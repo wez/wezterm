@@ -47,6 +47,7 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::SequenceNo;
 use wezterm_font::FontConfiguration;
+use wezterm_gui_subcommands::GuiPosition;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
@@ -67,9 +68,14 @@ const ATLAS_SIZE: usize = 128;
 
 lazy_static::lazy_static! {
     static ref WINDOW_CLASS: Mutex<String> = Mutex::new(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS.to_owned());
+    static ref POSITION: Mutex<Option<GuiPosition>> = Mutex::new(None);
 }
 
 pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");
+
+pub fn set_window_position(pos: GuiPosition) {
+    POSITION.lock().unwrap().replace(pos);
+}
 
 pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
@@ -779,12 +785,21 @@ impl TermWindow {
         let tw = Rc::new(RefCell::new(myself));
         let tw_event = Rc::clone(&tw);
 
+        let (x, y, origin) = POSITION
+            .lock()
+            .unwrap()
+            .take()
+            .map(|pos| (Some(pos.x), Some(pos.y), pos.origin))
+            .unwrap_or((None, None, Default::default()));
+
         let geometry = RequestedWindowGeometry {
             width: Dimension::Pixels(dimensions.pixel_width as f32),
             height: Dimension::Pixels(dimensions.pixel_height as f32),
-            x: None,
-            y: None,
+            x,
+            y,
+            origin,
         };
+        log::trace!("{:?}", geometry);
 
         let window = Window::new_window(
             &get_window_class(),

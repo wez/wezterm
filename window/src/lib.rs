@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
-use config::{ConfigHandle, Dimension};
+use config::{ConfigHandle, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
@@ -300,11 +300,13 @@ pub trait WindowOps {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct RequestedWindowGeometry {
     pub width: Dimension,
     pub height: Dimension,
     pub x: Option<Dimension>,
     pub y: Option<Dimension>,
-    // TODO: add a way to optional identify a screen here
+    /// Specifies basis for evaluating x/y coords.
+    /// Also applies to width/height when computing % based dimensions
+    pub origin: GeometryOrigin,
 }

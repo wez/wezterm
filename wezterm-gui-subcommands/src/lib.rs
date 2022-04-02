@@ -1,5 +1,6 @@
-use config::SshParameters;
+use config::{Dimension, GeometryOrigin, SshParameters};
 use std::ffi::OsString;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
@@ -19,6 +20,125 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
         Ok((left.to_string(), right.to_string()))
     } else {
         Err(format!("Expected name=value, but got {}", arg))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GuiPosition {
+    pub x: Dimension,
+    pub y: Dimension,
+    pub origin: GeometryOrigin,
+}
+
+impl GuiPosition {
+    fn parse_dim(s: &str) -> anyhow::Result<Dimension> {
+        if let Some(v) = s.strip_suffix("px") {
+            Ok(Dimension::Pixels(v.parse()?))
+        } else if let Some(v) = s.strip_suffix("%") {
+            Ok(Dimension::Percent(v.parse()?))
+        } else {
+            Ok(Dimension::Pixels(s.parse()?))
+        }
+    }
+
+    fn parse_x_y(s: &str) -> anyhow::Result<(Dimension, Dimension)> {
+        let fields: Vec<_> = s.split(',').collect();
+        if fields.len() != 2 {
+            anyhow::bail!("expected x,y coordinates");
+        }
+        Ok((Self::parse_dim(fields[0])?, Self::parse_dim(fields[1])?))
+    }
+
+    fn parse_origin(s: &str) -> GeometryOrigin {
+        match s {
+            "screen" => GeometryOrigin::ScreenCoordinateSystem,
+            "main" => GeometryOrigin::MainScreen,
+            "active" => GeometryOrigin::ActiveScreen,
+            name => GeometryOrigin::Named(name.to_string()),
+        }
+    }
+}
+
+impl FromStr for GuiPosition {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> anyhow::Result<GuiPosition> {
+        let fields: Vec<_> = s.split(':').collect();
+        if fields.len() == 2 {
+            let origin = Self::parse_origin(fields[0]);
+            let (x, y) = Self::parse_x_y(fields[1])?;
+            return Ok(GuiPosition { x, y, origin });
+        }
+        if fields.len() == 1 {
+            let (x, y) = Self::parse_x_y(fields[0])?;
+            return Ok(GuiPosition {
+                x,
+                y,
+                origin: GeometryOrigin::ScreenCoordinateSystem,
+            });
+        }
+        anyhow::bail!("invalid position spec {}", s);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn xy() {
+        assert_eq!(
+            GuiPosition::from_str("10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ScreenCoordinateSystem
+            }
+        );
+
+        assert_eq!(
+            GuiPosition::from_str("screen:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ScreenCoordinateSystem
+            }
+        );
+    }
+
+    #[test]
+    fn named() {
+        assert_eq!(
+            GuiPosition::from_str("hdmi-1:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::Named("hdmi-1".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn active() {
+        assert_eq!(
+            GuiPosition::from_str("active:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ActiveScreen
+            }
+        );
+    }
+
+    #[test]
+    fn main() {
+        assert_eq!(
+            GuiPosition::from_str("main:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::MainScreen
+            }
+        );
     }
 }
 
@@ -55,6 +175,16 @@ pub struct StartCommand {
     /// The default is "default".
     #[structopt(long = "workspace")]
     pub workspace: Option<String>,
+
+    /// Override the position for the initial window launched by this process.
+    ///
+    /// --position 10,20          to set x=10, y=20 in screen coordinates
+    /// --position screen:10,20   to set x=10, y=20 in screen coordinates
+    /// --position main:10,20     to set x=10, y=20 relative to the main monitor
+    /// --position active:10,20   to set x=10, y=20 relative to the active monitor
+    /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    #[structopt(long, verbatim_doc_comment)]
+    pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
@@ -105,6 +235,15 @@ pub struct SshCommand {
     /// authentication dialogs.
     #[structopt(long = "class")]
     pub class: Option<String>,
+    /// Override the position for the initial window launched by this process.
+    ///
+    /// --position 10,20          to set x=10, y=20 in screen coordinates
+    /// --position screen:10,20   to set x=10, y=20 in screen coordinates
+    /// --position main:10,20     to set x=10, y=20 relative to the main monitor
+    /// --position active:10,20   to set x=10, y=20 relative to the active monitor
+    /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    #[structopt(long, verbatim_doc_comment)]
+    pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
@@ -128,6 +267,15 @@ pub struct SerialCommand {
     /// authentication dialogs.
     #[structopt(long = "class")]
     pub class: Option<String>,
+    /// Override the position for the initial window launched by this process.
+    ///
+    /// --position 10,20          to set x=10, y=20 in screen coordinates
+    /// --position screen:10,20   to set x=10, y=20 in screen coordinates
+    /// --position main:10,20     to set x=10, y=20 relative to the main monitor
+    /// --position active:10,20   to set x=10, y=20 relative to the active monitor
+    /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    #[structopt(long, verbatim_doc_comment)]
+    pub position: Option<GuiPosition>,
 
     /// Specifies the serial device name.
     /// On Windows systems this can be a name like `COM0`.
@@ -156,6 +304,15 @@ pub struct ConnectCommand {
     /// The default is "default".
     #[structopt(long = "workspace")]
     pub workspace: Option<String>,
+    /// Override the position for the initial window launched by this process.
+    ///
+    /// --position 10,20          to set x=10, y=20 in screen coordinates
+    /// --position screen:10,20   to set x=10, y=20 in screen coordinates
+    /// --position main:10,20     to set x=10, y=20 relative to the main monitor
+    /// --position active:10,20   to set x=10, y=20 relative to the active monitor
+    /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    #[structopt(long, verbatim_doc_comment)]
+    pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
