@@ -383,7 +383,7 @@ impl Window {
     pub async fn new_window<F>(
         _class_name: &str,
         name: &str,
-        geometry: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -397,14 +397,13 @@ impl Window {
         };
 
         // TODO: populate these dimension contexts based on NSScreen info
-        let dpi = conn.default_dpi();
         let width_context = DimensionContext {
-            dpi: dpi as f32,
+            dpi: crate::DEFAULT_DPI as f32,
             pixel_max: 65535.,
             pixel_cell: 65535.,
         };
         let height_context = DimensionContext {
-            dpi: dpi as f32,
+            dpi: crate::DEFAULT_DPI as f32,
             pixel_max: 65535.,
             pixel_cell: 65535.,
         };

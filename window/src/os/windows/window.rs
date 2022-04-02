@@ -457,14 +457,13 @@ impl Window {
         let raw = rc_to_pointer(&inner);
 
         // TODO: populate these dimension contexts based on monitor info
-        let dpi = conn.default_dpi();
         let width_context = DimensionContext {
-            dpi: dpi as f32,
+            dpi: crate::DEFAULT_DPI as f32,
             pixel_max: 65535.,
             pixel_cell: 65535.,
         };
         let height_context = DimensionContext {
-            dpi: dpi as f32,
+            dpi: crate::DEFAULT_DPI as f32,
             pixel_max: 65535.,
             pixel_cell: 65535.,
         };
