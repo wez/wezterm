@@ -9,7 +9,7 @@ use crate::{
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext, GeometryOrigin};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::windows::WindowsHandle;
@@ -323,15 +323,174 @@ fn decorations_to_style(decorations: WindowDecorations) -> u32 {
     }
 }
 
+#[derive(Debug)]
+struct ResolvedGeometry {
+    x: i32,
+    y: i32,
+    width: usize,
+    height: usize,
+}
+
+fn resolve_geom(geometry: RequestedWindowGeometry) -> ResolvedGeometry {
+    let mi = unsafe {
+        match geometry.origin {
+            GeometryOrigin::ScreenCoordinateSystem => {
+                // Compute the overall bounds of the virtual display
+                let mut mi: MONITORINFOEXW = std::mem::zeroed();
+
+                unsafe extern "system" fn callback(
+                    _mon: HMONITOR,
+                    _hdc: HDC,
+                    rect: *mut RECT,
+                    data: LPARAM,
+                ) -> i32 {
+                    let mi: &mut MONITORINFOEXW = &mut *(data as *mut MONITORINFOEXW);
+                    let rect: RECT = *rect;
+                    mi.rcMonitor.left = mi.rcMonitor.left.min(rect.left);
+                    mi.rcMonitor.top = mi.rcMonitor.top.min(rect.top);
+                    mi.rcMonitor.right = mi.rcMonitor.right.max(rect.right);
+                    mi.rcMonitor.bottom = mi.rcMonitor.bottom.max(rect.bottom);
+                    winapi::shared::ntdef::TRUE.into()
+                }
+                EnumDisplayMonitors(
+                    std::ptr::null_mut(),
+                    std::ptr::null(),
+                    Some(callback),
+                    &mut mi as *mut _ as LPARAM,
+                );
+
+                mi
+            }
+            GeometryOrigin::MainScreen => {
+                // The main screen is known as the primary monitor on Windows
+                let mut mi: MONITORINFOEXW = std::mem::zeroed();
+                mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+                let mon = MonitorFromWindow(std::ptr::null_mut(), MONITOR_DEFAULTTOPRIMARY);
+                GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+                mi
+            }
+            GeometryOrigin::ActiveScreen => {
+                // Use the monitor of the focused window as the active screen
+                let mut mi: MONITORINFOEXW = std::mem::zeroed();
+                mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+                let mon = MonitorFromWindow(GetFocus(), MONITOR_DEFAULTTONEAREST);
+                GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+                mi
+            }
+            GeometryOrigin::Named(name) => {
+                // Iterate the monitors to find a match.
+                // The device names are things like "\\.\DISPLAY1" which isn't super
+                // user friendly.  There may be an alternative API to get a better name,
+                // but for now this is good enough.
+                struct Info {
+                    primary: Option<MONITORINFOEXW>,
+                    named: Option<MONITORINFOEXW>,
+                    all_names: Vec<String>,
+                    wanted_name: String,
+                }
+
+                unsafe extern "system" fn callback(
+                    mon: HMONITOR,
+                    _hdc: HDC,
+                    _rect: *mut RECT,
+                    data: LPARAM,
+                ) -> i32 {
+                    let info: &mut Info = &mut *(data as *mut Info);
+                    let mut mi: MONITORINFOEXW = std::mem::zeroed();
+                    mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+                    GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+                    if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
+                        info.primary.replace(mi.clone());
+                    }
+
+                    // "\\.\DISPLAY1" -> "DISPLAY1"
+                    let len = mi.szDevice.iter().position(|&c| c == 0).unwrap_or(0);
+                    let monitor_name = OsString::from_wide(&mi.szDevice[0..len])
+                        .to_string_lossy()
+                        .to_string();
+                    let monitor_name = if let Some(name) = monitor_name.strip_prefix("\\\\.\\") {
+                        name.to_string()
+                    } else {
+                        monitor_name
+                    };
+                    if info.wanted_name == monitor_name {
+                        info.named.replace(mi.clone());
+                    }
+                    info.all_names.push(monitor_name);
+
+                    winapi::shared::ntdef::TRUE.into()
+                }
+
+                let mut info = Info {
+                    primary: None,
+                    named: None,
+                    wanted_name: name,
+                    all_names: vec![],
+                };
+                EnumDisplayMonitors(
+                    std::ptr::null_mut(),
+                    std::ptr::null(),
+                    Some(callback),
+                    &mut info as *mut _ as LPARAM,
+                );
+
+                log::trace!("available displays: {:?}", info.all_names);
+                info.named
+                    .or_else(|| {
+                        log::error!(
+                            "Requested display {} was not found; available displays are: {:?}. \
+                             Using primary display instead",
+                            info.wanted_name,
+                            info.all_names
+                        );
+                        info.primary
+                    })
+                    .expect("to find named monitor or primary")
+            }
+        }
+    };
+
+    let mon_width = (mi.rcMonitor.right - mi.rcMonitor.left) as f32;
+    let mon_height = (mi.rcMonitor.bottom - mi.rcMonitor.top) as f32;
+
+    let width_context = DimensionContext {
+        dpi: crate::DEFAULT_DPI as f32,
+        pixel_max: mon_width,
+        pixel_cell: mon_width,
+    };
+    let height_context = DimensionContext {
+        dpi: crate::DEFAULT_DPI as f32,
+        pixel_max: mon_height,
+        pixel_cell: mon_height,
+    };
+
+    let x_origin = mi.rcMonitor.left;
+    let y_origin = mi.rcMonitor.top;
+
+    let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+    let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+    let x = geometry
+        .x
+        .map(|x| x.evaluate_as_pixels(width_context) as i32 + x_origin)
+        .unwrap_or(CW_USEDEFAULT);
+    let y = geometry
+        .y
+        .map(|y| y.evaluate_as_pixels(height_context) as i32 + y_origin)
+        .unwrap_or(CW_USEDEFAULT);
+    ResolvedGeometry {
+        x,
+        y,
+        width,
+        height,
+    }
+}
+
 impl Window {
     fn create_window(
         config: ConfigHandle,
         class_name: &str,
         name: &str,
-        x: i32,
-        y: i32,
-        width: usize,
-        height: usize,
+        geometry: ResolvedGeometry,
         lparam: *const RefCell<WindowInner>,
     ) -> anyhow::Result<HWND> {
         let class_name = wide_string(class_name);
@@ -363,10 +522,11 @@ impl Window {
 
         let decorations = config.window_decorations;
         let style = decorations_to_style(decorations);
-        let (width, height) = adjust_client_to_window_dimensions(style, width, height);
+        let (width, height) =
+            adjust_client_to_window_dimensions(style, geometry.width, geometry.height);
 
         let (x, y) = if (style & WS_POPUP) == 0 {
-            (x, y)
+            (geometry.x, geometry.y)
         } else {
             // WS_POPUP windows need to specify the initial position.
             // We pick the middle of the primary monitor
@@ -458,29 +618,9 @@ impl Window {
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
         let raw = rc_to_pointer(&inner);
 
-        // TODO: populate these dimension contexts based on monitor info
-        let width_context = DimensionContext {
-            dpi: crate::DEFAULT_DPI as f32,
-            pixel_max: 65535.,
-            pixel_cell: 65535.,
-        };
-        let height_context = DimensionContext {
-            dpi: crate::DEFAULT_DPI as f32,
-            pixel_max: 65535.,
-            pixel_cell: 65535.,
-        };
-        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
-        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
-        let x = geometry
-            .x
-            .map(|x| x.evaluate_as_pixels(width_context) as i32)
-            .unwrap_or(CW_USEDEFAULT);
-        let y = geometry
-            .y
-            .map(|y| y.evaluate_as_pixels(height_context) as i32)
-            .unwrap_or(CW_USEDEFAULT);
+        let geometry = resolve_geom(geometry);
 
-        let hwnd = match Self::create_window(config, class_name, name, x, y, width, height, raw) {
+        let hwnd = match Self::create_window(config, class_name, name, geometry, raw) {
             Ok(hwnd) => HWindow(hwnd),
             Err(err) => {
                 // Ensure that we drop the extra ref to raw before we return
