@@ -7,8 +7,8 @@ use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
     Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    ScreenPoint, Size, ULength, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    RequestedWindowGeometry, ScreenPoint, Size, ULength, WindowDecorations, WindowEvent,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -22,7 +22,7 @@ use cocoa::base::*;
 use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSInteger, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger,
 };
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext};
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
@@ -383,8 +383,7 @@ impl Window {
     pub async fn new_window<F>(
         _class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: usize,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -396,6 +395,21 @@ impl Window {
             Some(c) => c.clone(),
             None => config::configuration(),
         };
+
+        // TODO: populate these dimension contexts based on NSScreen info
+        let dpi = conn.default_dpi();
+        let width_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let height_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
 
         unsafe {
             let style_mask = decoration_to_mask(config.window_decorations);

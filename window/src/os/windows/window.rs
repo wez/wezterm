@@ -4,12 +4,12 @@ use crate::parameters::{self, Parameters};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    ScreenPoint, ULength, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    RequestedWindowGeometry, ScreenPoint, ULength, WindowDecorations, WindowEvent,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::windows::WindowsHandle;
@@ -420,8 +420,7 @@ impl Window {
     pub async fn new_window<F>(
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -456,6 +455,21 @@ impl Window {
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
         let raw = rc_to_pointer(&inner);
+
+        // TODO: populate these dimension contexts based on monitor info
+        let dpi = conn.default_dpi();
+        let width_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let height_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
 
         let hwnd = match Self::create_window(config, class_name, name, width, height, raw) {
             Ok(hwnd) => HWindow(hwnd),

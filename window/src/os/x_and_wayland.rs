@@ -7,7 +7,10 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Appearance, Clipboard, MouseCursor, Rect, ScreenPoint, WindowEvent, WindowOps};
+use crate::{
+    Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ScreenPoint, WindowEvent,
+    WindowOps,
+};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
@@ -50,8 +53,7 @@ impl Connection {
         &self,
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -64,8 +66,7 @@ impl Connection {
                 XWindow::new_window(
                     class_name,
                     name,
-                    width,
-                    height,
+                    geometry,
                     config,
                     font_config,
                     event_handler,
@@ -77,8 +78,7 @@ impl Connection {
                 WaylandWindow::new_window(
                     class_name,
                     name,
-                    width,
-                    height,
+                    geometry,
                     config,
                     font_config,
                     event_handler,
@@ -151,8 +151,7 @@ impl Window {
     pub async fn new_window<F>(
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -165,8 +164,7 @@ impl Window {
             .new_window(
                 class_name,
                 name,
-                width,
-                height,
+                geometry,
                 config,
                 font_config,
                 event_handler,

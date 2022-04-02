@@ -4,12 +4,12 @@ use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventSender, WindowOps, WindowState,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ScreenPoint,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext};
 use promise::{Future, Promise};
 use raw_window_handle::unix::XcbHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
@@ -819,8 +819,7 @@ impl XWindow {
     pub async fn new_window<F>(
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -841,6 +840,21 @@ impl XWindow {
             .x11();
 
         let mut events = WindowEventSender::new(event_handler);
+
+        // TODO: populate these dimension contexts based on xrandr info
+        let dpi = conn.default_dpi();
+        let width_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let height_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
 
         let window_id;
         let window = {

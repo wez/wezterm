@@ -24,8 +24,8 @@ use config::keyassignment::{
     SpawnCommand,
 };
 use config::{
-    configuration, AudibleBell, ConfigHandle, DimensionContext, GradientOrientation, TermConfig,
-    WindowCloseConfirmation,
+    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
+    TermConfig, WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId};
@@ -779,11 +779,17 @@ impl TermWindow {
         let tw = Rc::new(RefCell::new(myself));
         let tw_event = Rc::clone(&tw);
 
+        let geometry = RequestedWindowGeometry {
+            width: Dimension::Pixels(dimensions.pixel_width as f32),
+            height: Dimension::Pixels(dimensions.pixel_height as f32),
+            x: None,
+            y: None,
+        };
+
         let window = Window::new_window(
             &get_window_class(),
             "wezterm",
-            dimensions.pixel_width,
-            dimensions.pixel_height,
+            geometry,
             Some(&config),
             Rc::clone(&fontconfig),
             move |event, window| {

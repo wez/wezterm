@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
-use config::ConfigHandle;
+use config::{ConfigHandle, Dimension};
 use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
@@ -298,4 +298,13 @@ pub trait WindowOps {
     ) -> anyhow::Result<Option<os::parameters::Parameters>> {
         Ok(None)
     }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RequestedWindowGeometry {
+    pub width: Dimension,
+    pub height: Dimension,
+    pub x: Option<Dimension>,
+    pub y: Option<Dimension>,
+    // TODO: add a way to optional identify a screen here
 }
