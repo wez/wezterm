@@ -328,6 +328,8 @@ impl Window {
         config: ConfigHandle,
         class_name: &str,
         name: &str,
+        x: i16,
+        y: i16,
         width: usize,
         height: usize,
         lparam: *const RefCell<WindowInner>,
@@ -364,7 +366,7 @@ impl Window {
         let (width, height) = adjust_client_to_window_dimensions(style, width, height);
 
         let (x, y) = if (style & WS_POPUP) == 0 {
-            (CW_USEDEFAULT, CW_USEDEFAULT)
+            (x, y)
         } else {
             // WS_POPUP windows need to specify the initial position.
             // We pick the middle of the primary monitor
@@ -469,8 +471,16 @@ impl Window {
         };
         let width = geometry.width.evaluate_as_pixels(width_context) as usize;
         let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+        let x = geometry
+            .x
+            .map(|x| x.evaluate_as_pixels(width_context) as i16)
+            .unwrap_or(CW_USEDEFAULT);
+        let y = geometry
+            .y
+            .map(|y| y.evaluate_as_pixels(height_context) as i16)
+            .unwrap_or(CW_USEDEFAULT);
 
-        let hwnd = match Self::create_window(config, class_name, name, width, height, raw) {
+        let hwnd = match Self::create_window(config, class_name, name, x, y, width, height, raw) {
             Ok(hwnd) => HWindow(hwnd),
             Err(err) => {
                 // Ensure that we drop the extra ref to raw before we return
