@@ -176,7 +176,7 @@ The default key bindings are:
 | `CTRL+SHIFT` | `RightArrow`    | `ActivatePaneDirection="Right"` |
 | `CTRL+SHIFT` | `UpArrow`    | `ActivatePaneDirection="Up"` |
 | `CTRL+SHIFT` | `DownArrow`    | `ActivatePaneDirection="Down"` |
-| `CTRL` | `Z`    | `TogglePaneZoomState` |
+| `CTRL+SHIFT` | `Z`    | `TogglePaneZoomState` |
 
 If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
