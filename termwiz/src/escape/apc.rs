@@ -246,12 +246,132 @@ impl KittyImageData {
 
                 Ok(data)
             }
-            Self::SharedMem { .. } => {
-                log::error!("kitty image protocol via shared memory is not supported");
-                Err(std::io::ErrorKind::Unsupported.into())
-            }
+            Self::SharedMem {
+                name,
+                data_offset,
+                data_size,
+            } => read_shared_memory_data(&name, data_offset, data_size),
         }
     }
+}
+
+#[cfg(unix)]
+fn read_shared_memory_data(
+    name: &str,
+    data_offset: Option<u32>,
+    data_size: Option<u32>,
+) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
+    use nix::sys::mman::{shm_open, shm_unlink};
+    use std::fs::File;
+    use std::os::unix::io::FromRawFd;
+
+    let raw_fd = shm_open(
+        name,
+        nix::fcntl::OFlag::O_RDONLY,
+        nix::sys::stat::Mode::empty(),
+    );
+    if raw_fd.is_err() {
+        log::warn!("Unable to open shared memory object {}", name);
+        return Err(std::io::Error::last_os_error());
+    };
+    let mut f = unsafe { File::from_raw_fd(raw_fd.unwrap()) };
+    if let Some(offset) = data_offset {
+        f.seek(std::io::SeekFrom::Start(offset.into()))?;
+    }
+    let data = if let Some(len) = data_size {
+        let mut res = vec![0u8; len as usize];
+        f.read_exact(&mut res)?;
+        res
+    } else {
+        let mut res = vec![];
+        f.read_to_end(&mut res)?;
+        res
+    };
+
+    if let Err(err) = shm_unlink(name) {
+        log::error!(
+            "Unable to unlink kitty image protocol shm file {}: {:#}",
+            name,
+            err
+        );
+    }
+    Ok(data)
+}
+
+#[cfg(windows)]
+fn read_shared_memory_data(
+    name: &str,
+    data_offset: Option<u32>,
+    data_size: Option<u32>,
+) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
+    use winapi::um::handleapi::CloseHandle;
+    use winapi::um::memoryapi::{
+        MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery, FILE_MAP_ALL_ACCESS,
+    };
+    use winapi::um::winnt::MEMORY_BASIC_INFORMATION;
+    /// Convert a rust string to a windows wide string
+    fn wide_string(s: &str) -> Vec<u16> {
+        use std::os::windows::ffi::OsStrExt;
+        std::ffi::OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+    let wide_name = wide_string(&name);
+
+    let handle = unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS, 0, wide_name.as_ptr()) };
+    if handle.is_null() {
+        log::warn!("Unable to open shared memory object {}", name);
+        return Err(std::io::Error::last_os_error());
+    }
+    let buf = unsafe { MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
+    if buf.is_null() {
+        unsafe {
+            CloseHandle(handle);
+        }
+        log::warn!("Unable to map shared memory object {}", name);
+        return Err(std::io::Error::last_os_error());
+    }
+    let mut memory_info = MEMORY_BASIC_INFORMATION::default();
+    let res = unsafe {
+        VirtualQuery(
+            buf,
+            &mut memory_info as *mut MEMORY_BASIC_INFORMATION,
+            std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+        )
+    };
+    if res == 0 {
+        unsafe {
+            UnmapViewOfFile(buf);
+            CloseHandle(handle);
+        }
+        log::warn!("Unable to query size of shared memory object {}", name);
+        return Err(std::io::Error::last_os_error());
+    }
+    let mut size = memory_info.RegionSize;
+    let offset = data_offset.unwrap_or(0) as usize;
+    if offset >= size {
+        unsafe {
+            UnmapViewOfFile(buf);
+            CloseHandle(handle);
+        }
+        return Ok(vec![]);
+    }
+    size = size - offset;
+    if let Some(val) = data_size {
+        if (val as usize) < size {
+            size = val as usize;
+        }
+    }
+    let mut data = vec![0; size];
+    let buf_slice = unsafe { std::slice::from_raw_parts((buf as usize + offset) as _, size) };
+    data.copy_from_slice(buf_slice);
+
+    unsafe {
+        UnmapViewOfFile(buf);
+        CloseHandle(handle);
+    }
+    Ok(data)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
