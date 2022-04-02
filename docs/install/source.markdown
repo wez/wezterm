@@ -53,3 +53,8 @@ cargo build --release --no-default-features
 ```
 
 Building without X11 is not supported.
+
+
+### Building / developing on Windows
+
+Check the [dedicated page](windows-dev.markdown).
