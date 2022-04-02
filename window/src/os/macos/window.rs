@@ -22,7 +22,7 @@ use cocoa::base::*;
 use cocoa::foundation::{
     NSArray, NSAutoreleasePool, NSInteger, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger,
 };
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext, GeometryOrigin};
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
@@ -396,19 +396,7 @@ impl Window {
             None => config::configuration(),
         };
 
-        // TODO: populate these dimension contexts based on NSScreen info
-        let width_context = DimensionContext {
-            dpi: crate::DEFAULT_DPI as f32,
-            pixel_max: 65535.,
-            pixel_cell: 65535.,
-        };
-        let height_context = DimensionContext {
-            dpi: crate::DEFAULT_DPI as f32,
-            pixel_max: 65535.,
-            pixel_cell: 65535.,
-        };
-        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
-        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+        let ResolvedGeometry { width, height, pos } = resolve_geom(geometry);
 
         unsafe {
             let style_mask = decoration_to_mask(config.window_decorations);
@@ -476,14 +464,15 @@ impl Window {
             thread_local! {
                 static LAST_POSITION: RefCell<Option<NSPoint>> = RefCell::new(None);
             }
-            LAST_POSITION.with(|pos| {
-                let next_pos = if let Some(last_pos) = pos.borrow_mut().take() {
-                    window.cascadeTopLeftFromPoint_(last_pos)
+            LAST_POSITION.with(|last_pos| {
+                let pos = pos.or_else(|| last_pos.borrow_mut().take());
+                let next_pos = if let Some(pos) = pos {
+                    window.cascadeTopLeftFromPoint_(pos)
                 } else {
                     window.center();
-                    window.cascadeTopLeftFromPoint_(NSPoint::new(0.0, 0.0))
+                    window.cascadeTopLeftFromPoint_(NSPoint::new(0., 0.))
                 };
-                pos.borrow_mut().replace(next_pos);
+                last_pos.borrow_mut().replace(next_pos);
             });
 
             window.setTitle_(*nsstring(&name));
@@ -2684,4 +2673,112 @@ impl WindowView {
 
         cls.register()
     }
+}
+
+struct ResolvedGeometry {
+    pos: Option<NSPoint>,
+    width: f32,
+    height: f32,
+}
+
+fn screen_backing_frame(screen: *mut Object) -> NSRect {
+    unsafe {
+        let frame = NSScreen::frame(screen);
+        NSScreen::convertRectToBacking_(screen, frame)
+    }
+}
+
+fn resolve_geom(geometry: RequestedWindowGeometry) -> ResolvedGeometry {
+    let rect = match geometry.origin {
+        GeometryOrigin::MainScreen => unsafe {
+            // The screen with the menu bar is always index 0
+            let screens = NSScreen::screens(nil);
+            let screen = screens.objectAtIndex(0);
+            screen_backing_frame(screen)
+        },
+        GeometryOrigin::ActiveScreen => {
+            // The active screen is known as the "main" screen in macOS
+            screen_backing_frame(unsafe { NSScreen::mainScreen(nil) })
+        }
+        GeometryOrigin::Named(name) => unsafe {
+            let screens = NSScreen::screens(nil);
+            let mut matched = screens.objectAtIndex(0);
+            let mut found = false;
+            let mut all_names = vec![];
+            for idx in 0..screens.count() {
+                let screen = screens.objectAtIndex(idx);
+                let screen_name = nsstring_to_str(msg_send!(screen, localizedName));
+                all_names.push(screen_name.clone());
+
+                if screen_name == name {
+                    matched = screen;
+                    found = true;
+                    break;
+                }
+            }
+            log::trace!("Displays: {:?}", all_names);
+            if !found {
+                log::warn!(
+                    "Did not found display named {}, using \
+                     primary instead. Available displays: {:?}",
+                    name,
+                    all_names
+                );
+            }
+            screen_backing_frame(matched)
+        },
+        GeometryOrigin::ScreenCoordinateSystem => unsafe {
+            let mut left: f64 = 0.;
+            let mut top: f64 = 0.;
+            let mut right: f64 = 0.;
+            let mut bottom: f64 = 0.;
+
+            let screens = NSScreen::screens(nil);
+            for idx in 0..screens.count() {
+                let screen = screens.objectAtIndex(idx);
+
+                let frame = screen_backing_frame(screen);
+
+                left = left.min(frame.origin.x);
+                top = top.min(frame.origin.y);
+                right = right.max(frame.origin.x + frame.size.width);
+                bottom = bottom.max(frame.origin.y + frame.size.height);
+            }
+
+            NSRect::new(
+                NSPoint::new(left, top),
+                NSSize::new(right - left, bottom - top),
+            )
+        },
+    };
+
+    let width_context = DimensionContext {
+        dpi: crate::DEFAULT_DPI as f32,
+        pixel_max: rect.size.width as f32,
+        pixel_cell: rect.size.width as f32,
+    };
+    let height_context = DimensionContext {
+        dpi: crate::DEFAULT_DPI as f32,
+        pixel_max: rect.size.height as f32,
+        pixel_cell: rect.size.height as f32,
+    };
+    let width = geometry.width.evaluate_as_pixels(width_context);
+    let height = geometry.height.evaluate_as_pixels(height_context);
+
+    let x_origin = rect.origin.x as f32;
+    let y_origin = rect.origin.y as f32;
+
+    let pos = match (geometry.x, geometry.y) {
+        (Some(x), Some(y)) => {
+            let x = x.evaluate_as_pixels(width_context) + x_origin;
+            let y = y.evaluate_as_pixels(height_context) + y_origin;
+
+            Some(screen_point_to_cartesian(ScreenPoint::new(
+                x as isize, y as isize,
+            )))
+        }
+        _ => None,
+    };
+
+    ResolvedGeometry { pos, width, height }
 }
