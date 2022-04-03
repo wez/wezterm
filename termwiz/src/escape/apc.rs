@@ -311,9 +311,23 @@ use winapi::um::{
 };
 
 #[cfg(windows)]
-struct SharedMemObject {
+struct HandleWrapper {
     handle: HANDLE,
+}
+
+#[cfg(windows)]
+struct SharedMemObject {
+    handle: HandleWrapper,
     buf: *mut u8,
+}
+
+#[cfg(windows)]
+impl Drop for HandleWrapper {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.handle);
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -321,8 +335,8 @@ impl Drop for SharedMemObject {
     fn drop(&mut self) {
         unsafe {
             UnmapViewOfFile(self.buf as _);
-            CloseHandle(self.handle);
         }
+        drop(&mut self.handle);
     }
 }
 
@@ -350,12 +364,11 @@ fn read_shared_memory_data(
             format!("OpenFileMappingW {} failed: {:#}", name, err),
         ));
     }
-    let buf = unsafe { MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
+
+    let handle_wrapper = HandleWrapper { handle };
+    let buf = unsafe { MapViewOfFile(handle_wrapper.handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
     if buf.is_null() {
         let err = std::io::Error::last_os_error();
-        unsafe {
-            CloseHandle(handle);
-        }
         return Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!("MapViewOfFile failed: {:#}", err),
@@ -363,7 +376,7 @@ fn read_shared_memory_data(
     }
 
     let shm = SharedMemObject {
-        handle,
+        handle: handle_wrapper,
         buf: buf as *mut u8,
     };
 
