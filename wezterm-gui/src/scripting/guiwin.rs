@@ -165,6 +165,20 @@ impl UserData for GuiWin {
 
             Ok(result)
         });
+        methods.add_async_method("active_key_table", |_, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(term_window.current_key_table_name()).ok();
+                })));
+            let result = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok(result)
+        });
         methods.add_method("active_workspace", |_, _, _: ()| {
             let mux = Mux::get()
                 .ok_or_else(|| anyhow::anyhow!("must be called on main thread"))

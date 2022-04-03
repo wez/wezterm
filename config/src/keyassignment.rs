@@ -346,6 +346,18 @@ pub enum KeyAssignment {
         spawn: Option<SpawnCommand>,
     },
     SwitchWorkspaceRelative(isize),
+
+    ActivateKeyTable {
+        name: String,
+        #[serde(default)]
+        timeout_milliseconds: Option<u64>,
+        #[serde(default)]
+        replace_current: bool,
+        #[serde(default = "crate::default_true")]
+        one_shot: bool,
+    },
+    PopKeyTable,
+    ClearKeyTableStack,
 }
 impl_lua_conversion!(KeyAssignment);
 
@@ -777,9 +789,22 @@ impl InputMap {
         mods - (Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT)
     }
 
-    pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyTableEntry> {
-        self.keys
-            .default
+    pub fn has_table(&self, name: &str) -> bool {
+        self.keys.by_name.contains_key(name)
+    }
+
+    pub fn lookup_key(
+        &self,
+        key: &KeyCode,
+        mods: Modifiers,
+        table_name: Option<&str>,
+    ) -> Option<KeyTableEntry> {
+        let table = match table_name {
+            Some(name) => self.keys.by_name.get(name)?,
+            None => &self.keys.default,
+        };
+
+        table
             .get(&key.normalize_shift(Self::remove_positional_alt(mods)))
             .cloned()
     }

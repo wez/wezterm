@@ -16,6 +16,7 @@ use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
+use crate::termwindow::keyevent::KeyTableState;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -306,6 +307,7 @@ pub struct TermWindow {
     /// If is_some, the LEADER modifier is active until the specified instant.
     leader_is_down: Option<std::time::Instant>,
     dead_key_status: DeadKeyStatus,
+    key_table_state: KeyTableState,
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
@@ -780,6 +782,7 @@ impl TermWindow {
             dragging: None,
             last_ui_item: None,
             is_click_to_focus_window: false,
+            key_table_state: KeyTableState::default(),
         };
 
         let tw = Rc::new(RefCell::new(myself));
@@ -1971,6 +1974,33 @@ impl TermWindow {
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
+            ActivateKeyTable {
+                name,
+                timeout_milliseconds,
+                replace_current,
+                one_shot,
+            } => {
+                anyhow::ensure!(
+                    self.input_map.has_table(name),
+                    "ActivateKeyTable: no key_table named {}",
+                    name
+                );
+                self.key_table_state.activate(
+                    name,
+                    *timeout_milliseconds,
+                    *replace_current,
+                    *one_shot,
+                );
+                self.update_title();
+            }
+            PopKeyTable => {
+                self.key_table_state.pop();
+                self.update_title();
+            }
+            ClearKeyTableStack => {
+                self.key_table_state.clear_stack();
+                self.update_title();
+            }
             Multiple(actions) => {
                 for a in actions {
                     self.perform_key_assignment(pane, a)?;
