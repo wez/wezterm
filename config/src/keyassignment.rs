@@ -349,8 +349,21 @@ pub enum KeyAssignment {
 }
 impl_lua_conversion!(KeyAssignment);
 
+pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
+
+#[derive(Debug, Clone, Default)]
+pub struct KeyTables {
+    pub default: KeyTable,
+    pub by_name: HashMap<String, KeyTable>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyTableEntry {
+    pub action: KeyAssignment,
+}
+
 pub struct InputMap {
-    pub keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
+    pub keys: KeyTables,
     pub mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
     leader: Option<(KeyCode, Modifiers, Duration)>,
 }
@@ -432,7 +445,9 @@ impl InputMap {
                     }
 
                     for key in items {
-                        keys.entry(key).or_insert($action.clone());
+                        keys.default.entry(key).or_insert(KeyTableEntry {
+                            action: $action.clone()
+                        });
                     }
 
                 )*
@@ -738,7 +753,8 @@ impl InputMap {
             );
         }
 
-        keys.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
+        keys.default
+            .retain(|_, v| v.action != KeyAssignment::DisableDefaultAssignment);
         mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
 
         Self {
@@ -761,8 +777,9 @@ impl InputMap {
         mods - (Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT)
     }
 
-    pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyAssignment> {
+    pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyTableEntry> {
         self.keys
+            .default
             .get(&key.normalize_shift(Self::remove_positional_alt(mods)))
             .cloned()
     }

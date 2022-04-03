@@ -7,7 +7,9 @@ use crate::font::{
     FreeTypeLoadFlags, FreeTypeLoadTarget, StyleRule, TextStyle,
 };
 use crate::frontend::FrontEndSelection;
-use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
+use crate::keyassignment::{
+    KeyAssignment, KeyTable, KeyTableEntry, KeyTables, MouseEventTrigger, SpawnCommand,
+};
 use crate::keys::{Key, LeaderKey, Mouse};
 use crate::ssh::{SshBackend, SshDomain};
 use crate::tls::{TlsDomainClient, TlsDomainServer};
@@ -32,7 +34,7 @@ use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
-use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
+use wezterm_input_types::{Modifiers, WindowDecorations};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
@@ -251,6 +253,9 @@ pub struct Config {
 
     #[serde(default, deserialize_with = "de_vec_table")]
     pub keys: Vec<Key>,
+    #[serde(default)]
+    pub key_tables: HashMap<String, Vec<Key>>,
+
     #[serde(
         default = "default_bypass_mouse_reporting_modifiers",
         deserialize_with = "crate::keys::de_modifiers"
@@ -780,8 +785,8 @@ impl Config {
         Self::default().compute_extra_defaults(None)
     }
 
-    pub fn key_bindings(&self) -> HashMap<(KeyCode, Modifiers), KeyAssignment> {
-        let mut map = HashMap::new();
+    pub fn key_bindings(&self) -> KeyTables {
+        let mut tables = KeyTables::default();
 
         for k in &self.keys {
             let (key, mods) = k
@@ -789,10 +794,33 @@ impl Config {
                 .key
                 .resolve(self.key_map_preference)
                 .normalize_shift(k.key.mods);
-            map.insert((key, mods), k.action.clone());
+            tables.default.insert(
+                (key, mods),
+                KeyTableEntry {
+                    action: k.action.clone(),
+                },
+            );
         }
 
-        map
+        for (name, keys) in &self.key_tables {
+            let mut table = KeyTable::default();
+            for k in keys {
+                let (key, mods) = k
+                    .key
+                    .key
+                    .resolve(self.key_map_preference)
+                    .normalize_shift(k.key.mods);
+                table.insert(
+                    (key, mods),
+                    KeyTableEntry {
+                        action: k.action.clone(),
+                    },
+                );
+            }
+            tables.by_name.insert(name.to_string(), table);
+        }
+
+        tables
     }
 
     pub fn mouse_bindings(&self) -> HashMap<(MouseEventTrigger, Modifiers), KeyAssignment> {

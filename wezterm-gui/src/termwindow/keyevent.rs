@@ -86,7 +86,7 @@ impl super::TermWindow {
         }
 
         if is_down {
-            if let Some(assignment) = self
+            if let Some(entry) = self
                 .input_map
                 .lookup_key(&keycode, raw_modifiers | leader_mod)
             {
@@ -95,10 +95,10 @@ impl super::TermWindow {
                         "{:?} {:?} -> perform {:?}",
                         keycode,
                         raw_modifiers | leader_mod,
-                        assignment
+                        entry.action,
                     );
                 }
-                self.perform_key_assignment(&pane, &assignment).ok();
+                self.perform_key_assignment(&pane, &entry.action).ok();
                 context.invalidate();
 
                 if leader_active {

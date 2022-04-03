@@ -299,10 +299,10 @@ impl LauncherState {
             let input_map = InputMap::new(&config);
             let mut key_entries: Vec<Entry> = vec![];
             // Give a consistent order to the entries
-            let keys: BTreeMap<_, _> = input_map.keys.into_iter().collect();
-            for ((keycode, mods), assignment) in keys {
+            let keys: BTreeMap<_, _> = input_map.keys.default.into_iter().collect();
+            for ((keycode, mods), entry) in keys {
                 if matches!(
-                    &assignment,
+                    &entry.action,
                     KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
                 ) {
                     // Filter out some noisy, repetitive entries
@@ -311,7 +311,7 @@ impl LauncherState {
                 if key_entries
                     .iter()
                     .find(|ent| match &ent.kind {
-                        EntryKind::KeyAssignment(a) => a == &assignment,
+                        EntryKind::KeyAssignment(a) => a == &entry.action,
                         _ => false,
                     })
                     .is_some()
@@ -322,11 +322,11 @@ impl LauncherState {
                 key_entries.push(Entry {
                     label: format!(
                         "{:?} ({} {})",
-                        assignment,
+                        entry.action,
                         mods.to_string(),
                         keycode.to_string()
                     ),
-                    kind: EntryKind::KeyAssignment(assignment),
+                    kind: EntryKind::KeyAssignment(entry.action),
                 });
             }
             key_entries.sort_by(|a, b| a.label.cmp(&b.label));
