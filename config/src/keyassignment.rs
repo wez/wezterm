@@ -422,9 +422,11 @@ impl InputMap {
                         // is reserved for the window manager.
                         // This bit synthesizes those.
                         items.push((key.clone(), ctrl_shift));
-                        items.push((ukey.clone(), ctrl_shift));
-                        items.push((ukey.clone(), Modifiers::CTRL));
-                    } else if $mod.contains(Modifiers::SHIFT) {
+                        if ukey != key {
+                            items.push((ukey.clone(), ctrl_shift));
+                            items.push((ukey.clone(), Modifiers::CTRL));
+                        }
+                    } else if $mod.contains(Modifiers::SHIFT) && ukey != key {
                         items.push((ukey.clone(), $mod));
                         items.push((ukey.clone(), $mod - Modifiers::SHIFT));
                     }
