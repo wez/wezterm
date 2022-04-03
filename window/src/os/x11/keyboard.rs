@@ -297,7 +297,7 @@ impl Keyboard {
             events.dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
             if handled.is_handled() {
                 self.compose_state.borrow_mut().reset();
-                log::trace!("raw key was handled; not processing further");
+                log::trace!("process_key_event: raw key was handled; not processing further");
 
                 if want_repeat {
                     return Some(WindowKeyEvent::RawKeyEvent(raw_key_event.clone()));
@@ -311,6 +311,10 @@ impl Keyboard {
                 .feed(xcode, xsym, &self.state)
             {
                 FeedResult::Composing(composition) => {
+                    log::trace!(
+                        "process_key_event: RawKeyEvent FeedResult::Composing: {:?}",
+                        composition
+                    );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
                         composition,
                     )));
@@ -320,6 +324,13 @@ impl Keyboard {
                     if !utf8.is_empty() {
                         kc.replace(crate::KeyCode::composed(&utf8));
                     }
+                    log::trace!(
+                        "process_key_event: RawKeyEvent FeedResult::Composed: \
+                                {:?}, {:?}. kc -> {:?}",
+                        utf8,
+                        sym,
+                        kc
+                    );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     sym
                 }
@@ -327,9 +338,17 @@ impl Keyboard {
                     if !utf8.is_empty() {
                         kc.replace(crate::KeyCode::composed(&utf8));
                     }
+                    log::trace!(
+                        "process_key_event: RawKeyEvent FeedResult::Nothing: \
+                                {:?}, {:?}. kc -> {:?}",
+                        utf8,
+                        sym,
+                        kc
+                    );
                     sym
                 }
                 FeedResult::Cancelled => {
+                    log::trace!("process_key_event: RawKeyEvent FeedResult::Cancelled");
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     return None;
                 }
@@ -340,7 +359,13 @@ impl Keyboard {
 
         let kc = match kc {
             Some(kc) => kc,
-            None => keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?,
+            None => match keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym)) {
+                Some(kc) => kc,
+                None => {
+                    log::trace!("keysym_to_keycode for {:?} and {:?} -> None", ksym, xsym);
+                    return None;
+                }
+            },
         };
 
         let event = KeyEvent {
