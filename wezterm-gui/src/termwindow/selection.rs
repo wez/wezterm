@@ -63,25 +63,41 @@ impl super::TermWindow {
     ) {
         self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
         let mode = mode.unwrap_or(SelectionMode::Cell);
-        let (x, y, position) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
-            Some(coords) => (coords.0.column, coords.1, coords.0),
+        let (position, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
+            Some(coords) => coords,
             None => return,
         };
+        let x = position.column;
         match mode {
             SelectionMode::Cell => {
+                // Origin is the cell in which the selection action started. E.g. the cell
+                // that had the mouse over it when the left mouse button was pressed
                 let origin = self
                     .selection(pane.pane_id())
                     .origin
                     .unwrap_or(SelectionCoordinate { x, y });
                 self.selection(pane.pane_id()).origin = Some(origin);
 
-                let (start_x, end_x) = if (origin.x <= x && origin.y == y) || origin.y < y {
+                // Compute the start and end horizontall cell of the selection.
+                // The selection extent depends on the mouse cursor position in relation
+                // to the origin.
+                let (start_x, end_x) = if (x >= origin.x && y == origin.y) || y > origin.y {
+                    // If the selection is extending forwards from the origin, it includes the
+                    // origin and doesn't include the cell under the cursor. Note that the
+                    // reported cell here is offset by -50% from the real cell you see on the
+                    // screen, so this causes a visual cell on the screen to be selected when
+                    // the mouse moves over 50% of its width, which effectively means the next
+                    // cell is being reported here, hence it's excluded
                     (origin.x, x.saturating_sub(1))
                 } else {
+                    // If the selection is extending backwards from the origin, it doesn't
+                    // include the origin and includes the cell under the cursor, which has
+                    // the same effect as described above when going backwards
                     (origin.x.saturating_sub(1), x)
                 };
 
                 self.selection(pane.pane_id()).range = if origin.x != x || origin.y != y {
+                    // Only considers a selection if the cursor moved from the origin point
                     Some(
                         SelectionRange::start(SelectionCoordinate {
                             x: start_x,
