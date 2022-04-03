@@ -68,7 +68,7 @@ winreg = "0.6"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 x11 = {version ="2.18", features = ["xlib_xcb"]}
-xcb = {version="0.9", features=["render", "xkb", "xlib_xcb"]}
+xcb = {version="0.9", features=["render", "randr", "xkb", "xlib_xcb"]}
 xcb-util = { features = [ "cursor", "image", "icccm", "ewmh", "keysyms"], version = "0.3" }
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="5cc8f233ac2b8bfa0d7a26fd981b77e68c3f2219"}
 #xkbcommon = { version = "0.5", features = ["x11", "wayland"], path="../../xkbcommon-rs" }
