@@ -269,12 +269,15 @@ fn read_shared_memory_data(
         name,
         nix::fcntl::OFlag::O_RDONLY,
         nix::sys::stat::Mode::empty(),
-    );
-    if raw_fd.is_err() {
-        log::warn!("Unable to open shared memory object {}", name);
-        return Err(std::io::Error::last_os_error());
-    };
-    let mut f = unsafe { File::from_raw_fd(raw_fd.unwrap()) };
+    )
+    .map_err(|_| {
+        let err = std::io::Error::last_os_error();
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("shm_open {} failed: {:#}", name, err),
+        )
+    })?;
+    let mut f = unsafe { File::from_raw_fd(raw_fd) };
     if let Some(offset) = data_offset {
         f.seek(std::io::SeekFrom::Start(offset.into()))?;
     }
@@ -289,7 +292,7 @@ fn read_shared_memory_data(
     };
 
     if let Err(err) = shm_unlink(name) {
-        log::error!(
+        log::warn!(
             "Unable to unlink kitty image protocol shm file {}: {:#}",
             name,
             err
@@ -299,16 +302,36 @@ fn read_shared_memory_data(
 }
 
 #[cfg(windows)]
+use winapi::um::{
+    handleapi::CloseHandle,
+    memoryapi::{
+        MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery, FILE_MAP_ALL_ACCESS,
+    },
+    winnt::{HANDLE, MEMORY_BASIC_INFORMATION},
+};
+
+#[cfg(windows)]
+struct SharedMemObject {
+    handle: HANDLE,
+    buf: *mut u8,
+}
+
+#[cfg(windows)]
+impl Drop for SharedMemObject {
+    fn drop(&mut self) {
+        unsafe {
+            UnmapViewOfFile(self.buf as _);
+            CloseHandle(self.handle);
+        }
+    }
+}
+
+#[cfg(windows)]
 fn read_shared_memory_data(
     name: &str,
     data_offset: Option<u32>,
     data_size: Option<u32>,
 ) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
-    use winapi::um::handleapi::CloseHandle;
-    use winapi::um::memoryapi::{
-        MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery, FILE_MAP_ALL_ACCESS,
-    };
-    use winapi::um::winnt::MEMORY_BASIC_INFORMATION;
     /// Convert a rust string to a windows wide string
     fn wide_string(s: &str) -> Vec<u16> {
         use std::os::windows::ffi::OsStrExt;
@@ -321,40 +344,55 @@ fn read_shared_memory_data(
 
     let handle = unsafe { OpenFileMappingW(FILE_MAP_ALL_ACCESS, 0, wide_name.as_ptr()) };
     if handle.is_null() {
-        log::warn!("Unable to open shared memory object {}", name);
-        return Err(std::io::Error::last_os_error());
+        let err = std::io::Error::last_os_error();
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("OpenFileMappingW {} failed: {:#}", name, err),
+        ));
     }
     let buf = unsafe { MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0) };
     if buf.is_null() {
+        let err = std::io::Error::last_os_error();
         unsafe {
             CloseHandle(handle);
         }
-        log::warn!("Unable to map shared memory object {}", name);
-        return Err(std::io::Error::last_os_error());
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("MapViewOfFile failed: {:#}", err),
+        ));
     }
+
+    let shm = SharedMemObject {
+        handle,
+        buf: buf as *mut u8,
+    };
+
     let mut memory_info = MEMORY_BASIC_INFORMATION::default();
     let res = unsafe {
         VirtualQuery(
-            buf,
+            shm.buf as _,
             &mut memory_info as *mut MEMORY_BASIC_INFORMATION,
             std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
         )
     };
     if res == 0 {
-        unsafe {
-            UnmapViewOfFile(buf);
-            CloseHandle(handle);
-        }
-        log::warn!("Unable to query size of shared memory object {}", name);
-        return Err(std::io::Error::last_os_error());
+        let err = std::io::Error::last_os_error();
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!(
+                "Can't get the size of Shared Memory, VirtualQuery failed: {:#}",
+                err
+            ),
+        ));
     }
     let mut size = memory_info.RegionSize;
     let offset = data_offset.unwrap_or(0) as usize;
     if offset >= size {
-        unsafe {
-            UnmapViewOfFile(buf);
-            CloseHandle(handle);
-        }
+        log::warn!(
+            "offset {} bigger than or equal to shm region size {}",
+            offset,
+            size
+        );
         return Ok(vec![]);
     }
     size = size - offset;
@@ -364,13 +402,9 @@ fn read_shared_memory_data(
         }
     }
     let mut data = vec![0; size];
-    let buf_slice = unsafe { std::slice::from_raw_parts((buf as usize + offset) as _, size) };
+    let buf_slice = unsafe { std::slice::from_raw_parts((shm.buf as usize + offset) as _, size) };
     data.copy_from_slice(buf_slice);
 
-    unsafe {
-        UnmapViewOfFile(buf);
-        CloseHandle(handle);
-    }
     Ok(data)
 }
 
