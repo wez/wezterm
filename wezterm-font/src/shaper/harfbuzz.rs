@@ -568,9 +568,11 @@ impl FontShaper for HarfbuzzShaper {
             return Ok(metrics.clone());
         }
 
-        let selected_size = pair.face.set_font_size(size, dpi)?;
+        let scale = self.handles[font_idx].scale.unwrap_or(1.);
+
+        let selected_size = pair.face.set_font_size(size * scale, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
-        let metrics = FontMetrics {
+        let mut metrics = FontMetrics {
             cell_height: PixelLength::new(selected_size.height),
             cell_width: PixelLength::new(selected_size.width),
             // Note: face.face.descender is useless, we have to go through
@@ -588,7 +590,16 @@ impl FontShaper for HarfbuzzShaper {
             cap_height: selected_size.cap_height.map(PixelLength::new),
             is_scaled: selected_size.is_scaled,
             presentation: pair.presentation,
+            force_y_adjust: PixelLength::new(0.),
         };
+
+        // When the user has overridden the scale, we need to stash a y-adjustment
+        // so that the glyphs are better vertically aligned
+        // <https://github.com/wez/wezterm/issues/1803>
+        if scale != 1.0 && metrics.is_scaled {
+            let diff = metrics.descender - (metrics.descender / scale);
+            metrics.force_y_adjust = diff;
+        }
 
         self.metrics.borrow_mut().insert(key, metrics.clone());
 
@@ -625,7 +636,9 @@ impl FontShaper for HarfbuzzShaper {
             self.handles
         );
         while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
-            let selected_size = pair.face.set_font_size(size, dpi)?;
+            let selected_size = pair
+                .face
+                .set_font_size(size * self.handles[metrics_idx].scale.unwrap_or(1.), dpi)?;
             let diff = (theoretical_height - selected_size.height).abs();
             let factor = diff / theoretical_height;
             if factor < 2.0 {
