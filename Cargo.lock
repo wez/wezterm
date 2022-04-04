@@ -1524,8 +1524,9 @@ dependencies = [
 
 [[package]]
 name = "glium"
-version = "0.30.1"
-source = "git+https://github.com/glium/glium.git?rev=aed95270f0714036003589d6e52de196e7ff75d1#aed95270f0714036003589d6e52de196e7ff75d1"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ab4f09b43d8ee427a700cb9ed3b20e0e858d62a509edded1a98ca5707d68e19"
 dependencies = [
  "backtrace",
  "fnv",
