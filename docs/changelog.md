@@ -44,6 +44,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Scrollbar thumb could jump around/move out of bounds. Thanks to [@davidrios](https://github.com/davidrios)! [#1525](https://github.com/wez/wezterm/issues/1525)
 * OSC 52 could stop working for tabs/panes spawned into the GUI via the CLI. [#1790](https://github.com/wez/wezterm/issues/1790)
 * Workaround for fonts with broken horizontal advance metrics [#1787](https://github.com/wez/wezterm/issues/1787)
+* Improved mouse based selection. Thanks to [@davidrios](https://github.com/davidrios)! [#1805](https://github.com/wez/wezterm/issues/1805) [#1199](https://github.com/wez/wezterm/issues/1199) [#1386](https://github.com/wez/wezterm/issues/1386) [#354](https://github.com/wez/wezterm/issues/354)
 
 ### 20220319-142410-0fcdea07
 
