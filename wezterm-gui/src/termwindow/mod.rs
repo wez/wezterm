@@ -16,8 +16,8 @@ use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
+use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use crate::termwindow::keyevent::KeyTableState;
-use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
@@ -84,6 +84,12 @@ pub fn set_window_class(cls: &str) {
 
 pub fn get_window_class() -> String {
     WINDOW_CLASS.lock().unwrap().clone()
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MouseCapture {
+    UI,
+    Terminal,
 }
 
 /// Type used together with Window::notify to do something in the
@@ -165,7 +171,7 @@ pub struct PaneState {
     pub overlay: Option<Rc<dyn Pane>>,
 
     bell_start: Option<Instant>,
-    pub mouse_terminal_coords: Option<(usize, StableRowIndex)>,
+    pub mouse_terminal_coords: Option<(ClickPosition, StableRowIndex)>,
 }
 
 /// Data used when synchronously formatting pane and window titles
@@ -330,6 +336,7 @@ pub struct TermWindow {
     window_background: Option<Arc<ImageData>>,
 
     current_mouse_buttons: Vec<MousePress>,
+    current_mouse_capture: Option<MouseCapture>,
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
@@ -426,6 +433,7 @@ impl TermWindow {
         if self.focused.is_none() {
             self.last_mouse_click = None;
             self.current_mouse_buttons.clear();
+            self.current_mouse_capture = None;
             self.is_click_to_focus_window = false;
 
             for state in self.pane_state.borrow_mut().values_mut() {
@@ -744,6 +752,7 @@ impl TermWindow {
             tab_state: RefCell::new(HashMap::new()),
             pane_state: RefCell::new(HashMap::new()),
             current_mouse_buttons: vec![],
+            current_mouse_capture: None,
             last_mouse_click: None,
             current_highlight: None,
             shape_cache: RefCell::new(LruCache::new(
@@ -1364,7 +1373,7 @@ impl TermWindow {
 
             if clear_selection {
                 self.selection(pane.pane_id()).range.take();
-                self.selection(pane.pane_id()).start.take();
+                self.selection(pane.pane_id()).origin.take();
                 self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
             }
         }
@@ -2453,10 +2462,6 @@ impl TermWindow {
         RefMut::map(self.tab_state.borrow_mut(), |state| {
             state.entry(tab_id).or_insert_with(TabState::default)
         })
-    }
-
-    pub fn selection(&self, pane_id: PaneId) -> RefMut<Selection> {
-        RefMut::map(self.pane_state(pane_id), |state| &mut state.selection)
     }
 
     pub fn get_viewport(&self, pane_id: PaneId) -> Option<StableRowIndex> {

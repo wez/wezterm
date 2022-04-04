@@ -685,7 +685,7 @@ impl QuickSelectRenderable {
         self.window
             .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 let mut selection = term_window.selection(pane_id);
-                selection.start.take();
+                selection.origin.take();
                 selection.range.take();
             })));
     }
@@ -705,7 +705,7 @@ impl QuickSelectRenderable {
                             x: result.start_x,
                             y: result.start_y,
                         };
-                        selection.start = Some(start);
+                        selection.origin = Some(start);
                         selection.range = Some(SelectionRange {
                             start,
                             end: SelectionCoordinate {

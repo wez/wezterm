@@ -1,6 +1,6 @@
 use crate::tabbar::TabBarItem;
 use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
-use crate::termwindow::{PositionedSplit, ScrollHit, UIItem, UIItemType, TMB};
+use crate::termwindow::{MouseCapture, PositionedSplit, ScrollHit, UIItem, UIItemType, TMB};
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
     WindowState,
@@ -90,21 +90,27 @@ impl super::TermWindow {
         }
         .trunc() as usize;
 
-        let y_pixel_offset = (event
+        let mut y_pixel_offset = event
             .coords
             .y
             .sub(padding_top as isize)
-            .sub(first_line_offset)
-            .max(0)
-            % self.render_metrics.cell_size.height) as usize;
+            .sub(first_line_offset);
+        if y > 0 {
+            y_pixel_offset = y_pixel_offset.max(0) % self.render_metrics.cell_size.height;
+        }
 
-        let x_pixel_offset = (event.coords.x.sub(padding_left as isize).max(0)
-            % self.render_metrics.cell_size.width) as usize;
+        let mut x_pixel_offset = event.coords.x.sub(padding_left as isize);
+        if x > 0 {
+            x_pixel_offset = x_pixel_offset.max(0) % self.render_metrics.cell_size.width;
+        }
 
         self.last_mouse_coords = (x, y);
 
+        let mut capture_mouse = false;
+
         match event.kind {
             WMEK::Release(ref press) => {
+                self.current_mouse_capture = None;
                 self.current_mouse_buttons.retain(|p| p != press);
                 if press == &MousePress::Left && self.window_drag_position.take().is_some() {
                     // Completed a window drag
@@ -117,6 +123,8 @@ impl super::TermWindow {
             }
 
             WMEK::Press(ref press) => {
+                capture_mouse = true;
+
                 // Perform click counting
                 let button = mouse_press_to_tmb(press);
 
@@ -166,28 +174,43 @@ impl super::TermWindow {
             _ => {}
         }
 
-        let ui_item = self.resolve_ui_item(&event);
+        let ui_item = if matches!(self.current_mouse_capture, None | Some(MouseCapture::UI)) {
+            let ui_item = self.resolve_ui_item(&event);
 
-        match (self.last_ui_item.take(), &ui_item) {
-            (Some(prior), Some(item)) => {
-                self.leave_ui_item(&prior);
-                self.enter_ui_item(item);
-                context.invalidate();
+            match (self.last_ui_item.take(), &ui_item) {
+                (Some(prior), Some(item)) => {
+                    self.leave_ui_item(&prior);
+                    self.enter_ui_item(item);
+                    context.invalidate();
+                }
+                (Some(prior), None) => {
+                    self.leave_ui_item(&prior);
+                    context.invalidate();
+                }
+                (None, Some(item)) => {
+                    self.enter_ui_item(item);
+                    context.invalidate();
+                }
+                (None, None) => {}
             }
-            (Some(prior), None) => {
-                self.leave_ui_item(&prior);
-                context.invalidate();
-            }
-            (None, Some(item)) => {
-                self.enter_ui_item(item);
-                context.invalidate();
-            }
-            (None, None) => {}
-        }
+
+            ui_item
+        } else {
+            None
+        };
 
         if let Some(item) = ui_item {
+            if capture_mouse {
+                self.current_mouse_capture = Some(MouseCapture::UI);
+            }
             self.mouse_event_ui_item(item, pane, y, event, context);
-        } else {
+        } else if matches!(
+            self.current_mouse_capture,
+            None | Some(MouseCapture::Terminal)
+        ) {
+            if capture_mouse {
+                self.current_mouse_capture = Some(MouseCapture::Terminal);
+            }
             self.mouse_event_terminal(
                 pane,
                 ClickPosition {
@@ -593,7 +616,7 @@ impl super::TermWindow {
 
         self.pane_state(pane.pane_id())
             .mouse_terminal_coords
-            .replace((x, stable_row));
+            .replace((position.clone(), stable_row));
 
         let (top, mut lines) = pane.get_lines_with_hyperlinks_applied(
             stable_row..stable_row + 1,

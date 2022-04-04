@@ -36,8 +36,8 @@ pub struct MouseEvent {
     pub kind: MouseEventKind,
     pub x: usize,
     pub y: VisibleRowIndex,
-    pub x_pixel_offset: usize,
-    pub y_pixel_offset: usize,
+    pub x_pixel_offset: isize,
+    pub y_pixel_offset: isize,
     pub button: MouseButton,
     pub modifiers: KeyModifiers,
 }
@@ -46,8 +46,8 @@ pub struct MouseEvent {
 pub struct ClickPosition {
     pub column: usize,
     pub row: i64,
-    pub x_pixel_offset: usize,
-    pub y_pixel_offset: usize,
+    pub x_pixel_offset: isize,
+    pub y_pixel_offset: isize,
 }
 
 /// This is a little helper that keeps track of the "click streak",

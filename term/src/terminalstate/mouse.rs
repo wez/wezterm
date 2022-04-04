@@ -69,8 +69,10 @@ impl TerminalState {
                 self.writer,
                 "\x1b[<{};{};{}M",
                 button,
-                (event.x * (self.pixel_width / width)) + event.x_pixel_offset + 1,
-                (event.y as usize * (self.pixel_height / height)) + event.y_pixel_offset + 1
+                (event.x * (self.pixel_width / width)) + event.x_pixel_offset.max(0) as usize + 1,
+                (event.y as usize * (self.pixel_height / height))
+                    + event.y_pixel_offset.max(0) as usize
+                    + 1
             )?;
             self.writer.flush()?;
         } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
@@ -123,8 +125,10 @@ impl TerminalState {
                 self.writer,
                 "\x1b[<{};{};{}M",
                 button,
-                (event.x * (self.pixel_width / width)) + event.x_pixel_offset + 1,
-                (event.y as usize * (self.pixel_height / height)) + event.y_pixel_offset + 1
+                (event.x * (self.pixel_width / width)) + event.x_pixel_offset.max(0) as usize + 1,
+                (event.y as usize * (self.pixel_height / height))
+                    + event.y_pixel_offset.max(0) as usize
+                    + 1
             )?;
             self.writer.flush()?;
         } else {
@@ -162,9 +166,11 @@ impl TerminalState {
                         self.writer,
                         "\x1b[<{};{};{}m",
                         release_button,
-                        (event.x * (self.pixel_width / width)) + event.x_pixel_offset + 1,
+                        (event.x * (self.pixel_width / width))
+                            + event.x_pixel_offset.max(0) as usize
+                            + 1,
                         (event.y as usize * (self.pixel_height / height))
-                            + event.y_pixel_offset
+                            + event.y_pixel_offset.max(0) as usize
                             + 1
                     )?;
                     self.writer.flush()?;
@@ -227,8 +233,12 @@ impl TerminalState {
                     self.writer,
                     "\x1b[<{};{};{}M",
                     button,
-                    (event.x * (self.pixel_width / width)) + event.x_pixel_offset + 1,
-                    (event.y as usize * (self.pixel_height / height)) + event.y_pixel_offset + 1
+                    (event.x * (self.pixel_width / width))
+                        + event.x_pixel_offset.max(0) as usize
+                        + 1,
+                    (event.y as usize * (self.pixel_height / height))
+                        + event.y_pixel_offset.max(0) as usize
+                        + 1
                 )?;
                 self.writer.flush()?;
             } else {
