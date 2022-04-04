@@ -24,13 +24,13 @@ graph TD
     A -->|Yes| B[Opened with CLI and --cwd flag?]
     A -->|No| C[New pane, tab or window.]
     C --> D{{Opened with a SpawnCommand<br/> that includes cwd?}}
-    D -->|No| J{{Is there a value set by OSC 7?}}
+    D -->|No| J{{Does current pane<br/>have a value set by OSC 7?}}
     B -->|Yes| E[Use --cwd]
     B -->|No| F{{Is default_cwd defined?}}
     F -->|Yes| G[Use default_cwd]
     F -->|No| H[Use home directory]
     D -->|Yes| I[Use cwd specified<br/> by `SpawnCommand`]
-    J -->|Yes| K[Use the OSC 7 value]
+    J -->|Yes| K[Use that OSC 7 value]
     J -->|No| L{{Can cwd be resolved via<br/> the process group leader?}}
     L -->|Yes| M[Use resolved cwd]
     L -->|No| F
@@ -41,3 +41,8 @@ On macOS and Linux, `wezterm` can attempt to resolve the process group leader
 and then attempt to resolve its current working directory. This is not
 guaranteed to succeed, and there are a number of potential edge cases (which is
 another reason for configuring your shell to use OSC 7 sequences).
+
+On Windows, there isn't a process group leader concept, but `wezterm` will
+examine the process tree of the program that it started in the current pane and
+use some heuristics to determine an approximate equivalent.
+
