@@ -27,12 +27,13 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/mdbook-bin
-          key: cargo-bin-mdbook-1
+          key: cargo-bin-mdbook-2
       - name: Install mdBook
         run: |
           mkdir -p ~/mdbook-bin
           (test -x ~/mdbook-bin/mdbook || (cd && cargo install --vers "^0.4" mdbook && cp -p ~/.cargo/bin/mdbook ~/mdbook-bin))
           (test -x ~/mdbook-bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck && cp -p ~/.cargo/bin/mdbook-linkcheck ~/mdbook-bin))
+          (test -x ~/mdbook-bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid && cp -p ~/.cargo/bin/mdbook-mermaid ~/mdbook-bin))
       - name: Build
         run: |
           source $HOME/.cargo/env

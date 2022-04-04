@@ -5,6 +5,7 @@ set -x
 [[ -f /tmp/wezterm.nightly.json ]] || curl https://api.github.com/repos/wez/wezterm/releases/tags/nightly > /tmp/wezterm.nightly.json
 python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
+mdbook-mermaid install docs
 mdbook build docs
 
 rm gh_pages/html/README.markdown

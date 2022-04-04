@@ -18,6 +18,7 @@
 /docs/config/lua/mux-events/index.md
 /docs/config/lua/window-events/index.md
 /docs/config/lua/keyassignment/index.md
+/docs/mermaid.min.js
 **/*.rs.bk
 .*.sw*
 /esctest.log
