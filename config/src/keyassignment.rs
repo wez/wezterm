@@ -346,11 +346,36 @@ pub enum KeyAssignment {
         spawn: Option<SpawnCommand>,
     },
     SwitchWorkspaceRelative(isize),
+
+    ActivateKeyTable {
+        name: String,
+        #[serde(default)]
+        timeout_milliseconds: Option<u64>,
+        #[serde(default)]
+        replace_current: bool,
+        #[serde(default = "crate::default_true")]
+        one_shot: bool,
+    },
+    PopKeyTable,
+    ClearKeyTableStack,
 }
 impl_lua_conversion!(KeyAssignment);
 
+pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
+
+#[derive(Debug, Clone, Default)]
+pub struct KeyTables {
+    pub default: KeyTable,
+    pub by_name: HashMap<String, KeyTable>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyTableEntry {
+    pub action: KeyAssignment,
+}
+
 pub struct InputMap {
-    pub keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
+    pub keys: KeyTables,
     pub mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
     leader: Option<(KeyCode, Modifiers, Duration)>,
 }
@@ -422,15 +447,19 @@ impl InputMap {
                         // is reserved for the window manager.
                         // This bit synthesizes those.
                         items.push((key.clone(), ctrl_shift));
-                        items.push((ukey.clone(), ctrl_shift));
-                        items.push((ukey.clone(), Modifiers::CTRL));
-                    } else if $mod.contains(Modifiers::SHIFT) {
+                        if ukey != key {
+                            items.push((ukey.clone(), ctrl_shift));
+                            items.push((ukey.clone(), Modifiers::CTRL));
+                        }
+                    } else if $mod.contains(Modifiers::SHIFT) && ukey != key {
                         items.push((ukey.clone(), $mod));
                         items.push((ukey.clone(), $mod - Modifiers::SHIFT));
                     }
 
                     for key in items {
-                        keys.entry(key).or_insert($action.clone());
+                        keys.default.entry(key).or_insert(KeyTableEntry {
+                            action: $action.clone()
+                        });
                     }
 
                 )*
@@ -736,7 +765,8 @@ impl InputMap {
             );
         }
 
-        keys.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
+        keys.default
+            .retain(|_, v| v.action != KeyAssignment::DisableDefaultAssignment);
         mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
 
         Self {
@@ -759,8 +789,22 @@ impl InputMap {
         mods - (Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT)
     }
 
-    pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyAssignment> {
-        self.keys
+    pub fn has_table(&self, name: &str) -> bool {
+        self.keys.by_name.contains_key(name)
+    }
+
+    pub fn lookup_key(
+        &self,
+        key: &KeyCode,
+        mods: Modifiers,
+        table_name: Option<&str>,
+    ) -> Option<KeyTableEntry> {
+        let table = match table_name {
+            Some(name) => self.keys.by_name.get(name)?,
+            None => &self.keys.default,
+        };
+
+        table
             .get(&key.normalize_shift(Self::remove_positional_alt(mods)))
             .cloned()
     }

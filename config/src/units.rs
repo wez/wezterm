@@ -152,6 +152,23 @@ impl Dimension {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GeometryOrigin {
+    /// x,y relative to overall screen coordinate system.
+    /// Selected position might be outside of the regions covered
+    /// by the user's selected monitor placement.
+    ScreenCoordinateSystem,
+    MainScreen,
+    ActiveScreen,
+    Named(String),
+}
+
+impl Default for GeometryOrigin {
+    fn default() -> Self {
+        Self::ScreenCoordinateSystem
+    }
+}
+
 fn de_dimension<'de, D>(unit: DefaultUnit, deserializer: D) -> Result<Dimension, D::Error>
 where
     D: Deserializer<'de>,

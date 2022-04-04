@@ -81,6 +81,7 @@ if test -e /etc/debian_version ; then
     libxcb-icccm4-dev \
     libxcb-image0-dev \
     libxcb-keysyms1-dev \
+    libxcb-randr0-dev \
     libxcb-render0-dev \
     libxcb-xkb-dev \
     libxkbcommon-dev \

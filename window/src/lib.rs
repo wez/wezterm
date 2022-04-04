@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bitflags::bitflags;
-use config::ConfigHandle;
+use config::{ConfigHandle, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
@@ -298,4 +298,15 @@ pub trait WindowOps {
     ) -> anyhow::Result<Option<os::parameters::Parameters>> {
         Ok(None)
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RequestedWindowGeometry {
+    pub width: Dimension,
+    pub height: Dimension,
+    pub x: Option<Dimension>,
+    pub y: Option<Dimension>,
+    /// Specifies basis for evaluating x/y coords.
+    /// Also applies to width/height when computing % based dimensions
+    pub origin: GeometryOrigin,
 }

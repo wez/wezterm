@@ -45,7 +45,7 @@ mod update;
 mod utilsprites;
 
 pub use selection::SelectionMode;
-pub use termwindow::{set_window_class, TermWindow, ICON_DATA};
+pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DATA};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -140,6 +140,9 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
+    if let Some(pos) = opts.position.as_ref() {
+        set_window_position(pos.clone());
+    }
 
     build_initial_mux(&config::configuration(), None, None)?;
 
@@ -159,6 +162,9 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
+    }
+    if let Some(pos) = opts.position.as_ref() {
+        set_window_position(pos.clone());
     }
 
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
@@ -223,6 +229,9 @@ async fn async_run_with_domain_as_default(
 async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
+    }
+    if let Some(pos) = opts.position.as_ref() {
+        set_window_position(pos.clone());
     }
 
     let domain = Mux::get()
@@ -568,6 +577,9 @@ fn build_initial_mux(
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
+    }
+    if let Some(pos) = opts.position.as_ref() {
+        set_window_position(pos.clone());
     }
 
     let config = config::configuration();

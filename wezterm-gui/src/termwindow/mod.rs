@@ -17,6 +17,7 @@ use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
+use crate::termwindow::keyevent::KeyTableState;
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
@@ -24,8 +25,8 @@ use config::keyassignment::{
     SpawnCommand,
 };
 use config::{
-    configuration, AudibleBell, ConfigHandle, DimensionContext, GradientOrientation, TermConfig,
-    WindowCloseConfirmation,
+    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
+    TermConfig, WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId};
@@ -47,6 +48,7 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::SequenceNo;
 use wezterm_font::FontConfiguration;
+use wezterm_gui_subcommands::GuiPosition;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
@@ -67,9 +69,14 @@ const ATLAS_SIZE: usize = 128;
 
 lazy_static::lazy_static! {
     static ref WINDOW_CLASS: Mutex<String> = Mutex::new(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS.to_owned());
+    static ref POSITION: Mutex<Option<GuiPosition>> = Mutex::new(None);
 }
 
 pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");
+
+pub fn set_window_position(pos: GuiPosition) {
+    POSITION.lock().unwrap().replace(pos);
+}
 
 pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
@@ -306,6 +313,7 @@ pub struct TermWindow {
     /// If is_some, the LEADER modifier is active until the specified instant.
     leader_is_down: Option<std::time::Instant>,
     dead_key_status: DeadKeyStatus,
+    key_table_state: KeyTableState,
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
@@ -783,16 +791,32 @@ impl TermWindow {
             dragging: None,
             last_ui_item: None,
             is_click_to_focus_window: false,
+            key_table_state: KeyTableState::default(),
         };
 
         let tw = Rc::new(RefCell::new(myself));
         let tw_event = Rc::clone(&tw);
 
+        let (x, y, origin) = POSITION
+            .lock()
+            .unwrap()
+            .take()
+            .map(|pos| (Some(pos.x), Some(pos.y), pos.origin))
+            .unwrap_or((None, None, Default::default()));
+
+        let geometry = RequestedWindowGeometry {
+            width: Dimension::Pixels(dimensions.pixel_width as f32),
+            height: Dimension::Pixels(dimensions.pixel_height as f32),
+            x,
+            y,
+            origin,
+        };
+        log::trace!("{:?}", geometry);
+
         let window = Window::new_window(
             &get_window_class(),
             "wezterm",
-            dimensions.pixel_width,
-            dimensions.pixel_height,
+            geometry,
             Some(&config),
             Rc::clone(&fontconfig),
             move |event, window| {
@@ -1959,6 +1983,33 @@ impl TermWindow {
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
+            ActivateKeyTable {
+                name,
+                timeout_milliseconds,
+                replace_current,
+                one_shot,
+            } => {
+                anyhow::ensure!(
+                    self.input_map.has_table(name),
+                    "ActivateKeyTable: no key_table named {}",
+                    name
+                );
+                self.key_table_state.activate(
+                    name,
+                    *timeout_milliseconds,
+                    *replace_current,
+                    *one_shot,
+                );
+                self.update_title();
+            }
+            PopKeyTable => {
+                self.key_table_state.pop();
+                self.update_title();
+            }
+            ClearKeyTableStack => {
+                self.key_table_state.clear_stack();
+                self.update_title();
+            }
             Multiple(actions) => {
                 for a in actions {
                     self.perform_key_assignment(pane, a)?;

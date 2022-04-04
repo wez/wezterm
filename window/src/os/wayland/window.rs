@@ -5,13 +5,13 @@ use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
-    WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
+    Clipboard, Connection, Dimensions, MouseCursor, Point, RequestedWindowGeometry, ScreenPoint,
+    Window, WindowEvent, WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
 use async_trait::async_trait;
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext};
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use raw_window_handle::unix::WaylandHandle;
@@ -228,8 +228,7 @@ impl WaylandWindow {
     pub async fn new_window<F>(
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -271,6 +270,20 @@ impl WaylandWindow {
         conn.surface_to_window_id
             .borrow_mut()
             .insert(surface.as_ref().id(), window_id);
+
+        // TODO: populate these dimension contexts based on the wayland OutputInfo
+        let width_context = DimensionContext {
+            dpi: crate::DEFAULT_DPI as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let height_context = DimensionContext {
+            dpi: crate::DEFAULT_DPI as f32,
+            pixel_max: 65535.,
+            pixel_cell: 65535.,
+        };
+        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
 
         let dimensions = Dimensions {
             pixel_width: width,

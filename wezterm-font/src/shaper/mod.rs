@@ -71,6 +71,14 @@ pub struct FontMetrics {
     pub is_scaled: bool,
 
     pub presentation: Presentation,
+
+    /// When the user has configured a fallback-specific override,
+    /// this field contains the difference in the descender heights
+    /// between the scaled and unscaled versions of the descender.
+    /// This represents a y-adjustment that should be applied to
+    /// the glyph to make it appear to line up better.
+    /// <https://github.com/wez/wezterm/issues/1803>
+    pub force_y_adjust: PixelLength,
 }
 
 pub struct PresentationWidth<'a> {

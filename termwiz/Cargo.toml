@@ -58,6 +58,7 @@ version = "0.3"
 [target."cfg(unix)".dependencies]
 signal-hook = "0.1"
 termios = "0.3"
+nix = "0.23.1"
 [target."cfg(windows)".dependencies.winapi]
 features = [
     "winbase",
@@ -68,6 +69,8 @@ features = [
     "handleapi",
     "fileapi",
     "synchapi",
+    "memoryapi",
+    "winnt",
 ]
 version = "0.3"
 

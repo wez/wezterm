@@ -4,16 +4,17 @@ use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventSender, WindowOps, WindowState,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ScreenPoint,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext, GeometryOrigin};
 use promise::{Future, Promise};
 use raw_window_handle::unix::XcbHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
@@ -819,8 +820,7 @@ impl XWindow {
     pub async fn new_window<F>(
         class_name: &str,
         name: &str,
-        width: usize,
-        height: usize,
+        geometry: RequestedWindowGeometry,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
         event_handler: F,
@@ -839,6 +839,14 @@ impl XWindow {
             )
             })?
             .x11();
+
+        let needs_reposition = geometry.x.is_some() && geometry.y.is_some();
+        let ResolvedGeometry {
+            x,
+            y,
+            width,
+            height,
+        } = resolve_geometry(&conn, geometry)?;
 
         let mut events = WindowEventSender::new(event_handler);
 
@@ -869,8 +877,8 @@ impl XWindow {
                 window_id,
                 screen.root(),
                 // x, y
-                0,
-                0,
+                x,
+                y,
                 // width, height
                 width.try_into()?,
                 height.try_into()?,
@@ -954,6 +962,12 @@ impl XWindow {
 
         window_handle.set_title(name);
         window_handle.show();
+
+        // Some window managers will ignore the x,y that we set during window
+        // creation, so we ask them again once the window is mapped
+        if needs_reposition {
+            window_handle.set_window_position(ScreenPoint::new(x.into(), y.into()));
+        }
 
         Ok(window_handle)
     }
@@ -1285,4 +1299,107 @@ impl WindowOps for XWindow {
             Ok(())
         });
     }
+}
+
+#[derive(Debug)]
+struct ResolvedGeometry {
+    x: i16,
+    y: i16,
+    width: usize,
+    height: usize,
+}
+
+fn resolve_geometry(
+    conn: &XConnection,
+    geometry: RequestedWindowGeometry,
+) -> anyhow::Result<ResolvedGeometry> {
+    let bounds = if conn.has_randr {
+        let res = xcb::randr::get_screen_resources(conn.conn(), conn.root)
+            .get_reply()
+            .context("get_screen_resources")?;
+
+        let mut virtual_screen: Rect = euclid::rect(0, 0, 0, 0);
+        let mut main_screen: Rect = euclid::rect(0, 0, 0, 0);
+        let mut by_name = HashMap::new();
+
+        for &o in res.outputs() {
+            let info = xcb::randr::get_output_info(conn.conn(), o, res.config_timestamp())
+                .get_reply()
+                .context("get_output_info")?;
+            let name = String::from_utf8_lossy(info.name()).to_string();
+            let c = info.crtc();
+            if let Ok(cinfo) =
+                xcb::randr::get_crtc_info(conn.conn(), c, res.config_timestamp()).get_reply()
+            {
+                let bounds = euclid::rect(
+                    cinfo.x() as isize,
+                    cinfo.y() as isize,
+                    cinfo.width() as isize,
+                    cinfo.height() as isize,
+                );
+                virtual_screen = virtual_screen.union(&bounds);
+                if bounds.origin.x == 0 && bounds.origin.y == 0 {
+                    main_screen = bounds;
+                }
+                by_name.insert(name, bounds);
+            }
+        }
+        log::trace!("{:?}", by_name);
+        log::trace!("virtual: {:?}", virtual_screen);
+        log::trace!("main: {:?}", main_screen);
+
+        match geometry.origin {
+            GeometryOrigin::ScreenCoordinateSystem => virtual_screen,
+            GeometryOrigin::MainScreen => main_screen,
+            GeometryOrigin::ActiveScreen => {
+                // TODO: find focused window and resolve it!
+                // Maybe something like <https://stackoverflow.com/a/43666928/149111>
+                // but ported to Rust?
+                main_screen
+            }
+            GeometryOrigin::Named(name) => match by_name.get(&name) {
+                Some(bounds) => bounds.clone(),
+                None => {
+                    log::error!(
+                        "Requested display {} was not found; available displays are: {:?}. \
+                             Using primary display instead",
+                        name,
+                        by_name,
+                    );
+                    main_screen
+                }
+            },
+        }
+    } else {
+        euclid::rect(0, 0, 65535, 65535)
+    };
+
+    let dpi = conn.default_dpi();
+    let width_context = DimensionContext {
+        dpi: dpi as f32,
+        pixel_max: bounds.width() as f32,
+        pixel_cell: bounds.width() as f32,
+    };
+    let height_context = DimensionContext {
+        dpi: dpi as f32,
+        pixel_max: bounds.height() as f32,
+        pixel_cell: bounds.height() as f32,
+    };
+    let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+    let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+    let x = geometry
+        .x
+        .map(|x| x.evaluate_as_pixels(width_context) as i16 + bounds.origin.x as i16)
+        .unwrap_or(0);
+    let y = geometry
+        .y
+        .map(|y| y.evaluate_as_pixels(height_context) as i16 + bounds.origin.y as i16)
+        .unwrap_or(0);
+
+    Ok(ResolvedGeometry {
+        x,
+        y,
+        width,
+        height,
+    })
 }

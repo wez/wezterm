@@ -48,6 +48,7 @@ pub struct XConnection {
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) ime: RefCell<std::pin::Pin<Box<xcb_imdkit::ImeClient>>>,
     pub(crate) ime_process_event_result: RefCell<anyhow::Result<()>>,
+    pub(crate) has_randr: bool,
 }
 
 impl std::ops::Deref for XConnection {
@@ -414,6 +415,11 @@ impl XConnection {
             .get_reply()?
             .atom();
 
+        let has_randr = conn
+            .get_extension_data(xcb::randr::id())
+            .map(|info| info.present())
+            .unwrap_or(false);
+
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
         let screen = conn
@@ -519,6 +525,7 @@ impl XConnection {
             gl_connection: RefCell::new(None),
             ime: RefCell::new(ime),
             ime_process_event_result: RefCell::new(Ok(())),
+            has_randr,
         });
 
         {
