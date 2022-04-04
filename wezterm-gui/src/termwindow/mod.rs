@@ -1394,6 +1394,7 @@ impl TermWindow {
             "config was reloaded, overrides: {:?}",
             self.config_overrides
         );
+        self.key_table_state.clear_stack();
         let config = match config::overridden_config(&self.config_overrides) {
             Ok(config) => config,
             Err(err) => {
