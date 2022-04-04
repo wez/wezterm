@@ -962,6 +962,10 @@ impl XWindow {
         window_handle.set_title(name);
         window_handle.show();
 
+        // Some window managers will ignore the x,y that we set during window
+        // creation, so we ask them again once the window is mapped
+        window_handle.set_window_position(ScreenPoint::new(x.into(), y.into()));
+
         Ok(window_handle)
     }
 }
