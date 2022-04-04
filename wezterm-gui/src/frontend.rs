@@ -205,7 +205,7 @@ impl GuiFrontEnd {
         promise::spawn::spawn(async move {
             while let Some(mux_window_id) = mux_windows.next() {
                 if let Err(err) = TermWindow::new_window(mux_window_id).await {
-                    log::error!("Failed to create window: {:#}", err);
+                    log::error!("Failed to create window: {:#} ({:?})", err, err);
                     let mux = Mux::get().expect("switching_workspaces to trigger on main thread");
                     mux.kill_window(mux_window_id);
                 }
