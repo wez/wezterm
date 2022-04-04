@@ -19,7 +19,6 @@ used.
 
 ```mermaid
 graph TD
-  %%{wrap}%%
     X[Determine current working directory for new pane] --> A{{Is initial window?}}
     A -->|Yes| B[Opened with CLI and --cwd flag?]
     A -->|No| C[New pane, tab or window.]

@@ -1,4 +1,4 @@
-# wezterm:composition_status()
+# window:composition_status()
 
 *Since: 20220319-142410-0fcdea07*
 
@@ -18,7 +18,7 @@ wezterm.on("update-right-status", function(window, pane)
   if compose then
     compose = "COMPOSING: " .. compose
   end
-  window:set_right_status(compose)
+  window:set_right_status(compose or "")
 end);
 
 return {
