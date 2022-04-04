@@ -16,8 +16,8 @@ use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
-use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use crate::termwindow::keyevent::KeyTableState;
+use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
