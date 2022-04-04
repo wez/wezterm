@@ -160,39 +160,24 @@ attempting to lookup the <code>cwd</code> of the current process group leader at
 local Pane. If no <code>cwd</code> can be resolved, then the <code>default_cwd</code> will be used.
 If <code>default_cwd</code> is not specified, then the home directory of the user will be
 used.</p>
-<pre><code class="language-text">                             Is initial window?
-               ______________________|______________________
-              |                                             |
-             Yes                                            No
-              |                                             |
-       Opened with CLI                  New pane, tab, or window. Opened with a
-      and `--cwd` flag?                   `SpawnCommand` that includes `cwd`?
-    __________|__________                         __________|__________
-   |                     |                       |                     |
-  Yes                    No                      No                   Yes
-   |                     |                       |                     |
-  Use                    |                Is there a value    Use `cwd` specified
-`--cwd`                  |                 set by OSC 7?       by `SpawnCommand`
-               __________|             __________|__________
-              |                       |                     |
-              |                       No                   Yes
-              |                       |                     |
-              |            Can `cwd` be resolved via    Use OSC 7
-              |            the process group leader?      value
-              |             __________|__________
-              |            |                     |
-              |            No                   Yes
-              |____________|                     |
-                    |                       Use resolved
-             Is `default_cwd`                  `cwd`
-                 defined?
-          __________|__________
-         |                     |
-        Yes                    No
-         |                     |
-        Use                 Use home
-   `default_cwd`            directory
-</code></pre>
+<pre class="mermaid">graph TD
+  %%{wrap}%%
+    X[Determine current working directory for new pane] --&gt; A{{Is initial window?}}
+    A --&gt;|Yes| B[Opened with CLI and --cwd flag?]
+    A --&gt;|No| C[New pane, tab or window.]
+    C --&gt; D{{Opened with a SpawnCommand&lt;br/&gt; that includes cwd?}}
+    D --&gt;|No| J{{Is there a value set by OSC 7?}}
+    B --&gt;|Yes| E[Use --cwd]
+    B --&gt;|No| F{{Is default_cwd defined?}}
+    F --&gt;|Yes| G[Use default_cwd]
+    F --&gt;|No| H[Use home directory]
+    D --&gt;|Yes| I[Use cwd specified&lt;br/&gt; by `SpawnCommand`]
+    J --&gt;|Yes| K[Use the OSC 7 value]
+    J --&gt;|No| L{{Can cwd be resolved via&lt;br/&gt; the process group leader?}}
+    L --&gt;|Yes| M[Use resolved cwd]
+    L --&gt;|No| F
+
+</pre>
 <p>On macOS and Linux, <code>wezterm</code> can attempt to resolve the process group leader
 and then attempt to resolve its current working directory. This is not
 guaranteed to succeed, and there are a number of potential edge cases (which is
@@ -244,6 +229,8 @@ another reason for configuring your shell to use OSC 7 sequences).</p>
         <script src="../../../book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
+        <script type="text/javascript" src="../../../mermaid.min.js"></script>
+        <script type="text/javascript" src="../../../mermaid-init.js"></script>
 
 
     </body>
