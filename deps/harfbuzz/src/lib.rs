@@ -815,6 +815,14 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
+    pub fn hb_set_next_many(
+        set: *const hb_set_t,
+        codepoint: hb_codepoint_t,
+        out: *mut hb_codepoint_t,
+        size: ::std::os::raw::c_uint,
+    ) -> ::std::os::raw::c_uint;
+}
+extern "C" {
     pub fn hb_face_count(blob: *mut hb_blob_t) -> ::std::os::raw::c_uint;
 }
 #[repr(C)]
