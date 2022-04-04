@@ -166,13 +166,13 @@ used.</p>
     A --&gt;|Yes| B[Opened with CLI and --cwd flag?]
     A --&gt;|No| C[New pane, tab or window.]
     C --&gt; D{{Opened with a SpawnCommand&lt;br/&gt; that includes cwd?}}
-    D --&gt;|No| J{{Is there a value set by OSC 7?}}
+    D --&gt;|No| J{{Does current pane&lt;br/&gt;have a value set by OSC 7?}}
     B --&gt;|Yes| E[Use --cwd]
     B --&gt;|No| F{{Is default_cwd defined?}}
     F --&gt;|Yes| G[Use default_cwd]
     F --&gt;|No| H[Use home directory]
     D --&gt;|Yes| I[Use cwd specified&lt;br/&gt; by `SpawnCommand`]
-    J --&gt;|Yes| K[Use the OSC 7 value]
+    J --&gt;|Yes| K[Use that OSC 7 value]
     J --&gt;|No| L{{Can cwd be resolved via&lt;br/&gt; the process group leader?}}
     L --&gt;|Yes| M[Use resolved cwd]
     L --&gt;|No| F
@@ -182,6 +182,9 @@ used.</p>
 and then attempt to resolve its current working directory. This is not
 guaranteed to succeed, and there are a number of potential edge cases (which is
 another reason for configuring your shell to use OSC 7 sequences).</p>
+<p>On Windows, there isn't a process group leader concept, but <code>wezterm</code> will
+examine the process tree of the program that it started in the current pane and
+use some heuristics to determine an approximate equivalent.</p>
 
                     </main>
 
