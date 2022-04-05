@@ -7,6 +7,8 @@ WINID=$1
 cd ../iTerm2-Color-Schemes/dynamic-colors
 shots=../../wezterm/docs/colorschemes
 
+printf "\e]0;wezterm\e\\"
+
 for scheme in *.sh ; do
   clear
   echo $scheme
