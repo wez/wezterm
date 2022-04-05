@@ -749,8 +749,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 if config.custom_block_glyphs {
                     if let Some(block) = customglyph::BlockKey::from_str(&text) {
                         println!(
-                            "{:2} {:4} {:12} drawn by wezterm: {:?}",
-                            info.cluster, cluster.text, escaped, block
+                            "{:2} {:4} {:12} drawn by wezterm because custom_block_glyphs=true: {:?}",
+                            info.cluster, text, escaped, block
                         );
                         continue;
                     }
