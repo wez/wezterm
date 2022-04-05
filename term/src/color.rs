@@ -171,8 +171,8 @@ impl ColorPalette {
         let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70);
         let cursor_fg = colors[AnsiColor::Black as usize];
 
-        let selection_fg = colors[AnsiColor::Black as usize].into();
-        let selection_bg = RgbColor::new_8bpc(0xff, 0xfa, 0xcd).into();
+        let selection_fg = SrgbaTuple(0., 0., 0., 0.);
+        let selection_bg = SrgbaTuple(0.5, 0.4, 0.6, 0.5);
 
         let scrollbar_thumb = RgbColor::new_8bpc(0x22, 0x22, 0x22);
         let split = RgbColor::new_8bpc(0x44, 0x44, 0x44);
