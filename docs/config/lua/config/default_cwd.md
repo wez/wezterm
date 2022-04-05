@@ -23,7 +23,7 @@ graph TD
     A -->|Yes| B[Opened with CLI and --cwd flag?]
     A -->|No| C[New pane, tab or window.]
     C --> D{{Opened with a SpawnCommand<br/> that includes cwd?}}
-    D -->|No| J{{Does current pane<br/>have a value set by OSC 7?}}
+    D -->|No| J{{Does current pane have same domain<br/>and have a value set by OSC 7?}}
     B -->|Yes| E[Use --cwd]
     B -->|No| F{{Is default_cwd defined?}}
     F -->|Yes| G[Use default_cwd]
