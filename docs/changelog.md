@@ -16,7 +16,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm start --position x,y`, `wezterm start --position displayname:30%,30%` option to control starting window position on all systems except for Wayland. See `wezterm start --help` for more info. [#1794](https://github.com/wez/wezterm/issues/1794)
 #### Changed
 * Default key assignments are `mapped:` again. A new [key_map_preference](config/lua/config/key_map_preference.md) option allows the defaults to use `"Mapped"` or `"Physical"`.
-* Disabled ligatures for `"Monaco"` and `"Menlo"` fonts, as those ligatures match even for words such as `find`. [#1786](https://github.com/wez/wezterm/issues/1786) [#1736](https://github.com/wez/wezterm/issues/1736)
+* Disabled ligatures for `"Monaco"` and `"Menlo"` fonts, as those have `"fi"` ligatures that match even for words such as `find`. [#1786](https://github.com/wez/wezterm/issues/1786) [#1736](https://github.com/wez/wezterm/issues/1736)
 #### Updated and Improved
 * Bundled harfbuzz to 4.2.0
 * On macOS, non-native fullscreen mode now attempts to avoid the notch on systems that have one. [#1737](https://github.com/wez/wezterm/issues/1737)
