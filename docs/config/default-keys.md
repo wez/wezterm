@@ -64,7 +64,7 @@ The default key assignments are:
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
-| `CTRL+SHIFT`     | ` ` (`Space`)   | `QuickSelect` (*since: 20210502-130208-bff6815d*) |
+| `CTRL+SHIFT`     | `Space`| `QuickSelect` (*since: 20210502-130208-bff6815d*) |
 | `CTRL+SHIFT+ALT` | `"`    | `SplitVertical={domain="CurrentPaneDomain"}` |
 | `CTRL+SHIFT+ALT` | `%`    | `SplitHorizontal={domain="CurrentPaneDomain"}` |
 | `CTRL+SHIFT+ALT` | `LeftArrow`    | `AdjustPaneSize={"Left", 1}` |
