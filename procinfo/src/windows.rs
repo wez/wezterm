@@ -254,20 +254,38 @@ impl ProcHandle {
     }
 
     /// Copies a sized WSTR from the address in the process
-    fn read_process_wchar(&self, ptr: LPVOID, size: usize) -> Option<Vec<u16>> {
-        let mut buf = vec![0u16; size / 2];
+    fn read_process_wchar(&self, ptr: LPVOID, byte_size: usize) -> Option<Vec<u16>> {
+        let mut buf = vec![0u16; byte_size / 2];
+        let mut bytes_read = 0;
 
         let res = unsafe {
             ReadProcessMemory(
                 self.0,
                 ptr as _,
                 buf.as_mut_ptr() as _,
-                size,
-                std::ptr::null_mut(),
+                byte_size,
+                &mut bytes_read,
             )
         };
         if res == 0 {
             return None;
+        }
+
+        // In the unlikely event that we have a short read,
+        // truncate the buffer to fit.
+        let wide_chars_read = bytes_read / 2;
+        buf.resize(wide_chars_read, 0);
+
+        // Ensure that it is NUL terminated
+        match buf.iter().position(|&c| c == 0) {
+            Some(n) => {
+                // Truncate to include existing NUL but no later chars
+                buf.resize(n + 1, 0);
+            }
+            None => {
+                // Add a NUL
+                buf.push(0);
+            }
         }
 
         Some(buf)
