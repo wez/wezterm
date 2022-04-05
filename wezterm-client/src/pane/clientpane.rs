@@ -382,7 +382,11 @@ impl Pane for ClientPane {
                 .await?;
 
             // Arrange to resync the layout, to avoid artifacts
-            // <https://github.com/wez/wezterm/issues/1277>
+            // <https://github.com/wez/wezterm/issues/1277>.
+            // We need a short delay to avoid racing with the observable
+            // effects of killing the pane.
+            // <https://github.com/wez/wezterm/issues/1752#issuecomment-1088269363>
+            smol::Timer::after(std::time::Duration::from_millis(200)).await;
             let mux = Mux::get().expect("called on main thread");
             let client_domain = mux
                 .get_domain(local_domain_id)
