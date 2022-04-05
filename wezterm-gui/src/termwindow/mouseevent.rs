@@ -616,7 +616,15 @@ impl super::TermWindow {
 
         self.pane_state(pane.pane_id())
             .mouse_terminal_coords
-            .replace((position.clone(), stable_row));
+            .replace((
+                ClickPosition {
+                    column: x,
+                    row: y,
+                    x_pixel_offset: position.x_pixel_offset,
+                    y_pixel_offset: position.y_pixel_offset,
+                },
+                stable_row,
+            ));
 
         let (top, mut lines) = pane.get_lines_with_hyperlinks_applied(
             stable_row..stable_row + 1,
