@@ -605,7 +605,11 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     // First, let's see if we can ask an already running wezterm to do this.
     // We must do this before we start the gui frontend as the scheduler
     // requirements are different.
-    let mut publish = Publish::resolve(&mux, &config, opts.always_new_process);
+    let mut publish = Publish::resolve(
+        &mux,
+        &config,
+        opts.always_new_process || opts.position.is_some(),
+    );
     log::trace!("{:?}", publish);
     if publish.try_spawn(cmd.clone(), &config, opts.workspace.as_deref())? {
         return Ok(());
