@@ -356,6 +356,8 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub custom_block_glyphs: bool,
+    #[serde(default = "default_true")]
+    pub anti_alias_custom_block_glyphs: bool,
 
     /// Controls the amount of padding to use around the terminal cell area
     #[serde(default)]

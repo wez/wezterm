@@ -9,6 +9,12 @@ use wezterm_font::units::{IntPixelLength, PixelLength};
 use window::bitmaps::Texture2d;
 use window::{BitmapImage, Image, Point, Rect, Size};
 
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum PolyAA {
+    AntiAlias,
+    MoarPixels,
+}
+
 bitflags::bitflags! {
     pub struct Quadrant: u8{
         const UPPER_LEFT = 1<<1;
@@ -3644,7 +3650,13 @@ impl BlockKey {
 }
 
 impl<T: Texture2d> GlyphCache<T> {
-    fn draw_polys(&mut self, metrics: &RenderMetrics, polys: &[Poly], buffer: &mut Image) {
+    fn draw_polys(
+        &mut self,
+        metrics: &RenderMetrics,
+        polys: &[Poly],
+        buffer: &mut Image,
+        aa: PolyAA,
+    ) {
         let (width, height) = buffer.image_dimensions();
         let mut pixmap =
             PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
@@ -3659,7 +3671,10 @@ impl<T: Texture2d> GlyphCache<T> {
             let intensity = (intensity.to_scale() * 255.) as u8;
             let mut paint = Paint::default();
             paint.set_color_rgba8(intensity, intensity, intensity, intensity);
-            paint.anti_alias = true;
+            paint.anti_alias = match aa {
+                PolyAA::AntiAlias => true,
+                PolyAA::MoarPixels => false,
+            };
             paint.force_hq_pipeline = true;
             let mut pb = PathBuilder::new();
             for item in path.iter() {
@@ -3710,6 +3725,7 @@ impl<T: Texture2d> GlyphCache<T> {
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
+                    PolyAA::AntiAlias,
                 );
             }
             Some(CursorShape::BlinkingBar | CursorShape::SteadyBar) => {
@@ -3724,6 +3740,7 @@ impl<T: Texture2d> GlyphCache<T> {
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
+                    PolyAA::AntiAlias,
                 );
             }
             Some(CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline) => {
@@ -3738,6 +3755,7 @@ impl<T: Texture2d> GlyphCache<T> {
                         style: PolyStyle::OutlineHeavy,
                     }],
                     &mut buffer,
+                    PolyAA::AntiAlias,
                 );
             }
         }
@@ -3923,7 +3941,16 @@ impl<T: Texture2d> GlyphCache<T> {
                 }
             }
             BlockKey::Poly(polys) | BlockKey::PolyWithCustomMetrics { polys, .. } => {
-                self.draw_polys(&metrics, polys, &mut buffer);
+                self.draw_polys(
+                    &metrics,
+                    polys,
+                    &mut buffer,
+                    if config::configuration().anti_alias_custom_block_glyphs {
+                        PolyAA::AntiAlias
+                    } else {
+                        PolyAA::MoarPixels
+                    },
+                );
             }
         }
 
