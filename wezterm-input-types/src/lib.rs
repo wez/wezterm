@@ -300,6 +300,126 @@ impl KeyCode {
     }
 }
 
+impl TryFrom<&str> for KeyCode {
+    type Error = String;
+    fn try_from(s: &str) -> std::result::Result<Self, String> {
+        macro_rules! m {
+            ($($val:ident),* $(,)?) => {
+                match s {
+                $(
+                    stringify!($val) => return Ok(Self::$val),
+                )*
+                    _ => {}
+                }
+            }
+        }
+
+        m!(
+            Hyper,
+            Super,
+            Meta,
+            Cancel,
+            Clear,
+            Shift,
+            LeftShift,
+            RightShift,
+            Control,
+            LeftControl,
+            RightControl,
+            Alt,
+            LeftAlt,
+            RightAlt,
+            Pause,
+            CapsLock,
+            VoidSymbol,
+            PageUp,
+            PageDown,
+            End,
+            Home,
+            LeftArrow,
+            RightArrow,
+            UpArrow,
+            DownArrow,
+            Select,
+            Print,
+            Execute,
+            PrintScreen,
+            Insert,
+            Help,
+            LeftWindows,
+            RightWindows,
+            Applications,
+            Sleep,
+            Multiply,
+            Add,
+            Separator,
+            Subtract,
+            Decimal,
+            Divide,
+            NumLock,
+            ScrollLock,
+            Copy,
+            Cut,
+            Paste,
+            BrowserBack,
+            BrowserForward,
+            BrowserRefresh,
+            BrowserStop,
+            BrowserSearch,
+            BrowserFavorites,
+            BrowserHome,
+            VolumeMute,
+            VolumeDown,
+            VolumeUp,
+            MediaNextTrack,
+            MediaPrevTrack,
+            MediaStop,
+            MediaPlayPause,
+            ApplicationLeftArrow,
+            ApplicationRightArrow,
+            ApplicationUpArrow,
+            ApplicationDownArrow,
+        );
+
+        match s {
+            "Backspace" => return Ok(KeyCode::Char('\u{8}')),
+            "Tab" => return Ok(KeyCode::Char('\t')),
+            "Return" | "Enter" => return Ok(KeyCode::Char('\r')),
+            "Escape" => return Ok(KeyCode::Char('\u{1b}')),
+            "Delete" => return Ok(KeyCode::Char('\u{7f}')),
+            _ => {}
+        };
+
+        if let Some(n) = s.strip_prefix("Numpad") {
+            let n: u8 = n
+                .parse()
+                .map_err(|err| format!("parsing Numpad<NUMBER>: {:#}", err))?;
+            if n > 9 {
+                return Err("Numpad numbers must be in range 0-9".to_string());
+            }
+            return Ok(KeyCode::Numpad(n));
+        }
+
+        if let Some(n) = s.strip_prefix("F") {
+            let n: u8 = n
+                .parse()
+                .map_err(|err| format!("parsing F<NUMBER>: {:#}", err))?;
+            if n == 0 || n > 24 {
+                return Err("Function key numbers must be in range 1-24".to_string());
+            }
+            return Ok(KeyCode::Function(n));
+        }
+
+        let chars: Vec<char> = s.chars().collect();
+        if chars.len() == 1 {
+            let k = KeyCode::Char(chars[0]);
+            Ok(k)
+        } else {
+            Err(format!("invalid KeyCode string {}", s))
+        }
+    }
+}
+
 impl ToString for KeyCode {
     fn to_string(&self) -> String {
         match self {
