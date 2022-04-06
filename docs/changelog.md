@@ -48,6 +48,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Workaround for fonts with broken horizontal advance metrics [#1787](https://github.com/wez/wezterm/issues/1787)
 * Improved mouse based selection. Thanks to [@davidrios](https://github.com/davidrios)! [#1805](https://github.com/wez/wezterm/issues/1805) [#1199](https://github.com/wez/wezterm/issues/1199) [#1386](https://github.com/wez/wezterm/issues/1386) [#354](https://github.com/wez/wezterm/issues/354)
 * X11 `KP_End` wasn't recognized [#1804](https://github.com/wez/wezterm/issues/1804)
+* fontconfig matches now also treat `"charcell"` spacing as monospace. [#1820](https://github.com/wez/wezterm/issues/1820)
 
 ### 20220319-142410-0fcdea07
 

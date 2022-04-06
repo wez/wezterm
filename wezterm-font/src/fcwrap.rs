@@ -8,6 +8,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 use std::{fmt, mem, ptr};
 
+pub const FC_CHARCELL: i32 = 110;
 pub const FC_MONO: i32 = 100;
 pub const FC_DUAL: i32 = 90;
 

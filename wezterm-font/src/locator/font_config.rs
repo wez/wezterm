@@ -3,13 +3,13 @@ use crate::locator::{FontDataHandle, FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use anyhow::Context;
 use config::{FontAttributes, FontStyle, FontWeight};
-use fcwrap::{CharSet, FontSet, Pattern as FontPattern, FC_DUAL, FC_MONO};
+use fcwrap::{CharSet, FontSet, Pattern as FontPattern, FC_CHARCELL, FC_DUAL, FC_MONO};
 use std::collections::HashSet;
 use std::convert::TryInto;
 
-/// Allow for both monospace and dual spacing; both of these are
+/// Allow for monospace, dual and charcell spacing; these are
 /// fixed width styles so are desirable for a terminal use case.
-const SPACING: [i32; 2] = [FC_MONO, FC_DUAL];
+const SPACING: [i32; 3] = [FC_MONO, FC_DUAL, FC_CHARCELL];
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by font-config
@@ -29,7 +29,7 @@ impl FontLocator for FontConfigFontLocator {
             matches
                 .iter()
                 .filter_map(|p| match p.get_integer("spacing") {
-                    Ok(n) if n == FC_MONO || n == FC_DUAL => Some(p),
+                    Ok(n) if n == FC_MONO || n == FC_DUAL || n == FC_CHARCELL => Some(p),
                     // (probably!) no spacing defined. Assume monospace.
                     Err(_) => Some(p),
                     _ => None,
@@ -44,7 +44,8 @@ impl FontLocator for FontConfigFontLocator {
             pattern.family(&attr.family)?;
             let matches = monospaced(pattern.list()?);
             log::trace!(
-                "listing by family took {:?} to compute and is {:?}",
+                "listing {:?} by family took {:?} to compute and is {:?}",
+                attr.family,
                 start.elapsed(),
                 matches
             );
@@ -58,7 +59,8 @@ impl FontLocator for FontConfigFontLocator {
             pattern.add_string("postscriptname", &attr.family)?;
             let matches = monospaced(pattern.list()?);
             log::trace!(
-                "listing by postscriptname took {:?} to compute and is {:?}",
+                "listing {:?} by postscriptname took {:?} to compute and is {:?}",
+                attr.family,
                 start.elapsed(),
                 matches
             );
