@@ -206,11 +206,8 @@ impl super::TermWindow {
             self.mouse_event_ui_item(item, pane, y, event, context);
         } else if matches!(
             self.current_mouse_capture,
-            None | Some(MouseCapture::Terminal)
+            None | Some(MouseCapture::TerminalPane(_))
         ) {
-            if capture_mouse {
-                self.current_mouse_capture = Some(MouseCapture::Terminal);
-            }
             self.mouse_event_terminal(
                 pane,
                 ClickPosition {
@@ -221,6 +218,7 @@ impl super::TermWindow {
                 },
                 event,
                 context,
+                capture_mouse,
             );
         }
     }
@@ -521,17 +519,28 @@ impl super::TermWindow {
         position: ClickPosition,
         event: MouseEvent,
         context: &dyn WindowOps,
+        capture_mouse: bool,
     ) {
         let mut is_click_to_focus_pane = false;
 
-        let mut x = position.column;
-        let mut y = position.row;
+        let ClickPosition {
+            mut column,
+            mut row,
+            mut x_pixel_offset,
+            mut y_pixel_offset,
+        } = position;
+
+        let is_already_captured = matches!(
+            self.current_mouse_capture,
+            Some(MouseCapture::TerminalPane(_))
+        );
 
         for pos in self.get_panes_to_render() {
-            if y >= pos.top as i64
-                && y <= (pos.top + pos.height) as i64
-                && x >= pos.left
-                && x <= pos.left + pos.width
+            if !is_already_captured
+                && row >= pos.top as i64
+                && row <= (pos.top + pos.height) as i64
+                && column >= pos.left
+                && column <= pos.left + pos.width
             {
                 if pane.pane_id() != pos.pane.pane_id() {
                     // We're over a pane that isn't active
@@ -563,10 +572,28 @@ impl super::TermWindow {
                         }
                     }
                 }
-                x = x.saturating_sub(pos.left);
-                y = y.saturating_sub(pos.top as i64);
+                column = column.saturating_sub(pos.left);
+                row = row.saturating_sub(pos.top as i64);
+                break;
+            } else if is_already_captured && pane.pane_id() == pos.pane.pane_id() {
+                column = column.saturating_sub(pos.left);
+                row = row.saturating_sub(pos.top as i64).max(0);
+
+                if position.column < pos.left {
+                    x_pixel_offset -= self.render_metrics.cell_size.width
+                        * (pos.left as isize - position.column as isize);
+                }
+                if position.row < pos.top as i64 {
+                    y_pixel_offset -= self.render_metrics.cell_size.height
+                        * (pos.top as isize - position.row as isize);
+                }
+
                 break;
             }
+        }
+
+        if capture_mouse {
+            self.current_mouse_capture = Some(MouseCapture::TerminalPane(pane.pane_id()));
         }
 
         let is_focused = if let Some(focused) = self.focused.as_ref() {
@@ -612,16 +639,16 @@ impl super::TermWindow {
         let stable_row = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top)
-            + y as StableRowIndex;
+            + row as StableRowIndex;
 
         self.pane_state(pane.pane_id())
             .mouse_terminal_coords
             .replace((
                 ClickPosition {
-                    column: x,
-                    row: y,
-                    x_pixel_offset: position.x_pixel_offset,
-                    y_pixel_offset: position.y_pixel_offset,
+                    column,
+                    row,
+                    x_pixel_offset,
+                    y_pixel_offset,
                 },
                 stable_row,
             ));
@@ -632,7 +659,7 @@ impl super::TermWindow {
         );
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
-                if let Some(cell) = line.cells().get(x) {
+                if let Some(cell) = line.cells().get(column) {
                     cell.attrs().hyperlink().cloned()
                 } else {
                     None
@@ -792,10 +819,10 @@ impl super::TermWindow {
                 }
                 WMEK::HorzWheel(_) => TMB::None,
             },
-            x,
-            y,
-            x_pixel_offset: position.x_pixel_offset,
-            y_pixel_offset: position.y_pixel_offset,
+            x: column,
+            y: row,
+            x_pixel_offset,
+            y_pixel_offset,
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
