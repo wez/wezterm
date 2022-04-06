@@ -656,7 +656,14 @@ impl Domain for RemoteSshDomain {
             writer,
         );
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(pane_id, terminal, child, pty, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            pane_id,
+            terminal,
+            child,
+            pty,
+            self.id,
+            "RemoteSshDomain".to_string(),
+        ));
         let mux = Mux::get().unwrap();
         mux.add_pane(&pane)?;
 

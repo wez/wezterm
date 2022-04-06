@@ -271,6 +271,12 @@ impl Domain for LocalDomain {
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
 
+        let command_description = format!(
+            "\"{}\" in domain \"{}\"",
+            cmd.as_unix_command_line()
+                .unwrap_or_else(|err| format!("error rendering command line: {:?}", err)),
+            self.name
+        );
         let child = pair.slave.spawn_command(cmd)?;
         log::trace!("spawned: {:?}", child);
 
@@ -293,6 +299,7 @@ impl Domain for LocalDomain {
             child,
             pair.master,
             self.id,
+            command_description,
         ));
 
         let mux = Mux::get().unwrap();

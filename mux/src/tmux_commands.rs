@@ -154,6 +154,7 @@ impl TmuxDomainState {
                 Box::new(child),
                 Box::new(pane_pty),
                 self.domain_id,
+                "tmux pane".to_string(),
             ));
 
             let tab = Rc::new(Tab::new(&size));

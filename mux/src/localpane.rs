@@ -56,6 +56,7 @@ pub struct LocalPane {
     domain_id: DomainId,
     tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
     proc_list: RefCell<Option<CachedProcInfo>>,
+    command_description: String,
 }
 
 #[async_trait(?Send)]
@@ -142,9 +143,10 @@ impl Pane for LocalPane {
         let mut proc = self.process.borrow_mut();
         let mut notify = None;
 
-        const EXIT_BEHAVIOR: &str = "\x1b]8;;https://wezfurlong.org/wezterm/\
-                                     config/lua/config/exit_behavior.html\
-                                     \x1b\\exit_behavior\x1b]8;;\x1b\\";
+        const EXIT_BEHAVIOR: &str = "This message is shown because \
+            \x1b]8;;https://wezfurlong.org/wezterm/\
+            config/lua/config/exit_behavior.html\
+            \x1b\\exit_behavior\x1b]8;;\x1b\\";
 
         match &mut *proc {
             ProcessState::Running {
@@ -162,7 +164,8 @@ impl Pane for LocalPane {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, false) => {
                             notify = Some(format!(
-                                "\r\n[Process didn't exit cleanly. ({}=\"CloseOnCleanExit\")]\r\n",
+                                "\r\n⚠️ Process {} didn't exit cleanly.\r\n{}=\"CloseOnCleanExit\"\r\n",
+                                self.command_description,
                                 EXIT_BEHAVIOR
                             ));
                             *proc = ProcessState::DeadPendingClose { killed: false }
@@ -171,13 +174,13 @@ impl Pane for LocalPane {
                         (ExitBehavior::Hold, success, false) => {
                             if success {
                                 notify = Some(format!(
-                                    "\r\n[Process completed. ({}=\"Hold\")]\r\n",
-                                    EXIT_BEHAVIOR
+                                    "\r\n👍Process {} completed.\r\n{}=\"Hold\"\r\n",
+                                    self.command_description, EXIT_BEHAVIOR
                                 ));
                             } else {
                                 notify = Some(format!(
-                                    "\r\n[Process didn't exit cleanly. ({}=\"Hold\")]\r\n",
-                                    EXIT_BEHAVIOR
+                                    "\r\n⚠️ Process {} didn't exit cleanly.\r\n{}=\"Hold\"\r\n",
+                                    self.command_description, EXIT_BEHAVIOR
                                 ));
                             }
                             *proc = ProcessState::DeadPendingClose { killed: false }
@@ -732,6 +735,7 @@ impl LocalPane {
         process: Box<dyn Child + Send>,
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
+        command_description: String,
     ) -> Self {
         let (process, signaller, pid) = split_child(process);
 
@@ -753,6 +757,7 @@ impl LocalPane {
             domain_id,
             tmux_domain: RefCell::new(None),
             proc_list: RefCell::new(None),
+            command_description,
         }
     }
 
