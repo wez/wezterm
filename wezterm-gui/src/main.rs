@@ -829,11 +829,17 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             font_dirs.len()
         );
         for font in font_dirs {
+            let pixel_sizes = if font.pixel_sizes.is_empty() {
+                "".to_string()
+            } else {
+                format!(" pixel_sizes={:?}", font.pixel_sizes)
+            };
             println!(
-                "{} -- {}{}",
+                "{} -- {}{}{}",
                 font.lua_name(),
                 font.aka(),
-                font.handle.diagnostic_string()
+                font.handle.diagnostic_string(),
+                pixel_sizes
             );
         }
 
