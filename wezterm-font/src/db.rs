@@ -8,7 +8,7 @@ use rangeset::RangeSet;
 use std::collections::{HashMap, HashSet};
 
 pub struct FontDatabase {
-    by_full_name: HashMap<String, ParsedFont>,
+    by_full_name: HashMap<String, Vec<ParsedFont>>,
 }
 
 impl FontDatabase {
@@ -22,7 +22,8 @@ impl FontDatabase {
         for parsed in font_info {
             self.by_full_name
                 .entry(parsed.names().full_name.clone())
-                .or_insert(parsed);
+                .or_insert_with(|| vec![])
+                .push(parsed);
         }
     }
 
@@ -53,10 +54,13 @@ impl FontDatabase {
     }
 
     pub fn list_available(&self) -> Vec<ParsedFont> {
-        self.by_full_name
-            .values()
-            .map(|p| p.clone())
-            .collect::<Vec<_>>()
+        let mut fonts = vec![];
+        for parsed_list in self.by_full_name.values() {
+            for parsed in parsed_list {
+                fonts.push(parsed.clone());
+            }
+        }
+        fonts
     }
 
     pub fn with_built_in() -> anyhow::Result<Self> {
@@ -94,15 +98,17 @@ impl FontDatabase {
 
         let mut matches = vec![];
 
-        for parsed in self.by_full_name.values() {
-            if parsed.names().family == "Last Resort High-Efficiency" {
-                continue;
-            }
-            let covered = parsed
-                .coverage_intersection(&wanted_range)
-                .with_context(|| format!("coverage_interaction for {:?}", parsed))?;
-            if !covered.is_empty() {
-                matches.push(parsed.clone());
+        for parsed_list in self.by_full_name.values() {
+            for parsed in parsed_list {
+                if parsed.names().family == "Last Resort High-Efficiency" {
+                    continue;
+                }
+                let covered = parsed
+                    .coverage_intersection(&wanted_range)
+                    .with_context(|| format!("coverage_interaction for {:?}", parsed))?;
+                if !covered.is_empty() {
+                    matches.push(parsed.clone());
+                }
             }
         }
 
@@ -110,30 +116,26 @@ impl FontDatabase {
     }
 
     pub fn candidates(&self, font_attr: &FontAttributes) -> Vec<&ParsedFont> {
-        self.by_full_name
-            .values()
-            .filter_map(|parsed| {
+        let mut fonts = vec![];
+        for parsed_list in self.by_full_name.values() {
+            for parsed in parsed_list {
                 if parsed.matches_name(font_attr) {
-                    Some(parsed)
-                } else {
-                    None
+                    fonts.push(parsed);
                 }
-            })
-            .collect()
+            }
+        }
+        fonts
     }
 
     pub fn resolve(&self, font_attr: &FontAttributes, pixel_size: u16) -> Option<&ParsedFont> {
-        let candidates: Vec<&ParsedFont> = self
-            .by_full_name
-            .values()
-            .filter_map(|parsed| {
+        let mut candidates = vec![];
+        for parsed_list in self.by_full_name.values() {
+            for parsed in parsed_list {
                 if parsed.matches_name(font_attr) {
-                    Some(parsed)
-                } else {
-                    None
+                    candidates.push(parsed);
                 }
-            })
-            .collect();
+            }
+        }
 
         if let Some(idx) = ParsedFont::best_matching_index(font_attr, &candidates, pixel_size) {
             return candidates.get(idx).map(|&p| p);
