@@ -109,7 +109,7 @@ impl TryFrom<String> for DeferredKeyCode {
 impl TryFrom<&str> for DeferredKeyCode {
     type Error = anyhow::Error;
     fn try_from(s: &str) -> anyhow::Result<DeferredKeyCode> {
-        if s.starts_with("mapped:") || s.starts_with("phys:") {
+        if s.starts_with("mapped:") || s.starts_with("phys:") || s.starts_with("raw:") {
             let key = Self::parse_str(&s)?;
             return Ok(DeferredKeyCode::KeyCode(key));
         }
