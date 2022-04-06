@@ -145,4 +145,9 @@ pub fn bootstrap() {
     set_lang_from_locale();
 
     fixup_appimage();
+
+    // Remove this env var to avoid weirdness with some vim configurations.
+    // wezterm never sets WINDOWID and we don't want to inherit it from a
+    // parent process.
+    std::env::remove_var("WINDOWID");
 }
