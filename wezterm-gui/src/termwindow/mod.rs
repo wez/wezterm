@@ -89,7 +89,7 @@ pub fn get_window_class() -> String {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MouseCapture {
     UI,
-    TerminalPane(usize),
+    TerminalPane(PaneId),
 }
 
 /// Type used together with Window::notify to do something in the
