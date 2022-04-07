@@ -68,15 +68,43 @@ where
 
         match smol::future::or(rx_msg, wait_for_read).await {
             Ok(Item::Readable) => {
-                let decoded = Pdu::decode_async(&mut stream).await?;
+                let decoded = match Pdu::decode_async(&mut stream).await {
+                    Ok(data) => data,
+                    Err(err) => {
+                        if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
+                            if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                                // Client disconnected: no need to make a noise
+                                return Ok(());
+                            }
+                        }
+                        return Err(err).context("reading Pdu from client");
+                    }
+                };
                 handler.process_one(decoded);
             }
             Ok(Item::WritePdu(decoded)) => {
-                decoded
-                    .pdu
-                    .encode_async(&mut stream, decoded.serial)
-                    .await?;
-                stream.flush().await.context("flushing PDU to client")?;
+                match decoded.pdu.encode_async(&mut stream, decoded.serial).await {
+                    Ok(()) => {}
+                    Err(err) => {
+                        if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {
+                            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                // Client disconnected: no need to make a noise
+                                return Ok(());
+                            }
+                        }
+                        return Err(err).context("encoding PDU to client");
+                    }
+                };
+                match stream.flush().await {
+                    Ok(()) => {}
+                    Err(err) => {
+                        if err.kind() == std::io::ErrorKind::BrokenPipe {
+                            // Client disconnected: no need to make a noise
+                            return Ok(());
+                        }
+                        return Err(err).context("flushing PDU to client");
+                    }
+                }
             }
             Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
                 handler.schedule_pane_push(pane_id);
