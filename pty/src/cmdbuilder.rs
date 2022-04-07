@@ -439,11 +439,11 @@ impl CommandBuilder {
     }
 
     pub fn get_shell(&self) -> anyhow::Result<String> {
-        Ok(self
+        let exe: OsString = self
             .get_env("ComSpec")
             .unwrap_or(OsStr::new("cmd.exe"))
-            .into()
-            .into_string()?)
+            .into();
+        Ok(exe.into_string()?)
     }
 
     pub(crate) fn cmdline(&self) -> anyhow::Result<(Vec<u16>, Vec<u16>)> {
