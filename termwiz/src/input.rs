@@ -1281,8 +1281,9 @@ impl InputParser {
                         // end marker in 8K, 16K, 24K etc. of text until the final buffer is received.
                         // Ensure that we use saturating math here for the case where the amount
                         // of buffered data after the begin paste is smaller than the end paste marker
-                        // <https://github.com/wez/wezterm/pull/1832> 
-                        self.state = InputState::Pasting(self.buf.len().saturating_sub(end_paste.len()));
+                        // <https://github.com/wez/wezterm/pull/1832>
+                        self.state =
+                            InputState::Pasting(self.buf.len().saturating_sub(end_paste.len()));
                         return;
                     }
                 }
