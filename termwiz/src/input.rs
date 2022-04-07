@@ -1593,4 +1593,19 @@ mod test {
             "\x1bOP".to_string()
         );
     }
+
+    #[test]
+    fn partial_bracketed_paste() {
+        let mut p = InputParser::new();
+
+        let input = b"\x1b[200~1234";
+        let input2 = b"5678\x1b[201~";
+
+        let mut inputs = vec![];
+
+        p.parse(input, |e| inputs.push(e), false);
+        p.parse(input2, |e| inputs.push(e), false);
+
+        assert_eq!(vec![InputEvent::Paste("12345678".to_owned())], inputs)
+    }
 }
