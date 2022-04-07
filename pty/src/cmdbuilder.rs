@@ -438,6 +438,14 @@ impl CommandBuilder {
         block
     }
 
+    pub fn get_shell(&self) -> anyhow::Result<String> {
+        Ok(self
+            .get_env("ComSpec")
+            .unwrap_or(OsStr::new("cmd.exe"))
+            .into()
+            .into_string()?)
+    }
+
     pub(crate) fn cmdline(&self) -> anyhow::Result<(Vec<u16>, Vec<u16>)> {
         let mut cmdline = Vec::<u16>::new();
 
