@@ -2150,12 +2150,10 @@ impl WindowView {
             modifiers
         };
 
-        let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
-            == Modifiers::NONE;
-        let only_left_alt =
-            (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
-        let only_right_alt =
-            (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+        let alt_mods = Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT;
+        let only_alt = (modifiers & alt_mods) == Modifiers::ALT;
+        let only_left_alt = (modifiers & alt_mods) == (Modifiers::LEFT_ALT | Modifiers::ALT);
+        let only_right_alt = (modifiers & alt_mods) == (Modifiers::RIGHT_ALT | Modifiers::ALT);
 
         // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
         // when `use_ime` is true.
