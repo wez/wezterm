@@ -1276,7 +1276,13 @@ impl InputParser {
                         callback(InputEvent::Paste(pasted));
                         self.state = InputState::Normal;
                     } else {
-                        self.state = InputState::Pasting(0);
+                        // Advance our offset so that in the case where we receive a paste that
+                        // is spread across N reads of size 8K, we don't need to search for the
+                        // end marker in 8K, 16K, 24K etc. of text until the final buffer is received.
+                        // Ensure that we use saturating math here for the case where the amount
+                        // of buffered data after the begin paste is smaller than the end paste marker
+                        // <https://github.com/wez/wezterm/pull/1832> 
+                        self.state = InputState::Pasting(self.buf.len().saturating_sub(end_paste.len()));
                         return;
                     }
                 }
