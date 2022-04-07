@@ -1276,7 +1276,7 @@ impl InputParser {
                         callback(InputEvent::Paste(pasted));
                         self.state = InputState::Normal;
                     } else {
-                        self.state = InputState::Pasting(self.buf.len() - end_paste.len());
+                        self.state = InputState::Pasting(0);
                         return;
                     }
                 }
