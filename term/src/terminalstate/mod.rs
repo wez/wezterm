@@ -1204,7 +1204,18 @@ impl TerminalState {
                 self.writer.flush().ok();
             }
             Device::RequestSecondaryDeviceAttributes => {
-                self.writer.write(b"\x1b[>0;0;0c").ok();
+                // Response is: Pp ; Pv ; Pc
+                // Where Pp=1 means vt220
+                // and Pv is the firmware version.
+                // Pc is always 0.
+                // Because our default TERM is xterm, the firmware
+                // version will be considered to be equialent to xterm's
+                // patch levels, with the following effects:
+                // pv < 95 -> ttymouse=xterm
+                // pv >= 95 < 277 -> ttymouse=xterm2
+                // pv >= 277 -> ttymouse=sgr
+                // pv >= 279 - xterm will probe for additional device settings.
+                self.writer.write(b"\x1b[>1;277;0c").ok();
                 self.writer.flush().ok();
             }
             Device::RequestTertiaryDeviceAttributes => {
