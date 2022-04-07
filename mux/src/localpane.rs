@@ -164,7 +164,7 @@ impl Pane for LocalPane {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, false) => {
                             notify = Some(format!(
-                                "\r\n⚠️ Process {} didn't exit cleanly.\r\n{}=\"CloseOnCleanExit\"\r\n",
+                                "\r\n⚠️  Process {} didn't exit cleanly.\r\n{}=\"CloseOnCleanExit\"\r\n",
                                 self.command_description,
                                 EXIT_BEHAVIOR
                             ));
@@ -174,12 +174,12 @@ impl Pane for LocalPane {
                         (ExitBehavior::Hold, success, false) => {
                             if success {
                                 notify = Some(format!(
-                                    "\r\n👍Process {} completed.\r\n{}=\"Hold\"\r\n",
+                                    "\r\n👍 Process {} completed.\r\n{}=\"Hold\"\r\n",
                                     self.command_description, EXIT_BEHAVIOR
                                 ));
                             } else {
                                 notify = Some(format!(
-                                    "\r\n⚠️ Process {} didn't exit cleanly.\r\n{}=\"Hold\"\r\n",
+                                    "\r\n⚠️  Process {} didn't exit cleanly.\r\n{}=\"Hold\"\r\n",
                                     self.command_description, EXIT_BEHAVIOR
                                 ));
                             }

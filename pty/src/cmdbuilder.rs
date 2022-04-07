@@ -318,7 +318,7 @@ impl CommandBuilder {
     /// Determine which shell to run.
     /// We take the contents of the $SHELL env var first, then
     /// fall back to looking it up from the password database.
-    fn get_shell(&self) -> anyhow::Result<String> {
+    pub fn get_shell(&self) -> anyhow::Result<String> {
         if let Some(shell) = self.get_env("SHELL").and_then(OsStr::to_str) {
             return Ok(shell.into());
         }

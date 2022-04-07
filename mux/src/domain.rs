@@ -271,10 +271,16 @@ impl Domain for LocalDomain {
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
 
+        let command_line = cmd
+            .as_unix_command_line()
+            .unwrap_or_else(|err| format!("error rendering command line: {:?}", err));
         let command_description = format!(
             "\"{}\" in domain \"{}\"",
-            cmd.as_unix_command_line()
-                .unwrap_or_else(|err| format!("error rendering command line: {:?}", err)),
+            if command_line.is_empty() {
+                cmd.get_shell()?
+            } else {
+                command_line
+            },
             self.name
         );
         let child = pair.slave.spawn_command(cmd)?;
