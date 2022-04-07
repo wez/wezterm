@@ -17,4 +17,4 @@ serde = {version="1.0", features = ["derive"], optional=true}
 
 [dev-dependencies]
 k9 = "0.11.0"
-pretty_env_logger = "0.4"
+env_logger = "0.9"

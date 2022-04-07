@@ -261,7 +261,7 @@ pub struct Sshd {
 
 impl Sshd {
     pub fn spawn(mut config: SshdConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        let _ = pretty_env_logger::formatted_builder()
+        let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();

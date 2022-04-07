@@ -2095,9 +2095,7 @@ mod tests {
 
     #[test]
     fn bidi_character_test() {
-        let _ = pretty_env_logger::formatted_builder()
-            .is_test(true)
-            .try_init();
+        let _ = env_logger::Builder::new().is_test(true).try_init();
 
         let data = include_str!("../data/BidiCharacterTest.txt");
 
@@ -2219,9 +2217,7 @@ mod tests {
 
     #[test]
     fn bidi_test() {
-        let _ = pretty_env_logger::formatted_builder()
-            .is_test(true)
-            .try_init();
+        let _ = env_logger::Builder::new().is_test(true).try_init();
         let data = include_str!("../data/BidiTest.txt");
 
         let mut levels: Vec<Level> = vec![];

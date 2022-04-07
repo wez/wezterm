@@ -34,7 +34,7 @@ wezterm-bidi = { path = "../bidi" }
 
 [dev-dependencies]
 pretty_assertions = "0.6"
-pretty_env_logger = "0.4"
+env_logger = "0.9"
 k9 = "0.11.0"
 unicode-normalization = "0.1"
 

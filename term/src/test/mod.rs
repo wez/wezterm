@@ -59,7 +59,7 @@ impl TerminalConfiguration for TestTermConfig {
 
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
-        let _ = pretty_env_logger::formatted_builder()
+        let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();

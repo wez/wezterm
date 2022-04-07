@@ -49,7 +49,7 @@ docs = ["widgets", "use_serde"]
 [dev-dependencies]
 varbincode = "0.1"
 pretty_assertions = "0.6"
-pretty_env_logger = "0.4"
+env_logger = "0.9"
 
 [dependencies.num-derive]
 features = ["full-syntax"]

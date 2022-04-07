@@ -664,6 +664,7 @@ dependencies = [
  "colorgrad",
  "dirs-next",
  "enum-display-derive",
+ "env_logger",
  "filenamegen",
  "hostname",
  "lazy_static",
@@ -675,7 +676,6 @@ dependencies = [
  "open",
  "ordered-float",
  "portable-pty",
- "pretty_env_logger",
  "promise",
  "serde",
  "serde_json",
@@ -1092,19 +1092,19 @@ dependencies = [
  "cocoa",
  "config",
  "dirs-next",
+ "env_logger",
  "lazy_static",
  "libc",
  "log",
  "objc",
- "pretty_env_logger",
  "winapi 0.3.9",
 ]
 
 [[package]]
 name = "env_logger"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
+checksum = "0b2cf0344971ee6c64c31be0d530793fba457d322dfec2810c453d0ef228f9c3"
 dependencies = [
  "atty",
  "humantime",
@@ -1673,12 +1673,9 @@ dependencies = [
 
 [[package]]
 name = "humantime"
-version = "1.3.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df004cfca50ef23c36850aaaa59ad52cc70d0e90243c3c7737a4dd32dc7a3c4f"
-dependencies = [
- "quick-error",
-]
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "idna"
@@ -3004,16 +3001,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pretty_env_logger"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
-dependencies = [
- "env_logger",
- "log",
-]
-
-[[package]]
 name = "proc-macro-crate"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3103,12 +3090,6 @@ name = "pure-rust-locales"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b45c49fc4f91f35bae654f85ebb3a44d60ac64f11b3166ffa609def390c732d8"
-
-[[package]]
-name = "quick-error"
-version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
@@ -4032,6 +4013,7 @@ dependencies = [
  "bitflags",
  "cassowary",
  "cfg-if 1.0.0",
+ "env_logger",
  "filedescriptor",
  "fnv",
  "hex",
@@ -4047,7 +4029,6 @@ dependencies = [
  "pest",
  "pest_derive",
  "pretty_assertions",
- "pretty_env_logger",
  "regex",
  "semver 0.11.0",
  "serde",
@@ -4370,7 +4351,7 @@ dependencies = [
 
 [[package]]
 name = "vtparse"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "pretty_assertions",
  "utf8parse",
@@ -4616,9 +4597,9 @@ dependencies = [
 name = "wezterm-bidi"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
  "k9",
  "log",
- "pretty_env_logger",
  "serde",
 ]
 
@@ -4676,6 +4657,7 @@ dependencies = [
  "dwrote",
  "encoding_rs",
  "enum-display-derive",
+ "env_logger",
  "euclid",
  "fontconfig",
  "freetype",
@@ -4687,7 +4669,6 @@ dependencies = [
  "metrics",
  "mux",
  "ordered-float",
- "pretty_env_logger",
  "rangeset",
  "termwiz",
  "thiserror",
@@ -4718,6 +4699,7 @@ dependencies = [
  "downcast-rs",
  "embed-resource",
  "env-bootstrap",
+ "env_logger",
  "euclid",
  "fastrand",
  "filedescriptor",
@@ -4737,7 +4719,6 @@ dependencies = [
  "open",
  "ordered-float",
  "portable-pty",
- "pretty_env_logger",
  "promise",
  "pulldown-cmark",
  "rangeset",
@@ -4851,6 +4832,7 @@ dependencies = [
  "bitflags",
  "camino",
  "dirs-next",
+ "env_logger",
  "filedescriptor",
  "filenamegen",
  "indoc",
@@ -4861,7 +4843,6 @@ dependencies = [
  "once_cell",
  "portable-pty",
  "predicates",
- "pretty_env_logger",
  "regex",
  "rstest",
  "shell-words",
@@ -4881,6 +4862,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "csscolorparser",
+ "env_logger",
  "hex",
  "image",
  "k9",
@@ -4891,7 +4873,6 @@ dependencies = [
  "num-traits",
  "ordered-float",
  "pretty_assertions",
- "pretty_env_logger",
  "serde",
  "terminfo",
  "termwiz",
@@ -5006,7 +4987,6 @@ dependencies = [
  "metrics",
  "mio",
  "objc",
- "pretty_env_logger",
  "promise",
  "raw-window-handle 0.3.4",
  "resize",

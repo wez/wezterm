@@ -48,7 +48,7 @@ struct Opt {
 }
 
 fn main() {
-    pretty_env_logger::init();
+    env_logger::init();
     let opts = Opt::from_args();
 
     let mut config = Config::new();

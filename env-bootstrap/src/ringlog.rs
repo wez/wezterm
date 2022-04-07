@@ -194,13 +194,16 @@ fn setup_pretty() -> (LevelFilter, Option<Box<dyn log::Log>>) {
         }
     }
 
-    let mut builder = pretty_env_logger::formatted_timed_builder();
+    let mut builder = env_logger::Builder::new();
     builder.filter(Some("wgpu_core"), LevelFilter::Error);
     builder.filter(Some("gfx_backend_metal"), LevelFilter::Error);
     if let Ok(s) = std::env::var("WEZTERM_LOG") {
         builder.parse_filters(&s);
     } else {
         builder.filter(None, LevelFilter::Info);
+    }
+    if let Ok(s) = std::env::var("WEZTERM_LOG_STYLE") {
+        builder.parse_write_style(&s);
     }
 
     let pretty = builder.build();

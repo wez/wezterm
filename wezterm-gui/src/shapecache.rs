@@ -203,7 +203,7 @@ mod test {
     #[test]
     fn ligatures_fira() {
         config::use_test_configuration();
-        let _ = pretty_env_logger::formatted_builder()
+        let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();
@@ -322,7 +322,7 @@ mod test {
     #[test]
     fn ligatures_jetbrains() {
         config::use_test_configuration();
-        let _ = pretty_env_logger::formatted_builder()
+        let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();

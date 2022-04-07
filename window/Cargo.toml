@@ -9,7 +9,6 @@ license = "MIT"
 build = "build.rs"
 
 [dev-dependencies]
-pretty_env_logger = "0.4"
 k9 = "0.11.0"
 
 [build-dependencies]

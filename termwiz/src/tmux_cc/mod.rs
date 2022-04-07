@@ -630,7 +630,7 @@ mod tests {
 
     #[test]
     fn test_parse_line() {
-        let _ = pretty_env_logger::formatted_builder()
+        let _ = env_logger::Builder::new()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();
