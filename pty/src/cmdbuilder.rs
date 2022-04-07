@@ -443,7 +443,9 @@ impl CommandBuilder {
             .get_env("ComSpec")
             .unwrap_or(OsStr::new("cmd.exe"))
             .into();
-        Ok(exe.into_string()?)
+        Ok(exe
+            .into_string()
+            .unwrap_or_else(|| "%CompSpec%".to_string()))
     }
 
     pub(crate) fn cmdline(&self) -> anyhow::Result<(Vec<u16>, Vec<u16>)> {
