@@ -456,6 +456,7 @@ impl InputMap {
                         items.push((ukey.clone(), $mod - Modifiers::SHIFT));
                     }
 
+                    log::trace!("{:?} {:?} -> {:?}", $code, $mod, items);
                     for key in items {
                         keys.default.entry(key).or_insert(KeyTableEntry {
                             action: $action.clone()

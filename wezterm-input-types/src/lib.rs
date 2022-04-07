@@ -400,14 +400,17 @@ impl TryFrom<&str> for KeyCode {
             return Ok(KeyCode::Numpad(n));
         }
 
-        if let Some(n) = s.strip_prefix("F") {
-            let n: u8 = n
-                .parse()
-                .map_err(|err| format!("parsing F<NUMBER>: {:#}", err))?;
-            if n == 0 || n > 24 {
-                return Err("Function key numbers must be in range 1-24".to_string());
+        // Don't consider "F" to be an invalid F key!
+        if s.len() > 1 {
+            if let Some(n) = s.strip_prefix("F") {
+                let n: u8 = n
+                    .parse()
+                    .map_err(|err| format!("parsing F<NUMBER>: {:#}", err))?;
+                if n == 0 || n > 24 {
+                    return Err("Function key numbers must be in range 1-24".to_string());
+                }
+                return Ok(KeyCode::Function(n));
             }
-            return Ok(KeyCode::Function(n));
         }
 
         let chars: Vec<char> = s.chars().collect();
