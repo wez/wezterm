@@ -1,6 +1,6 @@
 #!/bin/bash
 
-min_rust=(1 56 0)
+min_rust=(1 57 0)
 rust_ver=()
 
 parse_rustc_version() {

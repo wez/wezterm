@@ -4,9 +4,15 @@
 //! This allows other code to collect the ring buffer and display it
 //! within the application.
 use chrono::prelude::*;
-use log::{Level, LevelFilter, Record};
+use env_logger::filter::{Builder as FilterBuilder, Filter};
+use log::{Level, LevelFilter, Log, Record};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use termwiz::istty::IsTty;
 
 lazy_static::lazy_static! {
     static ref RINGS: Mutex<Rings> = Mutex::new(Rings::new());
@@ -126,37 +132,90 @@ impl Rings {
 }
 
 struct Logger {
-    pretty: Option<Box<dyn log::Log>>,
+    file_name: PathBuf,
+    file: Mutex<Option<BufWriter<File>>>,
+    filter: Filter,
+    padding: AtomicUsize,
+    is_tty: bool,
 }
 
-impl Logger {
-    fn new(pretty: Option<Box<dyn log::Log>>) -> Self {
-        Self { pretty }
+impl Drop for Logger {
+    fn drop(&mut self) {
+        self.flush();
     }
 }
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        if let Some(pretty) = self.pretty.as_ref() {
-            pretty.enabled(metadata)
-        } else {
-            match metadata.level() {
-                Level::Error | Level::Warn | Level::Info => true,
-                _ => false,
-            }
-        }
+        self.filter.enabled(metadata)
     }
 
     fn flush(&self) {
-        if let Some(pretty) = self.pretty.as_ref() {
-            pretty.flush()
+        if let Some(file) = self.file.lock().unwrap().as_mut() {
+            let _ = file.flush();
         }
+        let _ = std::io::stderr().flush();
     }
 
     fn log(&self, record: &Record) {
         RINGS.lock().unwrap().log(record);
-        if let Some(pretty) = self.pretty.as_ref() {
-            pretty.log(record);
+        if self.filter.matches(record) {
+            let ts = Local::now().format("%H:%M:%S%.3f").to_string();
+            let level = record.level().as_str();
+            let target = record.target().to_string();
+            let msg = record.args().to_string();
+
+            let padding = self.padding.fetch_max(target.len(), Ordering::SeqCst);
+
+            let level_color = if self.is_tty {
+                match record.level() {
+                    Level::Error => "\u{1b}[31m",
+                    Level::Warn => "\u{1b}[33m",
+                    Level::Info => "\u{1b}[32m",
+                    Level::Debug => "\u{1b}[36m",
+                    Level::Trace => "\u{1b}[35m",
+                }
+            } else {
+                ""
+            };
+
+            let reset = if self.is_tty { "\u{1b}[0m" } else { "" };
+            let target_color = if self.is_tty { "\u{1b}[1m" } else { "" };
+
+            eprintln!(
+                "{}  {level_color}{:6}{reset} {target_color}{:padding$}{reset} > {}",
+                ts,
+                level,
+                target,
+                msg,
+                padding = padding,
+                level_color = level_color,
+                reset = reset,
+                target_color = target_color
+            );
+
+            let mut file = self.file.lock().unwrap();
+            if file.is_none() {
+                if let Ok(f) = std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(&self.file_name)
+                {
+                    file.replace(BufWriter::new(f));
+                }
+            }
+            if let Some(file) = file.as_mut() {
+                let _ = writeln!(
+                    file,
+                    "{}  {:6} {:padding$} > {}",
+                    ts,
+                    level,
+                    target,
+                    msg,
+                    padding = padding
+                );
+                let _ = file.flush();
+            }
         }
     }
 }
@@ -168,55 +227,46 @@ pub fn get_entries() -> Vec<Entry> {
     entries
 }
 
-fn setup_pretty() -> (LevelFilter, Option<Box<dyn log::Log>>) {
-    #[cfg(windows)]
-    {
-        use std::os::windows::io::IntoRawHandle;
-        use winapi::um::winbase::STD_ERROR_HANDLE;
+fn setup_pretty() -> (LevelFilter, Logger) {
+    let base_name = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_name().map(|s| s.to_string_lossy().to_string()))
+        .unwrap_or_else(|| "wezterm".to_string());
 
-        // When launched as a GUI, stderr is null.
-        // Let's redirect it to a log file to aid in debugging.
-        if unsafe { winapi::um::processenv::GetStdHandle(STD_ERROR_HANDLE).is_null() } {
-            let log_file_name =
-                config::RUNTIME_DIR.join(format!("gui-log-{}.txt", unsafe { libc::getpid() }));
-            if let Ok(file) = std::fs::OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(log_file_name)
-            {
-                let handle = file.into_raw_handle();
-                unsafe { winapi::um::processenv::SetStdHandle(STD_ERROR_HANDLE, handle) };
-            } else {
-                // If we fail to init a log file, skip setting up a logger to
-                // avoid a panic when built with 1.56
-                return (LevelFilter::Info, None);
-            }
-        }
+    let log_file_name = config::RUNTIME_DIR.join(format!("{}-log-{}.txt", base_name, unsafe {
+        libc::getpid()
+    }));
+
+    let mut filters = FilterBuilder::new();
+    for (module, level) in [
+        ("wgpu_core", LevelFilter::Error),
+        ("gfx_backend_metal", LevelFilter::Error),
+    ] {
+        filters.filter_module(module, level);
     }
 
-    let mut builder = env_logger::Builder::new();
-    builder.filter(Some("wgpu_core"), LevelFilter::Error);
-    builder.filter(Some("gfx_backend_metal"), LevelFilter::Error);
     if let Ok(s) = std::env::var("WEZTERM_LOG") {
-        builder.parse_filters(&s);
+        filters.parse(&s);
     } else {
-        builder.filter(None, LevelFilter::Info);
+        filters.filter_level(LevelFilter::Info);
     }
-    if let Ok(s) = std::env::var("WEZTERM_LOG_STYLE") {
-        builder.parse_write_style(&s);
-    }
+    let filter = filters.build();
+    let max_level = filter.filter();
 
-    let pretty = builder.build();
-    let max_level = pretty.filter();
-
-    let pretty = Box::new(pretty);
-    (max_level, Some(pretty))
+    (
+        max_level,
+        Logger {
+            file_name: log_file_name,
+            file: Mutex::new(None),
+            filter,
+            padding: AtomicUsize::new(0),
+            is_tty: std::io::stderr().is_tty(),
+        },
+    )
 }
 
 pub fn setup_logger() {
-    let (max_level, pretty) = setup_pretty();
-    let logger = Logger::new(pretty);
-
+    let (max_level, logger) = setup_pretty();
     if log::set_boxed_logger(Box::new(logger)).is_ok() {
         log::set_max_level(max_level);
     }

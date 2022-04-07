@@ -110,16 +110,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
                 })
                 .into(),
             );
-            changes.push(Change::Text(
-                match entry.level {
-                    Level::Error => "ERROR",
-                    Level::Warn => "WARNING",
-                    Level::Info => "INFO",
-                    Level::Debug => "DEBUG",
-                    Level::Trace => "TRACE",
-                }
-                .to_string(),
-            ));
+            changes.push(Change::Text(entry.level.as_str().to_string()));
             changes.push(Change::AllAttributes(CellAttributes::default()));
             changes.push(AttributeChange::Intensity(Intensity::Bold).into());
             changes.push(Change::Text(format!(" {}", entry.target)));

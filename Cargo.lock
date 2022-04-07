@@ -1097,6 +1097,7 @@ dependencies = [
  "libc",
  "log",
  "objc",
+ "termwiz",
  "winapi 0.3.9",
 ]
 
