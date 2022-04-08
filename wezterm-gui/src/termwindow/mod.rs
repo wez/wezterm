@@ -307,6 +307,7 @@ pub struct TermWindow {
     /// Terminal dimensions
     terminal_size: PtySize,
     pub mux_window_id: MuxWindowId,
+    pub mux_window_id_for_subscriptions: Arc<Mutex<MuxWindowId>>,
     pub render_metrics: RenderMetrics,
     render_state: Option<RenderState>,
     input_map: InputMap,
@@ -730,6 +731,7 @@ impl TermWindow {
             palette: None,
             focused: None,
             mux_window_id,
+            mux_window_id_for_subscriptions: Arc::new(Mutex::new(mux_window_id)),
             fonts: Rc::clone(&fontconfig),
             render_metrics,
             dimensions,
@@ -1091,6 +1093,7 @@ impl TermWindow {
             }
             TermWindowNotif::SwitchToMuxWindow(mux_window_id) => {
                 self.mux_window_id = mux_window_id;
+                *self.mux_window_id_for_subscriptions.lock().unwrap() = mux_window_id;
                 self.pane_state.borrow_mut().clear();
                 self.tab_state.borrow_mut().clear();
                 self.current_highlight.take();
@@ -1178,6 +1181,11 @@ impl TermWindow {
                 let mux = Mux::get().expect("mux is calling us");
                 if mux.get_window(mux_window_id).is_none() {
                     // Something inconsistent: cancel subscription
+                    log::error!(
+                        "PaneOutput: wanted mux_window_id={} from mux, but \
+                         was not found, cancel mux subscription",
+                        mux_window_id
+                    );
                     return false;
                 }
                 let _ = pane_id;
@@ -1217,10 +1225,11 @@ impl TermWindow {
 
     fn subscribe_to_pane_updates(&self) {
         let window = self.window.clone().expect("window to be valid on startup");
-        let mux_window_id = self.mux_window_id;
+        let mux_window_id = Arc::clone(&self.mux_window_id_for_subscriptions);
         let mux = Mux::get().expect("mux started and running on main thread");
         let dead = Arc::new(AtomicBool::new(false));
         mux.subscribe(move |n| {
+            let mux_window_id = *mux_window_id.lock().unwrap();
             Self::mux_pane_output_event_callback(n, &window, mux_window_id, &dead)
         });
     }

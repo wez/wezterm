@@ -7,7 +7,7 @@ use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 use wezterm_term::{Alert, ClipboardSelection};
@@ -16,6 +16,7 @@ use wezterm_toast_notification::*;
 pub struct GuiFrontEnd {
     connection: Rc<Connection>,
     switching_workspaces: RefCell<bool>,
+    spawned_mux_window: RefCell<HashSet<MuxWindowId>>,
     known_windows: RefCell<BTreeMap<Window, MuxWindowId>>,
     client_id: Arc<ClientId>,
 }
@@ -36,6 +37,7 @@ impl GuiFrontEnd {
         let front_end = Rc::new(GuiFrontEnd {
             connection,
             switching_workspaces: RefCell::new(false),
+            spawned_mux_window: RefCell::new(HashSet::new()),
             known_windows: RefCell::new(BTreeMap::new()),
             client_id: client_id.clone(),
         });
@@ -188,7 +190,7 @@ impl GuiFrontEnd {
 
         let mut mux_windows = mux_windows.into_iter();
 
-        for (window, _old_id) in unused.into_iter() {
+        for (window, old_id) in unused.into_iter() {
             if let Some(mux_window_id) = mux_windows.next() {
                 window.notify(TermWindowNotif::SwitchToMuxWindow(mux_window_id));
                 windows.insert(window, mux_window_id);
@@ -196,23 +198,51 @@ impl GuiFrontEnd {
                 // We have more windows than are in the new workspace;
                 // we no longer need this one!
                 window.close();
+                front_end().spawned_mux_window.borrow_mut().remove(&old_id);
             }
         }
 
+        log::trace!("reconcile: windows -> {:?}", windows);
         *self.known_windows.borrow_mut() = windows;
 
         // then spawn any new windows that are needed
         promise::spawn::spawn(async move {
             while let Some(mux_window_id) = mux_windows.next() {
+                if front_end().has_mux_window(mux_window_id)
+                    || front_end()
+                        .spawned_mux_window
+                        .borrow()
+                        .contains(&mux_window_id)
+                {
+                    continue;
+                }
+                front_end()
+                    .spawned_mux_window
+                    .borrow_mut()
+                    .insert(mux_window_id);
+                log::trace!("Creating TermWindow for mux_window_id={}", mux_window_id);
                 if let Err(err) = TermWindow::new_window(mux_window_id).await {
                     log::error!("Failed to create window: {:#}", err);
                     let mux = Mux::get().expect("switching_workspaces to trigger on main thread");
                     mux.kill_window(mux_window_id);
+                    front_end()
+                        .spawned_mux_window
+                        .borrow_mut()
+                        .remove(&mux_window_id);
                 }
             }
             *front_end().switching_workspaces.borrow_mut() = false;
         })
         .detach();
+    }
+
+    fn has_mux_window(&self, mux_window_id: MuxWindowId) -> bool {
+        for &mux_id in self.known_windows.borrow().values() {
+            if mux_id == mux_window_id {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn switch_workspace(&self, workspace: &str) {

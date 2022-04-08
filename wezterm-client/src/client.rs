@@ -1157,7 +1157,7 @@ impl Client {
     rpc!(resize, Resize, UnitResponse);
     rpc!(set_zoomed, SetPaneZoomed, UnitResponse);
     rpc!(
-        get_tab_render_changes,
+        get_pane_render_changes,
         GetPaneRenderChanges,
         LivenessResponse
     );

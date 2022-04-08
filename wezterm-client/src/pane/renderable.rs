@@ -303,6 +303,11 @@ impl RenderableInner {
         delta: GetPaneRenderChangesResponse,
         bonus_lines: Vec<(StableRowIndex, Line)>,
     ) {
+        log::trace!(
+            "apply_changes_to_surface local={} remote={}",
+            self.local_pane_id,
+            self.remote_pane_id
+        );
         let now = Instant::now();
         self.poll_interval = BASE_POLL_INTERVAL;
         self.last_recv_time = now;
@@ -343,7 +348,12 @@ impl RenderableInner {
         self.dimensions = delta.dimensions;
         self.title = delta.title;
         self.working_dir = delta.working_dir.map(Into::into);
-        log::trace!("server says: seqno from {} -> {}", self.seqno, delta.seqno);
+        log::trace!(
+            "server says: seqno from {} -> {} for local_pane_id={}",
+            self.seqno,
+            delta.seqno,
+            self.local_pane_id
+        );
         self.seqno = delta.seqno;
 
         let config = configuration();
@@ -353,6 +363,10 @@ impl RenderableInner {
             dirty.remove(stable_row);
         }
 
+        log::trace!(
+            "apply_changes_to_surface: Generate PaneOutput event for local={}",
+            self.local_pane_id
+        );
         Mux::get()
             .unwrap()
             .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
@@ -393,7 +407,10 @@ impl RenderableInner {
             if self.fetch_limiter.non_blocking_admittance_check(1) {
                 self.schedule_fetch_lines(to_fetch, now);
             } else {
-                log::trace!("exceeded throttle, drop {:?}", to_fetch);
+                log::warn!(
+                    "exceeded fetch throttle, drop {:?} and mark stale",
+                    to_fetch
+                );
                 for r in to_fetch.iter() {
                     for stable_row in r.clone() {
                         self.make_stale(stable_row);
@@ -556,6 +573,10 @@ impl RenderableInner {
                 }
             }
         }
+        log::trace!(
+            "Generate PaneOutput event for local_pane_id={}",
+            local_pane_id
+        );
         mux.notify(mux::MuxNotification::PaneOutput(local_pane_id));
         Ok(())
     }
@@ -582,7 +603,7 @@ impl RenderableInner {
         promise::spawn::spawn(async move {
             let alive = match client
                 .client
-                .get_tab_render_changes(GetPaneRenderChanges {
+                .get_pane_render_changes(GetPaneRenderChanges {
                     pane_id: remote_pane_id,
                 })
                 .await
