@@ -719,6 +719,9 @@ impl TerminalState {
 
     /// Advise the terminal about a change in its focus state
     pub fn focus_changed(&mut self, focused: bool) {
+        if focused == self.focused {
+            return;
+        }
         if !focused {
             // notify app of release of buttons
             let buttons = self.current_mouse_buttons.clone();

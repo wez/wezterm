@@ -1614,14 +1614,17 @@ impl super::TermWindow {
 
         let panes = self.get_panes_to_render();
         let num_panes = panes.len();
+        let focused = self.focused.is_some();
 
         for pos in panes {
             if pos.is_active {
                 self.update_text_cursor(&pos.pane);
-                pos.pane.advise_focus();
-                mux::Mux::get()
-                    .expect("called on mux thread")
-                    .record_focus_for_current_identity(pos.pane.pane_id());
+                if focused {
+                    pos.pane.advise_focus();
+                    mux::Mux::get()
+                        .expect("called on mux thread")
+                        .record_focus_for_current_identity(pos.pane.pane_id());
+                }
             }
             self.paint_pane_opengl(&pos, num_panes)?;
         }
