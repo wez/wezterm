@@ -163,6 +163,7 @@ usually the best available version.</p>
 <ul>
 <li>Default key assignments are <code>mapped:</code> again. A new <a href="config/lua/config/key_map_preference.html">key_map_preference</a> option allows the defaults to use <code>&quot;Mapped&quot;</code> or <code>&quot;Physical&quot;</code>.</li>
 <li>Disabled ligatures for <code>&quot;Monaco&quot;</code> and <code>&quot;Menlo&quot;</code> fonts, as those have <code>&quot;fi&quot;</code> ligatures that match even for words such as <code>find</code>. <a href="https://github.com/wez/wezterm/issues/1786">#1786</a> <a href="https://github.com/wez/wezterm/issues/1736">#1736</a></li>
+<li>Removed the <code>send_composed_key_when_alt_is_pressed</code> option. When processing generic <code>ALT</code> (eg: that has neither left nor right), if either <code>send_composed_key_when_left_alt_is_pressed</code> or <code>send_composed_key_when_right_alt_is_pressed</code> is true, then the composed form of the key event will be generated.</li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
