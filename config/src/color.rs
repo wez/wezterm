@@ -25,12 +25,12 @@ impl Default for HsbTransform {
     }
 }
 
-fn de_indexed<'de, D>(deserializer: D) -> Result<HashMap<u8, RgbColor>, D::Error>
+fn de_indexed<'de, D>(deserializer: D) -> Result<HashMap<u8, RgbaColor>, D::Error>
 where
     D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
-    struct Wrap(HashMap<String, RgbColor>);
+    struct Wrap(HashMap<String, RgbaColor>);
     let Wrap(map) = Wrap::deserialize(deserializer)?;
 
     Ok(map
@@ -45,11 +45,26 @@ where
         .collect())
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(try_from = "String", into = "String")]
 pub struct RgbaColor {
     #[serde(flatten)]
     color: SrgbaTuple,
+}
+
+impl From<RgbColor> for RgbaColor {
+    fn from(color: RgbColor) -> Self {
+        Self {
+            color: color.into(),
+        }
+    }
+}
+
+impl std::ops::Deref for RgbaColor {
+    type Target = SrgbaTuple;
+    fn deref(&self) -> &SrgbaTuple {
+        &self.color
+    }
 }
 
 impl Into<String> for RgbaColor {
@@ -77,37 +92,37 @@ impl std::convert::TryFrom<String> for RgbaColor {
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
-    pub foreground: Option<RgbColor>,
+    pub foreground: Option<RgbaColor>,
     /// The background color to use when the attributes are reset to default
-    pub background: Option<RgbColor>,
+    pub background: Option<RgbaColor>,
     /// The color of the cursor
-    pub cursor_fg: Option<RgbColor>,
-    pub cursor_bg: Option<RgbColor>,
-    pub cursor_border: Option<RgbColor>,
+    pub cursor_fg: Option<RgbaColor>,
+    pub cursor_bg: Option<RgbaColor>,
+    pub cursor_border: Option<RgbaColor>,
     /// The color of selected text
     pub selection_fg: Option<RgbaColor>,
     pub selection_bg: Option<RgbaColor>,
     /// A list of 8 colors corresponding to the basic ANSI palette
-    pub ansi: Option<[RgbColor; 8]>,
+    pub ansi: Option<[RgbaColor; 8]>,
     /// A list of 8 colors corresponding to bright versions of the
     /// ANSI palette
-    pub brights: Option<[RgbColor; 8]>,
+    pub brights: Option<[RgbaColor; 8]>,
     /// A map for setting arbitrary colors ranging from 16 to 256 in the color
     /// palette
     #[serde(default, deserialize_with = "de_indexed")]
-    pub indexed: HashMap<u8, RgbColor>,
+    pub indexed: HashMap<u8, RgbaColor>,
     /// Configure the colors and styling of the tab bar
     pub tab_bar: Option<TabBarColors>,
     /// The color of the "thumb" of the scrollbar; the segment that
     /// represents the current viewable area
-    pub scrollbar_thumb: Option<RgbColor>,
+    pub scrollbar_thumb: Option<RgbaColor>,
     /// The color of the split line between panes
-    pub split: Option<RgbColor>,
+    pub split: Option<RgbaColor>,
     /// The color of the visual bell. If unspecified, the foreground
     /// color is used instead.
-    pub visual_bell: Option<RgbColor>,
+    pub visual_bell: Option<RgbaColor>,
     /// The color to use for the cursor when a dead key or leader state is active
-    pub compose_cursor: Option<RgbColor>,
+    pub compose_cursor: Option<RgbaColor>,
 }
 impl_lua_conversion!(Palette);
 
@@ -133,16 +148,16 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
 
         if let Some(ansi) = cfg.ansi {
             for (idx, col) in ansi.iter().enumerate() {
-                p.colors.0[idx] = *col;
+                p.colors.0[idx] = (*col).into();
             }
         }
         if let Some(brights) = cfg.brights {
             for (idx, col) in brights.iter().enumerate() {
-                p.colors.0[idx + 8] = *col;
+                p.colors.0[idx + 8] = (*col).into();
             }
         }
         for (&idx, &col) in &cfg.indexed {
-            p.colors.0[idx as usize] = col;
+            p.colors.0[idx as usize] = col.into();
         }
         p
     }
@@ -213,10 +228,10 @@ pub struct TabBarColors {
     pub new_tab_hover: TabBarColor,
 
     #[serde(default = "default_inactive_tab_edge")]
-    pub inactive_tab_edge: RgbColor,
+    pub inactive_tab_edge: RgbaColor,
 
     #[serde(default = "default_inactive_tab_edge_hover")]
-    pub inactive_tab_edge_hover: RgbColor,
+    pub inactive_tab_edge_hover: RgbaColor,
 }
 impl_lua_conversion!(TabBarColors);
 
@@ -224,12 +239,12 @@ fn default_background() -> RgbColor {
     RgbColor::new_8bpc(0x33, 0x33, 0x33)
 }
 
-fn default_inactive_tab_edge() -> RgbColor {
-    RgbColor::new_8bpc(0x57, 0x57, 0x57)
+fn default_inactive_tab_edge() -> RgbaColor {
+    RgbColor::new_8bpc(0x57, 0x57, 0x57).into()
 }
 
-fn default_inactive_tab_edge_hover() -> RgbColor {
-    RgbColor::new_8bpc(0x36, 0x36, 0x36)
+fn default_inactive_tab_edge_hover() -> RgbaColor {
+    RgbColor::new_8bpc(0x36, 0x36, 0x36).into()
 }
 
 fn default_inactive_tab() -> TabBarColor {

@@ -6,8 +6,8 @@ use std::fmt;
 use std::result::Result;
 pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, SrgbaTuple};
 
-#[derive(Clone, PartialEq, Eq)]
-pub struct Palette256(pub [RgbColor; 256]);
+#[derive(Clone, PartialEq)]
+pub struct Palette256(pub [SrgbaTuple; 256]);
 
 #[cfg(feature = "use_serde")]
 impl Serialize for Palette256 {
@@ -25,7 +25,7 @@ impl<'de> Deserialize<'de> for Palette256 {
     where
         D: Deserializer<'de>,
     {
-        let s = Vec::<RgbColor>::deserialize(deserializer)?;
+        let s = Vec::<SrgbaTuple>::deserialize(deserializer)?;
         use std::convert::TryInto;
         Ok(Self(s.try_into().map_err(|_| {
             serde::de::Error::custom("Palette256 size mismatch")
@@ -33,9 +33,9 @@ impl<'de> Deserialize<'de> for Palette256 {
     }
 }
 
-impl std::iter::FromIterator<RgbColor> for Palette256 {
-    fn from_iter<I: IntoIterator<Item = RgbColor>>(iter: I) -> Self {
-        let mut colors = [RgbColor::default(); 256];
+impl std::iter::FromIterator<SrgbaTuple> for Palette256 {
+    fn from_iter<I: IntoIterator<Item = SrgbaTuple>>(iter: I) -> Self {
+        let mut colors = [SrgbaTuple::default(); 256];
         for (s, d) in iter.into_iter().zip(colors.iter_mut()) {
             *d = s;
         }
@@ -47,15 +47,15 @@ impl std::iter::FromIterator<RgbColor> for Palette256 {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct ColorPalette {
     pub colors: Palette256,
-    pub foreground: RgbColor,
-    pub background: RgbColor,
+    pub foreground: SrgbaTuple,
+    pub background: SrgbaTuple,
     pub cursor_fg: SrgbaTuple,
     pub cursor_bg: SrgbaTuple,
     pub cursor_border: SrgbaTuple,
     pub selection_fg: SrgbaTuple,
     pub selection_bg: SrgbaTuple,
-    pub scrollbar_thumb: RgbColor,
-    pub split: RgbColor,
+    pub scrollbar_thumb: SrgbaTuple,
+    pub split: SrgbaTuple,
 }
 
 impl fmt::Debug for Palette256 {
@@ -69,20 +69,20 @@ impl fmt::Debug for Palette256 {
 }
 
 impl ColorPalette {
-    pub fn resolve_fg(&self, color: ColorAttribute) -> RgbColor {
+    pub fn resolve_fg(&self, color: ColorAttribute) -> SrgbaTuple {
         match color {
             ColorAttribute::Default => self.foreground,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
-            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color.into(),
         }
     }
-    pub fn resolve_bg(&self, color: ColorAttribute) -> RgbColor {
+    pub fn resolve_bg(&self, color: ColorAttribute) -> SrgbaTuple {
         match color {
             ColorAttribute::Default => self.background,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
-            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color.into(),
         }
     }
 }
@@ -100,45 +100,45 @@ impl Default for ColorPalette {
 
 impl ColorPalette {
     fn compute_default() -> Self {
-        let mut colors = [RgbColor::default(); 256];
+        let mut colors = [SrgbaTuple::default(); 256];
 
         // The XTerm ansi color set
-        static ANSI: [RgbColor; 16] = [
+        let ansi: [SrgbaTuple; 16] = [
             // Black
-            RgbColor::new_8bpc(0x00, 0x00, 0x00),
+            RgbColor::new_8bpc(0x00, 0x00, 0x00).into(),
             // Maroon
-            RgbColor::new_8bpc(0xcc, 0x55, 0x55),
+            RgbColor::new_8bpc(0xcc, 0x55, 0x55).into(),
             // Green
-            RgbColor::new_8bpc(0x55, 0xcc, 0x55),
+            RgbColor::new_8bpc(0x55, 0xcc, 0x55).into(),
             // Olive
-            RgbColor::new_8bpc(0xcd, 0xcd, 0x55),
+            RgbColor::new_8bpc(0xcd, 0xcd, 0x55).into(),
             // Navy
-            RgbColor::new_8bpc(0x54, 0x55, 0xcb),
+            RgbColor::new_8bpc(0x54, 0x55, 0xcb).into(),
             // Purple
-            RgbColor::new_8bpc(0xcc, 0x55, 0xcc),
+            RgbColor::new_8bpc(0xcc, 0x55, 0xcc).into(),
             // Teal
-            RgbColor::new_8bpc(0x7a, 0xca, 0xca),
+            RgbColor::new_8bpc(0x7a, 0xca, 0xca).into(),
             // Silver
-            RgbColor::new_8bpc(0xcc, 0xcc, 0xcc),
+            RgbColor::new_8bpc(0xcc, 0xcc, 0xcc).into(),
             // Grey
-            RgbColor::new_8bpc(0x55, 0x55, 0x55),
+            RgbColor::new_8bpc(0x55, 0x55, 0x55).into(),
             // Red
-            RgbColor::new_8bpc(0xff, 0x55, 0x55),
+            RgbColor::new_8bpc(0xff, 0x55, 0x55).into(),
             // Lime
-            RgbColor::new_8bpc(0x55, 0xff, 0x55),
+            RgbColor::new_8bpc(0x55, 0xff, 0x55).into(),
             // Yellow
-            RgbColor::new_8bpc(0xff, 0xff, 0x55),
+            RgbColor::new_8bpc(0xff, 0xff, 0x55).into(),
             // Blue
-            RgbColor::new_8bpc(0x55, 0x55, 0xff),
+            RgbColor::new_8bpc(0x55, 0x55, 0xff).into(),
             // Fuchsia
-            RgbColor::new_8bpc(0xff, 0x55, 0xff),
+            RgbColor::new_8bpc(0xff, 0x55, 0xff).into(),
             // Aqua
-            RgbColor::new_8bpc(0x55, 0xff, 0xff),
+            RgbColor::new_8bpc(0x55, 0xff, 0xff).into(),
             // White
-            RgbColor::new_8bpc(0xff, 0xff, 0xff),
+            RgbColor::new_8bpc(0xff, 0xff, 0xff).into(),
         ];
 
-        colors[0..16].copy_from_slice(&ANSI);
+        colors[0..16].copy_from_slice(&ansi);
 
         // 216 color cube.
         // This isn't the perfect color cube, but it matches the values used
@@ -149,7 +149,7 @@ impl ColorPalette {
             let green = RAMP6[idx / 6 % 6];
             let red = RAMP6[idx / 6 / 6 % 6];
 
-            colors[16 + idx] = RgbColor::new_8bpc(red, green, blue);
+            colors[16 + idx] = RgbColor::new_8bpc(red, green, blue).into();
         }
 
         // 24 grey scales
@@ -161,7 +161,7 @@ impl ColorPalette {
 
         for idx in 0..24 {
             let grey = GREYS[idx];
-            colors[232 + idx] = RgbColor::new_8bpc(grey, grey, grey);
+            colors[232 + idx] = RgbColor::new_8bpc(grey, grey, grey).into();
         }
 
         let foreground = colors[249]; // Grey70
@@ -174,8 +174,8 @@ impl ColorPalette {
         let selection_fg = SrgbaTuple(0., 0., 0., 0.);
         let selection_bg = SrgbaTuple(0.5, 0.4, 0.6, 0.5);
 
-        let scrollbar_thumb = RgbColor::new_8bpc(0x22, 0x22, 0x22);
-        let split = RgbColor::new_8bpc(0x44, 0x44, 0x44);
+        let scrollbar_thumb = RgbColor::new_8bpc(0x22, 0x22, 0x22).into();
+        let split = RgbColor::new_8bpc(0x44, 0x44, 0x44).into();
 
         ColorPalette {
             colors: Palette256(colors),

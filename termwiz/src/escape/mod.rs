@@ -24,7 +24,7 @@ pub use self::osc::OperatingSystemCommand;
 
 use vtparse::CsiParam;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     /// Send a single printable character to the display
     Print(char),

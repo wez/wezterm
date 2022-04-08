@@ -1,3 +1,4 @@
+use crate::color::RgbaColor;
 use crate::*;
 use bitflags::*;
 use enum_display_derive::Display;
@@ -5,7 +6,6 @@ use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Display;
-use termwiz::color::RgbColor;
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Hash, Display, PartialOrd, Ord,
@@ -439,7 +439,7 @@ pub struct TextStyle {
     /// foreground color, use this color instead.  This is most
     /// useful in a `[[font_rules]]` section to implement changing
     /// the text color for eg: bold text.
-    pub foreground: Option<RgbColor>,
+    pub foreground: Option<RgbaColor>,
 }
 impl_lua_conversion!(TextStyle);
 

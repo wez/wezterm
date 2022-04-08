@@ -583,17 +583,19 @@ impl super::TermWindow {
                         bottom_right: SizedPoly::none(),
                     }))
                     .colors(ElementColors {
-                        border: BorderColor::new(rgbcolor_to_window_color(
-                            bg_color.unwrap_or(colors.active_tab.bg_color),
-                        )),
-                        bg: rgbcolor_to_window_color(
-                            bg_color.unwrap_or(colors.active_tab.bg_color),
-                        )
-                        .into(),
-                        text: rgbcolor_to_window_color(
-                            fg_color.unwrap_or(colors.active_tab.fg_color),
-                        )
-                        .into(),
+                        border: BorderColor::new(
+                            bg_color
+                                .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                                .to_linear(),
+                        ),
+                        bg: bg_color
+                            .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                            .to_linear()
+                            .into(),
+                        text: fg_color
+                            .unwrap_or_else(|| colors.active_tab.fg_color.into())
+                            .to_linear()
+                            .into(),
                     }),
                 TabBarItem::Tab { .. } => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
@@ -633,10 +635,10 @@ impl super::TermWindow {
                         },
                     }))
                     .colors({
-                        let bg = rgbcolor_to_window_color(
-                            bg_color.unwrap_or(colors.inactive_tab.bg_color),
-                        );
-                        let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
+                        let bg = bg_color
+                            .unwrap_or_else(|| colors.inactive_tab.bg_color.into())
+                            .to_linear();
+                        let edge = colors.inactive_tab_edge.to_linear();
                         ElementColors {
                             border: BorderColor {
                                 left: bg,
@@ -645,24 +647,26 @@ impl super::TermWindow {
                                 bottom: bg,
                             },
                             bg: bg.into(),
-                            text: rgbcolor_to_window_color(
-                                fg_color.unwrap_or(colors.inactive_tab.fg_color),
-                            )
-                            .into(),
+                            text: fg_color
+                                .unwrap_or_else(|| colors.inactive_tab.fg_color.into())
+                                .to_linear()
+                                .into(),
                         }
                     })
                     .hover_colors(Some(ElementColors {
-                        border: BorderColor::new(rgbcolor_to_window_color(
-                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
-                        )),
-                        bg: rgbcolor_to_window_color(
-                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
-                        )
-                        .into(),
-                        text: rgbcolor_to_window_color(
-                            fg_color.unwrap_or(colors.inactive_tab_hover.fg_color),
-                        )
-                        .into(),
+                        border: BorderColor::new(
+                            bg_color
+                                .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
+                                .to_linear(),
+                        ),
+                        bg: bg_color
+                            .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
+                            .to_linear()
+                            .into(),
+                        text: fg_color
+                            .unwrap_or_else(|| colors.inactive_tab_hover.fg_color.into())
+                            .to_linear()
+                            .into(),
                     })),
             }
         };
@@ -875,14 +879,14 @@ impl super::TermWindow {
         let gl_state = self.render_state.as_ref().unwrap();
         let white_space = gl_state.util_sprites.white_space.texture_coords();
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
-        let default_bg = rgbcolor_alpha_to_window_color(
-            palette.resolve_bg(ColorAttribute::Default),
-            if window_is_transparent {
+        let default_bg = palette
+            .resolve_bg(ColorAttribute::Default)
+            .to_linear()
+            .mul_alpha(if window_is_transparent {
                 0.
             } else {
                 self.config.text_background_opacity
-            },
-        );
+            });
 
         let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
         let mut vb_mut0 = vb[0].current_vb_mut();
@@ -913,7 +917,7 @@ impl super::TermWindow {
                 },
                 config: &self.config,
                 cursor_border_color: LinearRgba::default(),
-                foreground: rgbcolor_to_window_color(palette.foreground),
+                foreground: palette.foreground.to_linear(),
                 pane: None,
                 is_active: true,
                 selection_fg: LinearRgba::default(),
@@ -1076,31 +1080,31 @@ impl super::TermWindow {
         metrics::histogram!("quad.map", start.elapsed());
 
         let cursor_border_color = palette.cursor_border.to_linear();
-        let foreground = rgbcolor_to_window_color(palette.foreground);
+        let foreground = palette.foreground.to_linear();
         let white_space = gl_state.util_sprites.white_space.texture_coords();
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
 
         let window_is_transparent =
             self.window_background.is_some() || config.window_background_opacity != 1.0;
 
-        let default_bg = rgbcolor_alpha_to_window_color(
-            palette.resolve_bg(ColorAttribute::Default),
-            if window_is_transparent {
+        let default_bg = palette
+            .resolve_bg(ColorAttribute::Default)
+            .to_linear()
+            .mul_alpha(if window_is_transparent {
                 0.
             } else {
                 config.text_background_opacity
-            },
-        );
+            });
 
         // Render the full window background
         if pos.index == 0 {
             match (self.window_background.as_ref(), self.allow_images) {
                 (Some(im), true) => {
                     // Render the window background image
-                    let color = rgbcolor_alpha_to_window_color(
-                        palette.background,
-                        config.window_background_opacity,
-                    );
+                    let color = palette
+                        .background
+                        .to_linear()
+                        .mul_alpha(config.window_background_opacity);
 
                     let (sprite, next_due) =
                         gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
@@ -1124,16 +1128,15 @@ impl super::TermWindow {
                 }
                 _ => {
                     // Regular window background color
-                    let background = rgbcolor_alpha_to_window_color(
-                        if num_panes == 1 {
-                            // If we're the only pane, use the pane's palette
-                            // to draw the padding background
-                            palette.background
-                        } else {
-                            global_bg_color
-                        },
-                        config.window_background_opacity,
-                    );
+                    let background = if num_panes == 1 {
+                        // If we're the only pane, use the pane's palette
+                        // to draw the padding background
+                        palette.background
+                    } else {
+                        global_bg_color
+                    }
+                    .to_linear()
+                    .mul_alpha(config.window_background_opacity);
                     self.filled_rectangle(
                         &mut layers[0],
                         euclid::rect(
@@ -1211,10 +1214,10 @@ impl super::TermWindow {
                             0.
                         },
                 ),
-                rgbcolor_alpha_to_window_color(
-                    palette.background,
-                    config.window_background_opacity,
-                ),
+                palette
+                    .background
+                    .to_linear()
+                    .mul_alpha(config.window_background_opacity),
             )?;
             quad.set_hsv(if pos.is_active {
                 None
@@ -1235,8 +1238,9 @@ impl super::TermWindow {
                 let LinearRgba(r, g, b, _) = config
                     .resolved_palette
                     .visual_bell
-                    .unwrap_or(palette.foreground)
-                    .to_linear_tuple_rgba();
+                    .as_deref()
+                    .unwrap_or(&palette.foreground)
+                    .to_linear();
 
                 let background = if window_is_transparent {
                     // for transparent windows, we fade in the target color
@@ -1245,11 +1249,11 @@ impl super::TermWindow {
                 } else {
                     // otherwise We'll interpolate between the background color
                     // and the the target color
-                    let (r1, g1, b1, a) = rgbcolor_alpha_to_window_color(
-                        palette.background,
-                        config.window_background_opacity,
-                    )
-                    .tuple();
+                    let (r1, g1, b1, a) = palette
+                        .background
+                        .to_linear()
+                        .mul_alpha(config.window_background_opacity)
+                        .tuple();
                     LinearRgba::with_components(
                         r1 + (r - r1) * intensity,
                         g1 + (g - g1) * intensity,
@@ -1299,7 +1303,7 @@ impl super::TermWindow {
             );
             let abs_thumb_top = thumb_y_offset + info.top;
             let thumb_size = info.height;
-            let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
+            let color = palette.scrollbar_thumb.to_linear();
 
             // Adjust the scrollbar thumb position
             let config = &self.config;
@@ -1541,7 +1545,7 @@ impl super::TermWindow {
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
-        let foreground = rgbcolor_to_window_color(palette.split);
+        let foreground = palette.split.to_linear();
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
@@ -1677,12 +1681,9 @@ impl super::TermWindow {
                     )?
                     .texture_coords();
                 let bg_is_default = attrs.background() == ColorAttribute::Default;
-                let bg_color = params.palette.resolve_bg(attrs.background());
+                let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
                 let fg_color = resolve_fg_color_attr(&attrs, attrs.foreground(), &params, style);
-                let fg_color = rgbcolor_to_window_color(fg_color);
-                let bg_color = rgbcolor_to_window_color(bg_color);
-
                 let (fg_color, bg_color, bg_is_default) = {
                     let mut fg = fg_color;
                     let mut bg = bg_color;
@@ -1731,7 +1732,7 @@ impl super::TermWindow {
                 let glyph_color = fg_color;
                 let underline_color = match attrs.underline_color() {
                     ColorAttribute::Default => fg_color,
-                    c => rgbcolor_to_window_color(resolve_fg_color_attr(&attrs, c, &params, style)),
+                    c => resolve_fg_color_attr(&attrs, c, &params, style),
                 };
 
                 let (bg_r, bg_g, bg_b, _) = bg_color.tuple();
@@ -1938,7 +1939,7 @@ impl super::TermWindow {
             let cluster_width = cluster.width;
 
             let bg_is_default = attrs.background() == ColorAttribute::Default;
-            let bg_color = params.palette.resolve_bg(attrs.background());
+            let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
             let fg_color =
                 resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
@@ -1955,7 +1956,7 @@ impl super::TermWindow {
                 }
 
                 (
-                    rgbcolor_alpha_to_window_color(bg, self.config.text_background_opacity),
+                    bg.mul_alpha(self.config.text_background_opacity),
                     bg_default,
                 )
             };
@@ -2030,15 +2031,10 @@ impl super::TermWindow {
             let (fg_color, bg_color) = if let Some(c) = params.line.cells().get(cursor_range.start)
             {
                 let attrs = c.attrs();
-                let bg_color =
-                    rgbcolor_to_window_color(params.palette.resolve_bg(attrs.background()));
+                let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
-                let fg_color = rgbcolor_to_window_color(resolve_fg_color_attr(
-                    &attrs,
-                    attrs.foreground(),
-                    &params,
-                    &Default::default(),
-                ));
+                let fg_color =
+                    resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
 
                 (fg_color, bg_color)
             } else {
@@ -2510,7 +2506,7 @@ impl super::TermWindow {
                     .config
                     .resolved_palette
                     .visual_bell
-                    .map(|c| c.to_linear_tuple_rgba().tuple())
+                    .map(|c| c.to_linear().tuple())
                     .unwrap_or_else(|| fg_color.tuple());
 
                 let bg_color = LinearRgba::with_components(
@@ -2543,7 +2539,7 @@ impl super::TermWindow {
                     .config
                     .resolved_palette
                     .compose_cursor
-                    .map(rgbcolor_to_window_color)
+                    .map(|c| c.to_linear())
                     .unwrap_or(bg_color);
 
                 return ComputeCellFgBgResult {
@@ -2834,11 +2830,11 @@ fn resolve_fg_color_attr(
     fg: ColorAttribute,
     params: &RenderScreenLineOpenGLParams,
     style: &config::TextStyle,
-) -> RgbColor {
+) -> LinearRgba {
     match fg {
         wezterm_term::color::ColorAttribute::Default => {
             if let Some(fg) = style.foreground {
-                fg
+                fg.into()
             } else {
                 params.palette.resolve_fg(attrs.foreground())
             }
@@ -2860,4 +2856,5 @@ fn resolve_fg_color_attr(
         }
         _ => params.palette.resolve_fg(fg),
     }
+    .to_linear()
 }

@@ -1,6 +1,7 @@
 use crate::keyassignment::KeyAssignment;
 use crate::{
-    FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle,
+    FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, RgbaColor,
+    TextStyle,
 };
 use anyhow::anyhow;
 use bstr::BString;
@@ -461,7 +462,7 @@ struct TextStyleAttributes {
     /// foreground color, use this color instead.  This is most
     /// useful in a `[[font_rules]]` section to implement changing
     /// the text color for eg: bold text.
-    pub foreground: Option<termwiz::color::RgbColor>,
+    pub foreground: Option<RgbaColor>,
 }
 impl<'lua> FromLua<'lua> for TextStyleAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {

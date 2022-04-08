@@ -1,6 +1,7 @@
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 lazy_static::lazy_static! {
@@ -269,6 +270,13 @@ impl SrgbaTuple {
         NAMED_COLORS.get(&name.to_ascii_lowercase()).cloned()
     }
 
+    /// Returns self multiplied by the supplied alpha value.
+    /// We don't need to linearize for this, as alpha is defined
+    /// as being linear even in srgba!
+    pub fn mul_alpha(self, alpha: f32) -> Self {
+        Self(self.0, self.1, self.2, self.3 * alpha)
+    }
+
     pub fn to_linear(self) -> LinearRgba {
         // See https://docs.rs/palette/0.5.0/src/palette/encoding/srgb.rs.html#43
         fn to_linear(v: f32) -> f32 {
@@ -317,6 +325,17 @@ impl SrgbaTuple {
         )
     }
 }
+
+impl Hash for SrgbaTuple {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_ne_bytes().hash(state);
+        self.1.to_ne_bytes().hash(state);
+        self.2.to_ne_bytes().hash(state);
+        self.3.to_ne_bytes().hash(state);
+    }
+}
+
+impl Eq for SrgbaTuple {}
 
 impl FromStr for SrgbaTuple {
     type Err = ();
@@ -527,6 +546,11 @@ impl LinearRgba {
         } else {
             self
         }
+    }
+
+    /// Returns self multiplied by the supplied alpha value
+    pub fn mul_alpha(self, alpha: f32) -> Self {
+        Self(self.0, self.1, self.2, self.3 * alpha)
     }
 
     /// Convert to an SRGB u32 pixel

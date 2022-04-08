@@ -2,7 +2,6 @@
 use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
-use crate::termwindow::render::rgbcolor_to_window_color;
 use crate::termwindow::{
     MappedQuads, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem, UIItemType,
 };
@@ -265,13 +264,17 @@ impl Element {
                     bg: if cluster.attrs.background() == ColorAttribute::Default {
                         InheritableColor::Inherited
                     } else {
-                        rgbcolor_to_window_color(palette.resolve_bg(cluster.attrs.background()))
+                        palette
+                            .resolve_bg(cluster.attrs.background())
+                            .to_linear()
                             .into()
                     },
                     text: if cluster.attrs.foreground() == ColorAttribute::Default {
                         InheritableColor::Inherited
                     } else {
-                        rgbcolor_to_window_color(palette.resolve_fg(cluster.attrs.foreground()))
+                        palette
+                            .resolve_fg(cluster.attrs.foreground())
+                            .to_linear()
                             .into()
                     },
                 });
