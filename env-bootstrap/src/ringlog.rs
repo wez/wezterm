@@ -182,17 +182,26 @@ impl log::Log for Logger {
             let reset = if self.is_tty { "\u{1b}[0m" } else { "" };
             let target_color = if self.is_tty { "\u{1b}[1m" } else { "" };
 
-            eprintln!(
-                "{}  {level_color}{:6}{reset} {target_color}{:padding$}{reset} > {}",
-                ts,
-                level,
-                target,
-                msg,
-                padding = padding,
-                level_color = level_color,
-                reset = reset,
-                target_color = target_color
-            );
+            {
+                // We use writeln! here rather than eprintln! so that we can ignore
+                // a failed log write in the case that stderr has been redirected
+                // to a device that is out of disk space.
+                // <https://github.com/wez/wezterm/issues/1839>
+                let mut stderr = std::io::stderr();
+                let _ = writeln!(
+                    stderr,
+                    "{}  {level_color}{:6}{reset} {target_color}{:padding$}{reset} > {}",
+                    ts,
+                    level,
+                    target,
+                    msg,
+                    padding = padding,
+                    level_color = level_color,
+                    reset = reset,
+                    target_color = target_color
+                );
+                let _ = stderr.flush();
+            }
 
             let mut file = self.file.lock().unwrap();
             if file.is_none() {
