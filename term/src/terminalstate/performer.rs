@@ -818,7 +818,7 @@ impl<'a> Performer<'a> {
                                     // We set the border to the background color; we don't
                                     // have an escape that sets that independently, and this
                                     // way just looks better.
-                                    self.palette_mut().cursor_border = c;
+                                    self.palette_mut().cursor_border = c.into();
                                 }
                                 set_or_query!(cursor_bg)
                             }

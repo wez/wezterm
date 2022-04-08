@@ -49,9 +49,9 @@ pub struct ColorPalette {
     pub colors: Palette256,
     pub foreground: RgbColor,
     pub background: RgbColor,
-    pub cursor_fg: RgbColor,
-    pub cursor_bg: RgbColor,
-    pub cursor_border: RgbColor,
+    pub cursor_fg: SrgbaTuple,
+    pub cursor_bg: SrgbaTuple,
+    pub cursor_border: SrgbaTuple,
     pub selection_fg: SrgbaTuple,
     pub selection_bg: SrgbaTuple,
     pub scrollbar_thumb: RgbColor,
@@ -167,9 +167,9 @@ impl ColorPalette {
         let foreground = colors[249]; // Grey70
         let background = colors[AnsiColor::Black as usize];
 
-        let cursor_bg = RgbColor::new_8bpc(0x52, 0xad, 0x70);
-        let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70);
-        let cursor_fg = colors[AnsiColor::Black as usize];
+        let cursor_bg = RgbColor::new_8bpc(0x52, 0xad, 0x70).into();
+        let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70).into();
+        let cursor_fg = colors[AnsiColor::Black as usize].into();
 
         let selection_fg = SrgbaTuple(0., 0., 0., 0.);
         let selection_bg = SrgbaTuple(0.5, 0.4, 0.6, 0.5);

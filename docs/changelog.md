@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: touchpad scroll is now more responsive/precise. Thanks to [@davidrios](https://github.com/davidrios)! [#1800](https://github.com/wez/wezterm/pull/1800)
 * Kitty image protocol: now also supports shared memory data transmission. Thanks to [@tantei3](https://github.com/tantei3)! [#1810](https://github.com/wez/wezterm/pull/1810)
 * Secondary DA response bumped up to persuade vim to set `ttymouse=sgr` by default. [#1825](https://github.com/wez/wezterm/issues/1825)
+* `cursor_bg`, `cursor_fg` and `cursor_border` may now specify alpha values. [#1835](https://github.com/wez/wezterm/issues/1835)
 
 #### Fixed
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)

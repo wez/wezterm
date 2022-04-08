@@ -1075,7 +1075,7 @@ impl super::TermWindow {
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
-        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
+        let cursor_border_color = palette.cursor_border.to_linear();
         let foreground = rgbcolor_to_window_color(palette.foreground);
         let white_space = gl_state.util_sprites.white_space.texture_coords();
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
@@ -1350,8 +1350,8 @@ impl super::TermWindow {
         let start = Instant::now();
         let selection_fg = palette.selection_fg.to_linear();
         let selection_bg = palette.selection_bg.to_linear();
-        let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
-        let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
+        let cursor_fg = palette.cursor_fg.to_linear();
+        let cursor_bg = palette.cursor_bg.to_linear();
         let cursor_is_default_color =
             palette.cursor_fg == global_cursor_fg && palette.cursor_bg == global_cursor_bg;
 
