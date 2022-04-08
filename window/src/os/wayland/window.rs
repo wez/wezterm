@@ -131,6 +131,8 @@ pub struct WaylandWindowInner {
     window_state: WindowState,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
+    hscroll_remainder: f64,
+    vscroll_remainder: f64,
     modifiers: Modifiers,
     key_repeat: Option<Arc<Mutex<KeyRepeatState>>>,
     pending_event: Arc<Mutex<PendingEvent>>,
@@ -364,6 +366,8 @@ impl WaylandWindow {
             window_state: WindowState::default(),
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
+            hscroll_remainder: 0.0,
+            vscroll_remainder: 0.0,
             modifiers: Modifiers::NONE,
             pending_event,
             pending_mouse,
@@ -518,7 +522,14 @@ impl WaylandWindowInner {
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
             let factor = self.get_dpi_factor() as f64;
-            let discrete_x = (value_x * factor).trunc();
+
+            if value_x.signum() != self.hscroll_remainder.signum() {
+                // reset accumulator when changing scroll direction
+                self.hscroll_remainder = 0.0;
+            }
+            let scaled_x = (value_x * factor) + self.hscroll_remainder;
+            let discrete_x = scaled_x.trunc();
+            self.hscroll_remainder = scaled_x - discrete_x;
             if discrete_x != 0. {
                 let event = MouseEvent {
                     kind: MouseEventKind::HorzWheel(-discrete_x as i16),
@@ -533,7 +544,12 @@ impl WaylandWindowInner {
                 self.events.dispatch(WindowEvent::MouseEvent(event));
             }
 
-            let discrete_y = (value_y * factor).trunc();
+            if value_y.signum() != self.vscroll_remainder.signum() {
+                self.vscroll_remainder = 0.0;
+            }
+            let scaled_y = (value_y * factor) + self.vscroll_remainder;
+            let discrete_y = scaled_y.trunc();
+            self.vscroll_remainder = scaled_y - discrete_y;
             if discrete_y != 0. {
                 let event = MouseEvent {
                     kind: MouseEventKind::VertWheel(-discrete_y as i16),
