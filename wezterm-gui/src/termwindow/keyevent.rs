@@ -220,7 +220,8 @@ impl super::TermWindow {
                     || (!raw_modifiers.contains(Modifiers::RIGHT_ALT)
                         && !raw_modifiers.contains(Modifiers::LEFT_ALT)
                         && raw_modifiers.contains(Modifiers::ALT)
-                        && !config.send_composed_key_when_alt_is_pressed);
+                        && !(config.send_composed_key_when_left_alt_is_pressed
+                             || config.send_composed_key_when_right_alt_is_pressed));
 
             if bypass_compose {
                 if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {

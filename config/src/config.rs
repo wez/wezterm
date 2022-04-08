@@ -284,13 +284,6 @@ pub struct Config {
     #[serde(default)]
     pub daemon_options: DaemonOptions,
 
-    /// If set to true, send the system specific composed key when
-    /// the ALT key is held down.  If set to false
-    /// then send the key with the ALT modifier (this is typically
-    /// encoded as ESC followed by the key).
-    #[serde(default = "default_true")]
-    pub send_composed_key_when_alt_is_pressed: bool,
-
     #[serde(default)]
     pub send_composed_key_when_left_alt_is_pressed: bool,
 

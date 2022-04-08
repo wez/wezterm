@@ -113,11 +113,6 @@ return {
 }
 ```
 
-If you're running an earlier release the options were a bit more limited;
-both left and right `Option` keys behave identically and composition
-behavior was influenced for both of them via the `send_composed_key_when_alt_is_pressed`
-configuration option.
-
 *since: 20210203-095643-70a364eb*
 
 WezTerm is now able to perform dead-key expansion when `use_ime = false`.  Dead
