@@ -169,7 +169,7 @@ by having the background color of the pane briefly change color.</p>
 <li><code>EaseInOut</code> - The fade starts slowly, speeds up, and then slows down towards the end.</li>
 <li><code>EaseOut</code> - The fade starts abruptly, and then progressively slows down towards the end.</li>
 <li><code>{CubicBezier={0.0, 0.0, 0.58, 1.0}}</code> - an arbitrary cubic bezier with the specified parameters.</li>
-<li><code>Constant</code> - Evaluates as 0 regardless of time. Useful to implement a step transition at the end of the duration. (<em>Since: nightly builds only</em>)</li>
+<li><code>Constant</code> - Evaluates as 0 regardless of time. Useful to implement a step transition at the end of the duration. (<em>Since: 20220408-101518-b908e2dd</em>)</li>
 </ul>
 <p>The following configuration enables a low intensity visual bell that takes a total of 300ms to &quot;flash&quot; the screen:</p>
 <pre><code class="language-lua">return {
