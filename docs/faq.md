@@ -267,3 +267,60 @@ see the cursor keys.
 This is not an issue in WezTerm; the same issue manifests in any terminal
 emulator that runs powershell.
 
+## I use X11 or Wayland and my mouse cursor theme doesn't seem to work
+## What is this old school X11 mouse pointer thing?
+
+Resolving the mouse cursor style in these environments is surprisingly complicated:
+
+* Determine the XCursor theme:
+  1. is `xcursor_theme` set in the wezterm configuration?
+  2. X11: Does the root window publish the `XCursor.theme` resource? (You can manually run `xprop -root | grep RESOURCE_MANAGER | perl -pe 's/\\n/\n/g'  | grep -i cursor` to check for yourself)
+  3. Wayland: from the `XCURSOR_THEME` environment variable
+  4. Otherwise, assume `default`
+
+* Determine the icon path:
+  1. Is `XCURSOR_PATH` set in the environment? If so, use that.
+  2. Construct a default path derived from some hard coded locations and the contents of the `XDG_DATA_HOME` and `XDG_DATA_DIRS` environment variables.
+
+When a cursor is needed, the XCursor theme is tried first:
+
+1. X11: the X Server must support the `RENDER` extension, version 0.5 or later, and support ARGB32
+2. A set of candidate cursor names is produced for the desired cursor
+3. For each location in the icon path, the XCursor theme and the candidate name are combined to produce a candidate file name
+4. If the file exists, then wezterm will try to load it
+
+If no XCursor was found, wezterm will fall back to using the default X11 cursor
+font provided by the system.
+
+*Since: nightly builds only*
+
+When troubleshooting xcursor issues, you can enable tracing by turning on the log level shown
+below, and then moving the mouse over the wezterm window:
+
+```
+; WEZTERM_LOG=window::os::x11::cursor=trace wezterm
+07:34:40.001  TRACE  window::os::x11::cursor > Constructing default icon path because $XCURSOR_PATH is not set
+07:34:40.001  TRACE  window::os::x11::cursor > Using ~/.local/share because $XDG_DATA_HOME is not set
+07:34:40.001  TRACE  window::os::x11::cursor > Using $XDG_DATA_DIRS location "/home/wez/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/"
+07:34:40.001  TRACE  window::os::x11::cursor > icon_path is ["/home/wez/.local/share/icons", "/home/wez/.icons", "/home/wez/.local/share/flatpak/exports/share/icons", "/var/lib/flatpak/exports/share/icons", "/usr/local/share/icons", "/usr/share/icons", "/usr/share/pixmaps", "/home/wez/.cursors", "/usr/share/cursors/xorg-x11", "/usr/X11R6/lib/X11/icons"]
+07:34:41.838  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/home/wez/.local/share/icons/Adwaita/cursors/xterm"
+07:34:41.838  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/home/wez/.icons/Adwaita/cursors/xterm"
+07:34:41.839  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/xterm"
+07:34:41.839  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/var/lib/flatpak/exports/share/icons/Adwaita/cursors/xterm"
+07:34:41.839  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/usr/local/share/icons/Adwaita/cursors/xterm"
+07:34:41.839  TRACE  window::os::x11::cursor > candidate for Some(Text) is "/usr/share/icons/Adwaita/cursors/xterm"
+07:34:41.839  TRACE  window::os::x11::cursor > Some(Text) resolved to "/usr/share/icons/Adwaita/cursors/xterm"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.local/share/icons/Adwaita/cursors/top_left_arrow"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.local/share/icons/Adwaita/cursors/left_ptr"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.icons/Adwaita/cursors/top_left_arrow"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.icons/Adwaita/cursors/left_ptr"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/top_left_arrow"
+07:34:42.915  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/left_ptr"
+07:34:42.916  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/var/lib/flatpak/exports/share/icons/Adwaita/cursors/top_left_arrow"
+07:34:42.916  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/var/lib/flatpak/exports/share/icons/Adwaita/cursors/left_ptr"
+07:34:42.916  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/usr/local/share/icons/Adwaita/cursors/top_left_arrow"
+07:34:42.916  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/usr/local/share/icons/Adwaita/cursors/left_ptr"
+07:34:42.916  TRACE  window::os::x11::cursor > candidate for Some(Arrow) is "/usr/share/icons/Adwaita/cursors/top_left_arrow"
+07:34:42.917  TRACE  window::os::x11::cursor > Some(Arrow) resolved to "/usr/share/icons/Adwaita/cursors/top_left_arrow"
+```
+
