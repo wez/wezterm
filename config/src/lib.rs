@@ -481,6 +481,11 @@ impl ConfigInner {
 
                 let mut watch_paths = vec![];
                 if let Some(path) = file_name {
+                    // Let's also watch the parent directory for folks that do
+                    // things with symlinks:
+                    if let Some(parent) = path.parent() {
+                        watch_paths.push(parent.to_path_buf());
+                    }
                     watch_paths.push(path);
                 }
 
