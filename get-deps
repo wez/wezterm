@@ -116,6 +116,29 @@ if test -e /etc/arch-release ; then
   exit $?
 fi
 
+if test -e /etc/gentoo-release ; then
+  portageq envvar USE | xargs -n 1 | grep '^X$' \
+  || (echo 'X is not found in USE flags' && exit 1)
+  EMERGE="$SUDO emerge"
+  $EMERGE --select \
+    'cmake' \
+    'fontconfig' \
+    'openssl' \
+    'git' \
+    'libX11' \
+    'libxkbcommon' \
+    'pkgconf' \
+    'python' \
+    'perl' \
+    'wayland' \
+    'mesa' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+  exit $?
+fi
+
 case $OSTYPE in
   darwin*|msys)
     exit 0
