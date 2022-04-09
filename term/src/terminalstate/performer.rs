@@ -391,6 +391,8 @@ impl<'a> Performer<'a> {
                 }
             }
 
+            ControlCode::Null => {},
+
             _ => log::warn!("unhandled ControlCode {:?}", control),
         }
     }
