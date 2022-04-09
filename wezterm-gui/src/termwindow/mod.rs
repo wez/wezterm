@@ -5,6 +5,7 @@ use crate::cache::LruCache;
 use crate::colorease::ColorEase;
 use crate::frontend::front_end;
 use crate::glium::texture::SrgbTexture2d;
+use crate::inputmap::InputMap;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
     start_overlay, start_overlay_pane, CopyOverlay, LauncherArgs, LauncherFlags,
@@ -21,7 +22,7 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, QuickSelectArguments,
+    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, QuickSelectArguments,
     SpawnCommand,
 };
 use config::{

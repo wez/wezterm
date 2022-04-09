@@ -5,10 +5,11 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
+use crate::inputmap::InputMap;
 use crate::termwindow::TermWindowNotif;
 use anyhow::anyhow;
 use config::configuration;
-use config::keyassignment::{InputMap, KeyAssignment, SpawnCommand, SpawnTabDomain};
+use config::keyassignment::{KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::lua::truncate_right;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -331,6 +332,16 @@ impl LauncherState {
             }
             key_entries.sort_by(|a, b| a.label.cmp(&b.label));
             self.entries.append(&mut key_entries);
+        }
+
+        if args.flags.contains(LauncherFlags::COMMANDS) {
+            let commands = crate::commands::CommandDef::expanded_commands(&config);
+            for cmd in commands {
+                self.entries.push(Entry {
+                    label: format!("{}. {}", cmd.brief, cmd.doc),
+                    kind: EntryKind::KeyAssignment(cmd.action),
+                });
+            }
         }
     }
 
