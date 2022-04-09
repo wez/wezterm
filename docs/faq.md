@@ -268,7 +268,8 @@ This is not an issue in WezTerm; the same issue manifests in any terminal
 emulator that runs powershell.
 
 ## I use X11 or Wayland and my mouse cursor theme doesn't seem to work
-## What is this old school X11 mouse pointer thing?
+
+**What is this old school X11 mouse pointer thing?!**
 
 Resolving the mouse cursor style in these environments is surprisingly complicated:
 
