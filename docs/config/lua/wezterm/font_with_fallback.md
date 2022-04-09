@@ -84,7 +84,7 @@ glyph(s)).
 
 ### Manual fallback scaling
 
-*Since: nightly builds only*
+*Since: 20220408-101518-b908e2dd*
 
 CJK fonts typically won't have a useful *cap-height* metric so it may be
 desirable to manually configure the fallback scaling factor to boost the size

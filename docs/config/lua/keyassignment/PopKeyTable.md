@@ -1,6 +1,6 @@
 # PopKeyTable
 
-*Since: nightly builds only*
+*Since: 20220408-101518-b908e2dd*
 
 Pops the current key table, if any, from the activation stack.
 

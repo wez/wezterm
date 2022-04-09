@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* No changes yet!
+
+### 20220408-101518-b908e2dd
+
 #### New
 * [Key Tables](config/key-tables.md) feature for powerful modal key assignments
 * `wezterm start --position x,y`, `wezterm start --position displayname:30%,30%` option to control starting window position on all systems except for Wayland. See `wezterm start --help` for more info. [#1794](https://github.com/wez/wezterm/issues/1794)

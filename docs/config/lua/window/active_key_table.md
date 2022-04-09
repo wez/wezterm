@@ -1,6 +1,6 @@
 # window:active_key_table()
 
-*Since: nightly builds only*
+*Since: 20220408-101518-b908e2dd*
 
 Returns a string holding the top of the current key table activation stack, or `nil` if the stack is empty.
 

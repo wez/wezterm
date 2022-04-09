@@ -1,6 +1,6 @@
 ## Key Tables
 
-*Since: nightly builds only*
+*Since: 20220408-101518-b908e2dd*
 
 In addition to the default key table defined by the `keys` configuration
 option, `wezterm` supports defining additional named key tables using the

@@ -88,7 +88,7 @@ your config, you will need to change it to either
 `{key="N", mods="CMD|SHIFT", ..}` or `{key="mapped:N", mods="CMD", ..}`
 in order to continue to respect the `SHIFT` modifier.
 
-*Since: nightly builds only*
+*Since: 20220408-101518-b908e2dd*
 
 A new `key_map_preference` option controls how keys without an explicit `phys:`
 or `mapped:` prefix are treated. If `key_map_preference = "Mapped"` (the
