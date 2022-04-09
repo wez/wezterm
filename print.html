@@ -5791,6 +5791,64 @@ reported as eg: <code>ESC [ A</code> (for UpArrow) to <code>ESC O A</code>.</p>
 see the cursor keys.</p>
 <p>This is not an issue in WezTerm; the same issue manifests in any terminal
 emulator that runs powershell.</p>
+<h2 id="i-use-x11-or-wayland-and-my-mouse-cursor-theme-doesnt-seem-to-work"><a class="header" href="#i-use-x11-or-wayland-and-my-mouse-cursor-theme-doesnt-seem-to-work">I use X11 or Wayland and my mouse cursor theme doesn't seem to work</a></h2>
+<h2 id="what-is-this-old-school-x11-mouse-pointer-thing"><a class="header" href="#what-is-this-old-school-x11-mouse-pointer-thing">What is this old school X11 mouse pointer thing?</a></h2>
+<p>Resolving the mouse cursor style in these environments is surprisingly complicated:</p>
+<ul>
+<li>
+<p>Determine the XCursor theme:</p>
+<ol>
+<li>is <code>xcursor_theme</code> set in the wezterm configuration?</li>
+<li>X11: Does the root window publish the <code>XCursor.theme</code> resource? (You can manually run <code>xprop -root | grep RESOURCE_MANAGER | perl -pe 's/\\n/\n/g'  | grep -i cursor</code> to check for yourself)</li>
+<li>Wayland: from the <code>XCURSOR_THEME</code> environment variable</li>
+<li>Otherwise, assume <code>default</code></li>
+</ol>
+</li>
+<li>
+<p>Determine the icon path:</p>
+<ol>
+<li>Is <code>XCURSOR_PATH</code> set in the environment? If so, use that.</li>
+<li>Construct a default path derived from some hard coded locations and the contents of the <code>XDG_DATA_HOME</code> and <code>XDG_DATA_DIRS</code> environment variables.</li>
+</ol>
+</li>
+</ul>
+<p>When a cursor is needed, the XCursor theme is tried first:</p>
+<ol>
+<li>X11: the X Server must support the <code>RENDER</code> extension, version 0.5 or later, and support ARGB32</li>
+<li>A set of candidate cursor names is produced for the desired cursor</li>
+<li>For each location in the icon path, the XCursor theme and the candidate name are combined to produce a candidate file name</li>
+<li>If the file exists, then wezterm will try to load it</li>
+</ol>
+<p>If no XCursor was found, wezterm will fall back to using the default X11 cursor
+font provided by the system.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>When troubleshooting xcursor issues, you can enable tracing by turning on the log level shown
+below, and then moving the mouse over the wezterm window:</p>
+<pre><code>; WEZTERM_LOG=window::os::x11::cursor=trace wezterm
+07:34:40.001  TRACE  window::os::x11::cursor &gt; Constructing default icon path because $XCURSOR_PATH is not set
+07:34:40.001  TRACE  window::os::x11::cursor &gt; Using ~/.local/share because $XDG_DATA_HOME is not set
+07:34:40.001  TRACE  window::os::x11::cursor &gt; Using $XDG_DATA_DIRS location &quot;/home/wez/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/&quot;
+07:34:40.001  TRACE  window::os::x11::cursor &gt; icon_path is [&quot;/home/wez/.local/share/icons&quot;, &quot;/home/wez/.icons&quot;, &quot;/home/wez/.local/share/flatpak/exports/share/icons&quot;, &quot;/var/lib/flatpak/exports/share/icons&quot;, &quot;/usr/local/share/icons&quot;, &quot;/usr/share/icons&quot;, &quot;/usr/share/pixmaps&quot;, &quot;/home/wez/.cursors&quot;, &quot;/usr/share/cursors/xorg-x11&quot;, &quot;/usr/X11R6/lib/X11/icons&quot;]
+07:34:41.838  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/home/wez/.local/share/icons/Adwaita/cursors/xterm&quot;
+07:34:41.838  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/home/wez/.icons/Adwaita/cursors/xterm&quot;
+07:34:41.839  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/xterm&quot;
+07:34:41.839  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/var/lib/flatpak/exports/share/icons/Adwaita/cursors/xterm&quot;
+07:34:41.839  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/usr/local/share/icons/Adwaita/cursors/xterm&quot;
+07:34:41.839  TRACE  window::os::x11::cursor &gt; candidate for Some(Text) is &quot;/usr/share/icons/Adwaita/cursors/xterm&quot;
+07:34:41.839  TRACE  window::os::x11::cursor &gt; Some(Text) resolved to &quot;/usr/share/icons/Adwaita/cursors/xterm&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.local/share/icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.local/share/icons/Adwaita/cursors/left_ptr&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.icons/Adwaita/cursors/left_ptr&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.915  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/home/wez/.local/share/flatpak/exports/share/icons/Adwaita/cursors/left_ptr&quot;
+07:34:42.916  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/var/lib/flatpak/exports/share/icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.916  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/var/lib/flatpak/exports/share/icons/Adwaita/cursors/left_ptr&quot;
+07:34:42.916  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/usr/local/share/icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.916  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/usr/local/share/icons/Adwaita/cursors/left_ptr&quot;
+07:34:42.916  TRACE  window::os::x11::cursor &gt; candidate for Some(Arrow) is &quot;/usr/share/icons/Adwaita/cursors/top_left_arrow&quot;
+07:34:42.917  TRACE  window::os::x11::cursor &gt; Some(Arrow) resolved to &quot;/usr/share/icons/Adwaita/cursors/top_left_arrow&quot;
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
 <p>This is a spare time project, so please bear with me.  There are a couple of channels for support:</p>
 <ul>
