@@ -116,6 +116,27 @@ if test -e /etc/arch-release ; then
   exit $?
 fi
 
+# DONOT forget to set USE="X"
+if test -e /etc/gentoo-release ; then
+  EMERGE="$SUDO emerge"
+  $EMERGE --select \
+    'cmake' \
+    'fontconfig' \
+    'openssl' \
+    'git' \
+    'libX11' \
+    'libxkbcommon' \
+    'pkgconf' \
+    'python' \
+    'perl' \
+    'wayland' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+  exit $?
+fi
+
 case $OSTYPE in
   darwin*|msys)
     exit 0
