@@ -130,6 +130,7 @@ if test -e /etc/gentoo-release ; then
     'python' \
     'perl' \
     'wayland' \
+    'mesa' \
     'xcb-util' \
     'xcb-util-image' \
     'xcb-util-keysyms' \
