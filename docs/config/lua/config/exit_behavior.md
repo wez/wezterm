@@ -16,7 +16,17 @@ return {
 ```
 
 Note that most unix shells will exit with the status of the last command that
-it ran.  If you interrupt a command and then use CTRL-D to send EOF to the
-shell, the shell will return an unsuccessful exit status.  With the default
-`exit_behavior="CloseOnCleanExit"`, that will cause the pane to remain open.
+it ran if you don't specify an exit status.
+
+For example, if you interrupt a command and then use `exit` (with no arguments), or
+CTRL-D to send EOF to the shell, the shell will return an unsuccessful exit
+status.  The same thing holds if you were to run:
+
+```
+false
+exit
+```
+
+With the default `exit_behavior="CloseOnCleanExit"` setting, that will cause
+the pane to remain open.
 
