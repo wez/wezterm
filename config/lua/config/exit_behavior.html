@@ -160,9 +160,15 @@ There are three possible values:</p>
 }
 </code></pre>
 <p>Note that most unix shells will exit with the status of the last command that
-it ran.  If you interrupt a command and then use CTRL-D to send EOF to the
-shell, the shell will return an unsuccessful exit status.  With the default
-<code>exit_behavior=&quot;CloseOnCleanExit&quot;</code>, that will cause the pane to remain open.</p>
+it ran if you don't specify an exit status.</p>
+<p>For example, if you interrupt a command and then use <code>exit</code> (with no arguments), or
+CTRL-D to send EOF to the shell, the shell will return an unsuccessful exit
+status.  The same thing holds if you were to run:</p>
+<pre><code>false
+exit
+</code></pre>
+<p>With the default <code>exit_behavior=&quot;CloseOnCleanExit&quot;</code> setting, that will cause
+the pane to remain open.</p>
 
                     </main>
 
