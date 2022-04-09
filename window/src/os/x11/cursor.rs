@@ -36,8 +36,13 @@ pub struct CursorInfo {
 
 fn icon_path() -> Vec<PathBuf> {
     let path = match std::env::var_os("XCURSOR_PATH") {
-        Some(path) => path,
+        Some(path) => {
+            log::trace!("Using $XCURSOR_PATH icon path: {:?}", path);
+            path
+        }
         None => {
+            log::trace!("Constructing default icon path because $XCURSOR_PATH is not set");
+
             fn add_icons_dir(path: &OsStr, dest: &mut Vec<PathBuf>) {
                 for entry in std::env::split_paths(path) {
                     dest.push(entry.join("icons"));
@@ -46,8 +51,10 @@ fn icon_path() -> Vec<PathBuf> {
 
             fn xdg_location(name: &str, def: &str, dest: &mut Vec<PathBuf>) {
                 if let Some(var) = std::env::var_os(name) {
+                    log::trace!("Using ${} location {:?}", name, var);
                     add_icons_dir(&var, dest);
                 } else {
+                    log::trace!("Using {} because ${} is not set", def, name);
                     add_icons_dir(OsStr::new(def), dest);
                 }
             }
@@ -160,6 +167,7 @@ impl CursorInfo {
             }
         }
         let icon_path = icon_path();
+        log::trace!("icon_path is {:?}", icon_path);
 
         Self {
             cursors: HashMap::new(),
@@ -303,6 +311,7 @@ impl CursorInfo {
         for dir in &self.icon_path {
             for name in names {
                 let candidate = dir.join(theme).join("cursors").join(name);
+                log::trace!("candidate for {:?} is {:?}", cursor, candidate);
                 if let Ok(file) = std::fs::File::open(&candidate) {
                     match self.parse_cursor_file(conn, file) {
                         Ok(cursor_id) => {
@@ -314,6 +323,7 @@ impl CursorInfo {
                                 },
                             );
 
+                            log::trace!("{:?} resolved to {:?}", cursor, candidate);
                             return Some(cursor_id);
                         }
                         Err(err) => log::error!("{:#}", err),
@@ -334,6 +344,7 @@ impl CursorInfo {
             MouseCursor::SizeUpDown => xcb_util::cursor::SB_V_DOUBLE_ARROW,
             MouseCursor::SizeLeftRight => xcb_util::cursor::SB_H_DOUBLE_ARROW,
         };
+        log::trace!("loading X11 basic cursor {} for {:?}", id_no, cursor);
 
         let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
         xcb::create_glyph_cursor(
