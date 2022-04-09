@@ -154,30 +154,76 @@ pub trait SlavePty {
 }
 
 /// Represents the exit status of a child process.
-/// This is rather anemic in the current version of this crate,
-/// holding only an indicator of success or failure.
 #[derive(Debug, Clone)]
 pub struct ExitStatus {
-    successful: bool,
+    code: u32,
+    signal: Option<String>,
 }
 
 impl ExitStatus {
     /// Construct an ExitStatus from a process return code
     pub fn with_exit_code(code: u32) -> Self {
+        Self { code, signal: None }
+    }
+
+    /// Construct an ExitStatus from a signal name
+    pub fn with_signal(signal: &str) -> Self {
         Self {
-            successful: code == 0,
+            code: 1,
+            signal: Some(signal.to_string()),
         }
     }
 
+    /// Returns true if the status indicates successful completion
     pub fn success(&self) -> bool {
-        self.successful
+        match self.signal {
+            None => self.code == 0,
+            Some(_) => false,
+        }
     }
 }
 
 impl From<std::process::ExitStatus> for ExitStatus {
     fn from(status: std::process::ExitStatus) -> ExitStatus {
-        ExitStatus {
-            successful: status.success(),
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::ExitStatusExt;
+
+            if let Some(signal) = status.signal() {
+                let signame = unsafe { libc::strsignal(signal) };
+                let signal = if signame.is_null() {
+                    format!("Signal {}", signal)
+                } else {
+                    let signame = unsafe { std::ffi::CStr::from_ptr(signame) };
+                    signame.to_string_lossy().to_string()
+                };
+
+                return ExitStatus {
+                    code: status.code().map(|c| c as u32).unwrap_or(1),
+                    signal: Some(signal),
+                };
+            }
+        }
+
+        let code =
+            status
+                .code()
+                .map(|c| c as u32)
+                .unwrap_or_else(|| if status.success() { 0 } else { 1 });
+
+        ExitStatus { code, signal: None }
+    }
+}
+
+impl std::fmt::Display for ExitStatus {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if self.success() {
+            write!(fmt, "Success")
+        } else {
+            match &self.signal {
+                Some(sig) => write!(fmt, "Terminated by {}", sig),
+                None => write!(fmt, "Exited with code {}", self.code),
+            }
         }
     }
 }

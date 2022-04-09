@@ -25,8 +25,10 @@ impl ChannelWrap {
             #[cfg(feature = "ssh2")]
             Self::Ssh2(chan) => {
                 if chan.eof() && chan.wait_close().is_ok() {
-                    if let Some(_sig) = has_signal(chan) {
-                        Some(ExitStatus::with_exit_code(1))
+                    if let Some(sig) = has_signal(chan) {
+                        Some(ExitStatus::with_signal(
+                            sig.exit_signal.as_deref().unwrap_or("Unknown signal"),
+                        ))
                     } else if let Ok(status) = chan.exit_status() {
                         Some(ExitStatus::with_exit_code(status as _))
                     } else {
