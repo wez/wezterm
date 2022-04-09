@@ -116,7 +116,6 @@ if test -e /etc/arch-release ; then
   exit $?
 fi
 
-# DONOT forget to set USE="X"
 if test -e /etc/gentoo-release ; then
   portageq envvar USE | xargs -n 1 | grep '^X$' \
   || (echo 'X is not found in USE flags' && exit 1)
