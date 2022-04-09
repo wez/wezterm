@@ -1042,7 +1042,7 @@ impl TermWindow {
                         AudibleBell::Disabled => {}
                     }
 
-                    log::info!("Ding! (this is the bell) in pane {}", pane_id);
+                    log::trace!("Ding! (this is the bell) in pane {}", pane_id);
                     self.emit_window_event("bell", Some(pane_id));
 
                     let mut per_pane = self.pane_state(pane_id);
