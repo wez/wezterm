@@ -12,6 +12,8 @@ use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
 use structopt::StructOpt;
+use termwiz::escape::parser::Parser;
+use termwiz::escape::Action;
 #[cfg(unix)]
 use unix::UnixTty as Tty;
 use wezterm_term::color::ColorPalette;
@@ -474,6 +476,10 @@ impl RecordCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct PlayCommand {
+    /// Explain what is being sent/received
+    #[structopt(long)]
+    explain: bool,
+
     cast_file: PathBuf,
 }
 
@@ -506,8 +512,28 @@ impl PlayCommand {
         }
 
         tty.set_raw()?;
+        let (tx, rx) = channel();
+
+        {
+            let mut stdin = tty.reader()?;
+            let tx = tx.clone();
+            std::thread::spawn(move || -> anyhow::Result<()> {
+                let mut buf = [0u8; 8192];
+                loop {
+                    let size = stdin.read(&mut buf)?;
+                    if size == 0 {
+                        break;
+                    }
+                    tx.send(Message::Stdin(buf[0..size].to_vec()))?;
+                }
+                Ok(())
+            });
+        }
 
         let start = Instant::now();
+
+        let mut sent_parser = Parser::new();
+        let mut sent_actions = vec![];
 
         for line in cast_file.lines() {
             let line = line?;
@@ -520,9 +546,65 @@ impl PlayCommand {
             std::thread::sleep(duration);
 
             tty.write_all(&event.2.as_bytes())?;
+            sent_parser.parse(&event.2.as_bytes(), |act| sent_actions.push(act));
         }
 
+        std::thread::sleep(Duration::from_millis(100));
+
         tty.set_cooked()?;
+
+        #[derive(Debug)]
+        enum Summarized {
+            Action(Action),
+            Print(String),
+        }
+
+        fn summarize(actions: Vec<Action>) -> Vec<Summarized> {
+            let mut print = String::new();
+            let mut res = vec![];
+            for act in actions {
+                match act {
+                    Action::Print(c) => print.push(c),
+                    act => {
+                        if !print.is_empty() {
+                            res.push(Summarized::Print(print.to_string()));
+                            print.clear();
+                        }
+                        res.push(Summarized::Action(act));
+                    }
+                }
+            }
+            if !print.is_empty() {
+                res.push(Summarized::Print(print.to_string()));
+            }
+            res
+        }
+
+        if self.explain {
+            println!("> SENT");
+            for s in summarize(sent_actions) {
+                println!("\t{:?}", s);
+            }
+        }
+
+        if self.explain {
+            println!("< RECV");
+        }
+        let mut parser = Parser::new();
+        while let Ok(msg) = rx.try_recv() {
+            match msg {
+                Message::Stdin(data) => {
+                    if self.explain {
+                        let answer_back = String::from_utf8_lossy(&data);
+                        println!("\t{:?}", answer_back);
+                        parser.parse(&data, |action| {
+                            println!("\t{:?}", action);
+                        });
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
 
         Ok(())
     }
