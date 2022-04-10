@@ -146,7 +146,7 @@ impl CommandDef {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpandedCommand {
     pub brief: Cow<'static, str>,
     pub doc: Cow<'static, str>,

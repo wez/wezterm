@@ -1828,7 +1828,8 @@ impl TermWindow {
             LauncherFlags::LAUNCH_MENU_ITEMS
                 | LauncherFlags::WORKSPACES
                 | LauncherFlags::DOMAINS
-                | LauncherFlags::KEY_ASSIGNMENTS,
+                | LauncherFlags::KEY_ASSIGNMENTS
+                | LauncherFlags::COMMANDS,
         );
     }
 

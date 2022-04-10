@@ -295,7 +295,24 @@ impl LauncherState {
             });
         }
 
-        // Grab interestig key assignments and show those as a kind of command palette
+        if args.flags.contains(LauncherFlags::COMMANDS) {
+            let commands = crate::commands::CommandDef::expanded_commands(&config);
+            for cmd in commands {
+                if matches!(
+                    &cmd.action,
+                    KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
+                ) {
+                    // Filter out some noisy, repetitive entries
+                    continue;
+                }
+                self.entries.push(Entry {
+                    label: format!("{}. {}", cmd.brief, cmd.doc),
+                    kind: EntryKind::KeyAssignment(cmd.action),
+                });
+            }
+        }
+
+        // Grab interesting key assignments and show those as a kind of command palette
         if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
             let input_map = InputMap::new(&config);
             let mut key_entries: Vec<Entry> = vec![];
@@ -325,23 +342,13 @@ impl LauncherState {
                         "{:?} ({} {})",
                         entry.action,
                         mods.to_string(),
-                        keycode.to_string()
+                        keycode.to_string().escape_debug()
                     ),
                     kind: EntryKind::KeyAssignment(entry.action),
                 });
             }
             key_entries.sort_by(|a, b| a.label.cmp(&b.label));
             self.entries.append(&mut key_entries);
-        }
-
-        if args.flags.contains(LauncherFlags::COMMANDS) {
-            let commands = crate::commands::CommandDef::expanded_commands(&config);
-            for cmd in commands {
-                self.entries.push(Entry {
-                    label: format!("{}. {}", cmd.brief, cmd.doc),
-                    kind: EntryKind::KeyAssignment(cmd.action),
-                });
-            }
         }
     }
 
