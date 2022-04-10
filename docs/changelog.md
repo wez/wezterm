@@ -13,6 +13,9 @@ As features stabilize some brief notes about them will accumulate here.
 
 * No changes yet!
 
+#### Fixed
+* Flush after replying to XTGETTCAP. [#1850](https://github.com/wez/wezterm/issues/1850)
+
 ### 20220408-101518-b908e2dd
 
 #### New
