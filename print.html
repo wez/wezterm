@@ -431,6 +431,10 @@ usually the best available version.</p>
 <ul>
 <li>No changes yet!</li>
 </ul>
+<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<ul>
+<li>Flush after replying to XTGETTCAP. <a href="https://github.com/wez/wezterm/issues/1850">#1850</a></li>
+</ul>
 <h3 id="20220408-101518-b908e2dd"><a class="header" href="#20220408-101518-b908e2dd">20220408-101518-b908e2dd</a></h3>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
 <ul>
@@ -454,7 +458,7 @@ usually the best available version.</p>
 <li>Kitty image protocol: now also supports shared memory data transmission. Thanks to <a href="https://github.com/tantei3">@tantei3</a>! <a href="https://github.com/wez/wezterm/pull/1810">#1810</a></li>
 <li>Secondary DA response bumped up to persuade vim to set <code>ttymouse=sgr</code> by default. <a href="https://github.com/wez/wezterm/issues/1825">#1825</a></li>
 </ul>
-<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
 <ul>
 <li>Incorrect csi-u encoding with non-ascii characters. <a href="https://github.com/wez/wezterm/issues/1746">#1746</a></li>
 <li>X11 <code>_NET_WM_ICON</code> had red/blue channels swapped <a href="https://github.com/wez/wezterm/issues/1754">#1754</a></li>
@@ -520,7 +524,7 @@ usually the best available version.</p>
 <li>macOS: <code>use_ime=true</code> no longer prevents key repeat from working with some keys <a href="https://github.com/wez/wezterm/issues/1131">#1131</a></li>
 <li>Bundled harfbuzz to 4.0.1</li>
 </ul>
-<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
+<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
 <ul>
 <li>Regression that broke fontconfig aliases such as <code>&quot;monospace&quot;</code> <a href="https://github.com/wez/wezterm/pull/1250">#1250</a></li>
 <li>Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL+C <a href="https://github.com/wez/wezterm/issues/678">#678</a></li>
@@ -588,7 +592,7 @@ usually the best available version.</p>
 <li>You can now pass <a href="config/lua/keyassignment/SendKey.html">SendKey</a> to <a href="config/lua/wezterm/action.html">wezterm.action</a> and make your <code>keys</code> config look more consistent</li>
 <li>Mouse wheel events are now routed to the hovered pane, rather than sent to the focused pane <a href="https://github.com/wez/wezterm/issues/798">#798</a></li>
 </ul>
-<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
+<h4 id="fixed-3"><a class="header" href="#fixed-3">Fixed</a></h4>
 <ul>
 <li>DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1376">#1376</a></li>
 <li>Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1377">#1377</a></li>
@@ -612,7 +616,7 @@ usually the best available version.</p>
 <li>Splitting a tab would cause the window to lose its transparency <a href="https://github.com/wez/wezterm/issues/1459">#1459</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
-<h4 id="fixed-3"><a class="header" href="#fixed-3">Fixed</a></h4>
+<h4 id="fixed-4"><a class="header" href="#fixed-4">Fixed</a></h4>
 <ul>
 <li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
 <li>Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process <a href="https://github.com/wez/wezterm/issues/1358">#1358</a></li>
@@ -659,7 +663,7 @@ usually the best available version.</p>
 <li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
 <li>Splits now look better, especially when using escape sequences to change the default background color <a href="https://github.com/wez/wezterm/issues/1256">#1256</a></li>
 </ul>
-<h4 id="fixed-4"><a class="header" href="#fixed-4">Fixed</a></h4>
+<h4 id="fixed-5"><a class="header" href="#fixed-5">Fixed</a></h4>
 <ul>
 <li><code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li><code>text_background_opacity</code> opacity was not respected</li>
