@@ -485,7 +485,7 @@ impl Publish {
                             Ok(true)
                         }
                         Err(err) => {
-                            log::warn!(
+                            log::trace!(
                                 "while attempting to ask existing instance to spawn: {:#}",
                                 err
                             );
