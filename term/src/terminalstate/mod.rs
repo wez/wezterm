@@ -1166,6 +1166,7 @@ impl TerminalState {
             res.escape_debug()
         );
         self.writer.write_all(res.as_bytes()).ok();
+        self.writer.flush().ok();
     }
 
     fn perform_device(&mut self, dev: Device) {
