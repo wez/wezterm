@@ -60,7 +60,7 @@ jobs:
           export MACOSX_DEPLOYMENT_TARGET=10.9
           bash ci/deploy.sh
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "macos"
           path: "WezTerm-*.zip"

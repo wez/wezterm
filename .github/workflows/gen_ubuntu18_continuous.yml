@@ -84,7 +84,7 @@ jobs:
           export BUILD_REASON=Schedule
           bash ci/appimage.sh
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "ubuntu18"
           path: |

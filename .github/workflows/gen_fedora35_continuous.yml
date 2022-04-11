@@ -94,7 +94,7 @@ jobs:
           export BUILD_REASON=Schedule
           mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora35.rpm
       - name: "Upload artifact"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "fedora35"
           path: "wezterm-*.rpm"
