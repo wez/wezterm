@@ -365,7 +365,7 @@ cargo build --all --release""",
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v2",
+                action="actions/upload-artifact@v3",
                 params={"name": self.name, "path": paths},
             ),
         ]
@@ -405,7 +405,7 @@ cargo build --all --release""",
         return steps + [
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@v2",
+                action="actions/upload-artifact@v3",
                 params={"name": self.name, "path": paths, "retention-days": 5},
             ),
         ]
@@ -419,7 +419,7 @@ cargo build --all --release""",
         return steps + [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v2",
+                action="actions/download-artifact@v3",
                 params={"name": self.name},
             ),
             RunStep(
@@ -438,7 +438,7 @@ cargo build --all --release""",
         return steps + [
             ActionStep(
                 "Download artifact",
-                action="actions/download-artifact@v2",
+                action="actions/download-artifact@v3",
                 params={"name": self.name},
             ),
             RunStep(
