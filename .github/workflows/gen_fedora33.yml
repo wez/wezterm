@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: "yum install -y openssh-server"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.0
         with:
           submodules: "recursive"
       - name: "Install Rust"
