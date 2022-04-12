@@ -82,6 +82,8 @@ impl MyWindow {
             | WindowEvent::AdviseDeadKeyStatus(_)
             | WindowEvent::Notification(_)
             | WindowEvent::FocusChanged(_)
+            | WindowEvent::DraggedFile(_)
+            | WindowEvent::DroppedFile(_)
             | WindowEvent::MouseLeave => {}
         }
     }

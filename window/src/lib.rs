@@ -3,6 +3,7 @@ use bitflags::bitflags;
 use config::{ConfigHandle, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
+use std::path::PathBuf;
 use std::rc::Rc;
 use thiserror::Error;
 pub mod bitmaps;
@@ -175,6 +176,12 @@ pub enum WindowEvent {
     AppearanceChanged(Appearance),
 
     Notification(Box<dyn Any + Send + Sync>),
+
+    // Called when the files is being dragged into the window
+    DraggedFile(Vec<PathBuf>),
+
+    // Called when the files is been dropped into the window
+    DroppedFile(Vec<PathBuf>),
 }
 
 pub struct WindowEventSender {
