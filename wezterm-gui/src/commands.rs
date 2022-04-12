@@ -253,7 +253,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| {
             exp.push(HideApplication);
         },
-        keys: &[(Modifiers::SUPER, "h")],
+        keys: &[(Modifiers::SUPER, "q")],
         args: &[],
     },
     CommandDef {
