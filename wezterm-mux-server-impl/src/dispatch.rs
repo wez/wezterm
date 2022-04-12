@@ -68,7 +68,7 @@ where
 
         match smol::future::or(rx_msg, wait_for_read).await {
             Ok(Item::Readable) => {
-                let decoded = match Pdu::decode_async(&mut stream).await {
+                let decoded = match Pdu::decode_async(&mut stream, None).await {
                     Ok(data) => data,
                     Err(err) => {
                         if let Some(err) = err.root_cause().downcast_ref::<std::io::Error>() {

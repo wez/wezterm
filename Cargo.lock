@@ -612,6 +612,7 @@ dependencies = [
  "serde",
  "smol",
  "termwiz",
+ "thiserror",
  "varbincode",
  "wezterm-term",
  "zstd",

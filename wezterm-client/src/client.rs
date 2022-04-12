@@ -31,6 +31,14 @@ use std::thread;
 use std::time::Duration;
 use thiserror::Error;
 
+#[derive(Error, Debug)]
+#[error("Timeout")]
+struct Timeout;
+
+#[derive(Error, Debug)]
+#[error("ChannelSendError")]
+struct ChannelSendError;
+
 enum ReaderMessage {
     SendPdu {
         pdu: Pdu,
@@ -288,34 +296,36 @@ async fn client_thread_async(
                     .context("encoding a PDU to send to the server")?;
                 stream.flush().await.context("flushing PDU to server")?;
             }
-            Ok(ReaderMessage::Readable) => match Pdu::decode_async(&mut stream).await {
-                Ok(decoded) => {
-                    log::trace!("decoded serial {}", decoded.serial);
-                    if decoded.serial == 0 {
-                        process_unilateral(local_domain_id, decoded)
-                            .context("processing unilateral PDU from server")
-                            .map_err(|e| {
-                                log::error!("process_unilateral: {:?}", e);
-                                e
-                            })?;
-                    } else if let Some(promise) = promises.map.remove(&decoded.serial) {
-                        if promise.try_send(Ok(decoded.pdu)).is_err() {
-                            return Err(NotReconnectableError::ClientWasDestroyed.into());
+            Ok(ReaderMessage::Readable) => {
+                match Pdu::decode_async(&mut stream, Some(next_serial)).await {
+                    Ok(decoded) => {
+                        log::trace!("decoded serial {}", decoded.serial);
+                        if decoded.serial == 0 {
+                            process_unilateral(local_domain_id, decoded)
+                                .context("processing unilateral PDU from server")
+                                .map_err(|e| {
+                                    log::error!("process_unilateral: {:?}", e);
+                                    e
+                                })?;
+                        } else if let Some(promise) = promises.map.remove(&decoded.serial) {
+                            if promise.try_send(Ok(decoded.pdu)).is_err() {
+                                return Err(NotReconnectableError::ClientWasDestroyed.into());
+                            }
+                        } else {
+                            let reason =
+                                format!("got serial {:?} without a corresponding promise", decoded);
+                            promises.fail_all(&reason);
+                            anyhow::bail!("{}", reason);
                         }
-                    } else {
-                        let reason =
-                            format!("got serial {:?} without a corresponding promise", decoded);
+                    }
+                    Err(err) => {
+                        let reason = format!("Error while decoding response pdu: {:#}", err);
+                        log::error!("{}", reason);
                         promises.fail_all(&reason);
-                        anyhow::bail!("{}", reason);
+                        return Err(err).context("Error while decoding response pdu");
                     }
                 }
-                Err(err) => {
-                    let reason = format!("Error while decoding response pdu: {:#}", err);
-                    log::error!("{}", reason);
-                    promises.fail_all(&reason);
-                    return Err(err).context("Error while decoding response pdu");
-                }
-            },
+            }
             Err(_) => {
                 return Err(NotReconnectableError::ClientWasDestroyed.into());
             }
@@ -1014,7 +1024,14 @@ impl Client {
         &self,
         ui: &ConnectionUI,
     ) -> anyhow::Result<GetCodecVersionResponse> {
-        match self.get_codec_version(GetCodecVersion {}).await {
+        match self
+            .get_codec_version(GetCodecVersion {})
+            .or(async {
+                smol::Timer::after(Duration::from_secs(60)).await;
+                Err(Timeout).context("Timeout")
+            })
+            .await
+        {
             Ok(info) if info.codec_vers == CODEC_VERSION => {
                 log::trace!(
                     "Server version is {} (codec version {})",
@@ -1037,14 +1054,31 @@ impl Client {
                 return Err(err.into());
             }
             Err(err) => {
-                let msg = format!(
-                    "Please install the same version of wezterm on both \
+                log::trace!("{:?}", err);
+                let msg = if err.root_cause().is::<Timeout>() {
+                    "Timed out while parsing the response from the server. \
+                    This may be due to network connectivity issues"
+                        .to_string()
+                } else if err.root_cause().is::<CorruptResponse>() {
+                    "Received an implausible and likely corrupt response from \
+                    the server. This can happen if the remote host outputs \
+                    to stdout prior to running commands."
+                        .to_string()
+                } else if err.root_cause().is::<ChannelSendError>() {
+                    "Internal channel was closed prior to sending request. \
+                    This may indicate that the remote host output invalid data \
+                    to stdout prior to running the requested command"
+                        .to_string()
+                } else {
+                    format!(
+                        "Please install the same version of wezterm on both \
                      the client and server! \
                      The server reported error '{}' while being asked for its \
                      version.  This likely means that the server is older \
                      than the client.\n",
-                    err
-                );
+                        err
+                    )
+                };
                 ui.output_str(&msg);
                 bail!("{}", msg);
             }
@@ -1142,8 +1176,10 @@ impl Client {
         let (promise, rx) = bounded(1);
         self.sender
             .send(ReaderMessage::SendPdu { pdu, promise })
-            .await?;
-        rx.recv().await?
+            .await
+            .map_err(|_| ChannelSendError)
+            .context("send_pdu send")?;
+        rx.recv().await.context("send_pdu recv")?
     }
 
     rpc!(ping, Ping = (), Pong);
