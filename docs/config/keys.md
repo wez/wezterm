@@ -143,7 +143,7 @@ return {
   -- timeout_milliseconds defaults to 1000 and can be omitted
   leader = { key="a", mods="CTRL", timeout_milliseconds=1000 },
   keys = {
-    {key="|", mods="LEADER", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
+    {key="|", mods="LEADER|SHIFT", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
     -- Send "CTRL-A" to the terminal when pressing CTRL-A, CTRL-A
     {key="a", mods="LEADER|CTRL", action=wezterm.action{SendString="\x01"}},
   }
@@ -168,7 +168,7 @@ return {
   -- for this example use `setxkbmap -option caps:none` in your terminal.
   leader = { key="VoidSymbol", mods="", timeout_milliseconds=1000 },
   keys = {
-    {key="|", mods="LEADER", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
+    {key="|", mods="LEADER|SHIFT", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
     {key="-", mods="LEADER", action=wezterm.action{SplitVertical={domain="CurrentPaneDomain"}}},
   }
 }
