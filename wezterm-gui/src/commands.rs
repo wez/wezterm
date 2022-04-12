@@ -251,7 +251,7 @@ static DEFS: &[CommandDef] = &[
         brief: "Quit WezTerm (macOS only)",
         doc: "Quits WezTerm",
         exp: |exp| {
-            exp.push(HideApplication);
+            exp.push(QuitApplication);
         },
         keys: &[(Modifiers::SUPER, "q")],
         args: &[],
