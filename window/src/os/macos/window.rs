@@ -16,12 +16,13 @@ use async_trait::async_trait;
 use cocoa::appkit::{
     self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
-    NSOpenGLContext, NSOpenGLPixelFormat, NSRunningApplication, NSScreen, NSView,
+    NSOpenGLContext, NSOpenGLPixelFormat, NSPasteboard, NSRunningApplication, NSScreen, NSView,
     NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{
-    NSArray, NSAutoreleasePool, NSInteger, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger,
+    NSArray, NSAutoreleasePool, NSFastEnumeration, NSInteger, NSNotFound, NSPoint, NSRect, NSSize,
+    NSUInteger,
 };
 use config::{ConfigHandle, DimensionContext, GeometryOrigin};
 use core_foundation::base::{CFTypeID, TCFType};
@@ -39,6 +40,7 @@ use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
@@ -491,6 +493,13 @@ impl Window {
 
             window.setContentView_(*view);
             window.setDelegate_(*view);
+
+            // register for drag and drop operations.
+            let () = msg_send![
+                *window,
+                registerForDraggedTypes:
+                    NSArray::arrayWithObject(nil, appkit::NSFilenamesPboardType)
+            ];
 
             let frame = NSView::frame(*view);
             let backing_frame = NSView::convertRectToBacking(*view, frame);
@@ -2475,6 +2484,42 @@ impl WindowView {
         }
     }
 
+    extern "C" fn dragging_entered(this: &mut Object, _: Sel, sender: id) -> BOOL {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+
+            let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            let filenames =
+                unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            let paths = unsafe { filenames.iter() }
+                .map(|file| unsafe {
+                    let path = nsstring_to_str(file);
+                    PathBuf::from(path)
+                })
+                .collect::<Vec<_>>();
+            inner.events.dispatch(WindowEvent::DraggedFile(paths));
+        }
+        YES
+    }
+
+    extern "C" fn perform_drag_operation(this: &mut Object, _: Sel, sender: id) -> BOOL {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+
+            let pb: id = unsafe { msg_send![sender, draggingPasteboard] };
+            let filenames =
+                unsafe { NSPasteboard::propertyListForType(pb, appkit::NSFilenamesPboardType) };
+            let paths = unsafe { filenames.iter() }
+                .map(|file| unsafe {
+                    let path = nsstring_to_str(file);
+                    PathBuf::from(path)
+                })
+                .collect::<Vec<_>>();
+            inner.events.dispatch(WindowEvent::DroppedFile(paths));
+        }
+        YES
+    }
+
     fn get_this(this: &Object) -> Option<&mut Self> {
         unsafe {
             let myself: *mut c_void = *this.get_ivar(VIEW_CLS_NAME);
@@ -2709,6 +2754,14 @@ impl WindowView {
                 sel!(firstRectForCharacterRange:actualRange:),
                 Self::first_rect_for_character_range
                     as extern "C" fn(&mut Object, Sel, NSRange, NSRangePointer) -> NSRect,
+            );
+            cls.add_method(
+                sel!(draggingEntered:),
+                Self::dragging_entered as extern "C" fn(&mut Object, Sel, id) -> BOOL,
+            );
+            cls.add_method(
+                sel!(performDragOperation:),
+                Self::perform_drag_operation as extern "C" fn(&mut Object, Sel, id) -> BOOL,
             );
         }
 

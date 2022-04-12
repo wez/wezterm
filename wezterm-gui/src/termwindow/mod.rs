@@ -943,6 +943,20 @@ impl TermWindow {
                 }
                 Ok(true)
             }
+            WindowEvent::DroppedFile(paths) => {
+                let pane = match self.get_active_pane_or_overlay() {
+                    Some(pane) => pane,
+                    None => return Ok(true),
+                };
+                let paths = paths
+                    .iter()
+                    .map(|path| format!("{:?}", path.to_string_lossy().to_string()))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                pane.trickle_paste(paths)?;
+                Ok(true)
+            }
+            WindowEvent::DraggedFile(_) => Ok(true),
         }
     }
 
