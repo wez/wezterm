@@ -881,7 +881,13 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
         .chars()
         .map(|c| {
             let c = WcWidth::from_char(c);
-            if version >= 9 {
+
+            // Special case for symbol fonts that are naughtly and use
+            // the unassigned range instead of the private use range.
+            // <https://github.com/wez/wezterm/issues/1864>
+            if c == WcWidth::Unassigned {
+                1
+            } else if version >= 9 {
                 c.width_unicode_9_or_later()
             } else {
                 c.width_unicode_8_or_earlier()
