@@ -192,6 +192,23 @@ impl Face {
         }
     }
 
+    pub fn get_glyph_name(&self, glyph_index: u32) -> Option<String> {
+        let mut buf = [0u8; 128];
+        let res = unsafe {
+            FT_Get_Glyph_Name(
+                self.face,
+                glyph_index,
+                buf.as_mut_ptr() as *mut _,
+                buf.len() as _,
+            )
+        };
+        if res != 0 {
+            None
+        } else {
+            Some(String::from_utf8_lossy(&buf).into_owned().to_string())
+        }
+    }
+
     pub fn get_sfnt_names(&self) -> HashMap<u32, Vec<NameRecord>> {
         let num_names = unsafe { FT_Get_Sfnt_Name_Count(self.face) };
 

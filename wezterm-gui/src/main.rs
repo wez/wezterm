@@ -704,6 +704,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     if let Some(text) = &cmd.text {
         let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
         let cell_clusters = line.cluster(bidi_hint);
+        let ft_lib = wezterm_font::ftwrap::Library::new()?;
+
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
@@ -721,6 +723,10 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             // We must grab the handles after shaping, so that we get the
             // revised list that includes system fallbacks!
             let handles = font.clone_handles();
+            let faces: Vec<_> = handles
+                .iter()
+                .map(|p| ft_lib.face_from_locator(&p.handle).ok())
+                .collect();
 
             let mut iter = infos.iter().peekable();
 
@@ -762,13 +768,22 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     }
                 }
 
+                let glyph_name = faces[info.font_idx]
+                    .as_ref()
+                    .and_then(|face| {
+                        face.get_glyph_name(info.glyph_pos)
+                            .map(|name| format!("{},", name))
+                    })
+                    .unwrap_or_else(String::new);
+
                 println!(
-                    "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={:<4} {}\n{:38}{}",
+                    "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={}{:<4} {}\n{:38}{}",
                     info.cluster,
                     text,
                     escaped,
                     info.x_advance.get(),
                     info.num_cells,
+                    glyph_name,
                     info.glyph_pos,
                     parsed.lua_name(),
                     "",
