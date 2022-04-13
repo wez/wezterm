@@ -94,7 +94,7 @@ class CheckoutStep(ActionStep):
         params = {}
         if submodules:
             params["submodules"] = "recursive"
-        super().__init__(name, action="actions/checkout@v2.4.0", params=params)
+        super().__init__(name, action="actions/checkout@v3", params=params)
 
 
 class Job(object):
@@ -565,9 +565,7 @@ cargo build --all --release""",
                 ]
 
         steps += self.install_openssh_server()
-        steps += [
-            CheckoutStep(),
-        ]
+        steps += self.checkout()
         steps += self.install_rust(cache="mac" not in self.name)
         steps += self.install_system_deps()
         return steps
@@ -588,6 +586,20 @@ cargo build --all --release""",
             None,
         )
 
+    def checkout(self, submodules=True):
+        steps = []
+        if self.container:
+            steps += [
+                RunStep(
+                    "Workaround git permissions issue",
+                    "git config --global --add safe.directory /__w/wezterm/wezterm"
+                )
+            ]
+        steps += [
+            CheckoutStep(submodules=submodules)
+        ]
+        return steps
+
     def continuous(self):
         steps = self.prep_environment()
         steps += self.build_all_release()
@@ -600,7 +612,7 @@ cargo build --all --release""",
 
         uploader = Job(
             runs_on="ubuntu-latest",
-            steps=[CheckoutStep(submodules=False)] + self.upload_asset_nightly(),
+            steps=self.checkout(submodules=False) + self.upload_asset_nightly(),
         )
 
         return (
@@ -623,7 +635,7 @@ cargo build --all --release""",
 
         uploader = Job(
             runs_on="ubuntu-latest",
-            steps=[CheckoutStep(submodules=False)] + self.upload_asset_tag(),
+            steps=self.checkout(submodules=False) + self.upload_asset_tag(),
         )
 
         env = self.global_env()

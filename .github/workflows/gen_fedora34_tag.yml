@@ -25,8 +25,11 @@ jobs:
       - name: "Install openssh-server"
         shell: bash
         run: "yum install -y openssh-server"
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -71,8 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
