@@ -94,7 +94,7 @@ class CheckoutStep(ActionStep):
         params = {}
         if submodules:
             params["submodules"] = "recursive"
-        super().__init__(name, action="actions/checkout@v3", params=params)
+        super().__init__(name, action="actions/checkout@v2.4.0", params=params)
 
 
 class Job(object):

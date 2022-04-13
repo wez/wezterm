@@ -17,7 +17,7 @@ jobs:
         shell: bash
         run: "sudo -n apt-get install -y git"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2.4.0
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -85,7 +85,7 @@ jobs:
     needs: build
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2.4.0
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
