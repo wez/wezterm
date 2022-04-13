@@ -1481,14 +1481,7 @@ impl WindowView {
         let selector = format!("{:?}", a_selector);
         log::trace!("do_command_by_selector {:?}", selector);
 
-        let (key, modifiers) = match selector.as_ref() {
-            "cancel:" => {
-                // FIXME: this isn't scalable to various keys
-                // and we lose eg: SHIFT if that is also pressed at the same time.
-                // However, CTRL-ESC is processed BEFORE sending any other
-                // key events so we have no choice but to do it this way.
-                (KeyCode::Char('\x1b'), Modifiers::CTRL)
-            }
+        match selector.as_ref() {
             "scrollToBeginningOfDocument:"
             | "scrollToEndOfDocument:"
             | "scrollPageUp:"
@@ -1510,7 +1503,6 @@ impl WindowView {
                     inner.ime_state = ImeDisposition::Continue;
                     inner.ime_last_event.take();
                 }
-                return;
             }
             _ => {
                 log::warn!("UNHANDLED: IME: do_command_by_selector: {:?}", selector);
@@ -1520,24 +1512,7 @@ impl WindowView {
                     inner.ime_state = ImeDisposition::Continue;
                     inner.ime_last_event.take();
                 }
-                return;
             }
-        };
-
-        let event = KeyEvent {
-            key,
-            modifiers,
-            repeat_count: 1,
-            key_is_down: true,
-            raw: None,
-        }
-        .normalize_shift();
-
-        if let Some(myself) = Self::get_this(this) {
-            let mut inner = myself.inner.borrow_mut();
-            inner.ime_state = ImeDisposition::Acted;
-            inner.ime_last_event.replace(event.clone());
-            inner.events.dispatch(WindowEvent::KeyEvent(event));
         }
     }
 
@@ -2338,6 +2313,38 @@ impl WindowView {
         }
     }
 
+    extern "C" fn perform_key_equivalent(this: &mut Object, _sel: Sel, nsevent: id) -> BOOL {
+        let chars = unsafe { nsstring_to_str(nsevent.characters()) };
+        let modifier_flags = unsafe { nsevent.modifierFlags() };
+        let modifiers = key_modifiers(modifier_flags);
+
+        log::trace!(
+            "perform_key_equivalent: chars=`{}` modifiers=`{:?}`",
+            chars.escape_debug(),
+            modifiers,
+        );
+
+        if chars == "." && modifiers == Modifiers::SUPER {
+            // Synthesize a key down event for this, because macOS will
+            // not do that, even though we tell it that we handled this event.
+            // <https://github.com/wez/wezterm/issues/1867>
+            Self::key_common(this, nsevent, true);
+
+            // Prevent macOS from calling doCommandBySelector(cancel:)
+            YES
+        } else if chars == "\u{1b}" && modifiers == Modifiers::CTRL {
+            // We don't need to synthesize a key down event for this,
+            // because macOS will do that once we return YES.
+            // We need to return YES to prevent macOS from calling
+            // doCommandBySelector(cancel:) on us.
+            YES
+        } else {
+            // Allow macOS to process built-in shortcuts like CMD-`
+            // to cycle though windows
+            NO
+        }
+    }
+
     extern "C" fn key_down(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::key_common(this, nsevent, true);
     }
@@ -2595,6 +2602,11 @@ impl WindowView {
             cls.add_method(
                 sel!(keyUp:),
                 Self::key_up as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(performKeyEquivalent:),
+                Self::perform_key_equivalent as extern "C" fn(&mut Object, Sel, id) -> BOOL,
             );
 
             cls.add_method(
