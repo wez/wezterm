@@ -16,6 +16,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * Flush after replying to XTGETTCAP. [#1850](https://github.com/wez/wezterm/issues/1850)
 * macOS: CMD-. was treated as CTRL-ESC [#1867](https://github.com/wez/wezterm/issues/1867)
+* `nf-mdi-contacts` nerdfont symbol treated as zero-width [#1864](https://github.com/wez/wezterm/issues/1864)
 
 ### 20220408-101518-b908e2dd
 
