@@ -499,7 +499,7 @@ static DEFS: &[CommandDef] = &[
         doc: "Scrolls the viewport down by 1 page",
 
         exp: |exp| exp.push(ScrollByPage(NotNan::new(1.0).unwrap())),
-        keys: &[(Modifiers::SHIFT, "PageUp")],
+        keys: &[(Modifiers::SHIFT, "PageDown")],
         args: &[ArgType::ActivePane],
     },
     CommandDef {
