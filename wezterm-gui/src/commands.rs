@@ -509,7 +509,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| {
             exp.push(ActivateCopyMode);
         },
-        keys: &[(Modifiers::SUPER.union(Modifiers::SHIFT), "x")],
+        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "x")],
         args: &[ArgType::ActivePane],
     },
     CommandDef {
