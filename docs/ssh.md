@@ -41,6 +41,7 @@ and respects the following options:
 * `Host` (including wildcard matching)
 * `UserKnownHostsFile`
 * `IdentitiesOnly`
+* `BindAddress`
 
 All other options are parsed but have no effect.  Notably, neither `Match` or
 `Include` will do anything.

@@ -196,6 +196,9 @@ impl SessionInner {
                 types.to_string(),
             ))?;
         }
+        if let Some(bind_addr) = self.config.get("bindaddress") {
+            sess.set_option(libssh_rs::SshOption::BindAddress(bind_addr.to_string()))?;
+        }
 
         sess.connect()?;
 
