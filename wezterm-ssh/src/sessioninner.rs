@@ -227,7 +227,8 @@ impl SessionInner {
 
     #[cfg(feature = "ssh2")]
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
-        use std::net::TcpStream;
+        use std::net::ToSocketAddrs;
+        use socket2::{Socket, Domain, Type};
         let hostname = self
             .config
             .get("hostname")
@@ -252,7 +253,7 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let tcp: TcpStream = if let Some(proxy_command) =
+        let sock: Socket = if let Some(proxy_command) =
             self.config.get("proxycommand").and_then(|c| {
                 if !c.is_empty() && c != "none" {
                     Some(c)
@@ -282,20 +283,23 @@ impl SessionInner {
             #[cfg(unix)]
             unsafe {
                 use std::os::unix::io::{FromRawFd, IntoRawFd};
-                TcpStream::from_raw_fd(a.into_raw_fd())
+                Socket::from_raw_fd(a.into_raw_fd())
             }
             #[cfg(windows)]
             unsafe {
                 use std::os::windows::io::{FromRawSocket, IntoRawSocket};
-                TcpStream::from_raw_socket(a.into_raw_socket())
+                Socket::from_raw_socket(a.into_raw_socket())
             }
         } else {
-            let socket = TcpStream::connect((hostname.as_str(), port))
-                .with_context(|| format!("connecting to {}", remote_address))?;
-            socket
-                .set_nodelay(true)
-                .context("setting TCP NODELAY on ssh connection")?;
-            socket
+            let addr = (hostname.as_str(), port).to_socket_addrs()?.next().context("address")?;
+            let sock = Socket::new(Domain::for_address(addr), Type::STREAM, None)?;
+            if let Some(bind_addr) = self.config.get("bindaddress") {
+                let bind_addr = (bind_addr.as_str(), 0).to_socket_addrs()?.next().context("bind address")?;
+                sock.bind(&bind_addr.into())?;
+            }
+
+            sock.connect(&addr.into())?;
+            sock
         };
 
         let mut sess = ssh2::Session::new()?;
@@ -309,7 +313,7 @@ impl SessionInner {
             sess.trace(ssh2::TraceFlags::all());
         }
         sess.set_blocking(true);
-        sess.set_tcp_stream(tcp);
+        sess.set_tcp_stream(sock);
         sess.handshake()
             .with_context(|| format!("ssh handshake with {}", remote_address))?;
 
