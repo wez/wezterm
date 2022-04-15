@@ -227,8 +227,8 @@ impl SessionInner {
 
     #[cfg(feature = "ssh2")]
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
+        use socket2::{Domain, Socket, Type};
         use std::net::ToSocketAddrs;
-        use socket2::{Socket, Domain, Type};
         let hostname = self
             .config
             .get("hostname")
@@ -291,14 +291,22 @@ impl SessionInner {
                 Socket::from_raw_socket(a.into_raw_socket())
             }
         } else {
-            let addr = (hostname.as_str(), port).to_socket_addrs()?.next().context("address")?;
+            let addr = (hostname.as_str(), port)
+                .to_socket_addrs()?
+                .next()
+                .with_context(|| format!("resolving address for {}", hostname))?;
             let sock = Socket::new(Domain::for_address(addr), Type::STREAM, None)?;
             if let Some(bind_addr) = self.config.get("bindaddress") {
-                let bind_addr = (bind_addr.as_str(), 0).to_socket_addrs()?.next().context("bind address")?;
-                sock.bind(&bind_addr.into())?;
+                let bind_addr = (bind_addr.as_str(), 0)
+                    .to_socket_addrs()?
+                    .next()
+                    .with_context(|| format!("resolving bind address {:?}", bind_addr))?;
+                sock.bind(&bind_addr.into())
+                    .with_context(|| format!("binding to {:?}", bind_addr))?;
             }
 
-            sock.connect(&addr.into())?;
+            sock.connect(&addr.into())
+                .with_context(|| format!("Connecting to {:?}", addr))?;
             sock
         };
 
