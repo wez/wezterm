@@ -4850,6 +4850,7 @@ dependencies = [
  "shell-words",
  "smol",
  "smol-potat",
+ "socket2",
  "ssh2",
  "structopt",
  "termwiz",
