@@ -1041,7 +1041,7 @@ fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
 fn normalize_ctrl(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
     if modifiers.contains(Modifiers::CTRL) {
         if let KeyCode::Char(c) = key {
-            if c != '\t' && (c as u32) < 0x20 {
+            if (c as u32) < 0x20 {
                 let de_ctrl = ((c as u8) | 0x40) as char;
                 return (KeyCode::Char(de_ctrl.to_ascii_lowercase()), modifiers);
             }

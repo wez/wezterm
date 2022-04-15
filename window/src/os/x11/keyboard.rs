@@ -107,7 +107,17 @@ impl Compose {
             }
             ComposeStatus::Nothing => {
                 let utf8 = key_state.borrow().key_get_utf8(xcode);
-                FeedResult::Nothing(utf8, xsym)
+                // CTRL-<ALPHA> is helpfully encoded in the form that we would
+                // send to the terminal, however, we do want the chance to
+                // distinguish between eg: CTRL-i and Tab, so if we ended up
+                // with a control code representation from the xkeyboard layer,
+                // discard it.
+                // <https://github.com/wez/wezterm/issues/1851>
+                if utf8.len() == 1 && utf8.as_bytes()[0] < 0x20 {
+                    FeedResult::Nothing(String::new(), xsym)
+                } else {
+                    FeedResult::Nothing(utf8, xsym)
+                }
             }
             ComposeStatus::Cancelled => {
                 self.state.reset();
@@ -375,7 +385,6 @@ impl Keyboard {
             key_is_down: pressed,
             raw: Some(raw_key_event),
         }
-        .normalize_ctrl()
         .normalize_shift();
 
         if pressed && want_repeat {
