@@ -22,7 +22,7 @@ use mux::Mux;
 use std::collections::BTreeMap;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
-use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
+use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent};
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 use window::WindowOps;
@@ -473,6 +473,18 @@ impl LauncherState {
                     ..
                 }) if !self.filtering => {
                     self.move_up();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('P'),
+                    modifiers: Modifiers::CTRL,
+                }) => {
+                    self.move_up();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('N'),
+                    modifiers: Modifiers::CTRL,
+                }) => {
+                    self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('/'),
