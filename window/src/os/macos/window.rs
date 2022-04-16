@@ -1493,6 +1493,7 @@ impl WindowView {
             | "moveDown:"
             | "moveDownAndModifySelection:"
             | "insertTab:"
+            | "insertBackTab:"
             | "insertNewline:"
             | "cancelOperation:"
             | "deleteBackward:"
