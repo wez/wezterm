@@ -1998,10 +1998,7 @@ impl WindowView {
         // CTRL-Tab only delivers a key-up event, and never a
         // key-down event.  So we just pretend that key-up is
         // key-down.
-        // Same for CTRL-[
-        // <https://github.com/wez/wezterm/issues/1877>
-        let key_is_down = if (virtual_key == super::keycodes::kVK_Tab
-            || virtual_key == super::keycodes::kVK_ANSI_LeftBracket)
+        let key_is_down = if virtual_key == super::keycodes::kVK_Tab
             && modifiers.contains(Modifiers::CTRL)
             && !key_is_down
         {
@@ -2327,19 +2324,15 @@ impl WindowView {
             modifiers,
         );
 
-        if chars == "." && modifiers == Modifiers::SUPER {
+        if (chars == "." && modifiers == Modifiers::SUPER)
+            || (chars == "\u{1b}" && modifiers == Modifiers::CTRL)
+        {
             // Synthesize a key down event for this, because macOS will
             // not do that, even though we tell it that we handled this event.
             // <https://github.com/wez/wezterm/issues/1867>
             Self::key_common(this, nsevent, true);
 
             // Prevent macOS from calling doCommandBySelector(cancel:)
-            YES
-        } else if chars == "\u{1b}" && modifiers == Modifiers::CTRL {
-            // We don't need to synthesize a key down event for this,
-            // because macOS will do that once we return YES.
-            // We need to return YES to prevent macOS from calling
-            // doCommandBySelector(cancel:) on us.
             YES
         } else {
             // Allow macOS to process built-in shortcuts like CMD-`
