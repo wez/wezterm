@@ -11,7 +11,8 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* No changes yet!
+#### New
+* ssh client now supports `BindAddress`. Thanks to [@gpanders](https://github.com/gpanders)! [#1875](https://github.com/wez/wezterm/pull/1875)
 
 #### Fixed
 * Flush after replying to XTGETTCAP. [#1850](https://github.com/wez/wezterm/issues/1850)
