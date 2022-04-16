@@ -96,3 +96,26 @@ end)
 return {
 }
 ```
+
+*Since: nightly builds only*
+
+The `domain_name` field returns the name of the domain with which the pane is associated.
+
+This example shows the domain name of the active pane appended to the tab title:
+
+```lua
+local wezterm = require 'wezterm'
+
+wezterm.on('format-tab-title', function(tab)
+  local pane = tab.active_pane
+  local title = pane.title
+  if pane.domain_name then
+    title = title .. ' - (' .. pane.domain_name .. ')'
+  end
+  return title
+end)
+
+return {
+}
+```
+

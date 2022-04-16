@@ -268,6 +268,21 @@ impl UserData for PaneInformation {
                 None => Ok("".to_string()),
             }
         });
+        fields.add_field_method_get("domain_name", |_, this| {
+            let mut name = None;
+            if let Some(mux) = Mux::get() {
+                if let Some(pane) = mux.get_pane(this.pane_id) {
+                    let domain_id = pane.domain_id();
+                    name = mux
+                        .get_domain(domain_id)
+                        .map(|dom| dom.domain_name().to_string());
+                }
+            }
+            match name {
+                Some(name) => Ok(name),
+                None => Ok("".to_string()),
+            }
+        });
     }
 }
 

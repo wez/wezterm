@@ -107,5 +107,20 @@ impl UserData for PaneObject {
                 Ok(text)
             },
         );
+
+        methods.add_method("get_domain_name", |_, this, _: ()| {
+            let pane = this.pane()?;
+            let mut name = None;
+            if let Some(mux) = Mux::get() {
+                let domain_id = pane.domain_id();
+                name = mux
+                    .get_domain(domain_id)
+                    .map(|dom| dom.domain_name().to_string());
+            }
+            match name {
+                Some(name) => Ok(name),
+                None => Ok("".to_string()),
+            }
+        });
     }
 }
