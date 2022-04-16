@@ -2297,7 +2297,6 @@ impl WindowView {
                 key_is_down,
                 raw: Some(raw_key_event),
             }
-            .normalize_ctrl()
             .normalize_shift();
 
             log::debug!(
