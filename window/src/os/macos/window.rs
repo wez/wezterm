@@ -1997,7 +1997,10 @@ impl WindowView {
         // CTRL-Tab only delivers a key-up event, and never a
         // key-down event.  So we just pretend that key-up is
         // key-down.
-        let key_is_down = if virtual_key == super::keycodes::kVK_Tab
+        // Same for CTRL-[
+        // <https://github.com/wez/wezterm/issues/1877>
+        let key_is_down = if (virtual_key == super::keycodes::kVK_Tab
+            || virtual_key == super::keycodes::kVK_ANSI_LeftBracket)
             && modifiers.contains(Modifiers::CTRL)
             && !key_is_down
         {
