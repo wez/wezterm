@@ -36,7 +36,8 @@ impl ScrollHit {
         }
         .ceil() as usize;
 
-        let scroll_percent = 1.0 - (scroll_top / render_dims.physical_top as f32);
+        let scroll_percent =
+            1.0 - (scroll_top / (render_dims.physical_top - render_dims.scrollback_top) as f32);
         let thumb_top = (scroll_percent * (max_thumb_height - thumb_size) as f32).ceil() as usize;
 
         Self {
@@ -60,8 +61,9 @@ impl ScrollHit {
 
         let render_dims = pane.get_dimensions();
 
-        render_dims
-            .scrollback_top
-            .saturating_add((render_dims.physical_top as f32 * scroll_percent) as StableRowIndex)
+        render_dims.scrollback_top.saturating_add(
+            ((render_dims.physical_top - render_dims.scrollback_top) as f32 * scroll_percent)
+                as StableRowIndex,
+        )
     }
 }
