@@ -214,10 +214,10 @@ EOF
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
 
         deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
-	      mv pkg/debian/postinst pkg/debian/DEBIAN/postinst
-        chmod 0555 pkg/debian/DEBIAN/postinst
+        mv pkg/debian/postinst pkg/debian/DEBIAN/postinst
+        chmod 0755 pkg/debian/DEBIAN/postinst
         mv pkg/debian/prerm pkg/debian/DEBIAN/prerm
-        chmod 0555 pkg/debian/DEBIAN/prerm
+        chmod 0755 pkg/debian/DEBIAN/prerm
         mv pkg/debian/control pkg/debian/DEBIAN/control
         echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
         cat pkg/debian/DEBIAN/control
