@@ -160,6 +160,10 @@ usually the best available version.</p>
 <li><a href="config/lua/PaneInformation.html">PaneInformation.domain_name</a> and <a href="config/lua/pane/get_domain_name.html">pane:get_domain_name()</a> which return the name of the domain with which a pane is associated. <a href="https://github.com/wez/wezterm/issues/1881">#1881</a></li>
 <li>You may now use <code>CTRL-n</code> and <code>CTRL-p</code> (in addition to the up/down arrow and vi motion keys) to change the selected row in the Launcher.  Thanks to <a href="https://github.com/Junnplus">@Junnplus</a>! <a href="https://github.com/wez/wezterm/pull/1880">#1880</a></li>
 </ul>
+<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<ul>
+<li>Debian packages now register wezterm as an alternative for <code>x-terminal-emulator</code>. Thanks to <a href="https://github.com/xpufx">@xpufx</a>! <a href="https://github.com/wez/wezterm/pull/1883">#1883</a></li>
+</ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li>Flush after replying to XTGETTCAP. <a href="https://github.com/wez/wezterm/issues/1850">#1850</a></li>
@@ -174,7 +178,7 @@ usually the best available version.</p>
 <li><a href="config/key-tables.html">Key Tables</a> feature for powerful modal key assignments</li>
 <li><code>wezterm start --position x,y</code>, <code>wezterm start --position displayname:30%,30%</code> option to control starting window position on all systems except for Wayland. See <code>wezterm start --help</code> for more info. <a href="https://github.com/wez/wezterm/issues/1794">#1794</a></li>
 </ul>
-<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
 <ul>
 <li>Default key assignments are <code>mapped:</code> again. A new <a href="config/lua/config/key_map_preference.html">key_map_preference</a> option allows the defaults to use <code>&quot;Mapped&quot;</code> or <code>&quot;Physical&quot;</code>.</li>
 <li>Disabled ligatures for <code>&quot;Monaco&quot;</code> and <code>&quot;Menlo&quot;</code> fonts, as those have <code>&quot;fi&quot;</code> ligatures that match even for words such as <code>find</code>. <a href="https://github.com/wez/wezterm/issues/1786">#1786</a> <a href="https://github.com/wez/wezterm/issues/1736">#1736</a></li>
@@ -239,7 +243,7 @@ usually the best available version.</p>
 <li>Context menu extension for Nautilus. Thanks to <a href="https://github.com/lunaryorn">@lunaryorn</a>! <a href="https://github.com/wez/wezterm/issues/1092">#1092</a></li>
 <li><a href="config/lua/wezterm/enumerate_ssh_hosts.html">wezterm.enumerate_ssh_hosts()</a> function that can be used to auto-generate ssh domain configuration</li>
 </ul>
-<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
+<h4 id="changed-2"><a class="header" href="#changed-2">Changed</a></h4>
 <ul>
 <li><strong>Key Assignments now use Physical Key locations by default!!</strong> <a href="config/keys.html#physical-vs-mapped-key-assignments">Read more</a> <a href="https://github.com/wez/wezterm/issues/1483">#1483</a> <a href="https://github.com/wez/wezterm/issues/601">#601</a> <a href="https://github.com/wez/wezterm/issues/1080">#1080</a> <a href="https://github.com/wez/wezterm/issues/1391">#1391</a></li>
 <li>Key assignments now match prior to any dead-key or IME composition <a href="https://github.com/wez/wezterm/issues/877">#877</a></li>
@@ -306,7 +310,7 @@ usually the best available version.</p>
 <li><a href="config/lua/wezterm/get_builtin_color_schemes.html">wezterm.get_builtin_color_schemes()</a> function to eg: pick a random scheme per window, or otherwise reason about schemes. See <a href="config/lua/wezterm/get_builtin_color_schemes.html">the docs</a> for examples!</li>
 <li>Added color schemes: <a href="colorschemes/a/index.html#alabaster">Alabaster</a>, <a href="colorschemes/c/index.html#cga">CGA</a>, <a href="colorschemes/m/index.html#materialdesigncolors">MaterialDesignColors</a>, <a href="colorschemes/d/index.html#darkermatrix">darkermatrix</a>, <a href="colorschemes/n/index.html#nord-light">nord-light</a></li>
 </ul>
-<h4 id="changed-2"><a class="header" href="#changed-2">Changed</a></h4>
+<h4 id="changed-3"><a class="header" href="#changed-3">Changed</a></h4>
 <ul>
 <li>quickselect: we now de-duplicate labels for results with the same textual content. <a href="https://github.com/wez/wezterm/issues/1271">#1271</a></li>
 <li>The default <code>CompleteSelectionOrOpenLinkAtMouseCursor</code> left button release assignment now also accepts SHIFT being held in order to make SHIFT-click <code>ExtendSelectionToMouseCursor</code> feel more ergonomic if the mouse button is released before the SHIFT key. <a href="https://github.com/wez/wezterm/issues/1204">#1204</a></li>
@@ -377,7 +381,7 @@ usually the best available version.</p>
 <li><a href="config/lua/config/unicode_version.html">unicode_version</a> option and corresponding OSC escape sequences that affects how the width of certain unicode sequences are interpreted.</li>
 <li>macOS: binaries produced by wezterm's CI are now codesigned, which resolves some spurious permission dialogs that affected some users <a href="https://github.com/wez/wezterm/issues/482">#482</a></li>
 </ul>
-<h4 id="changed-3"><a class="header" href="#changed-3">Changed</a></h4>
+<h4 id="changed-4"><a class="header" href="#changed-4">Changed</a></h4>
 <ul>
 <li>new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to <a href="https://github.com/friederbluemle">@friederbluemle</a>! <a href="https://github.com/wez/wezterm/pull/1132">#1132</a></li>
 <li>X11: we now allow matching visuals with &gt;= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to <a href="https://github.com/shizeeg">@shizeeg</a>! <a href="https://github.com/wez/wezterm/pull/1083">#1083</a></li>
