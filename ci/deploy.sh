@@ -192,12 +192,32 @@ Provides: x-terminal-emulator
 Source: https://wezfurlong.org/wezterm/
 EOF
 
+        cat > pkg/debian/postinst <<EOF
+#!/bin/sh
+set -e
+if [ "\$1" = "configure" ] ; then
+        update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/wezterm 20
+fi
+EOF
+
+	      cat > pkg/debian/prerm <<EOF
+#!/bin/sh
+set -e
+if [ "\$1" = "remove" ]; then
+	update-alternatives --remove x-terminal-emulator /usr/bin/wezterm
+fi
+EOF
+
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
 
         deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
+	      mv pkg/debian/postinst pkg/debian/DEBIAN/postinst
+        chmod 0555 pkg/debian/DEBIAN/postinst
+        mv pkg/debian/prerm pkg/debian/DEBIAN/prerm
+        chmod 0555 pkg/debian/DEBIAN/prerm
         mv pkg/debian/control pkg/debian/DEBIAN/control
         echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
         cat pkg/debian/DEBIAN/control
