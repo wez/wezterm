@@ -200,7 +200,7 @@ if [ "\$1" = "configure" ] ; then
 fi
 EOF
 
-	      cat > pkg/debian/prerm <<EOF
+        cat > pkg/debian/prerm <<EOF
 #!/bin/sh
 set -e
 if [ "\$1" = "remove" ]; then
