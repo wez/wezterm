@@ -11,9 +11,6 @@ The value is a set of of flags:
 * `window_decorations = "RESIZE"` - disable the title bar but enable the resizable border
 * `window_decorations = "TITLE | RESIZE"` - Enable titlebar and border.  This is the default.
 
-This feature is not supported on Wayland; the titlebar and resizable border are
-always requested by wezterm.
-
 On X11 and Wayland, the windowing system may override the window decorations.
 
 When the titlebar is disabled you can drag the window using the tab bar if it
