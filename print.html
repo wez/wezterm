@@ -435,6 +435,7 @@ usually the best available version.</p>
 <li>You may now use <code>CTRL-n</code> and <code>CTRL-p</code> (in addition to the up/down arrow and vi motion keys) to change the selected row in the Launcher.  Thanks to <a href="https://github.com/Junnplus">@Junnplus</a>! <a href="https://github.com/wez/wezterm/pull/1880">#1880</a></li>
 <li>Attaching multiplexer domains now attaches the first window as a tab in the active window, rather than opening a new window. <a href="https://github.com/wez/wezterm/issues/1874">#1874</a></li>
 <li><a href="config/lua/keyassignment/AttachDomain.html">AttachDomain</a> and <a href="config/lua/keyassignment/DetachDomain.html">DetachDomain</a> key assignments</li>
+<li>Specifying a domain name in a <a href="config/lua/SpawnCommand.html">SpawnCommand</a> will cause that domain to be attached if it is in the detached state. This is useful when combined with <a href="config/lua/keyassignment/SwitchToWorkspace.html">SwitchToWorkspace</a>.</li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
