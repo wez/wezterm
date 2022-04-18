@@ -18,6 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Attaching multiplexer domains now attaches the first window as a tab in the active window, rather than opening a new window. [#1874](https://github.com/wez/wezterm/issues/1874)
 * [AttachDomain](config/lua/keyassignment/AttachDomain.md) and [DetachDomain](config/lua/keyassignment/DetachDomain.md) key assignments
 * Specifying a domain name in a [SpawnCommand](config/lua/SpawnCommand.md) will cause that domain to be attached if it is in the detached state. This is useful when combined with [SwitchToWorkspace](config/lua/keyassignment/SwitchToWorkspace.md).
+* X11: wezterm now sets `_NET_WM_NAME` in addition to `WM_NAME` for clients that don't know how to fallback
 
 #### Changed
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)

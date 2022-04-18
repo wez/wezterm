@@ -1043,9 +1043,11 @@ impl XWindowInner {
         // and will mangle non-ascii characters in the title, so we call the
         // underlying function for ourslves:
 
+        let conn = self.conn();
+
         unsafe {
             xcb_util::ffi::icccm::xcb_icccm_set_wm_name(
-                self.conn().conn().get_raw_conn(),
+                conn.conn().get_raw_conn(),
                 self.window_id,
                 self.conn().atom_utf8_string,
                 8,
@@ -1053,6 +1055,18 @@ impl XWindowInner {
                 title.as_bytes().as_ptr() as *const _,
             );
         }
+
+        // Also set EWMH _NET_WM_NAME, as some clients don't correctly
+        // fall back to reading WM_NAME
+        xcb::xproto::change_property(
+            &conn,
+            xcb::xproto::PROP_MODE_REPLACE as u8,
+            self.window_id,
+            conn.ewmh_conn().WM_NAME(),
+            conn.atom_utf8_string,
+            8, /* 8-bit string data */
+            title.as_bytes(),
+        );
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
