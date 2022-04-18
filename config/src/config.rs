@@ -333,7 +333,7 @@ pub struct Config {
     pub hide_tab_bar_if_only_one_tab: bool,
 
     #[serde(default)]
-    pub enable_scroll_bar: bool,
+    pub scroll_bar_mode: ScrollBarMode,
 
     /// If false, do not try to use a Wayland protocol connection
     /// when starting the gui frontend, and instead use X11.
@@ -1462,5 +1462,18 @@ pub enum ExitBehavior {
 impl Default for ExitBehavior {
     fn default() -> Self {
         ExitBehavior::CloseOnCleanExit
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+pub enum ScrollBarMode {
+    None,
+    ActivePane,
+    AllPanes,
+}
+
+impl Default for ScrollBarMode {
+    fn default() -> Self {
+        ScrollBarMode::None
     }
 }

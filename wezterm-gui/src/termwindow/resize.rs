@@ -1,6 +1,6 @@
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, Window, WindowOps, WindowState};
-use config::{ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext, ScrollBarMode};
 use mux::Mux;
 use portable_pty::PtySize;
 use std::rc::Rc;
@@ -466,9 +466,10 @@ impl super::TermWindow {
 /// enabled the scroll bar then they will expect it to have a reasonable
 /// size unless they've specified differently.
 pub fn effective_right_padding(config: &ConfigHandle, context: DimensionContext) -> u16 {
-    if config.enable_scroll_bar && config.window_padding.right.is_zero() {
-        context.pixel_cell as u16
+    let padding = config.window_padding.right.evaluate_as_pixels(context) as u16;
+    if config.scroll_bar_mode != ScrollBarMode::None {
+        padding.max((context.pixel_cell / 2.) as u16)
     } else {
-        config.window_padding.right.evaluate_as_pixels(context) as u16
+        padding
     }
 }

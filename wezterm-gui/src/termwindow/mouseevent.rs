@@ -1,12 +1,12 @@
 use crate::tabbar::TabBarItem;
 use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
-use crate::termwindow::{MouseCapture, PositionedSplit, ScrollHit, UIItem, UIItemType, TMB};
+use crate::termwindow::{MouseCapture, PositionedSplit, ScrollThumb, UIItem, UIItemType, TMB};
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
     WindowState,
 };
 use config::keyassignment::{MouseEventTrigger, SpawnTabDomain};
-use mux::pane::Pane;
+use mux::pane::{Pane, PaneId};
 use mux::tab::SplitDirection;
 use mux::Mux;
 use std::convert::TryInto;
@@ -34,9 +34,9 @@ impl super::TermWindow {
                 self.update_title_post_status();
             }
             UIItemType::CloseTab(_)
-            | UIItemType::AboveScrollThumb
-            | UIItemType::BelowScrollThumb
-            | UIItemType::ScrollThumb
+            | UIItemType::AboveScrollThumb(_)
+            | UIItemType::BelowScrollThumb(_)
+            | UIItemType::ScrollThumb(_)
             | UIItemType::Split(_) => {}
         }
     }
@@ -45,9 +45,9 @@ impl super::TermWindow {
         match item.item_type {
             UIItemType::TabBar(_) => {}
             UIItemType::CloseTab(_)
-            | UIItemType::AboveScrollThumb
-            | UIItemType::BelowScrollThumb
-            | UIItemType::ScrollThumb
+            | UIItemType::AboveScrollThumb(_)
+            | UIItemType::BelowScrollThumb(_)
+            | UIItemType::ScrollThumb(_)
             | UIItemType::Split(_) => {}
         }
     }
@@ -203,7 +203,7 @@ impl super::TermWindow {
             if capture_mouse {
                 self.current_mouse_capture = Some(MouseCapture::UI);
             }
-            self.mouse_event_ui_item(item, pane, y, event, context);
+            self.mouse_event_ui_item(item, y, event, context);
         } else if matches!(
             self.current_mouse_capture,
             None | Some(MouseCapture::TerminalPane(_))
@@ -261,49 +261,24 @@ impl super::TermWindow {
     fn drag_scroll_thumb(
         &mut self,
         item: UIItem,
+        scrollthumb: ScrollThumb,
         start_event: MouseEvent,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
-        let pane = match self.get_active_pane_or_overlay() {
+        let pane = match self.get_pane_by_id(scrollthumb.pane_id) {
             Some(pane) => pane,
             None => return,
         };
 
         let dims = pane.get_dimensions();
-        let current_viewport = self.get_viewport(pane.pane_id());
 
-        let tab_bar_height = if self.show_tab_bar {
-            self.tab_bar_pixel_height().unwrap_or(0.)
-        } else {
-            0.
-        };
-        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
-            (0.0, tab_bar_height)
-        } else {
-            (tab_bar_height, 0.0)
-        };
+        let scroll_percentage =
+            scrollthumb.scroll_percentage(event.coords.y, start_event.coords.y - item.y as isize);
 
-        let border = self.get_os_border();
-        let y_offset = top_bar_height + border.top.get() as f32;
-
-        let from_top = start_event.coords.y.saturating_sub(item.y as isize);
-        let effective_thumb_top = event
-            .coords
-            .y
-            .saturating_sub(y_offset as isize + from_top)
-            .max(0) as usize;
-
-        // Convert thumb top into a row index by reversing the math
-        // in ScrollHit::thumb
-        let row = ScrollHit::thumb_top_to_scroll_top(
-            effective_thumb_top,
-            &*pane,
-            current_viewport,
-            self.dimensions.pixel_height.saturating_sub(
-                y_offset as usize + border.bottom.get() + bottom_bar_height as usize,
-            ),
-            (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
+        let row = dims.scrollback_top.saturating_add(
+            ((dims.physical_top - dims.scrollback_top) as f32 * scroll_percentage)
+                as StableRowIndex,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);
         context.invalidate();
@@ -323,8 +298,8 @@ impl super::TermWindow {
             UIItemType::Split(split) => {
                 self.drag_split(item, split, start_event, x, y, context);
             }
-            UIItemType::ScrollThumb => {
-                self.drag_scroll_thumb(item, start_event, event, context);
+            UIItemType::ScrollThumb(scrollthumb) => {
+                self.drag_scroll_thumb(item, scrollthumb, start_event, event, context);
             }
             _ => {
                 log::error!("drag not implemented for {:?}", item);
@@ -335,7 +310,6 @@ impl super::TermWindow {
     fn mouse_event_ui_item(
         &mut self,
         item: UIItem,
-        pane: Rc<dyn Pane>,
         _y: i64,
         event: MouseEvent,
         context: &dyn WindowOps,
@@ -345,14 +319,14 @@ impl super::TermWindow {
             UIItemType::TabBar(item) => {
                 self.mouse_event_tab_bar(item, event, context);
             }
-            UIItemType::AboveScrollThumb => {
-                self.mouse_event_above_scroll_thumb(item, pane, event, context);
+            UIItemType::AboveScrollThumb(pane_id) => {
+                self.mouse_event_above_scroll_thumb(item, pane_id, event, context);
             }
-            UIItemType::ScrollThumb => {
-                self.mouse_event_scroll_thumb(item, pane, event, context);
+            UIItemType::ScrollThumb(_) => {
+                self.mouse_event_scroll_thumb(item, event, context);
             }
-            UIItemType::BelowScrollThumb => {
-                self.mouse_event_below_scroll_thumb(item, pane, event, context);
+            UIItemType::BelowScrollThumb(pane_id) => {
+                self.mouse_event_below_scroll_thumb(item, pane_id, event, context);
             }
             UIItemType::Split(split) => {
                 self.mouse_event_split(item, split, event, context);
@@ -434,11 +408,15 @@ impl super::TermWindow {
     pub fn mouse_event_above_scroll_thumb(
         &mut self,
         _item: UIItem,
-        pane: Rc<dyn Pane>,
+        pane_id: PaneId,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
+            let pane = match self.get_pane_by_id(pane_id) {
+                Some(pane) => pane,
+                None => return,
+            };
             let dims = pane.get_dimensions();
             let current_viewport = self.get_viewport(pane.pane_id());
             // Page up
@@ -459,11 +437,15 @@ impl super::TermWindow {
     pub fn mouse_event_below_scroll_thumb(
         &mut self,
         _item: UIItem,
-        pane: Rc<dyn Pane>,
+        pane_id: PaneId,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
+            let pane = match self.get_pane_by_id(pane_id) {
+                Some(pane) => pane,
+                None => return,
+            };
             let dims = pane.get_dimensions();
             let current_viewport = self.get_viewport(pane.pane_id());
             // Page down
@@ -484,13 +466,11 @@ impl super::TermWindow {
     pub fn mouse_event_scroll_thumb(
         &mut self,
         item: UIItem,
-        _pane: Rc<dyn Pane>,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
             // Start a scroll drag
-            // self.scroll_drag_start = Some(from_top);
             self.dragging = Some((item, event));
         }
         context.set_cursor(Some(MouseCursor::Arrow));

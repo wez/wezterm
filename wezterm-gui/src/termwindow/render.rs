@@ -7,7 +7,7 @@ use crate::quad::Quad;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
+    BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollThumb, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
@@ -20,8 +20,8 @@ use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
-    VisualBellTarget,
+    ConfigHandle, Dimension, DimensionContext, HsbTransform, ScrollBarMode, TabBarColors,
+    TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::Pane;
@@ -1020,20 +1020,60 @@ impl super::TermWindow {
         let config = &self.config;
         let palette = pos.pane.palette();
 
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let half_cell_height = cell_height / 2.0;
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let half_cell_width = cell_width / 2.0;
         let (padding_left, padding_top) = self.padding_left_top();
+        let padding_bottom =
+            self.config
+                .window_padding
+                .bottom
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.terminal_size.pixel_height as f32,
+                    pixel_cell: cell_height,
+                });
+        let padding_right = self.effective_right_padding(&config) as f32;
 
         let tab_bar_height = if self.show_tab_bar {
             self.tab_bar_pixel_height()?
         } else {
             0.
         };
-        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
-            (0.0, tab_bar_height)
+        let top_bar_height = if self.config.tab_bar_at_bottom {
+            0.0
         } else {
-            (tab_bar_height, 0.0)
+            tab_bar_height
         };
 
         let border = self.get_os_border();
+
+        // if it's the last horizontal pane, it may have a remaining gap until the padding
+        let is_last_h_pane = (pos.width + pos.left) >= self.terminal_size.cols as usize;
+        let remaining_width = if is_last_h_pane {
+            self.dimensions.pixel_width as f32
+                - self.terminal_size.pixel_width as f32
+                - border.left.get() as f32
+                - padding_left
+                - padding_right
+        } else {
+            0.
+        };
+
+        // if it's the last vertical pane, it may have a remaining gap until the padding
+        let is_last_v_pane = (pos.height + pos.top) >= self.terminal_size.rows as usize;
+        let remaining_height = if is_last_v_pane {
+            self.dimensions.pixel_height as f32
+                - self.terminal_size.pixel_height as f32
+                - border.top.get() as f32
+                - tab_bar_height
+                - padding_top
+                - padding_bottom
+        } else {
+            0.
+        };
+
         let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
 
         let cursor = pos.pane.get_cursor_position();
@@ -1153,27 +1193,22 @@ impl super::TermWindow {
 
         if num_panes > 1 && self.window_background.is_none() {
             // Per-pane, palette-specified background
-            let cell_width = self.render_metrics.cell_size.width as f32;
-            let cell_height = self.render_metrics.cell_size.height as f32;
 
             // We want to fill out to the edges of the splits
             let (x, width_delta) = if pos.left == 0 {
-                (0., padding_left + (cell_width / 2.0))
+                (0., padding_left + half_cell_width)
             } else {
                 (
-                    padding_left - (cell_width / 2.0) + (pos.left as f32 * cell_width),
+                    padding_left - half_cell_width + (pos.left as f32 * cell_width),
                     cell_width,
                 )
             };
 
             let (y, height_delta) = if pos.top == 0 {
-                (
-                    (top_pixel_y - padding_top),
-                    padding_top + (cell_height / 2.0),
-                )
+                ((top_pixel_y - padding_top), padding_top + half_cell_height)
             } else {
                 (
-                    top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
+                    top_pixel_y + (pos.top as f32 * cell_height) - half_cell_height,
                     cell_height,
                 )
             };
@@ -1185,34 +1220,12 @@ impl super::TermWindow {
                     y,
                     (pos.width as f32 * cell_width)
                         + width_delta
-                        + if pos.left + pos.width >= self.terminal_size.cols as usize {
-                            // And all the way to the right edge if we're right-most
-                            crate::termwindow::resize::effective_right_padding(
-                                &self.config,
-                                DimensionContext {
-                                    dpi: self.dimensions.dpi as f32,
-                                    pixel_max: self.terminal_size.pixel_width as f32,
-                                    pixel_cell: cell_width,
-                                },
-                            ) as f32
-                        } else {
-                            0.
-                        },
+                        + remaining_width
+                        + if is_last_h_pane { padding_right } else { 0. },
                     (pos.height as f32 * cell_height)
-                        + height_delta as f32
-                        + if pos.top + pos.height >= self.terminal_size.rows as usize {
-                            // And all the way to the bottom if we're bottom-most
-                            self.config
-                                .window_padding
-                                .bottom
-                                .evaluate_as_pixels(DimensionContext {
-                                    dpi: self.dimensions.dpi as f32,
-                                    pixel_max: self.terminal_size.pixel_height as f32,
-                                    pixel_cell: cell_height,
-                                })
-                        } else {
-                            0.
-                        },
+                        + height_delta
+                        + remaining_height
+                        + if is_last_v_pane { padding_bottom } else { 0. },
                 ),
                 palette
                     .background
@@ -1263,9 +1276,6 @@ impl super::TermWindow {
                 };
                 log::trace!("bell color is {:?}", background);
 
-                let cell_width = self.render_metrics.cell_size.width as f32;
-                let cell_height = self.render_metrics.cell_size.height as f32;
-
                 let mut quad = self.filled_rectangle(
                     &mut layers[0],
                     euclid::rect(
@@ -1285,56 +1295,82 @@ impl super::TermWindow {
             }
         }
 
-        // TODO: we only have a single scrollbar in a single position.
-        // We only update it for the active pane, but we should probably
-        // do a per-pane scrollbar.  That will require more extensive
-        // changes to ScrollHit, mouse positioning, PositionedPane
-        // and tab size calculation.
-        if pos.is_active && self.show_scroll_bar {
-            let thumb_y_offset = top_bar_height as usize + border.top.get();
+        if self.scroll_bar_mode == ScrollBarMode::AllPanes
+            || (self.scroll_bar_mode == ScrollBarMode::ActivePane && pos.is_active)
+        {
+            let scrollbar_top = if pos.top == 0 {
+                top_bar_height as usize + border.top.get()
+            } else {
+                (top_bar_height as usize
+                    + border.top.get()
+                    + (pos.top * cell_height as usize)
+                    + padding_top.round() as usize)
+                    .saturating_sub(half_cell_height as usize)
+            };
 
-            let info = ScrollHit::thumb(
+            // assume it's a middle pane, so add a cell_height, which is the
+            // padding between panes
+            let mut scrollbar_height = pos.pixel_height as f32 + cell_height;
+
+            if pos.top == 0 {
+                // top vertical pane, add top padding and take half cell
+                scrollbar_height += padding_top - half_cell_height;
+            }
+
+            if is_last_v_pane {
+                // last vertical pane, add bottom padding and take half cell
+                scrollbar_height += padding_bottom + remaining_height
+                    - half_cell_height
+                    - border.bottom.get() as f32;
+            }
+
+            let scrollbar_height = scrollbar_height as usize;
+
+            let scrollthumb = ScrollThumb::new(
                 &*pos.pane,
                 current_viewport,
-                self.dimensions.pixel_height.saturating_sub(
-                    thumb_y_offset + border.bottom.get() + bottom_bar_height as usize,
-                ),
-                (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
+                scrollbar_top,
+                scrollbar_height,
+                half_cell_height as usize,
             );
-            let abs_thumb_top = thumb_y_offset + info.top;
-            let thumb_size = info.height;
-            let color = palette.scrollbar_thumb.to_linear();
+            let abs_thumb_top = scrollthumb.scrollbar_top + scrollthumb.top;
 
-            // Adjust the scrollbar thumb position
-            let config = &self.config;
-            let padding = self.effective_right_padding(&config) as f32;
-
-            let thumb_x = self.dimensions.pixel_width - padding as usize - border.right.get();
+            let thumb_width = half_cell_width as usize;
+            let thumb_x = if is_last_h_pane {
+                self.dimensions
+                    .pixel_width
+                    .saturating_sub(thumb_width + border.right.get())
+            } else {
+                (padding_left as usize
+                    + pos.pixel_width
+                    + pos.left * cell_width as usize
+                    + half_cell_width as usize)
+                    .saturating_sub(thumb_width)
+            };
 
             // Register the scroll bar location
             self.ui_items.push(UIItem {
                 x: thumb_x,
-                width: padding as usize,
-                y: thumb_y_offset,
-                height: info.top,
-                item_type: UIItemType::AboveScrollThumb,
+                width: thumb_width,
+                y: scrollthumb.scrollbar_top,
+                height: scrollthumb.top,
+                item_type: UIItemType::AboveScrollThumb(pos.pane.pane_id()),
             });
             self.ui_items.push(UIItem {
                 x: thumb_x,
-                width: padding as usize,
+                width: thumb_width,
                 y: abs_thumb_top,
-                height: thumb_size,
-                item_type: UIItemType::ScrollThumb,
+                height: scrollthumb.height,
+                item_type: UIItemType::ScrollThumb(scrollthumb),
             });
             self.ui_items.push(UIItem {
                 x: thumb_x,
-                width: padding as usize,
-                y: abs_thumb_top + thumb_size,
-                height: self
-                    .dimensions
-                    .pixel_height
-                    .saturating_sub(abs_thumb_top + thumb_size),
-                item_type: UIItemType::BelowScrollThumb,
+                width: thumb_width,
+                y: abs_thumb_top + scrollthumb.height,
+                height: scrollthumb
+                    .scrollbar_height
+                    .saturating_sub(scrollthumb.top + scrollthumb.height),
+                item_type: UIItemType::BelowScrollThumb(pos.pane.pane_id()),
             });
 
             self.filled_rectangle(
@@ -1342,11 +1378,16 @@ impl super::TermWindow {
                 euclid::rect(
                     thumb_x as f32,
                     abs_thumb_top as f32,
-                    padding,
-                    thumb_size as f32,
+                    thumb_width as f32,
+                    scrollthumb.height as f32,
                 ),
-                color,
-            )?;
+                palette.scrollbar_thumb.to_linear(),
+            )?
+            .set_hsv(if pos.is_active {
+                None
+            } else {
+                Some(config.inactive_pane_hsb)
+            });
         }
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
@@ -1368,11 +1409,9 @@ impl super::TermWindow {
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
-                    top_pixel_y: top_pixel_y
-                        + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
-                    left_pixel_x: padding_left
-                        + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
-                    pixel_width: dims.cols as f32 * self.render_metrics.cell_size.width as f32,
+                    top_pixel_y: top_pixel_y + (line_idx + pos.top) as f32 * cell_height,
+                    left_pixel_x: padding_left + (pos.left as f32 * cell_width),
+                    pixel_width: dims.cols as f32 * cell_width,
                     stable_line_idx: Some(stable_row),
                     line: &line,
                     selection: selrange,
@@ -1560,20 +1599,23 @@ impl super::TermWindow {
         let pos_y = split.top as f32 * cell_height + first_row_offset + padding_top;
         let pos_x = split.left as f32 * cell_width + padding_left;
 
+        let half_cell_width = cell_width / 2.0;
+        let half_cell_height = cell_height / 2.0;
+
         if split.direction == SplitDirection::Horizontal {
             self.filled_rectangle(
                 &mut quads,
                 euclid::rect(
-                    pos_x + (cell_width / 2.0),
-                    pos_y - (cell_height / 2.0),
+                    pos_x + half_cell_width,
+                    pos_y - half_cell_height,
                     self.render_metrics.underline_height as f32,
                     (1. + split.size as f32) * cell_height,
                 ),
                 foreground,
             )?;
             self.ui_items.push(UIItem {
-                x: padding_left as usize + (split.left * cell_width as usize),
-                width: cell_width as usize,
+                x: (pos_x + (half_cell_width / 2.)) as usize,
+                width: half_cell_width as usize,
                 y: padding_top as usize
                     + first_row_offset as usize
                     + split.top * cell_height as usize,
@@ -1584,8 +1626,8 @@ impl super::TermWindow {
             self.filled_rectangle(
                 &mut quads,
                 euclid::rect(
-                    pos_x - (cell_width / 2.0),
-                    pos_y + (cell_height / 2.0),
+                    pos_x - half_cell_width,
+                    pos_y + half_cell_height,
                     (1.0 + split.size as f32) * cell_width,
                     self.render_metrics.underline_height as f32,
                 ),

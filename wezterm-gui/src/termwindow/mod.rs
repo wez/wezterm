@@ -27,7 +27,7 @@ use config::keyassignment::{
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
-    TermConfig, WindowCloseConfirmation,
+    ScrollBarMode, TermConfig, WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId};
@@ -129,9 +129,9 @@ pub enum TermWindowNotif {
 pub enum UIItemType {
     TabBar(TabBarItem),
     CloseTab(usize),
-    AboveScrollThumb,
-    ScrollThumb,
-    BelowScrollThumb,
+    AboveScrollThumb(PaneId),
+    ScrollThumb(ScrollThumb),
+    BelowScrollThumb(PaneId),
     Split(PositionedSplit),
 }
 
@@ -332,7 +332,7 @@ pub struct TermWindow {
     dead_key_status: DeadKeyStatus,
     key_table_state: KeyTableState,
     show_tab_bar: bool,
-    show_scroll_bar: bool,
+    scroll_bar_mode: ScrollBarMode,
     tab_bar: TabBarState,
     fancy_tab_bar: Option<box_model::ComputedElement>,
     pub right_status: String,
@@ -758,7 +758,7 @@ impl TermWindow {
             leader_is_down: None,
             dead_key_status: DeadKeyStatus::None,
             show_tab_bar,
-            show_scroll_bar: config.enable_scroll_bar,
+            scroll_bar_mode: config.scroll_bar_mode,
             tab_bar: TabBarState::default(),
             fancy_tab_bar: None,
             right_status: String::new(),
@@ -1469,7 +1469,7 @@ impl TermWindow {
             None,
         );
 
-        self.show_scroll_bar = config.enable_scroll_bar;
+        self.scroll_bar_mode = config.scroll_bar_mode;
         self.shape_cache.borrow_mut().clear();
         self.fancy_tab_bar.take();
         self.invalidate_fancy_tab_bar();
@@ -1503,7 +1503,7 @@ impl TermWindow {
     }
 
     fn update_scrollbar(&mut self) {
-        if !self.show_scroll_bar {
+        if self.scroll_bar_mode == ScrollBarMode::None {
             return;
         }
 
@@ -2614,6 +2614,11 @@ impl TermWindow {
                 .clone()
                 .or_else(|| Some(pane))
         }
+    }
+
+    /// Returns a Pane that we can interact with by its id
+    fn get_pane_by_id(&self, pane_id: PaneId) -> Option<Rc<dyn Pane>> {
+        Mux::get().unwrap().get_pane(pane_id)
     }
 
     fn get_splits(&mut self) -> Vec<PositionedSplit> {
