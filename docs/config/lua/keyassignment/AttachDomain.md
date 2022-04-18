@@ -12,7 +12,7 @@ remote system into those of the local GUI.
 If there are no remote panes in that domain, wezterm will spawn a default
 program into it.
 
-This action is not bound to any keys by default. The [Launcher Menu]()
+This action is not bound to any keys by default. The [Launcher Menu](../../launch.md#the-launcher-menu)
 (default: right click on the new tab `+` button in the tab bar) will synthesize
 entries with this action.
 
@@ -33,3 +33,5 @@ return {
   },
 }
 ```
+
+See also: [DetachDomain](DetachDomain.md)
