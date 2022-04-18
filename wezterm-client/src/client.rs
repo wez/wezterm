@@ -568,9 +568,9 @@ impl Reconnectable {
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
         let cmd = if initial {
-            format!("{} cli proxy", proxy_bin)
+            format!("{} cli --prefer-mux proxy", proxy_bin)
         } else {
-            format!("{} cli --no-auto-start proxy", proxy_bin)
+            format!("{} cli --prefer-mux --no-auto-start proxy", proxy_bin)
         };
         ui.output_str(&format!("Running: {}\n", cmd));
         log::error!("going to run {}", cmd);
