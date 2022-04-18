@@ -620,7 +620,21 @@ fn do_domain_attach(domain: DomainId, window: WindowId) {
         let domain = mux
             .get_domain(domain)
             .ok_or_else(|| anyhow!("launcher attach called with unresolvable domain id!?"))?;
-        domain.attach(Some(window)).await
+        domain.attach(Some(window)).await?;
+
+        let have_panes_in_domain = mux
+            .iter_panes()
+            .iter()
+            .any(|p| p.domain_id() == domain.domain_id());
+
+        if !have_panes_in_domain {
+            let config = config::configuration();
+            let _tab = domain
+                .spawn(config.initial_size(), None, None, window)
+                .await?;
+        }
+
+        Result::<(), anyhow::Error>::Ok(())
     })
     .detach();
 }
