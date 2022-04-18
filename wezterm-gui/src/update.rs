@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use config::{configuration, wezterm_version};
 use http_req::request::{HttpVersion, Request};
 use http_req::uri::Uri;
-use mux::connui::ConnectionUI;
+use mux::connui::{ConnectionUI, ConnectionUIParams};
 use portable_pty::PtySize;
 use regex::Regex;
 use serde::*;
@@ -155,14 +155,17 @@ fn show_update_available(release: Release) {
     }
     let mut updater = UPDATER_WINDOW.lock().unwrap();
 
-    let enable_close_delay = false;
     let size = PtySize {
         cols: 80,
         rows: 35,
         pixel_width: 0,
         pixel_height: 0,
     };
-    let ui = ConnectionUI::with_dimensions(size, enable_close_delay);
+    let ui = ConnectionUI::with_params(ConnectionUIParams {
+        size,
+        disable_close_delay: true,
+        window_id: None,
+    });
     ui.title("WezTerm Update Available");
 
     let install = if cfg!(windows) {

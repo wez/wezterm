@@ -118,7 +118,7 @@ pub trait Domain: Downcast {
     }
 
     /// Re-attach to any tabs that might be pre-existing in this domain
-    async fn attach(&self) -> anyhow::Result<()>;
+    async fn attach(&self, window_id: Option<WindowId>) -> anyhow::Result<()>;
 
     /// Detach all tabs
     fn detach(&self) -> anyhow::Result<()>;
@@ -322,7 +322,7 @@ impl Domain for LocalDomain {
         &self.name
     }
 
-    async fn attach(&self) -> anyhow::Result<()> {
+    async fn attach(&self, _window_id: Option<WindowId>) -> anyhow::Result<()> {
         Ok(())
     }
 

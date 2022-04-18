@@ -65,6 +65,7 @@ pub struct LauncherArgs {
     title: String,
     active_workspace: String,
     workspaces: Vec<String>,
+    mux_window_id: WindowId,
 }
 
 impl LauncherArgs {
@@ -158,6 +159,7 @@ impl LauncherArgs {
             title: title.to_string(),
             workspaces,
             active_workspace,
+            mux_window_id,
         }
     }
 }
@@ -175,6 +177,7 @@ struct LauncherState {
     window: ::window::Window,
     filtering: bool,
     flags: LauncherFlags,
+    mux_window_id: WindowId,
 }
 
 impl LauncherState {
@@ -421,11 +424,12 @@ impl LauncherState {
     fn launch(&self, active_idx: usize) {
         match self.filtered_entries[active_idx].clone().kind {
             EntryKind::Attach { domain } => {
+                let window_id = self.mux_window_id;
                 promise::spawn::spawn_into_main_thread(async move {
                     // We can't inline do_domain_attach here directly
                     // because the compiler would then want its body
                     // to be Send :-/
-                    do_domain_attach(domain);
+                    do_domain_attach(domain, window_id);
                 })
                 .detach();
             }
@@ -599,6 +603,7 @@ pub fn launcher(
         window,
         filtering: args.flags.contains(LauncherFlags::FUZZY),
         flags: args.flags,
+        mux_window_id: args.mux_window_id,
     };
 
     term.set_raw_mode()?;
@@ -609,13 +614,13 @@ pub fn launcher(
     state.run_loop(&mut term)
 }
 
-fn do_domain_attach(domain: DomainId) {
+fn do_domain_attach(domain: DomainId, window: WindowId) {
     promise::spawn::spawn(async move {
         let mux = Mux::get().unwrap();
         let domain = mux
             .get_domain(domain)
             .ok_or_else(|| anyhow!("launcher attach called with unresolvable domain id!?"))?;
-        domain.attach().await
+        domain.attach(Some(window)).await
     })
     .detach();
 }

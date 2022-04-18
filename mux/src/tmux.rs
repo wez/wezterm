@@ -221,7 +221,7 @@ impl Domain for TmuxDomain {
         "tmux"
     }
 
-    async fn attach(&self) -> anyhow::Result<()> {
+    async fn attach(&self, _window_id: Option<crate::WindowId>) -> anyhow::Result<()> {
         Ok(())
     }
 

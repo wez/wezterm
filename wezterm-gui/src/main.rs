@@ -179,10 +179,10 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let mux = setup_mux(domain.clone(), &config, Some("local"), None)?;
 
     let gui = crate::frontend::try_new()?;
-    block_on(domain.attach())?; // FIXME: blocking
-
     {
         let window_id = mux.new_empty_window(None);
+        block_on(domain.attach(Some(*window_id)))?; // FIXME: blocking
+
         // FIXME: blocking
         let _tab = block_on(domain.spawn(config.initial_size(), None, None, *window_id))?;
     }
@@ -223,7 +223,6 @@ async fn async_run_with_domain_as_default(
     // And configure their desired domain as the default
     mux.add_domain(&domain);
     mux.set_default_domain(&domain);
-    domain.attach().await?;
 
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
@@ -278,7 +277,9 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     let mux = Mux::get().unwrap();
 
     let domain = mux.default_domain();
-    domain.attach().await?;
+    let window_id = mux.new_empty_window(None);
+
+    domain.attach(Some(*window_id)).await?;
 
     let have_panes_in_domain = mux
         .iter_panes()
@@ -301,7 +302,6 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         true
     });
 
-    let window_id = mux.new_empty_window(None);
     let _tab = domain
         .spawn(config.initial_size(), cmd, None, *window_id)
         .await?;
@@ -357,7 +357,7 @@ async fn connect_to_auto_connect_domains() -> anyhow::Result<()> {
     for dom in domains {
         if let Some(dom) = dom.downcast_ref::<ClientDomain>() {
             if dom.connect_automatically() {
-                dom.attach().await?;
+                dom.attach(None).await?;
             }
         }
     }

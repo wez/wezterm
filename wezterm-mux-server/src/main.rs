@@ -204,10 +204,10 @@ async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
     let mux = Mux::get().unwrap();
 
     let domain = mux.default_domain();
-    domain.attach().await?;
+    let window_id = mux.new_empty_window(None);
+    domain.attach(Some(*window_id)).await?;
 
     let config = config::configuration();
-    let window_id = mux.new_empty_window(None);
     let _tab = mux
         .default_domain()
         .spawn(config.initial_size(), cmd, None, *window_id)

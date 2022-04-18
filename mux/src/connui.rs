@@ -235,6 +235,13 @@ impl HeadlessImpl {
     }
 }
 
+#[derive(Default, Clone, Copy, Debug)]
+pub struct ConnectionUIParams {
+    pub size: PtySize,
+    pub disable_close_delay: bool,
+    pub window_id: Option<crate::WindowId>,
+}
+
 #[derive(Clone)]
 pub struct ConnectionUI {
     tx: Sender<UIRequest>,
@@ -242,35 +249,40 @@ pub struct ConnectionUI {
 
 impl ConnectionUI {
     pub fn new() -> Self {
-        let enable_close_delay = true;
-        Self::with_dimensions(PtySize::default(), enable_close_delay)
+        Self::with_params(Default::default())
     }
 
-    pub fn with_dimensions(size: PtySize, enable_close_delay: bool) -> Self {
+    pub fn with_params(params: ConnectionUIParams) -> Self {
         let (tx, rx) = unbounded();
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(size, move |term| {
-            let mut ui = ConnectionUIImpl { term, rx };
-            let status = ui.run().unwrap_or_else(|e| {
-                log::error!("while running ConnectionUI loop: {:?}", e);
-                CloseStatus::Implicit
-            });
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(
+            params.size,
+            params.window_id,
+            move |term| {
+                let mut ui = ConnectionUIImpl { term, rx };
+                let status = ui.run().unwrap_or_else(|e| {
+                    log::error!("while running ConnectionUI loop: {:?}", e);
+                    CloseStatus::Implicit
+                });
 
-            if enable_close_delay && status == CloseStatus::Implicit {
-                ui.sleep(
-                    "(this window will close automatically)",
-                    Duration::new(120, 0),
-                )
-                .ok();
-            }
-            Ok(())
-        }))
+                if !params.disable_close_delay && status == CloseStatus::Implicit {
+                    ui.sleep(
+                        "(this window will close automatically)",
+                        Duration::new(120, 0),
+                    )
+                    .ok();
+                }
+                Ok(())
+            },
+        ))
         .detach();
         Self { tx }
     }
 
     pub fn new_with_no_close_delay() -> Self {
-        let enable_close_delay = false;
-        Self::with_dimensions(PtySize::default(), enable_close_delay)
+        Self::with_params(ConnectionUIParams {
+            disable_close_delay: true,
+            ..Default::default()
+        })
     }
 
     pub fn new_headless() -> Self {

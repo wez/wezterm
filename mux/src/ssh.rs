@@ -678,7 +678,7 @@ impl Domain for RemoteSshDomain {
         &self.name
     }
 
-    async fn attach(&self) -> anyhow::Result<()> {
+    async fn attach(&self, _window_id: Option<crate::WindowId>) -> anyhow::Result<()> {
         Ok(())
     }
 

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use codec::{ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
-use mux::connui::ConnectionUI;
+use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitDirection, Tab, TabId};
@@ -306,7 +306,7 @@ impl ClientDomain {
         let inner = Self::get_client_inner_for_domain(domain_id)?;
 
         let panes = inner.client.list_panes().await?;
-        Self::process_pane_list(inner, panes)?;
+        Self::process_pane_list(inner, panes, None)?;
 
         ui.close();
         Ok(())
@@ -315,12 +315,16 @@ impl ClientDomain {
     pub async fn resync(&self) -> anyhow::Result<()> {
         if let Some(inner) = self.inner.borrow().as_ref() {
             let panes = inner.client.list_panes().await?;
-            Self::process_pane_list(Arc::clone(inner), panes)?;
+            Self::process_pane_list(Arc::clone(inner), panes, None)?;
         }
         Ok(())
     }
 
-    fn process_pane_list(inner: Arc<ClientInner>, panes: ListPanesResponse) -> anyhow::Result<()> {
+    fn process_pane_list(
+        inner: Arc<ClientInner>,
+        panes: ListPanesResponse,
+        mut primary_window_id: Option<WindowId>,
+    ) -> anyhow::Result<()> {
         let mux = Mux::get().expect("to be called on main thread");
         log::debug!("ListPanes result {:#?}", panes);
 
@@ -400,6 +404,9 @@ impl ClientDomain {
                     if window.idx_by_id(tab.tab_id()).is_none() {
                         window.push(&tab);
                     }
+                } else if let Some(local_window_id) = primary_window_id.take() {
+                    inner.record_remote_to_local_window_mapping(remote_window_id, local_window_id);
+                    mux.add_tab_to_window(&tab, local_window_id)?;
                 } else {
                     let local_window_id = mux.new_empty_window(workspace.take());
                     inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
@@ -415,6 +422,7 @@ impl ClientDomain {
         domain_id: DomainId,
         client: Client,
         panes: ListPanesResponse,
+        primary_window_id: Option<WindowId>,
     ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let domain = mux
@@ -428,7 +436,7 @@ impl ClientDomain {
         let inner = Arc::new(ClientInner::new(domain_id, client, threshold));
         *domain.inner.borrow_mut() = Some(Arc::clone(&inner));
 
-        Self::process_pane_list(inner, panes)?;
+        Self::process_pane_list(inner, panes, primary_window_id)?;
 
         Ok(())
     }
@@ -563,7 +571,7 @@ impl Domain for ClientDomain {
         Ok(pane)
     }
 
-    async fn attach(&self) -> anyhow::Result<()> {
+    async fn attach(&self, window_id: Option<WindowId>) -> anyhow::Result<()> {
         if self.state() == DomainState::Attached {
             // Already attached
             return Ok(());
@@ -573,7 +581,10 @@ impl Domain for ClientDomain {
         let config = self.config.clone();
 
         let activity = mux::activity::Activity::new();
-        let ui = ConnectionUI::new();
+        let ui = ConnectionUI::with_params(ConnectionUIParams {
+            window_id,
+            ..Default::default()
+        });
         ui.title("wezterm: Connecting...");
 
         ui.async_run_and_log_error({
@@ -606,7 +617,7 @@ impl Domain for ClientDomain {
                     "Server has {} tabs.  Attaching to local UI...\n",
                     panes.tabs.len()
                 ));
-                ClientDomain::finish_attach(domain_id, client, panes)
+                ClientDomain::finish_attach(domain_id, client, panes, window_id)
             }
         })
         .await

@@ -64,7 +64,7 @@ impl Domain for TermWizTerminalDomain {
     fn domain_name(&self) -> &str {
         "TermWizTerminalDomain"
     }
-    async fn attach(&self) -> anyhow::Result<()> {
+    async fn attach(&self, _window_id: Option<WindowId>) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -224,6 +224,10 @@ impl Pane for TermWizTerminalPane {
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {
         self.terminal.borrow_mut().perform_actions(actions)
+    }
+
+    fn kill(&self) {
+        *self.dead.borrow_mut() = true;
     }
 
     fn is_dead(&self) -> bool {
@@ -445,11 +449,13 @@ pub async fn run<
     F: Send + 'static + FnOnce(TermWizTerminal) -> anyhow::Result<T>,
 >(
     size: PtySize,
+    window_id: Option<WindowId>,
     f: F,
 ) -> anyhow::Result<T> {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
     let render_rx = render_pipe.read;
     let (input_tx, input_rx) = channel();
+    let should_close_window = window_id.is_none();
 
     let renderer = config::lua::new_wezterm_terminfo_renderer();
 
@@ -472,14 +478,22 @@ pub async fn run<
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
         size: PtySize,
-    ) -> anyhow::Result<WindowId> {
+        window_id: Option<WindowId>,
+    ) -> anyhow::Result<(PaneId, WindowId)> {
         let mux = Mux::get().unwrap();
 
         // TODO: make a singleton
         let domain: Arc<dyn Domain> = Arc::new(TermWizTerminalDomain::new());
         mux.add_domain(&domain);
 
-        let window_id = mux.new_empty_window(None);
+        let window_builder;
+        let window_id = match window_id {
+            Some(id) => id,
+            None => {
+                window_builder = mux.new_empty_window(None);
+                *window_builder
+            }
+        };
 
         let pane = TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx);
         let pane: Rc<dyn Pane> = Rc::new(pane);
@@ -488,13 +502,19 @@ pub async fn run<
         tab.assign_pane(&pane);
 
         mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, *window_id)?;
+        mux.add_tab_to_window(&tab, window_id)?;
 
-        Ok(*window_id)
+        let mut window = mux
+            .get_window_mut(window_id)
+            .ok_or_else(|| anyhow::anyhow!("invalid window id {}", window_id))?;
+        let tab_idx = window.len().saturating_sub(1);
+        window.save_and_then_set_active(tab_idx);
+
+        Ok((pane.pane_id(), window_id))
     }
 
-    let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, size).await
+    let (pane_id, window_id) = promise::spawn::spawn_into_main_thread(async move {
+        register_tab(input_tx, render_rx, size, window_id).await
     })
     .await?;
 
@@ -507,7 +527,11 @@ pub async fn run<
     // on the screen so let's ask the mux to kill off our window now.
     promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
-        mux.kill_window(window_id);
+        if should_close_window {
+            mux.kill_window(window_id);
+        } else if let Some(pane) = mux.get_pane(pane_id) {
+            pane.kill();
+        }
     })
     .detach();
 
