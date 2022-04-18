@@ -7,7 +7,6 @@
 //! menus.
 use crate::inputmap::InputMap;
 use crate::termwindow::TermWindowNotif;
-use anyhow::anyhow;
 use config::configuration;
 use config::keyassignment::{KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::lua::truncate_right;
@@ -30,15 +29,9 @@ use window::WindowOps;
 pub use config::keyassignment::LauncherFlags;
 
 #[derive(Clone)]
-enum EntryKind {
-    Attach { domain: DomainId },
-    KeyAssignment(KeyAssignment),
-}
-
-#[derive(Clone)]
 struct Entry {
     pub label: String,
-    pub kind: EntryKind,
+    pub action: KeyAssignment,
 }
 
 pub struct LauncherTabEntry {
@@ -65,7 +58,6 @@ pub struct LauncherArgs {
     title: String,
     active_workspace: String,
     workspaces: Vec<String>,
-    mux_window_id: WindowId,
 }
 
 impl LauncherArgs {
@@ -159,7 +151,6 @@ impl LauncherArgs {
             title: title.to_string(),
             workspaces,
             active_workspace,
-            mux_window_id,
         }
     }
 }
@@ -177,7 +168,6 @@ struct LauncherState {
     window: ::window::Window,
     filtering: bool,
     flags: LauncherFlags,
-    mux_window_id: WindowId,
 }
 
 impl LauncherState {
@@ -231,9 +221,7 @@ impl LauncherState {
                             None => "(default shell)".to_string(),
                         },
                     },
-                    kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(
-                        item.clone(),
-                    )),
+                    action: KeyAssignment::SpawnCommandInNewTab(item.clone()),
                 });
             }
         }
@@ -242,19 +230,15 @@ impl LauncherState {
             let entry = if domain.state == DomainState::Attached {
                 Entry {
                     label: format!("New Tab ({})", domain.label),
-                    kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(
-                        SpawnCommand {
-                            domain: SpawnTabDomain::DomainName(domain.name.to_string()),
-                            ..SpawnCommand::default()
-                        },
-                    )),
+                    action: KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
+                        domain: SpawnTabDomain::DomainName(domain.name.to_string()),
+                        ..SpawnCommand::default()
+                    }),
                 }
             } else {
                 Entry {
                     label: format!("Attach {}", domain.label),
-                    kind: EntryKind::Attach {
-                        domain: domain.domain_id,
-                    },
+                    action: KeyAssignment::AttachDomain(domain.name.to_string()),
                 }
             };
 
@@ -272,10 +256,10 @@ impl LauncherState {
                 if *ws != args.active_workspace {
                     self.entries.push(Entry {
                         label: format!("Switch to workspace: `{}`", ws),
-                        kind: EntryKind::KeyAssignment(KeyAssignment::SwitchToWorkspace {
+                        action: KeyAssignment::SwitchToWorkspace {
                             name: Some(ws.clone()),
                             spawn: None,
-                        }),
+                        },
                     });
                 }
             }
@@ -284,17 +268,17 @@ impl LauncherState {
                     "Create new Workspace (current is `{}`)",
                     args.active_workspace
                 ),
-                kind: EntryKind::KeyAssignment(KeyAssignment::SwitchToWorkspace {
+                action: KeyAssignment::SwitchToWorkspace {
                     name: None,
                     spawn: None,
-                }),
+                },
             });
         }
 
         for tab in &args.tabs {
             self.entries.push(Entry {
                 label: format!("{}. {} panes", tab.title, tab.pane_count),
-                kind: EntryKind::KeyAssignment(KeyAssignment::ActivateTab(tab.tab_idx as isize)),
+                action: KeyAssignment::ActivateTab(tab.tab_idx as isize),
             });
         }
 
@@ -310,7 +294,7 @@ impl LauncherState {
                 }
                 self.entries.push(Entry {
                     label: format!("{}. {}", cmd.brief, cmd.doc),
-                    kind: EntryKind::KeyAssignment(cmd.action),
+                    action: cmd.action,
                 });
             }
         }
@@ -331,10 +315,7 @@ impl LauncherState {
                 }
                 if key_entries
                     .iter()
-                    .find(|ent| match &ent.kind {
-                        EntryKind::KeyAssignment(a) => a == &entry.action,
-                        _ => false,
-                    })
+                    .find(|ent| ent.action == entry.action)
                     .is_some()
                 {
                     // Avoid duplicate entries
@@ -347,7 +328,7 @@ impl LauncherState {
                         mods.to_string(),
                         keycode.to_string().escape_debug()
                     ),
-                    kind: EntryKind::KeyAssignment(entry.action),
+                    action: entry.action,
                 });
             }
             key_entries.sort_by(|a, b| a.label.cmp(&b.label));
@@ -422,24 +403,11 @@ impl LauncherState {
     }
 
     fn launch(&self, active_idx: usize) {
-        match self.filtered_entries[active_idx].clone().kind {
-            EntryKind::Attach { domain } => {
-                let window_id = self.mux_window_id;
-                promise::spawn::spawn_into_main_thread(async move {
-                    // We can't inline do_domain_attach here directly
-                    // because the compiler would then want its body
-                    // to be Send :-/
-                    do_domain_attach(domain, window_id);
-                })
-                .detach();
-            }
-            EntryKind::KeyAssignment(assignment) => {
-                self.window.notify(TermWindowNotif::PerformAssignment {
-                    pane_id: self.pane_id,
-                    assignment,
-                });
-            }
-        }
+        let assignment = self.filtered_entries[active_idx].action.clone();
+        self.window.notify(TermWindowNotif::PerformAssignment {
+            pane_id: self.pane_id,
+            assignment,
+        });
     }
 
     fn move_up(&mut self) {
@@ -603,7 +571,6 @@ pub fn launcher(
         window,
         filtering: args.flags.contains(LauncherFlags::FUZZY),
         flags: args.flags,
-        mux_window_id: args.mux_window_id,
     };
 
     term.set_raw_mode()?;
@@ -612,29 +579,4 @@ pub fn launcher(
     state.update_filter();
     state.render(&mut term)?;
     state.run_loop(&mut term)
-}
-
-fn do_domain_attach(domain: DomainId, window: WindowId) {
-    promise::spawn::spawn(async move {
-        let mux = Mux::get().unwrap();
-        let domain = mux
-            .get_domain(domain)
-            .ok_or_else(|| anyhow!("launcher attach called with unresolvable domain id!?"))?;
-        domain.attach(Some(window)).await?;
-
-        let have_panes_in_domain = mux
-            .iter_panes()
-            .iter()
-            .any(|p| p.domain_id() == domain.domain_id());
-
-        if !have_panes_in_domain {
-            let config = config::configuration();
-            let _tab = domain
-                .spawn(config.initial_size(), None, None, window)
-                .await?;
-        }
-
-        Result::<(), anyhow::Error>::Ok(())
-    })
-    .detach();
 }

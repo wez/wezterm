@@ -327,7 +327,7 @@ impl Domain for LocalDomain {
     }
 
     fn detach(&self) -> anyhow::Result<()> {
-        bail!("detach not implemented");
+        bail!("detach not implemented for LocalDomain");
     }
 
     fn state(&self) -> DomainState {

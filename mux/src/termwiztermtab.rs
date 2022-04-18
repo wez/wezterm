@@ -531,6 +531,7 @@ pub async fn run<
             mux.kill_window(window_id);
         } else if let Some(pane) = mux.get_pane(pane_id) {
             pane.kill();
+            mux.remove_pane(pane.pane_id());
         }
     })
     .detach();

@@ -16,6 +16,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [PaneInformation.domain_name](config/lua/PaneInformation.md) and [pane:get_domain_name()](config/lua/pane/get_domain_name.md) which return the name of the domain with which a pane is associated. [#1881](https://github.com/wez/wezterm/issues/1881)
 * You may now use `CTRL-n` and `CTRL-p` (in addition to the up/down arrow and vi motion keys) to change the selected row in the Launcher.  Thanks to [@Junnplus](https://github.com/Junnplus)! [#1880](https://github.com/wez/wezterm/pull/1880)
 * Attaching multiplexer domains now attaches the first window as a tab in the active window, rather than opening a new window. [#1874](https://github.com/wez/wezterm/issues/1874)
+* [AttachDomain](config/lua/keyassignment/AttachDomain.md) and [DetachDomain](config/lua/keyassignment/DetachDomain.md) key assignments
 
 #### Changed
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)

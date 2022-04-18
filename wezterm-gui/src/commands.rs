@@ -719,4 +719,11 @@ static DEFS: &[CommandDef] = &[
         keys: &[],
         args: &[ArgType::ActiveWindow],
     },
+    CommandDef {
+        brief: "Detach the domain of the active pane",
+        doc: "Detaches (disconnects from) the domain of the active pane",
+        exp: |exp| exp.push(DetachDomain(SpawnTabDomain::CurrentPaneDomain)),
+        keys: &[],
+        args: &[ArgType::ActivePane],
+    },
 ];

@@ -651,7 +651,8 @@ impl Domain for ClientDomain {
     }
 
     fn detach(&self) -> anyhow::Result<()> {
-        bail!("detach not implemented");
+        self.perform_detach();
+        Ok(())
     }
 
     fn state(&self) -> DomainState {

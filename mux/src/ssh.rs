@@ -683,7 +683,7 @@ impl Domain for RemoteSshDomain {
     }
 
     fn detach(&self) -> anyhow::Result<()> {
-        bail!("detach not implemented");
+        bail!("detach not implemented for RemoteSshDomain");
     }
 
     fn state(&self) -> DomainState {

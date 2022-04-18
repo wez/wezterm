@@ -879,7 +879,7 @@ impl Mux {
         *self.banner.borrow_mut() = banner;
     }
 
-    fn resolve_spawn_tab_domain(
+    pub fn resolve_spawn_tab_domain(
         &self,
         // TODO: disambiguate with TabId
         pane_id: Option<PaneId>,

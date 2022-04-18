@@ -2346,6 +2346,39 @@ impl TermWindow {
                     switcher.do_switch();
                 }
             }
+            DetachDomain(domain) => {
+                let domain = Mux::get()
+                    .expect("running on GUI thread")
+                    .resolve_spawn_tab_domain(Some(pane.pane_id()), domain)?;
+                domain.detach()?;
+            }
+            AttachDomain(domain) => {
+                let window = self.mux_window_id;
+                let domain = domain.to_string();
+
+                promise::spawn::spawn(async move {
+                    let mux = Mux::get().unwrap();
+                    let domain = mux
+                        .get_domain_by_name(&domain)
+                        .ok_or_else(|| anyhow!("{} is not a valid domain name", domain))?;
+                    domain.attach(Some(window)).await?;
+
+                    let have_panes_in_domain = mux
+                        .iter_panes()
+                        .iter()
+                        .any(|p| p.domain_id() == domain.domain_id());
+
+                    if !have_panes_in_domain {
+                        let config = config::configuration();
+                        let _tab = domain
+                            .spawn(config.initial_size(), None, None, window)
+                            .await?;
+                    }
+
+                    Result::<(), anyhow::Error>::Ok(())
+                })
+                .detach();
+            }
         };
         Ok(())
     }

@@ -362,6 +362,8 @@ pub enum KeyAssignment {
     },
     PopKeyTable,
     ClearKeyTableStack,
+    DetachDomain(SpawnTabDomain),
+    AttachDomain(String),
 }
 impl_lua_conversion!(KeyAssignment);
 
