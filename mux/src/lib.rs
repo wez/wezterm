@@ -903,9 +903,6 @@ impl Mux {
                 .get_domain_by_name(&name)
                 .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
         };
-        if domain.state() == DomainState::Detached {
-            anyhow::bail!("Cannot spawn a tab into a Detached domain");
-        }
         Ok(domain)
     }
 
@@ -949,13 +946,17 @@ impl Mux {
         command_dir: Option<String>,
         domain: config::keyassignment::SpawnTabDomain,
     ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
-        let (_pane_domain_id, _window_id, tab_id) = self
+        let (_pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
 
         let domain = self
             .resolve_spawn_tab_domain(Some(pane_id), &domain)
             .context("resolve_spawn_tab_domain")?;
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(Some(window_id)).await?;
+        }
 
         let current_pane = self
             .get_pane(pane_id)
@@ -1022,6 +1023,10 @@ impl Mux {
             window_builder = self.new_empty_window(Some(workspace_for_new_window));
             (*window_builder, size)
         };
+
+        if domain.state() == DomainState::Detached {
+            domain.attach(Some(window_id)).await?;
+        }
 
         let cwd = self.resolve_cwd(
             command_dir,
