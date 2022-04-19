@@ -42,6 +42,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
 use wezterm_font::FontConfiguration;
+use wezterm_input_types::is_ascii_control;
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -2159,11 +2160,6 @@ impl WindowView {
                 let array: id = msg_send![class!(NSArray), arrayWithObject: nsevent];
                 let _: () = msg_send![this, interpretKeyEvents: array];
 
-                /*
-                let input_context: id = msg_send![this, inputContext];
-                let res: BOOL = msg_send![input_context, handleEvent: nsevent];
-                if res == YES {
-                */
                 if let Some(myself) = Self::get_this(this) {
                     let mut inner = myself.inner.borrow_mut();
                     log::trace!(
@@ -2276,8 +2272,16 @@ impl WindowView {
                 let raw = key_string_to_key_code(unmod);
                 match (&key, &raw) {
                     // Avoid eg: \x01 when we can use CTRL-A.
-                    // This also helps to keep the correct sequence for backspace/delete
-                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+                    // This also helps to keep the correct sequence for backspace/delete.
+                    // But take care: on German layouts CTRL-Backslash has unmod="/"
+                    // but chars="\x1c"; we only want to do this transformation when
+                    // chars and unmod have that base ASCII relationship.
+                    // <https://github.com/wez/wezterm/issues/1891>
+                    (KeyCode::Char(c), Some(KeyCode::Char(raw)))
+                        if is_ascii_control(*c) == Some(raw.to_ascii_lowercase()) =>
+                    {
+                        (KeyCode::Char(*raw), None)
+                    }
                     _ => (key, raw),
                 }
             };

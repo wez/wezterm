@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * Flush after replying to XTGETTCAP. [#1850](https://github.com/wez/wezterm/issues/1850)
 * macOS: CMD-. was treated as CTRL-ESC [#1867](https://github.com/wez/wezterm/issues/1867)
+* macOS: CTRL-Backslash on German layouts was incorrect [#1891](https://github.com/wez/wezterm/issues/1891)
 * `nf-mdi-contacts` nerdfont symbol treated as zero-width [#1864](https://github.com/wez/wezterm/issues/1864)
 * X11/Wayland: CTRL-i, CTRL-j, CTRL-m misinterpreted as CTRL-Tab, CTRL-Enter, CTRL-Return [#1851](https://github.com/wez/wezterm/issues/1851)
 * Scrollbar stopped working after a lot of output scrolled outside of the scrollback limit.  Thanks to [@davidrios](https://github.com/davidrios)! [#1866](https://github.com/wez/wezterm/pull/1866)
