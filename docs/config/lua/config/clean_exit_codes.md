@@ -19,3 +19,6 @@ return {
   clean_exit_codes = {130},
 }
 ```
+
+Note that `0` is always treated as a clean exit code and can be omitted
+from the list.
