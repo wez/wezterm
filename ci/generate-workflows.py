@@ -438,7 +438,7 @@ cargo build --all --release""",
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"mv ~/packages/x86_64/*.apk .",
+                    f"find ~/packages -ls ; mv ~/packages/x86_64/*.apk .",
                 )
             )
 
