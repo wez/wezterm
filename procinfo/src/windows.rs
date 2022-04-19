@@ -14,7 +14,7 @@ use winapi::shared::minwindef::{FILETIME, HMODULE, LPVOID, MAX_PATH};
 use winapi::shared::ntdef::{FALSE, NT_SUCCESS};
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::ReadProcessMemory;
-use winapi::um::processthreadsapi::{GetProcessTimes, OpenProcess};
+use winapi::um::processthreadsapi::{GetCurrentProcessId, GetProcessTimes, OpenProcess};
 use winapi::um::psapi::{EnumProcessModulesEx, GetModuleFileNameExW, LIST_MODULES_ALL};
 use winapi::um::shellapi::CommandLineToArgvW;
 use winapi::um::tlhelp32::*;
@@ -38,6 +38,13 @@ impl Snapshot {
         ProcIter {
             snapshot: &self,
             first: true,
+        }
+    }
+
+    pub fn entries() -> Vec<PROCESSENTRY32W> {
+        match Self::new() {
+            Some(snapshot) => snapshot.iter().collect(),
+            None => vec![],
         }
     }
 }
@@ -92,16 +99,22 @@ struct ProcParams {
 }
 
 /// A handle to an opened process
-struct ProcHandle(HANDLE);
+struct ProcHandle {
+    proc: HANDLE,
+}
 
 impl ProcHandle {
     pub fn new(pid: u32) -> Option<Self> {
+        if pid == unsafe { GetCurrentProcessId() } {
+            // Avoid the potential for deadlock if we're examining ourselves
+            return None;
+        }
         let options = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ;
         let handle = unsafe { OpenProcess(options, FALSE as _, pid) };
         if handle.is_null() {
             return None;
         }
-        Some(Self(handle))
+        Some(Self { proc: handle })
     }
 
     /// Returns the HMODULE for the process
@@ -111,7 +124,7 @@ impl ProcHandle {
         let size = std::mem::size_of_val(&hmod);
         let res = unsafe {
             EnumProcessModulesEx(
-                self.0,
+                self.proc,
                 hmod.as_mut_ptr(),
                 size as _,
                 &mut needed,
@@ -129,7 +142,8 @@ impl ProcHandle {
     pub fn executable(&self) -> Option<PathBuf> {
         let hmod = self.hmodule()?;
         let mut buf = [0u16; MAX_PATH + 1];
-        let res = unsafe { GetModuleFileNameExW(self.0, hmod, buf.as_mut_ptr(), buf.len() as _) };
+        let res =
+            unsafe { GetModuleFileNameExW(self.proc, hmod, buf.as_mut_ptr(), buf.len() as _) };
         if res == 0 {
             None
         } else {
@@ -142,7 +156,7 @@ impl ProcHandle {
         let mut data = MaybeUninit::<T>::uninit();
         let res = unsafe {
             NtQueryInformationProcess(
-                self.0,
+                self.proc,
                 what,
                 data.as_mut_ptr() as _,
                 std::mem::size_of::<T>() as _,
@@ -161,7 +175,7 @@ impl ProcHandle {
         let mut data = MaybeUninit::<T>::uninit();
         let res = unsafe {
             ReadProcessMemory(
-                self.0,
+                self.proc,
                 addr as _,
                 data.as_mut_ptr() as _,
                 std::mem::size_of::<T>() as _,
@@ -255,12 +269,18 @@ impl ProcHandle {
 
     /// Copies a sized WSTR from the address in the process
     fn read_process_wchar(&self, ptr: LPVOID, byte_size: usize) -> Option<Vec<u16>> {
+        if byte_size > MAX_PATH * 4 {
+            // Defend against implausibly large paths, just in
+            // case we're reading the wrong offset into a kernel struct
+            return None;
+        }
+
         let mut buf = vec![0u16; byte_size / 2];
         let mut bytes_read = 0;
 
         let res = unsafe {
             ReadProcessMemory(
-                self.0,
+                self.proc,
                 ptr as _,
                 buf.as_mut_ptr() as _,
                 byte_size,
@@ -305,7 +325,8 @@ impl ProcHandle {
         let mut kernel = empty();
         let mut user = empty();
 
-        let res = unsafe { GetProcessTimes(self.0, &mut start, &mut exit, &mut kernel, &mut user) };
+        let res =
+            unsafe { GetProcessTimes(self.proc, &mut start, &mut exit, &mut kernel, &mut user) };
         if res == 0 {
             return None;
         }
@@ -335,7 +356,7 @@ fn cmd_line_to_argv(buf: &[u16]) -> Vec<String> {
 
 impl Drop for ProcHandle {
     fn drop(&mut self) {
-        unsafe { CloseHandle(self.0) };
+        unsafe { CloseHandle(self.proc) };
     }
 }
 
@@ -352,8 +373,7 @@ impl LocalProcessInfo {
     }
 
     pub fn with_root_pid(pid: u32) -> Option<Self> {
-        let snapshot = Snapshot::new()?;
-        let procs: Vec<_> = snapshot.iter().collect();
+        let procs = Snapshot::entries();
 
         fn build_proc(info: &PROCESSENTRY32W, procs: &[PROCESSENTRY32W]) -> LocalProcessInfo {
             let mut children = HashMap::new();
