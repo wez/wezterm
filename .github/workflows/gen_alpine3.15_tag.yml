@@ -68,13 +68,19 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Move APKs"
+        shell: bash
+        run: "mv ~/packages/x86_64/*.apk ."
+      - name: "Move APK keys"
+        shell: bash
+        run: "mv ~/.abuild/*.pub ."
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
           name: "alpine3.15"
           path: |
-            ~/packages/x86_64/wezterm-*.apk
-            ~/.abuild/*.pub
+            wezterm-*.apk
+            *.pub
 
   upload:
     runs-on: ubuntu-latest
@@ -99,4 +105,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) ~/packages/x86_64/wezterm-*.apk ~/.abuild/*.pub"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.apk *.pub"

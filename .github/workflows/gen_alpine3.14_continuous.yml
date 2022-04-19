@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: "alpine3.14"
-          path: "~/packages/x86_64/wezterm-*.apk"
+          path: "wezterm-*.apk"
           retention-days: 5
 
   upload:
@@ -105,4 +105,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly ~/packages/x86_64/wezterm-*.apk"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.apk"

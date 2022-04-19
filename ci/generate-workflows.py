@@ -377,6 +377,19 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm .",
                 )
             )
+        elif "alpine" in self.name:
+            steps.append(
+                RunStep(
+                    "Move APKs",
+                    f"mv ~/packages/x86_64/*.apk .",
+                )
+            )
+            steps.append(
+                RunStep(
+                    "Move APK keys",
+                    f"mv ~/.abuild/*.pub .",
+                )
+            )
 
         patterns = self.asset_patterns()
         glob = " ".join(patterns)
@@ -401,9 +414,9 @@ cargo build --all --release""",
         elif ("ubuntu" in self.name) or ("debian" in self.name):
             patterns += ["wezterm-*.deb", "wezterm-*.xz"]
         elif "alpine" in self.name:
-            patterns += ["~/packages/x86_64/wezterm-*.apk"]
+            patterns += ["wezterm-*.apk"]
             if self.is_tag:
-                patterns.append("~/.abuild/*.pub")
+                patterns.append("*.pub")
 
         if self.app_image:
             patterns.append("*src.tar.gz")
