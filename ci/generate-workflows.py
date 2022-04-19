@@ -381,7 +381,7 @@ cargo build --all --release""",
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"find ~/packages/ -ls ; mv ~/packages/**/*.apk .",
+                    f"find ~/packages/ -ls ; mv ~/packages/wezterm/x86_64/*.apk .",
                 )
             )
             steps.append(
@@ -438,7 +438,7 @@ cargo build --all --release""",
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"find ~/packages -ls ; mv ~/packages/**/*.apk .",
+                    f"find ~/packages -ls ; mv ~/packages/wezterm/x86_64/*.apk .",
                 )
             )
 
