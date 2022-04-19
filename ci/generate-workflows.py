@@ -434,6 +434,13 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm",
                 )
             )
+        elif "alpine" in self.name:
+            steps.append(
+                RunStep(
+                    "Move APKs",
+                    f"mv ~/packages/x86_64/*.apk .",
+                )
+            )
 
         patterns = self.asset_patterns()
         glob = " ".join(patterns)
