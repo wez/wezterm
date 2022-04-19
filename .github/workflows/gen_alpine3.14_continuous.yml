@@ -31,7 +31,7 @@ jobs:
         run: "apk upgrade --update-cache"
       - name: "Install CI dependencies"
         shell: sh
-        run: "apk add nodejs zstd wget bash"
+        run: "apk add nodejs zstd wget bash coreutils tar findutils"
       - name: "Allow root login"
         shell: bash
         run: "sed 's/root:!/root:*/g' -i /etc/shadow"

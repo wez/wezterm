@@ -377,11 +377,11 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm .",
                 )
             )
-        elif "alpine" in self.name:
+        elif self.uses_apk():
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"mv ~/packages/x86_64/*.apk .",
+                    f"find ~/packages/ -ls ; mv ~/packages/x86_64/*.apk .",
                 )
             )
             steps.append(
@@ -434,7 +434,7 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm",
                 )
             )
-        elif "alpine" in self.name:
+        elif self.uses_apk():
             steps.append(
                 RunStep(
                     "Move APKs",
@@ -608,7 +608,7 @@ cargo build --all --release""",
                     ),
                     RunStep(
                         "Install CI dependencies",
-                        "apk add nodejs zstd wget bash",
+                        "apk add nodejs zstd wget bash coreutils tar findutils",
                         shell="sh",
                     ),
                     RunStep(
