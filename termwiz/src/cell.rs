@@ -834,6 +834,15 @@ pub struct UnicodeVersion {
     pub ambiguous_are_wide: bool,
 }
 
+impl UnicodeVersion {
+    pub const fn new(version: u8) -> Self {
+        Self {
+            version,
+            ambiguous_are_wide: false,
+        }
+    }
+}
+
 pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
     version: 14,
     ambiguous_are_wide: false,
@@ -1018,21 +1027,21 @@ mod test {
 
         let man_dancing = "\u{1F57A}";
         assert_eq!(
-            unicode_column_width(man_dancing, Some(UnicodeVersion(9))),
+            unicode_column_width(man_dancing, Some(UnicodeVersion::new(9))),
             2
         );
         assert_eq!(
-            unicode_column_width(man_dancing, Some(UnicodeVersion(8))),
+            unicode_column_width(man_dancing, Some(UnicodeVersion::new(8))),
             2
         );
 
         let raised_fist = "\u{270a}";
         assert_eq!(
-            unicode_column_width(raised_fist, Some(UnicodeVersion(9))),
+            unicode_column_width(raised_fist, Some(UnicodeVersion::new(9))),
             2
         );
         assert_eq!(
-            unicode_column_width(raised_fist, Some(UnicodeVersion(8))),
+            unicode_column_width(raised_fist, Some(UnicodeVersion::new(8))),
             1
         );
 
@@ -1089,7 +1098,7 @@ mod test {
         );
         assert_eq!(unicode_column_width(copyright_emoji_presentation, None), 2);
         assert_eq!(
-            unicode_column_width(copyright_emoji_presentation, Some(UnicodeVersion(9))),
+            unicode_column_width(copyright_emoji_presentation, Some(UnicodeVersion::new(9))),
             1
         );
 
