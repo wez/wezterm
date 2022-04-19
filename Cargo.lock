@@ -1041,7 +1041,7 @@ dependencies = [
  "rustc_version 0.4.0",
  "toml",
  "vswhom",
- "winreg 0.10.1",
+ "winreg",
 ]
 
 [[package]]
@@ -2946,6 +2946,7 @@ dependencies = [
  "smol",
  "ssh2",
  "winapi 0.3.9",
+ "winreg",
 ]
 
 [[package]]
@@ -5000,7 +5001,7 @@ dependencies = [
  "wezterm-input-types",
  "winapi 0.3.9",
  "windows",
- "winreg 0.6.2",
+ "winreg",
  "x11",
  "xcb 0.9.0",
  "xcb-imdkit",
@@ -5050,15 +5051,6 @@ name = "windows_x86_64_msvc"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff1e4aa646495048ec7f3ffddc411e1d829c026a2ec62b39da15c1055e406eaa"
-
-[[package]]
-name = "winreg"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2986deb581c4fe11b621998a5e53361efe6b48a151178d0cd9eeffa4dc6acc9"
-dependencies = [
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "winreg"
