@@ -70,7 +70,7 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move APKs"
         shell: bash
-        run: "find ~/packages/ -ls ; mv ~/packages/x86_64/*.apk ."
+        run: "find ~/packages/ -ls ; mv ~/packages/**/*.apk ."
       - name: "Move APK keys"
         shell: bash
         run: "mv ~/.abuild/*.pub ."
