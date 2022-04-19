@@ -37,6 +37,7 @@ impl EnvEntry {
 }
 
 fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
+    #[allow(unused_mut)]
     let mut env: BTreeMap<OsString, EnvEntry> = std::env::vars_os()
         .map(|(key, value)| {
             (
