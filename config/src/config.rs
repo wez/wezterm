@@ -595,6 +595,9 @@ pub struct Config {
     #[serde(default = "default_unicode_version")]
     pub unicode_version: u8,
 
+    #[serde(default)]
+    pub treat_east_asian_ambiguous_width_as_wide: bool,
+
     #[serde(default = "default_true")]
     pub allow_download_protocols: bool,
 

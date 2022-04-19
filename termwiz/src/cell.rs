@@ -829,9 +829,15 @@ impl Cell {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UnicodeVersion(pub u8);
+pub struct UnicodeVersion {
+    pub version: u8,
+    pub ambiguous_are_wide: bool,
+}
 
-pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion(14);
+pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
+    version: 14,
+    ambiguous_are_wide: false,
+};
 
 /// Returns the number of cells visually occupied by a sequence
 /// of graphemes.
@@ -875,7 +881,9 @@ pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
 /// the Cell that is used to hold a grapheme, and that per-Cell version
 /// can then be used to calculate width.
 pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
-    let version = version.unwrap_or(LATEST_UNICODE_VERSION).0;
+    let version = version.unwrap_or(LATEST_UNICODE_VERSION);
+    let ambiguous_are_wide = version.ambiguous_are_wide;
+    let version = version.version;
 
     let width: usize = s
         .chars()
@@ -887,6 +895,8 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
             // <https://github.com/wez/wezterm/issues/1864>
             if c == WcWidth::Unassigned {
                 1
+            } else if c == WcWidth::Ambiguous && ambiguous_are_wide {
+                2
             } else if version >= 9 {
                 c.width_unicode_9_or_later()
             } else {

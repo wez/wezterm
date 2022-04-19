@@ -497,7 +497,7 @@ impl TerminalState {
 
         let color_map = default_color_map();
 
-        let unicode_version = UnicodeVersion(config.unicode_version());
+        let unicode_version = config.unicode_version();
 
         TerminalState {
             config,

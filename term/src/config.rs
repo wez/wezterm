@@ -1,4 +1,5 @@
 use crate::color::ColorPalette;
+use termwiz::cell::UnicodeVersion;
 use termwiz::surface::{Line, SequenceNo};
 use wezterm_bidi::ParagraphDirectionHint;
 
@@ -181,8 +182,11 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     /// that also alter the width of certain sequences, and that is too
     /// new for most deployed applications.
     // Coupled with config/src/lib.rs:default_unicode_version
-    fn unicode_version(&self) -> u8 {
-        9
+    fn unicode_version(&self) -> UnicodeVersion {
+        UnicodeVersion {
+            version: 9,
+            ambiguous_are_wide: false,
+        }
     }
 
     fn debug_key_events(&self) -> bool {

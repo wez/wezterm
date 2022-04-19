@@ -2,6 +2,7 @@
 
 use crate::{configuration, ConfigHandle, NewlineCanon};
 use std::sync::Mutex;
+use termwiz::cell::UnicodeVersion;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::config::BidiMode;
 
@@ -80,8 +81,12 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         }
     }
 
-    fn unicode_version(&self) -> u8 {
-        self.configuration().unicode_version
+    fn unicode_version(&self) -> UnicodeVersion {
+        let config = self.configuration();
+        UnicodeVersion {
+            version: config.unicode_version,
+            ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
+        }
     }
 
     fn debug_key_events(&self) -> bool {
