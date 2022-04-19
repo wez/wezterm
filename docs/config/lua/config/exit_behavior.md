@@ -30,3 +30,5 @@ exit
 With the default `exit_behavior="CloseOnCleanExit"` setting, that will cause
 the pane to remain open.
 
+See also: [clean_exit_codes](clean_exit_codes.md) for fine tuning what is
+considered to be a clean exit status.

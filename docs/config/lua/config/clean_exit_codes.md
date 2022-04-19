@@ -1,0 +1,21 @@
+## `clean_exit_codes = { 0 }`
+
+*Since: nightly builds only*
+
+Defines the set of exit codes that are considered to be a "clean" exit by
+[exit_behavior](exit_behavior.md) when the program running in the terminal
+completes.
+
+Acceptable values are an array of integer exit codes that you wish to treat
+as successful.
+
+For example, if you often `CTRL-C` a program and then `CTRL-D`, bash will
+typically exit with status `130` to indicate that a program was terminated
+with SIGINT, but that bash itself wasn't.  In that situation you may wish
+to set this config to treat `130` as OK:
+
+```lua
+return {
+  clean_exit_codes = {130},
+}
+```

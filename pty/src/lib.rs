@@ -181,6 +181,11 @@ impl ExitStatus {
             Some(_) => false,
         }
     }
+
+    /// Returns the exit code that this ExitStatus was constructed with
+    pub fn exit_code(&self) -> u32 {
+        self.code
+    }
 }
 
 impl From<std::process::ExitStatus> for ExitStatus {

@@ -128,6 +128,9 @@ pub struct Config {
     #[serde(default)]
     pub exit_behavior: ExitBehavior,
 
+    #[serde(default = "default_clean_exits")]
+    pub clean_exit_codes: Vec<u32>,
+
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
     /// This is not used when working with remote domains.
@@ -1268,6 +1271,10 @@ fn default_update_interval() -> u64 {
 
 fn default_prefer_egl() -> bool {
     !cfg!(windows)
+}
+
+fn default_clean_exits() -> Vec<u32> {
+    vec![]
 }
 
 fn default_inactive_pane_hsb() -> HsbTransform {

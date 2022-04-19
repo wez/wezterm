@@ -159,8 +159,16 @@ impl Pane for LocalPane {
                     Err(TryRecvError::Empty) => None,
                     _ => Some(ExitStatus::with_exit_code(1)),
                 };
+
                 if let Some(status) = status {
-                    match (configuration().exit_behavior, status.success(), killed) {
+                    let success = match status.success() {
+                        true => true,
+                        false => configuration()
+                            .clean_exit_codes
+                            .contains(&status.exit_code()),
+                    };
+
+                    match (configuration().exit_behavior, success, killed) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, false) => {
                             notify = Some(format!(
