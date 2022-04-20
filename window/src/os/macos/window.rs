@@ -2282,6 +2282,13 @@ impl WindowView {
                     {
                         (KeyCode::Char(*raw), None)
                     }
+                    (KeyCode::Char('\u{7f}'), Some(KeyCode::Char('\u{08}'))) => {
+                        // Special case: macOS reported backspace as \u7f but we set
+                        // the raw keycode and rewrote unmode to \u08 based on the
+                        // vk value above.
+                        // We want to propagate \u08.
+                        (KeyCode::Char('\u{08}'), None)
+                    }
                     _ => (key, raw),
                 }
             };
