@@ -35,6 +35,10 @@ CATEGORIZE = {
     r"^WezTerm-macos-.*.zip$": "macos_zip",
     r"^WezTerm-windows-.*.zip$": "windows_zip",
     r"^WezTerm-.*.setup.exe$": "windows_exe",
+    r"alpine3.12.apk": "alpine3_12_apk",
+    r"alpine3.13.apk": "alpine3_13_apk",
+    r"alpine3.14.apk": "alpine3_14_apk",
+    r"alpine3.15.apk": "alpine3_15_apk",
 }
 
 
