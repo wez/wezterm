@@ -4,6 +4,7 @@ use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
+use crate::scrollbar;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
@@ -1295,8 +1296,9 @@ impl super::TermWindow {
             }
         }
 
-        if self.scroll_bar_mode == ScrollBarMode::AllPanes
-            || (self.scroll_bar_mode == ScrollBarMode::ActivePane && pos.is_active)
+        let scroll_bar_mode = scrollbar::get_scroll_bar_mode(config);
+        if scroll_bar_mode == ScrollBarMode::AllPanes
+            || (scroll_bar_mode == ScrollBarMode::ActivePane && pos.is_active)
         {
             let scrollbar_top = if pos.top == 0 {
                 top_bar_height as usize + border.top.get()

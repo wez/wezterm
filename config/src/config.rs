@@ -332,6 +332,11 @@ pub struct Config {
     #[serde(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
 
+    /// This config is deprecated in favour of the new scroll_bar_mode.
+    /// If true, scroll_bar_mode will be set to AllPanes, else to None.
+    #[serde(default)]
+    pub enable_scroll_bar: Option<bool>,
+
     #[serde(default)]
     pub scroll_bar_mode: ScrollBarMode,
 

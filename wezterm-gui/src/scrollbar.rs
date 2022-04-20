@@ -1,3 +1,4 @@
+use config::{ConfigHandle, ScrollBarMode};
 use mux::pane::{Pane, PaneId};
 use wezterm_term::StableRowIndex;
 
@@ -66,5 +67,13 @@ impl ScrollThumb {
         let effective_y = (cursor_y - thumb_offset - self.scrollbar_top as isize).max(0);
         let available_height = self.scrollbar_height - self.height;
         (effective_y as f32 / available_height as f32).min(1.)
+    }
+}
+
+pub fn get_scroll_bar_mode(config: &ConfigHandle) -> ScrollBarMode {
+    match config.enable_scroll_bar {
+        Some(true) => ScrollBarMode::AllPanes,
+        Some(false) => ScrollBarMode::None,
+        None => config.scroll_bar_mode,
     }
 }

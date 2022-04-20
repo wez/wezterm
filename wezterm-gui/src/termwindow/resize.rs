@@ -1,3 +1,4 @@
+use crate::scrollbar;
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, Window, WindowOps, WindowState};
 use config::{ConfigHandle, DimensionContext, ScrollBarMode};
@@ -467,7 +468,7 @@ impl super::TermWindow {
 /// size unless they've specified differently.
 pub fn effective_right_padding(config: &ConfigHandle, context: DimensionContext) -> u16 {
     let padding = config.window_padding.right.evaluate_as_pixels(context) as u16;
-    if config.scroll_bar_mode != ScrollBarMode::None {
+    if scrollbar::get_scroll_bar_mode(config) != ScrollBarMode::None {
         padding.max((context.pixel_cell / 2.) as u16)
     } else {
         padding

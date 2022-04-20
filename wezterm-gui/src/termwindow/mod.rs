@@ -332,6 +332,7 @@ pub struct TermWindow {
     dead_key_status: DeadKeyStatus,
     key_table_state: KeyTableState,
     show_tab_bar: bool,
+    enable_scroll_bar: Option<bool>,
     scroll_bar_mode: ScrollBarMode,
     tab_bar: TabBarState,
     fancy_tab_bar: Option<box_model::ComputedElement>,
@@ -758,6 +759,7 @@ impl TermWindow {
             leader_is_down: None,
             dead_key_status: DeadKeyStatus::None,
             show_tab_bar,
+            enable_scroll_bar: config.enable_scroll_bar,
             scroll_bar_mode: config.scroll_bar_mode,
             tab_bar: TabBarState::default(),
             fancy_tab_bar: None,
@@ -1469,6 +1471,7 @@ impl TermWindow {
             None,
         );
 
+        self.enable_scroll_bar = config.enable_scroll_bar;
         self.scroll_bar_mode = config.scroll_bar_mode;
         self.shape_cache.borrow_mut().clear();
         self.fancy_tab_bar.take();
@@ -1503,7 +1506,7 @@ impl TermWindow {
     }
 
     fn update_scrollbar(&mut self) {
-        if self.scroll_bar_mode == ScrollBarMode::None {
+        if get_scroll_bar_mode(&self.config) == ScrollBarMode::None {
             return;
         }
 
