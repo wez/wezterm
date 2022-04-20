@@ -3051,6 +3051,7 @@ name = "procinfo"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "log",
  "luahelper",
  "ntapi",
  "serde",

@@ -10,15 +10,14 @@ use ntapi::ntwow64::RTL_USER_PROCESS_PARAMETERS32;
 use std::ffi::OsString;
 use std::mem::MaybeUninit;
 use std::os::windows::ffi::OsStringExt;
-use winapi::shared::minwindef::{FILETIME, HMODULE, LPVOID, MAX_PATH};
+use winapi::shared::minwindef::{DWORD, FILETIME, LPVOID, MAX_PATH};
 use winapi::shared::ntdef::{FALSE, NT_SUCCESS};
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::ReadProcessMemory;
 use winapi::um::processthreadsapi::{GetCurrentProcessId, GetProcessTimes, OpenProcess};
-use winapi::um::psapi::{EnumProcessModulesEx, GetModuleFileNameExW, LIST_MODULES_ALL};
 use winapi::um::shellapi::CommandLineToArgvW;
 use winapi::um::tlhelp32::*;
-use winapi::um::winbase::LocalFree;
+use winapi::um::winbase::{LocalFree, QueryFullProcessImageNameW};
 use winapi::um::winnt::{HANDLE, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ};
 
 /// Manages a Toolhelp32 snapshot handle
@@ -100,6 +99,7 @@ struct ProcParams {
 
 /// A handle to an opened process
 struct ProcHandle {
+    pid: u32,
     proc: HANDLE,
 }
 
@@ -107,43 +107,24 @@ impl ProcHandle {
     pub fn new(pid: u32) -> Option<Self> {
         if pid == unsafe { GetCurrentProcessId() } {
             // Avoid the potential for deadlock if we're examining ourselves
+            log::trace!("ProcHandle::new({}): skip because it is my own pid", pid);
             return None;
         }
         let options = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ;
+        log::trace!("ProcHandle::new({}): OpenProcess", pid);
         let handle = unsafe { OpenProcess(options, FALSE as _, pid) };
+        log::trace!("ProcHandle::new({}): OpenProcess -> {:?}", pid, handle);
         if handle.is_null() {
             return None;
         }
-        Some(Self { proc: handle })
-    }
-
-    /// Returns the HMODULE for the process
-    fn hmodule(&self) -> Option<HMODULE> {
-        let mut needed = 0;
-        let mut hmod = [0 as HMODULE];
-        let size = std::mem::size_of_val(&hmod);
-        let res = unsafe {
-            EnumProcessModulesEx(
-                self.proc,
-                hmod.as_mut_ptr(),
-                size as _,
-                &mut needed,
-                LIST_MODULES_ALL,
-            )
-        };
-        if res == 0 {
-            None
-        } else {
-            Some(hmod[0])
-        }
+        Some(Self { pid, proc: handle })
     }
 
     /// Returns the executable image for the process
     pub fn executable(&self) -> Option<PathBuf> {
-        let hmod = self.hmodule()?;
         let mut buf = [0u16; MAX_PATH + 1];
-        let res =
-            unsafe { GetModuleFileNameExW(self.proc, hmod, buf.as_mut_ptr(), buf.len() as _) };
+        let mut len = buf.len() as DWORD;
+        let res = unsafe { QueryFullProcessImageNameW(self.proc, 0, buf.as_mut_ptr(), &mut len) };
         if res == 0 {
             None
         } else {
@@ -356,24 +337,29 @@ fn cmd_line_to_argv(buf: &[u16]) -> Vec<String> {
 
 impl Drop for ProcHandle {
     fn drop(&mut self) {
+        log::trace!("ProcHandle::drop(pid={} proc={:?})", self.pid, self.proc);
         unsafe { CloseHandle(self.proc) };
     }
 }
 
 impl LocalProcessInfo {
     pub fn current_working_dir(pid: u32) -> Option<PathBuf> {
+        log::trace!("current_working_dir({})", pid);
         let proc = ProcHandle::new(pid)?;
         let params = proc.get_params()?;
         Some(params.cwd)
     }
 
     pub fn executable_path(pid: u32) -> Option<PathBuf> {
+        log::trace!("executable_path({})", pid);
         let proc = ProcHandle::new(pid)?;
         proc.executable()
     }
 
     pub fn with_root_pid(pid: u32) -> Option<Self> {
+        log::trace!("LocalProcessInfo::with_root_pid({}), getting snapshot", pid);
         let procs = Snapshot::entries();
+        log::trace!("Got snapshot");
 
         fn build_proc(info: &PROCESSENTRY32W, procs: &[PROCESSENTRY32W]) -> LocalProcessInfo {
             let mut children = HashMap::new();

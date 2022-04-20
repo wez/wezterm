@@ -800,6 +800,7 @@ impl LocalPane {
                     .unwrap_or(true);
 
             if expired {
+                log::trace!("CachedProcInfo expired, refresh");
                 let root = LocalProcessInfo::with_root_pid(*pid)?;
 
                 // Windows doesn't have any job control or session concept,
@@ -834,6 +835,7 @@ impl LocalPane {
                     foreground,
                     updated: Instant::now(),
                 });
+                log::trace!("CachedProcInfo updated");
             }
 
             return Some(RefMut::map(proc_list, |info| info.as_mut().unwrap()));
