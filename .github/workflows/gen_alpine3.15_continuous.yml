@@ -82,7 +82,7 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move APKs"
         shell: bash
-        run: "find ~/packages -ls ; mv ~/packages/wezterm/x86_64/*.apk ."
+        run: "mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-alpine3.15.apk"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:

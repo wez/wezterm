@@ -378,18 +378,23 @@ cargo build --all --release""",
                 )
             )
         elif self.uses_apk():
-            steps.append(
+            steps += [
+                # Add the distro name/version into the filename
+                RunStep(
+                    "Rename APKs",
+                    f"mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm/wezterm-{self.name}')",
+                ),
+                # Move it to the repo dir
                 RunStep(
                     "Move APKs",
-                    f"find ~/packages/ -ls ; mv ~/packages/wezterm/x86_64/*.apk .",
-                )
-            )
-            steps.append(
+                    f"mv ~/packages/wezterm/x86_64/*.apk .",
+                ),
+                # Move and rename the keys
                 RunStep(
                     "Move APK keys",
-                    f"mv ~/.abuild/*.pub .",
+                    f"mv ~/.abuild/*.pub wezterm-{self.name}.pub",
                 )
-            )
+            ]
 
         patterns = self.asset_patterns()
         glob = " ".join(patterns)
@@ -438,7 +443,7 @@ cargo build --all --release""",
             steps.append(
                 RunStep(
                     "Move APKs",
-                    f"find ~/packages -ls ; mv ~/packages/wezterm/x86_64/*.apk .",
+                    f"mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-{self.name}.apk",
                 )
             )
 

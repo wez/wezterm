@@ -77,12 +77,15 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Rename APKs"
+        shell: bash
+        run: "mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm/wezterm-alpine3.14')"
       - name: "Move APKs"
         shell: bash
-        run: "find ~/packages/ -ls ; mv ~/packages/wezterm/x86_64/*.apk ."
+        run: "mv ~/packages/wezterm/x86_64/*.apk ."
       - name: "Move APK keys"
         shell: bash
-        run: "mv ~/.abuild/*.pub ."
+        run: "mv ~/.abuild/*.pub wezterm-alpine3.14.pub"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
