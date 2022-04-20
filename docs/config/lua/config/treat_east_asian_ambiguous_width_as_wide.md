@@ -1,4 +1,4 @@
-# `treat_east_asian_ambiguous_width_as_wide = fasel`
+# `treat_east_asian_ambiguous_width_as_wide = false`
 
 *Since: nightly builds only*
 
