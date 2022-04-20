@@ -1,4 +1,4 @@
-use crate::cell::{Cell, CellAttributes, SemanticType};
+use crate::cell::{Cell, CellAttributes, SemanticType, UnicodeVersion};
 use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
@@ -120,11 +120,16 @@ impl Line {
         }
     }
 
-    pub fn from_text(s: &str, attrs: &CellAttributes, seqno: SequenceNo) -> Line {
+    pub fn from_text(
+        s: &str,
+        attrs: &CellAttributes,
+        seqno: SequenceNo,
+        unicode_version: Option<UnicodeVersion>,
+    ) -> Line {
         let mut cells = Vec::new();
 
         for sub in s.graphemes(true) {
-            let cell = Cell::new_grapheme(sub, attrs.clone());
+            let cell = Cell::new_grapheme(sub, attrs.clone(), unicode_version);
             let width = cell.width();
             cells.push(cell);
             for _ in 1..width {
@@ -145,7 +150,7 @@ impl Line {
         attrs: &CellAttributes,
         seqno: SequenceNo,
     ) -> Line {
-        let mut line = Self::from_text(s, attrs, seqno);
+        let mut line = Self::from_text(s, attrs, seqno, None);
         line.cells
             .last_mut()
             .map(|cell| cell.attrs_mut().set_wrapped(true));
@@ -445,6 +450,7 @@ impl Line {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
                     cell.str(),
                     cell.attrs().clone().set_hyperlink(None).clone(),
+                    None,
                 )),
                 _ => None,
             };
@@ -661,7 +667,7 @@ impl Line {
         seqno: SequenceNo,
     ) {
         for (i, c) in text.graphemes(true).enumerate() {
-            let cell = Cell::new_grapheme(c, attr.clone());
+            let cell = Cell::new_grapheme(c, attr.clone(), None);
             let width = cell.width();
             self.set_cell(i + start_idx, cell, seqno);
 
@@ -922,7 +928,7 @@ impl Line {
 
 impl<'a> From<&'a str> for Line {
     fn from(s: &str) -> Line {
-        Line::from_text(s, &CellAttributes::default(), SEQ_ZERO)
+        Line::from_text(s, &CellAttributes::default(), SEQ_ZERO, None)
     }
 }
 
@@ -953,11 +959,11 @@ mod test {
         assert_eq!(
             line.cells().to_vec(),
             vec![
-                Cell::new_grapheme("❤", CellAttributes::default()),
+                Cell::new_grapheme("❤", CellAttributes::default(), None),
                 Cell::new(' ', CellAttributes::default()), // double width spacer
-                Cell::new_grapheme("😍", CellAttributes::default()),
+                Cell::new_grapheme("😍", CellAttributes::default(), None),
                 Cell::new(' ', CellAttributes::default()), // double width spacer
-                Cell::new_grapheme("🤢", CellAttributes::default()),
+                Cell::new_grapheme("🤢", CellAttributes::default(), None),
                 Cell::new(' ', CellAttributes::default()), // double width spacer
                 Cell::new(' ', CellAttributes::default()),
                 Cell::new('h', hyperlink_attr.clone()),
@@ -982,7 +988,8 @@ mod test {
                 Cell::new_grapheme(
                     // man: dark skin tone, red hair ZWJ emoji grapheme
                     "\u{1f468}\u{1f3fe}\u{200d}\u{1f9b0}",
-                    CellAttributes::default()
+                    CellAttributes::default(),
+                    None,
                 ),
                 Cell::new(' ', CellAttributes::default()), // double width spacer
                 Cell::new(' ', CellAttributes::default()),

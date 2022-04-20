@@ -13,7 +13,7 @@ fn test_789() {
     let black = CellAttributes::default()
         .set_background(AnsiColor::Black)
         .clone();
-    let mut line = Line::from_text("foo", &black, SEQ_ZERO);
+    let mut line = Line::from_text("foo", &black, SEQ_ZERO, None);
     line.resize(8, 0);
     for x in 3..8 {
         line.set_cell(x, Cell::blank_with_attrs(black.clone()), 0);

@@ -489,7 +489,7 @@ where
     D: Deserializer<'de>,
 {
     let text = String::deserialize(deserializer)?;
-    Ok(TeenyString::from_str(&text, None))
+    Ok(TeenyString::from_str(&text, None, None))
 }
 
 #[cfg(feature = "use_serde")]
@@ -577,7 +577,11 @@ impl TeenyString {
         }
     }
 
-    pub fn from_str(s: &str, width: Option<usize>) -> Self {
+    pub fn from_str(
+        s: &str,
+        width: Option<usize>,
+        unicode_version: Option<UnicodeVersion>,
+    ) -> Self {
         // De-fang the input text such that it has no special meaning
         // to a terminal.  All control and movement characters are rewritten
         // as a space.
@@ -596,7 +600,7 @@ impl TeenyString {
 
         let bytes = s.as_bytes();
         let len = bytes.len();
-        let width = width.unwrap_or_else(|| grapheme_column_width(s, None));
+        let width = width.unwrap_or_else(|| grapheme_column_width(s, unicode_version));
 
         if len < std::mem::size_of::<usize>() {
             debug_assert!(width < 3);
@@ -651,7 +655,7 @@ impl TeenyString {
 
     pub fn from_char(c: char) -> Self {
         let mut bytes = [0u8; 8];
-        Self::from_str(c.encode_utf8(&mut bytes), None)
+        Self::from_str(c.encode_utf8(&mut bytes), None, None)
     }
 
     pub fn width(&self) -> usize {
@@ -705,7 +709,7 @@ impl std::clone::Clone for TeenyString {
         if Self::is_marker_bit_set(self.0) {
             Self(self.0)
         } else {
-            Self::from_str(self.str(), None)
+            Self::from_str(self.str(), None, None)
         }
     }
 }
@@ -791,8 +795,12 @@ impl Cell {
     /// over.  This function technically allows for an arbitrary string to
     /// be passed but it should not be used to hold strings other than
     /// graphemes.
-    pub fn new_grapheme(text: &str, attrs: CellAttributes) -> Self {
-        let storage = TeenyString::from_str(text, None);
+    pub fn new_grapheme(
+        text: &str,
+        attrs: CellAttributes,
+        unicode_version: Option<UnicodeVersion>,
+    ) -> Self {
+        let storage = TeenyString::from_str(text, None, unicode_version);
 
         Self {
             text: storage,
@@ -801,7 +809,7 @@ impl Cell {
     }
 
     pub fn new_grapheme_with_width(text: &str, width: usize, attrs: CellAttributes) -> Self {
-        let storage = TeenyString::from_str(text, Some(width));
+        let storage = TeenyString::from_str(text, Some(width), None);
         Self {
             text: storage,
             attrs,
@@ -955,7 +963,7 @@ mod test {
         let s = TeenyString::from_char('a');
         assert_eq!(s.as_bytes(), &[b'a']);
 
-        let longer = TeenyString::from_str("hellothere", None);
+        let longer = TeenyString::from_str("hellothere", None, None);
         assert_eq!(longer.as_bytes(), b"hellothere");
 
         assert_eq!(
@@ -984,7 +992,7 @@ mod test {
         }
 
         for g in &["", " ", "\n", "\r", "\t", "\r\n"] {
-            let cell = Cell::new_grapheme(g, CellAttributes::default());
+            let cell = Cell::new_grapheme(g, CellAttributes::default(), None);
             assert_eq!(cell.str(), " ");
         }
     }
@@ -1006,6 +1014,7 @@ mod test {
         let cell = Cell::new_grapheme(
             women_holding_hands_dark_skin_tone_medium_light_skin_tone,
             CellAttributes::default(),
+            None,
         );
         assert_eq!(
             cell.str(),
@@ -1063,7 +1072,7 @@ mod test {
             vec!["x".to_string(), "\u{3000}".to_string(), "x".to_string()],
         );
 
-        let c = Cell::new_grapheme("\u{3000}", CellAttributes::blank());
+        let c = Cell::new_grapheme("\u{3000}", CellAttributes::blank(), None);
         assert_eq!(c.width(), 2);
     }
 

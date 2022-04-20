@@ -510,7 +510,7 @@ mod test {
                 .collect::<Vec<String>>();
             let n_chunks = chunks.len();
             for (idx, chunk) in chunks.into_iter().enumerate() {
-                let mut line = Line::from_text(&chunk, &Default::default(), SEQ_ZERO);
+                let mut line = Line::from_text(&chunk, &Default::default(), SEQ_ZERO, None);
                 if idx < n_chunks - 1 {
                     line.set_last_cell_was_wrapped(true, SEQ_ZERO);
                 }
@@ -877,10 +877,10 @@ mod test {
         let attr = Default::default();
         let logical = LogicalLine {
             physical_lines: vec![
-                Line::from_text("hello", &attr, SEQ_ZERO),
-                Line::from_text("yo", &attr, SEQ_ZERO),
+                Line::from_text("hello", &attr, SEQ_ZERO, None),
+                Line::from_text("yo", &attr, SEQ_ZERO, None),
             ],
-            logical: Line::from_text("helloyo", &attr, SEQ_ZERO),
+            logical: Line::from_text("helloyo", &attr, SEQ_ZERO, None),
             first_row: 0,
         };
 

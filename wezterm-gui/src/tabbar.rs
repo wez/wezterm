@@ -161,7 +161,7 @@ impl TabBarState {
             line: Line::with_width(1, SEQ_ZERO),
             items: vec![TabEntry {
                 item: TabBarItem::None,
-                title: Line::from_text(" ", &CellAttributes::blank(), 1),
+                title: Line::from_text(" ", &CellAttributes::blank(), 1, None),
                 x: 1,
                 width: 1,
             }],
@@ -386,7 +386,7 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
 
     fn flush_print(buf: &mut String, cells: &mut Vec<Cell>, pen: &CellAttributes) {
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(buf.as_str(), true) {
-            let cell = Cell::new_grapheme(g, pen.clone());
+            let cell = Cell::new_grapheme(g, pen.clone(), None);
             let width = cell.width();
             cells.push(cell);
             for _ in 1..width {

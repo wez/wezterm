@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
-use termwiz::cell::CellAttributes;
+use termwiz::cell::{CellAttributes, UnicodeVersion};
 use termwiz::surface::{Line, SEQ_ZERO};
 use wezterm_bidi::Direction;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
@@ -701,8 +701,18 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         None
     };
 
+    let unicode_version = UnicodeVersion {
+        version: config.unicode_version,
+        ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
+    };
+
     if let Some(text) = &cmd.text {
-        let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
+        let line = Line::from_text(
+            text,
+            &CellAttributes::default(),
+            SEQ_ZERO,
+            Some(unicode_version),
+        );
         let cell_clusters = line.cluster(bidi_hint);
         let ft_lib = wezterm_font::ftwrap::Library::new()?;
 

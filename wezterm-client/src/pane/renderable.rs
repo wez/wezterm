@@ -248,7 +248,7 @@ impl RenderableInner {
             .set_underline(Underline::Double)
             .clone();
 
-        let text_line = Line::from_text(text, &attrs, SEQ_ZERO);
+        let text_line = Line::from_text(text, &attrs, SEQ_ZERO, None);
 
         if row == 0 {
             for cell in text_line.cells() {

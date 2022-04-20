@@ -151,7 +151,7 @@ mod test {
         T: Texture2d,
         T: std::fmt::Debug,
     {
-        let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
+        let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO, None);
         eprintln!("{:?}", line);
         let cell_clusters = line.cluster(None);
         assert_eq!(cell_clusters.len(), 1);
@@ -294,7 +294,7 @@ mod test {
                 );
                 let style = TextStyle::default();
                 let font = fonts.resolve_font(&style).unwrap();
-                let line = Line::from_text(&text, &CellAttributes::default(), SEQ_ZERO);
+                let line = Line::from_text(&text, &CellAttributes::default(), SEQ_ZERO, None);
                 let cell_clusters = line.cluster(None);
                 let cluster = &cell_clusters[0];
                 let presentation_width = PresentationWidth::with_cluster(&cluster);
