@@ -69,7 +69,7 @@ on most Linux systems.
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
-|CentOS9     |Nightly builds only|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
+|CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
 |Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
