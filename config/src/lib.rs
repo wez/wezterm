@@ -484,7 +484,13 @@ impl ConfigInner {
                     // Let's also watch the parent directory for folks that do
                     // things with symlinks:
                     if let Some(parent) = path.parent() {
-                        watch_paths.push(parent.to_path_buf());
+                        // But avoid watching the home dir itself, so that we
+                        // don't keep reloading every time something in the
+                        // home dir changes!
+                        // <https://github.com/wez/wezterm/issues/1895>
+                        if parent != &*HOME_DIR {
+                            watch_paths.push(parent.to_path_buf());
+                        }
                     }
                     watch_paths.push(path);
                 }
