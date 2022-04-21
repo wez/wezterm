@@ -810,6 +810,7 @@ on:
       - "ci/subst-release-info.py"
       - ".github/workflows/pages.yml"
       - ".github/workflows/verify-pages.yml"
+      - ".github/workflows/no-response.yml"
       - ".github/ISSUE_TEMPLATE/*"
       - "**/*.md"
 """,
@@ -836,6 +837,7 @@ on:
       - "ci/subst-release-info.py"
       - ".github/workflows/pages.yml"
       - ".github/workflows/verify-pages.yml"
+      - ".github/workflows/no-response.yml"
       - ".github/ISSUE_TEMPLATE/*"
       - "**/*.md"
 """,
