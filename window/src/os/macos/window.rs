@@ -2252,9 +2252,7 @@ impl WindowView {
                 && !unmod.is_empty()
                 && modifiers.contains(Modifiers::SHIFT)
                 && modifiers.contains(Modifiers::ALT)
-                && (virtual_key == super::keycodes::kVK_ANSI_Grave
-                    || virtual_key == super::keycodes::kVK_ANSI_LeftBracket
-                    || virtual_key == super::keycodes::kVK_ANSI_RightBracket)
+                && virtual_key == super::keycodes::kVK_ANSI_Grave
             {
                 // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
                 // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
