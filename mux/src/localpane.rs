@@ -564,7 +564,7 @@ impl Pane for LocalPane {
             }
         }
 
-        for (idx, line) in screen.lines.iter().enumerate() {
+        screen.for_each_phys_line(|idx, line| {
             let stable_row = screen.phys_to_stable_row_index(idx);
 
             let mut wrapped = false;
@@ -607,7 +607,7 @@ impl Pane for LocalPane {
                     coords.clear();
                 }
             }
-        }
+        });
 
         collect_matches(
             &mut results,

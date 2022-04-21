@@ -683,11 +683,13 @@ impl TerminalState {
         self.erase_in_display(EraseInDisplay::EraseScrollback);
 
         let row_index = self.screen.phys_row(self.cursor.y);
-        let row = self.screen.lines[row_index].clone();
+        let rows = self.screen.lines_in_phys_range(row_index..row_index + 1);
 
         self.erase_in_display(EraseInDisplay::EraseDisplay);
 
-        self.screen.lines[0] = row;
+        for (idx, row) in rows.into_iter().enumerate() {
+            *self.screen.line_mut(idx) = row;
+        }
 
         self.cursor.y = 0;
     }
@@ -864,9 +866,9 @@ impl TerminalState {
     pub fn make_all_lines_dirty(&mut self) {
         let seqno = self.seqno;
         let screen = self.screen_mut();
-        for line in &mut screen.lines {
+        screen.for_each_phys_line_mut(|_, line| {
             line.update_last_change_seqno(seqno);
-        }
+        });
     }
 
     /// Returns the 0-based cursor position relative to the top left of
@@ -2506,7 +2508,7 @@ impl TerminalState {
         let mut zones = vec![];
 
         let first_stable_row = screen.phys_to_stable_row_index(0);
-        for (idx, line) in screen.lines.iter_mut().enumerate() {
+        screen.for_each_phys_line_mut(|idx, line| {
             let stable_row = first_stable_row + idx as StableRowIndex;
 
             for zone_range in line.semantic_zone_ranges() {
@@ -2534,7 +2536,7 @@ impl TerminalState {
                     zone.end_y = stable_row;
                 }
             }
-        }
+        });
         if let Some(zone) = current_zone.take() {
             zones.push(zone);
         }

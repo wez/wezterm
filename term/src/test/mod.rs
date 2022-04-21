@@ -167,20 +167,14 @@ impl TestTerm {
 
     fn assert_dirty_lines(&self, seqno: SequenceNo, expected: &[usize], reason: Option<&str>) {
         let mut seqs = vec![];
-        let dirty_indices: Vec<usize> = self
-            .screen()
-            .lines
-            .iter()
-            .enumerate()
-            .filter_map(|(i, line)| {
-                seqs.push(line.current_seqno());
-                if line.changed_since(seqno) {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let mut dirty_indices = vec![];
+
+        self.screen().for_each_phys_line(|i, line| {
+            seqs.push(line.current_seqno());
+            if line.changed_since(seqno) {
+                dirty_indices.push(i);
+            }
+        });
         assert_eq!(
             &dirty_indices, &expected,
             "actual dirty lines (left) didn't match expected dirty \
@@ -280,9 +274,9 @@ fn print_all_lines(term: &Terminal) {
     let screen = term.screen();
 
     println!("whole screen contents are:");
-    for line in screen.lines.iter() {
+    screen.for_each_phys_line(|_, line| {
         println!("[{}]", line.as_str());
-    }
+    });
 }
 
 fn print_visible_lines(term: &Terminal) {

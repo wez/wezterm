@@ -55,18 +55,10 @@ pub fn terminal_get_dirty_lines(
     seqno: SequenceNo,
 ) -> RangeSet<StableRowIndex> {
     let screen = term.screen();
-    let phys = screen.stable_range(&lines);
+    let lines = screen.get_changed_stable_rows(lines, seqno);
     let mut set = RangeSet::new();
-    for (idx, line) in screen
-        .lines
-        .iter()
-        .enumerate()
-        .skip(phys.start)
-        .take(phys.end - phys.start)
-    {
-        if line.changed_since(seqno) {
-            set.add(screen.phys_to_stable_row_index(idx))
-        }
+    for line in lines {
+        set.add(line);
     }
     set
 }
@@ -79,20 +71,14 @@ pub fn terminal_get_lines(
     let reverse = term.get_reverse_video();
     let screen = term.screen_mut();
     let phys_range = screen.stable_range(&lines);
-    (
-        screen.phys_to_stable_row_index(phys_range.start),
-        screen
-            .lines
-            .iter_mut()
-            .skip(phys_range.start)
-            .take(phys_range.end - phys_range.start)
-            .map(|line| {
-                let mut cloned = line.clone();
-                cloned.set_reverse(reverse, SEQ_ZERO);
-                cloned
-            })
-            .collect(),
-    )
+
+    let first = screen.phys_to_stable_row_index(phys_range.start);
+    let mut lines = screen.lines_in_phys_range(phys_range);
+    for line in &mut lines {
+        line.set_reverse(reverse, SEQ_ZERO);
+    }
+
+    (first, lines)
 }
 
 /// Implements Pane::get_dimensions for Terminal
@@ -101,7 +87,7 @@ pub fn terminal_get_dimensions(term: &mut Terminal) -> RenderableDimensions {
     RenderableDimensions {
         cols: screen.physical_cols,
         viewport_rows: screen.physical_rows,
-        scrollback_rows: screen.lines.len(),
+        scrollback_rows: screen.scrollback_rows(),
         physical_top: screen.visible_row_to_stable_row(0),
         scrollback_top: screen.phys_to_stable_row_index(0),
     }
