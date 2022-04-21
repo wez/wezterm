@@ -56,6 +56,13 @@ impl super::TermWindow {
         s
     }
 
+    pub fn clear_selection(&mut self, pane: &Rc<dyn Pane>) {
+        let mut selection = self.selection(pane.pane_id());
+        selection.clear();
+        selection.seqno = pane.get_current_seqno();
+        self.window.as_ref().unwrap().invalidate();
+    }
+
     pub fn extend_selection_at_mouse_cursor(
         &mut self,
         mode: Option<SelectionMode>,

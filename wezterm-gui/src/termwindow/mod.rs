@@ -2184,6 +2184,9 @@ impl TermWindow {
             ExtendSelectionToMouseCursor(mode) => {
                 self.extend_selection_at_mouse_cursor(*mode, pane)
             }
+            ClearSelection => {
+                self.clear_selection(pane);
+            }
             StartWindowDrag => {
                 self.window_drag_position = self.current_mouse_event.clone();
             }

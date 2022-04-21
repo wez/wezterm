@@ -22,7 +22,6 @@ pub struct Selection {
 pub use config::keyassignment::SelectionMode;
 
 impl Selection {
-    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.range = None;
         self.origin = None;
@@ -33,7 +32,6 @@ impl Selection {
         self.origin = Some(origin);
     }
 
-    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.range.is_none()
     }
