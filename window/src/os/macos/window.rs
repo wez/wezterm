@@ -1494,7 +1494,7 @@ impl WindowView {
             | "moveDown:"
             | "moveDownAndModifySelection:"
             | "insertTab:"
-            | "insertBackTab:"
+            | "insertBacktab:"
             | "insertNewline:"
             | "cancelOperation:"
             | "deleteBackward:"
@@ -2027,6 +2027,15 @@ impl WindowView {
             } else {
                 unmod
             };
+
+        // Shift-Tab on macOS produces \x19 for some reason.
+        // Rewrite it to something we understand.
+        // <https://github.com/wez/wezterm/issues/1902>
+        let chars = if virtual_key == super::keycodes::kVK_Tab && modifiers == Modifiers::SHIFT {
+            "\t"
+        } else {
+            chars
+        };
 
         let phys_code = super::keycodes::vkey_to_phys(virtual_key);
         let raw_key_handled = Handled::new();
