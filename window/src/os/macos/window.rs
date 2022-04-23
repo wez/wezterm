@@ -1206,6 +1206,89 @@ enum TranslateStatus {
     NotDead,
 }
 
+/// Represents the current keyboard layout.
+/// Holds state needed to perform keymap translation.
+struct Keyboard {
+    _kbd: InputSource,
+    layout_data: CFData,
+}
+
+/// Slightly more intelligible parameters for keymap translation
+struct TranslateParams {
+    virtual_key_code: u16,
+    modifier_flags: NSEventModifierFlags,
+    dead_state: u32,
+    ignore_dead_keys: bool,
+    display: bool,
+}
+
+/// The results of a keymap translation
+#[derive(Debug)]
+struct TranslateResults {
+    dead_state: u32,
+    text: String,
+}
+
+impl Keyboard {
+    pub fn new() -> Self {
+        let _kbd =
+            unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
+
+        let layout_data = unsafe {
+            CFData::wrap_under_get_rule(TISGetInputSourceProperty(
+                _kbd.as_concrete_TypeRef(),
+                kTISPropertyUnicodeKeyLayoutData,
+            ))
+        };
+        Self { _kbd, layout_data }
+    }
+
+    /// A wrapper around UCKeyTranslate
+    pub fn translate(&self, params: TranslateParams) -> anyhow::Result<TranslateResults> {
+        let layout_data = unsafe {
+            CFDataGetBytePtr(self.layout_data.as_concrete_TypeRef()) as *const UCKeyboardLayout
+        };
+
+        let modifier_key_state: u32 = (params.modifier_flags.bits() >> 16) as u32 & 0xFF;
+
+        let kbd_type = unsafe { LMGetKbdType() } as _;
+        #[allow(non_upper_case_globals)]
+        const kUCKeyTranslateNoDeadKeysBit: u32 = 0;
+
+        let mut unicode_buffer = [0u16; 32];
+        let mut length = 0;
+        let mut dead_state = params.dead_state;
+        unsafe {
+            UCKeyTranslate(
+                layout_data,
+                params.virtual_key_code,
+                if params.display {
+                    kUCKeyActionDisplay
+                } else {
+                    kUCKeyActionDown
+                },
+                modifier_key_state,
+                kbd_type,
+                if params.ignore_dead_keys {
+                    1 << kUCKeyTranslateNoDeadKeysBit
+                } else {
+                    0
+                },
+                &mut dead_state,
+                unicode_buffer.len() as _,
+                &mut length,
+                unicode_buffer.as_mut_ptr(),
+            )
+        };
+
+        let text = String::from_utf16(unsafe {
+            std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
+        })?;
+
+        Ok(TranslateResults { text, dead_state })
+    }
+}
+
 impl Inner {
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let view = self.view_id.as_ref().unwrap().load();
@@ -1224,29 +1307,8 @@ impl Inner {
         &mut self,
         virtual_key_code: u16,
         modifier_flags: NSEventModifierFlags,
-    ) -> Result<TranslateStatus, std::string::FromUtf16Error> {
-        let kbd =
-            unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
-
-        let layout_data = unsafe {
-            CFData::wrap_under_get_rule(TISGetInputSourceProperty(
-                kbd.as_concrete_TypeRef(),
-                kTISPropertyUnicodeKeyLayoutData,
-            ))
-        };
-
-        let layout_data = unsafe {
-            CFDataGetBytePtr(layout_data.as_concrete_TypeRef()) as *const UCKeyboardLayout
-        };
-
-        let modifier_key_state: u32 = (modifier_flags.bits() >> 16) as u32 & 0xFF;
-
-        let kbd_type = unsafe { LMGetKbdType() } as _;
-
-        let mut unicode_buffer = [0u16; 8];
-        let mut length = 0;
-
-        let mut dead_state = 0;
+    ) -> anyhow::Result<TranslateStatus> {
+        let keyboard = Keyboard::new();
 
         let mods = key_modifiers(modifier_flags);
 
@@ -1262,100 +1324,62 @@ impl Inner {
             true
         };
 
-        #[allow(non_upper_case_globals)]
-        const kUCKeyTranslateNoDeadKeysBit: u32 = 0;
+        if let Some(DeadKeyState { dead_state }) = self.dead_pending.take() {
+            let result = keyboard.translate(TranslateParams {
+                virtual_key_code,
+                modifier_flags,
+                dead_state,
+                ignore_dead_keys: false,
+                display: true,
+            })?;
 
-        if let Some(state) = self.dead_pending.take() {
-            dead_state = state.dead_state;
-        } else if use_dead_keys {
-            unsafe {
-                UCKeyTranslate(
-                    layout_data,
+            // If length == 0 it means that they double-pressed the dead key.
+            // We treat that the same as the dead key disabled state:
+            // we want to clock through a space keypress so that we clear
+            // the state and output the original keypress.
+            let generate_space = !use_dead_keys || result.text.len() == 0;
+
+            if generate_space {
+                // synthesize a SPACE press to
+                // elicit the underlying key code and get out
+                // of the dead key state
+                let result = keyboard.translate(TranslateParams {
                     virtual_key_code,
-                    kUCKeyActionDown,
-                    modifier_key_state,
-                    kbd_type,
-                    0,
-                    &mut dead_state,
-                    unicode_buffer.len() as _,
-                    &mut length,
-                    unicode_buffer.as_mut_ptr(),
-                );
+                    modifier_flags,
+                    dead_state: result.dead_state,
+                    ignore_dead_keys: false,
+                    display: false,
+                })?;
+                Ok(TranslateStatus::Composed(result.text))
+            } else {
+                Ok(TranslateStatus::Composed(result.text))
             }
+        } else if use_dead_keys {
+            let result = keyboard.translate(TranslateParams {
+                virtual_key_code,
+                modifier_flags,
+                dead_state: 0,
+                ignore_dead_keys: false,
+                display: false,
+            })?;
 
-            self.dead_pending.replace(DeadKeyState { dead_state });
+            self.dead_pending.replace(DeadKeyState {
+                dead_state: result.dead_state,
+            });
 
             // Get the non-dead-key rendition to show as the composing state
-            dead_state = 0;
-            length = 0;
-            unsafe {
-                UCKeyTranslate(
-                    layout_data,
-                    virtual_key_code,
-                    kUCKeyActionDisplay,
-                    modifier_key_state,
-                    kbd_type,
-                    1 << kUCKeyTranslateNoDeadKeysBit,
-                    &mut dead_state,
-                    unicode_buffer.len() as _,
-                    &mut length,
-                    unicode_buffer.as_mut_ptr(),
-                );
-            };
-
-            let composing = String::from_utf16(unsafe {
-                std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
-            })?;
-            return Ok(TranslateStatus::Composing(composing));
-        } else {
-            return Ok(TranslateStatus::NotDead);
-        }
-        length = 0;
-        unsafe {
-            UCKeyTranslate(
-                layout_data,
+            let composing = keyboard.translate(TranslateParams {
                 virtual_key_code,
-                kUCKeyActionDisplay,
-                modifier_key_state,
-                kbd_type,
-                0,
-                &mut dead_state,
-                unicode_buffer.len() as _,
-                &mut length,
-                unicode_buffer.as_mut_ptr(),
-            );
-        };
+                modifier_flags,
+                dead_state: 0,
+                ignore_dead_keys: true,
+                display: true,
+            })?;
 
-        // If length == 0 it means that they double-pressed the dead key.
-        // We treat that the same as the dead key disabled state:
-        // we want to clock through a space keypress so that we clear
-        // the state and output the original keypress.
-        let generate_space = !use_dead_keys || length == 0;
-
-        if generate_space {
-            // synthesize a SPACE press to
-            // elicit the underlying key code and get out
-            // of the dead key state
-            unsafe {
-                UCKeyTranslate(
-                    layout_data,
-                    super::keycodes::kVK_Space,
-                    kUCKeyActionDown,
-                    0,
-                    kbd_type,
-                    0,
-                    &mut dead_state,
-                    unicode_buffer.len() as _,
-                    &mut length,
-                    unicode_buffer.as_mut_ptr(),
-                );
-            }
+            Ok(TranslateStatus::Composing(composing.text))
+        } else {
+            Ok(TranslateStatus::NotDead)
         }
-
-        let composed = String::from_utf16(unsafe {
-            std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
-        })?;
-        Ok(TranslateStatus::Composed(composed))
     }
 }
 
