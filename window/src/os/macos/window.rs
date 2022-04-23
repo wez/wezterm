@@ -1995,19 +1995,6 @@ impl WindowView {
             key_is_down
         );
 
-        // Ungh, this is a horrible special case.
-        // CTRL-Tab only delivers a key-up event, and never a
-        // key-down event.  So we just pretend that key-up is
-        // key-down.
-        let key_is_down = if virtual_key == super::keycodes::kVK_Tab
-            && modifiers.contains(Modifiers::CTRL)
-            && !key_is_down
-        {
-            true
-        } else {
-            key_is_down
-        };
-
         // `Delete` on macos is really Backspace and emits BS.
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
@@ -2344,6 +2331,7 @@ impl WindowView {
 
         if (chars == "." && modifiers == Modifiers::SUPER)
             || (chars == "\u{1b}" && modifiers == Modifiers::CTRL)
+            || (chars == "\t" && modifiers == Modifiers::CTRL)
         {
             // Synthesize a key down event for this, because macOS will
             // not do that, even though we tell it that we handled this event.
