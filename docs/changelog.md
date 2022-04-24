@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)
+* Windows: wezterm will now read the default environment variables from the `HKLM\\System\\CurrentControlSet\\Control\\Session Manager\\Environment` and `HKCU\\Environment` and apply those to the base environment prior to applying `set_environment_variables`. [#1848](https://github.com/wez/wezterm/issues/1848)
 
 #### Fixed
 * Flush after replying to XTGETTCAP. [#1850](https://github.com/wez/wezterm/issues/1850)
