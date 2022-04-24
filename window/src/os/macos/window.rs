@@ -2024,26 +2024,25 @@ impl WindowView {
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
         // We want to emit Alt-BS in that situation.
-        let unmod =
-            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_Tab {
-                "\t"
-            } else if virtual_key == super::keycodes::kVK_Delete {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
-                // https://github.com/wez/wezterm/issues/739
-                // Keypad enter sends ctrl-c for some reason; explicitly
-                // treat that as enter here.
-                "\r"
-            } else {
-                unmod
-            };
+        let unmod = if virtual_key == kVK_Delete && modifiers.contains(Modifiers::ALT) {
+            "\x08"
+        } else if virtual_key == kVK_Tab {
+            "\t"
+        } else if virtual_key == kVK_Delete {
+            "\x08"
+        } else if virtual_key == kVK_ANSI_KeypadEnter {
+            // https://github.com/wez/wezterm/issues/739
+            // Keypad enter sends ctrl-c for some reason; explicitly
+            // treat that as enter here.
+            "\r"
+        } else {
+            unmod
+        };
 
         // Shift-Tab on macOS produces \x19 for some reason.
         // Rewrite it to something we understand.
         // <https://github.com/wez/wezterm/issues/1902>
-        let chars = if virtual_key == super::keycodes::kVK_Tab && modifiers == Modifiers::SHIFT {
+        let chars = if virtual_key == kVK_Tab && modifiers == Modifiers::SHIFT {
             "\t"
         } else {
             chars
@@ -2070,7 +2069,7 @@ impl WindowView {
             (unmod, chars)
         };
 
-        let phys_code = super::keycodes::vkey_to_phys(virtual_key);
+        let phys_code = vkey_to_phys(virtual_key);
         let raw_key_handled = Handled::new();
         let raw_key_event = RawKeyEvent {
             key: if unmod.is_empty() {
