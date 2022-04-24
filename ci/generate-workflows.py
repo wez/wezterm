@@ -198,7 +198,7 @@ class Target(object):
 
     def install_openssh_server(self):
         steps = []
-        if self.uses_yum() or (self.uses_apt() and self.container):
+        if self.uses_yum() or self.uses_zypper() or (self.uses_apt() and self.container):
             steps += [
                 RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")
             ] + self.install_system_package("openssh-server")
