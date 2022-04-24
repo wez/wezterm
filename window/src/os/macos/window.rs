@@ -1,6 +1,7 @@
 // let () = msg_send! is a common pattern for objc
 #![allow(clippy::let_unit_value)]
 
+use super::keycodes::*;
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::parameters::{Border, Parameters, TitleBar};
@@ -2048,6 +2049,27 @@ impl WindowView {
             chars
         };
 
+        // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
+        // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
+        // In this case, we take the key from unmod.
+        // We leave `raw` set to None as we want to preserve the value of modifiers.
+        // <https://github.com/wez/wezterm/issues/1706>.
+        // We can't do this for every ALT+SHIFT combo, as the weird behavior doesn't
+        // apply to eg: ALT+SHIFT+789 for Norwegian layouts
+        // <https://github.com/wez/wezterm/issues/760>
+        let swap_unmod_and_chars = (modifiers.contains(Modifiers::SHIFT | Modifiers::ALT)
+            && virtual_key == kVK_ANSI_Grave)
+            ||
+            // <https://github.com/wez/wezterm/issues/1907>
+            (modifiers.contains(Modifiers::SHIFT | Modifiers::CTRL)
+                && virtual_key == kVK_ANSI_Slash);
+
+        let (unmod, chars) = if swap_unmod_and_chars && !chars.is_empty() && !unmod.is_empty() {
+            (chars, unmod)
+        } else {
+            (unmod, chars)
+        };
+
         let phys_code = super::keycodes::vkey_to_phys(virtual_key);
         let raw_key_handled = Handled::new();
         let raw_key_event = RawKeyEvent {
@@ -2268,24 +2290,6 @@ impl WindowView {
                 }
             } else if chars.is_empty() || chars == unmod {
                 (key, None)
-            } else if !chars.is_empty()
-                && !unmod.is_empty()
-                && modifiers.contains(Modifiers::SHIFT)
-                && modifiers.contains(Modifiers::ALT)
-                && virtual_key == super::keycodes::kVK_ANSI_Grave
-            {
-                // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
-                // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
-                // In this case, we take the key from unmod.
-                // We leave `raw` set to None as we want to preserve the value of modifiers.
-                // <https://github.com/wez/wezterm/issues/1706>.
-                // We can't do this for every ALT+SHIFT combo, as the weird behavior doesn't
-                // apply to eg: ALT+SHIFT+789 for Norwegian layouts
-                // <https://github.com/wez/wezterm/issues/760>
-                match key_string_to_key_code(unmod) {
-                    Some(key) => (key, None),
-                    None => return,
-                }
             } else {
                 let raw = key_string_to_key_code(unmod);
                 match (&key, &raw) {
