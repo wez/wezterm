@@ -8,6 +8,7 @@ use mux::tab::SplitDirection;
 use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
+use serde::Serializer as _;
 use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::rc::Rc;
@@ -116,13 +117,38 @@ struct CliCommand {
     sub: CliSubCommand,
 }
 
+#[derive(Debug, StructOpt, Clone, Copy)]
+enum CliOutputFormatKind {
+    #[structopt(name = "table", about = "multi line space separated table")]
+    Table,
+    #[structopt(name = "json", about = "JSON format")]
+    Json,
+}
+
+impl std::str::FromStr for CliOutputFormatKind {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<CliOutputFormatKind, Self::Err> {
+        match s {
+            "json" => Ok(CliOutputFormatKind::Json),
+            "table" => Ok(CliOutputFormatKind::Table),
+            _ => Err(anyhow::anyhow!("unknown output format")),
+        }
+    }
+}
+
+#[derive(Debug, StructOpt, Clone, Copy)]
+struct CliOutputFormat {
+    #[structopt(long = "format", default_value = "table")]
+    format: CliOutputFormatKind,
+}
+
 #[derive(Debug, StructOpt, Clone)]
 enum CliSubCommand {
     #[structopt(name = "list", about = "list windows, tabs and panes")]
-    List,
+    List(CliOutputFormat),
 
     #[structopt(name = "list-clients", about = "list clients")]
-    ListClients,
+    ListClients(CliOutputFormat),
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
@@ -446,6 +472,107 @@ async fn resolve_pane_id(client: &Client, pane_id: Option<PaneId>) -> anyhow::Re
     Ok(pane_id)
 }
 
+#[derive(serde::Serialize)]
+struct CliListResultPtySize {
+    rows: u16,
+    cols: u16,
+}
+// This will be serialized to JSON via the 'List' command.
+// As such it is intended to be a stable output format,
+// Thus we need to be careful about both the fields and their types,
+// herein as they are directly reflected in the output.
+#[derive(serde::Serialize)]
+struct CliListResultItem {
+    window_id: mux::window::WindowId,
+    tab_id: mux::tab::TabId,
+    pane_id: mux::pane::PaneId,
+    workspace: String,
+    size: CliListResultPtySize,
+    title: String,
+    cwd: String,
+}
+
+impl From<mux::tab::PaneEntry> for CliListResultItem {
+    fn from(pane: mux::tab::PaneEntry) -> CliListResultItem {
+        let mux::tab::PaneEntry {
+            window_id,
+            tab_id,
+            pane_id,
+            workspace,
+            title,
+            working_dir,
+            size: portable_pty::PtySize { rows, cols, .. },
+            ..
+        } = pane;
+
+        CliListResultItem {
+            window_id,
+            tab_id,
+            pane_id,
+            workspace,
+            size: CliListResultPtySize { rows, cols },
+            title,
+            cwd: working_dir
+                .as_ref()
+                .map(|url| url.url.as_str())
+                .unwrap_or("")
+                .to_string(),
+        }
+    }
+}
+
+// This will be serialized to JSON via the 'ListClients' command.
+// As such it is intended to be a stable output format,
+// Thus we need to be careful about the stability of the fields and types
+// herein as they are directly reflected in the output.
+#[derive(serde::Serialize)]
+struct CliListClientsResultItem {
+    username: String,
+    hostname: String,
+    pid: u32,
+    connection_elapsed: std::time::Duration,
+    idle_time: std::time::Duration,
+    workspace: String,
+    focused_pane_id: Option<mux::pane::PaneId>,
+}
+
+impl From<mux::client::ClientInfo> for CliListClientsResultItem {
+    fn from(client_info: mux::client::ClientInfo) -> CliListClientsResultItem {
+        let now: DateTime<Utc> = Utc::now();
+
+        let mux::client::ClientInfo {
+            connected_at,
+            last_input,
+            active_workspace,
+            focused_pane_id,
+            client_id,
+            ..
+        } = client_info;
+
+        let mux::client::ClientId {
+            username,
+            hostname,
+            pid,
+            ..
+        } = client_id.as_ref();
+
+        let connection_elapsed = now - connected_at;
+        let idle_time = now - last_input;
+
+        CliListClientsResultItem {
+            username: username.to_string(),
+            hostname: hostname.to_string(),
+            pid: *pid,
+            connection_elapsed: connection_elapsed
+                .to_std()
+                .unwrap_or(std::time::Duration::ZERO),
+            idle_time: idle_time.to_std().unwrap_or(std::time::Duration::ZERO),
+            workspace: active_workspace.as_deref().unwrap_or("").to_string(),
+            focused_pane_id: focused_pane_id,
+        }
+    }
+}
+
 async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
     let mut ui = mux::connui::ConnectionUI::new_headless();
     let initial = true;
@@ -461,99 +588,85 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
     )?;
 
     match cli.sub {
-        CliSubCommand::ListClients => {
-            let cols = vec![
-                Column {
-                    name: "USER".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "HOST".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "PID".to_string(),
-                    alignment: Alignment::Right,
-                },
-                Column {
-                    name: "CONNECTED".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "IDLE".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "WORKSPACE".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "FOCUS".to_string(),
-                    alignment: Alignment::Right,
-                },
-            ];
-            let mut data = vec![];
+        CliSubCommand::ListClients(CliOutputFormat { format }) => {
+            let out = std::io::stdout();
             let clients = client.list_clients(codec::GetClientList).await?;
-            let now: DateTime<Utc> = Utc::now();
+            match format {
+                CliOutputFormatKind::Json => {
+                    let clients = clients
+                        .clients
+                        .iter()
+                        .cloned()
+                        .map(CliListClientsResultItem::from);
+                    let mut writer = serde_json::Serializer::pretty(out.lock());
+                    writer.collect_seq(clients)?;
+                }
+                CliOutputFormatKind::Table => {
+                    let cols = vec![
+                        Column {
+                            name: "USER".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "HOST".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "PID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "CONNECTED".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "IDLE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "WORKSPACE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "FOCUS".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                    ];
+                    let mut data = vec![];
+                    let now: DateTime<Utc> = Utc::now();
 
-            fn duration_string(d: chrono::Duration) -> String {
-                if let Ok(d) = d.to_std() {
-                    format!("{:?}", d)
-                } else {
-                    d.to_string()
+                    fn duration_string(d: chrono::Duration) -> String {
+                        if let Ok(d) = d.to_std() {
+                            format!("{:?}", d)
+                        } else {
+                            d.to_string()
+                        }
+                    }
+
+                    for info in clients.clients {
+                        let connected = now - info.connected_at;
+                        let idle = now - info.last_input;
+                        data.push(vec![
+                            info.client_id.username.to_string(),
+                            info.client_id.hostname.to_string(),
+                            info.client_id.pid.to_string(),
+                            duration_string(connected),
+                            duration_string(idle),
+                            info.active_workspace.as_deref().unwrap_or("").to_string(),
+                            info.focused_pane_id
+                                .map(|id| id.to_string())
+                                .unwrap_or_else(String::new),
+                        ]);
+                    }
+
+                    tabulate_output(&cols, &data, &mut out.lock())?;
                 }
             }
-
-            for info in clients.clients {
-                let connected = now - info.connected_at;
-                let idle = now - info.last_input;
-                data.push(vec![
-                    info.client_id.username.to_string(),
-                    info.client_id.hostname.to_string(),
-                    info.client_id.pid.to_string(),
-                    duration_string(connected),
-                    duration_string(idle),
-                    info.active_workspace.as_deref().unwrap_or("").to_string(),
-                    info.focused_pane_id
-                        .map(|id| id.to_string())
-                        .unwrap_or_else(String::new),
-                ]);
-            }
-
-            tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
         }
-        CliSubCommand::List => {
-            let cols = vec![
-                Column {
-                    name: "WINID".to_string(),
-                    alignment: Alignment::Right,
-                },
-                Column {
-                    name: "TABID".to_string(),
-                    alignment: Alignment::Right,
-                },
-                Column {
-                    name: "PANEID".to_string(),
-                    alignment: Alignment::Right,
-                },
-                Column {
-                    name: "WORKSPACE".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "SIZE".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "TITLE".to_string(),
-                    alignment: Alignment::Left,
-                },
-                Column {
-                    name: "CWD".to_string(),
-                    alignment: Alignment::Left,
-                },
-            ];
-            let mut data = vec![];
+        CliSubCommand::List(CliOutputFormat { format }) => {
+            let out = std::io::stdout();
+
+            let mut output_items = vec![];
             let panes = client.list_panes().await?;
 
             for tabroot in panes.tabs {
@@ -561,20 +674,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
                 loop {
                     if let Some(entry) = cursor.leaf_mut() {
-                        data.push(vec![
-                            entry.window_id.to_string(),
-                            entry.tab_id.to_string(),
-                            entry.pane_id.to_string(),
-                            entry.workspace.to_string(),
-                            format!("{}x{}", entry.size.cols, entry.size.rows),
-                            entry.title.clone(),
-                            entry
-                                .working_dir
-                                .as_ref()
-                                .map(|url| url.url.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                        ]);
+                        output_items.push(CliListResultItem::from(entry.clone()));
                     }
                     match cursor.preorder_next() {
                         Ok(c) => cursor = c,
@@ -582,8 +682,59 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     }
                 }
             }
-
-            tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+            match format {
+                CliOutputFormatKind::Json => {
+                    let mut writer = serde_json::Serializer::pretty(out.lock());
+                    writer.collect_seq(output_items.iter())?;
+                }
+                CliOutputFormatKind::Table => {
+                    let cols = vec![
+                        Column {
+                            name: "WINID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "TABID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "PANEID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "WORKSPACE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "SIZE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "TITLE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
+                            name: "CWD".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                    ];
+                    let data = output_items
+                        .iter()
+                        .map(|output_item| {
+                            vec![
+                                output_item.window_id.to_string(),
+                                output_item.tab_id.to_string(),
+                                output_item.pane_id.to_string(),
+                                output_item.workspace.to_string(),
+                                format!("{}x{}", output_item.size.cols, output_item.size.rows),
+                                output_item.title.to_string(),
+                                output_item.cwd.to_string(),
+                            ]
+                        })
+                        .collect::<Vec<_>>();
+                    tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+                }
+            }
         }
         CliSubCommand::SplitPane {
             pane_id,
