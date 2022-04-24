@@ -23,6 +23,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [clean_exit_codes](config/lua/config/clean_exit_codes.md) config to fine tune [exit_behavior](config/lua/config/exit_behavior.md) [#1889](https://github.com/wez/wezterm/issues/1889)
 * [ClearSelection](config/lua/keyassignment/ClearSelection.md) key assignment [#1900](https://github.com/wez/wezterm/issues/1900)
 
+#### Updated
+* Bundled harfbuzz to 4.2.1
+
 #### Changed
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)
 * Windows: wezterm will now read the default environment variables from the `HKLM\\System\\CurrentControlSet\\Control\\Session Manager\\Environment` and `HKCU\\Environment` and apply those to the base environment prior to applying `set_environment_variables`. [#1848](https://github.com/wez/wezterm/issues/1848)
