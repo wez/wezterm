@@ -138,6 +138,8 @@ impl std::str::FromStr for CliOutputFormatKind {
 
 #[derive(Debug, StructOpt, Clone, Copy)]
 struct CliOutputFormat {
+    /// Controls the output format.
+    /// "table" and "json" are possible formats.
     #[structopt(long = "format", default_value = "table")]
     format: CliOutputFormatKind,
 }
