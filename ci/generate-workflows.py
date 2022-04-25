@@ -382,7 +382,7 @@ cargo build --all --release""",
                 # Add the distro name/version into the filename
                 RunStep(
                     "Rename APKs",
-                    f"mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-{self.name}')",
+                    f"mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-{self.name}-/')",
                 ),
                 # Move it to the repo dir
                 RunStep(

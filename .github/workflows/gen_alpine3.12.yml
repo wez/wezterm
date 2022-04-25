@@ -80,7 +80,7 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Rename APKs"
         shell: bash
-        run: "mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-alpine3.12')"
+        run: "mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-alpine3.12-/')"
       - name: "Move APKs"
         shell: bash
         run: "mv ~/packages/wezterm/x86_64/*.apk ."
