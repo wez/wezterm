@@ -621,6 +621,9 @@ pub struct Config {
 
     #[serde(default)]
     pub key_map_preference: KeyMapPreference,
+
+    #[serde(default)]
+    pub quote_dropped_files: DroppedFileQuoting,
 }
 impl_lua_conversion!(Config);
 
@@ -1462,5 +1465,32 @@ pub enum ExitBehavior {
 impl Default for ExitBehavior {
     fn default() -> Self {
         ExitBehavior::CloseOnCleanExit
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+pub enum DroppedFileQuoting {
+    /// Do no quoting at all, just pass through the name as-is
+    None,
+    /// Backslash escape only spaces, leaving all other characters as-is
+    SpacesOnly,
+    /// Use POSIX style shell word escaping
+    Posix,
+}
+
+impl Default for DroppedFileQuoting {
+    fn default() -> Self {
+        Self::SpacesOnly
+    }
+}
+
+impl DroppedFileQuoting {
+    pub fn escape(self, s: &str) -> String {
+        match self {
+            Self::None => s.to_string(),
+            Self::SpacesOnly => s.replace(" ", "\\ "),
+            // https://docs.rs/shlex/latest/shlex/fn.quote.html
+            Self::Posix => shlex::quote(s).into_owned().to_string(),
+        }
     }
 }
