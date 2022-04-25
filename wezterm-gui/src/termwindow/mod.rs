@@ -950,7 +950,11 @@ impl TermWindow {
                 };
                 let paths = paths
                     .iter()
-                    .map(|path| format!("{:?}", path.to_string_lossy().to_string()))
+                    .map(|path| {
+                        self.config
+                            .quote_dropped_files
+                            .escape(&path.to_string_lossy())
+                    })
                     .collect::<Vec<_>>()
                     .join(" ");
                 pane.trickle_paste(paths)?;
