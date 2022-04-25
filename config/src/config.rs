@@ -1470,7 +1470,7 @@ impl Default for ExitBehavior {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum DroppedFileQuoting {
-    /// Do no quoting at all, just pass through the name as-is
+    /// No quoting is performed, the file name is passed through as-is
     None,
     /// Backslash escape only spaces, leaving all other characters as-is
     SpacesOnly,
