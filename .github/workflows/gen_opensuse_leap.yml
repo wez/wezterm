@@ -37,6 +37,12 @@ jobs:
       - name: "Install curl"
         shell: bash
         run: "zypper install -y curl"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "zypper install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
