@@ -1,0 +1,89 @@
+name: opensuse_tumbleweed
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - ".cirrus.yml"
+      - "docs/*"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/verify-pages.yml"
+      - ".github/workflows/no-response.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    container: "registry.opensuse.org/opensuse/tumbleweed"
+
+    steps:
+      - name: "Seed GITHUB_PATH to work around possible @action/core bug"
+        shell: bash
+        run: 'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH'
+      - name: "Install lsb-release"
+        shell: bash
+        run: "zypper install -y lsb-release"
+      - name: "Install util-linux"
+        shell: bash
+        run: "zypper install -y util-linux"
+      - name: "Install git"
+        shell: bash
+        run: "zypper install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "zypper install -y curl"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "zypper install -y openssh-server"
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: "opensuse_tumbleweed-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env PATH=$PATH ./get-deps"
+      - name: "Build (Release mode)"
+        shell: bash
+        run: "cargo build --all --release"
+      - name: "Test (Release mode)"
+        shell: bash
+        run: "cargo test --all --release"
+      - name: "Package"
+        shell: bash
+        run: "bash ci/deploy.sh"
+      - name: "Move RPM"
+        shell: bash
+        run: "mv /usr/src/packages/RPMS/*/*.rpm ."
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: "opensuse_tumbleweed"
+          path: "wezterm-*.rpm"

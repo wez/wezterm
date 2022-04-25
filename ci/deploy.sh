@@ -124,11 +124,11 @@ case $OSTYPE in
     7z a -tzip $zipname $zipdir
     iscc.exe -DMyAppVersion=${TAG_NAME#nightly} -F${instname} ci/windows-installer.iss
     ;;
-  linux-gnu)
+  linux-gnu|linux)
     distro=$(lsb_release -is 2>/dev/null || sh -c "source /etc/os-release && echo \$NAME")
     distver=$(lsb_release -rs 2>/dev/null || sh -c "source /etc/os-release && echo \$VERSION_ID")
     case "$distro" in
-      *Fedora*|*CentOS*)
+      *Fedora*|*CentOS*|*SUSE*)
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
         cat > wezterm.spec <<EOF
 Name: wezterm
@@ -138,7 +138,11 @@ Packager: Wez Furlong <wez@wezfurlong.org>
 License: MIT
 URL: https://wezfurlong.org/wezterm/
 Summary: Wez's Terminal Emulator.
+%if 0%{?suse_version}
+Requires: dbus-1, fontconfig, openssl, libxcb1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-egl1, libwayland-cursor0, Mesa-libEGL1, libxcb-keysyms1, libxcb-ewmh2, libxcb-icccm4
+%else
 Requires: dbus, fontconfig, openssl, libxcb, libxkbcommon, libxkbcommon-x11, libwayland-client, libwayland-egl, libwayland-cursor, mesa-libEGL, xcb-util-keysyms, xcb-util-wm
+%endif
 
 %description
 wezterm is a terminal emulator with support for modern features

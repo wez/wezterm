@@ -158,6 +158,11 @@ class Target(object):
         if "alpine" in self.name:
             return True
         return False
+    
+    def uses_zypper(self):
+        if "suse" in self.name:
+            return True
+        return False
 
     def needs_sudo(self):
         if not self.container and self.uses_apt():
@@ -172,6 +177,8 @@ class Target(object):
             installer = "apt-get"
         elif self.uses_apk():
             installer = "apk"
+        elif self.uses_zypper():
+            installer = "zypper"
         else:
             return []
         if self.needs_sudo():
@@ -182,7 +189,7 @@ class Target(object):
             return [RunStep(f"Install {name}", f"{installer} install -y {name}")]
 
     def install_curl(self):
-        if self.uses_yum() or self.uses_apk() or (self.uses_apt() and self.container):
+        if self.uses_yum() or self.uses_apk() or self.uses_zypper() or (self.uses_apt() and self.container):
             if "centos:stream9" in self.container:
                 return self.install_system_package("curl-minimal")
             else:
@@ -191,7 +198,7 @@ class Target(object):
 
     def install_openssh_server(self):
         steps = []
-        if self.uses_yum() or (self.uses_apt() and self.container):
+        if self.uses_yum() or self.uses_zypper() or (self.uses_apt() and self.container):
             steps += [
                 RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")
             ] + self.install_system_package("openssh-server")
@@ -233,6 +240,8 @@ class Target(object):
                 pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
             elif self.uses_apt():
                 pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
+            elif self.uses_zypper():
+                pre_reqs = "zypper install -y wget libcurl-devel libexpat-devel gettext-tools libopenssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
 
             steps.append(
                 RunStep(
@@ -395,6 +404,13 @@ cargo build --all --release""",
                     f"mv ~/.abuild/*.pub wezterm-{self.name}.pub",
                 )
             ]
+        elif self.uses_zypper():
+            steps.append(
+                RunStep(
+                    "Move RPM",
+                    f"mv /usr/src/packages/RPMS/*/*.rpm .",
+                )
+            )
 
         patterns = self.asset_patterns()
         glob = " ".join(patterns)
@@ -410,7 +426,7 @@ cargo build --all --release""",
 
     def asset_patterns(self):
         patterns = []
-        if self.uses_yum():
+        if self.uses_yum() or self.uses_zypper():
             patterns += ["wezterm-*.rpm"]
         elif "win" in self.name:
             patterns += ["WezTerm-*.zip", "WezTerm-*.exe"]
@@ -444,6 +460,13 @@ cargo build --all --release""",
                 RunStep(
                     "Move APKs",
                     f"mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-{self.name}.apk",
+                )
+            )
+        elif self.uses_zypper():
+            steps.append(
+                RunStep(
+                    "Move RPM",
+                    f"mv /usr/src/packages/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm",
                 )
             )
 
@@ -581,6 +604,18 @@ cargo build --all --release""",
                 RunStep("Update APT", f"{sudo}apt update"),
             ]
 
+        if self.uses_zypper():
+            if self.container:
+                steps += [
+                    RunStep(
+                        "Seed GITHUB_PATH to work around possible @action/core bug",
+                        f"echo \"$PATH:/bin:/usr/bin\" >> $GITHUB_PATH"
+                    ),
+                    RunStep(
+                        "Install lsb-release & util-linux",
+                        "zypper install -y lsb-release util-linux"
+                    ),
+                ]
         if self.container:
             if ("fedora" in self.container) or ("centos" in self.container):
                 steps += [
@@ -735,6 +770,8 @@ TARGETS = [
     Target(container="alpine:3.13"),
     Target(container="alpine:3.14"),
     Target(container="alpine:3.15"),
+    Target(name="opensuse_leap", container="registry.opensuse.org/opensuse/leap:15.3"),
+    Target(name="opensuse_tumbleweed", container="registry.opensuse.org/opensuse/tumbleweed"),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
 

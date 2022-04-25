@@ -106,7 +106,7 @@ suse_deps() {
     'gcc' \
     'gcc-c++' \
     'fontconfig-devel' \
-    'openssl-devel' \
+    'libopenssl-devel' \
     'perl' \
     'python3' \
     'libxcb-devel' \
