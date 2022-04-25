@@ -17,7 +17,7 @@ For example:
 |`"SpacesOnly"`        |`hello world`|`hello\ world` |
 |`"Posix"`             |`hello world`|`"hello world"`|
 
-Files drag and drop support is a platform dependent feature
+Drag and drop support for files is a platform dependent feature
 
 |Platform  |Supported since    |
 |----------|-------------------|
