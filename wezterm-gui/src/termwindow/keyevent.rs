@@ -264,12 +264,6 @@ impl super::TermWindow {
     }
 
     pub fn raw_key_event_impl(&mut self, key: RawKeyEvent, context: &dyn WindowOps) {
-        if self.config.debug_key_events {
-            log::info!("key_event {:?}", key);
-        } else {
-            log::trace!("key_event {:?}", key);
-        }
-
         // The leader key is a kind of modal modifier key.
         // It is allowed to be active for up to the leader timeout duration,
         // after which it auto-deactivates.
@@ -279,6 +273,20 @@ impl super::TermWindow {
         } else {
             (false, Modifiers::NONE)
         };
+
+        if self.config.debug_key_events {
+            log::info!(
+                "key_event {:?} {}",
+                key,
+                if leader_active { "LEADER" } else { "" }
+            );
+        } else {
+            log::trace!(
+                "key_event {:?} {}",
+                key,
+                if leader_active { "LEADER" } else { "" }
+            );
+        }
 
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
@@ -394,12 +402,6 @@ impl super::TermWindow {
     }
 
     pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) {
-        if self.config.debug_key_events {
-            log::info!("key_event {:?}", window_key);
-        } else {
-            log::trace!("key_event {:?}", window_key);
-        }
-
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
@@ -414,6 +416,20 @@ impl super::TermWindow {
         } else {
             (false, Modifiers::NONE)
         };
+
+        if self.config.debug_key_events {
+            log::info!(
+                "key_event {:?} {}",
+                window_key,
+                if leader_active { "LEADER" } else { "" }
+            );
+        } else {
+            log::trace!(
+                "key_event {:?} {}",
+                window_key,
+                if leader_active { "LEADER" } else { "" }
+            );
+        }
 
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
 
