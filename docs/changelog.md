@@ -22,6 +22,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [treat_east_asian_ambiguous_width_as_wide](config/lua/config/treat_east_asian_ambiguous_width_as_wide.md) for control over how ambiguous width characters are resolved. [#1888](https://github.com/wez/wezterm/issues/1888)
 * [clean_exit_codes](config/lua/config/clean_exit_codes.md) config to fine tune [exit_behavior](config/lua/config/exit_behavior.md) [#1889](https://github.com/wez/wezterm/issues/1889)
 * [ClearSelection](config/lua/keyassignment/ClearSelection.md) key assignment [#1900](https://github.com/wez/wezterm/issues/1900)
+* `wezterm cli list --format json` and `wezterm cli list-clients --format json` allow retrieving data in json format. Thanks to [@ratmice](https://github.com/ratmice)! [#1911](https://github.com/wez/wezterm/pull/1911)
 
 #### Updated
 * Bundled harfbuzz to 4.2.1
