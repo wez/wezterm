@@ -177,10 +177,10 @@ pub enum WindowEvent {
 
     Notification(Box<dyn Any + Send + Sync>),
 
-    // Called when the files is being dragged into the window
+    // Called when the files are being dragged into the window
     DraggedFile(Vec<PathBuf>),
 
-    // Called when the files is been dropped into the window
+    // Called when the files are dropped into the window
     DroppedFile(Vec<PathBuf>),
 }
 
