@@ -462,7 +462,7 @@ cargo build --all --release""",
                     f"mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-{self.name}.apk",
                 )
             )
-        elif self.uses_yum():
+        elif self.uses_zypper():
             steps.append(
                 RunStep(
                     "Move RPM",

@@ -83,6 +83,9 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Move RPM"
+        shell: bash
+        run: "mv /usr/src/packages/RPMS/*/*.rpm wezterm-nightly-opensuse_leap.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
