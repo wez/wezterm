@@ -29,6 +29,7 @@ CATEGORIZE = {
     r"^wezterm-\d+-\d+-[a-f0-9]+.deb$": "ubuntu16_deb",
     r"Ubuntu18.04.deb$": "ubuntu18_deb",
     r"Ubuntu20.04.deb$": "ubuntu20_deb",
+    r"Ubuntu22.04.deb$": "ubuntu22_deb",
     r"Ubuntu18.04.tar.xz$": "linux_raw_bin",
     r"^wezterm-\d+-\d+-[a-f0-9]+.tar.xz$": "linux_raw_bin",
     r"src.tar.gz$": "src",
