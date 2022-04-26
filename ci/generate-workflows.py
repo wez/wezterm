@@ -158,7 +158,7 @@ class Target(object):
         if "alpine" in self.name:
             return True
         return False
-    
+
     def uses_zypper(self):
         if "suse" in self.name:
             return True
@@ -189,7 +189,12 @@ class Target(object):
             return [RunStep(f"Install {name}", f"{installer} install -y {name}")]
 
     def install_curl(self):
-        if self.uses_yum() or self.uses_apk() or self.uses_zypper() or (self.uses_apt() and self.container):
+        if (
+            self.uses_yum()
+            or self.uses_apk()
+            or self.uses_zypper()
+            or (self.uses_apt() and self.container)
+        ):
             if "centos:stream9" in self.container:
                 return self.install_system_package("curl-minimal")
             else:
@@ -198,7 +203,11 @@ class Target(object):
 
     def install_openssh_server(self):
         steps = []
-        if self.uses_yum() or self.uses_zypper() or (self.uses_apt() and self.container):
+        if (
+            self.uses_yum()
+            or self.uses_zypper()
+            or (self.uses_apt() and self.container)
+        ):
             steps += [
                 RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")
             ] + self.install_system_package("openssh-server")
@@ -402,7 +411,7 @@ cargo build --all --release""",
                 RunStep(
                     "Move APK keys",
                     f"mv ~/.abuild/*.pub wezterm-{self.name}.pub",
-                )
+                ),
             ]
         elif self.uses_zypper():
             steps.append(
@@ -609,11 +618,11 @@ cargo build --all --release""",
                 steps += [
                     RunStep(
                         "Seed GITHUB_PATH to work around possible @action/core bug",
-                        f"echo \"$PATH:/bin:/usr/bin\" >> $GITHUB_PATH"
+                        f'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH',
                     ),
                     RunStep(
                         "Install lsb-release & util-linux",
-                        "zypper install -y lsb-release util-linux"
+                        "zypper install -y lsb-release util-linux",
                     ),
                 ]
         if self.container:
@@ -695,12 +704,10 @@ cargo build --all --release""",
             steps += [
                 RunStep(
                     "Workaround git permissions issue",
-                    "git config --global --add safe.directory /__w/wezterm/wezterm"
+                    "git config --global --add safe.directory /__w/wezterm/wezterm",
                 )
             ]
-        steps += [
-            CheckoutStep(submodules=submodules)
-        ]
+        steps += [CheckoutStep(submodules=submodules)]
         return steps
 
     def continuous(self):
@@ -772,7 +779,10 @@ TARGETS = [
     Target(container="alpine:3.14"),
     Target(container="alpine:3.15"),
     Target(name="opensuse_leap", container="registry.opensuse.org/opensuse/leap:15.3"),
-    Target(name="opensuse_tumbleweed", container="registry.opensuse.org/opensuse/tumbleweed"),
+    Target(
+        name="opensuse_tumbleweed",
+        container="registry.opensuse.org/opensuse/tumbleweed",
+    ),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
 
