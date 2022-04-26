@@ -754,6 +754,7 @@ cargo build --all --release""",
 TARGETS = [
     Target(name="ubuntu:18", os="ubuntu-18.04", app_image=True),
     Target(container="ubuntu:20.04", continuous_only=True),
+    Target(container="ubuntu:22.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
