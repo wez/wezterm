@@ -74,8 +74,8 @@ on most Linux systems.
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
 |Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
-|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }}) |[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
-|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }}) |[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
+|openSUSE Leap    |Nighty builds only|[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
+|openSUSE Tumbleweed    |Nighty builds only|[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
 
 To download and install from the CLI you can use something like this, which
 shows how to install the Fedora 35 package:
