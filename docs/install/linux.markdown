@@ -62,7 +62,7 @@ sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
 
 ## Installing on Fedora and rpm-based Systems
 
-The CI system builds `.rpm` files on CentOS and Fedora systems.
+The CI system builds `.rpm` files on CentOS, Fedora and openSUSE systems.
 These are likely compatible with other rpm-based distributions.
 Alternatively, you can try the AppImage download with should work
 on most Linux systems.
@@ -74,6 +74,8 @@ on most Linux systems.
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
 |Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
+|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }}) |[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
+|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }}) |[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
 
 To download and install from the CLI you can use something like this, which
 shows how to install the Fedora 35 package:
