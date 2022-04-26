@@ -1719,6 +1719,21 @@ impl Drop for ImmContext {
     }
 }
 
+unsafe fn ime_end_composition(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    // IME was cancelled
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+    inner
+        .events
+        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+    Some(1)
+}
+
 unsafe fn ime_composition(
     hwnd: HWND,
     _msg: UINT,
@@ -2438,6 +2453,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         }
         WM_SETTINGCHANGE => apply_theme(hwnd),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
+        WM_IME_ENDCOMPOSITION => ime_end_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSELEAVE => mouse_leave(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),

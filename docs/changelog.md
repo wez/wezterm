@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `nf-mdi-contacts` nerdfont symbol treated as zero-width [#1864](https://github.com/wez/wezterm/issues/1864)
 * X11/Wayland: CTRL-i, CTRL-j, CTRL-m misinterpreted as CTRL-Tab, CTRL-Enter, CTRL-Return [#1851](https://github.com/wez/wezterm/issues/1851)
 * Scrollbar stopped working after a lot of output scrolled outside of the scrollback limit.  Thanks to [@davidrios](https://github.com/davidrios)! [#1866](https://github.com/wez/wezterm/pull/1866)
+* Windows: uncommitted IME composition could get stuck when switching input methods. [#1922](https://github.com/wez/wezterm/issues/1922)
 
 ### 20220408-101518-b908e2dd
 
