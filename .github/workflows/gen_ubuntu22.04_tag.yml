@@ -1,4 +1,4 @@
-name: opensuse_tumbleweed_tag
+name: ubuntu22.04_tag
 
 on:
   push:
@@ -8,29 +8,32 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "registry.opensuse.org/opensuse/tumbleweed"
+    container: "ubuntu:22.04"
     env:
       BUILD_REASON: "Schedule"
 
     steps:
-      - name: "Seed GITHUB_PATH to work around possible @action/core bug"
+      - name: "set APT to non-interactive"
         shell: bash
-        run: 'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH'
-      - name: "Install lsb-release & util-linux"
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
         shell: bash
-        run: "zypper install -y lsb-release util-linux"
+        run: "apt update"
       - name: "Install git"
         shell: bash
-        run: "zypper install -y git"
+        run: "apt-get install -y git"
       - name: "Install curl"
         shell: bash
-        run: "zypper install -y curl"
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"
       - name: "Install openssh-server"
         shell: bash
-        run: "zypper install -y openssh-server"
+        run: "apt-get install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
@@ -54,7 +57,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: "opensuse_tumbleweed-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "ubuntu22.04-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env PATH=$PATH ./get-deps"
@@ -67,14 +70,13 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Move RPM"
-        shell: bash
-        run: "mv /usr/src/packages/RPMS/*/*.rpm ."
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "opensuse_tumbleweed"
-          path: "wezterm-*.rpm"
+          name: "ubuntu22.04"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
 
   upload:
     runs-on: ubuntu-latest
@@ -89,7 +91,7 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "opensuse_tumbleweed"
+          name: "ubuntu22.04"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,4 +101,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz"
