@@ -2057,27 +2057,6 @@ impl WindowView {
             chars
         };
 
-        // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
-        // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
-        // In this case, we take the key from unmod.
-        // We leave `raw` set to None as we want to preserve the value of modifiers.
-        // <https://github.com/wez/wezterm/issues/1706>.
-        // We can't do this for every ALT+SHIFT combo, as the weird behavior doesn't
-        // apply to eg: ALT+SHIFT+789 for Norwegian layouts
-        // <https://github.com/wez/wezterm/issues/760>
-        let swap_unmod_and_chars = (modifiers.contains(Modifiers::SHIFT | Modifiers::ALT)
-            && virtual_key == kVK_ANSI_Grave)
-            ||
-            // <https://github.com/wez/wezterm/issues/1907>
-            (modifiers.contains(Modifiers::SHIFT | Modifiers::CTRL)
-                && virtual_key == kVK_ANSI_Slash);
-
-        let (unmod, chars) = if swap_unmod_and_chars && !chars.is_empty() && !unmod.is_empty() {
-            (chars, unmod)
-        } else {
-            (unmod, chars)
-        };
-
         let phys_code = vkey_to_phys(virtual_key);
         let raw_key_handled = Handled::new();
         let raw_key_event = RawKeyEvent {
@@ -2287,6 +2266,21 @@ impl WindowView {
             }
         }
 
+        // When both shift and alt are pressed, macos appears to swap `chars` with `unmod`,
+        // which isn't particularly helpful. eg: ALT+SHIFT+` produces chars='`' and unmod='~'
+        // In this case, we take the key from unmod.
+        // We leave `raw` set to None as we want to preserve the value of modifiers.
+        // <https://github.com/wez/wezterm/issues/1706>.
+        // We can't do this for every ALT+SHIFT combo, as the weird behavior doesn't
+        // apply to eg: ALT+SHIFT+789 for Norwegian layouts
+        // <https://github.com/wez/wezterm/issues/760>
+        let swap_unmod_and_chars = (modifiers.contains(Modifiers::SHIFT | Modifiers::ALT)
+            && virtual_key == kVK_ANSI_Grave)
+            ||
+            // <https://github.com/wez/wezterm/issues/1907>
+            (modifiers.contains(Modifiers::SHIFT | Modifiers::CTRL)
+                && virtual_key == kVK_ANSI_Slash);
+
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
             let (key, raw_key) = if (only_left_alt && !send_composed_key_when_left_alt_is_pressed)
                 || (only_right_alt && !send_composed_key_when_right_alt_is_pressed)
@@ -2298,6 +2292,11 @@ impl WindowView {
                 }
             } else if chars.is_empty() || chars == unmod {
                 (key, None)
+            } else if swap_unmod_and_chars {
+                match key_string_to_key_code(unmod) {
+                    Some(key) => (key, None),
+                    None => return,
+                }
             } else {
                 let raw = key_string_to_key_code(unmod);
                 match (&key, &raw) {
