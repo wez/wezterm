@@ -1067,132 +1067,126 @@ unsafe fn wm_ncdestroy(
 }
 
 unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow_mut();
+    let inner = rc_from_hwnd(hwnd)?;
+    let inner = inner.borrow_mut();
 
-        if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
-            return None;
-        }
-
-        if inner.saved_placement.is_none() {
-            let dpi = GetDpiForWindow(hwnd);
-            let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
-            let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
-            let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
-
-            let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
-
-            let mut requested_client_rect = &mut params.rgrc[0];
-
-            requested_client_rect.right -= frame_x + padding;
-            requested_client_rect.left += frame_x + padding;
-
-            let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
-
-            // Handle bugged top window border on Windows 10
-            if *IS_WIN10 {
-                if is_maximized {
-                    requested_client_rect.top += frame_y + padding;
-                    requested_client_rect.bottom -= frame_y + padding - 2;
-                } else {
-                    requested_client_rect.top += 1;
-                    requested_client_rect.bottom -= frame_y - padding;
-                }
-            } else {
-                requested_client_rect.bottom -= frame_y + padding;
-
-                if is_maximized {
-                    requested_client_rect.top += frame_y + padding;
-                }
-            }
-        }
-
-        return Some(0);
+    if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
+        return None;
     }
 
-    None
+    if inner.saved_placement.is_none() {
+        let dpi = GetDpiForWindow(hwnd);
+        let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
+        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+        let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+
+        let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
+
+        let mut requested_client_rect = &mut params.rgrc[0];
+
+        requested_client_rect.right -= frame_x + padding;
+        requested_client_rect.left += frame_x + padding;
+
+        let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
+
+        // Handle bugged top window border on Windows 10
+        if *IS_WIN10 {
+            if is_maximized {
+                requested_client_rect.top += frame_y + padding;
+                requested_client_rect.bottom -= frame_y + padding - 2;
+            } else {
+                requested_client_rect.top += 1;
+                requested_client_rect.bottom -= frame_y - padding;
+            }
+        } else {
+            requested_client_rect.bottom -= frame_y + padding;
+
+            if is_maximized {
+                requested_client_rect.top += frame_y + padding;
+            }
+        }
+    }
+
+    Some(0)
 }
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow_mut();
+    let inner = rc_from_hwnd(hwnd)?;
+    let inner = inner.borrow_mut();
 
-        if inner.config.window_decorations != WindowDecorations::RESIZE {
-            return None;
-        }
-
-        // Let the default procedure handle resizing areas
-        let result = DefWindowProcW(hwnd, msg, wparam, lparam);
-
-        if matches!(
-            result,
-            HTNOWHERE
-                | HTRIGHT
-                | HTLEFT
-                | HTTOPLEFT
-                | HTTOP
-                | HTTOPRIGHT
-                | HTBOTTOMRIGHT
-                | HTBOTTOM
-                | HTBOTTOMLEFT
-        ) {
-            return Some(result);
-        }
-
-        // The adjustment in NCCALCSIZE messes with the detection
-        // of the top hit area so manually fixing that.
-        let dpi = GetDpiForWindow(hwnd);
-        let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi) as isize;
-        let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
-        let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi) as isize;
-
-        let coords = mouse_coords(lparam);
-        let screen_point = ScreenPoint::new(coords.x, coords.y);
-        let cursor_point = screen_to_client(hwnd, screen_point);
-        let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
-
-        // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
-
-        let mut client_rect = RECT::default();
-        let client_rect_is_valid =
-            GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE;
-
-        // Since we are eating the bottom window frame to deal with a Windows 10 bug,
-        // we detect resizing in the window client area as a workaround
-        if !is_maximized
-            && *IS_WIN10
-            && client_rect_is_valid
-            && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
-        {
-            if cursor_point.x <= (frame_x + padding) {
-                return Some(HTBOTTOMLEFT);
-            } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-                return Some(HTBOTTOMRIGHT);
-            } else {
-                return Some(HTBOTTOM);
-            }
-        }
-
-        if !is_maximized && cursor_point.y >= 0 && cursor_point.y < frame_y {
-            if cursor_point.x <= (frame_x + padding) {
-                return Some(HTTOPLEFT);
-            } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
-                return Some(HTTOPRIGHT);
-            } else {
-                return Some(HTTOP);
-            }
-        }
-
-        if let Some(coords) = inner.window_drag_position {
-            if coords == screen_point && inner.saved_placement.is_none() {
-                return Some(HTCAPTION);
-            }
-        }
-
-        return Some(HTCLIENT);
+    if inner.config.window_decorations != WindowDecorations::RESIZE {
+        return None;
     }
 
-    None
+    // Let the default procedure handle resizing areas
+    let result = DefWindowProcW(hwnd, msg, wparam, lparam);
+
+    if matches!(
+        result,
+        HTNOWHERE
+            | HTRIGHT
+            | HTLEFT
+            | HTTOPLEFT
+            | HTTOP
+            | HTTOPRIGHT
+            | HTBOTTOMRIGHT
+            | HTBOTTOM
+            | HTBOTTOMLEFT
+    ) {
+        return Some(result);
+    }
+
+    // The adjustment in NCCALCSIZE messes with the detection
+    // of the top hit area so manually fixing that.
+    let dpi = GetDpiForWindow(hwnd);
+    let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi) as isize;
+    let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
+    let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi) as isize;
+
+    let coords = mouse_coords(lparam);
+    let screen_point = ScreenPoint::new(coords.x, coords.y);
+    let cursor_point = screen_to_client(hwnd, screen_point);
+    let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
+
+    // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
+
+    let mut client_rect = RECT::default();
+    let client_rect_is_valid =
+        GetClientRect(hwnd, &mut client_rect) == winapi::shared::minwindef::TRUE;
+
+    // Since we are eating the bottom window frame to deal with a Windows 10 bug,
+    // we detect resizing in the window client area as a workaround
+    if !is_maximized
+        && *IS_WIN10
+        && client_rect_is_valid
+        && cursor_point.y >= (client_rect.bottom as isize) - (frame_y + padding)
+    {
+        if cursor_point.x <= (frame_x + padding) {
+            return Some(HTBOTTOMLEFT);
+        } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
+            return Some(HTBOTTOMRIGHT);
+        } else {
+            return Some(HTBOTTOM);
+        }
+    }
+
+    if !is_maximized && cursor_point.y >= 0 && cursor_point.y < frame_y {
+        if cursor_point.x <= (frame_x + padding) {
+            return Some(HTTOPLEFT);
+        } else if cursor_point.x >= (client_rect.right as isize) - (frame_x + padding) {
+            return Some(HTTOPRIGHT);
+        } else {
+            return Some(HTTOP);
+        }
+    }
+
+    if let Some(coords) = inner.window_drag_position {
+        if coords == screen_point && inner.saved_placement.is_none() {
+            return Some(HTCAPTION);
+        }
+    }
+
+    Some(HTCLIENT)
 }
 
 fn get_window_state(hwnd: HWND) -> i32 {
@@ -1366,12 +1360,10 @@ unsafe fn wm_set_focus(
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::FocusChanged(true));
-    }
+    rc_from_hwnd(hwnd)?
+        .borrow_mut()
+        .events
+        .dispatch(WindowEvent::FocusChanged(true));
     None
 }
 
@@ -1381,43 +1373,38 @@ unsafe fn wm_kill_focus(
     _wparam: WPARAM,
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::FocusChanged(false));
-    }
+    rc_from_hwnd(hwnd)?
+        .borrow_mut()
+        .events
+        .dispatch(WindowEvent::FocusChanged(false));
     None
 }
 
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
 
-        let mut ps = PAINTSTRUCT {
-            fErase: 0,
-            fIncUpdate: 0,
-            fRestore: 0,
-            hdc: std::ptr::null_mut(),
-            rcPaint: RECT {
-                left: 0,
-                top: 0,
-                right: 0,
-                bottom: 0,
-            },
-            rgbReserved: [0; 32],
-        };
-        let _ = BeginPaint(hwnd, &mut ps);
-        // Do nothing right now
-        EndPaint(hwnd, &mut ps);
+    let mut ps = PAINTSTRUCT {
+        fErase: 0,
+        fIncUpdate: 0,
+        fRestore: 0,
+        hdc: std::ptr::null_mut(),
+        rcPaint: RECT {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        },
+        rgbReserved: [0; 32],
+    };
+    let _ = BeginPaint(hwnd, &mut ps);
+    // Do nothing right now
+    EndPaint(hwnd, &mut ps);
 
-        // Ask the app to repaint in a bit
-        inner.events.dispatch(WindowEvent::NeedRepaint);
+    // Ask the app to repaint in a bit
+    inner.events.dispatch(WindowEvent::NeedRepaint);
 
-        Some(0)
-    } else {
-        None
-    }
+    Some(0)
 }
 
 fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
@@ -1486,88 +1473,79 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
 }
 
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        // To support dragging the window, capture when the left
-        // button goes down and release when it goes up.
-        // Without this, the drag state can be confused when dragging
-        // the mouse up outside of the client area.
-        if msg == WM_LBUTTONDOWN {
-            SetCapture(hwnd);
-        } else if msg == WM_LBUTTONUP {
-            ReleaseCapture();
-        }
-        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        let coords = mouse_coords(lparam);
-        let event = MouseEvent {
-            kind: match msg {
-                WM_LBUTTONDOWN => MouseEventKind::Press(MousePress::Left),
-                WM_LBUTTONUP => MouseEventKind::Release(MousePress::Left),
-                WM_RBUTTONDOWN => MouseEventKind::Press(MousePress::Right),
-                WM_RBUTTONUP => MouseEventKind::Release(MousePress::Right),
-                WM_MBUTTONDOWN => MouseEventKind::Press(MousePress::Middle),
-                WM_MBUTTONUP => MouseEventKind::Release(MousePress::Middle),
-                _ => return None,
-            },
-            coords,
-            screen_coords: client_to_screen(hwnd, coords),
-            mouse_buttons,
-            modifiers,
-        };
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::MouseEvent(event));
-        Some(0)
-    } else {
-        None
+    let inner = rc_from_hwnd(hwnd)?;
+    // To support dragging the window, capture when the left
+    // button goes down and release when it goes up.
+    // Without this, the drag state can be confused when dragging
+    // the mouse up outside of the client area.
+    if msg == WM_LBUTTONDOWN {
+        SetCapture(hwnd);
+    } else if msg == WM_LBUTTONUP {
+        ReleaseCapture();
     }
+    let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+    let coords = mouse_coords(lparam);
+    let event = MouseEvent {
+        kind: match msg {
+            WM_LBUTTONDOWN => MouseEventKind::Press(MousePress::Left),
+            WM_LBUTTONUP => MouseEventKind::Release(MousePress::Left),
+            WM_RBUTTONDOWN => MouseEventKind::Press(MousePress::Right),
+            WM_RBUTTONUP => MouseEventKind::Release(MousePress::Right),
+            WM_MBUTTONDOWN => MouseEventKind::Press(MousePress::Middle),
+            WM_MBUTTONUP => MouseEventKind::Release(MousePress::Middle),
+            _ => return None,
+        },
+        coords,
+        screen_coords: client_to_screen(hwnd, coords),
+        mouse_buttons,
+        modifiers,
+    };
+    inner
+        .borrow_mut()
+        .events
+        .dispatch(WindowEvent::MouseEvent(event));
+    Some(0)
 }
 
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
 
-        if !inner.track_mouse_leave {
-            inner.track_mouse_leave = true;
+    if !inner.track_mouse_leave {
+        inner.track_mouse_leave = true;
 
-            let mut trk = TRACKMOUSEEVENT {
-                cbSize: std::mem::size_of::<TRACKMOUSEEVENT>() as u32,
-                dwFlags: TME_LEAVE,
-                hwndTrack: hwnd,
-                dwHoverTime: 0,
-            };
-
-            inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
-        }
-
-        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        let coords = mouse_coords(lparam);
-        let event = MouseEvent {
-            kind: MouseEventKind::Move,
-            coords,
-            screen_coords: client_to_screen(hwnd, coords),
-            mouse_buttons,
-            modifiers,
+        let mut trk = TRACKMOUSEEVENT {
+            cbSize: std::mem::size_of::<TRACKMOUSEEVENT>() as u32,
+            dwFlags: TME_LEAVE,
+            hwndTrack: hwnd,
+            dwHoverTime: 0,
         };
 
-        inner.events.dispatch(WindowEvent::MouseEvent(event));
-        Some(0)
-    } else {
-        None
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
     }
+
+    let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+    let coords = mouse_coords(lparam);
+    let event = MouseEvent {
+        kind: MouseEventKind::Move,
+        coords,
+        screen_coords: client_to_screen(hwnd, coords),
+        mouse_buttons,
+        modifiers,
+    };
+
+    inner.events.dispatch(WindowEvent::MouseEvent(event));
+    Some(0)
 }
 
 unsafe fn mouse_leave(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
 
-        inner.track_mouse_leave = false;
-        inner.events.dispatch(WindowEvent::MouseLeave);
+    inner.track_mouse_leave = false;
+    inner.events.dispatch(WindowEvent::MouseLeave);
 
-        Some(0)
-    } else {
-        None
-    }
+    Some(0)
 }
 
 lazy_static! {
@@ -1584,75 +1562,72 @@ fn read_scroll_speed(name: &str) -> io::Result<i16> {
 }
 
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        // Wheel events return screen coordinates!
-        let coords = mouse_coords(lparam);
-        let screen_coords = ScreenPoint::new(coords.x, coords.y);
-        let coords = screen_to_client(hwnd, screen_coords);
-        let delta = GET_WHEEL_DELTA_WPARAM(wparam);
-        let scaled_delta = if msg == WM_MOUSEWHEEL {
-            delta * (*WHEEL_SCROLL_LINES)
-        } else {
-            delta * (*WHEEL_SCROLL_CHARS)
-        };
-        let mut position = scaled_delta / WHEEL_DELTA;
-        let remainder = scaled_delta % WHEEL_DELTA;
-        let event = MouseEvent {
-            kind: if msg == WM_MOUSEHWHEEL {
-                let mut inner = inner.borrow_mut();
-                if inner.hscroll_remainder.signum() != remainder.signum() {
-                    // Reset remainder when changing scroll direction
-                    inner.hscroll_remainder = 0;
-                }
-                inner.hscroll_remainder += remainder;
-                position += inner.hscroll_remainder / WHEEL_DELTA;
-                inner.hscroll_remainder %= WHEEL_DELTA;
-                log::trace!(
-                    "mouse_hwheel delta={} scaled={} remainder={} pos={}",
-                    delta,
-                    scaled_delta,
-                    inner.hscroll_remainder,
-                    position
-                );
-                if position == 0 {
-                    return Some(0);
-                }
-                MouseEventKind::HorzWheel(position)
-            } else {
-                let mut inner = inner.borrow_mut();
-                if inner.vscroll_remainder.signum() != remainder.signum() {
-                    // Reset remainder when changing scroll direction
-                    inner.vscroll_remainder = 0;
-                }
-                inner.vscroll_remainder += remainder;
-                position += inner.vscroll_remainder / WHEEL_DELTA;
-                inner.vscroll_remainder %= WHEEL_DELTA;
-                log::trace!(
-                    "mouse_wheel delta={} scaled={} remainder={} pos={}",
-                    delta,
-                    scaled_delta,
-                    inner.vscroll_remainder,
-                    position
-                );
-                if position == 0 {
-                    return Some(0);
-                }
-                MouseEventKind::VertWheel(position)
-            },
-            coords,
-            screen_coords,
-            mouse_buttons,
-            modifiers,
-        };
-        inner
-            .borrow_mut()
-            .events
-            .dispatch(WindowEvent::MouseEvent(event));
-        Some(0)
+    let inner = rc_from_hwnd(hwnd)?;
+    let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+    // Wheel events return screen coordinates!
+    let coords = mouse_coords(lparam);
+    let screen_coords = ScreenPoint::new(coords.x, coords.y);
+    let coords = screen_to_client(hwnd, screen_coords);
+    let delta = GET_WHEEL_DELTA_WPARAM(wparam);
+    let scaled_delta = if msg == WM_MOUSEWHEEL {
+        delta * (*WHEEL_SCROLL_LINES)
     } else {
-        None
-    }
+        delta * (*WHEEL_SCROLL_CHARS)
+    };
+    let mut position = scaled_delta / WHEEL_DELTA;
+    let remainder = scaled_delta % WHEEL_DELTA;
+    let event = MouseEvent {
+        kind: if msg == WM_MOUSEHWHEEL {
+            let mut inner = inner.borrow_mut();
+            if inner.hscroll_remainder.signum() != remainder.signum() {
+                // Reset remainder when changing scroll direction
+                inner.hscroll_remainder = 0;
+            }
+            inner.hscroll_remainder += remainder;
+            position += inner.hscroll_remainder / WHEEL_DELTA;
+            inner.hscroll_remainder %= WHEEL_DELTA;
+            log::trace!(
+                "mouse_hwheel delta={} scaled={} remainder={} pos={}",
+                delta,
+                scaled_delta,
+                inner.hscroll_remainder,
+                position
+            );
+            if position == 0 {
+                return Some(0);
+            }
+            MouseEventKind::HorzWheel(position)
+        } else {
+            let mut inner = inner.borrow_mut();
+            if inner.vscroll_remainder.signum() != remainder.signum() {
+                // Reset remainder when changing scroll direction
+                inner.vscroll_remainder = 0;
+            }
+            inner.vscroll_remainder += remainder;
+            position += inner.vscroll_remainder / WHEEL_DELTA;
+            inner.vscroll_remainder %= WHEEL_DELTA;
+            log::trace!(
+                "mouse_wheel delta={} scaled={} remainder={} pos={}",
+                delta,
+                scaled_delta,
+                inner.vscroll_remainder,
+                position
+            );
+            if position == 0 {
+                return Some(0);
+            }
+            MouseEventKind::VertWheel(position)
+        },
+        coords,
+        screen_coords,
+        mouse_buttons,
+        modifiers,
+    };
+    inner
+        .borrow_mut()
+        .events
+        .dispatch(WindowEvent::MouseEvent(event));
+    Some(0)
 }
 
 /// Helper for managing the IME Manager
@@ -1740,55 +1715,54 @@ unsafe fn ime_composition(
     _wparam: WPARAM,
     lparam: LPARAM,
 ) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
-        let imc = ImmContext::get(hwnd);
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+    let imc = ImmContext::get(hwnd);
 
-        let lparam = lparam as DWORD;
+    let lparam = lparam as DWORD;
 
-        if lparam == 0 {
-            // IME was cancelled
+    if lparam == 0 {
+        // IME was cancelled
+        inner
+            .events
+            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+        return Some(1);
+    }
+
+    if lparam & GCS_RESULTSTR == 0 {
+        // No finished result; continue with the default
+        // processing
+        if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
+                    composing,
+                )));
+        }
+        // We will show the composing string ourselves.
+        // Suppress the default composition display.
+        return Some(1);
+    }
+
+    match imc.get_str(GCS_RESULTSTR) {
+        Ok(s) if !s.is_empty() => {
+            let key = KeyEvent {
+                key: KeyCode::Composed(s),
+                modifiers: Modifiers::NONE,
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+            };
             inner
                 .events
                 .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+            inner.events.dispatch(WindowEvent::KeyEvent(key));
+
             return Some(1);
         }
-
-        if lparam & GCS_RESULTSTR == 0 {
-            // No finished result; continue with the default
-            // processing
-            if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
-                inner
-                    .events
-                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
-                        composing,
-                    )));
-            }
-            // We will show the composing string ourselves.
-            // Suppress the default composition display.
-            return Some(1);
-        }
-
-        match imc.get_str(GCS_RESULTSTR) {
-            Ok(s) if !s.is_empty() => {
-                let key = KeyEvent {
-                    key: KeyCode::Composed(s),
-                    modifiers: Modifiers::NONE,
-                    repeat_count: 1,
-                    key_is_down: true,
-                    raw: None,
-                };
-                inner
-                    .events
-                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                inner.events.dispatch(WindowEvent::KeyEvent(key));
-
-                return Some(1);
-            }
-            Ok(_) => {}
-            Err(_) => eprintln!("cannot represent IME as unicode string!?"),
-        };
-    }
+        Ok(_) => {}
+        Err(_) => eprintln!("cannot represent IME as unicode string!?"),
+    };
     None
 }
 
@@ -2090,345 +2064,344 @@ unsafe fn translate_message(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARA
 }
 
 unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
-        let repeat = (lparam & 0xffff) as u16;
-        let scan_code = ((lparam >> 16) & 0xff) as u8;
-        let releasing = (lparam & (1 << 31)) != 0;
-        let ime_active = wparam == VK_PROCESSKEY as WPARAM;
-        let phys_code = super::keycodes::vkey_to_phys(wparam);
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+    let repeat = (lparam & 0xffff) as u16;
+    let scan_code = ((lparam >> 16) & 0xff) as u8;
+    let releasing = (lparam & (1 << 31)) != 0;
+    let ime_active = wparam == VK_PROCESSKEY as WPARAM;
+    let phys_code = super::keycodes::vkey_to_phys(wparam);
 
-        let alt_pressed = (lparam & (1 << 29)) != 0;
-        let is_extended = (lparam & (1 << 24)) != 0;
-        let was_down = (lparam & (1 << 30)) != 0;
-        let label = match msg {
-            WM_CHAR => "WM_CHAR",
-            WM_IME_CHAR => "WM_IME_CHAR",
-            WM_KEYDOWN => "WM_KEYDOWN",
-            WM_KEYUP => "WM_KEYUP",
-            WM_SYSKEYUP => "WM_SYSKEYUP",
-            WM_SYSKEYDOWN => "WM_SYSKEYDOWN",
-            WM_SYSCHAR => "WM_SYSCHAR",
-            WM_DEADCHAR => "WM_DEADCHAR",
-            _ => "WAT",
-        };
-        log::trace!(
-            "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
+    let alt_pressed = (lparam & (1 << 29)) != 0;
+    let is_extended = (lparam & (1 << 24)) != 0;
+    let was_down = (lparam & (1 << 30)) != 0;
+    let label = match msg {
+        WM_CHAR => "WM_CHAR",
+        WM_IME_CHAR => "WM_IME_CHAR",
+        WM_KEYDOWN => "WM_KEYDOWN",
+        WM_KEYUP => "WM_KEYUP",
+        WM_SYSKEYUP => "WM_SYSKEYUP",
+        WM_SYSKEYDOWN => "WM_SYSKEYDOWN",
+        WM_SYSCHAR => "WM_SYSCHAR",
+        WM_DEADCHAR => "WM_DEADCHAR",
+        _ => "WAT",
+    };
+    log::trace!(
+        "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
              releasing={} IME={} dead_pending={:?}",
-            label,
-            wparam,
-            repeat,
-            scan_code,
-            is_extended,
-            alt_pressed,
-            was_down,
-            releasing,
-            ime_active,
-            inner.dead_pending,
-        );
+        label,
+        wparam,
+        repeat,
+        scan_code,
+        is_extended,
+        alt_pressed,
+        was_down,
+        releasing,
+        ime_active,
+        inner.dead_pending,
+    );
 
-        if ime_active {
-            // If the IME is active, allow Windows to perform default processing
-            // to drive it forwards.  It will generate a call to `ime_composition`
-            // or `ime_endcomposition` when it completes.
+    if ime_active {
+        // If the IME is active, allow Windows to perform default processing
+        // to drive it forwards.  It will generate a call to `ime_composition`
+        // or `ime_endcomposition` when it completes.
 
-            if msg == WM_KEYDOWN {
-                // Explicitly allow the built-in translation to occur for the IME
-                translate_message(hwnd, msg, wparam, lparam);
-                return Some(0);
-            }
-
-            return None;
-        }
-
-        if msg == WM_DEADCHAR {
-            // Ignore WM_DEADCHAR; we only care about the resultant WM_CHAR
+        if msg == WM_KEYDOWN {
+            // Explicitly allow the built-in translation to occur for the IME
+            translate_message(hwnd, msg, wparam, lparam);
             return Some(0);
         }
 
-        let mut keys = [0u8; 256];
-        GetKeyboardState(keys.as_mut_ptr());
+        return None;
+    }
 
-        let mut modifiers = Modifiers::default();
-        if keys[VK_SHIFT as usize] & 0x80 != 0 {
-            modifiers |= Modifiers::SHIFT;
+    if msg == WM_DEADCHAR {
+        // Ignore WM_DEADCHAR; we only care about the resultant WM_CHAR
+        return Some(0);
+    }
+
+    let mut keys = [0u8; 256];
+    GetKeyboardState(keys.as_mut_ptr());
+
+    let mut modifiers = Modifiers::default();
+    if keys[VK_SHIFT as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::SHIFT;
+    }
+
+    if inner.keyboard_info.has_alt_gr()
+        && (keys[VK_RMENU as usize] & 0x80 != 0)
+        && (keys[VK_CONTROL as usize] & 0x80 != 0)
+    {
+        // AltGr is pressed; while AltGr is on the RHS of the keyboard
+        // is is not the same thing as right-alt.
+        // Windows sets RMENU and CONTROL to indicate AltGr and we
+        // have to keep these in the key state in order for ToUnicode
+        // to map the key correctly.
+        // We set RIGHT_ALT as a hint to ourselves that AltGr is in
+        // use (we use regular ALT otherwise) so that our dead key
+        // resolution can do the right thing.
+        modifiers |= Modifiers::RIGHT_ALT;
+    } else if inner.keyboard_info.has_alt_gr()
+        && inner.config.treat_left_ctrlalt_as_altgr
+        && (keys[VK_MENU as usize] & 0x80 != 0)
+        && (keys[VK_CONTROL as usize] & 0x80 != 0)
+    {
+        // When running inside a VNC session, VNC emulates the AltGr keypresses
+        // by sending plain VK_MENU (rather than VK_RMENU) + VK_CONTROL.
+        // For compatibility with that the option `treat_left_ctrlalt_as_altgr` allows
+        // to treat MENU+CONTROL as equivalent to RMENU+CONTROL (AltGr) even though it is
+        // technically a lossy transformation.
+        //
+        // We only do that when the keyboard layout has AltGr and the option is enabled,
+        // so that we don't screw things up by default or for other keyboard layouts.
+        // See issue #392 & #472 for some more context.
+        modifiers |= Modifiers::RIGHT_ALT;
+    } else {
+        if keys[VK_CONTROL as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::CTRL;
         }
+        if keys[VK_MENU as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::ALT;
+        }
+    }
+    if keys[VK_LWIN as usize] & 0x80 != 0 || keys[VK_RWIN as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::SUPER;
+    }
 
-        if inner.keyboard_info.has_alt_gr()
-            && (keys[VK_RMENU as usize] & 0x80 != 0)
-            && (keys[VK_CONTROL as usize] & 0x80 != 0)
-        {
-            // AltGr is pressed; while AltGr is on the RHS of the keyboard
-            // is is not the same thing as right-alt.
-            // Windows sets RMENU and CONTROL to indicate AltGr and we
-            // have to keep these in the key state in order for ToUnicode
-            // to map the key correctly.
-            // We set RIGHT_ALT as a hint to ourselves that AltGr is in
-            // use (we use regular ALT otherwise) so that our dead key
-            // resolution can do the right thing.
-            modifiers |= Modifiers::RIGHT_ALT;
-        } else if inner.keyboard_info.has_alt_gr()
-            && inner.config.treat_left_ctrlalt_as_altgr
-            && (keys[VK_MENU as usize] & 0x80 != 0)
-            && (keys[VK_CONTROL as usize] & 0x80 != 0)
-        {
-            // When running inside a VNC session, VNC emulates the AltGr keypresses
-            // by sending plain VK_MENU (rather than VK_RMENU) + VK_CONTROL.
-            // For compatibility with that the option `treat_left_ctrlalt_as_altgr` allows
-            // to treat MENU+CONTROL as equivalent to RMENU+CONTROL (AltGr) even though it is
-            // technically a lossy transformation.
-            //
-            // We only do that when the keyboard layout has AltGr and the option is enabled,
-            // so that we don't screw things up by default or for other keyboard layouts.
-            // See issue #392 & #472 for some more context.
-            modifiers |= Modifiers::RIGHT_ALT;
-        } else {
-            if keys[VK_CONTROL as usize] & 0x80 != 0 {
-                modifiers |= Modifiers::CTRL;
+    // If control is pressed, clear that out and remember it in our
+    // own set of modifiers.
+    // We used to also remove shift from this set, but it impacts
+    // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
+    // layout.
+    // The shift normalization is now handled by the normalize_shift() method.
+    if modifiers.contains(Modifiers::CTRL) {
+        keys[VK_CONTROL as usize] = 0;
+        keys[VK_LCONTROL as usize] = 0;
+        keys[VK_RCONTROL as usize] = 0;
+    }
+
+    let handled_raw = Handled::new();
+    let raw_key_event = RawKeyEvent {
+        key: match phys_code {
+            Some(phys) => KeyCode::Physical(phys),
+            None => KeyCode::RawCode(wparam as _),
+        },
+        phys_code,
+        raw_code: wparam as _,
+        scan_code: scan_code as _,
+        modifiers,
+        repeat_count: 1,
+        key_is_down: !releasing,
+        handled: handled_raw.clone(),
+    };
+
+    let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+        // If we were sent a character by the IME, some other apps,
+        // or by ourselves via TranslateMessage, then take that
+        // value as-is.
+        Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+    } else {
+        // Otherwise we're dealing with a raw key message.
+        // ToUnicode has frustrating statefulness so we take care to
+        // call it only when we think it will give consistent results.
+
+        inner
+            .events
+            .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
+        if handled_raw.is_handled() {
+            // Cancel any pending dead key
+            if inner.dead_pending.take().is_some() {
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
             }
-            if keys[VK_MENU as usize] & 0x80 != 0 {
-                modifiers |= Modifiers::ALT;
-            }
-        }
-        if keys[VK_LWIN as usize] & 0x80 != 0 || keys[VK_RWIN as usize] & 0x80 != 0 {
-            modifiers |= Modifiers::SUPER;
+            log::trace!("raw key was handled; not processing further");
+            return Some(0);
         }
 
-        // If control is pressed, clear that out and remember it in our
-        // own set of modifiers.
-        // We used to also remove shift from this set, but it impacts
-        // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
-        // layout.
-        // The shift normalization is now handled by the normalize_shift() method.
-        if modifiers.contains(Modifiers::CTRL) {
-            keys[VK_CONTROL as usize] = 0;
-            keys[VK_LCONTROL as usize] = 0;
-            keys[VK_RCONTROL as usize] = 0;
-        }
-
-        let handled_raw = Handled::new();
-        let raw_key_event = RawKeyEvent {
-            key: match phys_code {
-                Some(phys) => KeyCode::Physical(phys),
-                None => KeyCode::RawCode(wparam as _),
-            },
-            phys_code,
-            raw_code: wparam as _,
-            scan_code: scan_code as _,
-            modifiers,
-            repeat_count: 1,
-            key_is_down: !releasing,
-            handled: handled_raw.clone(),
-        };
-
-        let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
-            // If we were sent a character by the IME, some other apps,
-            // or by ourselves via TranslateMessage, then take that
-            // value as-is.
-            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        let is_modifier_only = phys_code.map(|p| p.is_modifier()).unwrap_or(false);
+        if is_modifier_only {
+            // If this event is only modifiers then don't ask the system
+            // for further resolution, as we don't want ToUnicode to
+            // perturb its inscrutable global state.
+            phys_code.map(|p| p.to_key_code())
         } else {
-            // Otherwise we're dealing with a raw key message.
-            // ToUnicode has frustrating statefulness so we take care to
-            // call it only when we think it will give consistent results.
+            // If we think this might be a dead key, process it for ourselves.
+            // Our KeyboardLayoutInfo struct probed the layout for the key
+            // combinations that start a dead key sequence, as well as those
+            // that are valid end states for dead keys, so we can resolve
+            // these for ourselves in a couple of quick hash lookups.
+            let vk = wparam as u32;
 
-            inner
-                .events
-                .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
-            if handled_raw.is_handled() {
-                // Cancel any pending dead key
-                if inner.dead_pending.take().is_some() {
-                    inner
-                        .events
-                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                }
-                log::trace!("raw key was handled; not processing further");
+            if releasing && inner.dead_pending.is_some() {
+                // Don't care about key-up events while processing dead keys
                 return Some(0);
             }
 
-            let is_modifier_only = phys_code.map(|p| p.is_modifier()).unwrap_or(false);
-            if is_modifier_only {
-                // If this event is only modifiers then don't ask the system
-                // for further resolution, as we don't want ToUnicode to
-                // perturb its inscrutable global state.
-                phys_code.map(|p| p.to_key_code())
-            } else {
-                // If we think this might be a dead key, process it for ourselves.
-                // Our KeyboardLayoutInfo struct probed the layout for the key
-                // combinations that start a dead key sequence, as well as those
-                // that are valid end states for dead keys, so we can resolve
-                // these for ourselves in a couple of quick hash lookups.
-                let vk = wparam as u32;
+            // If we previously had the start of a dead key...
+            let dead = if let Some(leader) = inner.dead_pending.take() {
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                // look to see how the current event resolves it
+                match inner
+                    .keyboard_info
+                    .resolve_dead_key(leader, (modifiers, vk))
+                {
+                    // Valid combination produces a single character
+                    ResolvedDeadKey::Combined(c) => Some(KeyCode::Char(c)),
+                    ResolvedDeadKey::InvalidCombination(c) => {
+                        // An invalid combination results in the deferred
+                        // keypress triggering the original key first,
+                        // and then we process the current key.
 
-                if releasing && inner.dead_pending.is_some() {
+                        // Emit an event for the leader of the failed
+                        // dead key combination
+                        let key = KeyEvent {
+                            key: KeyCode::Char(c),
+                            modifiers,
+                            repeat_count: 1,
+                            key_is_down: !releasing,
+                            raw: None,
+                        }
+                        .normalize_shift()
+                        .normalize_ctrl();
+
+                        inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
+
+                        // And then we'll perform normal processing on the
+                        // current key press
+                        if let Some(new_dead_char) =
+                            inner.keyboard_info.is_dead_key_leader(modifiers, vk)
+                        {
+                            if new_dead_char != c {
+                                // Happens to be the start of its own new,
+                                // different, dead key sequence
+                                inner.dead_pending.replace((modifiers, vk));
+                                return Some(0);
+                            }
+
+                            // They pressed the same dead key twice,
+                            // emit the underlying char again and call
+                            // it done.
+                            // <https://github.com/wez/wezterm/issues/1729>
+                            inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
+                            return Some(0);
+                        }
+
+                        // We don't know; allow normal ToUnicode processing
+                        None
+                    }
+
+                    // We thought we had a dead key last time around,
+                    // but this time it didn't resolve.  Most likely
+                    // because the keyboard layout changed in the middle
+                    // of the keypress.
+                    // We're effectively swallowing the original dead
+                    // key event here, but we could potentially re-process
+                    // the original and current one here if needed.
+                    // Seems like a real edge case.
+                    ResolvedDeadKey::InvalidDeadKey => None,
+                }
+            } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
+                if releasing {
                     // Don't care about key-up events while processing dead keys
                     return Some(0);
                 }
 
-                // If we previously had the start of a dead key...
-                let dead = if let Some(leader) = inner.dead_pending.take() {
-                    inner
-                        .events
-                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                    // look to see how the current event resolves it
-                    match inner
-                        .keyboard_info
-                        .resolve_dead_key(leader, (modifiers, vk))
-                    {
-                        // Valid combination produces a single character
-                        ResolvedDeadKey::Combined(c) => Some(KeyCode::Char(c)),
-                        ResolvedDeadKey::InvalidCombination(c) => {
-                            // An invalid combination results in the deferred
-                            // keypress triggering the original key first,
-                            // and then we process the current key.
+                // They pressed a dead key.
+                // If they want dead key processing, then record that and
+                // wait for a subsequent keypress.
+                if inner.config.use_dead_keys {
+                    inner.dead_pending.replace((modifiers, vk));
+                    inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                        DeadKeyStatus::Composing(c.to_string()),
+                    ));
+                    return Some(0);
+                }
+                // They don't want dead keys; just return the base character
+                Some(KeyCode::Char(c))
+            } else {
+                // Not a dead key as far as we know
+                None
+            };
 
-                            // Emit an event for the leader of the failed
-                            // dead key combination
-                            let key = KeyEvent {
-                                key: KeyCode::Char(c),
-                                modifiers,
-                                repeat_count: 1,
-                                key_is_down: !releasing,
-                                raw: None,
-                            }
-                            .normalize_shift()
-                            .normalize_ctrl();
+            if dead.is_some() {
+                dead
+            } else {
+                // We get here for the various UP (but not DOWN as we shortcircuit
+                // those above) messages.
+                // We perform conversion to unicode for ourselves,
+                // rather than calling TranslateMessage to do it for us,
+                // so that we have tighter control over the key processing.
+                let mut out = [0u16; 16];
+                let res = ToUnicode(
+                    wparam as u32,
+                    scan_code as u32,
+                    keys.as_ptr(),
+                    out.as_mut_ptr(),
+                    out.len() as i32,
+                    0,
+                );
 
-                            inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
-
-                            // And then we'll perform normal processing on the
-                            // current key press
-                            if let Some(new_dead_char) =
-                                inner.keyboard_info.is_dead_key_leader(modifiers, vk)
-                            {
-                                if new_dead_char != c {
-                                    // Happens to be the start of its own new,
-                                    // different, dead key sequence
-                                    inner.dead_pending.replace((modifiers, vk));
-                                    return Some(0);
-                                }
-
-                                // They pressed the same dead key twice,
-                                // emit the underlying char again and call
-                                // it done.
-                                // <https://github.com/wez/wezterm/issues/1729>
-                                inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
-                                return Some(0);
-                            }
-
-                            // We don't know; allow normal ToUnicode processing
-                            None
-                        }
-
-                        // We thought we had a dead key last time around,
-                        // but this time it didn't resolve.  Most likely
-                        // because the keyboard layout changed in the middle
-                        // of the keypress.
-                        // We're effectively swallowing the original dead
-                        // key event here, but we could potentially re-process
-                        // the original and current one here if needed.
-                        // Seems like a real edge case.
-                        ResolvedDeadKey::InvalidDeadKey => None,
+                match res {
+                    1 => {
+                        // Remove our AltGr placeholder modifier flag now that the
+                        // key press has been expanded.
+                        modifiers.remove(Modifiers::RIGHT_ALT);
+                        Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32)))
                     }
-                } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
-                    if releasing {
-                        // Don't care about key-up events while processing dead keys
-                        return Some(0);
+                    // No mapping, so use our raw info
+                    0 => {
+                        log::trace!(
+                            "ToUnicode had no mapping for {:?} wparam={}",
+                            phys_code,
+                            wparam
+                        );
+                        phys_code.map(|p| p.to_key_code())
                     }
-
-                    // They pressed a dead key.
-                    // If they want dead key processing, then record that and
-                    // wait for a subsequent keypress.
-                    if inner.config.use_dead_keys {
-                        inner.dead_pending.replace((modifiers, vk));
-                        inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                            DeadKeyStatus::Composing(c.to_string()),
-                        ));
-                        return Some(0);
-                    }
-                    // They don't want dead keys; just return the base character
-                    Some(KeyCode::Char(c))
-                } else {
-                    // Not a dead key as far as we know
-                    None
-                };
-
-                if dead.is_some() {
-                    dead
-                } else {
-                    // We get here for the various UP (but not DOWN as we shortcircuit
-                    // those above) messages.
-                    // We perform conversion to unicode for ourselves,
-                    // rather than calling TranslateMessage to do it for us,
-                    // so that we have tighter control over the key processing.
-                    let mut out = [0u16; 16];
-                    let res = ToUnicode(
-                        wparam as u32,
-                        scan_code as u32,
-                        keys.as_ptr(),
-                        out.as_mut_ptr(),
-                        out.len() as i32,
-                        0,
-                    );
-
-                    match res {
-                        1 => {
-                            // Remove our AltGr placeholder modifier flag now that the
-                            // key press has been expanded.
-                            modifiers.remove(Modifiers::RIGHT_ALT);
-                            Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32)))
-                        }
-                        // No mapping, so use our raw info
-                        0 => {
-                            log::trace!(
-                                "ToUnicode had no mapping for {:?} wparam={}",
-                                phys_code,
-                                wparam
-                            );
-                            phys_code.map(|p| p.to_key_code())
-                        }
-                        _ => {
-                            // dead key: if our dead key mapping in KeyboardLayoutInfo was
-                            // correct, we shouldn't be able to get here as we should have
-                            // landed in the dead key case above.
-                            // If somehow we do get here, we don't have a valid mapping
-                            // as -1 indicates the start of a dead key sequence,
-                            // and any other n > 1 indicates an ambiguous expansion.
-                            // Either way, indicate that we don't have a valid result.
-                            log::error!("unexpected dead key expansion: {:?}", out);
-                            KeyboardLayoutInfo::clear_key_state();
-                            None
-                        }
+                    _ => {
+                        // dead key: if our dead key mapping in KeyboardLayoutInfo was
+                        // correct, we shouldn't be able to get here as we should have
+                        // landed in the dead key case above.
+                        // If somehow we do get here, we don't have a valid mapping
+                        // as -1 indicates the start of a dead key sequence,
+                        // and any other n > 1 indicates an ambiguous expansion.
+                        // Either way, indicate that we don't have a valid result.
+                        log::error!("unexpected dead key expansion: {:?}", out);
+                        KeyboardLayoutInfo::clear_key_state();
+                        None
                     }
                 }
             }
-        };
-
-        if let Some(key) = key {
-            // FIXME: verify this behavior: Urgh, special case for ctrl and non-latin layouts.
-            // In order to avoid a situation like #678, if CTRL is the only
-            // modifier and we've got composed text, then discard the composed
-            // text.
-            let key = KeyEvent {
-                key,
-                modifiers,
-                repeat_count: repeat,
-                key_is_down: !releasing,
-                raw: Some(raw_key_event),
-            }
-            .normalize_shift();
-
-            // Special case for ALT-space to show the system menu, and
-            // ALT-F4 to close the window.
-            if key.modifiers == Modifiers::ALT
-                && (key.key == KeyCode::Char(' ') || key.key == KeyCode::Function(4))
-            {
-                translate_message(hwnd, msg, wparam, lparam);
-                return None;
-            }
-
-            inner.events.dispatch(WindowEvent::KeyEvent(key));
-            return Some(0);
         }
+    };
+
+    if let Some(key) = key {
+        // FIXME: verify this behavior: Urgh, special case for ctrl and non-latin layouts.
+        // In order to avoid a situation like #678, if CTRL is the only
+        // modifier and we've got composed text, then discard the composed
+        // text.
+        let key = KeyEvent {
+            key,
+            modifiers,
+            repeat_count: repeat,
+            key_is_down: !releasing,
+            raw: Some(raw_key_event),
+        }
+        .normalize_shift();
+
+        // Special case for ALT-space to show the system menu, and
+        // ALT-F4 to close the window.
+        if key.modifiers == Modifiers::ALT
+            && (key.key == KeyCode::Char(' ') || key.key == KeyCode::Function(4))
+        {
+            translate_message(hwnd, msg, wparam, lparam);
+            return None;
+        }
+
+        inner.events.dispatch(WindowEvent::KeyEvent(key));
+        return Some(0);
     }
     None
 }
