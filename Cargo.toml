@@ -9,6 +9,9 @@ members = [
   "wezterm-ssh"
 ]
 resolver = "2"
+exclude = [
+  "termwiz/codegen"
+]
 
 [profile.release]
 opt-level = 3

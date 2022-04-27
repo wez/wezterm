@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use crate::emoji_variation::VARIATION_MAP;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Presentation {
@@ -33,50 +33,4 @@ impl Presentation {
             Self::Text
         }
     }
-}
-
-const VARIATION_SEQUENCES: &str = include_str!("../data/emoji-variation-sequences.txt");
-lazy_static::lazy_static! {
-    static ref VARIATION_MAP: HashMap<String, Presentation> = build_variation_sequences();
-}
-
-/// Parses emoji-variation-sequences.txt, which is part of the UCD download
-/// for a given version of the Unicode spec.
-/// It defines which sequences can have explicit presentation selectors.
-fn build_variation_sequences() -> HashMap<String, Presentation> {
-    let mut res = HashMap::new();
-
-    'next_line: for line in VARIATION_SEQUENCES.lines() {
-        if let Some(lhs) = line.split('#').next() {
-            if let Some(seq) = lhs.split(';').next() {
-                let mut s = String::new();
-                let mut last = None;
-                for hex in seq.split_whitespace() {
-                    match u32::from_str_radix(hex, 16) {
-                        Ok(n) => {
-                            let c = char::from_u32(n).unwrap();
-                            s.push(c);
-                            last.replace(c);
-                        }
-                        Err(_) => {
-                            continue 'next_line;
-                        }
-                    }
-                }
-
-                if let Some(last) = last {
-                    res.insert(
-                        s,
-                        match last {
-                            '\u{FE0F}' => Presentation::Emoji,
-                            '\u{FE0E}' => Presentation::Text,
-                            _ => unreachable!(),
-                        },
-                    );
-                }
-            }
-        }
-    }
-
-    res
 }
