@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+backtrace = "0.3"
 chrono = {version="0.4", features=["unstable-locales"]}
 config = { path = "../config" }
 dirs-next = "2.0"

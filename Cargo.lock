@@ -1090,6 +1090,7 @@ dependencies = [
 name = "env-bootstrap"
 version = "0.1.0"
 dependencies = [
+ "backtrace",
  "chrono",
  "cocoa",
  "config",

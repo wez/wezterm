@@ -136,8 +136,31 @@ pub fn set_lang_from_locale() {
     }
 }
 
+fn register_panic_hook() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let payload = info.payload();
+        let payload = payload.downcast_ref::<&str>().unwrap_or(&"!?");
+        let bt = backtrace::Backtrace::new();
+        if let Some(loc) = info.location() {
+            log::error!(
+                "panic at {}:{}:{} - {}\n{:?}",
+                loc.file(),
+                loc.line(),
+                loc.column(),
+                payload,
+                bt
+            );
+        } else {
+            log::error!("panic - {}\n{:?}", payload, bt);
+        }
+        default_hook(info);
+    }));
+}
+
 pub fn bootstrap() {
     setup_logger();
+    register_panic_hook();
 
     set_wezterm_executable();
 
