@@ -86,6 +86,7 @@ case $OSTYPE in
     set -x
     zip -r $zipname $zipdir
     set +x
+    ln -sf $zipname WezTerm-macos-latest.zip
 
     if [ -n "$MACOS_TEAM_ID" ] ; then
       echo "Notarize"
