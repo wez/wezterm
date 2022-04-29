@@ -108,7 +108,6 @@ impl Screen {
         let mut adjusted_cursor = (cursor_y, cursor_y);
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
-            line.invalidate_implicit_hyperlinks(seqno);
             line.update_last_change_seqno(seqno);
             let was_wrapped = line.last_cell_was_wrapped();
 
@@ -553,7 +552,6 @@ impl Screen {
                 // and place them into the dest
                 let dest_row = self.line_mut(dest_row);
                 dest_row.update_last_change_seqno(seqno);
-                dest_row.invalidate_implicit_hyperlinks(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
                 if dest_row.cells().len() < dest_range.end {
@@ -580,7 +578,6 @@ impl Screen {
         for n in phys_scroll.start + rows_to_copy..phys_scroll.end {
             let dest_row = self.line_mut(n);
             dest_row.update_last_change_seqno(seqno);
-            dest_row.invalidate_implicit_hyperlinks(seqno);
             for cell in dest_row
                 .cells_mut()
                 .iter_mut()
@@ -794,7 +791,6 @@ impl Screen {
                 // and place them into the dest
                 let dest_row = self.line_mut(dest_row);
                 dest_row.update_last_change_seqno(seqno);
-                dest_row.invalidate_implicit_hyperlinks(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
                 if dest_row.cells().len() < dest_range.end {
@@ -820,7 +816,6 @@ impl Screen {
         for n in phys_scroll.start..phys_scroll.start + num_rows {
             let dest_row = self.line_mut(n);
             dest_row.update_last_change_seqno(seqno);
-            dest_row.invalidate_implicit_hyperlinks(seqno);
             for cell in dest_row
                 .cells_mut()
                 .iter_mut()
