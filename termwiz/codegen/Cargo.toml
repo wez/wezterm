@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 phf_codegen = "0.10"
+ucd-trie = "0.1"

@@ -1,5 +1,7 @@
 const VARIATION_SEQUENCES: &str = include_str!("../../data/emoji-variation-sequences.txt");
 
+include!("../../src/emoji_presentation.rs");
+
 /// Parses emoji-variation-sequences.txt, which is part of the UCD download
 /// for a given version of the Unicode spec.
 /// It defines which sequences can have explicit presentation selectors.
@@ -25,13 +27,19 @@ fn main() {
                 }
 
                 if let Some(last) = last {
+                    let first = if EMOJI_PRESENTATION.contains_u32(s.chars().next().unwrap() as u32) {
+                        "Presentation::Emoji"
+                    } else {
+                        "Presentation::Text"
+                    };
                     map.entry(
                         s,
+                        &format!("({}, {})", first,
                         match last {
                             '\u{FE0F}' => "Presentation::Emoji",
                             '\u{FE0E}' => "Presentation::Text",
                             _ => unreachable!(),
-                        },
+                        }),
                     );
                 }
             }
@@ -44,7 +52,7 @@ fn main() {
     println!("use crate::emoji::Presentation;");
     println!();
     println!(
-        "pub static VARIATION_MAP: phf::Map<&'static str, Presentation> = \n{};\n",
+        "pub static VARIATION_MAP: phf::Map<&'static str, (Presentation, Presentation)> = \n{};\n",
         map.build(),
     );
 }

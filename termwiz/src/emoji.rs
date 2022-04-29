@@ -1,6 +1,9 @@
 use crate::emoji_variation::VARIATION_MAP;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum Presentation {
     Text,
     Emoji,
@@ -11,6 +14,9 @@ impl Presentation {
     /// by the explicit presentation if specified
     /// by a variation selector
     pub fn for_grapheme(s: &str) -> (Self, Option<Self>) {
+        if let Some((a, b)) = VARIATION_MAP.get(s) {
+            return (*a, Some(*b));
+        }
         let mut presentation = Self::Text;
         for c in s.chars() {
             if Self::for_char(c) == Self::Emoji {
@@ -23,7 +29,7 @@ impl Presentation {
             // change presentation when we identify an
             // emoji char.
         }
-        (presentation, VARIATION_MAP.get(s).copied())
+        (presentation, None)
     }
 
     pub fn for_char(c: char) -> Self {
