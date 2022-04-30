@@ -58,6 +58,57 @@ impl<'a> Performer<'a> {
         }
     }
 
+    /// Apply character set related remapping to the input glyph if required
+    fn remap_grapheme<'b>(&self, g: &'b str) -> &'b str {
+        if (self.shift_out && self.g1_charset == CharSet::DecLineDrawing)
+            || (!self.shift_out && self.g0_charset == CharSet::DecLineDrawing)
+        {
+            match g {
+                "`" => "◆",
+                "a" => "▒",
+                "b" => "␉",
+                "c" => "␌",
+                "d" => "␍",
+                "e" => "␊",
+                "f" => "°",
+                "g" => "±",
+                "h" => "␤",
+                "i" => "␋",
+                "j" => "┘",
+                "k" => "┐",
+                "l" => "┌",
+                "m" => "└",
+                "n" => "┼",
+                "o" => "⎺",
+                "p" => "⎻",
+                "q" => "─",
+                "r" => "⎼",
+                "s" => "⎽",
+                "t" => "├",
+                "u" => "┤",
+                "v" => "┴",
+                "w" => "┬",
+                "x" => "│",
+                "y" => "≤",
+                "z" => "≥",
+                "{" => "π",
+                "|" => "≠",
+                "}" => "£",
+                "~" => "·",
+                _ => g,
+            }
+        } else if (self.shift_out && self.g1_charset == CharSet::Uk)
+            || (!self.shift_out && self.g0_charset == CharSet::Uk)
+        {
+            match g {
+                "#" => "£",
+                _ => g,
+            }
+        } else {
+            g
+        }
+    }
+
     fn flush_print(&mut self) {
         if self.print.is_empty() {
             return;
@@ -67,53 +118,7 @@ impl<'a> Performer<'a> {
         let mut p = std::mem::take(&mut self.print);
 
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
-            let g = if (self.shift_out && self.g1_charset == CharSet::DecLineDrawing)
-                || (!self.shift_out && self.g0_charset == CharSet::DecLineDrawing)
-            {
-                match g {
-                    "`" => "◆",
-                    "a" => "▒",
-                    "b" => "␉",
-                    "c" => "␌",
-                    "d" => "␍",
-                    "e" => "␊",
-                    "f" => "°",
-                    "g" => "±",
-                    "h" => "␤",
-                    "i" => "␋",
-                    "j" => "┘",
-                    "k" => "┐",
-                    "l" => "┌",
-                    "m" => "└",
-                    "n" => "┼",
-                    "o" => "⎺",
-                    "p" => "⎻",
-                    "q" => "─",
-                    "r" => "⎼",
-                    "s" => "⎽",
-                    "t" => "├",
-                    "u" => "┤",
-                    "v" => "┴",
-                    "w" => "┬",
-                    "x" => "│",
-                    "y" => "≤",
-                    "z" => "≥",
-                    "{" => "π",
-                    "|" => "≠",
-                    "}" => "£",
-                    "~" => "·",
-                    _ => g,
-                }
-            } else if (self.shift_out && self.g1_charset == CharSet::Uk)
-                || (!self.shift_out && self.g0_charset == CharSet::Uk)
-            {
-                match g {
-                    "#" => "£",
-                    _ => g,
-                }
-            } else {
-                g
-            };
+            let g = self.remap_grapheme(g);
 
             let print_width = grapheme_column_width(g, Some(self.unicode_version));
             if print_width == 0 {
