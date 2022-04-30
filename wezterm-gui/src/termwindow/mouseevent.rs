@@ -425,6 +425,10 @@ impl super::TermWindow {
                 }
                 _ => {}
             },
+            WMEK::VertWheel(n) => {
+                self.activate_tab_relative(if n < 1 { 1 } else { -1 }, true)
+                    .ok();
+            }
             _ => {}
         }
         self.update_title_post_status();
