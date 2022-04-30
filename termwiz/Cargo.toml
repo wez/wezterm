@@ -85,3 +85,8 @@ rustdoc-args = ["--cfg", "feature=\"docs\""]
 [[bench]]
 name = "wcwidth"
 harness = false
+
+[[bench]]
+name = "cell"
+harness = false
+
