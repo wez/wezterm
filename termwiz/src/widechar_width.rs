@@ -11,6 +11,7 @@
 type R = (u32, u32);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u8)]
 pub enum WcWidth {
     /// The character is single-width
     One,
@@ -1492,6 +1493,7 @@ impl WcWidth {
     }
 
     /// Returns width for applications that are using unicode 8 or earlier
+    #[inline]
     pub fn width_unicode_8_or_earlier(self) -> u8 {
         match self {
             Self::One => 1,
@@ -1503,11 +1505,95 @@ impl WcWidth {
     }
 
     /// Returns width for applications that are using unicode 9 or later
+    #[inline]
     pub fn width_unicode_9_or_later(self) -> u8 {
         if self == Self::WidenedIn9 {
             return 2;
         }
         self.width_unicode_8_or_earlier()
+    }
+}
+
+/// An alternative interface that precomputes the values for the first 64k
+/// codepoints and maintains a table that is 64kb in size.
+/// Lookups are then a simple O(1) index operation that takes ~1.5ns
+/// constant time for codepoints in that range, falling back to
+/// the regular WcWidth::from_char for codepoints outside that range
+/// (which takes 20-75ns depending on the codepoint and which table
+/// it is resolved to)
+pub struct WcLookupTable {
+    pub table: [WcWidth; 65536],
+}
+
+impl WcLookupTable {
+    pub fn new() -> Self {
+        let mut table = [WcWidth::One; 65536];
+        // Populate the table with data from the other tables in
+        // the reverse order to that used to lookup in
+        // WcWidth::from_char so that the precedence is the
+        // same in the event that there are any overlaps.
+        for &(start, end) in WIDENED_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::WidenedIn9;
+            }
+        }
+        for &(start, end) in UNASSIGNED_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::Unassigned;
+            }
+        }
+        for &(start, end) in AMBIGUOUS_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::Ambiguous;
+            }
+        }
+        for &(start, end) in DOUBLEWIDE_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::Two;
+            }
+        }
+        for &(start, end) in COMBININGLETTERS_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::Combining;
+            }
+        }
+        for &(start, end) in COMBINING_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::Combining;
+            }
+        }
+        for &(start, end) in NONCHAR_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::NonCharacter;
+            }
+        }
+        for &(start, end) in NONPRINT_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::NonPrint;
+            }
+        }
+        for &(start, end) in PRIVATE_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::PrivateUse;
+            }
+        }
+        /* Implicit, as we initialized to One
+        for &(start, end) in ASCII_TABLE {
+            for i in start..=end.min(0xffff) {
+                table[i as usize] = WcWidth::One;
+            }
+        }
+        */
+        Self { table }
+    }
+
+    /// Classify a char as a WcWidth
+    pub fn classify(&self, c: char) -> WcWidth {
+        let c32 = c as u32;
+        if c32 <= 0xffff {
+            return self.table[c32 as usize];
+        }
+        WcWidth::from_char(c)
     }
 }
 

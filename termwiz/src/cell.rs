@@ -3,7 +3,7 @@ use crate::color::{ColorAttribute, PaletteIndex};
 pub use crate::emoji::Presentation;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
-use crate::widechar_width::WcWidth;
+use crate::widechar_width::{WcLookupTable, WcWidth};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::mem;
@@ -850,6 +850,27 @@ impl UnicodeVersion {
             ambiguous_are_wide: false,
         }
     }
+
+    #[inline]
+    fn width(&self, c: WcWidth) -> usize {
+        // Special case for symbol fonts that are naughtly and use
+        // the unassigned range instead of the private use range.
+        // <https://github.com/wez/wezterm/issues/1864>
+        if c == WcWidth::Unassigned {
+            1
+        } else if c == WcWidth::Ambiguous && self.ambiguous_are_wide {
+            2
+        } else if self.version >= 9 {
+            c.width_unicode_9_or_later() as usize
+        } else {
+            c.width_unicode_8_or_earlier() as usize
+        }
+    }
+
+    #[inline]
+    pub fn idx(&self) -> usize {
+        (if self.version > 9 { 2 } else { 0 }) | (if self.ambiguous_are_wide { 1 } else { 0 })
+    }
 }
 
 pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
@@ -866,6 +887,10 @@ pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
     s.graphemes(true)
         .map(|g| grapheme_column_width(g, version))
         .sum()
+}
+
+lazy_static::lazy_static! {
+    static ref WCWIDTH_TABLE: WcLookupTable = WcLookupTable::new();
 }
 
 /// Returns the number of cells visually occupied by a grapheme.
@@ -899,41 +924,47 @@ pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
 /// the Cell that is used to hold a grapheme, and that per-Cell version
 /// can then be used to calculate width.
 pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
-    let version = version.unwrap_or(LATEST_UNICODE_VERSION);
-    let ambiguous_are_wide = version.ambiguous_are_wide;
-    let version = version.version;
+    let version = version.as_ref().unwrap_or(&LATEST_UNICODE_VERSION);
 
-    let width: usize = s
-        .chars()
-        .map(|c| {
-            let c = WcWidth::from_char(c);
-
-            // Special case for symbol fonts that are naughtly and use
-            // the unassigned range instead of the private use range.
-            // <https://github.com/wez/wezterm/issues/1864>
-            if c == WcWidth::Unassigned {
-                1
-            } else if c == WcWidth::Ambiguous && ambiguous_are_wide {
-                2
-            } else if version >= 9 {
-                c.width_unicode_9_or_later()
-            } else {
-                c.width_unicode_8_or_earlier()
-            }
-        })
-        .sum::<u8>()
-        .into();
-
-    if version >= 14 {
-        match Presentation::for_grapheme(s) {
-            (_, Some(Presentation::Emoji)) => 2,
-            (_, Some(Presentation::Text)) => 1,
-            (Presentation::Emoji, None) => 2,
-            (Presentation::Text, None) => width.min(2),
-        }
-    } else {
-        width.min(2)
+    // Optimization: if there is a single byte we can directly cast
+    // that byte as a char which will be in the range 0.255.
+    // This takes ~1.5ns, and we can then look that up in the table
+    // which is valid for chars in the range 0-0xffff.
+    // That lookup also takes ~1.5ns, giving us a hot path latency
+    // of ~3-4ns for a grapheme string that is comprised of a single
+    // ASCII byte.
+    //
+    // Since we know this is a single ASCII char, we know that it
+    // cannot be a sequence with a variation selector, so we don't
+    // need to requested `Presentation` for it.
+    if s.len() == 1 {
+        let c = WCWIDTH_TABLE.classify(s.as_bytes()[0] as char);
+        return version.width(c);
     }
+
+    // Slow path: `s.chars()` will dominate and pull up the minimum
+    // runtime to ~20ns
+
+    if version.version >= 14 {
+        // Lookup the grapheme to see if the presentation of
+        // the grapheme forces the width. We can bypass
+        // the WcWidth classification if that is true.
+        match Presentation::for_grapheme(s) {
+            (_, Some(Presentation::Emoji)) => return 2,
+            (_, Some(Presentation::Text)) => return 1,
+            (Presentation::Emoji, None) => return 2,
+            (Presentation::Text, None) => {}
+        }
+    }
+
+    // Otherwise, classify and sum up
+    let mut width = 0;
+    for c in s.chars() {
+        let c = WCWIDTH_TABLE.classify(c);
+        width += version.width(c);
+    }
+
+    width.min(2)
 }
 
 /// Models a change in the attributes of a cell in a stream of changes.
