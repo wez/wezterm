@@ -1,9 +1,10 @@
 //! Model a cell in the terminal display
 use crate::color::{ColorAttribute, PaletteIndex};
 pub use crate::emoji::Presentation;
+use crate::emoji_variation::WCWIDTH_TABLE;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
-use crate::widechar_width::{WcLookupTable, WcWidth};
+use crate::widechar_width::WcWidth;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::mem;
@@ -887,10 +888,6 @@ pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
     s.graphemes(true)
         .map(|g| grapheme_column_width(g, version))
         .sum()
-}
-
-lazy_static::lazy_static! {
-    static ref WCWIDTH_TABLE: WcLookupTable = WcLookupTable::new();
 }
 
 /// Returns the number of cells visually occupied by a grapheme.

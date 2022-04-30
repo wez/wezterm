@@ -1526,6 +1526,7 @@ pub struct WcLookupTable {
 }
 
 impl WcLookupTable {
+    #[allow(unused)]
     pub fn new() -> Self {
         let mut table = [WcWidth::One; 65536];
         // Populate the table with data from the other tables in
