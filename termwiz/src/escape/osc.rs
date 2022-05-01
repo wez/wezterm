@@ -274,10 +274,13 @@ impl OperatingSystemCommand {
 
         macro_rules! single_string {
             ($variant:ident) => {{
-                if osc.len() != 2 {
+                if osc.len() < 2 {
                     bail!("wrong param count");
                 }
-                let s = String::from_utf8(osc[1].to_vec())?;
+                let mut s = String::from_utf8(osc[1].to_vec())?;
+                for i in 2..osc.len() {
+                    s = [s, String::from_utf8(osc[i].to_vec())?].join(";");
+                }
 
                 Ok(OperatingSystemCommand::$variant(s))
             }};
@@ -1285,16 +1288,18 @@ mod test {
             OperatingSystemCommand::SetIconNameAndWindowTitle("hello \u{1f915}".into())
         );
 
+        assert_eq!(
+            parse(
+                &["0", "hello \u{1f915}", " world"],
+                "\x1b]0;hello \u{1f915}; world\x1b\\"
+            ),
+            OperatingSystemCommand::SetIconNameAndWindowTitle("hello \u{1f915}; world".into())
+        );
+
         // Missing title parameter
         assert_eq!(
             parse(&["0"], "\x1b]0\x1b\\"),
             OperatingSystemCommand::Unspecified(vec![b"0".to_vec()])
-        );
-
-        // too many params
-        assert_eq!(
-            parse(&["0", "1", "2"], "\x1b]0;1;2\x1b\\"),
-            OperatingSystemCommand::Unspecified(vec![b"0".to_vec(), b"1".to_vec(), b"2".to_vec()])
         );
 
         // parsing legacy sun OSC; why bother? This format is used in response
