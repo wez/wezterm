@@ -57,7 +57,7 @@ You may [change the color of the scrollbar](config/appearance.html#defining-your
 By default, `SHIFT-PageUp` and `SHIFT-PageDown` will adjust the viewport scrollback position
 by one full screen for each press.
 
-See the [ScrollByPage](config/keys.html#scrollbypage) docs for more information
+See the [ScrollByPage](config/lua/keyassignment/ScrollByPage.md) docs for more information
 on this key binding assignment.
 
 ### Searching the scrollback
