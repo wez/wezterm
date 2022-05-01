@@ -472,6 +472,7 @@ usually the best available version.</p>
 <li>X11/Wayland: CTRL-i, CTRL-j, CTRL-m misinterpreted as CTRL-Tab, CTRL-Enter, CTRL-Return <a href="https://github.com/wez/wezterm/issues/1851">#1851</a></li>
 <li>Scrollbar stopped working after a lot of output scrolled outside of the scrollback limit.  Thanks to <a href="https://github.com/davidrios">@davidrios</a>! <a href="https://github.com/wez/wezterm/pull/1866">#1866</a></li>
 <li>Windows: uncommitted IME composition could get stuck when switching input methods. <a href="https://github.com/wez/wezterm/issues/1922">#1922</a></li>
+<li>OSC sequences, such as those that change the window or tab title, that accept a single string parameter will now join multiple parameters together. This allows window and tab titles to contain a semicolo. Thanks to <a href="https://github.com/kumattau">@kumattau</a>! <a href="https://github.com/wez/wezterm/pull/1939">#1939</a></li>
 </ul>
 <h3 id="20220408-101518-b908e2dd"><a class="header" href="#20220408-101518-b908e2dd">20220408-101518-b908e2dd</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
