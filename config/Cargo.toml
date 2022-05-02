@@ -29,7 +29,7 @@ mlua = {version="0.7", features=["vendored", "lua54", "async", "send"]}
 # file change notification
 notify = "4.0"
 open = "2.0"
-ordered-float = { version = "2.10", features = ["serde"] }
+ordered-float = { version = "3.0", features = ["serde"] }
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 serde = {version="1.0", features = ["rc", "derive"]}

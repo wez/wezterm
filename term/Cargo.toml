@@ -24,7 +24,7 @@ lazy_static = "1.4"
 log = "0.4"
 lru = "0.7"
 num-traits = "0.2"
-ordered-float = "2.10"
+ordered-float = "3.0"
 serde = {version="1.0", features = ["rc"]}
 terminfo = "0.7"
 unicode-segmentation = "1.8"
