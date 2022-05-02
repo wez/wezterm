@@ -45,7 +45,7 @@ metrics = { version="0.17", features=["std"]}
 mlua = "0.7"
 mux = { path = "../mux" }
 open = "2.0"
-ordered-float = "2.10"
+ordered-float = "3.0"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
 pulldown-cmark = "0.9"
