@@ -44,7 +44,7 @@ luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
 mlua = "0.7"
 mux = { path = "../mux" }
-open = "2.0"
+open = "2.1"
 ordered-float = "2.10"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
