@@ -1321,6 +1321,7 @@ impl TerminalState {
 
         log::trace!("{:?} -> recognized={} status={}", mode, recognized, status);
         write!(self.writer, "\x1b[{}{};{}$y", prefix, number, status).ok();
+        self.writer.flush().ok();
     }
 
     fn perform_csi_mode(&mut self, mode: Mode) {
