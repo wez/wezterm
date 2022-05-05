@@ -2,7 +2,7 @@ use crate::domain::DomainId;
 use crate::renderable::*;
 use crate::Mux;
 use async_trait::async_trait;
-use config::keyassignment::ScrollbackEraseMode;
+use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
@@ -324,6 +324,9 @@ pub trait Pane: Downcast {
     fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
+    fn perform_assignment(&self, _assignment: &KeyAssignment) -> bool {
+        false
+    }
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn perform_actions(&self, _actions: Vec<termwiz::escape::Action>) {}
     fn is_dead(&self) -> bool;

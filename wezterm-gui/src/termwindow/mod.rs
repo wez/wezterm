@@ -2025,6 +2025,10 @@ impl TermWindow {
     ) -> anyhow::Result<()> {
         use KeyAssignment::*;
 
+        if pane.perform_assignment(assignment) {
+            return Ok(());
+        }
+
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
