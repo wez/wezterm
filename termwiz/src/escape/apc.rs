@@ -1192,7 +1192,7 @@ impl Display for KittyImage {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
 
     #[test]
     fn kitty_payload() {
@@ -1218,7 +1218,7 @@ mod test {
             KittyImage::Delete {
                 what: KittyImageDelete::All { delete: false },
                 verbosity: KittyImageVerbosity::Quiet
-            },
+            }
         );
 
         assert_eq!(

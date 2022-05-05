@@ -8,7 +8,7 @@ mod c1;
 mod csi;
 // mod selection; FIXME: port to render layer
 use crate::color::ColorPalette;
-use pretty_assertions::assert_eq;
+use k9::assert_equal as assert_eq;
 use std::cell::RefCell;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};

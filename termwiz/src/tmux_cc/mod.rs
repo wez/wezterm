@@ -626,7 +626,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
 
     #[test]
     fn test_parse_line() {

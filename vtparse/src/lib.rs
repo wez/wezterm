@@ -696,7 +696,7 @@ impl VTParser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
 
     fn parse_as_vec(bytes: &[u8]) -> Vec<VTAction> {
         let mut parser = VTParser::new();

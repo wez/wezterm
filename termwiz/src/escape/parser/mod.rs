@@ -343,7 +343,7 @@ mod test {
         XtSmGraphicsItem, XtermKeyModifierResource,
     };
     use crate::escape::{EscCode, OneBased};
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
     use std::io::Write;
 
     fn encode(seq: &Vec<Action>) -> String {
@@ -602,7 +602,7 @@ mod test {
     fn window() {
         assert_eq!(
             round_trip_parse("\x1b[22;2t"),
-            vec![Action::CSI(CSI::Window(Window::PushWindowTitle))],
+            vec![Action::CSI(CSI::Window(Window::PushWindowTitle))]
         );
     }
 

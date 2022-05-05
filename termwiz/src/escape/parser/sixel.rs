@@ -187,7 +187,7 @@ mod test {
     use super::*;
     use crate::escape::parser::Parser;
     use crate::escape::{Action, Esc, EscCode};
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
 
     #[test]
     fn sixel() {

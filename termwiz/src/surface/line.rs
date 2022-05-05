@@ -936,7 +936,7 @@ impl<'a> From<&'a str> for Line {
 mod test {
     use super::*;
     use crate::hyperlink::*;
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal as assert_eq;
 
     #[test]
     fn hyperlinks() {
