@@ -12,7 +12,7 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
 use termwiz::surface::{CursorVisibility, SequenceNo, SEQ_ZERO};
@@ -23,6 +23,10 @@ use wezterm_term::{
     unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
 };
 use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
+
+lazy_static::lazy_static! {
+    static ref SAVED_PATTERN: Mutex<Pattern> = Mutex::new(Pattern::default());
+}
 
 pub struct CopyOverlay {
     delegate: Rc<dyn Pane>,
@@ -94,7 +98,11 @@ impl CopyOverlay {
             height: dims.viewport_rows,
             last_result_seqno: SEQ_ZERO,
             last_bar_pos: None,
-            pattern: params.pattern,
+            pattern: if params.pattern.is_empty() {
+                SAVED_PATTERN.lock().unwrap().clone()
+            } else {
+                params.pattern
+            },
             editing_search: params.editing_search,
             result_pos: None,
         };
@@ -205,6 +213,8 @@ impl CopyRenderable {
         self.results.clear();
         self.by_line.clear();
         self.result_pos.take();
+
+        *SAVED_PATTERN.lock().unwrap() = self.pattern.clone();
 
         let bar_pos = self.compute_search_row();
         self.dirty_results.add(bar_pos);
