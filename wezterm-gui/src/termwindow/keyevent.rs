@@ -1,5 +1,7 @@
+use crate::termwindow::InputMap;
 use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
 use anyhow::Context;
+use config::keyassignment::KeyTableEntry;
 use mux::pane::Pane;
 use smol::Timer;
 use std::rc::Rc;
@@ -65,6 +67,24 @@ impl KeyTableState {
     pub fn current_table(&mut self) -> Option<&str> {
         while self.process_expiration() {}
         self.stack.last().map(|entry| entry.name.as_str())
+    }
+
+    pub fn lookup_key(
+        &mut self,
+        input_map: &InputMap,
+        key: &KeyCode,
+        mods: Modifiers,
+    ) -> Option<(KeyTableEntry, Option<&str>)> {
+        while self.process_expiration() {}
+        for entry in self.stack.iter().rev() {
+            let name = entry.name.as_str();
+            if let Some(entry) = input_map.lookup_key(key, mods, Some(name)) {
+                return Some((entry, Some(name)));
+            }
+        }
+        input_map
+            .lookup_key(key, mods, None)
+            .map(|entry| (entry, None))
     }
 
     pub fn did_process_key(&mut self) {
@@ -160,15 +180,15 @@ impl super::TermWindow {
         }
 
         if is_down {
-            let current_table = self.key_table_state.current_table();
-            if let Some(entry) =
-                self.input_map
-                    .lookup_key(&keycode, raw_modifiers | leader_mod, current_table)
-            {
+            if let Some((entry, table_name)) = self.key_table_state.lookup_key(
+                &self.input_map,
+                &keycode,
+                raw_modifiers | leader_mod,
+            ) {
                 if self.config.debug_key_events {
                     log::info!(
                         "{}{:?} {:?} -> perform {:?}",
-                        match current_table {
+                        match table_name {
                             Some(name) => format!("table:{} ", name),
                             None => String::new(),
                         },

@@ -119,5 +119,14 @@ The stack is also cleared when the configuration is reloaded, so if you're
 working on a complex key table setup and get stuck, you may be able to unstick
 yourself by re-saving your wezterm configuration to trigger a reload.
 
+*Since: nightly builds only*
 
+When resolving a key assignment, the top of stack is first searched for a match,
+and if one is not found, the next entry on the stack is searched and so on until a match is found.
+
+In previous releases, only a single lookup was performed on the top of the stack.
+
+The new behavior allows key table activations to effectively layer over the top
+of previously activated key assignments, making it a bit easier to compose key
+assignments.
 
