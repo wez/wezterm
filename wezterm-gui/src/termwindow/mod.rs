@@ -2404,6 +2404,9 @@ impl TermWindow {
                 })
                 .detach();
             }
+            CopyMode(_) => {
+                // NOP here; handled by the overlay directly
+            }
         };
         Ok(())
     }

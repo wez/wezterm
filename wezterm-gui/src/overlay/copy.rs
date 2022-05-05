@@ -1,6 +1,6 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
 use crate::termwindow::{TermWindow, TermWindowNotif};
-use config::keyassignment::ScrollbackEraseMode;
+use config::keyassignment::{CopyModeAssignment, KeyAssignment, ScrollbackEraseMode};
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::*;
@@ -402,6 +402,38 @@ impl Pane for CopyOverlay {
 
     fn key_up(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    fn perform_assignment(&self, assignment: &KeyAssignment) -> bool {
+        use CopyModeAssignment::*;
+        match assignment {
+            KeyAssignment::CopyMode(assignment) => {
+                let mut render = self.render.borrow_mut();
+                match assignment {
+                    MoveToViewportBottom => render.move_to_viewport_bottom(),
+                    MoveToViewportTop => render.move_to_viewport_top(),
+                    MoveToViewportMiddle => render.move_to_viewport_middle(),
+                    MoveToScrollbackTop => render.move_to_top(),
+                    MoveToScrollbackBottom => render.move_to_bottom(),
+                    ToggleSelectionByCell => render.toggle_selection_by_cell(),
+                    MoveToStartOfLineContent => render.move_to_start_of_line_content(),
+                    MoveToEndOfLineContent => render.move_to_end_of_line_content(),
+                    MoveToStartOfLine => render.move_to_start_of_line(),
+                    MoveToStartOfNextLine => render.move_to_start_of_next_line(),
+                    MoveBackwardWord => render.move_backward_one_word(),
+                    MoveForwardWord => render.move_forward_one_word(),
+                    MoveRight => render.move_right_single_cell(),
+                    MoveLeft => render.move_left_single_cell(),
+                    MoveUp => render.move_up_single_row(),
+                    MoveDown => render.move_down_single_row(),
+                    PageUp => render.page_up(),
+                    PageDown => render.page_down(),
+                    Close => render.close(),
+                }
+                true
+            }
+            _ => false,
+        }
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {

@@ -365,8 +365,34 @@ pub enum KeyAssignment {
     ClearKeyTableStack,
     DetachDomain(SpawnTabDomain),
     AttachDomain(String),
+
+    CopyMode(CopyModeAssignment),
 }
 impl_lua_conversion!(KeyAssignment);
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum CopyModeAssignment {
+    MoveToViewportBottom,
+    MoveToViewportTop,
+    MoveToViewportMiddle,
+    MoveToScrollbackTop,
+    MoveToScrollbackBottom,
+    ToggleSelectionByCell,
+    MoveToStartOfLineContent,
+    MoveToEndOfLineContent,
+    MoveToStartOfLine,
+    MoveToStartOfNextLine,
+    MoveBackwardWord,
+    MoveForwardWord,
+    MoveRight,
+    MoveLeft,
+    MoveUp,
+    MoveDown,
+    PageUp,
+    PageDown,
+    Close,
+}
+impl_lua_conversion!(CopyModeAssignment);
 
 pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
 
