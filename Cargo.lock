@@ -333,23 +333,6 @@ name = "base91"
 version = "0.1.0"
 
 [[package]]
-name = "battery"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b624268937c0e0a3edb7c27843f9e547c320d730c610d3b8e6e8e95b2026e4"
-dependencies = [
- "cfg-if 1.0.0",
- "core-foundation 0.7.0",
- "lazycell",
- "libc",
- "mach",
- "nix 0.19.1",
- "num-traits",
- "uom",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "benchmarking"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -659,7 +642,6 @@ name = "config"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "battery",
  "bitflags",
  "bstr 0.2.17",
  "chrono",
@@ -683,6 +665,7 @@ dependencies = [
  "serde_json",
  "shlex",
  "smol",
+ "starship-battery",
  "terminfo",
  "termwiz",
  "toml",
@@ -2350,18 +2333,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2ccba0cfe4fdf15982d1674c69b1fd80bad427d293849982668dfe454bd61f2"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 1.0.0",
- "libc",
-]
-
-[[package]]
-name = "nix"
 version = "0.22.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4916f159ed8e5de0082076562152a76b7a1f64a01fd9d1e0fea002c37624faf"
@@ -3866,6 +3837,23 @@ dependencies = [
  "libc",
  "libssh2-sys",
  "parking_lot 0.11.2",
+]
+
+[[package]]
+name = "starship-battery"
+version = "0.7.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3336198ad004af4447ae69be4f4e562c26814570f8f0c1e37858405a294e015d"
+dependencies = [
+ "cfg-if 1.0.0",
+ "core-foundation 0.7.0",
+ "lazycell",
+ "libc",
+ "mach",
+ "nix 0.23.1",
+ "num-traits",
+ "uom",
+ "winapi 0.3.9",
 ]
 
 [[package]]

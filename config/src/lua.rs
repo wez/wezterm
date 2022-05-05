@@ -391,7 +391,7 @@ fn opt_string(s: Option<&str>) -> String {
 }
 
 fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
-    use battery::{Manager, State};
+    use starship_battery::{Manager, State};
     let manager = Manager::new().map_err(|e| mlua::Error::external(e))?;
     let mut result = vec![];
     for b in manager.batteries().map_err(|e| mlua::Error::external(e))? {
