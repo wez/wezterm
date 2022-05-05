@@ -9,8 +9,6 @@ use std::time::Instant;
 #[cfg(all(unix, not(target_os = "macos")))]
 use {
     filedescriptor::{FileDescriptor, Pipe},
-    mio::unix::EventedFd,
-    mio::{Evented, Poll, PollOpt, Ready, Token},
     std::os::unix::io::AsRawFd,
 };
 
@@ -187,33 +185,6 @@ impl SpawnQueue {
 
     pub(crate) fn raw_fd(&self) -> std::os::unix::io::RawFd {
         self.read.lock().unwrap().as_raw_fd()
-    }
-}
-
-#[cfg(all(unix, not(target_os = "macos")))]
-impl Evented for SpawnQueue {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.raw_fd()).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.raw_fd()).reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.raw_fd()).deregister(poll)
     }
 }
 

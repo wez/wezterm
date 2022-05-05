@@ -6,8 +6,8 @@ use crate::os::x11::keyboard::Keyboard;
 use crate::spawn::*;
 use crate::Connection;
 use anyhow::{bail, Context};
-use mio::unix::EventedFd;
-use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
+use mio::unix::SourceFd;
+use mio::{Events, Interest, Poll, Token};
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -266,31 +266,6 @@ impl WaylandConnection {
     }
 }
 
-impl Evented for WaylandConnection {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.display.borrow().get_connection_fd()).register(poll, token, interest, opts)
-    }
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.display.borrow().get_connection_fd())
-            .reregister(poll, token, interest, opts)
-    }
-    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.display.borrow().get_connection_fd()).deregister(poll)
-    }
-}
-
 impl ConnectionOps for WaylandConnection {
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
@@ -302,14 +277,17 @@ impl ConnectionOps for WaylandConnection {
         let tok_wl = Token(TOK_WL);
         let tok_spawn = Token(TOK_SPAWN);
 
-        let poll = Poll::new()?;
+        let mut poll = Poll::new()?;
         let mut events = Events::with_capacity(8);
-        poll.register(self, tok_wl, Ready::readable(), PollOpt::level())?;
-        poll.register(
-            &*SPAWN_QUEUE,
+        poll.registry().register(
+            &mut SourceFd(&self.display.borrow().get_connection_fd()),
+            tok_wl,
+            Interest::READABLE,
+        )?;
+        poll.registry().register(
+            &mut SourceFd(&SPAWN_QUEUE.raw_fd()),
             tok_spawn,
-            Ready::readable(),
-            PollOpt::level(),
+            Interest::READABLE,
         )?;
 
         while !*self.should_terminate.borrow() {

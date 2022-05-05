@@ -6,8 +6,9 @@ use crate::os::Connection;
 use crate::spawn::*;
 use crate::{Appearance, DeadKeyStatus};
 use anyhow::{anyhow, bail, Context as _};
-use mio::unix::EventedFd;
-use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
+use mio::event::Source;
+use mio::unix::SourceFd;
+use mio::{Events, Interest, Poll, Registry, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
@@ -59,29 +60,27 @@ impl std::ops::Deref for XConnection {
     }
 }
 
-impl Evented for XConnection {
+impl Source for XConnection {
     fn register(
-        &self,
-        poll: &Poll,
+        &mut self,
+        registry: &Registry,
         token: Token,
-        interest: Ready,
-        opts: PollOpt,
+        interest: Interest,
     ) -> std::io::Result<()> {
-        EventedFd(&self.conn.as_raw_fd()).register(poll, token, interest, opts)
+        SourceFd(&self.conn.as_raw_fd()).register(registry, token, interest)
     }
 
     fn reregister(
-        &self,
-        poll: &Poll,
+        &mut self,
+        registry: &Registry,
         token: Token,
-        interest: Ready,
-        opts: PollOpt,
+        interest: Interest,
     ) -> std::io::Result<()> {
-        EventedFd(&self.conn.as_raw_fd()).reregister(poll, token, interest, opts)
+        SourceFd(&self.conn.as_raw_fd()).reregister(registry, token, interest)
     }
 
-    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.conn.as_raw_fd()).deregister(poll)
+    fn deregister(&mut self, registry: &Registry) -> std::io::Result<()> {
+        SourceFd(&self.conn.as_raw_fd()).deregister(registry)
     }
 }
 
@@ -197,14 +196,17 @@ impl ConnectionOps for XConnection {
         let tok_xcb = Token(TOK_XCB);
         let tok_spawn = Token(TOK_SPAWN);
 
-        let poll = Poll::new()?;
+        let mut poll = Poll::new()?;
         let mut events = Events::with_capacity(8);
-        poll.register(self, tok_xcb, Ready::readable(), PollOpt::level())?;
-        poll.register(
-            &*SPAWN_QUEUE,
+        poll.registry().register(
+            &mut SourceFd(&self.conn.as_raw_fd()),
+            tok_xcb,
+            Interest::READABLE,
+        )?;
+        poll.registry().register(
+            &mut SourceFd(&SPAWN_QUEUE.raw_fd()),
             tok_spawn,
-            Ready::readable(),
-            PollOpt::level(),
+            Interest::READABLE,
         )?;
 
         while !*self.should_terminate.borrow() {
