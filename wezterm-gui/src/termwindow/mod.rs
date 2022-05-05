@@ -2277,6 +2277,8 @@ impl TermWindow {
                 if let Some(pane) = self.get_active_pane_no_overlay() {
                     let copy = CopyOverlay::with_pane(self, &pane);
                     self.assign_overlay_for_pane(pane.pane_id(), copy);
+                    self.key_table_state
+                        .activate("copy_mode", None, false, false);
                 }
             }
             AdjustPaneSize(direction, amount) => {

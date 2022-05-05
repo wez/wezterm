@@ -174,6 +174,10 @@ impl InputMap {
             .retain(|_, v| v.action != KeyAssignment::DisableDefaultAssignment);
         mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
 
+        keys.by_name
+            .entry("copy_mode".to_string())
+            .or_insert_with(crate::overlay::copy::key_table);
+
         Self {
             keys,
             leader,

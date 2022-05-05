@@ -1,6 +1,8 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
 use crate::termwindow::{TermWindow, TermWindowNotif};
-use config::keyassignment::{CopyModeAssignment, KeyAssignment, ScrollbackEraseMode};
+use config::keyassignment::{
+    CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode,
+};
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::*;
@@ -17,7 +19,7 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
 };
-use window::WindowOps;
+use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
 
 pub struct CopyOverlay {
     delegate: Rc<dyn Pane>,
@@ -436,80 +438,7 @@ impl Pane for CopyOverlay {
         }
     }
 
-    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
-        match (key, mods) {
-            (KeyCode::Char('c'), KeyModifiers::CTRL)
-            | (KeyCode::Char('g'), KeyModifiers::CTRL)
-            | (KeyCode::Char('q'), KeyModifiers::NONE)
-            | (KeyCode::Escape, KeyModifiers::NONE) => self.render.borrow().close(),
-            (KeyCode::Char('h'), KeyModifiers::NONE) | (KeyCode::LeftArrow, KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_left_single_cell();
-            }
-            (KeyCode::Char('j'), KeyModifiers::NONE) | (KeyCode::DownArrow, KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_down_single_row();
-            }
-            (KeyCode::Char('k'), KeyModifiers::NONE) | (KeyCode::UpArrow, KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_up_single_row();
-            }
-            (KeyCode::Char('l'), KeyModifiers::NONE)
-            | (KeyCode::RightArrow, KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_right_single_cell();
-            }
-
-            (KeyCode::RightArrow, KeyModifiers::ALT) |
-            (KeyCode::Char('f'), KeyModifiers::ALT)|
-            (KeyCode::Tab, KeyModifiers::NONE) |
-            (KeyCode::Char('w'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_forward_one_word();
-            }
-
-            (KeyCode::LeftArrow, KeyModifiers::ALT) |
-            (KeyCode::Char('b'), KeyModifiers::ALT) |
-            (KeyCode::Tab, KeyModifiers::SHIFT) |
-            (KeyCode::Char('b'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_backward_one_word();
-            }
-            (KeyCode::Char('0'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_start_of_line();
-            }
-            (KeyCode::Enter, KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_start_of_next_line();
-            }
-            (KeyCode::Char('$'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('$'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_end_of_line_content();
-            }
-            (KeyCode::Char('m'), KeyModifiers::ALT) |
-            (KeyCode::Char('^'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('^'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_start_of_line_content();
-            }
-            (KeyCode::Char(' '), KeyModifiers::NONE) | (KeyCode::Char('v'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().toggle_selection_by_cell();
-            }
-            (KeyCode::Char('G'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('G'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_bottom();
-            }
-            (KeyCode::Char('g'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_top();
-            }
-            (KeyCode::Char('H'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('H'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_viewport_top();
-            }
-            (KeyCode::Char('M'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('M'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_viewport_middle();
-            }
-            (KeyCode::Char('L'), KeyModifiers::SHIFT) | // FIXME: normalize the shift away!
-            (KeyCode::Char('L'), KeyModifiers::NONE) => {
-                self.render.borrow_mut().move_to_viewport_bottom();
-            }
-            (KeyCode::PageUp, KeyModifiers::NONE) | (KeyCode::Char('b'), KeyModifiers::CTRL) => self.render.borrow_mut().page_up(),
-            (KeyCode::PageDown, KeyModifiers::NONE) | (KeyCode::Char('f'), KeyModifiers::CTRL) => self.render.borrow_mut().page_down(),
-            _ => {}
-        }
+    fn key_down(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -585,4 +514,223 @@ fn is_whitespace_word(word: &str) -> bool {
     } else {
         false
     }
+}
+
+pub fn key_table() -> KeyTable {
+    let mut table = KeyTable::default();
+    for (key, mods, action) in [
+        (
+            WKeyCode::Char('c'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+        ),
+        (
+            WKeyCode::Char('g'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+        ),
+        (
+            WKeyCode::Char('q'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+        ),
+        (
+            WKeyCode::Char('\x1b'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+        ),
+        (
+            WKeyCode::Char('h'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveLeft),
+        ),
+        (
+            WKeyCode::LeftArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveLeft),
+        ),
+        (
+            WKeyCode::Char('j'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveDown),
+        ),
+        (
+            WKeyCode::DownArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveDown),
+        ),
+        (
+            WKeyCode::Char('k'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveUp),
+        ),
+        (
+            WKeyCode::UpArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveUp),
+        ),
+        (
+            WKeyCode::Char('l'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveRight),
+        ),
+        (
+            WKeyCode::RightArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveRight),
+        ),
+        (
+            WKeyCode::RightArrow,
+            Modifiers::ALT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
+        ),
+        (
+            WKeyCode::Char('f'),
+            Modifiers::ALT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
+        ),
+        (
+            WKeyCode::Char('\t'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
+        ),
+        (
+            WKeyCode::Char('w'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
+        ),
+        (
+            WKeyCode::LeftArrow,
+            Modifiers::ALT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardWord),
+        ),
+        (
+            WKeyCode::Char('b'),
+            Modifiers::ALT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardWord),
+        ),
+        (
+            WKeyCode::Char('\t'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardWord),
+        ),
+        (
+            WKeyCode::Char('b'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveBackwardWord),
+        ),
+        (
+            WKeyCode::Char('0'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLine),
+        ),
+        (
+            WKeyCode::Char('\n'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfNextLine),
+        ),
+        (
+            WKeyCode::Char('$'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToEndOfLineContent),
+        ),
+        (
+            WKeyCode::Char('$'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToEndOfLineContent),
+        ),
+        (
+            WKeyCode::Char('m'),
+            Modifiers::ALT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLineContent),
+        ),
+        (
+            WKeyCode::Char('^'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLineContent),
+        ),
+        (
+            WKeyCode::Char('^'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLineContent),
+        ),
+        (
+            WKeyCode::Char(' '),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::ToggleSelectionByCell),
+        ),
+        (
+            WKeyCode::Char('v'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::ToggleSelectionByCell),
+        ),
+        (
+            WKeyCode::Char('G'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToScrollbackBottom),
+        ),
+        (
+            WKeyCode::Char('G'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToScrollbackBottom),
+        ),
+        (
+            WKeyCode::Char('g'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToScrollbackTop),
+        ),
+        (
+            WKeyCode::Char('H'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportTop),
+        ),
+        (
+            WKeyCode::Char('H'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportTop),
+        ),
+        (
+            WKeyCode::Char('M'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportMiddle),
+        ),
+        (
+            WKeyCode::Char('M'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportMiddle),
+        ),
+        (
+            WKeyCode::Char('L'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportBottom),
+        ),
+        (
+            WKeyCode::Char('L'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToViewportBottom),
+        ),
+        (
+            WKeyCode::PageUp,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::PageUp),
+        ),
+        (
+            WKeyCode::PageDown,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::PageDown),
+        ),
+        (
+            WKeyCode::Char('b'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::PageUp),
+        ),
+        (
+            WKeyCode::Char('f'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::PageDown),
+        ),
+    ] {
+        table.insert((key, mods), KeyTableEntry { action });
+    }
+    table
 }

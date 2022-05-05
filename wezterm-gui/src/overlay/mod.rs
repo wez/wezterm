@@ -6,12 +6,12 @@ use portable_pty::PtySize;
 use std::pin::Pin;
 use std::rc::Rc;
 
-mod confirm_close_pane;
-mod copy;
-mod debug;
-mod launcher;
-mod quickselect;
-mod search;
+pub mod confirm_close_pane;
+pub mod copy;
+pub mod debug;
+pub mod launcher;
+pub mod quickselect;
+pub mod search;
 
 pub use confirm_close_pane::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program,
