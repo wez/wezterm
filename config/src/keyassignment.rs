@@ -104,6 +104,12 @@ pub enum Pattern {
     Regex(String),
 }
 
+impl Default for Pattern {
+    fn default() -> Self {
+        Self::CaseSensitiveString("".to_string())
+    }
+}
+
 impl std::ops::Deref for Pattern {
     type Target = String;
     fn deref(&self) -> &String {
@@ -391,6 +397,14 @@ pub enum CopyModeAssignment {
     PageUp,
     PageDown,
     Close,
+    PriorMatch,
+    NextMatch,
+    PriorMatchPage,
+    NextMatchPage,
+    CycleMatchType,
+    ClearPattern,
+    EditPattern,
+    AcceptPattern,
 }
 impl_lua_conversion!(CopyModeAssignment);
 

@@ -8,8 +8,8 @@ use crate::glium::texture::SrgbTexture2d;
 use crate::inputmap::InputMap;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
-    start_overlay, start_overlay_pane, CopyOverlay, LauncherArgs, LauncherFlags,
-    QuickSelectOverlay, SearchOverlay,
+    start_overlay, start_overlay_pane, CopyModeParams, CopyOverlay, LauncherArgs, LauncherFlags,
+    QuickSelectOverlay,
 };
 use crate::scripting::guiwin::GuiWin;
 use crate::scripting::pane::PaneObject;
@@ -22,7 +22,7 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, QuickSelectArguments,
+    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, Pattern, QuickSelectArguments,
     SpawnCommand,
 };
 use config::{
@@ -1405,8 +1405,7 @@ impl TermWindow {
         if dirty.is_empty() {
             return;
         }
-        if pane.downcast_ref::<SearchOverlay>().is_none()
-            && pane.downcast_ref::<CopyOverlay>().is_none()
+        if pane.downcast_ref::<CopyOverlay>().is_none()
             && pane.downcast_ref::<QuickSelectOverlay>().is_none()
         {
             // If any of the changed lines intersect with the
@@ -2252,9 +2251,29 @@ impl TermWindow {
                 window.invalidate();
             }
             Search(pattern) => {
-                if let Some(pane) = self.get_active_pane_no_overlay() {
-                    let search = SearchOverlay::with_pane(self, &pane, pattern.clone());
-                    self.assign_overlay_for_pane(pane.pane_id(), search);
+                if let Some(pane) = self.get_active_pane_or_overlay() {
+                    let mut replace_current = false;
+                    if let Some(existing) = pane.downcast_ref::<CopyOverlay>() {
+                        let mut params = existing.get_params();
+                        params.editing_search = true;
+                        if !pattern.is_empty() {
+                            params.pattern = pattern.clone();
+                        }
+                        existing.apply_params(params);
+                        replace_current = true;
+                    } else {
+                        let search = CopyOverlay::with_pane(
+                            self,
+                            &pane,
+                            CopyModeParams {
+                                pattern: pattern.clone(),
+                                editing_search: true,
+                            },
+                        );
+                        self.assign_overlay_for_pane(pane.pane_id(), search);
+                    }
+                    self.key_table_state
+                        .activate("search_mode", None, replace_current, false);
                 }
             }
             QuickSelect => {
@@ -2274,11 +2293,26 @@ impl TermWindow {
                 }
             }
             ActivateCopyMode => {
-                if let Some(pane) = self.get_active_pane_no_overlay() {
-                    let copy = CopyOverlay::with_pane(self, &pane);
-                    self.assign_overlay_for_pane(pane.pane_id(), copy);
+                if let Some(pane) = self.get_active_pane_or_overlay() {
+                    let mut replace_current = false;
+                    if let Some(existing) = pane.downcast_ref::<CopyOverlay>() {
+                        let mut params = existing.get_params();
+                        params.editing_search = false;
+                        existing.apply_params(params);
+                        replace_current = true;
+                    } else {
+                        let copy = CopyOverlay::with_pane(
+                            self,
+                            &pane,
+                            CopyModeParams {
+                                pattern: Pattern::default(),
+                                editing_search: false,
+                            },
+                        );
+                        self.assign_overlay_for_pane(pane.pane_id(), copy);
+                    }
                     self.key_table_state
-                        .activate("copy_mode", None, false, false);
+                        .activate("copy_mode", None, replace_current, false);
                 }
             }
             AdjustPaneSize(direction, amount) => {
@@ -2593,9 +2627,7 @@ impl TermWindow {
             // This is a bit gross.  If we add other overlays that need this information,
             // this should get extracted out into a trait
             if let Some(overlay) = state.overlay.as_ref() {
-                if let Some(search_overlay) = overlay.pane.downcast_ref::<SearchOverlay>() {
-                    search_overlay.viewport_changed(pos);
-                } else if let Some(copy) = overlay.pane.downcast_ref::<CopyOverlay>() {
+                if let Some(copy) = overlay.pane.downcast_ref::<CopyOverlay>() {
                     copy.viewport_changed(pos);
                 } else if let Some(qs) = overlay.pane.downcast_ref::<QuickSelectOverlay>() {
                     qs.viewport_changed(pos);

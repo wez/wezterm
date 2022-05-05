@@ -4,15 +4,18 @@ use config::keyassignment::{
     CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode,
 };
 use mux::domain::DomainId;
-use mux::pane::{Pane, PaneId};
+use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
+use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use termwiz::surface::{CursorVisibility, SequenceNo};
+use termwiz::cell::{Cell, CellAttributes};
+use termwiz::color::AnsiColor;
+use termwiz::surface::{CursorVisibility, SequenceNo, SEQ_ZERO};
 use unicode_segmentation::*;
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -33,6 +36,25 @@ struct CopyRenderable {
     viewport: Option<StableRowIndex>,
     /// We use this to cancel ourselves later
     window: ::window::Window,
+
+    /// The text that the user entered
+    pattern: Pattern,
+    /// The most recently queried set of matches
+    results: Vec<SearchResult>,
+    by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
+    last_result_seqno: SequenceNo,
+    last_bar_pos: Option<StableRowIndex>,
+    dirty_results: RangeSet<StableRowIndex>,
+    width: usize,
+    height: usize,
+    editing_search: bool,
+    result_pos: Option<usize>,
+}
+
+#[derive(Debug)]
+struct MatchResult {
+    range: Range<usize>,
+    result_index: usize,
 }
 
 struct Dimensions {
@@ -41,33 +63,219 @@ struct Dimensions {
     top: StableRowIndex,
 }
 
+#[derive(Debug)]
+pub struct CopyModeParams {
+    pub pattern: Pattern,
+    pub editing_search: bool,
+}
+
 impl CopyOverlay {
-    pub fn with_pane(term_window: &TermWindow, pane: &Rc<dyn Pane>) -> Rc<dyn Pane> {
+    pub fn with_pane(
+        term_window: &TermWindow,
+        pane: &Rc<dyn Pane>,
+        params: CopyModeParams,
+    ) -> Rc<dyn Pane> {
         let mut cursor = pane.get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
         cursor.visibility = CursorVisibility::Visible;
 
         let window = term_window.window.clone().unwrap();
-        let render = CopyRenderable {
+        let dims = pane.get_dimensions();
+        let mut render = CopyRenderable {
             cursor,
             window,
             delegate: Rc::clone(pane),
             start: None,
             viewport: term_window.get_viewport(pane.pane_id()),
+            results: vec![],
+            by_line: HashMap::new(),
+            dirty_results: RangeSet::default(),
+            width: dims.cols,
+            height: dims.viewport_rows,
+            last_result_seqno: SEQ_ZERO,
+            last_bar_pos: None,
+            pattern: params.pattern,
+            editing_search: params.editing_search,
+            result_pos: None,
         };
+
+        let search_row = render.compute_search_row();
+        render.dirty_results.add(search_row);
+        render.update_search();
+
         Rc::new(CopyOverlay {
             delegate: Rc::clone(pane),
             render: RefCell::new(render),
         })
     }
 
+    pub fn get_params(&self) -> CopyModeParams {
+        let render = self.render.borrow();
+        CopyModeParams {
+            pattern: render.pattern.clone(),
+            editing_search: render.editing_search,
+        }
+    }
+
+    pub fn apply_params(&self, params: CopyModeParams) {
+        let mut render = self.render.borrow_mut();
+        render.editing_search = params.editing_search;
+        if render.pattern != params.pattern {
+            render.pattern = params.pattern;
+            render.update_search();
+        }
+        let search_row = render.compute_search_row();
+        render.dirty_results.add(search_row);
+    }
+
     pub fn viewport_changed(&self, viewport: Option<StableRowIndex>) {
-        let mut r = self.render.borrow_mut();
-        r.viewport = viewport;
+        let mut render = self.render.borrow_mut();
+        if render.viewport != viewport {
+            if let Some(last) = render.last_bar_pos.take() {
+                render.dirty_results.add(last);
+            }
+            if let Some(pos) = viewport.as_ref() {
+                render.dirty_results.add(*pos);
+            }
+            render.viewport = viewport;
+        }
     }
 }
 
 impl CopyRenderable {
+    fn compute_search_row(&self) -> StableRowIndex {
+        let dims = self.delegate.get_dimensions();
+        let top = self.viewport.unwrap_or_else(|| dims.physical_top);
+        let bottom = (top + dims.viewport_rows as StableRowIndex).saturating_sub(1);
+        bottom
+    }
+
+    fn check_for_resize(&mut self) {
+        let dims = self.delegate.get_dimensions();
+        if dims.cols == self.width && dims.viewport_rows == self.height {
+            return;
+        }
+
+        self.width = dims.cols;
+        self.height = dims.viewport_rows;
+
+        let pos = self.result_pos;
+        self.update_search();
+        self.result_pos = pos;
+    }
+
+    fn recompute_results(&mut self) {
+        for (result_index, res) in self.results.iter().enumerate() {
+            for idx in res.start_y..=res.end_y {
+                let range = if idx == res.start_y && idx == res.end_y {
+                    // Range on same line
+                    res.start_x..res.end_x
+                } else if idx == res.end_y {
+                    // final line of multi-line
+                    0..res.end_x
+                } else if idx == res.start_y {
+                    // first line of multi-line
+                    res.start_x..self.width
+                } else {
+                    // a middle line
+                    0..self.width
+                };
+
+                let result = MatchResult {
+                    range,
+                    result_index,
+                };
+
+                let matches = self.by_line.entry(idx).or_insert_with(|| vec![]);
+                matches.push(result);
+
+                self.dirty_results.add(idx);
+            }
+        }
+    }
+
+    fn update_search(&mut self) {
+        for idx in self.by_line.keys() {
+            self.dirty_results.add(*idx);
+        }
+        if let Some(idx) = self.last_bar_pos.as_ref() {
+            self.dirty_results.add(*idx);
+        }
+
+        self.results.clear();
+        self.by_line.clear();
+        self.result_pos.take();
+
+        let bar_pos = self.compute_search_row();
+        self.dirty_results.add(bar_pos);
+        self.last_result_seqno = self.delegate.get_current_seqno();
+
+        if !self.pattern.is_empty() {
+            let pane: Rc<dyn Pane> = self.delegate.clone();
+            let window = self.window.clone();
+            let pattern = self.pattern.clone();
+            promise::spawn::spawn(async move {
+                let mut results = pane.search(pattern).await?;
+                results.sort();
+
+                let pane_id = pane.pane_id();
+                let mut results = Some(results);
+                window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    let state = term_window.pane_state(pane_id);
+                    if let Some(overlay) = state.overlay.as_ref() {
+                        if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
+                            let mut r = copy_overlay.render.borrow_mut();
+                            r.results = results.take().unwrap();
+                            r.recompute_results();
+                            let num_results = r.results.len();
+
+                            if !r.results.is_empty() {
+                                r.activate_match_number(num_results - 1);
+                            } else {
+                                r.set_viewport(None);
+                                r.clear_selection();
+                            }
+                        }
+                    }
+                })));
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+        } else {
+            self.clear_selection();
+        }
+    }
+
+    fn clear_selection(&mut self) {
+        let pane_id = self.delegate.pane_id();
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                let mut selection = term_window.selection(pane_id);
+                selection.origin.take();
+                selection.range.take();
+            })));
+    }
+
+    fn activate_match_number(&mut self, n: usize) {
+        self.result_pos.replace(n);
+        let result = self.results[n].clone();
+        self.cursor.y = result.end_y;
+        self.cursor.x = result.end_x.saturating_sub(1);
+
+        let start = SelectionCoordinate {
+            x: result.start_x,
+            y: result.start_y,
+        };
+        let end = SelectionCoordinate {
+            // inclusive range for selection, but the result
+            // range is exclusive
+            x: result.end_x.saturating_sub(1),
+            y: result.end_y,
+        };
+        self.start.replace(start);
+        self.adjust_selection(start, SelectionRange { start, end });
+    }
+
     fn clamp_cursor_to_scrollback(&mut self) {
         let dims = self.delegate.get_dimensions();
         if self.cursor.x >= dims.cols {
@@ -178,6 +386,87 @@ impl CopyRenderable {
         let dims = self.dimensions();
         self.cursor.y += dims.dims.viewport_rows as isize;
         self.select_to_cursor_pos();
+    }
+
+    /// Move to prior match
+    fn prior_match(&mut self) {
+        if let Some(cur) = self.result_pos.as_ref() {
+            let prior = if *cur > 0 {
+                cur - 1
+            } else {
+                self.results.len() - 1
+            };
+            self.activate_match_number(prior);
+        }
+    }
+
+    /// Move to next match
+    fn next_match(&mut self) {
+        if let Some(cur) = self.result_pos.as_ref() {
+            let next = if *cur + 1 >= self.results.len() {
+                0
+            } else {
+                *cur + 1
+            };
+            self.activate_match_number(next);
+        }
+    }
+    /// Skip this page of matches and move up to the first match from
+    /// the prior page.
+    fn prior_match_page(&mut self) {
+        let dims = self.delegate.get_dimensions();
+        if let Some(cur) = self.result_pos {
+            let top = self.viewport.unwrap_or(dims.physical_top);
+            let prior = top - dims.viewport_rows as isize;
+            if let Some(pos) = self
+                .results
+                .iter()
+                .position(|res| res.start_y > prior && res.start_y < top)
+            {
+                self.activate_match_number(pos);
+            } else {
+                self.activate_match_number(cur.saturating_sub(1));
+            }
+        }
+    }
+
+    /// Skip this page of matches and move down to the first match from
+    /// the next page.
+    fn next_match_page(&mut self) {
+        let dims = self.delegate.get_dimensions();
+        if let Some(cur) = self.result_pos {
+            let top = self.viewport.unwrap_or(dims.physical_top);
+            let bottom = top + dims.viewport_rows as isize;
+            if let Some(pos) = self.results.iter().position(|res| res.start_y >= bottom) {
+                self.activate_match_number(pos);
+            } else {
+                let len = self.results.len().saturating_sub(1);
+                self.activate_match_number(cur.min(len));
+            }
+        }
+    }
+
+    fn clear_pattern(&mut self) {
+        self.pattern.clear();
+        self.update_search();
+    }
+
+    fn edit_pattern(&mut self) {
+        self.editing_search = true;
+    }
+
+    fn accept_pattern(&mut self) {
+        self.editing_search = false;
+    }
+
+    fn cycle_match_type(&mut self) {
+        let pattern = match &self.pattern {
+            Pattern::CaseSensitiveString(s) => Pattern::CaseInSensitiveString(s.clone()),
+            Pattern::CaseInSensitiveString(s) => Pattern::Regex(s.clone()),
+            Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
+        };
+        self.pattern = pattern;
+        self.update_search();
     }
 
     fn move_to_viewport_middle(&mut self) {
@@ -386,8 +675,12 @@ impl Pane for CopyOverlay {
         format!("Copy mode: {}", self.delegate.get_title())
     }
 
-    fn send_paste(&self, _text: &str) -> anyhow::Result<()> {
-        anyhow::bail!("ignoring paste while copying");
+    fn send_paste(&self, text: &str) -> anyhow::Result<()> {
+        // paste into the search bar
+        let mut r = self.render.borrow_mut();
+        r.pattern.push_str(text);
+        r.update_search();
+        Ok(())
     }
 
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
@@ -403,6 +696,28 @@ impl Pane for CopyOverlay {
     }
 
     fn key_up(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
+        let mut render = self.render.borrow_mut();
+        if render.editing_search {
+            match (key, mods) {
+                (KeyCode::Char(c), KeyModifiers::NONE)
+                | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
+                    // Type to add to the pattern
+                    render.pattern.push(c);
+                    render.update_search();
+                }
+                (KeyCode::Backspace, KeyModifiers::NONE) => {
+                    // Backspace to edit the pattern
+                    render.pattern.pop();
+                    render.update_search();
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
@@ -431,15 +746,19 @@ impl Pane for CopyOverlay {
                     PageUp => render.page_up(),
                     PageDown => render.page_down(),
                     Close => render.close(),
+                    PriorMatch => render.prior_match(),
+                    NextMatch => render.next_match(),
+                    PriorMatchPage => render.prior_match_page(),
+                    NextMatchPage => render.next_match_page(),
+                    CycleMatchType => render.cycle_match_type(),
+                    ClearPattern => render.clear_pattern(),
+                    EditPattern => render.edit_pattern(),
+                    AcceptPattern => render.accept_pattern(),
                 }
                 true
             }
             _ => false,
         }
-    }
-
-    fn key_down(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
-        Ok(())
     }
 
     fn mouse_event(&self, _event: MouseEvent) -> anyhow::Result<()> {
@@ -484,7 +803,18 @@ impl Pane for CopyOverlay {
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {
-        self.render.borrow().cursor
+        let renderer = self.render.borrow();
+        if renderer.editing_search {
+            // place in the search box
+            StableCursorPosition {
+                x: 8 + wezterm_term::unicode_column_width(&renderer.pattern, None),
+                y: renderer.compute_search_row(),
+                shape: termwiz::surface::CursorShape::SteadyBlock,
+                visibility: termwiz::surface::CursorVisibility::Visible,
+            }
+        } else {
+            renderer.cursor
+        }
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
@@ -500,7 +830,70 @@ impl Pane for CopyOverlay {
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        self.delegate.get_lines(lines)
+        let mut renderer = self.render.borrow_mut();
+        if self.delegate.get_current_seqno() > renderer.last_result_seqno {
+            renderer.update_search();
+        }
+
+        renderer.check_for_resize();
+        let dims = self.get_dimensions();
+
+        let (top, mut lines) = self.delegate.get_lines(lines);
+
+        // Process the lines; for the search row we want to render instead
+        // the search UI.
+        // For rows with search results, we want to highlight the matching ranges
+        let search_row = renderer.compute_search_row();
+        for (idx, line) in lines.iter_mut().enumerate() {
+            let stable_idx = idx as StableRowIndex + top;
+            renderer.dirty_results.remove(stable_idx);
+            if stable_idx == search_row && (renderer.editing_search || !renderer.pattern.is_empty())
+            {
+                // Replace with search UI
+                let rev = CellAttributes::default().set_reverse(true).clone();
+                line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()), SEQ_ZERO);
+                let mode = &match renderer.pattern {
+                    Pattern::CaseSensitiveString(_) => "case-sensitive",
+                    Pattern::CaseInSensitiveString(_) => "ignore-case",
+                    Pattern::Regex(_) => "regex",
+                };
+                line.overlay_text_with_attribute(
+                    0,
+                    &format!(
+                        "Search: {} ({}/{} matches. {})",
+                        *renderer.pattern,
+                        renderer.result_pos.map(|x| x + 1).unwrap_or(0),
+                        renderer.results.len(),
+                        mode
+                    ),
+                    rev,
+                    SEQ_ZERO,
+                );
+                renderer.last_bar_pos = Some(search_row);
+            } else if let Some(matches) = renderer.by_line.get(&stable_idx) {
+                for m in matches {
+                    // highlight
+                    for cell_idx in m.range.clone() {
+                        if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
+                        {
+                            if Some(m.result_index) == renderer.result_pos {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Yellow)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            } else {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Fuchsia)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        (top, lines)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
@@ -516,7 +909,66 @@ fn is_whitespace_word(word: &str) -> bool {
     }
 }
 
-pub fn key_table() -> KeyTable {
+pub fn search_key_table() -> KeyTable {
+    let mut table = KeyTable::default();
+    for (key, mods, action) in [
+        (
+            WKeyCode::Char('\x1b'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::Close),
+        ),
+        (
+            WKeyCode::UpArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::PriorMatch),
+        ),
+        (
+            WKeyCode::Char('\r'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::PriorMatch),
+        ),
+        (
+            WKeyCode::Char('p'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::PriorMatch),
+        ),
+        (
+            WKeyCode::PageUp,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::PriorMatchPage),
+        ),
+        (
+            WKeyCode::PageDown,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::NextMatchPage),
+        ),
+        (
+            WKeyCode::Char('n'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::NextMatch),
+        ),
+        (
+            WKeyCode::DownArrow,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::NextMatch),
+        ),
+        (
+            WKeyCode::Char('r'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::CycleMatchType),
+        ),
+        (
+            WKeyCode::Char('u'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::ClearPattern),
+        ),
+    ] {
+        table.insert((key, mods), KeyTableEntry { action });
+    }
+    table
+}
+
+pub fn copy_key_table() -> KeyTable {
     let mut table = KeyTable::default();
     for (key, mods, action) in [
         (
@@ -625,7 +1077,7 @@ pub fn key_table() -> KeyTable {
             KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLine),
         ),
         (
-            WKeyCode::Char('\n'),
+            WKeyCode::Char('\r'),
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfNextLine),
         ),
