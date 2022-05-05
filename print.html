@@ -464,6 +464,7 @@ usually the best available version.</p>
 <li>Debian packages now register wezterm as an alternative for <code>x-terminal-emulator</code>. Thanks to <a href="https://github.com/xpufx">@xpufx</a>! <a href="https://github.com/wez/wezterm/pull/1883">#1883</a></li>
 <li>Windows: wezterm will now read the default environment variables from the <code>HKLM\System\CurrentControlSet\Control\Session Manager\Environment</code> and <code>HKCU\Environment</code> and apply those to the base environment prior to applying <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1848">#1848</a></li>
 <li><a href="config/key-tables.html">Key Table</a> lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. <a href="https://github.com/wez/wezterm/issues/993">#993</a></li>
+<li>Search mode's search term is now remembered globally between activations of search mode. <a href="https://github.com/wez/wezterm/issues/1912">#1912</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
