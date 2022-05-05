@@ -463,6 +463,7 @@ usually the best available version.</p>
 <ul>
 <li>Debian packages now register wezterm as an alternative for <code>x-terminal-emulator</code>. Thanks to <a href="https://github.com/xpufx">@xpufx</a>! <a href="https://github.com/wez/wezterm/pull/1883">#1883</a></li>
 <li>Windows: wezterm will now read the default environment variables from the <code>HKLM\System\CurrentControlSet\Control\Session Manager\Environment</code> and <code>HKCU\Environment</code> and apply those to the base environment prior to applying <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1848">#1848</a></li>
+<li><a href="config/key-tables.html">Key Table</a> lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. <a href="https://github.com/wez/wezterm/issues/993">#993</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -2229,6 +2230,13 @@ clear the entire stack.</p>
 <p>The stack is also cleared when the configuration is reloaded, so if you're
 working on a complex key table setup and get stuck, you may be able to unstick
 yourself by re-saving your wezterm configuration to trigger a reload.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>When resolving a key assignment, the top of stack is first searched for a match,
+and if one is not found, the next entry on the stack is searched and so on until a match is found.</p>
+<p>In previous releases, only a single lookup was performed on the top of the stack.</p>
+<p>The new behavior allows key table activations to effectively layer over the top
+of previously activated key assignments, making it a bit easier to compose key
+assignments.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="default-shortcut--key-binding-assignments"><a class="header" href="#default-shortcut--key-binding-assignments">Default Shortcut / Key Binding Assignments</a></h2>
 <p>The default key assignments are:</p>
 <table><thead><tr><th>Modifiers</th><th>Key</th><th>Action</th></tr></thead><tbody>
