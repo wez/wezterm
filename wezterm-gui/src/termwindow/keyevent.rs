@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use termwiz::input::KeyboardEncoding;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KeyTableStateEntry {
     name: String,
     /// If this activation expires, when it should expire
@@ -15,7 +15,7 @@ pub struct KeyTableStateEntry {
     one_shot: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct KeyTableState {
     stack: Vec<KeyTableStateEntry>,
 }

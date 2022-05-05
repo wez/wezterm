@@ -461,7 +461,7 @@ impl SearchRenderable {
                 window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                     let state = term_window.pane_state(pane_id);
                     if let Some(overlay) = state.overlay.as_ref() {
-                        if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
+                        if let Some(search_overlay) = overlay.pane.downcast_ref::<SearchOverlay>() {
                             let mut r = search_overlay.renderer.borrow_mut();
                             r.results = results.take().unwrap();
                             r.recompute_results();

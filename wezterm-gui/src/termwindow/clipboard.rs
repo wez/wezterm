@@ -39,10 +39,16 @@ impl TermWindow {
         promise::spawn::spawn(async move {
             if let Ok(clip) = future.await {
                 window.notify(TermWindowNotif::Apply(Box::new(move |myself| {
-                    if let Some(pane) = myself.pane_state(pane_id).overlay.clone().or_else(|| {
-                        let mux = Mux::get().unwrap();
-                        mux.get_pane(pane_id)
-                    }) {
+                    if let Some(pane) = myself
+                        .pane_state(pane_id)
+                        .overlay
+                        .as_ref()
+                        .map(|overlay| overlay.pane.clone())
+                        .or_else(|| {
+                            let mux = Mux::get().unwrap();
+                            mux.get_pane(pane_id)
+                        })
+                    {
                         pane.trickle_paste(clip).ok();
                     }
                 })));

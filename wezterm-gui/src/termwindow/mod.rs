@@ -159,7 +159,12 @@ pub struct SemanticZoneCache {
     zones: Vec<StableRowIndex>,
 }
 
-#[derive(Default, Clone)]
+pub struct OverlayState {
+    pub pane: Rc<dyn Pane>,
+    saved_key_table_state: KeyTableState,
+}
+
+#[derive(Default)]
 pub struct PaneState {
     /// If is_some(), the top row of the visible screen.
     /// Otherwise, the viewport is at the bottom of the
@@ -169,7 +174,7 @@ pub struct PaneState {
     /// If is_some(), rather than display the actual tab
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
-    pub overlay: Option<Rc<dyn Pane>>,
+    pub overlay: Option<OverlayState>,
 
     bell_start: Option<Instant>,
     pub mouse_terminal_coords: Option<(ClickPosition, StableRowIndex)>,
@@ -286,12 +291,12 @@ impl UserData for PaneInformation {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct TabState {
     /// If is_some(), rather than display the actual tab
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
-    pub overlay: Option<Rc<dyn Pane>>,
+    pub overlay: Option<OverlayState>,
 }
 
 /// Manages the state/queue of lua based event handlers.
@@ -1173,7 +1178,12 @@ impl TermWindow {
         };
 
         let tab_id = tab.tab_id();
-        if let Some(tab_overlay) = self.tab_state(tab_id).overlay.clone() {
+        if let Some(tab_overlay) = self
+            .tab_state(tab_id)
+            .overlay
+            .as_ref()
+            .map(|overlay| overlay.pane.clone())
+        {
             return tab_overlay.pane_id() == pane_id;
         }
 
@@ -2581,11 +2591,11 @@ impl TermWindow {
             // This is a bit gross.  If we add other overlays that need this information,
             // this should get extracted out into a trait
             if let Some(overlay) = state.overlay.as_ref() {
-                if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
+                if let Some(search_overlay) = overlay.pane.downcast_ref::<SearchOverlay>() {
                     search_overlay.viewport_changed(pos);
-                } else if let Some(copy) = overlay.downcast_ref::<CopyOverlay>() {
+                } else if let Some(copy) = overlay.pane.downcast_ref::<CopyOverlay>() {
                     copy.viewport_changed(pos);
-                } else if let Some(qs) = overlay.downcast_ref::<QuickSelectOverlay>() {
+                } else if let Some(qs) = overlay.pane.downcast_ref::<QuickSelectOverlay>() {
                     qs.viewport_changed(pos);
                 }
             }
@@ -2629,14 +2639,20 @@ impl TermWindow {
 
         let tab_id = tab.tab_id();
 
-        if let Some(tab_overlay) = self.tab_state(tab_id).overlay.clone() {
+        if let Some(tab_overlay) = self
+            .tab_state(tab_id)
+            .overlay
+            .as_ref()
+            .map(|overlay| overlay.pane.clone())
+        {
             Some(tab_overlay)
         } else {
             let pane = tab.get_active_pane()?;
             let pane_id = pane.pane_id();
             self.pane_state(pane_id)
                 .overlay
-                .clone()
+                .as_ref()
+                .map(|overlay| overlay.pane.clone())
                 .or_else(|| Some(pane))
         }
     }
@@ -2650,7 +2666,7 @@ impl TermWindow {
 
         let tab_id = tab.tab_id();
 
-        if let Some(_) = self.tab_state(tab_id).overlay.clone() {
+        if self.tab_state(tab_id).overlay.is_some() {
             vec![]
         } else {
             tab.iter_splits()
@@ -2712,7 +2728,12 @@ impl TermWindow {
     fn get_pos_panes_for_tab(&mut self, tab: &Rc<Tab>) -> Vec<PositionedPane> {
         let tab_id = tab.tab_id();
 
-        if let Some(pane) = self.tab_state(tab_id).overlay.clone() {
+        if let Some(pane) = self
+            .tab_state(tab_id)
+            .overlay
+            .as_ref()
+            .map(|overlay| overlay.pane.clone())
+        {
             let size = tab.get_size();
             vec![PositionedPane {
                 index: 0,
@@ -2730,7 +2751,7 @@ impl TermWindow {
             let mut panes = tab.iter_panes();
             for p in &mut panes {
                 if let Some(overlay) = self.pane_state(p.pane.pane_id()).overlay.as_ref() {
-                    p.pane = Rc::clone(overlay);
+                    p.pane = Rc::clone(&overlay.pane);
                 }
             }
             panes
@@ -2749,15 +2770,24 @@ impl TermWindow {
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.
     /// Otherwise: if the overlay is the specified pane for that tab, remove it.
-    fn cancel_overlay_for_tab(&self, tab_id: TabId, pane_id: Option<PaneId>) {
+    fn cancel_overlay_for_tab(&mut self, tab_id: TabId, pane_id: Option<PaneId>) {
         if pane_id.is_some() {
-            let current = self.tab_state(tab_id).overlay.as_ref().map(|o| o.pane_id());
+            let current = self
+                .tab_state(tab_id)
+                .overlay
+                .as_ref()
+                .map(|o| o.pane.pane_id());
             if current != pane_id {
                 return;
             }
         }
-        if let Some(pane) = self.tab_state(tab_id).overlay.take() {
-            Mux::get().unwrap().remove_pane(pane.pane_id());
+        let mut key_table = None;
+        if let Some(overlay) = self.tab_state(tab_id).overlay.take() {
+            key_table.replace(overlay.saved_key_table_state);
+            Mux::get().unwrap().remove_pane(overlay.pane.pane_id());
+        }
+        if let Some(key_table) = key_table.take() {
+            self.key_table_state = key_table;
         }
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2768,15 +2798,20 @@ impl TermWindow {
         window.notify(TermWindowNotif::CancelOverlayForTab { tab_id, pane_id });
     }
 
-    fn cancel_overlay_for_pane(&self, pane_id: PaneId) {
-        if let Some(pane) = self.pane_state(pane_id).overlay.take() {
+    fn cancel_overlay_for_pane(&mut self, pane_id: PaneId) {
+        let mut key_table = None;
+        if let Some(overlay) = self.pane_state(pane_id).overlay.take() {
             // Ungh, when I built the CopyOverlay, its pane doesn't get
             // added to the mux and instead it reports the overlaid
             // pane id.  Take care to avoid killing ourselves off
             // when closing the CopyOverlay
-            if pane_id != pane.pane_id() {
-                Mux::get().unwrap().remove_pane(pane.pane_id());
+            if pane_id != overlay.pane.pane_id() {
+                Mux::get().unwrap().remove_pane(overlay.pane.pane_id());
             }
+            key_table.replace(overlay.saved_key_table_state);
+        }
+        if let Some(key_table) = key_table.take() {
+            self.key_table_state = key_table;
         }
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2787,22 +2822,21 @@ impl TermWindow {
         window.notify(TermWindowNotif::CancelOverlayForPane(pane_id));
     }
 
-    pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, overlay: Rc<dyn Pane>) {
-        if let Some(prior) = self.pane_state(pane_id).overlay.replace(overlay) {
-            if pane_id != prior.pane_id() {
-                Mux::get().unwrap().remove_pane(prior.pane_id());
-            }
-        }
+    pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, pane: Rc<dyn Pane>) {
+        self.cancel_overlay_for_pane(pane_id);
+        self.pane_state(pane_id).overlay.replace(OverlayState {
+            pane,
+            saved_key_table_state: self.key_table_state.clone(),
+        });
         self.update_title();
     }
 
     pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Pane>) {
-        let pane_id = overlay.pane_id();
-        if let Some(prior) = self.tab_state(tab_id).overlay.replace(overlay) {
-            if pane_id != prior.pane_id() {
-                Mux::get().unwrap().remove_pane(prior.pane_id());
-            }
-        }
+        self.cancel_overlay_for_tab(tab_id, None);
+        self.tab_state(tab_id).overlay.replace(OverlayState {
+            pane: overlay,
+            saved_key_table_state: self.key_table_state.clone(),
+        });
         self.update_title();
     }
 }
