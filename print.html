@@ -454,6 +454,7 @@ usually the best available version.</p>
 <li><code>wezterm cli list --format json</code> and <code>wezterm cli list-clients --format json</code> allow retrieving data in json format. Thanks to <a href="https://github.com/ratmice">@ratmice</a>! <a href="https://github.com/wez/wezterm/pull/1911">#1911</a></li>
 <li>macOS: you may now drag and drop files from other programs and have their paths paste into the terminal. The new <a href="config/lua/config/quote_dropped_files.html">quote_dropped_files</a> option controls how the file names are quoted. Thanks to <a href="https://github.com/junnplus">@junnplus</a>! <a href="https://github.com/wez/wezterm/pull/1868">#1868</a></li>
 <li>The mouse scroll wheel now cycles between tabs when hovering over the tab tab. Thanks to <a href="https://github.com/junnplus">@junnplus</a>! <a href="https://github.com/wez/wezterm/issues/1726">#1726</a></li>
+<li>Holding down <code>ALT</code> while dragging the left button will select a rectangular block.  <a href="config/lua/keyassignment/ExtendSelectionToMouseCursor.html">ExtendSelectionToMouseCursor</a> now accepts <code>&quot;Block&quot;</code> as a selection mode. <a href="https://github.com/wez/wezterm/issues/1361">#1361</a></li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
@@ -2347,11 +2348,14 @@ that order.</p>
 <tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
+<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
 <tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
+<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
 <tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Cell&quot;</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code> (<em>since: nightly builds only</em>)</td></tr>
 <tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
 <tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
@@ -13515,6 +13519,8 @@ the scope of the selection.</p>
 <p>when unspecified, wezterm will use a default mode which at the time
 of writing is <code>Cell</code>, but in a future release may be context sensitive
 based on recent actions.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
 <pre><code class="language-lua">return {
