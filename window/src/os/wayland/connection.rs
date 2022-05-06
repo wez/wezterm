@@ -317,6 +317,9 @@ impl ConnectionOps for WaylandConnection {
 
             self.flush()?;
             if let Err(err) = poll.poll(&mut events, timeout) {
+                if err.kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
                 bail!("polling for events: {:?}", err);
             }
 

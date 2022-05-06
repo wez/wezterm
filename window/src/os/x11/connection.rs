@@ -229,6 +229,9 @@ impl ConnectionOps for XConnection {
 
             self.dispatch_pending_events()?;
             if let Err(err) = poll.poll(&mut events, None) {
+                if err.kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
                 bail!("polling for events: {:?}", err);
             }
         }
