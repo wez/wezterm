@@ -33,6 +33,7 @@ reassignable.
 |                | `CTRL-g`   |
 |                | `q`        |
 | Toggle cell selection mode | `v` |
+| Rectangular selection | `CTRL-v` (*since: nightly builds only*)|
 | Move Left      | `LeftArrow`|
 |                | `h`        |
 | Move Down      | `DownArrow`|
@@ -63,5 +64,4 @@ reassignable.
 |                                | `CTRL-b` |
 | Move down one screen           | `PageDown` |
 |                                | `CTRL-f`   |
-
 

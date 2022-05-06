@@ -1,7 +1,7 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
 use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{
-    CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode,
+    CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode, SelectionMode,
 };
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
@@ -37,6 +37,7 @@ struct CopyRenderable {
     cursor: StableCursorPosition,
     delegate: Rc<dyn Pane>,
     start: Option<SelectionCoordinate>,
+    selection_mode: SelectionMode,
     viewport: Option<StableRowIndex>,
     /// We use this to cancel ourselves later
     window: ::window::Window,
@@ -105,6 +106,7 @@ impl CopyOverlay {
             },
             editing_search: params.editing_search,
             result_pos: None,
+            selection_mode: SelectionMode::Cell,
         };
 
         let search_row = render.compute_search_row();
@@ -324,11 +326,13 @@ impl CopyRenderable {
     fn adjust_selection(&self, start: SelectionCoordinate, range: SelectionRange) {
         let pane_id = self.delegate.pane_id();
         let window = self.window.clone();
+        let mode = self.selection_mode;
         self.window
             .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 let mut selection = term_window.selection(pane_id);
                 selection.origin = Some(start);
                 selection.range = Some(range);
+                selection.rectangular = mode == SelectionMode::Block;
                 window.invalidate();
             })));
         self.adjust_viewport_for_cursor_position();
@@ -672,6 +676,26 @@ impl CopyRenderable {
             };
             self.start.replace(coord);
             self.select_to_cursor_pos();
+            self.selection_mode = SelectionMode::Cell;
+        }
+    }
+
+    fn set_selection_mode(&mut self, mode: &Option<SelectionMode>) {
+        match mode {
+            None => {
+                self.start.take();
+            }
+            Some(mode) => {
+                if self.start.is_none() {
+                    let coord = SelectionCoordinate {
+                        x: self.cursor.x,
+                        y: self.cursor.y,
+                    };
+                    self.start.replace(coord);
+                    self.select_to_cursor_pos();
+                }
+                self.selection_mode = *mode;
+            }
         }
     }
 }
@@ -764,6 +788,7 @@ impl Pane for CopyOverlay {
                     ClearPattern => render.clear_pattern(),
                     EditPattern => render.edit_pattern(),
                     AcceptPattern => render.accept_pattern(),
+                    SetSelectionMode(mode) => render.set_selection_mode(mode),
                 }
                 true
             }
@@ -1125,6 +1150,13 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('v'),
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::ToggleSelectionByCell),
+        ),
+        (
+            WKeyCode::Char('v'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::SetSelectionMode(Some(
+                SelectionMode::Block,
+            ))),
         ),
         (
             WKeyCode::Char('G'),

@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: you may now drag and drop files from other programs and have their paths paste into the terminal. The new [quote_dropped_files](config/lua/config/quote_dropped_files.md) option controls how the file names are quoted. Thanks to [@junnplus](https://github.com/junnplus)! [#1868](https://github.com/wez/wezterm/pull/1868)
 * The mouse scroll wheel now cycles between tabs when hovering over the tab tab. Thanks to [@junnplus](https://github.com/junnplus)! [#1726](https://github.com/wez/wezterm/issues/1726)
 * Holding down `ALT` while dragging the left button will select a rectangular block.  [ExtendSelectionToMouseCursor](config/lua/keyassignment/ExtendSelectionToMouseCursor.md) now accepts `"Block"` as a selection mode. [#1361](https://github.com/wez/wezterm/issues/1361)
+* In Copy Mode, `CTRL-v` will enable rectangular block selection mode. [#1656](https://github.com/wez/wezterm/issues/1656)
 
 #### Updated
 * Bundled harfbuzz to 4.2.1
