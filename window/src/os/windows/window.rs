@@ -2414,33 +2414,32 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 }
 
 unsafe fn drop_files(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let h_drop = wparam as HDROP;
+    let inner = rc_from_hwnd(hwnd)?;
+    let h_drop = wparam as HDROP;
 
-        // Get the number of files dropped
-        let file_count = DragQueryFileW(h_drop, 0xFFFFFFFF, null_mut(), 0);
+    // Get the number of files dropped
+    let file_count = DragQueryFileW(h_drop, 0xFFFFFFFF, null_mut(), 0);
 
-        let mut filenames: Vec<PathBuf> = Vec::with_capacity(file_count as usize);
+    let mut filenames: Vec<PathBuf> = Vec::with_capacity(file_count as usize);
 
-        for idx in 0..file_count {
-            // The returned size of buffer is in characters, not including the terminating null character
-            let buf_size = DragQueryFileW(h_drop, idx, null_mut(), 0);
-            if buf_size > 0 {
-                let buf_size = buf_size as usize + 1;
-                let mut wide_buf = vec![0u16; buf_size];
-                DragQueryFileW(h_drop, idx, wide_buf.as_mut_ptr(), buf_size as u32);
-                wide_buf.pop(); // Drops the null terminator
-                filenames.push(OsString::from_wide(&wide_buf).into());
-            }
+    for idx in 0..file_count {
+        // The returned size of buffer is in characters, not including the terminating null character
+        let buf_size = DragQueryFileW(h_drop, idx, null_mut(), 0);
+        if buf_size > 0 {
+            // Windows will truncate the filename and add null terminator if space isn't enough
+            let buf_size = buf_size as usize + 1;
+            let mut wide_buf = vec![0u16; buf_size];
+            DragQueryFileW(h_drop, idx, wide_buf.as_mut_ptr(), wide_buf.len() as u32);
+            wide_buf.pop(); // Drops the null terminator
+            filenames.push(OsString::from_wide(&wide_buf).into());
         }
-
-        let mut inner = inner.borrow_mut();
-        inner.events.dispatch(WindowEvent::DroppedFile(filenames));
-
-        DragFinish(h_drop);
-        return Some(0);
     }
-    None
+
+    let mut inner = inner.borrow_mut();
+    inner.events.dispatch(WindowEvent::DroppedFile(filenames));
+
+    DragFinish(h_drop);
+    Some(0)
 }
 
 unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
