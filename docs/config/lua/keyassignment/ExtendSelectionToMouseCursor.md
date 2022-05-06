@@ -23,4 +23,6 @@ when unspecified, wezterm will use a default mode which at the time
 of writing is `Cell`, but in a future release may be context sensitive
 based on recent actions.
 
+*Since: nightly builds only*
 
+The mode argument can also be `"Block"` to enable a rectangular block selection.

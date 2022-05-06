@@ -76,6 +76,14 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Cell)
                 ],
                 [
+                    Modifiers::ALT,
+                    MouseEventTrigger::Down {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    SelectTextAtMouseCursor(SelectionMode::Block)
+                ],
+                [
                     Modifiers::SHIFT,
                     MouseEventTrigger::Down {
                         streak: 1,
@@ -104,6 +112,14 @@ impl InputMap {
                     )
                 ],
                 [
+                    Modifiers::ALT,
+                    MouseEventTrigger::Up {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
+                ],
+                [
                     Modifiers::NONE,
                     MouseEventTrigger::Up {
                         streak: 2,
@@ -126,6 +142,14 @@ impl InputMap {
                         button: MouseButton::Left
                     },
                     ExtendSelectionToMouseCursor(Some(SelectionMode::Cell))
+                ],
+                [
+                    Modifiers::ALT,
+                    MouseEventTrigger::Drag {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    ExtendSelectionToMouseCursor(Some(SelectionMode::Block))
                 ],
                 [
                     Modifiers::NONE,

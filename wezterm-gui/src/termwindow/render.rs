@@ -1349,7 +1349,10 @@ impl super::TermWindow {
             )?;
         }
 
-        let selrange = self.selection(pos.pane.pane_id()).range.clone();
+        let (selrange, rectangular) = {
+            let sel = self.selection(pos.pane.pane_id());
+            (sel.range.clone(), sel.rectangular)
+        };
 
         let start = Instant::now();
         let selection_fg = palette.selection_fg.to_linear();
@@ -1362,7 +1365,7 @@ impl super::TermWindow {
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
 
-            let selrange = selrange.map_or(0..0, |sel| sel.cols_for_row(stable_row));
+            let selrange = selrange.map_or(0..0, |sel| sel.cols_for_row(stable_row, rectangular));
             // Constrain to the pane width!
             let selrange = selrange.start..selrange.end.min(dims.cols);
 

@@ -95,6 +95,7 @@ pub enum SelectionMode {
     Word,
     Line,
     SemanticZone,
+    Block,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

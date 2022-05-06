@@ -17,6 +17,8 @@ pub struct Selection {
     pub range: Option<SelectionRange>,
     /// When the selection was made wrt. the pane content
     pub seqno: SequenceNo,
+    /// Whether the selection is rectangular
+    pub rectangular: bool,
 }
 
 pub use config::keyassignment::SelectionMode;
@@ -215,9 +217,9 @@ impl SelectionRange {
     /// Since this struct has no knowledge of line length, it cannot be
     /// more precise than that.
     /// Must be called on a normalized range!
-    pub fn cols_for_row(&self, row: StableRowIndex) -> Range<usize> {
+    pub fn cols_for_row(&self, row: StableRowIndex, rectangular: bool) -> Range<usize> {
         let norm = self.normalize();
-        if row < norm.start.y || row > norm.end.y {
+        let range = if row < norm.start.y || row > norm.end.y {
             0..0
         } else if norm.start.y == norm.end.y {
             // A single line selection
@@ -235,6 +237,12 @@ impl SelectionRange {
         } else {
             // some "middle" line of multi-line
             0..usize::max_value()
+        };
+
+        if rectangular {
+            range.start.max(norm.start.x)..range.end.min(norm.end.x.saturating_add(1))
+        } else {
+            range
         }
     }
 }

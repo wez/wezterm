@@ -12,6 +12,7 @@ impl super::TermWindow {
 
     pub fn selection_text(&self, pane: &Rc<dyn Pane>) -> String {
         let mut s = String::new();
+        let rectangular = self.selection(pane.pane_id()).rectangular;
         if let Some(sel) = self
             .selection(pane.pane_id())
             .range
@@ -31,7 +32,7 @@ impl super::TermWindow {
                     let this_row = line.first_row + idx as StableRowIndex;
                     if this_row >= first_row && this_row < last_row {
                         let last_phys_idx = phys.cells().len().saturating_sub(1);
-                        let cols = sel.cols_for_row(this_row);
+                        let cols = sel.cols_for_row(this_row, rectangular);
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
                         let col_span = phys.columns_as_str(cols);
                         // Only trim trailing whitespace if we are the last line
@@ -76,7 +77,7 @@ impl super::TermWindow {
         };
         let x = position.column;
         match mode {
-            SelectionMode::Cell => {
+            SelectionMode::Cell | SelectionMode::Block => {
                 // Origin is the cell in which the selection action started. E.g. the cell
                 // that had the mouse over it when the left mouse button was pressed
                 let origin = self
@@ -84,6 +85,7 @@ impl super::TermWindow {
                     .origin
                     .unwrap_or(SelectionCoordinate { x, y });
                 self.selection(pane.pane_id()).origin = Some(origin);
+                self.selection(pane.pane_id()).rectangular = mode == SelectionMode::Block;
 
                 // Compute the start and end horizontall cell of the selection.
                 // The selection extent depends on the mouse cursor position in relation
@@ -128,6 +130,7 @@ impl super::TermWindow {
 
                 let selection_range = start_word.extend_with(end_word);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::Line => {
                 let end_line = SelectionRange::line_around(SelectionCoordinate { x, y }, &**pane);
@@ -141,6 +144,7 @@ impl super::TermWindow {
 
                 let selection_range = start_line.extend_with(end_line);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::SemanticZone => {
                 let end_word = SelectionRange::zone_around(SelectionCoordinate { x, y }, &**pane);
@@ -154,6 +158,7 @@ impl super::TermWindow {
 
                 let selection_range = start_word.extend_with(end_word);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
         }
 
@@ -184,6 +189,7 @@ impl super::TermWindow {
 
                 self.selection(pane.pane_id()).origin = Some(start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::Word => {
                 let selection_range =
@@ -191,6 +197,7 @@ impl super::TermWindow {
 
                 self.selection(pane.pane_id()).origin = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::SemanticZone => {
                 let selection_range =
@@ -198,10 +205,12 @@ impl super::TermWindow {
 
                 self.selection(pane.pane_id()).origin = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).rectangular = false;
             }
-            SelectionMode::Cell => {
+            SelectionMode::Cell | SelectionMode::Block => {
                 self.selection(pane.pane_id())
                     .begin(SelectionCoordinate { x, y });
+                self.selection(pane.pane_id()).rectangular = mode == SelectionMode::Block;
             }
         }
 
