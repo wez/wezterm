@@ -34,6 +34,7 @@ VERSION="$TAG_NAME" \
 UPDATE_INFORMATION="$UPDATE" \
 OUTPUT="$OUTPUT" \
   /tmp/linuxdeploy \
+  --exclude-library='libwayland-client.so.0' \
   --appdir AppDir \
   --output appimage \
   --desktop-file assets/wezterm.desktop
