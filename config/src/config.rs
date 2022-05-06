@@ -1479,7 +1479,7 @@ pub enum DroppedFileQuoting {
     /// Use Windows style shell word escaping
     Windows,
     /// Always double quote the file name
-    DoubleQuoteAlways,
+    WindowsAlwaysQuoted,
 }
 
 impl Default for DroppedFileQuoting {
@@ -1500,13 +1500,14 @@ impl DroppedFileQuoting {
             // https://docs.rs/shlex/latest/shlex/fn.quote.html
             Self::Posix => shlex::quote(s).into_owned().to_string(),
             Self::Windows => {
-                if s.contains(' ') {
+                let chars_need_quoting = [' ','\t','\n','\x0b','\"'];
+                if chars_need_quoting.iter().any(|&c| s.contains(c)) {
                     format!("\"{}\"", s)
                 } else {
                     s.to_string()
                 }
             }
-            Self::DoubleQuoteAlways => format!("\"{}\"", s),
+            Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
         }
     }
 }
