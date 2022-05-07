@@ -27,6 +27,9 @@ As features stabilize some brief notes about them will accumulate here.
 * The mouse scroll wheel now cycles between tabs when hovering over the tab tab. Thanks to [@junnplus](https://github.com/junnplus)! [#1726](https://github.com/wez/wezterm/issues/1726)
 * Holding down `ALT` while dragging the left button will select a rectangular block.  [ExtendSelectionToMouseCursor](config/lua/keyassignment/ExtendSelectionToMouseCursor.md) now accepts `"Block"` as a selection mode. [#1361](https://github.com/wez/wezterm/issues/1361)
 * In Copy Mode, `CTRL-v` will enable rectangular block selection mode. [#1656](https://github.com/wez/wezterm/issues/1656)
+* Copy Mode: key assignments are [now configurable](copymode.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
+* Search Mode: key assignments are [now configurable](scrollback.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
+* Copy Mode and Search Mode can be toggled and remember search results and cursor positioning, making it easier to locate and select text without using the mouse [#1592](https://github.com/wez/wezterm/issues/1592)
 
 #### Updated
 * Bundled harfbuzz to 4.2.1
