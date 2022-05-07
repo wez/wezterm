@@ -85,6 +85,40 @@ When the search overlay is active the behavior of wezterm changes:
 * `Escape` will cancel the search overlay, leaving the currently selected text selected
   with the viewport scrolled to that location.
 
+#### Configurable search mode key assignments
+
+*Since: nightly builds only*
+
+The key assignments for copy mode are specified by the `search_mode` [Key Table](config/key-tables.md).
+
+You may provide your own definition of this key table if you wish to customize it.
+There isn't a way to override portions of the key table, only to replace the entire table.
+
+The default configuration is equivalent to:
+
+```lua
+local wezterm = require 'wezterm'
+
+return {
+  key_tables = {
+    search_mode = {
+      {key="Escape", mods="NONE", action=wezterm.action{CopyMode="Close"}},
+      {key="UpArrow", mods="NONE", action=wezterm.action{CopyMode="PriorMatch"}},
+      {key="Enter", mods="NONE", action=wezterm.action{CopyMode="PriorMatch"}},
+      {key="p", mods="CTRL", action=wezterm.action{CopyMode="PriorMatch"}},
+      {key="PageUp", mods="NONE", action=wezterm.action{CopyMode="PriorMatchPage"}},
+      {key="PageDown", mods="NONE", action=wezterm.action{CopyMode="NextMatchPage"}},
+      {key="n", mods="CTRL", action=wezterm.action{CopyMode="NextMatchPage"}},
+      {key="DownArrow", mods="NONE", action=wezterm.action{CopyMode="NextMatch"}},
+      {key="r", mods="CTRL", action=wezterm.action{CopyMode="CycleMatchType"}},
+      {key="u", mods="CTRL", action=wezterm.action{CopyMode="ClearPattern"}},
+    }
+  }
+}
+```
+
+(Those assignments reference `CopyMode` because search mode is a facet of [Copy Mode](copymode.md)).
+
 ### Configuring Saved Searches
 
 *since: 20200607-144723-74889cd4*
