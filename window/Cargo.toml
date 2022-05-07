@@ -66,7 +66,7 @@ winreg = "0.10"
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
-x11 = {version ="2.18", features = ["xlib_xcb"]}
+x11 = {version ="2.19", features = ["xlib_xcb"]}
 xcb = {version="1.1", features=["render", "randr", "xkb", "xlib_xcb"]}
 xkbcommon = { version = "0.6", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="69a29877e99369b4ec74703d3193b6dd694145e9"}
 #xkbcommon = { version = "0.6", features = ["x11", "wayland"], path="../../xkbcommon-rs" }
