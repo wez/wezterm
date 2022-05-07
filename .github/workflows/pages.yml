@@ -32,16 +32,16 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-mdbook
+          key: ${{ runner.os }}-cargo-mdbook-${{ hashFiles('.github/workflows/pages.yml') }}
       - name: Install mdBook
         run: |
-          (test -x ~/.cargo/bin/mdbook || (cd && cargo install --vers "^0.4" mdbook))
+          (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "^0.4" --locked))
       - name: Install mdBook linkcheck
         run: |
-          (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck))
+          (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
       - name: Install mdBook mermaid
         run: |
-          (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid))
+          (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid --locked))
       - name: Build
         run: |
           source $HOME/.cargo/env
