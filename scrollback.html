@@ -213,6 +213,32 @@ The matching mode is indicated in the search bar.</li>
 <li><code>Escape</code> will cancel the search overlay, leaving the currently selected text selected
 with the viewport scrolled to that location.</li>
 </ul>
+<h4 id="configurable-search-mode-key-assignments"><a class="header" href="#configurable-search-mode-key-assignments">Configurable search mode key assignments</a></h4>
+<p><em>Since: nightly builds only</em></p>
+<p>The key assignments for copy mode are specified by the <code>search_mode</code> <a href="config/key-tables.html">Key Table</a>.</p>
+<p>You may provide your own definition of this key table if you wish to customize it.
+There isn't a way to override portions of the key table, only to replace the entire table.</p>
+<p>The default configuration is equivalent to:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
+  key_tables = {
+    search_mode = {
+      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
+      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
+      {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
+      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatchPage&quot;}},
+      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
+      {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
+      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatch&quot;}},
+      {key=&quot;r&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;CycleMatchType&quot;}},
+      {key=&quot;u&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;ClearPattern&quot;}},
+    }
+  }
+}
+</code></pre>
+<p>(Those assignments reference <code>CopyMode</code> because search mode is a facet of <a href="copymode.html">Copy Mode</a>).</p>
 <h3 id="configuring-saved-searches"><a class="header" href="#configuring-saved-searches">Configuring Saved Searches</a></h3>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>If you find that you're often searching for the same things then you may wish to assign

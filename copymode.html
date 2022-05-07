@@ -204,6 +204,75 @@ reassignable.</p>
 <tr><td>Move down one screen</td><td><code>PageDown</code></td></tr>
 <tr><td></td><td><code>CTRL-f</code></td></tr>
 </tbody></table>
+<h3 id="configurable-key-assignments"><a class="header" href="#configurable-key-assignments">Configurable Key Assignments</a></h3>
+<p><em>Since: nightly builds only</em></p>
+<p>The key assignments for copy mode are specified by the <code>copy_mode</code> <a href="config/key-tables.html">Key Table</a>.</p>
+<p>You may provide your own definition of this key table if you wish to customize it.
+There isn't a way to override portions of the key table, only to replace the entire table.</p>
+<p>The default configuration is equivalent to:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
+  key_tables = {
+    copy_mode = {
+      {key=&quot;c&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+      {key=&quot;g&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+      {key=&quot;q&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+
+      {key=&quot;h&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveLeft&quot;}},
+      {key=&quot;j&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveDown&quot;}},
+      {key=&quot;k&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveUp&quot;}},
+      {key=&quot;l&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveRight&quot;}},
+
+      {key=&quot;LeftArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveLeft&quot;}},
+      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveDown&quot;}},
+      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveUp&quot;}},
+      {key=&quot;RightArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveRight&quot;}},
+
+      {key=&quot;RightArrow&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
+      {key=&quot;f&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
+      {key=&quot;Tab&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
+      {key=&quot;w&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
+
+      {key=&quot;LeftArrow&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
+      {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
+      {key=&quot;Tab&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
+      {key=&quot;b&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
+
+      {key=&quot;0&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLine&quot;}},
+      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfNextLine&quot;}},
+      {key=&quot;$&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToEndOfLineContent&quot;}},
+      {key=&quot;$&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToEndOfLineContent&quot;}},
+
+      {key=&quot;m&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
+      {key=&quot;^&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
+      {key=&quot;^&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
+
+      {key=&quot; &quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;ToggleSelectionByCell&quot;}},
+      {key=&quot;v&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;ToggleSelectionByCell&quot;}},
+      {key=&quot;v&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Block&quot;}}},
+
+      {key=&quot;G&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackBottom&quot;}},
+      {key=&quot;G&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackBottom&quot;}},
+      {key=&quot;g&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackTop&quot;}},
+
+      {key=&quot;H&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportTop&quot;}},
+      {key=&quot;H&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportTop&quot;}},
+      {key=&quot;M&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportMiddle&quot;}},
+      {key=&quot;M&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportMiddle&quot;}},
+      {key=&quot;L&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportBottom&quot;}},
+      {key=&quot;L&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportBottom&quot;}},
+
+      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PageUp&quot;}},
+      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PageDown&quot;}},
+
+      {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PageUp&quot;}},
+      {key=&quot;f&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PageDown&quot;}},
+    }
+  },
+}
+</code></pre>
 
                     </main>
 
