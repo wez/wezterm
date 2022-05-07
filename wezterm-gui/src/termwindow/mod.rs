@@ -161,7 +161,7 @@ pub struct SemanticZoneCache {
 
 pub struct OverlayState {
     pub pane: Rc<dyn Pane>,
-    saved_key_table_state: KeyTableState,
+    key_table_state: KeyTableState,
 }
 
 #[derive(Default)]
@@ -2272,8 +2272,17 @@ impl TermWindow {
                         );
                         self.assign_overlay_for_pane(pane.pane_id(), search);
                     }
-                    self.key_table_state
-                        .activate("search_mode", None, replace_current, false);
+                    self.pane_state(pane.pane_id())
+                        .overlay
+                        .as_mut()
+                        .map(|overlay| {
+                            overlay.key_table_state.activate(
+                                "search_mode",
+                                None,
+                                replace_current,
+                                false,
+                            );
+                        });
                 }
             }
             QuickSelect => {
@@ -2311,8 +2320,17 @@ impl TermWindow {
                         );
                         self.assign_overlay_for_pane(pane.pane_id(), copy);
                     }
-                    self.key_table_state
-                        .activate("copy_mode", None, replace_current, false);
+                    self.pane_state(pane.pane_id())
+                        .overlay
+                        .as_mut()
+                        .map(|overlay| {
+                            overlay.key_table_state.activate(
+                                "copy_mode",
+                                None,
+                                replace_current,
+                                false,
+                            );
+                        });
                 }
             }
             AdjustPaneSize(direction, amount) => {
@@ -2815,13 +2833,8 @@ impl TermWindow {
                 return;
             }
         }
-        let mut key_table = None;
         if let Some(overlay) = self.tab_state(tab_id).overlay.take() {
-            key_table.replace(overlay.saved_key_table_state);
             Mux::get().unwrap().remove_pane(overlay.pane.pane_id());
-        }
-        if let Some(key_table) = key_table.take() {
-            self.key_table_state = key_table;
         }
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2833,7 +2846,6 @@ impl TermWindow {
     }
 
     fn cancel_overlay_for_pane(&mut self, pane_id: PaneId) {
-        let mut key_table = None;
         if let Some(overlay) = self.pane_state(pane_id).overlay.take() {
             // Ungh, when I built the CopyOverlay, its pane doesn't get
             // added to the mux and instead it reports the overlaid
@@ -2842,10 +2854,6 @@ impl TermWindow {
             if pane_id != overlay.pane.pane_id() {
                 Mux::get().unwrap().remove_pane(overlay.pane.pane_id());
             }
-            key_table.replace(overlay.saved_key_table_state);
-        }
-        if let Some(key_table) = key_table.take() {
-            self.key_table_state = key_table;
         }
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2860,7 +2868,7 @@ impl TermWindow {
         self.cancel_overlay_for_pane(pane_id);
         self.pane_state(pane_id).overlay.replace(OverlayState {
             pane,
-            saved_key_table_state: self.key_table_state.clone(),
+            key_table_state: KeyTableState::default(),
         });
         self.update_title();
     }
@@ -2869,7 +2877,7 @@ impl TermWindow {
         self.cancel_overlay_for_tab(tab_id, None);
         self.tab_state(tab_id).overlay.replace(OverlayState {
             pane: overlay,
-            saved_key_table_state: self.key_table_state.clone(),
+            key_table_state: KeyTableState::default(),
         });
         self.update_title();
     }

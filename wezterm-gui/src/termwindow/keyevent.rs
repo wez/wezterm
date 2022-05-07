@@ -82,9 +82,7 @@ impl KeyTableState {
                 return Some((entry, Some(name)));
             }
         }
-        input_map
-            .lookup_key(key, mods, None)
-            .map(|entry| (entry, None))
+        None
     }
 
     pub fn did_process_key(&mut self) {
@@ -148,6 +146,32 @@ impl super::TermWindow {
         key.encode_win32_input_mode()
     }
 
+    fn lookup_key(
+        &mut self,
+        pane: &Rc<dyn Pane>,
+        keycode: &KeyCode,
+        mods: Modifiers,
+    ) -> Option<(KeyTableEntry, Option<String>)> {
+        if let Some(overlay) = self.pane_state(pane.pane_id()).overlay.as_mut() {
+            if let Some((entry, table_name)) =
+                overlay
+                    .key_table_state
+                    .lookup_key(&self.input_map, keycode, mods)
+            {
+                return Some((entry, table_name.map(|s| s.to_string())));
+            }
+        }
+        if let Some((entry, table_name)) =
+            self.key_table_state
+                .lookup_key(&self.input_map, keycode, mods)
+        {
+            return Some((entry, table_name.map(|s| s.to_string())));
+        }
+        self.input_map
+            .lookup_key(keycode, mods, None)
+            .map(|entry| (entry, None))
+    }
+
     fn process_key(
         &mut self,
         pane: &Rc<dyn Pane>,
@@ -180,11 +204,9 @@ impl super::TermWindow {
         }
 
         if is_down {
-            if let Some((entry, table_name)) = self.key_table_state.lookup_key(
-                &self.input_map,
-                &keycode,
-                raw_modifiers | leader_mod,
-            ) {
+            if let Some((entry, table_name)) =
+                self.lookup_key(pane, &keycode, raw_modifiers | leader_mod)
+            {
                 if self.config.debug_key_events {
                     log::info!(
                         "{}{:?} {:?} -> perform {:?}",
