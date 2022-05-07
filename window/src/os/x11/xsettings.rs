@@ -7,6 +7,7 @@ use anyhow::Context;
 /// but otherwise it seems to parse the data from my 2021 gnome window environment.
 use bytes::Buf;
 use std::collections::BTreeMap;
+use xcb::x::Atom;
 
 pub type XSettingsMap = BTreeMap<String, XSetting>;
 
@@ -19,41 +20,38 @@ pub enum XSetting {
 
 fn read_xsettings_grabbed(
     conn: &xcb::Connection,
-    atom_xsettings_selection: xcb::Atom,
-    atom_xsettings_settings: xcb::Atom,
+    atom_xsettings_selection: Atom,
+    atom_xsettings_settings: Atom,
 ) -> anyhow::Result<XSettingsMap> {
-    let manager = xcb::get_selection_owner(&conn, atom_xsettings_selection)
-        .get_reply()?
+    let manager = conn
+        .wait_for_reply(conn.send_request(&xcb::x::GetSelectionOwner {
+            selection: atom_xsettings_selection,
+        }))?
         .owner();
 
-    let reply = xcb::xproto::get_property(
-        &conn,
-        false,
-        manager,
-        atom_xsettings_settings,
-        atom_xsettings_settings,
-        0,
-        u32::max_value(),
-    )
-    .get_reply()
-    .context("get_property")?;
-
-    anyhow::ensure!(reply.format() == 8);
+    let reply = conn
+        .wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+            delete: false,
+            window: manager,
+            property: atom_xsettings_settings,
+            r#type: atom_xsettings_settings,
+            long_offset: 0,
+            long_length: u32::max_value(),
+        }))
+        .context("get_property")?;
 
     parse_xsettings(reply.value::<u8>())
 }
 
 pub fn read_xsettings(
     conn: &xcb::Connection,
-    atom_xsettings_selection: xcb::Atom,
-    atom_xsettings_settings: xcb::Atom,
+    atom_xsettings_selection: Atom,
+    atom_xsettings_settings: Atom,
 ) -> anyhow::Result<XSettingsMap> {
-    xcb::xproto::grab_server(conn)
-        .request_check()
+    conn.check_request(conn.send_request_checked(&xcb::x::GrabServer {}))
         .context("grab_server")?;
     let res = read_xsettings_grabbed(conn, atom_xsettings_selection, atom_xsettings_settings);
-    xcb::xproto::ungrab_server(conn)
-        .request_check()
+    conn.check_request(conn.send_request_checked(&xcb::x::UngrabServer {}))
         .context("ungrab_server")?;
     res
 }

@@ -14,37 +14,41 @@ use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
+use xcb::x::Atom;
 
 pub struct XConnection {
-    pub conn: xcb_util::ewmh::Connection,
+    pub conn: xcb::Connection,
     default_dpi: RefCell<f64>,
     pub(crate) xsettings: RefCell<XSettingsMap>,
     pub screen_num: i32,
-    pub root: xcb::xproto::Window,
+    pub root: xcb::x::Window,
     pub keyboard: Keyboard,
     pub kbd_ev: u8,
-    pub atom_protocols: xcb::Atom,
-    pub cursor_font_id: xcb::ffi::xcb_font_t,
-    pub atom_delete: xcb::Atom,
-    pub atom_utf8_string: xcb::Atom,
-    pub atom_xsel_data: xcb::Atom,
-    pub atom_targets: xcb::Atom,
-    pub atom_clipboard: xcb::Atom,
-    pub atom_gtk_edge_constraints: xcb::Atom,
-    pub atom_xsettings_selection: xcb::Atom,
-    pub atom_xsettings_settings: xcb::Atom,
-    pub atom_manager: xcb::Atom,
-    pub atom_state_maximized_vert: xcb::Atom,
-    pub atom_state_maximized_horz: xcb::Atom,
-    pub atom_state_hidden: xcb::Atom,
-    pub atom_state_fullscreen: xcb::Atom,
-    pub atom_net_wm_state: xcb::Atom,
-    keysyms: *mut xcb_key_symbols_t,
+    pub atom_protocols: Atom,
+    pub cursor_font_id: xcb::x::Font,
+    pub atom_delete: Atom,
+    pub atom_utf8_string: Atom,
+    pub atom_xsel_data: Atom,
+    pub atom_targets: Atom,
+    pub atom_clipboard: Atom,
+    pub atom_gtk_edge_constraints: Atom,
+    pub atom_xsettings_selection: Atom,
+    pub atom_xsettings_settings: Atom,
+    pub atom_manager: Atom,
+    pub atom_state_maximized_vert: Atom,
+    pub atom_state_maximized_horz: Atom,
+    pub atom_state_hidden: Atom,
+    pub atom_state_fullscreen: Atom,
+    pub atom_net_wm_state: Atom,
+    pub atom_motif_wm_hints: Atom,
+    pub atom_net_wm_pid: Atom,
+    pub atom_net_wm_name: Atom,
+    pub atom_net_wm_icon: Atom,
+    pub atom_net_move_resize_window: Atom,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
-    pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
+    pub(crate) windows: RefCell<HashMap<xcb::x::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
-    pub(crate) visual: xcb::xproto::Visualtype,
+    pub(crate) visual: xcb::x::Visualtype,
     pub(crate) depth: u8,
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) ime: RefCell<std::pin::Pin<Box<xcb_imdkit::ImeClient>>>,
@@ -84,78 +88,26 @@ impl Source for XConnection {
     }
 }
 
-fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window> {
-    match event.response_type() & 0x7f {
-        xcb::EXPOSE => {
-            let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(event) };
-            Some(expose.window())
-        }
-        xcb::CONFIGURE_NOTIFY => {
-            let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(cfg.window())
-        }
-        xcb::KEY_PRESS | xcb::KEY_RELEASE => {
-            let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-            Some(key_press.event())
-        }
-        xcb::MOTION_NOTIFY => {
-            let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(motion.event())
-        }
-        xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
-            let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
-            Some(button_press.event())
-        }
-        xcb::CLIENT_MESSAGE => {
-            let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.window())
-        }
-        xcb::DESTROY_NOTIFY => {
-            let msg: &xcb::DestroyNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.window())
-        }
-        xcb::SELECTION_CLEAR => {
-            let msg: &xcb::SelectionClearEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.owner())
-        }
-        xcb::PROPERTY_NOTIFY => {
-            let msg: &xcb::PropertyNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.window())
-        }
-        xcb::SELECTION_NOTIFY => {
-            let msg: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.requestor())
-        }
-        xcb::SELECTION_REQUEST => {
-            let msg: &xcb::SelectionRequestEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.owner())
-        }
-        xcb::FOCUS_IN => {
-            let msg: &xcb::FocusInEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.event())
-        }
-        xcb::FOCUS_OUT => {
-            let msg: &xcb::FocusOutEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.event())
-        }
-        xcb::LEAVE_NOTIFY => {
-            let msg: &xcb::LeaveNotifyEvent = unsafe { xcb::cast_event(event) };
-            Some(msg.event())
-        }
+fn window_id_from_event(event: &xcb::Event) -> Option<xcb::x::Window> {
+    match event {
+        xcb::Event::X(xcb::x::Event::Expose(e)) => Some(e.window()),
+        xcb::Event::X(xcb::x::Event::ConfigureNotify(e)) => Some(e.window()),
+        xcb::Event::X(xcb::x::Event::KeyPress(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::KeyRelease(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::MotionNotify(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::ButtonPress(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::ButtonRelease(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::ClientMessage(e)) => Some(e.window()),
+        xcb::Event::X(xcb::x::Event::DestroyNotify(e)) => Some(e.window()),
+        xcb::Event::X(xcb::x::Event::SelectionClear(e)) => Some(e.owner()),
+        xcb::Event::X(xcb::x::Event::SelectionNotify(e)) => Some(e.requestor()),
+        xcb::Event::X(xcb::x::Event::SelectionRequest(e)) => Some(e.owner()),
+        xcb::Event::X(xcb::x::Event::PropertyNotify(e)) => Some(e.window()),
+        xcb::Event::X(xcb::x::Event::FocusIn(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::FocusOut(e)) => Some(e.event()),
+        xcb::Event::X(xcb::x::Event::LeaveNotify(e)) => Some(e.event()),
         _ => None,
     }
-}
-
-fn connect_with_xlib_display() -> anyhow::Result<(xcb::Connection, i32)> {
-    let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
-    anyhow::ensure!(!display.is_null(), "failed to open X11 display");
-    let default_screen = unsafe { x11::xlib::XDefaultScreen(display) };
-
-    // Note: we don't use xcb::Connection::connect_with_xlib_display because it
-    // asserts rather than reports an error if it cannot connect to the server!
-    let conn = unsafe { xcb::Connection::new_from_xlib_display(display) };
-    conn.set_event_queue_owner(xcb::EventQueueOwner::Xcb);
-    Ok((conn, default_screen))
 }
 
 impl ConnectionOps for XConnection {
@@ -189,7 +141,7 @@ impl ConnectionOps for XConnection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        self.conn.flush();
+        self.conn.flush()?;
 
         const TOK_XCB: usize = 0xffff_fffc;
         const TOK_SPAWN: usize = 0xffff_fffd;
@@ -240,7 +192,7 @@ impl ConnectionOps for XConnection {
     }
 
     fn beep(&self) {
-        xcb::xproto::bell(&self.conn, 0);
+        self.conn.send_request(&xcb::x::Bell { percent: 0 });
     }
 }
 
@@ -284,34 +236,30 @@ impl XConnection {
     }
 
     fn process_queued_xcb(&self) -> anyhow::Result<()> {
-        match self.conn.poll_for_event() {
-            None => match self.conn.has_error() {
-                Ok(_) => (),
-                Err(err) => {
-                    bail!("X11 connection is broken: {:?} {}", err, err.to_string());
-                }
-            },
-            Some(event) => {
-                if let Err(err) = self.process_xcb_event_ime(&event) {
-                    return Err(err);
-                }
+        if let Some(event) = self
+            .conn
+            .poll_for_event()
+            .context("X11 connection is broken")?
+        {
+            if let Err(err) = self.process_xcb_event_ime(&event) {
+                return Err(err);
             }
         }
-        self.conn.flush();
+        self.conn.flush()?;
 
         loop {
-            match self.conn.poll_for_queued_event() {
+            match self.conn.poll_for_queued_event()? {
                 None => {
-                    self.conn.flush();
+                    self.conn.flush()?;
                     return Ok(());
                 }
                 Some(event) => self.process_xcb_event_ime(&event)?,
             }
-            self.conn.flush();
+            self.conn.flush()?;
         }
     }
 
-    fn process_xcb_event_ime(&self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
+    fn process_xcb_event_ime(&self, event: &xcb::Event) -> anyhow::Result<()> {
         // check for previous errors produced by the IME forward_event callback
         self.ime_process_event_result.replace(Ok(()))?;
 
@@ -322,25 +270,22 @@ impl XConnection {
         }
     }
 
-    fn process_xcb_event(&self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
+    fn process_xcb_event(&self, event: &xcb::Event) -> anyhow::Result<()> {
         if let Some(window_id) = window_id_from_event(event) {
             self.process_window_event(window_id, event)?;
-        } else {
-            let r = event.response_type() & 0x7f;
-            if r == self.kbd_ev {
-                // key press/release are not processed here.
-                // xkbcommon depends on those events in order to:
-                //    - update modifiers state
-                //    - update keymap/state on keyboard changes
-                self.keyboard.process_xkb_event(&self.conn, event)?;
-            }
+        } else if matches!(event, xcb::Event::Xkb(_)) {
+            // key press/release are not processed here.
+            // xkbcommon depends on those events in order to:
+            //    - update modifiers state
+            //    - update keymap/state on keyboard changes
+            self.keyboard.process_xkb_event(&self.conn, event)?;
         }
         Ok(())
     }
 
     pub(crate) fn window_by_id(
         &self,
-        window_id: xcb::xproto::Window,
+        window_id: xcb::x::Window,
     ) -> Option<Arc<Mutex<XWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Arc::clone)
     }
@@ -356,8 +301,8 @@ impl XConnection {
 
     fn process_window_event(
         &self,
-        window_id: xcb::xproto::Window,
-        event: &xcb::GenericEvent,
+        window_id: xcb::x::Window,
+        event: &xcb::Event,
     ) -> anyhow::Result<()> {
         if let Some(window) = self.window_by_id(window_id) {
             let mut inner = window.lock().unwrap();
@@ -366,66 +311,48 @@ impl XConnection {
         Ok(())
     }
 
+    fn intern_atom(conn: &xcb::Connection, name: &str) -> anyhow::Result<Atom> {
+        let cookie = conn.send_request(&xcb::x::InternAtom {
+            only_if_exists: false,
+            name: name.as_bytes(),
+        });
+        let reply = conn.wait_for_reply(cookie)?;
+        Ok(reply.atom())
+    }
+
     pub(crate) fn create_new() -> anyhow::Result<Rc<XConnection>> {
-        let (conn, screen_num) = connect_with_xlib_display()?;
-        let conn = xcb_util::ewmh::Connection::connect(conn)
-            .map_err(|_| anyhow!("failed to init ewmh"))?;
+        let (conn, screen_num) = xcb::Connection::connect_with_xlib_display_and_extensions(
+            &[xcb::Extension::Xkb],
+            &[
+                xcb::Extension::RandR,
+                xcb::Extension::Render,
+                xcb::Extension::Xkb,
+            ],
+        )?;
 
-        let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
-            .get_reply()?
-            .atom();
-        let atom_delete = xcb::intern_atom(&conn, false, "WM_DELETE_WINDOW")
-            .get_reply()?
-            .atom();
-        let atom_utf8_string = xcb::intern_atom(&conn, false, "UTF8_STRING")
-            .get_reply()?
-            .atom();
-        let atom_xsel_data = xcb::intern_atom(&conn, false, "XSEL_DATA")
-            .get_reply()?
-            .atom();
-        let atom_targets = xcb::intern_atom(&conn, false, "TARGETS")
-            .get_reply()?
-            .atom();
-        let atom_clipboard = xcb::intern_atom(&conn, false, "CLIPBOARD")
-            .get_reply()?
-            .atom();
-        let atom_gtk_edge_constraints = xcb::intern_atom(&conn, false, "_GTK_EDGE_CONSTRAINTS")
-            .get_reply()?
-            .atom();
+        let atom_protocols = Self::intern_atom(&conn, "WM_PROTOCOLS")?;
+        let atom_delete = Self::intern_atom(&conn, "WM_DELETE_WINDOW")?;
+        let atom_utf8_string = Self::intern_atom(&conn, "UTF8_STRING")?;
+        let atom_xsel_data = Self::intern_atom(&conn, "XSEL_DATA")?;
+        let atom_targets = Self::intern_atom(&conn, "TARGETS")?;
+        let atom_clipboard = Self::intern_atom(&conn, "CLIPBOARD")?;
+        let atom_gtk_edge_constraints = Self::intern_atom(&conn, "_GTK_EDGE_CONSTRAINTS")?;
         let atom_xsettings_selection =
-            xcb::intern_atom(&conn, false, &format!("_XSETTINGS_S{}", screen_num))
-                .get_reply()?
-                .atom();
-        let atom_xsettings_settings = xcb::intern_atom(&conn, false, "_XSETTINGS_SETTINGS")
-            .get_reply()?
-            .atom();
-        let atom_manager = xcb::intern_atom(&conn, false, "MANAGER")
-            .get_reply()?
-            .atom();
-        let atom_state_maximized_vert =
-            xcb::intern_atom(&conn, false, "_NET_WM_STATE_MAXIMIZED_VERT")
-                .get_reply()?
-                .atom();
-        let atom_state_maximized_horz =
-            xcb::intern_atom(&conn, false, "_NET_WM_STATE_MAXIMIZED_HORZ")
-                .get_reply()?
-                .atom();
-        let atom_state_hidden = xcb::intern_atom(&conn, false, "_NET_WM_STATE_HIDDEN")
-            .get_reply()?
-            .atom();
-        let atom_state_fullscreen = xcb::intern_atom(&conn, false, "_NET_WM_STATE_FULLSCREEN")
-            .get_reply()?
-            .atom();
-        let atom_net_wm_state = xcb::intern_atom(&conn, false, "_NET_WM_STATE")
-            .get_reply()?
-            .atom();
+            Self::intern_atom(&conn, &format!("_XSETTINGS_S{}", screen_num))?;
+        let atom_xsettings_settings = Self::intern_atom(&conn, "_XSETTINGS_SETTINGS")?;
+        let atom_manager = Self::intern_atom(&conn, "MANAGER")?;
+        let atom_state_maximized_vert = Self::intern_atom(&conn, "_NET_WM_STATE_MAXIMIZED_VERT")?;
+        let atom_state_maximized_horz = Self::intern_atom(&conn, "_NET_WM_STATE_MAXIMIZED_HORZ")?;
+        let atom_state_hidden = Self::intern_atom(&conn, "_NET_WM_STATE_HIDDEN")?;
+        let atom_state_fullscreen = Self::intern_atom(&conn, "_NET_WM_STATE_FULLSCREEN")?;
+        let atom_net_wm_state = Self::intern_atom(&conn, "_NET_WM_STATE")?;
+        let atom_motif_wm_hints = Self::intern_atom(&conn, "_MOTIF_WM_HINTS")?;
+        let atom_net_wm_pid = Self::intern_atom(&conn, "_NET_WM_PID")?;
+        let atom_net_wm_name = Self::intern_atom(&conn, "_NET_WM_NAME")?;
+        let atom_net_wm_icon = Self::intern_atom(&conn, "_NET_WM_ICON")?;
+        let atom_net_move_resize_window = Self::intern_atom(&conn, "_NET_MOVERESIZE_WINDOW")?;
 
-        let has_randr = conn
-            .get_extension_data(xcb::randr::id())
-            .map(|info| info.present())
-            .unwrap_or(false);
-
-        let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
+        let has_randr = conn.active_extensions().any(|e| e == xcb::Extension::RandR);
 
         let screen = conn
             .get_setup()
@@ -438,7 +365,7 @@ impl XConnection {
             let depth_bpp = depth.depth();
             if depth_bpp == 24 || depth_bpp == 32 {
                 for vis in depth.visuals() {
-                    if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as u8
+                    if vis.class() == xcb::x::VisualClass::TrueColor
                         && vis.bits_per_rgb_value() >= 8
                     {
                         visuals.push((depth_bpp, vis));
@@ -451,9 +378,10 @@ impl XConnection {
         }
         visuals.sort_by(|(a_depth, _), (b_depth, _)| b_depth.cmp(&a_depth));
         let (depth, visual) = visuals[0];
+        let visual = *visual;
 
         log::trace!(
-            "picked depth {} visual id:0x{:x}, class:{}, bits_per_rgb_value:{}, \
+            "picked depth {} visual id:0x{:x}, class:{:?}, bits_per_rgb_value:{}, \
                     colormap entries:{}, masks: r=0x{:x},g=0x{:x},b=0x{:x}",
             depth,
             visual.visual_id(),
@@ -468,9 +396,11 @@ impl XConnection {
 
         let cursor_font_id = conn.generate_id();
         let cursor_font_name = "cursor";
-        xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name)
-            .request_check()
-            .context("xcb::open_font_checked")?;
+        conn.check_request(conn.send_request_checked(&xcb::x::OpenFont {
+            fid: cursor_font_id,
+            name: cursor_font_name.as_bytes(),
+        }))
+        .context("OpenFont")?;
 
         let root = screen.root();
 
@@ -517,7 +447,11 @@ impl XConnection {
             atom_state_hidden,
             atom_state_fullscreen,
             atom_net_wm_state,
-            keysyms,
+            atom_motif_wm_hints,
+            atom_net_wm_pid,
+            atom_net_wm_name,
+            atom_net_move_resize_window,
+            atom_net_wm_icon,
             keyboard,
             kbd_ev,
             atom_utf8_string,
@@ -590,19 +524,15 @@ impl XConnection {
         Ok(conn)
     }
 
-    pub fn ewmh_conn(&self) -> &xcb_util::ewmh::Connection {
-        &self.conn
-    }
-
     pub fn conn(&self) -> &xcb::Connection {
-        &*self.conn
+        &self.conn
     }
 
     pub fn screen_num(&self) -> i32 {
         self.screen_num
     }
 
-    pub fn atom_delete(&self) -> xcb::Atom {
+    pub fn atom_delete(&self) -> Atom {
         self.atom_delete
     }
 
@@ -610,7 +540,7 @@ impl XConnection {
         R,
         F: FnOnce(&mut XWindowInner) -> anyhow::Result<R> + Send + 'static,
     >(
-        window: xcb::xproto::Window,
+        window: xcb::x::Window,
         f: F,
     ) -> promise::Future<R>
     where
@@ -628,13 +558,5 @@ impl XConnection {
         .detach();
 
         future
-    }
-}
-
-impl Drop for XConnection {
-    fn drop(&mut self) {
-        unsafe {
-            xcb_key_symbols_free(self.keysyms);
-        }
     }
 }

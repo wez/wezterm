@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::collections::HashMap;
 
 /// Parses:
@@ -5,18 +6,18 @@ use std::collections::HashMap;
 /// RESOURCE_MANAGER(STRING) = "Xft.dpi:\t96\nXft.hinting:\t1\nXft.hintstyle:\thintslight\nXft.antialias:\t1\nXft.rgba:\tnone\nXcursor.size:\t24\nXcursor.theme:\tAdwaita\n"
 pub fn parse_root_resource_manager(
     conn: &xcb::Connection,
-    root: xcb::xproto::Window,
+    root: xcb::x::Window,
 ) -> anyhow::Result<HashMap<String, String>> {
-    let reply = xcb::xproto::get_property(
-        conn,
-        false,
-        root,
-        xcb::ffi::XCB_ATOM_RESOURCE_MANAGER,
-        xcb::xproto::ATOM_STRING,
-        0,
-        1024 * 1024,
-    )
-    .get_reply()?;
+    let reply = conn
+        .wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+            delete: false,
+            window: root,
+            property: xcb::x::ATOM_RESOURCE_MANAGER,
+            r#type: xcb::x::ATOM_STRING,
+            long_offset: 0,
+            long_length: 1024 * 1024,
+        }))
+        .context("GetProperty ATOM_RESOURCE_MANAGER")?;
 
     let text = String::from_utf8_lossy(reply.value::<u8>());
     let mut map = HashMap::new();

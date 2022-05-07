@@ -165,28 +165,9 @@ impl Keyboard {
     }
 
     pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
-        connection.prefetch_extension_data(xcb::xkb::id());
-
-        let first_ev = connection
-            .get_extension_data(xcb::xkb::id())
-            .map(|r| r.first_event())
-            .ok_or_else(|| anyhow!("could not get xkb extension data"))?;
-
-        {
-            let cookie = xcb::xkb::use_extension(
-                &connection,
-                xkb::x11::MIN_MAJOR_XKB_VERSION,
-                xkb::x11::MIN_MINOR_XKB_VERSION,
-            );
-            let r = cookie.get_reply()?;
-
-            ensure!(
-                r.supported(),
-                "required xcb-xkb-{}-{} is not supported",
-                xkb::x11::MIN_MAJOR_XKB_VERSION,
-                xkb::x11::MIN_MINOR_XKB_VERSION
-            );
-        }
+        let first_ev = xcb::xkb::get_extension_data(connection)
+            .ok_or_else(|| anyhow!("could not get xkb extension data"))?
+            .first_event;
 
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let device_id = xkb::x11::get_core_keyboard_device_id(&connection);
@@ -212,31 +193,28 @@ impl Keyboard {
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         {
-            let map_parts = xcb::xkb::MAP_PART_KEY_TYPES
-                | xcb::xkb::MAP_PART_KEY_SYMS
-                | xcb::xkb::MAP_PART_MODIFIER_MAP
-                | xcb::xkb::MAP_PART_EXPLICIT_COMPONENTS
-                | xcb::xkb::MAP_PART_KEY_ACTIONS
-                | xcb::xkb::MAP_PART_KEY_BEHAVIORS
-                | xcb::xkb::MAP_PART_VIRTUAL_MODS
-                | xcb::xkb::MAP_PART_VIRTUAL_MOD_MAP;
+            let map_parts = xcb::xkb::MapPart::KEY_TYPES
+                | xcb::xkb::MapPart::KEY_SYMS
+                | xcb::xkb::MapPart::MODIFIER_MAP
+                | xcb::xkb::MapPart::EXPLICIT_COMPONENTS
+                | xcb::xkb::MapPart::KEY_ACTIONS
+                | xcb::xkb::MapPart::KEY_BEHAVIORS
+                | xcb::xkb::MapPart::VIRTUAL_MODS
+                | xcb::xkb::MapPart::VIRTUAL_MOD_MAP;
 
-            let events = xcb::xkb::EVENT_TYPE_NEW_KEYBOARD_NOTIFY
-                | xcb::xkb::EVENT_TYPE_MAP_NOTIFY
-                | xcb::xkb::EVENT_TYPE_STATE_NOTIFY;
+            let events = xcb::xkb::EventType::NEW_KEYBOARD_NOTIFY
+                | xcb::xkb::EventType::MAP_NOTIFY
+                | xcb::xkb::EventType::STATE_NOTIFY;
 
-            let cookie = xcb::xkb::select_events_checked(
-                &connection,
-                device_id as u16,
-                events as u16,
-                0,
-                events as u16,
-                map_parts as u16,
-                map_parts as u16,
-                None,
-            );
-
-            cookie.request_check()?;
+            connection.check_request(connection.send_request_checked(&xcb::xkb::SelectEvents {
+                device_spec: device_id as u16,
+                affect_which: events,
+                clear: xcb::xkb::EventType::empty(),
+                select_all: events,
+                affect_map: map_parts,
+                map: map_parts,
+                details: &[],
+            }))?;
         }
 
         let phys_code_map = build_physkeycode_map(&keymap);
@@ -269,11 +247,22 @@ impl Keyboard {
         self.process_key_event_impl(code + 8, pressed, events, want_repeat)
     }
 
-    pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent, events: &mut WindowEventSender) {
-        let pressed = (xcb_ev.response_type() & !0x80) == xcb::KEY_PRESS;
-
+    pub fn process_key_press_event(
+        &self,
+        xcb_ev: &xcb::x::KeyPressEvent,
+        events: &mut WindowEventSender,
+    ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, pressed, events, false);
+        self.process_key_event_impl(xcode, true, events, false);
+    }
+
+    pub fn process_key_release_event(
+        &self,
+        xcb_ev: &xcb::x::KeyReleaseEvent,
+        events: &mut WindowEventSender,
+    ) {
+        let xcode = xkb::Keycode::from(xcb_ev.detail());
+        self.process_key_event_impl(xcode, false, events, false);
     }
 
     fn process_key_event_impl(
@@ -427,20 +416,18 @@ impl Keyboard {
     pub fn process_xkb_event(
         &self,
         connection: &xcb::Connection,
-        event: &xcb::GenericEvent,
+        event: &xcb::Event,
     ) -> anyhow::Result<()> {
-        let xkb_ev: &XkbGenericEvent = unsafe { xcb::cast_event(&event) };
-
-        if xkb_ev.device_id() == self.get_device_id() as u8 {
-            match xkb_ev.xkb_type() {
-                xcb::xkb::STATE_NOTIFY => {
-                    self.update_state(unsafe { xcb::cast_event(&event) });
-                }
-                xcb::xkb::MAP_NOTIFY | xcb::xkb::NEW_KEYBOARD_NOTIFY => {
-                    self.update_keymap(connection)?;
-                }
-                _ => {}
+        match event {
+            xcb::Event::Xkb(xcb::xkb::Event::StateNotify(e)) => {
+                self.update_state(e);
             }
+            xcb::Event::Xkb(
+                xcb::xkb::Event::MapNotify(_) | xcb::xkb::Event::NewKeyboardNotify(_),
+            ) => {
+                self.update_keymap(connection)?;
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -464,12 +451,12 @@ impl Keyboard {
 
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
         self.state.borrow_mut().update_mask(
-            xkb::ModMask::from(ev.base_mods()),
-            xkb::ModMask::from(ev.latched_mods()),
-            xkb::ModMask::from(ev.locked_mods()),
+            xkb::ModMask::from(ev.base_mods().bits()),
+            xkb::ModMask::from(ev.latched_mods().bits()),
+            xkb::ModMask::from(ev.locked_mods().bits()),
             ev.base_group() as xkb::LayoutIndex,
             ev.latched_group() as xkb::LayoutIndex,
-            xkb::LayoutIndex::from(ev.locked_group()),
+            xkb::LayoutIndex::from(ev.locked_group() as u32),
         );
     }
 
@@ -504,31 +491,6 @@ fn query_lc_ctype() -> anyhow::Result<&'static CStr> {
     let ptr = unsafe { libc::setlocale(libc::LC_CTYPE, std::ptr::null()) };
     ensure!(!ptr.is_null(), "failed to query locale");
     unsafe { Ok(CStr::from_ptr(ptr)) }
-}
-
-/// struct that has fields common to the 3 different xkb events
-/// (StateNotify, NewKeyboardNotify, MapNotify)
-#[repr(C)]
-struct xcb_xkb_generic_event_t {
-    response_type: u8,
-    xkb_type: u8,
-    sequence: u16,
-    time: xcb::Timestamp,
-    device_id: u8,
-}
-
-struct XkbGenericEvent {
-    base: xcb::Event<xcb_xkb_generic_event_t>,
-}
-
-impl XkbGenericEvent {
-    pub fn xkb_type(&self) -> u8 {
-        unsafe { (*self.base.ptr).xkb_type }
-    }
-
-    pub fn device_id(&self) -> u8 {
-        unsafe { (*self.base.ptr).device_id }
-    }
 }
 
 fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<xkb::Keycode, PhysKeyCode> {

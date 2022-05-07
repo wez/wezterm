@@ -3090,6 +3090,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b45c49fc4f91f35bae654f85ebb3a44d60ac64f11b3166ffa609def390c732d8"
 
 [[package]]
+name = "quick-xml"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8533f14c8382aaad0d592c812ac3b826162128b65662331e1127b45c3d18536b"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5043,9 +5052,8 @@ dependencies = [
  "windows",
  "winreg",
  "x11",
- "xcb 0.9.0",
+ "xcb 1.1.1",
  "xcb-imdkit",
- "xcb-util",
  "xkbcommon",
 ]
 
@@ -5151,36 +5159,26 @@ dependencies = [
 
 [[package]]
 name = "xcb"
-version = "0.9.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62056f63138b39116f82a540c983cc11f1c90cd70b3d492a70c25eaa50bd22a6"
+checksum = "b127bf5bfe9dbb39118d6567e3773d4bbc795411a8e1ef7b7e056bccac0011a9"
 dependencies = [
+ "bitflags",
  "libc",
- "log",
+ "quick-xml",
  "x11",
 ]
 
 [[package]]
 name = "xcb-imdkit"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "677422b629e6ad41bcf5493f246001be38dc00ea9f8068506fdc991e062f6981"
+version = "0.2.0"
+source = "git+https://github.com/wez/xcb-imdkit-rs.git?rev=7498cce1085ec23535f1b8d6729407485bf66c00#7498cce1085ec23535f1b8d6729407485bf66c00"
 dependencies = [
  "bitflags",
  "cc",
  "lazy_static",
  "pkg-config",
- "xcb 0.9.0",
-]
-
-[[package]]
-name = "xcb-util"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43893e47f27bf7d81d489feef3a0e34a457e90bc314b7e74ad9bb3980e4c1c48"
-dependencies = [
- "libc",
- "xcb 0.9.0",
+ "xcb 1.1.1",
 ]
 
 [[package]]
@@ -5194,12 +5192,12 @@ dependencies = [
 
 [[package]]
 name = "xkbcommon"
-version = "0.5.0"
-source = "git+https://github.com/wez/xkbcommon-rs.git?rev=5cc8f233ac2b8bfa0d7a26fd981b77e68c3f2219#5cc8f233ac2b8bfa0d7a26fd981b77e68c3f2219"
+version = "0.6.0"
+source = "git+https://github.com/wez/xkbcommon-rs.git?rev=69a29877e99369b4ec74703d3193b6dd694145e9#69a29877e99369b4ec74703d3193b6dd694145e9"
 dependencies = [
  "libc",
  "memmap",
- "xcb 0.9.0",
+ "xcb 1.1.1",
 ]
 
 [[package]]

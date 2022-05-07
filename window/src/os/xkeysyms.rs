@@ -2,22 +2,19 @@
 
 use crate::{KeyCode, Modifiers};
 
-pub fn modifiers_from_state(state: u16) -> Modifiers {
-    use xcb::xproto::*;
-
+pub fn modifiers_from_state(state: u32) -> Modifiers {
     let mut mods = Modifiers::default();
-    let state = u32::from(state);
 
-    if state & MOD_MASK_SHIFT != 0 {
+    if (state & xcb::x::ModMask::SHIFT.bits()) != 0 {
         mods |= Modifiers::SHIFT;
     }
-    if state & MOD_MASK_CONTROL != 0 {
+    if (state & xcb::x::ModMask::CONTROL.bits()) != 0 {
         mods |= Modifiers::CTRL;
     }
-    if state & MOD_MASK_1 != 0 {
+    if (state & xcb::x::ModMask::N1.bits()) != 0 {
         mods |= Modifiers::ALT;
     }
-    if state & MOD_MASK_4 != 0 {
+    if (state & xcb::x::ModMask::N4.bits()) != 0 {
         mods |= Modifiers::SUPER;
     }
 

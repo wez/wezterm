@@ -316,8 +316,10 @@ impl WindowOps for Window {
     }
 
     fn set_text_cursor_position(&self, cursor: Rect) {
-        if let Self::X11(x) = self {
-            x.set_text_cursor_position(cursor);
+        match self {
+            Self::X11(x) => x.set_text_cursor_position(cursor),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(_) => {}
         }
     }
 

@@ -1,3 +1,4 @@
+use crate::os::x11::xcb_util::*;
 use crate::x11::XConnection;
 use crate::MouseCursor;
 use anyhow::{ensure, Context};
@@ -9,17 +10,26 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
-use xcb::ffi::xcb_cursor_t;
+use xcb::x::Cursor;
+use xcb::Xid;
+
+// X11 classic Cursor glyphs
+pub const HAND1: u16 = 58;
+pub const SB_H_DOUBLE_ARROW: u16 = 108;
+pub const SB_V_DOUBLE_ARROW: u16 = 116;
+pub const TOP_LEFT_ARROW: u16 = 132;
+pub const TOP_LEFT_CORNER: u16 = 134;
+pub const XTERM: u16 = 152;
 
 pub struct XcbCursor {
-    pub id: xcb_cursor_t,
+    pub id: Cursor,
     pub conn: Weak<XConnection>,
 }
 
 impl Drop for XcbCursor {
     fn drop(&mut self) {
         if let Some(conn) = self.conn.upgrade() {
-            xcb::free_cursor(&conn.conn, self.id);
+            conn.send_request(&xcb::x::FreeCursor { cursor: self.id });
         }
     }
 }
@@ -126,18 +136,14 @@ impl CursorInfo {
         let mut pict_format_id = None;
         // If we know the theme to use, then we need the render extension
         // if we are to be able to load the cursor
-        let has_render = unsafe {
-            conn.get_extension_data(&mut xcb::ffi::render::xcb_render_id)
-                .map_or(false, |ext| ext.present())
-        };
+        let has_render = conn
+            .active_extensions()
+            .any(|e| e == xcb::Extension::Render);
         if has_render {
-            if let Ok(vers) = xcb::render::query_version(
-                conn.conn(),
-                xcb::ffi::render::XCB_RENDER_MAJOR_VERSION,
-                xcb::ffi::render::XCB_RENDER_MINOR_VERSION,
-            )
-            .get_reply()
-            {
+            if let Ok(vers) = conn.wait_for_reply(conn.send_request(&xcb::render::QueryVersion {
+                client_major_version: xcb::render::MAJOR_VERSION,
+                client_minor_version: xcb::render::MINOR_VERSION,
+            })) {
                 // 0.5 and later have the required support
                 if (vers.major_version(), vers.minor_version()) >= (0, 5) {
                     size.replace(cursor_size(&config.xcursor_size, &*conn.xrm.borrow()));
@@ -148,14 +154,16 @@ impl CursorInfo {
                         .or_else(|| conn.xrm.borrow().get("Xcursor.theme").cloned());
 
                     // Locate the Pictformat corresponding to ARGB32
-                    if let Ok(formats) = xcb::render::query_pict_formats(conn.conn()).get_reply() {
+                    if let Ok(formats) =
+                        conn.wait_for_reply(conn.send_request(&xcb::render::QueryPictFormats {}))
+                    {
                         for fmt in formats.formats() {
                             if fmt.depth() == 32 {
                                 let direct = fmt.direct();
-                                if direct.alpha_shift() == 24
-                                    && direct.red_shift() == 16
-                                    && direct.green_shift() == 8
-                                    && direct.blue_shift() == 0
+                                if direct.alpha_shift == 24
+                                    && direct.red_shift == 16
+                                    && direct.green_shift == 8
+                                    && direct.blue_shift == 0
                                 {
                                     pict_format_id.replace(fmt.id());
                                     break;
@@ -186,7 +194,7 @@ impl CursorInfo {
 
     pub fn set_cursor(
         &mut self,
-        window_id: xcb::xproto::Window,
+        window_id: xcb::x::Window,
         cursor: Option<MouseCursor>,
     ) -> anyhow::Result<()> {
         if cursor == self.cursor {
@@ -203,79 +211,81 @@ impl CursorInfo {
             },
         };
 
-        xcb::change_window_attributes(&conn, window_id, &[(xcb::ffi::XCB_CW_CURSOR, cursor_id)]);
+        conn.send_request(&xcb::x::ChangeWindowAttributes {
+            window: window_id,
+            value_list: &[xcb::x::Cw::Cursor(cursor_id)],
+        });
 
         self.cursor = cursor;
 
         Ok(())
     }
 
-    fn create_blank(&mut self, conn: &Rc<XConnection>) -> anyhow::Result<u32> {
+    fn create_blank(&mut self, conn: &Rc<XConnection>) -> anyhow::Result<Cursor> {
         let mut pixels = [0u8; 4];
 
-        let image = unsafe {
-            xcb_util::ffi::image::xcb_image_create_native(
-                conn.conn().get_raw_conn(),
-                1,
-                1,
-                xcb::xproto::IMAGE_FORMAT_Z_PIXMAP,
-                32,
-                std::ptr::null_mut(),
-                pixels.len() as u32,
-                pixels.as_mut_ptr(),
-            )
-        };
-        ensure!(!image.is_null(), "failed to create native image");
+        let image = XcbImage::create_native(
+            conn,
+            1,
+            1,
+            xcb::x::ImageFormat::ZPixmap as u32,
+            32,
+            std::ptr::null_mut(),
+            pixels.len() as u32,
+            pixels.as_mut_ptr(),
+        )?;
 
         let pixmap = conn.generate_id();
-        xcb::xproto::create_pixmap_checked(conn, 32, pixmap, conn.root, 1, 1)
-            .request_check()
-            .context("create_pixmap")?;
+        conn.check_request(conn.send_request_checked(&xcb::x::CreatePixmap {
+            depth: 32,
+            pid: pixmap,
+            drawable: xcb::x::Drawable::Window(conn.root),
+            width: 1,
+            height: 1,
+        }))
+        .context("CreatePixmap")?;
 
         let gc = conn.generate_id();
-        xcb::create_gc(conn.conn(), gc, pixmap, &[]);
+        conn.send_request(&xcb::x::CreateGc {
+            cid: gc,
+            drawable: xcb::x::Drawable::Pixmap(pixmap),
+            value_list: &[],
+        });
 
-        unsafe {
-            xcb_util::ffi::image::xcb_image_put(
-                conn.conn().get_raw_conn(),
-                pixmap,
-                gc,
-                image,
-                0,
-                0,
-                0,
-            )
-        };
+        image.put(conn, pixmap.resource_id(), gc.resource_id(), 0, 0, 0);
 
-        xcb::free_gc(conn.conn(), gc);
+        conn.send_request(&xcb::x::FreeGc { gc });
 
         let pic = conn.generate_id();
-        xcb::render::create_picture_checked(
-            conn.conn(),
-            pic,
-            pixmap,
-            self.pict_format_id.unwrap(),
-            &[],
-        )
-        .request_check()
+        conn.check_request(conn.send_request_checked(&xcb::render::CreatePicture {
+            pid: pic,
+            drawable: xcb::x::Drawable::Pixmap(pixmap),
+            format: self.pict_format_id.unwrap(),
+            value_list: &[],
+        }))
         .context("create_picture")?;
 
-        xcb::xproto::free_pixmap(conn.conn(), pixmap);
+        conn.send_request(&xcb::x::FreePixmap { pixmap });
 
-        let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
-        xcb::render::create_cursor_checked(conn.conn(), cursor_id, pic, 0, 0)
-            .request_check()
-            .context("create_cursor")?;
+        let cursor_id: Cursor = conn.generate_id();
+        conn.check_request(conn.send_request_checked(&xcb::render::CreateCursor {
+            cid: cursor_id,
+            source: pic,
+            x: 0,
+            y: 0,
+        }))
+        .context("create_cursor")?;
 
-        xcb::render::free_picture(conn.conn(), pic);
-        unsafe {
-            xcb_util::ffi::image::xcb_image_destroy(image);
-        }
+        conn.send_request(&xcb::render::FreePicture { picture: pic });
 
         Ok(cursor_id)
     }
 
-    fn load_themed(&mut self, conn: &Rc<XConnection>, cursor: Option<MouseCursor>) -> Option<u32> {
+    fn load_themed(
+        &mut self,
+        conn: &Rc<XConnection>,
+        cursor: Option<MouseCursor>,
+    ) -> Option<Cursor> {
         if cursor.is_none() {
             match self.create_blank(conn) {
                 Ok(cursor_id) => {
@@ -334,33 +344,32 @@ impl CursorInfo {
         None
     }
 
-    fn load_basic(&mut self, conn: &Rc<XConnection>, cursor: Option<MouseCursor>) -> u32 {
+    fn load_basic(&mut self, conn: &Rc<XConnection>, cursor: Option<MouseCursor>) -> Cursor {
         let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
             // `/usr/include/X11/cursorfont.h`
             // <https://docs.rs/xcb-util/0.3.0/src/xcb_util/cursor.rs.html>
-            MouseCursor::Arrow => xcb_util::cursor::TOP_LEFT_ARROW,
-            MouseCursor::Hand => xcb_util::cursor::HAND1,
-            MouseCursor::Text => xcb_util::cursor::XTERM,
-            MouseCursor::SizeUpDown => xcb_util::cursor::SB_V_DOUBLE_ARROW,
-            MouseCursor::SizeLeftRight => xcb_util::cursor::SB_H_DOUBLE_ARROW,
+            MouseCursor::Arrow => TOP_LEFT_ARROW,
+            MouseCursor::Hand => HAND1,
+            MouseCursor::Text => XTERM,
+            MouseCursor::SizeUpDown => SB_V_DOUBLE_ARROW,
+            MouseCursor::SizeLeftRight => SB_H_DOUBLE_ARROW,
         };
         log::trace!("loading X11 basic cursor {} for {:?}", id_no, cursor);
 
-        let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
-        xcb::create_glyph_cursor(
-            &conn,
-            cursor_id,
-            conn.cursor_font_id,
-            conn.cursor_font_id,
-            id_no,
-            id_no + 1,
-            0xffff,
-            0xffff,
-            0xffff,
-            0,
-            0,
-            0,
-        );
+        let cursor_id: Cursor = conn.generate_id();
+        conn.send_request(&xcb::x::CreateGlyphCursor {
+            cid: cursor_id,
+            source_font: conn.cursor_font_id,
+            mask_font: conn.cursor_font_id,
+            source_char: id_no,
+            mask_char: id_no + 1,
+            fore_red: 0xffff,
+            fore_green: 0xffff,
+            fore_blue: 0xffff,
+            back_red: 0,
+            back_green: 0,
+            back_blue: 0,
+        });
 
         self.cursors.insert(
             cursor,
@@ -377,7 +386,7 @@ impl CursorInfo {
         &self,
         conn: &Rc<XConnection>,
         mut file: std::fs::File,
-    ) -> anyhow::Result<u32> {
+    ) -> anyhow::Result<Cursor> {
         /* See: <https://cgit.freedesktop.org/xcb/util-cursor/tree/cursor/load_cursor.c>
          *
          * Cursor files start with a header.  The header
@@ -529,77 +538,59 @@ impl CursorInfo {
             chunk.copy_from_slice(&data);
         }
 
-        let image = unsafe {
-            xcb_util::ffi::image::xcb_image_create_native(
-                conn.conn().get_raw_conn(),
-                width.try_into()?,
-                height.try_into()?,
-                xcb::xproto::IMAGE_FORMAT_Z_PIXMAP,
-                32,
-                std::ptr::null_mut(),
-                pixels.len() as u32,
-                pixels.as_mut_ptr(),
-            )
-        };
-        ensure!(!image.is_null(), "failed to create native image");
+        let image = XcbImage::create_native(
+            conn,
+            width.try_into()?,
+            height.try_into()?,
+            xcb::x::ImageFormat::ZPixmap as u32,
+            32,
+            std::ptr::null_mut(),
+            pixels.len() as u32,
+            pixels.as_mut_ptr(),
+        )?;
 
         let pixmap = conn.generate_id();
-        xcb::xproto::create_pixmap_checked(
-            conn,
-            32,
-            pixmap,
-            conn.root,
-            width as u16,
-            height as u16,
-        )
-        .request_check()
+        conn.check_request(conn.send_request_checked(&xcb::x::CreatePixmap {
+            depth: 32,
+            pid: pixmap,
+            drawable: xcb::x::Drawable::Window(conn.root),
+            width: width as u16,
+            height: height as u16,
+        }))
         .context("create_pixmap")?;
 
         let gc = conn.generate_id();
-        xcb::create_gc(conn.conn(), gc, pixmap, &[]);
+        conn.send_request(&xcb::x::CreateGc {
+            cid: gc,
+            drawable: xcb::x::Drawable::Pixmap(pixmap),
+            value_list: &[],
+        });
 
-        unsafe {
-            xcb_util::ffi::image::xcb_image_put(
-                conn.conn().get_raw_conn(),
-                pixmap,
-                gc,
-                image,
-                0,
-                0,
-                0,
-            )
-        };
+        image.put(conn, pixmap.resource_id(), gc.resource_id(), 0, 0, 0);
 
-        xcb::free_gc(conn.conn(), gc);
+        conn.send_request(&xcb::x::FreeGc { gc });
 
         let pic = conn.generate_id();
-        xcb::render::create_picture_checked(
-            conn.conn(),
-            pic,
-            pixmap,
-            self.pict_format_id.unwrap(),
-            &[],
-        )
-        .request_check()
+        conn.check_request(conn.send_request_checked(&xcb::render::CreatePicture {
+            pid: pic,
+            drawable: xcb::x::Drawable::Pixmap(pixmap),
+            format: self.pict_format_id.unwrap(),
+            value_list: &[],
+        }))
         .context("create_picture")?;
 
-        xcb::xproto::free_pixmap(conn.conn(), pixmap);
+        conn.send_request(&xcb::x::FreePixmap { pixmap });
 
-        let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
-        xcb::render::create_cursor_checked(
-            conn.conn(),
-            cursor_id,
-            pic,
-            xhot.try_into()?,
-            yhot.try_into()?,
-        )
-        .request_check()
+        let cursor_id: Cursor = conn.generate_id();
+        conn.check_request(conn.send_request_checked(&xcb::render::CreateCursor {
+            cid: cursor_id,
+            source: pic,
+            x: xhot.try_into()?,
+            y: yhot.try_into()?,
+        }))
         .context("create_cursor")?;
 
-        xcb::render::free_picture(conn.conn(), pic);
-        unsafe {
-            xcb_util::ffi::image::xcb_image_destroy(image);
-        }
+        conn.send_request(&xcb::render::FreePicture { picture: pic });
 
         Ok(cursor_id)
     }
