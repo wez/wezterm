@@ -19,7 +19,7 @@ For example:
 | `"SpacesOnly"`          | `hello ($world)` | `hello\ ($world)`   |
 | `"Posix"`               | `hello ($world)` | `"hello (\$world)"` |
 | `"Windows"`             | `hello ($world)` | `"hello ($world)"`  |
-| `"WindowsAlwaysQuoted"` | `hello($world)`  | `"hello($world)"`   |
+| `"WindowsAlwaysQuoted"` | `hello ($world)` | `"hello ($world)"`  |
 
 Drag and drop support for files is a platform dependent feature
 

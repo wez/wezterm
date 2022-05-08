@@ -1500,8 +1500,8 @@ impl DroppedFileQuoting {
             // https://docs.rs/shlex/latest/shlex/fn.quote.html
             Self::Posix => shlex::quote(s).into_owned().to_string(),
             Self::Windows => {
-                let chars_need_quoting = [' ','\t','\n','\x0b','\"'];
-                if chars_need_quoting.iter().any(|&c| s.contains(c)) {
+                let chars_need_quoting = [' ', '\t', '\n', '\x0b', '\"'];
+                if s.chars().any(|c| chars_need_quoting.contains(&c)) {
                     format!("\"{}\"", s)
                 } else {
                     s.to_string()
