@@ -20,3 +20,6 @@ opt-level = 3
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
 split-debuginfo = "unpacked"
+
+[patch.crates-io]
+xcb = {version="1.1", git="https://github.com/wez/rust-xcb", branch="ffi"}

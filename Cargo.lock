@@ -5160,8 +5160,7 @@ dependencies = [
 [[package]]
 name = "xcb"
 version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b127bf5bfe9dbb39118d6567e3773d4bbc795411a8e1ef7b7e056bccac0011a9"
+source = "git+https://github.com/wez/rust-xcb?branch=ffi#a4d3014de25becb8d68029fe2f71ad906349549e"
 dependencies = [
  "bitflags",
  "libc",
@@ -5172,7 +5171,7 @@ dependencies = [
 [[package]]
 name = "xcb-imdkit"
 version = "0.2.0"
-source = "git+https://github.com/wez/xcb-imdkit-rs.git?rev=605f9ed36f2c9a514120d1b1b963b48ea3062280#605f9ed36f2c9a514120d1b1b963b48ea3062280"
+source = "git+https://github.com/wez/xcb-imdkit-rs.git?rev=ede7c71b85fe2537efef6cf999a45690316211cf#ede7c71b85fe2537efef6cf999a45690316211cf"
 dependencies = [
  "bitflags",
  "cc",

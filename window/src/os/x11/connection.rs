@@ -512,8 +512,7 @@ impl XConnection {
                 .ime
                 .borrow_mut()
                 .set_forward_event_cb(move |_win, e| {
-                    if let err @ Err(_) = conn.process_xcb_event(e)
-                    {
+                    if let err @ Err(_) = conn.process_xcb_event(e) {
                         if let Err(err) = conn.ime_process_event_result.replace(err) {
                             log::warn!("IME process event error dropped: {}", err);
                         }
