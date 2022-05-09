@@ -13,6 +13,7 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
+use clipboard_macos::Clipboard as ClipboardContext;
 use cocoa::appkit::{
     self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
@@ -654,18 +655,16 @@ impl WindowOps for Window {
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
-        use clipboard::ClipboardProvider;
         Future::result(
-            clipboard::ClipboardContext::new()
-                .and_then(|mut ctx| ctx.get_contents())
+            ClipboardContext::new()
+                .and_then(|ctx| ctx.read())
                 .map_err(|e| anyhow!("Failed to get clipboard:{}", e)),
         )
     }
 
     fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
-        use clipboard::ClipboardProvider;
-        clipboard::ClipboardContext::new()
-            .and_then(|mut ctx| ctx.set_contents(text))
+        ClipboardContext::new()
+            .and_then(|mut ctx| ctx.write(text))
             .ok();
     }
 

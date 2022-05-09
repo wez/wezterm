@@ -526,25 +526,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipboard"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25a904646c0340239dcf7c51677b33928bf24fdf424b79a57909c0109075b2e7"
-dependencies = [
- "clipboard-win",
- "objc",
- "objc-foundation",
- "objc_id",
- "x11-clipboard",
-]
-
-[[package]]
 name = "clipboard-win"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a093d6fed558e5fe24c3dfc85a68bb68f1c824f440d3ba5aca189e2998786b"
 dependencies = [
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "clipboard_macos"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "145a7f9e9b89453bc0a5e32d166456405d389cea5b578f57f1274b1397588a95"
+dependencies = [
+ "objc",
+ "objc-foundation",
+ "objc_id",
 ]
 
 [[package]]
@@ -4992,8 +4990,8 @@ dependencies = [
  "bitflags",
  "bytes",
  "cgl",
- "clipboard",
  "clipboard-win",
+ "clipboard_macos",
  "cocoa",
  "config",
  "core-foundation 0.7.0",
@@ -5032,7 +5030,7 @@ dependencies = [
  "windows",
  "winreg",
  "x11",
- "xcb 1.1.1",
+ "xcb",
  "xcb-imdkit",
  "xkbcommon",
 ]
@@ -5162,25 +5160,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "x11-clipboard"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89bd49c06c9eb5d98e6ba6536cf64ac9f7ee3a009b2f53996d405b3944f6bcea"
-dependencies = [
- "xcb 0.8.2",
-]
-
-[[package]]
-name = "xcb"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e917a3f24142e9ff8be2414e36c649d47d6cc2ba81f16201cdef96e533e02de"
-dependencies = [
- "libc",
- "log",
-]
-
-[[package]]
 name = "xcb"
 version = "1.1.1"
 source = "git+https://github.com/wez/rust-xcb?branch=ffi#a4d3014de25becb8d68029fe2f71ad906349549e"
@@ -5200,7 +5179,7 @@ dependencies = [
  "cc",
  "lazy_static",
  "pkg-config",
- "xcb 1.1.1",
+ "xcb",
 ]
 
 [[package]]
@@ -5219,7 +5198,7 @@ source = "git+https://github.com/wez/xkbcommon-rs.git?rev=69a29877e99369b4ec7470
 dependencies = [
  "libc",
  "memmap",
- "xcb 1.1.1",
+ "xcb",
 ]
 
 [[package]]
