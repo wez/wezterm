@@ -141,22 +141,26 @@
                         <h2 id="quote_dropped_files--spacesonly"><a class="header" href="#quote_dropped_files--spacesonly">quote_dropped_files = &quot;SpacesOnly&quot;</a></h2>
 <p><em>Since: nightly builds only</em></p>
 <p>Controls how file names are quoted (or not) when dragging and dropping.
-There are three possible values:</p>
+There are five possible values:</p>
 <ul>
 <li><code>&quot;None&quot;</code> - no quoting is performed, the file name is passed through as-is.</li>
-<li><code>&quot;SpacesOnly&quot;</code> - backslash-escape only spaces, leaving all other characters as-is.  This is the default.</li>
+<li><code>&quot;SpacesOnly&quot;</code> - backslash-escape only spaces, leaving all other characters as-is.  This is the default for non-Windows platforms.</li>
 <li><code>&quot;Posix&quot;</code> - use POSIX style shell word escaping.</li>
+<li><code>&quot;Windows&quot;</code> - use Windows style shell word escaping: double-quote filename with space characters in it, and leaving others as-is. This is the default on Windows.</li>
+<li><code>&quot;WindowsAlwaysQuoted&quot;</code> - like <code>&quot;Windows&quot;</code>, while always double-quote the filename.</li>
 </ul>
 <p>For example:</p>
 <table><thead><tr><th><code>quote_dropped_files</code></th><th>file name</th><th>quoted result</th></tr></thead><tbody>
-<tr><td><code>&quot;None&quot;</code></td><td><code>hello world</code></td><td><code>hello world</code></td></tr>
-<tr><td><code>&quot;SpacesOnly&quot;</code></td><td><code>hello world</code></td><td><code>hello\ world</code></td></tr>
-<tr><td><code>&quot;Posix&quot;</code></td><td><code>hello world</code></td><td><code>&quot;hello world&quot;</code></td></tr>
+<tr><td><code>&quot;None&quot;</code></td><td><code>hello ($world)</code></td><td><code>hello ($world)</code></td></tr>
+<tr><td><code>&quot;SpacesOnly&quot;</code></td><td><code>hello ($world)</code></td><td><code>hello\ ($world)</code></td></tr>
+<tr><td><code>&quot;Posix&quot;</code></td><td><code>hello ($world)</code></td><td><code>&quot;hello (\$world)&quot;</code></td></tr>
+<tr><td><code>&quot;Windows&quot;</code></td><td><code>hello ($world)</code></td><td><code>&quot;hello ($world)&quot;</code></td></tr>
+<tr><td><code>&quot;WindowsAlwaysQuoted&quot;</code></td><td><code>hello ($world)</code></td><td><code>&quot;hello ($world)&quot;</code></td></tr>
 </tbody></table>
 <p>Drag and drop support for files is a platform dependent feature</p>
 <table><thead><tr><th>Platform</th><th>Supported since</th></tr></thead><tbody>
 <tr><td>macOS</td><td>nightly builds only</td></tr>
-<tr><td>Windows</td><td>Not yet</td></tr>
+<tr><td>Windows</td><td>nightly builds only</td></tr>
 <tr><td>X11</td><td>Not yet</td></tr>
 <tr><td>Wayland</td><td>Not yet</td></tr>
 </tbody></table>
