@@ -214,7 +214,7 @@ impl InputMap {
 
     pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
         if let Some((leader_key, leader_mods, timeout)) = self.leader.as_ref() {
-            if *leader_key == *key && *leader_mods == mods {
+            if *leader_key == *key && *leader_mods == Self::remove_positional_alt(mods) {
                 return Some(timeout.clone());
             }
         }
