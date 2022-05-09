@@ -1476,11 +1476,19 @@ pub enum DroppedFileQuoting {
     SpacesOnly,
     /// Use POSIX style shell word escaping
     Posix,
+    /// Use Windows style shell word escaping
+    Windows,
+    /// Always double quote the file name
+    WindowsAlwaysQuoted,
 }
 
 impl Default for DroppedFileQuoting {
     fn default() -> Self {
-        Self::SpacesOnly
+        if cfg!(windows) {
+            Self::Windows
+        } else {
+            Self::SpacesOnly
+        }
     }
 }
 
@@ -1491,6 +1499,15 @@ impl DroppedFileQuoting {
             Self::SpacesOnly => s.replace(" ", "\\ "),
             // https://docs.rs/shlex/latest/shlex/fn.quote.html
             Self::Posix => shlex::quote(s).into_owned().to_string(),
+            Self::Windows => {
+                let chars_need_quoting = [' ', '\t', '\n', '\x0b', '\"'];
+                if s.chars().any(|c| chars_need_quoting.contains(&c)) {
+                    format!("\"{}\"", s)
+                } else {
+                    s.to_string()
+                }
+            }
+            Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
         }
     }
 }

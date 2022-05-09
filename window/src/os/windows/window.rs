@@ -22,6 +22,7 @@ use std::convert::TryInto;
 use std::ffi::OsString;
 use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
+use std::path::PathBuf;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -33,6 +34,7 @@ use winapi::shared::windef::*;
 use winapi::shared::winerror::S_OK;
 use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::shellapi::{DragAcceptFiles, DragFinish, DragQueryFileW, HDROP};
 use winapi::um::sysinfoapi::{GetTickCount, GetVersionExW};
 use winapi::um::uxtheme::{
     CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
@@ -636,6 +638,11 @@ impl Window {
 
         apply_theme(hwnd.0);
         enable_blur_behind(hwnd.0);
+
+        // Make window capable of accepting drag and drop
+        unsafe {
+            DragAcceptFiles(hwnd.0, winapi::shared::minwindef::TRUE);
+        }
 
         Connection::get()
             .expect("Connection::init was not called")
@@ -2406,6 +2413,35 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
     None
 }
 
+unsafe fn drop_files(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd)?;
+    let h_drop = wparam as HDROP;
+
+    // Get the number of files dropped
+    let file_count = DragQueryFileW(h_drop, 0xFFFFFFFF, null_mut(), 0);
+
+    let mut filenames: Vec<PathBuf> = Vec::with_capacity(file_count as usize);
+
+    for idx in 0..file_count {
+        // The returned size of buffer is in characters, not including the terminating null character
+        let buf_size = DragQueryFileW(h_drop, idx, null_mut(), 0);
+        if buf_size > 0 {
+            // Windows will truncate the filename and add null terminator if space isn't enough
+            let buf_size = buf_size as usize + 1;
+            let mut wide_buf = vec![0u16; buf_size];
+            DragQueryFileW(h_drop, idx, wide_buf.as_mut_ptr(), wide_buf.len() as u32);
+            wide_buf.pop(); // Drops the null terminator
+            filenames.push(OsString::from_wide(&wide_buf).into());
+        }
+    }
+
+    let mut inner = inner.borrow_mut();
+    inner.events.dispatch(WindowEvent::DroppedFile(filenames));
+
+    DragFinish(h_drop);
+    Some(0)
+}
+
 unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     match msg {
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
@@ -2434,6 +2470,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP => {
             mouse_button(hwnd, msg, wparam, lparam)
         }
+        WM_DROPFILES => drop_files(hwnd, msg, wparam, lparam),
         WM_ERASEBKGND => Some(1),
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
