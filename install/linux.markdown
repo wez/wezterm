@@ -84,6 +84,16 @@ shows how to install the Fedora 35 package:
 sudo dnf install -y {{ fedora35_rpm_stable }}
 ```
 
+WezTerm is also available in the official Factory repo in openSUSE Tumbleweed. To install from Factory instead
+from the rpm provided by WezTerm's Github repository, you can use Yast. If you prefer the CLI, you can install
+it as root user with
+
+```bash
+zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
+zypper refresh
+zypper install wezterm
+```
+
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
 * Configuration instructions can be [found here](../config/files.html)
 

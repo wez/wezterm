@@ -310,6 +310,13 @@ on most Linux systems.</p>
 shows how to install the Fedora 35 package:</p>
 <pre><code class="language-bash">sudo dnf install -y https://github.com/wez/wezterm/releases/download/20220408-101518-b908e2dd/wezterm-20220408_101518_b908e2dd-1.fc35.x86_64.rpm
 </code></pre>
+<p>WezTerm is also available in the official Factory repo in openSUSE Tumbleweed. To install from Factory instead
+from the rpm provided by WezTerm's Github repository, you can use Yast. If you prefer the CLI, you can install
+it as root user with</p>
+<pre><code class="language-bash">zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
+zypper refresh
+zypper install wezterm
+</code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>
 <li>Configuration instructions can be <a href="install/../config/files.html">found here</a></li>
