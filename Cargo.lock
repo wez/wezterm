@@ -2067,16 +2067,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "memmap2"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2090,6 +2080,15 @@ name = "memmap2"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b6c2ebff6180198788f5db08d7ce3bc1d0b617176678831a7510825973e357"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "memmap2"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "057a3db23999c867821a7a59feb06a578fcb03685e983dff90daf9e7d24ac08f"
 dependencies = [
  "libc",
 ]
@@ -5193,11 +5192,11 @@ dependencies = [
 
 [[package]]
 name = "xkbcommon"
-version = "0.6.0"
-source = "git+https://github.com/wez/xkbcommon-rs.git?rev=69a29877e99369b4ec74703d3193b6dd694145e9#69a29877e99369b4ec74703d3193b6dd694145e9"
+version = "0.5.0-beta.0"
+source = "git+https://github.com/wez/xkbcommon-rs.git?branch=key-by-name#546ba7dbf2ace214b9947fc4646a0f4afd70cb0a"
 dependencies = [
  "libc",
- "memmap",
+ "memmap2 0.5.3",
  "xcb",
 ]
 

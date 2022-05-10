@@ -7,7 +7,8 @@ use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::CStr;
+use std::ffi::{CStr, OsStr};
+use std::os::unix::ffi::OsStrExt;
 use wezterm_input_types::PhysKeyCode;
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
@@ -141,12 +142,9 @@ impl Keyboard {
         let state = xkb::State::new(&keymap);
         let locale = query_lc_ctype()?;
 
-        let table = xkb::compose::Table::new_from_locale(
-            &context,
-            locale.to_str()?,
-            xkb::compose::COMPILE_NO_FLAGS,
-        )
-        .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let table =
+            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         let phys_code_map = build_physkeycode_map(&keymap);
@@ -184,12 +182,9 @@ impl Keyboard {
 
         let locale = query_lc_ctype()?;
 
-        let table = xkb::compose::Table::new_from_locale(
-            &context,
-            locale.to_str()?,
-            xkb::compose::COMPILE_NO_FLAGS,
-        )
-        .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let table =
+            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         {
@@ -487,10 +482,11 @@ impl Keyboard {
     }
 }
 
-fn query_lc_ctype() -> anyhow::Result<&'static CStr> {
+fn query_lc_ctype() -> anyhow::Result<&'static OsStr> {
     let ptr = unsafe { libc::setlocale(libc::LC_CTYPE, std::ptr::null()) };
     ensure!(!ptr.is_null(), "failed to query locale");
-    unsafe { Ok(CStr::from_ptr(ptr)) }
+    let cstr = unsafe { CStr::from_ptr(ptr) };
+    Ok(OsStr::from_bytes(cstr.to_bytes()))
 }
 
 fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<xkb::Keycode, PhysKeyCode> {
