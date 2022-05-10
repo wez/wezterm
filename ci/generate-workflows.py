@@ -861,6 +861,7 @@ on:
       - ".github/workflows/no-response.yml"
       - ".github/ISSUE_TEMPLATE/*"
       - "**/*.md"
+      - "**/*.markdown"
 """,
         is_continuous=False,
     )
@@ -888,6 +889,7 @@ on:
       - ".github/workflows/no-response.yml"
       - ".github/ISSUE_TEMPLATE/*"
       - "**/*.md"
+      - "**/*.markdown"
 """,
         is_continuous=True,
     )

@@ -17,6 +17,7 @@ on:
       - ".github/workflows/no-response.yml"
       - ".github/ISSUE_TEMPLATE/*"
       - "**/*.md"
+      - "**/*.markdown"
 
 jobs:
   build:
