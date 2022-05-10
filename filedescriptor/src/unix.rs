@@ -536,7 +536,7 @@ mod macos {
         };
 
         if res < 0 {
-            Err(std::io::Error::last_os_error().into())
+            Err(Error::Poll(std::io::Error::last_os_error()))
         } else {
             for item in pfd.iter_mut() {
                 if is_set(&mut read_set, item.fd) {
