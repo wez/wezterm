@@ -200,7 +200,10 @@ impl OwnedHandle {
             )
         };
         if ok == 0 {
-            Err(IoError::last_os_error().into())
+            Err(Error::Dup {
+                fd: (handle as isize).into(),
+                source: IoError::last_os_error(),
+            })
         } else {
             Ok(OwnedHandle {
                 handle: duped as *mut _,
@@ -549,7 +552,7 @@ pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize
         )
     };
     if poll_result < 0 {
-        Err(std::io::Error::last_os_error().into())
+        Err(Error::Poll(std::io::Error::last_os_error()))
     } else {
         Ok(poll_result as usize)
     }
