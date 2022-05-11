@@ -626,7 +626,9 @@ cargo build --all --release""",
                     ),
                 ]
         if self.container:
-            if ("fedora" in self.container) or ("centos" in self.container):
+            if ("fedora" in self.container) or (
+                ("centos" in self.container) and ("centos7" not in self.container)
+            ):
                 steps += [
                     RunStep(
                         "Install config manager",
@@ -767,6 +769,7 @@ TARGETS = [
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(container="debian:11", continuous_only=True),
+    Target(name="centos7", container="quay.io/centos/centos:centos7", bootstrap_git=True),
     Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-11"),
