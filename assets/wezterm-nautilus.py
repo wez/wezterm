@@ -47,7 +47,7 @@ class OpenInWezTermAction(GObject.GObject, Nautilus.MenuProvider):
             pid = int(child.get_identifier())
             props = [("PIDs", GLib.Variant('au', [pid])),
                 ('CollectMode', GLib.Variant('s', 'inactive-or-failed'))]
-            name = f'app-nautilus-org.wezfurlong.wezterm-{pid}.scope'
+            name = 'app-nautilus-org.wezfurlong.wezterm-{}.scope'.format(pid)
             args = GLib.Variant('(ssa(sv)a(sa(sv)))', (name, 'fail', props, []))
             self._systemd.call_sync('StartTransientUnit', args,
                     Gio.DBusCallFlags.NO_AUTO_START, 500, None)
