@@ -49,8 +49,21 @@ use winreg::RegKey;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
+const ISC_SHOWUICOMPOSITIONWINDOW: LPARAM = 2147483648;
+
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct CANDIDATEFORM {
+    dwIndex: DWORD,
+    dwStyle: DWORD,
+    ptCurrentPos: POINT,
+    rcArea: RECT,
+}
+pub type LPCANDIDATEFORM = *mut CANDIDATEFORM;
+
 extern "system" {
     pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
+    pub fn ImmSetCandidateWindow(himc: HIMC, lpCandidate: LPCANDIDATEFORM) -> BOOL;
 }
 
 lazy_static! {
@@ -255,7 +268,7 @@ impl WindowInner {
 
         if !same {
             let imc = ImmContext::get(self.hwnd.0);
-            imc.set_position(0, 0);
+            imc.set_position(Rect::default());
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
@@ -718,7 +731,7 @@ impl WindowInner {
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
         let imc = ImmContext::get(self.hwnd.0);
-        imc.set_position(cursor.origin.x.max(0) as i32, cursor.max_y().max(0) as i32);
+        imc.set_position(cursor);
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
@@ -1653,21 +1666,28 @@ impl ImmContext {
         }
     }
 
-    /// Set the position of the IME window relative to the top left
-    /// of this window
-    pub fn set_position(&self, x: i32, y: i32) {
-        let mut cf = COMPOSITIONFORM {
-            dwStyle: CFS_POINT,
-            ptCurrentPos: POINT { x, y },
+    /// Set the position of the IME candidate window relative to the cursor.
+    pub fn set_position(&self, cursor: Rect) {
+        let mut cf = CANDIDATEFORM {
+            dwIndex: 0,
+            // Don't draw the IME candidate window on the cursor
+            // to prevent the window from hiding composition (preedit) string
+            dwStyle: CFS_EXCLUDE,
+            // cursor position the IME candidate window bases on
+            ptCurrentPos: POINT {
+                x: cursor.origin.x.max(0) as i32,
+                y: cursor.origin.y.max(0) as i32,
+            },
+            // cursor rectangle the IME candidate window excludes
             rcArea: RECT {
-                bottom: 0,
-                left: 0,
-                right: 0,
-                top: 0,
+                left: cursor.min_x().max(0) as i32,
+                top: cursor.min_y().max(0) as i32,
+                right: cursor.max_x().max(0) as i32,
+                bottom: cursor.max_y().max(0) as i32,
             },
         };
         unsafe {
-            ImmSetCompositionWindow(self.imc, &mut cf);
+            ImmSetCandidateWindow(self.imc, &mut cf);
         }
     }
 
@@ -1699,6 +1719,18 @@ impl Drop for ImmContext {
             ImmReleaseContext(self.hwnd, self.imc);
         }
     }
+}
+
+unsafe fn ime_set_context(
+    hwnd: HWND,
+    msg: UINT,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> Option<LRESULT> {
+    // Don't show system CompositionWindow because application itself draws it
+    let lparam = lparam & !ISC_SHOWUICOMPOSITIONWINDOW;
+    let result = DefWindowProcW(hwnd, msg, wparam, lparam);
+    Some(result)
 }
 
 unsafe fn ime_end_composition(
@@ -2461,6 +2493,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             None
         }
         WM_SETTINGCHANGE => apply_theme(hwnd),
+        WM_IME_SETCONTEXT => ime_set_context(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_IME_ENDCOMPOSITION => ime_end_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
