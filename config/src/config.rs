@@ -11,6 +11,7 @@ use crate::keyassignment::{
     KeyAssignment, KeyTable, KeyTableEntry, KeyTables, MouseEventTrigger, SpawnCommand,
 };
 use crate::keys::{Key, LeaderKey, Mouse};
+use crate::lua::make_lua_context;
 use crate::ssh::{SshBackend, SshDomain};
 use crate::tls::{TlsDomainClient, TlsDomainServer};
 use crate::units::{de_pixels, Dimension};
@@ -18,8 +19,8 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     de_number, de_vec_table, default_config_with_overrides_applied, default_one_point_oh,
-    default_one_point_oh_f64, default_true, make_lua_context, KeyMapPreference, LoadedConfig,
-    CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_one_point_oh_f64, default_true, KeyMapPreference, LoadedConfig, CONFIG_DIR,
+    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion;

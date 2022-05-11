@@ -55,7 +55,6 @@ pub use unix::*;
 pub use version::*;
 pub use wsl::*;
 
-type LuaFactory = fn(&Path) -> anyhow::Result<Lua>;
 type ErrorCallback = fn(&str);
 
 lazy_static! {
@@ -66,7 +65,6 @@ lazy_static! {
     static ref CONFIG_FILE_OVERRIDE: Mutex<Option<PathBuf>> = Mutex::new(None);
     static ref CONFIG_SKIP: AtomicBool = AtomicBool::new(false);
     static ref CONFIG_OVERRIDES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
-    static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(Some(lua::make_lua_context));
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
         Mutex::new(Some(|e| log::error!("{}", e)));
     static ref LUA_PIPE: LuaPipe = LuaPipe::new();
@@ -232,22 +230,9 @@ where
     promise::spawn::spawn_into_main_thread(async move { schedule_with_lua(func).await }).await
 }
 
-pub fn assign_lua_factory(make_lua_context: LuaFactory) {
-    let mut factory = MAKE_LUA.lock().unwrap();
-    factory.replace(make_lua_context);
-}
-
-fn make_lua_context(path: &Path) -> anyhow::Result<Lua> {
-    let factory = MAKE_LUA.lock().unwrap();
-    match factory.as_ref() {
-        Some(f) => f(path),
-        None => anyhow::bail!("assign_lua_factory has not been called"),
-    }
-}
-
 fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     // Cause the default config to be re-evaluated with the overrides applied
-    let lua = make_lua_context(Path::new("override"))?;
+    let lua = lua::make_lua_context(Path::new("override"))?;
     let table = mlua::Value::Table(lua.create_table()?);
     let config = Config::apply_overrides_to(&lua, table)?;
 
