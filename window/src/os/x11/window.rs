@@ -77,10 +77,12 @@ pub(crate) struct XWindowInner {
 
 impl Drop for XWindowInner {
     fn drop(&mut self) {
-        if let Some(conn) = self.conn.upgrade() {
-            conn.send_request(&xcb::x::DestroyWindow {
-                window: self.window_id,
-            });
+        if self.window_id != xcb::x::Window::none() {
+            if let Some(conn) = self.conn.upgrade() {
+                conn.send_request(&xcb::x::DestroyWindow {
+                    window: self.window_id,
+                });
+            }
         }
     }
 }
@@ -1038,6 +1040,10 @@ impl XWindowInner {
         self.conn().conn().send_request(&xcb::x::DestroyWindow {
             window: self.window_id,
         });
+        // Ensure that we don't try to destroy the window twice,
+        // otherwise the rust xcb bindings will generate a
+        // fatal error!
+        self.window_id = xcb::x::Window::none();
     }
     fn hide(&mut self) {}
     fn show(&mut self) {
