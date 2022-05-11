@@ -1147,7 +1147,7 @@ impl XWindowInner {
         self.conn().ime.borrow_mut().update_pos(
             self.window_id,
             self.last_cursor_position.min_x() as i16,
-            (self.last_cursor_position.max_y() + self.last_cursor_position.height()) as i16,
+            self.last_cursor_position.max_y() as i16,
         );
     }
 
