@@ -174,7 +174,7 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/applications/org.wezfurlong.wezterm.desktop
 /usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
-/usr/share/nautilus-python/extensions/wezterm-nautilus.py
+/usr/share/nautilus-python/extensions/wezterm-nautilus.py*
 /etc/profile.d/*
 EOF
 
