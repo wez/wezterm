@@ -23,9 +23,6 @@ jobs:
     container: "quay.io/centos/centos:centos7"
 
     steps:
-      - name: "Install config manager"
-        shell: bash
-        run: "dnf install -y 'dnf-command(config-manager)'"
       - name: "Install SCL"
         shell: bash
         run: "yum install -y centos-release-scl-rh"

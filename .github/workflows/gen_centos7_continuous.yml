@@ -27,9 +27,6 @@ jobs:
       BUILD_REASON: "Schedule"
 
     steps:
-      - name: "Install config manager"
-        shell: bash
-        run: "dnf install -y 'dnf-command(config-manager)'"
       - name: "Install SCL"
         shell: bash
         run: "yum install -y centos-release-scl-rh"

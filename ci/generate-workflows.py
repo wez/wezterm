@@ -626,7 +626,9 @@ cargo build --all --release""",
                     ),
                 ]
         if self.container:
-            if ("fedora" in self.container) or ("centos" in self.container):
+            if ("fedora" in self.container) or (
+                ("centos" in self.container) and ("centos7" not in self.container)
+            ):
                 steps += [
                     RunStep(
                         "Install config manager",
