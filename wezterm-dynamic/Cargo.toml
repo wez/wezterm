@@ -1,0 +1,14 @@
+[package]
+name = "wezterm-dynamic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wezterm-dynamic-derive = { version="0.1", path="derive" }
+ordered-float = "3.0"
+thiserror = "1.0"
+strsim = "0.10"
+log = "0.4"
+
+[dev-dependencies]
+maplit = "1.0"

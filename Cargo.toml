@@ -4,6 +4,7 @@ members = [
   "bidi/generate",
   "strip-ansi-escapes",
   "wezterm",
+  "wezterm-dynamic",
   "wezterm-gui",
   "wezterm-mux-server",
   "wezterm-ssh"

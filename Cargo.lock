@@ -4700,6 +4700,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-dynamic"
+version = "0.1.0"
+dependencies = [
+ "maplit",
+ "ordered-float",
+ "thiserror",
+ "wezterm-dynamic-derive",
+]
+
+[[package]]
+name = "wezterm-dynamic-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "wezterm-font"
 version = "0.1.0"
 dependencies = [
