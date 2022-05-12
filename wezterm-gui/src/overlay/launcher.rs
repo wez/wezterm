@@ -495,6 +495,10 @@ impl LauncherState {
                     self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('G'),
+                    modifiers: Modifiers::CTRL,
+                })
+                | InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
                     ..
                 }) => {
