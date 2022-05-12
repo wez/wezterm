@@ -50,6 +50,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: uncommitted IME composition could get stuck when switching input methods. [#1922](https://github.com/wez/wezterm/issues/1922)
 * OSC sequences, such as those that change the window or tab title, that accept a single string parameter will now join multiple parameters together. This allows window and tab titles to contain a semicolo. Thanks to [@kumattau](https://github.com/kumattau)! [#1939](https://github.com/wez/wezterm/pull/1939)
 * Unable to use `ALT` as a modifier for the `leader` key. [#1958](https://github.com/wez/wezterm/issues/1958)
+* IME Candidate window position was incorrect. Thanks to [@kumattau](https://github.com/kumattau)! [#1976](https://github.com/wez/wezterm/pull/1976)
 
 ### 20220408-101518-b908e2dd
 
