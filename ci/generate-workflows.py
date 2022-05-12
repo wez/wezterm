@@ -777,6 +777,7 @@ TARGETS = [
     Target(container="fedora:33"),
     Target(container="fedora:34"),
     Target(container="fedora:35"),
+    Target(container="fedora:36"),
     Target(container="alpine:3.12"),
     Target(container="alpine:3.13"),
     Target(container="alpine:3.14"),
