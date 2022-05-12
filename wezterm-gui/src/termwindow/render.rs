@@ -1303,7 +1303,10 @@ impl super::TermWindow {
             );
             let abs_thumb_top = thumb_y_offset + info.top;
             let thumb_size = info.height;
-            let color = palette.scrollbar_thumb.to_linear();
+            let color = match self.config.scroll_bar_color {
+                Some(color) => color.to_linear(),
+                None => palette.scrollbar_thumb.to_linear(),
+            };
 
             // Adjust the scrollbar thumb position
             let config = &self.config;

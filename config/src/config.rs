@@ -20,7 +20,7 @@ use crate::wsl::WslDomain;
 use crate::{
     de_number, de_vec_table, default_config_with_overrides_applied, default_one_point_oh,
     default_one_point_oh_f64, default_true, KeyMapPreference, LoadedConfig, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR, RgbaColor,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion;
@@ -335,6 +335,11 @@ pub struct Config {
 
     #[serde(default)]
     pub enable_scroll_bar: bool,
+
+    /// If specified, overrides the scrollbar color that's currently
+    /// specified in the color scheme.
+    #[serde(default)]
+    pub scroll_bar_color: Option<RgbaColor>,
 
     /// If false, do not try to use a Wayland protocol connection
     /// when starting the gui frontend, and instead use X11.
