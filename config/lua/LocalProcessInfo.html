@@ -145,7 +145,7 @@
 <ul>
 <li><code>pid</code> - the process id</li>
 <li><code>ppid</code> - the parent process id</li>
-<li><code>name</code> - a short name for the process. You probably should prefer to look at the <code>executable</code> or <code>argv</code> fields instead of this one</li>
+<li><code>name</code> - a short name for the process. Due to platform limitations, this may be inaccurate and truncated; you probably should prefer to look at the <code>executable</code> or <code>argv</code> fields instead of this one</li>
 <li><code>status</code> - a string holding the status of the process; it can be <code>Idle</code>, <code>Run</code>, <code>Sleep</code>, <code>Stop</code>, <code>Zombie</code>, <code>Tracing</code>, <code>Dead</code>, <code>Wakekill</code>, <code>Waking</code>, <code>Parked</code>, <code>LockBlocked</code>, <code>Unknown</code>.</li>
 <li><code>argv</code> - a table holding the argument array for the process</li>
 <li><code>executable</code> - the full path to the executable image for the process (may be empty)</li>
