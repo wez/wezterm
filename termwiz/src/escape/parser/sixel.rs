@@ -150,13 +150,16 @@ impl SixelBuilder {
                     self.sixel.pixel_width.replace(pixel_width as u32);
                     self.sixel.pixel_height.replace(pixel_height as u32);
 
-                    let size = pixel_width as usize * pixel_height as usize;
+                    let (size, overflow) =
+                        (pixel_width as usize).overflowing_mul(pixel_height as usize);
+
                     // Ideally we'd just use `try_reserve` here, but that is
                     // nightly Rust only at the time of writing this comment:
                     // <https://github.com/rust-lang/rust/issues/48043>
-                    if size > MAX_SIXEL_SIZE {
+                    if size > MAX_SIXEL_SIZE || overflow {
                         log::error!(
-                            "Ignoring sixel data {}x{} because {} bytes > max allowed {}",
+                            "Ignoring sixel data {}x{} because {} bytes \
+                             either overflows or exceeds the max allowed {}",
                             pixel_width,
                             pixel_height,
                             size,

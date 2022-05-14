@@ -341,6 +341,10 @@ impl FromStr for SrgbaTuple {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Workaround <https://github.com/mazznoer/csscolorparser-rs/pull/7/files>
+        if !s.is_ascii() {
+            return Err(());
+        }
         if s.len() > 0 && s.as_bytes()[0] == b'#' {
             // Probably `#RGB`
 

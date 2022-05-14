@@ -72,6 +72,7 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
+          cargo install cargo-fuzz
           cd termwiz/fuzz
-          cargo +nightly fuzz run escape_parse -- -max_total_time=60
+          RUST_BACKTRACE=full cargo +nightly fuzz run escape_parse -- -max_total_time=60
 
