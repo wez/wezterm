@@ -8,7 +8,7 @@ It has the following fields:
 
 * `pid` - the process id
 * `ppid` - the parent process id
-* `name` - a short name for the process. You probably should prefer to look at the `executable` or `argv` fields instead of this one
+* `name` - a short name for the process. Due to platform limitations, this may be inaccurate and truncated; you probably should prefer to look at the `executable` or `argv` fields instead of this one
 * `status` - a string holding the status of the process; it can be `Idle`, `Run`, `Sleep`, `Stop`, `Zombie`, `Tracing`, `Dead`, `Wakekill`, `Waking`, `Parked`, `LockBlocked`, `Unknown`.
 * `argv` - a table holding the argument array for the process
 * `executable` - the full path to the executable image for the process (may be empty)
