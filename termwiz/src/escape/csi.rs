@@ -1839,8 +1839,8 @@ impl<'a> CSIParser<'a> {
     fn xterm_key_modifier(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         match params {
             [CsiParam::P(b'>'), a, CsiParam::P(b';'), b] => {
-                let resource =
-                    XtermKeyModifierResource::parse(a.as_integer().unwrap()).ok_or_else(|| ())?;
+                let resource = XtermKeyModifierResource::parse(a.as_integer().ok_or_else(|| ())?)
+                    .ok_or_else(|| ())?;
                 Ok(self.advance_by(
                     4,
                     params,
@@ -1851,8 +1851,8 @@ impl<'a> CSIParser<'a> {
                 ))
             }
             [CsiParam::P(b'>'), p] => {
-                let resource =
-                    XtermKeyModifierResource::parse(p.as_integer().unwrap()).ok_or_else(|| ())?;
+                let resource = XtermKeyModifierResource::parse(p.as_integer().ok_or_else(|| ())?)
+                    .ok_or_else(|| ())?;
                 Ok(self.advance_by(
                     2,
                     params,
