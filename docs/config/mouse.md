@@ -32,7 +32,7 @@ that order.
 | Double Left Down | `NONE`   | `SelectTextAtMouseCursor="Word"`  |
 | Single Left Down | `NONE`   | `SelectTextAtMouseCursor="Cell"`  |
 | Single Left Down | `SHIFT`   | `ExtendSelectionToMouseCursor={}`  |
-| Single Left Down | `ALT`   | `ExtendSelectionToMouseCursor="Block"`  (*since: nightly builds only*) |
+| Single Left Down | `ALT`   | `SelectTextAtMouseCursor="Block"`  (*since: nightly builds only*) |
 | Single Left Up | `SHIFT`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
 | Single Left Up | `NONE`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
 | Single Left Up | `ALT`   | `CompleteSelection="PrimarySelection"`  (*since: nightly builds only*) |
@@ -40,6 +40,8 @@ that order.
 | Triple Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
 | Single Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Cell"`  |
 | Single Left Drag | `ALT`   | `ExtendSelectionToMouseCursor="Block"` (*since: nightly builds only*) |
+| Single Left Down | `ALT+SHIFT`   | `ExtendSelectionToMouseCursor="Block"`  (*since: nightly builds only*) |
+| Single Left Up | `ALT+SHIFT`   | `CompleteSelection="PrimarySelection"`  (*since: nightly builds only*) |
 | Double Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Word"`  |
 | Triple Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Line"`  |
 | Single Middle Down | `NONE`   | `PasteFrom="PrimarySelection"`  |
