@@ -120,6 +120,24 @@ impl InputMap {
                     CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
+                    Modifiers::ALT | Modifiers::SHIFT,
+                    MouseEventTrigger::Down {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    ExtendSelectionToMouseCursor(Some(SelectionMode::Block))
+                ],
+                [
+                    Modifiers::ALT | Modifiers::SHIFT,
+                    MouseEventTrigger::Up {
+                        streak: 1,
+                        button: MouseButton::Left
+                    },
+                    CompleteSelectionOrOpenLinkAtMouseCursor(
+                        ClipboardCopyDestination::PrimarySelection
+                    )
+                ],
+                [
                     Modifiers::NONE,
                     MouseEventTrigger::Up {
                         streak: 2,
