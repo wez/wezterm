@@ -41,6 +41,7 @@ termwiz = { path = "../termwiz", features=["use_serde"] }
 toml = "0.5"
 umask = { path = "../umask" }
 unicode-segmentation = "1.8"
+wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-bidi = { path = "../bidi", features=["use_serde"] }
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-ssh = { path = "../wezterm-ssh" }

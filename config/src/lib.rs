@@ -2,17 +2,14 @@
 
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
-use luahelper::impl_lua_conversion;
-use mlua::Lua;
+use mlua::{FromLua, Lua};
 use ordered_float::NotNan;
-use serde::{Deserialize, Deserializer, Serialize};
 use smol::channel::{Receiver, Sender};
 use smol::prelude::*;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsString;
 use std::fs::DirBuilder;
-use std::marker::PhantomData;
 #[cfg(unix)]
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
@@ -20,6 +17,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use wezterm_dynamic::{ToDynamic, Value};
 
 mod background;
 mod bell;
@@ -75,11 +73,32 @@ thread_local! {
     static LUA_CONFIG: RefCell<Option<LuaConfigState>> = RefCell::new(None);
 }
 
+fn toml_to_dynamic(value: &toml::Value) -> Value {
+    match value {
+        toml::Value::String(s) => s.to_dynamic(),
+        toml::Value::Integer(n) => n.to_dynamic(),
+        toml::Value::Float(n) => n.to_dynamic(),
+        toml::Value::Boolean(b) => b.to_dynamic(),
+        toml::Value::Datetime(d) => d.to_string().to_dynamic(),
+        toml::Value::Array(a) => a
+            .iter()
+            .map(|element| toml_to_dynamic(&element))
+            .collect::<Vec<_>>()
+            .to_dynamic(),
+        toml::Value::Table(t) => Value::Object(
+            t.iter()
+                .map(|(k, v)| (Value::String(k.to_string()), toml_to_dynamic(v)))
+                .collect::<BTreeMap<_, _>>()
+                .into(),
+        ),
+    }
+}
+
 pub fn build_default_schemes() -> HashMap<String, Palette> {
     let mut color_schemes = HashMap::new();
     for (scheme_name, data) in SCHEMES.iter() {
         let scheme_name = scheme_name.to_string();
-        let scheme: ColorSchemeFile = toml::from_str(data).unwrap();
+        let scheme = ColorSchemeFile::from_toml_str(data).unwrap();
         color_schemes.insert(scheme_name, scheme.colors);
     }
     color_schemes
@@ -236,7 +255,7 @@ fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     let table = mlua::Value::Table(lua.create_table()?);
     let config = Config::apply_overrides_to(&lua, table)?;
 
-    let cfg: Config = luahelper::from_lua_value(config)
+    let cfg: Config = Config::from_lua(config, &lua)
         .context("Error converting lua value from overrides to Config struct")?;
     // Compute but discard the key bindings here so that we raise any
     // problems earlier than we use them.
@@ -334,7 +353,7 @@ pub fn configuration() -> ConfigHandle {
 
 /// Returns a version of the config (loaded from the config file)
 /// with some field overridden based on the supplied overrides object.
-pub fn overridden_config(overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+pub fn overridden_config(overrides: &wezterm_dynamic::Value) -> Result<ConfigHandle, Error> {
     CONFIG.overridden(overrides)
 }
 
@@ -527,7 +546,7 @@ impl ConfigInner {
         self.generation += 1;
     }
 
-    fn overridden(&mut self, overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+    fn overridden(&mut self, overrides: &wezterm_dynamic::Value) -> Result<ConfigHandle, Error> {
         let config = Config::load_with_overrides(overrides)?;
         Ok(ConfigHandle {
             config: Arc::new(config.config),
@@ -602,7 +621,7 @@ impl Configuration {
         inner.use_this_config(cfg);
     }
 
-    fn overridden(&self, overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+    fn overridden(&self, overrides: &wezterm_dynamic::Value) -> Result<ConfigHandle, Error> {
         let mut inner = self.inner.lock().unwrap();
         inner.overridden(overrides)
     }
@@ -657,104 +676,6 @@ impl std::ops::Deref for ConfigHandle {
     fn deref(&self) -> &Config {
         &*self.config
     }
-}
-
-pub(crate) fn de_notnan<'de, D>(deserializer: D) -> Result<NotNan<f64>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: f64 = de_number(deserializer)?;
-    NotNan::new(value).map_err(|err| serde::de::Error::custom(err.to_string()))
-}
-
-/// Deserialize either an integer or a float as a float
-pub(crate) fn de_number<'de, D>(deserializer: D) -> Result<f64, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct Number;
-
-    impl<'de> serde::de::Visitor<'de> for Number {
-        type Value = f64;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("f64 or i64")
-        }
-
-        fn visit_f64<E>(self, value: f64) -> Result<f64, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(value)
-        }
-
-        fn visit_i64<E>(self, value: i64) -> Result<f64, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(value as f64)
-        }
-    }
-
-    deserializer.deserialize_any(Number)
-}
-
-/// Helper for deserializing a Vec<T> from lua code.
-/// In lua, `{}` could be either an empty map or an empty vec.
-/// This helper allows an empty map to be specified and treated as an empty vec.
-pub fn de_vec_table<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    struct V<T> {
-        phantom: PhantomData<T>,
-    }
-
-    impl<'de, T> serde::de::Visitor<'de> for V<T>
-    where
-        T: Deserialize<'de>,
-    {
-        type Value = Vec<T>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("Empty table or vector-like table")
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut values = if let Some(hint) = seq.size_hint() {
-                Vec::with_capacity(hint)
-            } else {
-                Vec::new()
-            };
-            while let Some(ele) = seq.next_element::<T>()? {
-                values.push(ele);
-            }
-            Ok(values)
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::MapAccess<'de>,
-        {
-            if map.next_entry::<String, T>()?.is_some() {
-                use serde::de::Error;
-                Err(A::Error::custom(
-                    "expected empty table or vector-like table",
-                ))
-            } else {
-                // Empty map is equivalent to empty vec
-                Ok(vec![])
-            }
-        }
-    }
-
-    deserializer.deserialize_any(V {
-        phantom: PhantomData,
-    })
 }
 
 pub struct LoadedConfig {

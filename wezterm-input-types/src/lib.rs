@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub struct PixelUnit;
 pub struct ScreenPixelUnit;
@@ -14,7 +15,19 @@ pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Ord, PartialOrd)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Deserialize,
+    Serialize,
+    Ord,
+    PartialOrd,
+    FromDynamic,
+    ToDynamic,
+)]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),
@@ -438,7 +451,8 @@ impl ToString for KeyCode {
 }
 
 bitflags! {
-    #[derive(Default, Deserialize, Serialize)]
+    #[derive(Default, Deserialize, Serialize, FromDynamic, ToDynamic)]
+    #[dynamic(into="String", try_from="String")]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const SHIFT = 1<<1;
@@ -448,6 +462,42 @@ bitflags! {
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
         const LEADER = 1<<7;
+    }
+}
+
+impl TryFrom<String> for Modifiers {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Modifiers, String> {
+        let mut mods = Modifiers::NONE;
+        for ele in s.split('|') {
+            // Allow for whitespace; debug printing Modifiers includes spaces
+            // around the `|` so it is desirable to be able to reverse that
+            // encoding here.
+            let ele = ele.trim();
+            if ele == "SHIFT" {
+                mods |= Modifiers::SHIFT;
+            } else if ele == "ALT" || ele == "OPT" || ele == "META" {
+                mods |= Modifiers::ALT;
+            } else if ele == "CTRL" {
+                mods |= Modifiers::CTRL;
+            } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
+                mods |= Modifiers::SUPER;
+            } else if ele == "LEADER" {
+                mods |= Modifiers::LEADER;
+            } else if ele == "NONE" || ele == "" {
+                mods |= Modifiers::NONE;
+            } else {
+                return Err(format!("invalid modifier name {} in {}", ele, s));
+            }
+        }
+        Ok(mods)
+    }
+}
+
+impl Into<String> for &Modifiers {
+    fn into(self) -> String {
+        self.to_string()
     }
 }
 
@@ -482,7 +532,20 @@ impl ToString for Modifiers {
 
 /// These keycodes identify keys based on their physical
 /// position on an ANSI-standard US keyboard.
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash, Copy, Ord, PartialOrd)]
+#[derive(
+    Debug,
+    Deserialize,
+    Serialize,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Copy,
+    Ord,
+    PartialOrd,
+    FromDynamic,
+    ToDynamic,
+)]
 pub enum PhysKeyCode {
     A,
     B,
@@ -1136,8 +1199,9 @@ impl KeyEvent {
 }
 
 bitflags! {
-    #[derive(Deserialize, Serialize)]
+    #[derive(Deserialize, Serialize, FromDynamic, ToDynamic)]
     #[serde(try_from = "String")]
+    #[dynamic(try_from = "String")]
     pub struct WindowDecorations: u8 {
         const TITLE = 1;
         const RESIZE = 2;

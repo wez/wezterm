@@ -8,7 +8,7 @@ use luahelper::*;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
-use serde::*;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_toast_notification::ToastNotification;
 use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
 
@@ -60,14 +60,14 @@ impl UserData for GuiWin {
                 .map_err(|e| anyhow::anyhow!("{:#}", e))
                 .map_err(luaerr)?;
 
-            #[derive(Serialize, Deserialize)]
+            #[derive(FromDynamic, ToDynamic)]
             struct Dims {
                 pixel_width: usize,
                 pixel_height: usize,
                 dpi: usize,
                 is_full_screen: bool,
             }
-            impl_lua_conversion!(Dims);
+            impl_lua_conversion_dynamic!(Dims);
 
             let dims = Dims {
                 pixel_width: dims.pixel_width,
@@ -125,12 +125,12 @@ impl UserData for GuiWin {
                 .map_err(|e| anyhow::anyhow!("{:#}", e))
                 .map_err(luaerr)?;
 
-            let wrap = JsonLua(overrides);
+            let wrap = ValueLua { value: overrides };
             Ok(wrap)
         });
-        methods.add_method("set_config_overrides", |_, this, value: JsonLua| {
+        methods.add_method("set_config_overrides", |_, this, value: ValueLua| {
             this.window
-                .notify(TermWindowNotif::SetConfigOverrides(value.0));
+                .notify(TermWindowNotif::SetConfigOverrides(value.value));
             Ok(())
         });
         methods.add_async_method("leader_is_active", |_, this, _: ()| async move {

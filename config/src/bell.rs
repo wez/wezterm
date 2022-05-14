@@ -1,7 +1,7 @@
-use crate::*;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function>
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
 pub enum EasingFunction {
     Linear,
     CubicBezier(f32, f32, f32, f32),
@@ -11,7 +11,6 @@ pub enum EasingFunction {
     EaseOut,
     Constant,
 }
-impl_lua_conversion!(EasingFunction);
 
 impl EasingFunction {
     pub fn evaluate_at_position(&self, position: f32) -> f32 {
@@ -40,27 +39,25 @@ impl Default for EasingFunction {
     }
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct VisualBell {
-    #[serde(default)]
+    #[dynamic(default)]
     pub fade_in_duration_ms: u64,
-    #[serde(default)]
+    #[dynamic(default)]
     pub fade_in_function: EasingFunction,
-    #[serde(default)]
+    #[dynamic(default)]
     pub fade_out_duration_ms: u64,
-    #[serde(default)]
+    #[dynamic(default)]
     pub fade_out_function: EasingFunction,
-    #[serde(default)]
+    #[dynamic(default)]
     pub target: VisualBellTarget,
 }
-impl_lua_conversion!(VisualBell);
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum VisualBellTarget {
     BackgroundColor,
     CursorColor,
 }
-impl_lua_conversion!(VisualBellTarget);
 
 impl Default for VisualBellTarget {
     fn default() -> VisualBellTarget {
@@ -68,12 +65,11 @@ impl Default for VisualBellTarget {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub enum AudibleBell {
     SystemBeep,
     Disabled,
 }
-impl_lua_conversion!(AudibleBell);
 
 impl Default for AudibleBell {
     fn default() -> AudibleBell {

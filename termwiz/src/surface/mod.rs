@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cmp::min;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub mod change;
 pub mod line;
@@ -31,7 +32,7 @@ pub enum Position {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CursorVisibility {
     Hidden,
     Visible,
@@ -44,7 +45,7 @@ impl Default for CursorVisibility {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub enum CursorShape {
     Default,
     BlinkingBlock,

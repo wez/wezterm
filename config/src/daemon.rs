@@ -1,14 +1,14 @@
 use crate::*;
 use std::fs::{File, OpenOptions};
 use std::path::PathBuf;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct DaemonOptions {
     pub pid_file: Option<PathBuf>,
     pub stdout: Option<PathBuf>,
     pub stderr: Option<PathBuf>,
 }
-impl_lua_conversion!(DaemonOptions);
 
 /// Set the sticky bit on path.
 /// This is used in a couple of situations where we want files that

@@ -41,6 +41,7 @@ thiserror = "1.0"
 unicode-segmentation = "1.8"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
+wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 flume = "0.10"
 

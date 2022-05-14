@@ -1,6 +1,7 @@
 use crate::*;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct TlsDomainServer {
     /// The address:port combination on which the server will listen
     /// for client connections
@@ -20,12 +21,11 @@ pub struct TlsDomainServer {
     /// or to a PEM encoded CA file.  If an entry is a directory,
     /// then its contents will be loaded as CA certs and added
     /// to the trust store.
-    #[serde(default)]
+    #[dynamic(default)]
     pub pem_root_certs: Vec<PathBuf>,
 }
-impl_lua_conversion!(TlsDomainServer);
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct TlsDomainClient {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -52,7 +52,7 @@ pub struct TlsDomainClient {
     /// Each entry can be either the path to a directory or to a PEM encoded
     /// CA file.  If an entry is a directory, then its contents will be
     /// loaded as CA certs and added to the trust store.
-    #[serde(default)]
+    #[dynamic(default)]
     pub pem_root_certs: Vec<PathBuf>,
 
     /// explicitly control whether the client checks that the certificate
@@ -61,7 +61,7 @@ pub struct TlsDomainClient {
     /// available for troubleshooting purposes and should not be used outside
     /// of a controlled environment as it weakens the security of the TLS
     /// channel.
-    #[serde(default)]
+    #[dynamic(default)]
     pub accept_invalid_hostnames: bool,
 
     /// the hostname string that we expect to match against the common name
@@ -71,22 +71,21 @@ pub struct TlsDomainClient {
     pub expected_cn: Option<String>,
 
     /// If true, connect to this domain automatically at startup
-    #[serde(default)]
+    #[dynamic(default)]
     pub connect_automatically: bool,
 
-    #[serde(default = "default_read_timeout")]
+    #[dynamic(default = "default_read_timeout")]
     pub read_timeout: Duration,
 
-    #[serde(default = "default_write_timeout")]
+    #[dynamic(default = "default_write_timeout")]
     pub write_timeout: Duration,
 
-    #[serde(default = "default_local_echo_threshold_ms")]
+    #[dynamic(default = "default_local_echo_threshold_ms")]
     pub local_echo_threshold_ms: Option<u64>,
 
     /// The path to the wezterm binary on the remote host
     pub remote_wezterm_path: Option<String>,
 }
-impl_lua_conversion!(TlsDomainClient);
 
 impl TlsDomainClient {
     pub fn ssh_parameters(&self) -> Option<anyhow::Result<SshParameters>> {

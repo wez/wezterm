@@ -2,13 +2,13 @@ use crate::color::RgbaColor;
 use crate::*;
 use bitflags::*;
 use enum_display_derive::Display;
-use luahelper::impl_lua_conversion;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use luahelper::impl_lua_conversion_dynamic;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Hash, Display, PartialOrd, Ord,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Display, PartialOrd, Ord, FromDynamic, ToDynamic,
 )]
 pub enum FontStyle {
     Normal,
@@ -23,7 +23,7 @@ impl Default for FontStyle {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, PartialOrd, Ord,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Display, PartialOrd, Ord, FromDynamic, ToDynamic,
 )]
 pub enum FontStretch {
     UltraCondensed,
@@ -134,56 +134,36 @@ impl FontWeight {
     }
 }
 
-impl Serialize for FontWeight {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl ToDynamic for FontWeight {
+    fn to_dynamic(&self) -> Value {
         match self.categorize_weight() {
-            FontWeightOrLabel::Weight(n) => serializer.serialize_u16(n),
-            FontWeightOrLabel::Label(l) => serializer.serialize_str(l),
+            FontWeightOrLabel::Weight(n) => Value::U64(n as u64),
+            FontWeightOrLabel::Label(l) => Value::String(l.to_string()),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for FontWeight {
-    fn deserialize<D>(deserializer: D) -> Result<FontWeight, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct V {}
-
-        impl<'de> serde::de::Visitor<'de> for V {
-            type Value = FontWeight;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("string or font weight value")
+impl FromDynamic for FontWeight {
+    fn from_dynamic(
+        value: &Value,
+        _options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match value {
+            Value::String(s) => {
+                Ok(Self::from_str(s).ok_or_else(|| format!("invalid font weight {}", s))?)
             }
-
-            fn visit_str<E>(self, value: &str) -> Result<FontWeight, E>
-            where
-                E: serde::de::Error,
-            {
-                match FontWeight::from_str(value) {
-                    Some(w) => Ok(w),
-                    None => Err(E::custom(format!("invalid font weight {}", value))),
-                }
-            }
-
-            // Lua gives us an integer in this format
-            fn visit_i64<E>(self, value: i64) -> Result<FontWeight, E>
-            where
-                E: serde::de::Error,
-            {
-                if value > 0 && value <= u16::MAX as i64 {
-                    Ok(FontWeight(value as u16))
+            Value::U64(value) => {
+                if *value > 0 && *value <= (u16::MAX as u64) {
+                    Ok(FontWeight(*value as u16))
                 } else {
-                    Err(E::custom(format!("invalid font weight {}", value)))
+                    Err(format!("invalid font weight {}", value).into())
                 }
             }
+            other => Err(wezterm_dynamic::Error::NoConversion {
+                source_type: other.variant_name().to_string(),
+                dest_type: "FontWeight",
+            }),
         }
-
-        deserializer.deserialize_any(V {})
     }
 }
 
@@ -235,7 +215,7 @@ impl FontWeight {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub enum FreeTypeLoadTarget {
     /// This corresponds to the default hinting algorithm, optimized
     /// for standard gray-level rendering.
@@ -265,8 +245,8 @@ bitflags! {
     // Note that these are strongly coupled with deps/freetype/src/lib.rs,
     // but we can't directly reference that from here without making config
     // depend on freetype.
-    #[derive(Default, Deserialize, Serialize)]
-    #[serde(try_from="String", into="String")]
+    #[derive(Default,  FromDynamic, ToDynamic)]
+    #[dynamic(try_from="String", into="String")]
     pub struct FreeTypeLoadFlags: u32 {
         /// FT_LOAD_DEFAULT
         const DEFAULT = 0;
@@ -285,6 +265,12 @@ bitflags! {
 }
 
 impl Into<String> for FreeTypeLoadFlags {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
+impl Into<String> for &FreeTypeLoadFlags {
     fn into(self) -> String {
         self.to_string()
     }
@@ -339,33 +325,33 @@ impl TryFrom<String> for FreeTypeLoadFlags {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub struct FontAttributes {
     /// The font family name
     pub family: String,
     /// Whether the font should be a bold variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub weight: FontWeight,
-    #[serde(default)]
+    #[dynamic(default)]
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub style: FontStyle,
     pub is_fallback: bool,
     pub is_synthetic: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub harfbuzz_features: Option<Vec<String>>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_target: Option<FreeTypeLoadTarget>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_flags: Option<FreeTypeLoadFlags>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub scale: Option<NotNan<f64>>,
 }
-impl_lua_conversion!(FontAttributes);
+impl_lua_conversion_dynamic!(FontAttributes);
 
 impl std::fmt::Display for FontAttributes {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
@@ -430,9 +416,9 @@ impl Default for FontAttributes {
 }
 
 /// Represents textual styling.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub struct TextStyle {
-    #[serde(default)]
+    #[dynamic(default)]
     pub font: Vec<FontAttributes>,
 
     /// If set, when rendering text that is set to the default
@@ -441,7 +427,7 @@ pub struct TextStyle {
     /// the text color for eg: bold text.
     pub foreground: Option<RgbaColor>,
 }
-impl_lua_conversion!(TextStyle);
+impl_lua_conversion_dynamic!(TextStyle);
 
 impl Default for TextStyle {
     fn default() -> Self {
@@ -604,7 +590,7 @@ impl TextStyle {
 /// The above is translated as: "if the `CellAttributes` have the italic bit
 /// set, then use the italic style of font rather than the default", and
 /// stop processing further font rules.
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, Clone, FromDynamic, ToDynamic)]
 pub struct StyleRule {
     /// If present, this rule matches when CellAttributes::intensity holds
     /// a value that matches this rule.  Valid values are "Bold", "Normal",
@@ -633,9 +619,8 @@ pub struct StyleRule {
     /// When this rule matches, `font` specifies the styling to be used.
     pub font: TextStyle,
 }
-impl_lua_conversion!(StyleRule);
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum AllowSquareGlyphOverflow {
     Never,
     Always,
@@ -648,7 +633,7 @@ impl Default for AllowSquareGlyphOverflow {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
@@ -672,30 +657,7 @@ impl Default for FontLocatorSelection {
     }
 }
 
-impl FontLocatorSelection {
-    pub fn variants() -> Vec<&'static str> {
-        vec!["FontConfig", "CoreText", "ConfigDirsOnly", "Gdi"]
-    }
-}
-
-impl std::str::FromStr for FontLocatorSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "fontconfig" => Ok(Self::FontConfig),
-            "coretext" => Ok(Self::CoreText),
-            "configdirsonly" => Ok(Self::ConfigDirsOnly),
-            "gdi" => Ok(Self::Gdi),
-            _ => Err(anyhow!(
-                "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
-                s,
-                Self::variants()
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
 pub enum FontRasterizerSelection {
     FreeType,
 }
@@ -706,27 +668,7 @@ impl Default for FontRasterizerSelection {
     }
 }
 
-impl FontRasterizerSelection {
-    pub fn variants() -> Vec<&'static str> {
-        vec!["FreeType"]
-    }
-}
-
-impl std::str::FromStr for FontRasterizerSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "freetype" => Ok(Self::FreeType),
-            _ => Err(anyhow!(
-                "{} is not a valid FontRasterizerSelection variant, possible values are {:?}",
-                s,
-                Self::variants()
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
 pub enum FontShaperSelection {
     Allsorts,
     Harfbuzz,
@@ -735,27 +677,6 @@ pub enum FontShaperSelection {
 impl Default for FontShaperSelection {
     fn default() -> Self {
         FontShaperSelection::Harfbuzz
-    }
-}
-
-impl FontShaperSelection {
-    pub fn variants() -> Vec<&'static str> {
-        vec!["Harfbuzz", "AllSorts"]
-    }
-}
-
-impl std::str::FromStr for FontShaperSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "harfbuzz" => Ok(Self::Harfbuzz),
-            "allsorts" => Ok(Self::Allsorts),
-            _ => Err(anyhow!(
-                "{} is not a valid FontShaperSelection variant, possible values are {:?}",
-                s,
-                Self::variants()
-            )),
-        }
     }
 }
 

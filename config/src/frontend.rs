@@ -1,36 +1,13 @@
-use super::*;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum FrontEndSelection {
     OpenGL,
     Software,
 }
-impl_lua_conversion!(FrontEndSelection);
 
 impl Default for FrontEndSelection {
     fn default() -> Self {
         FrontEndSelection::OpenGL
-    }
-}
-
-impl FrontEndSelection {
-    // TODO: find or build a proc macro for this
-    pub fn variants() -> Vec<&'static str> {
-        vec!["OpenGL", "Software"]
-    }
-}
-
-impl std::str::FromStr for FrontEndSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "software" => Ok(FrontEndSelection::Software),
-            "opengl" => Ok(FrontEndSelection::OpenGL),
-            _ => Err(anyhow!(
-                "{} is not a valid FrontEndSelection variant, possible values are {:?}",
-                s,
-                FrontEndSelection::variants()
-            )),
-        }
     }
 }

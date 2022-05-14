@@ -6,8 +6,9 @@ use num_derive::*;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub use wezterm_color_types::{LinearRgba, SrgbaTuple};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, FromDynamic, ToDynamic)]
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[repr(u8)]
 /// These correspond to the classic ANSI color indices and are
@@ -200,6 +201,23 @@ impl<'de> Deserialize<'de> for RgbColor {
     }
 }
 
+impl ToDynamic for RgbColor {
+    fn to_dynamic(&self) -> Value {
+        self.to_rgb_string().to_dynamic()
+    }
+}
+
+impl FromDynamic for RgbColor {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        let s = String::from_dynamic(value, options)?;
+        Ok(RgbColor::from_named_or_rgb_string(&s)
+            .ok_or_else(|| format!("unknown color name: {}", s))?)
+    }
+}
+
 /// An index into the fixed color palette.
 pub type PaletteIndex = u8;
 
@@ -238,7 +256,7 @@ impl From<RgbColor> for ColorSpec {
 /// TrueColor value, allowing a fallback to a more traditional palette
 /// index if TrueColor is not available.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, FromDynamic, ToDynamic)]
 pub enum ColorAttribute {
     /// Use RgbColor when supported, falling back to the specified PaletteIndex.
     TrueColorWithPaletteFallback(RgbColor, PaletteIndex),

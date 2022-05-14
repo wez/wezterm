@@ -14,18 +14,18 @@ use crate::keys::{Key, LeaderKey, Mouse};
 use crate::lua::make_lua_context;
 use crate::ssh::{SshBackend, SshDomain};
 use crate::tls::{TlsDomainClient, TlsDomainServer};
-use crate::units::{de_pixels, Dimension};
+use crate::units::Dimension;
 use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
-    de_number, de_vec_table, default_config_with_overrides_applied, default_one_point_oh,
-    default_one_point_oh_f64, default_true, KeyMapPreference, LoadedConfig, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
+    default_true, KeyMapPreference, LoadedConfig, CONFIG_DIR, CONFIG_FILE_OVERRIDE,
+    CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
-use luahelper::impl_lua_conversion;
+use luahelper::impl_lua_conversion_dynamic;
+use mlua::FromLua;
 use portable_pty::{CommandBuilder, PtySize};
-use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Read;
@@ -35,61 +35,62 @@ use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_input_types::{Modifiers, WindowDecorations};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct Config {
     /// The font size, measured in points
-    #[serde(default = "default_font_size", deserialize_with = "de_number")]
+    #[dynamic(default = "default_font_size")]
     pub font_size: f64,
 
-    #[serde(default = "default_one_point_oh_f64")]
+    #[dynamic(default = "default_one_point_oh_f64")]
     pub line_height: f64,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub allow_square_glyphs_to_overflow_width: AllowSquareGlyphOverflow,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_decorations: WindowDecorations,
 
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
     /// Relative paths are taken to be relative to the directory
     /// from which the config was loaded.
-    #[serde(default)]
+    #[dynamic(default)]
     pub font_dirs: Vec<PathBuf>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub color_scheme_dirs: Vec<PathBuf>,
 
     /// The DPI to assume
     pub dpi: Option<f64>,
 
     /// The baseline font to use
-    #[serde(default)]
+    #[dynamic(default)]
     pub font: TextStyle,
 
     /// An optional set of style rules to select the font based
     /// on the cell attributes
-    #[serde(default)]
+    #[dynamic(default)]
     pub font_rules: Vec<StyleRule>,
 
     /// When true (the default), PaletteIndex 0-7 are shifted to
     /// bright when the font intensity is bold.  The brightening
     /// doesn't apply to text that is the default color.
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub bold_brightens_ansi_colors: bool,
 
     /// The color palette
     pub colors: Option<Palette>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub tab_bar_style: TabBarStyle,
 
-    #[serde(skip)]
+    #[dynamic(default)]
     pub resolved_palette: Palette,
 
     /// Use a named color scheme rather than the palette specified
@@ -97,11 +98,11 @@ pub struct Config {
     pub color_scheme: Option<String>,
 
     /// Named color schemes
-    #[serde(default)]
+    #[dynamic(default)]
     pub color_schemes: HashMap<String, Palette>,
 
     /// How many lines of scrollback you want to retain
-    #[serde(default = "default_scrollback_lines")]
+    #[dynamic(default = "default_scrollback_lines")]
     pub scrollback_lines: usize,
 
     /// If no `prog` is specified on the command line, use this
@@ -118,7 +119,7 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
-    #[serde(default = "default_gui_startup_args")]
+    #[dynamic(default = "default_gui_startup_args")]
     pub default_gui_startup_args: Vec<String>,
 
     /// Specifies the default current working directory if none is specified
@@ -126,48 +127,48 @@ pub struct Config {
     /// info!)
     pub default_cwd: Option<PathBuf>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub exit_behavior: ExitBehavior,
 
-    #[serde(default = "default_clean_exits")]
+    #[dynamic(default = "default_clean_exits")]
     pub clean_exit_codes: Vec<u32>,
 
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
     /// This is not used when working with remote domains.
-    #[serde(default)]
+    #[dynamic(default)]
     pub set_environment_variables: HashMap<String, String>,
 
     /// Specifies the height of a new window, expressed in character cells.
-    #[serde(default = "default_initial_rows")]
+    #[dynamic(default = "default_initial_rows")]
     pub initial_rows: u16,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub enable_kitty_graphics: bool,
 
     /// Specifies the width of a new window, expressed in character cells
-    #[serde(default = "default_initial_cols")]
+    #[dynamic(default = "default_initial_cols")]
     pub initial_cols: u16,
 
-    #[serde(default = "default_hyperlink_rules")]
+    #[dynamic(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
 
     /// What to set the TERM variable to
-    #[serde(default = "default_term")]
+    #[dynamic(default = "default_term")]
     pub term: String,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub font_locator: FontLocatorSelection,
-    #[serde(default)]
+    #[dynamic(default)]
     pub font_rasterizer: FontRasterizerSelection,
-    #[serde(default)]
+    #[dynamic(default)]
     pub font_shaper: FontShaperSelection,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_target: FreeTypeLoadTarget,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_flags: FreeTypeLoadFlags,
 
     /// Selects the freetype interpret version to use.
@@ -209,32 +210,32 @@ pub struct Config {
     /// # when using the Fira Code font
     /// harfbuzz_features = ["zero"]
     /// ```
-    #[serde(default = "default_harfbuzz_features")]
+    #[dynamic(default = "default_harfbuzz_features")]
     pub harfbuzz_features: Vec<String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub front_end: FrontEndSelection,
 
-    #[serde(default = "WslDomain::default_domains")]
+    #[dynamic(default = "WslDomain::default_domains")]
     pub wsl_domains: Vec<WslDomain>,
 
     /// The set of unix domains
-    #[serde(default = "UnixDomain::default_unix_domains")]
+    #[dynamic(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub ssh_domains: Vec<SshDomain>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub ssh_backend: SshBackend,
 
     /// When running in server mode, defines configuration for
     /// each of the endpoints that we'll listen for connections
-    #[serde(default)]
+    #[dynamic(default)]
     pub tls_servers: Vec<TlsDomainServer>,
 
     /// The set of tls domains that we can connect to as a client
-    #[serde(default)]
+    #[dynamic(default)]
     pub tls_clients: Vec<TlsDomainClient>,
 
     /// Constrains the rate at which the multiplexer client will
@@ -242,98 +243,95 @@ pub struct Config {
     /// This helps to avoid saturating the link between the client
     /// and server if the server is dumping a large amount of output
     /// to the client.
-    #[serde(default = "default_ratelimit_line_prefetches_per_second")]
+    #[dynamic(default = "default_ratelimit_line_prefetches_per_second")]
     pub ratelimit_mux_line_prefetches_per_second: u32,
 
     /// The buffer size used by parse_buffered_data in the mux module.
     /// This should not be too large, otherwise the processing cost
     /// of applying a batch of actions to the terminal will be too
     /// high and the user experience will be laggy and less responsive.
-    #[serde(default = "default_mux_output_parser_buffer_size")]
+    #[dynamic(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
-    #[serde(default = "default_mux_env_remove", deserialize_with = "de_vec_table")]
+    #[dynamic(default = "default_mux_env_remove")]
     pub mux_env_remove: Vec<String>,
 
-    #[serde(default, deserialize_with = "de_vec_table")]
+    #[dynamic(default)]
     pub keys: Vec<Key>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub key_tables: HashMap<String, Vec<Key>>,
 
-    #[serde(
-        default = "default_bypass_mouse_reporting_modifiers",
-        deserialize_with = "crate::keys::de_modifiers"
-    )]
+    #[dynamic(default = "default_bypass_mouse_reporting_modifiers")]
     pub bypass_mouse_reporting_modifiers: Modifiers,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub debug_key_events: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub disable_default_key_bindings: bool,
     pub leader: Option<LeaderKey>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub disable_default_quick_select_patterns: bool,
-    #[serde(default)]
+    #[dynamic(default)]
     pub quick_select_patterns: Vec<String>,
-    #[serde(default = "default_alphabet")]
+    #[dynamic(default = "default_alphabet")]
     pub quick_select_alphabet: String,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub mouse_bindings: Vec<Mouse>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub disable_default_mouse_bindings: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub daemon_options: DaemonOptions,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub send_composed_key_when_left_alt_is_pressed: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub send_composed_key_when_right_alt_is_pressed: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub treat_left_ctrlalt_as_altgr: bool,
 
     /// If true, the `Backspace` and `Delete` keys generate `Delete` and `Backspace`
     /// keypresses, respectively, rather than their normal keycodes.
     /// On macOS the default for this is true because its Backspace key
     /// is labeled as Delete and things are backwards.
-    #[serde(default = "default_swap_backspace_and_delete")]
+    #[dynamic(default = "default_swap_backspace_and_delete")]
     pub swap_backspace_and_delete: bool,
 
     /// If true, display the tab bar UI at the top of the window.
     /// The tab bar shows the titles of the tabs and which is the
     /// active tab.  Clicking on a tab activates it.
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub enable_tab_bar: bool,
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub use_fancy_tab_bar: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub tab_bar_at_bottom: bool,
 
     /// If true, tab bar titles are prefixed with the tab index
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub show_tab_index_in_tab_bar: bool,
 
     /// If true, show_tab_index_in_tab_bar uses a zero-based index.
     /// The default is false and the tab shows a one-based index.
-    #[serde(default)]
+    #[dynamic(default)]
     pub tab_and_split_indices_are_zero_based: bool,
 
     /// Specifies the maximum width that a tab can have in the
     /// tab bar.  Defaults to 16 glyphs in width.
-    #[serde(default = "default_tab_max_width")]
+    #[dynamic(default = "default_tab_max_width")]
     pub tab_max_width: usize,
 
     /// If true, hide the tab bar if the window only has a single tab.
-    #[serde(default)]
+    #[dynamic(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub enable_scroll_bar: bool,
 
     /// If false, do not try to use a Wayland protocol connection
@@ -341,23 +339,23 @@ pub struct Config {
     /// This option is only considered on X11/Wayland systems and
     /// has no effect on macOS or Windows.
     /// The default is true.
-    #[serde(default)]
+    #[dynamic(default)]
     pub enable_wayland: bool,
 
     /// Whether to prefer EGL over other GL implementations.
     /// EGL on Windows has jankier resize behavior than WGL (which
     /// is used if EGL is unavailable), but EGL survives graphics
     /// driver updates without breaking and losing your work.
-    #[serde(default = "default_prefer_egl")]
+    #[dynamic(default = "default_prefer_egl")]
     pub prefer_egl: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub custom_block_glyphs: bool,
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub anti_alias_custom_block_glyphs: bool,
 
     /// Controls the amount of padding to use around the terminal cell area
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_padding: WindowPadding,
 
     /// Specifies the path to a background image attachment file.
@@ -367,13 +365,13 @@ pub struct Config {
     /// of the window before any other content.
     ///
     /// The image will be scaled to fit the window.
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_background_image: Option<PathBuf>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_background_gradient: Option<Gradient>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_background_image_hsb: Option<HsbTransform>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub foreground_text_hsb: HsbTransform,
 
     /// Specifies the alpha value to use when rendering the background
@@ -386,7 +384,7 @@ pub struct Config {
     /// This only works on systems with a compositing window manager.
     /// Setting opacity to a value other than 1.0 can impact render
     /// performance.
-    #[serde(default = "default_one_point_oh")]
+    #[dynamic(default = "default_one_point_oh")]
     pub window_background_opacity: f32,
 
     /// inactive_pane_hue, inactive_pane_saturation and
@@ -418,10 +416,10 @@ pub struct Config {
     /// A subtle dimming effect can be achieved by setting:
     /// inactive_pane_saturation = 0.9
     /// inactive_pane_brightness = 0.8
-    #[serde(default = "default_inactive_pane_hsb")]
+    #[dynamic(default = "default_inactive_pane_hsb")]
     pub inactive_pane_hsb: HsbTransform,
 
-    #[serde(default = "default_one_point_oh")]
+    #[dynamic(default = "default_one_point_oh")]
     pub text_background_opacity: f32,
 
     /// Specifies how often a blinking cursor transitions between visible
@@ -430,17 +428,17 @@ pub struct Config {
     /// Note that this value is approximate due to the way that the system
     /// event loop schedulers manage timers; non-zero values will be at
     /// least the interval specified with some degree of slop.
-    #[serde(default = "default_cursor_blink_rate")]
+    #[dynamic(default = "default_cursor_blink_rate")]
     pub cursor_blink_rate: u64,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub cursor_blink_ease_in: EasingFunction,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub cursor_blink_ease_out: EasingFunction,
 
-    #[serde(default = "default_anim_fps")]
+    #[dynamic(default = "default_anim_fps")]
     pub animation_fps: u8,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub force_reverse_video_cursor: bool,
 
     /// Specifies the default cursor style.  various escape sequences
@@ -451,7 +449,7 @@ pub struct Config {
     /// Acceptable values are `SteadyBlock`, `BlinkingBlock`,
     /// `SteadyUnderline`, `BlinkingUnderline`, `SteadyBar`,
     /// and `BlinkingBar`.
-    #[serde(default)]
+    #[dynamic(default)]
     pub default_cursor_style: DefaultCursorStyle,
 
     /// Specifies how often blinking text (normal speed) transitions
@@ -460,11 +458,11 @@ pub struct Config {
     /// value is approximate due to the way that the system event loop
     /// schedulers manage timers; non-zero values will be at least the
     /// interval specified with some degree of slop.
-    #[serde(default = "default_text_blink_rate")]
+    #[dynamic(default = "default_text_blink_rate")]
     pub text_blink_rate: u64,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub text_blink_ease_in: EasingFunction,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub text_blink_ease_out: EasingFunction,
 
     /// Specifies how often blinking text (rapid speed) transitions
@@ -473,176 +471,180 @@ pub struct Config {
     /// value is approximate due to the way that the system event loop
     /// schedulers manage timers; non-zero values will be at least the
     /// interval specified with some degree of slop.
-    #[serde(default = "default_text_blink_rate_rapid")]
+    #[dynamic(default = "default_text_blink_rate_rapid")]
     pub text_blink_rate_rapid: u64,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub text_blink_rapid_ease_in: EasingFunction,
-    #[serde(default = "linear_ease")]
+    #[dynamic(default = "linear_ease")]
     pub text_blink_rapid_ease_out: EasingFunction,
 
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of
     /// 10 seconds.
-    #[serde(default)]
+    #[dynamic(default)]
     pub periodic_stat_logging: u64,
 
     /// If false, do not scroll to the bottom of the terminal when
     /// you send input to the terminal.
     /// The default is to scroll to the bottom when you send input
     /// to the terminal.
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub scroll_to_bottom_on_input: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub use_ime: bool,
-    #[serde(default)]
+    #[dynamic(default)]
     pub xim_im_name: Option<String>,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub use_dead_keys: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub launch_menu: Vec<SpawnCommand>,
 
     /// When true, watch the config file and reload it automatically
     /// when it is detected as changing.
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub automatically_reload_config: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub check_for_updates: bool,
-    #[serde(default)]
+    #[dynamic(default)]
     pub show_update_window: bool,
 
-    #[serde(default = "default_update_interval")]
+    #[dynamic(default = "default_update_interval")]
     pub check_for_updates_interval_seconds: u64,
 
     /// When set to true, use the CSI-U encoding scheme as described
     /// in http://www.leonerd.org.uk/hacks/fixterms/
     /// This is off by default because @wez and @jsgf find the shift-space
     /// mapping annoying in vim :-p
-    #[serde(default)]
+    #[dynamic(default)]
     pub enable_csi_u_key_encoding: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub window_close_confirmation: WindowCloseConfirmation,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub native_macos_fullscreen_mode: bool,
 
-    #[serde(default = "default_word_boundary")]
+    #[dynamic(default = "default_word_boundary")]
     pub selection_word_boundary: String,
 
-    #[serde(default = "default_enq_answerback")]
+    #[dynamic(default = "default_enq_answerback")]
     pub enq_answerback: String,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub adjust_window_size_when_changing_font_size: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub use_resize_increments: bool,
 
-    #[serde(default = "default_alternate_buffer_wheel_scroll_speed")]
+    #[dynamic(default = "default_alternate_buffer_wheel_scroll_speed")]
     pub alternate_buffer_wheel_scroll_speed: u8,
 
-    #[serde(default = "default_status_update_interval")]
+    #[dynamic(default = "default_status_update_interval")]
     pub status_update_interval: u64,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub experimental_pixel_positioning: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub bidi_enabled: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub bidi_direction: ParagraphDirectionHint,
 
-    #[serde(default = "default_stateless_process_list")]
+    #[dynamic(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub warn_about_missing_glyphs: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub sort_fallback_fonts_by_coverage: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub search_font_dirs_for_fallback: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub use_cap_height_to_scale_fallback_fonts: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub swallow_mouse_click_on_pane_focus: bool,
 
-    #[serde(default = "default_swallow_mouse_click_on_window_focus")]
+    #[dynamic(default = "default_swallow_mouse_click_on_window_focus")]
     pub swallow_mouse_click_on_window_focus: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub pane_focus_follows_mouse: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub unzoom_on_switch_pane: bool,
 
-    #[serde(default = "default_max_fps")]
+    #[dynamic(default = "default_max_fps")]
     pub max_fps: u8,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub visual_bell: VisualBell,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub audible_bell: AudibleBell,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub canonicalize_pasted_newlines: Option<NewlineCanon>,
 
-    #[serde(default = "default_unicode_version")]
+    #[dynamic(default = "default_unicode_version")]
     pub unicode_version: u8,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub treat_east_asian_ambiguous_width_as_wide: bool,
 
-    #[serde(default = "default_true")]
+    #[dynamic(default = "default_true")]
     pub allow_download_protocols: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub allow_win32_input_mode: bool,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub default_domain: Option<String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub default_workspace: Option<String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub xcursor_theme: Option<String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub xcursor_size: Option<u32>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub key_map_preference: KeyMapPreference,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
 }
-impl_lua_conversion!(Config);
+impl_lua_conversion_dynamic!(Config);
 
 impl Default for Config {
     fn default() -> Self {
-        // Ask serde to provide the defaults based on the attributes
+        // Ask FromDynamic to provide the defaults based on the attributes
         // specified in the struct so that we don't have to repeat
         // the same thing in a different form down here
-        toml::from_str("").unwrap()
+        Config::from_dynamic(
+            &wezterm_dynamic::Value::Object(Default::default()),
+            Default::default(),
+        )
+        .unwrap()
     }
 }
 
 impl Config {
     pub fn load() -> anyhow::Result<LoadedConfig> {
-        Self::load_with_overrides(&serde_json::Value::default())
+        Self::load_with_overrides(&wezterm_dynamic::Value::default())
     }
 
-    pub fn load_with_overrides(overrides: &serde_json::Value) -> anyhow::Result<LoadedConfig> {
+    pub fn load_with_overrides(overrides: &wezterm_dynamic::Value) -> anyhow::Result<LoadedConfig> {
         // Note that the directories crate has methods for locating project
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
@@ -707,8 +709,8 @@ impl Config {
                     .eval_async(),
             )?;
             let config = Self::apply_overrides_to(&lua, config)?;
-            let config = Self::apply_overrides_obj_to(config, overrides)?;
-            cfg = luahelper::from_lua_value(config).with_context(|| {
+            let config = Self::apply_overrides_obj_to(&lua, config, overrides)?;
+            cfg = Config::from_lua(config, &lua).with_context(|| {
                 format!(
                     "Error converting lua value returned by script {} to Config struct",
                     p.display()
@@ -746,15 +748,17 @@ impl Config {
     }
 
     pub(crate) fn apply_overrides_obj_to<'l>(
+        lua: &'l mlua::Lua,
         mut config: mlua::Value<'l>,
-        overrides: &serde_json::Value,
+        overrides: &wezterm_dynamic::Value,
     ) -> anyhow::Result<mlua::Value<'l>> {
         match overrides {
-            serde_json::Value::Object(obj) => {
+            wezterm_dynamic::Value::Object(obj) => {
                 if let mlua::Value::Table(tbl) = &mut config {
                     for (key, value) in obj {
-                        let value = luahelper::JsonLua(value.clone());
-                        tbl.set(key.as_str(), value)?;
+                        let key = luahelper::dynamic_to_lua_value(lua, key.clone())?;
+                        let value = luahelper::dynamic_to_lua_value(lua, value.clone())?;
+                        tbl.set(key, value)?;
                     }
                 }
                 Ok(config)
@@ -955,8 +959,7 @@ impl Config {
 
         fn load_scheme(path: &Path) -> anyhow::Result<ColorSchemeFile> {
             let s = std::fs::read_to_string(path)?;
-            let scheme: ColorSchemeFile = toml::from_str(&s).context("parsing TOML")?;
-            Ok(scheme)
+            ColorSchemeFile::from_toml_str(&s).context("parsing TOML")
         }
 
         for colors_dir in paths {
@@ -1289,7 +1292,7 @@ fn default_inactive_pane_hsb() -> HsbTransform {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
 pub enum DefaultCursorStyle {
     BlinkingBlock,
     SteadyBlock,
@@ -1298,7 +1301,6 @@ pub enum DefaultCursorStyle {
     BlinkingBar,
     SteadyBar,
 }
-impl_lua_conversion!(DefaultCursorStyle);
 
 impl Default for DefaultCursorStyle {
     fn default() -> Self {
@@ -1334,18 +1336,17 @@ const fn default_half_cell() -> Dimension {
     Dimension::Cells(0.5)
 }
 
-#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
 pub struct WindowPadding {
-    #[serde(deserialize_with = "de_pixels", default = "default_one_cell")]
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_one_cell")]
     pub left: Dimension,
-    #[serde(deserialize_with = "de_pixels", default = "default_half_cell")]
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_half_cell")]
     pub top: Dimension,
-    #[serde(deserialize_with = "de_pixels", default = "default_one_cell")]
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_one_cell")]
     pub right: Dimension,
-    #[serde(deserialize_with = "de_pixels", default = "default_half_cell")]
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_half_cell")]
     pub bottom: Dimension,
 }
-impl_lua_conversion!(WindowPadding);
 
 impl Default for WindowPadding {
     fn default() -> Self {
@@ -1358,74 +1359,22 @@ impl Default for WindowPadding {
     }
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NewlineCanon {
+    // FIXME: also allow deserialziing from bool
     None,
     LineFeed,
     CarriageReturn,
     CarriageReturnAndLineFeed,
 }
-impl_lua_conversion!(NewlineCanon);
 
-impl<'de> Deserialize<'de> for NewlineCanon {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct Helper;
-
-        impl<'de> serde::de::Visitor<'de> for Helper {
-            type Value = NewlineCanon;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("true, false, \"None\", \"LineFeed\", \"CarriageReturnAndLineFeed\", \"CarriageReturnAndLineFeed\"")
-            }
-
-            fn visit_bool<E>(self, value: bool) -> Result<NewlineCanon, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(if value {
-                    NewlineCanon::CarriageReturnAndLineFeed
-                } else {
-                    NewlineCanon::LineFeed
-                })
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match v {
-                    "None" => Ok(NewlineCanon::None),
-                    "LineFeed" => Ok(NewlineCanon::LineFeed),
-                    "CarriageReturn" => Ok(NewlineCanon::CarriageReturn),
-                    "CarriageReturnAndLineFeed" => Ok(NewlineCanon::CarriageReturnAndLineFeed),
-                    _ => Err(serde::de::Error::unknown_variant(
-                        v,
-                        &[
-                            "None",
-                            "LineFeed",
-                            "CarriageReturn",
-                            "CarriageReturnAndLineFeed",
-                        ],
-                    )),
-                }
-            }
-        }
-
-        deserializer.deserialize_any(Helper)
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
 pub enum WindowCloseConfirmation {
     AlwaysPrompt,
     NeverPrompt,
     // TODO: something smart where we see whether the
     // running programs are stateful
 }
-impl_lua_conversion!(WindowCloseConfirmation);
 
 impl Default for WindowCloseConfirmation {
     fn default() -> Self {
@@ -1453,7 +1402,7 @@ impl PathPossibility {
 }
 
 /// Behavior when the program spawned by wezterm terminates
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
 pub enum ExitBehavior {
     /// Close the associated pane
     Close,
@@ -1469,7 +1418,7 @@ impl Default for ExitBehavior {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
 pub enum DroppedFileQuoting {
     /// No quoting is performed, the file name is passed through as-is
     None,

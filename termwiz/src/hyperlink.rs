@@ -12,9 +12,10 @@ use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
 use std::sync::Arc;
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct Hyperlink {
     params: HashMap<String, String>,
     uri: String,
@@ -124,7 +125,7 @@ impl Display for Hyperlink {
 /// The Rule struct is configuration that is passed to the terminal
 /// and is evaluated when processing mouse hover events.
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct Rule {
     /// The compiled regex for the rule.  This is used to match
     /// against a line of text from the screen (typically the line
@@ -136,6 +137,7 @@ pub struct Rule {
             serialize_with = "serialize_regex"
         )
     )]
+    #[dynamic(into = "RegexWrap", try_from = "RegexWrap")]
     regex: Regex,
     /// The format string that defines how to transform the matched
     /// text into a URL.  For example, a format string of `$0` expands
@@ -148,6 +150,36 @@ pub struct Rule {
     /// with ambiguous replacement of `$11` vs `$1` in the case of
     /// more complex regexes.
     format: String,
+}
+
+struct RegexWrap(Regex);
+
+impl FromDynamic for RegexWrap {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> std::result::Result<RegexWrap, wezterm_dynamic::Error> {
+        let s = String::from_dynamic(value, options)?;
+        Ok(RegexWrap(Regex::new(&s).map_err(|e| e.to_string())?))
+    }
+}
+
+impl From<&Regex> for RegexWrap {
+    fn from(regex: &Regex) -> RegexWrap {
+        RegexWrap(regex.clone())
+    }
+}
+
+impl Into<Regex> for RegexWrap {
+    fn into(self) -> Regex {
+        self.0
+    }
+}
+
+impl ToDynamic for RegexWrap {
+    fn to_dynamic(&self) -> Value {
+        self.0.to_string().to_dynamic()
+    }
 }
 
 #[cfg(feature = "use_serde")]

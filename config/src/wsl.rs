@@ -1,7 +1,9 @@
 use crate::*;
+use luahelper::impl_lua_conversion_dynamic;
 use std::collections::HashMap;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct WslDomain {
     pub name: String,
     pub distribution: Option<String>,
@@ -9,7 +11,7 @@ pub struct WslDomain {
     pub default_cwd: Option<PathBuf>,
     pub default_prog: Option<Vec<String>>,
 }
-impl_lua_conversion!(WslDomain);
+impl_lua_conversion_dynamic!(WslDomain);
 
 impl WslDomain {
     pub fn default_domains() -> Vec<WslDomain> {
@@ -33,7 +35,7 @@ impl WslDomain {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WslDistro {
     pub name: String,
     pub state: String,

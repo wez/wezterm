@@ -8,6 +8,7 @@ use crate::widechar_width::WcWidth;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::mem;
 use std::sync::Arc;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -164,7 +165,7 @@ impl Default for SemanticType {
 /// using an alternative color.  Some terminals implement `Intensity::Half`
 /// as a dimmer color variant.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 #[repr(u16)]
 pub enum Intensity {
     Normal = 0,
@@ -180,7 +181,7 @@ impl Default for Intensity {
 
 /// Specify just how underlined you want your `Cell` to be
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 #[repr(u16)]
 pub enum Underline {
     /// The cell is not underlined
@@ -214,7 +215,7 @@ impl Into<bool> for Underline {
 
 /// Specify whether you want to slowly or rapidly annoy your users
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 #[repr(u16)]
 pub enum Blink {
     None = 0,
@@ -939,7 +940,7 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
 /// Each variant specifies one of the possible attributes; the corresponding
 /// value holds the new value to be used for that attribute.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, FromDynamic, ToDynamic)]
 pub enum AttributeChange {
     Intensity(Intensity),
     Underline(Underline),

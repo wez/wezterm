@@ -1,23 +1,23 @@
-use crate::de_notnan;
 use crate::keys::KeyNoAction;
-use luahelper::impl_lua_conversion;
+use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::PathBuf;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic, PartialEq, Eq)]
 pub struct LauncherActionArgs {
     pub flags: LauncherFlags,
     pub title: Option<String>,
 }
 
 bitflags::bitflags! {
-    #[derive(Default, Deserialize, Serialize)]
-    #[serde(try_from="String", into="String")]
+    #[derive(Default,  FromDynamic, ToDynamic)]
+    #[dynamic(try_from="String", into="String")]
     pub struct LauncherFlags :u32 {
         const ZERO = 0;
         const FUZZY = 1;
@@ -31,6 +31,12 @@ bitflags::bitflags! {
 }
 
 impl Into<String> for LauncherFlags {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
+impl Into<String> for &LauncherFlags {
     fn into(self) -> String {
         self.to_string()
     }
@@ -89,7 +95,7 @@ impl TryFrom<String> for LauncherFlags {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, FromDynamic, ToDynamic)]
 pub enum SelectionMode {
     Cell,
     Word,
@@ -98,7 +104,7 @@ pub enum SelectionMode {
     Block,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum Pattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),
@@ -133,7 +139,7 @@ impl std::ops::DerefMut for Pattern {
 }
 
 /// A mouse event that can trigger an action
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub enum MouseEventTrigger {
     /// Mouse button is pressed. streak is how many times in a row
     /// it was pressed.
@@ -148,7 +154,7 @@ pub enum MouseEventTrigger {
 
 /// When spawning a tab, specify which domain should be used to
 /// host/spawn that tab.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum SpawnTabDomain {
     /// Use the default domain
     DefaultDomain,
@@ -166,7 +172,7 @@ impl Default for SpawnTabDomain {
     }
 }
 
-#[derive(Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct SpawnCommand {
     /// Optional descriptive label
     pub label: Option<String>,
@@ -187,10 +193,10 @@ pub struct SpawnCommand {
 
     /// Specifies a map of environment variables that should be set.
     /// Whether this is used depends on the domain.
-    #[serde(default)]
+    #[dynamic(default)]
     pub set_environment_variables: HashMap<String, String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub domain: SpawnTabDomain,
 }
 
@@ -220,7 +226,7 @@ impl std::fmt::Display for SpawnCommand {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum PaneDirection {
     Up,
     Down,
@@ -230,7 +236,7 @@ pub enum PaneDirection {
     Prev,
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum ScrollbackEraseMode {
     ScrollbackOnly,
     ScrollbackAndViewport,
@@ -242,7 +248,7 @@ impl Default for ScrollbackEraseMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum ClipboardCopyDestination {
     Clipboard,
     PrimarySelection,
@@ -255,7 +261,7 @@ impl Default for ClipboardCopyDestination {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum ClipboardPasteSource {
     Clipboard,
     PrimarySelection,
@@ -267,22 +273,22 @@ impl Default for ClipboardPasteSource {
     }
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct QuickSelectArguments {
     /// Overrides the main quick_select_alphabet config
-    #[serde(default)]
+    #[dynamic(default)]
     pub alphabet: String,
     /// Overrides the main quick_select_patterns config
-    #[serde(default)]
+    #[dynamic(default)]
     pub patterns: Vec<String>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub action: Option<Box<KeyAssignment>>,
     /// Label to use in place of "copy" when `action` is set
-    #[serde(default)]
+    #[dynamic(default)]
     pub label: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -312,7 +318,6 @@ pub enum KeyAssignment {
     ReloadConfiguration,
     MoveTabRelative(isize),
     MoveTab(usize),
-    #[serde(deserialize_with = "de_notnan")]
     ScrollByPage(NotNan<f64>),
     ScrollByLine(isize),
     ScrollToPrompt(isize),
@@ -361,11 +366,11 @@ pub enum KeyAssignment {
 
     ActivateKeyTable {
         name: String,
-        #[serde(default)]
+        #[dynamic(default)]
         timeout_milliseconds: Option<u64>,
-        #[serde(default)]
+        #[dynamic(default)]
         replace_current: bool,
-        #[serde(default = "crate::default_true")]
+        #[dynamic(default = "crate::default_true")]
         one_shot: bool,
     },
     PopKeyTable,
@@ -375,9 +380,9 @@ pub enum KeyAssignment {
 
     CopyMode(CopyModeAssignment),
 }
-impl_lua_conversion!(KeyAssignment);
+impl_lua_conversion_dynamic!(KeyAssignment);
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CopyModeAssignment {
     MoveToViewportBottom,
     MoveToViewportTop,
@@ -408,7 +413,6 @@ pub enum CopyModeAssignment {
     EditPattern,
     AcceptPattern,
 }
-impl_lua_conversion!(CopyModeAssignment);
 
 pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
 

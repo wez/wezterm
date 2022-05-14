@@ -1,4 +1,22 @@
-use serde::{Deserializer, Serialize, Serializer};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
+
+#[derive(Debug, Copy, Clone)]
+pub struct PixelUnit(Dimension);
+
+impl Into<Dimension> for PixelUnit {
+    fn into(self) -> Dimension {
+        self.0
+    }
+}
+
+impl FromDynamic for PixelUnit {
+    fn from_dynamic(
+        value: &Value,
+        _options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        Ok(Self(DefaultUnit::Pixels.from_dynamic_impl(value)?))
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DefaultUnit {
@@ -19,63 +37,47 @@ impl DefaultUnit {
     }
 }
 
-impl<'de> serde::de::Visitor<'de> for DefaultUnit {
-    type Value = Dimension;
+impl DefaultUnit {
+    fn from_dynamic_impl(self, value: &Value) -> Result<Dimension, String> {
+        match value {
+            Value::F64(f) => Ok(self.to_dimension(f.into_inner() as f32)),
+            Value::I64(i) => Ok(self.to_dimension(*i as f32)),
+            Value::U64(u) => Ok(self.to_dimension(*u as f32)),
+            Value::String(s) => {
+                if let Ok(value) = s.parse::<f32>() {
+                    Ok(self.to_dimension(value))
+                } else {
+                    fn is_unit(s: &str, unit: &'static str) -> Option<f32> {
+                        let s = s.strip_suffix(unit)?.trim();
+                        s.parse().ok()
+                    }
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("f64 or i64")
-    }
-
-    fn visit_f32<E>(self, value: f32) -> Result<Dimension, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(self.to_dimension(value))
-    }
-
-    fn visit_f64<E>(self, value: f64) -> Result<Dimension, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(self.to_dimension(value as f32))
-    }
-
-    fn visit_i64<E>(self, value: i64) -> Result<Dimension, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(self.to_dimension(value as f32))
-    }
-
-    fn visit_str<E>(self, s: &str) -> Result<Dimension, E>
-    where
-        E: serde::de::Error,
-    {
-        if let Ok(value) = s.parse::<f32>() {
-            Ok(self.to_dimension(value))
-        } else {
-            fn is_unit(s: &str, unit: &'static str) -> Option<f32> {
-                let s = s.strip_suffix(unit)?.trim();
-                s.parse().ok()
-            }
-
-            if let Some(v) = is_unit(s, "px") {
-                Ok(DefaultUnit::Pixels.to_dimension(v))
-            } else if let Some(v) = is_unit(s, "%") {
-                Ok(DefaultUnit::Percent.to_dimension(v))
-            } else if let Some(v) = is_unit(s, "pt") {
-                Ok(DefaultUnit::Points.to_dimension(v))
-            } else if let Some(v) = is_unit(s, "cell") {
-                Ok(DefaultUnit::Cells.to_dimension(v))
-            } else {
-                Err(serde::de::Error::custom(format!(
-                    "expected either a number or a string of \
+                    if let Some(v) = is_unit(s, "px") {
+                        Ok(DefaultUnit::Pixels.to_dimension(v))
+                    } else if let Some(v) = is_unit(s, "%") {
+                        Ok(DefaultUnit::Percent.to_dimension(v))
+                    } else if let Some(v) = is_unit(s, "pt") {
+                        Ok(DefaultUnit::Points.to_dimension(v))
+                    } else if let Some(v) = is_unit(s, "cell") {
+                        Ok(DefaultUnit::Cells.to_dimension(v))
+                    } else {
+                        Err(format!(
+                            "expected either a number or a string of \
                         the form '123px' where 'px' is a unit and \
                         can be one of 'px', '%', 'pt' or 'cell', \
                         but got {}",
-                    s
-                )))
+                            s
+                        ))
+                    }
+                }
             }
+            other => Err(format!(
+                "expected either a number or a string of \
+                        the form '123px' where 'px' is a unit and \
+                        can be one of 'px', '%', 'pt' or 'cell', \
+                        but got {}",
+                other.variant_name()
+            )),
         }
     }
 }
@@ -115,18 +117,15 @@ impl Default for Dimension {
     }
 }
 
-impl Serialize for Dimension {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl ToDynamic for Dimension {
+    fn to_dynamic(&self) -> Value {
         let s = match self {
             Self::Points(n) => format!("{}pt", n),
             Self::Pixels(n) => format!("{}px", n),
             Self::Percent(n) => format!("{}%", n * 100.),
             Self::Cells(n) => format!("{}cell", n),
         };
-        serializer.serialize_str(&s)
+        Value::String(s)
     }
 }
 
@@ -167,39 +166,4 @@ impl Default for GeometryOrigin {
     fn default() -> Self {
         Self::ScreenCoordinateSystem
     }
-}
-
-fn de_dimension<'de, D>(unit: DefaultUnit, deserializer: D) -> Result<Dimension, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    deserializer.deserialize_any(unit)
-}
-
-pub fn de_pixels<'de, D>(deserializer: D) -> Result<Dimension, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_dimension(DefaultUnit::Pixels, deserializer)
-}
-
-pub fn de_points<'de, D>(deserializer: D) -> Result<Dimension, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_dimension(DefaultUnit::Points, deserializer)
-}
-
-pub fn de_percent<'de, D>(deserializer: D) -> Result<Dimension, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_dimension(DefaultUnit::Percent, deserializer)
-}
-
-pub fn de_cells<'de, D>(deserializer: D) -> Result<Dimension, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_dimension(DefaultUnit::Cells, deserializer)
 }

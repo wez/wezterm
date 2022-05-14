@@ -9,7 +9,7 @@ edition = "2021"
 libc = "0.2"
 log = "0.4"
 luahelper = { path = "../luahelper" }
-serde = {version="1.0", features = ["rc", "derive"]}
+serde = {version="1.0", features = ["derive"]}
 
 [target."cfg(windows)".dependencies]
 ntapi = "0.3"

@@ -71,6 +71,7 @@ url = "2"
 walkdir = "2"
 wezterm-bidi = { path = "../bidi" }
 wezterm-client = { path = "../wezterm-client" }
+wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }

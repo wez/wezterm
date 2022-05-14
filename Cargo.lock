@@ -672,6 +672,7 @@ dependencies = [
  "umask",
  "unicode-segmentation",
  "wezterm-bidi",
+ "wezterm-dynamic",
  "wezterm-input-types",
  "wezterm-ssh",
  "wezterm-term",
@@ -2024,6 +2025,7 @@ dependencies = [
  "serde_json",
  "strsim 0.10.0",
  "thiserror",
+ "wezterm-dynamic",
 ]
 
 [[package]]
@@ -2287,6 +2289,7 @@ dependencies = [
  "thiserror",
  "unicode-segmentation",
  "url",
+ "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
  "winapi 0.3.9",
@@ -4086,6 +4089,7 @@ dependencies = [
  "vtparse",
  "wezterm-bidi",
  "wezterm-color-types",
+ "wezterm-dynamic",
  "winapi 0.3.9",
 ]
 
@@ -4654,6 +4658,7 @@ dependencies = [
  "k9",
  "log",
  "serde",
+ "wezterm-dynamic",
 ]
 
 [[package]]
@@ -4703,8 +4708,10 @@ dependencies = [
 name = "wezterm-dynamic"
 version = "0.1.0"
 dependencies = [
+ "log",
  "maplit",
  "ordered-float",
+ "strsim 0.10.0",
  "thiserror",
  "wezterm-dynamic-derive",
 ]
@@ -4817,6 +4824,7 @@ dependencies = [
  "walkdir",
  "wezterm-bidi",
  "wezterm-client",
+ "wezterm-dynamic",
  "wezterm-font",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
@@ -4845,6 +4853,7 @@ dependencies = [
  "euclid",
  "lazy_static",
  "serde",
+ "wezterm-dynamic",
 ]
 
 [[package]]
@@ -4953,6 +4962,7 @@ dependencies = [
  "unicode-width",
  "url",
  "wezterm-bidi",
+ "wezterm-dynamic",
 ]
 
 [[package]]

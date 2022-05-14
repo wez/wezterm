@@ -1,13 +1,13 @@
 use crate::*;
 use std::fmt::Display;
 use std::str::FromStr;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
 pub enum SshBackend {
     Ssh2,
     LibSsh,
 }
-impl_lua_conversion!(SshBackend);
 
 impl Default for SshBackend {
     fn default() -> Self {
@@ -15,13 +15,12 @@ impl Default for SshBackend {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum SshMultiplexing {
     WezTerm,
     None,
     // TODO: Tmux-cc in the future?
 }
-impl_lua_conversion!(SshMultiplexing);
 
 impl Default for SshMultiplexing {
     fn default() -> Self {
@@ -29,7 +28,7 @@ impl Default for SshMultiplexing {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum Shell {
     /// Unknown command shell: no assumptions can be made
     Unknown,
@@ -39,7 +38,6 @@ pub enum Shell {
     Posix,
     // TODO: Cmd, PowerShell in the future?
 }
-impl_lua_conversion!(Shell);
 
 impl Default for Shell {
     fn default() -> Self {
@@ -47,7 +45,7 @@ impl Default for Shell {
     }
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -57,20 +55,20 @@ pub struct SshDomain {
     pub remote_address: String,
 
     /// Whether agent auth should be disabled
-    #[serde(default)]
+    #[dynamic(default)]
     pub no_agent_auth: bool,
 
     /// The username to use for authenticating with the remote host
     pub username: Option<String>,
 
     /// If true, connect to this domain automatically at startup
-    #[serde(default)]
+    #[dynamic(default)]
     pub connect_automatically: bool,
 
-    #[serde(default = "default_read_timeout")]
+    #[dynamic(default = "default_read_timeout")]
     pub timeout: Duration,
 
-    #[serde(default = "default_local_echo_threshold_ms")]
+    #[dynamic(default = "default_local_echo_threshold_ms")]
     pub local_echo_threshold_ms: Option<u64>,
 
     /// The path to the wezterm binary on the remote host
@@ -82,19 +80,18 @@ pub struct SshDomain {
     /// just connect directly using ssh. This doesn't require
     /// that the remote host have wezterm installed, and is equivalent
     /// to using `wezterm ssh` to connect.
-    #[serde(default)]
+    #[dynamic(default)]
     pub multiplexing: SshMultiplexing,
 
     /// ssh_config option values
-    #[serde(default)]
+    #[dynamic(default)]
     pub ssh_option: HashMap<String, String>,
 
     pub default_prog: Option<Vec<String>>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub assume_shell: Shell,
 }
-impl_lua_conversion!(SshDomain);
 
 #[derive(Clone, Debug)]
 pub struct SshParameters {

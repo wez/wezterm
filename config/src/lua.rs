@@ -8,7 +8,6 @@ use bstr::BString;
 pub use luahelper::*;
 use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
 use ordered_float::NotNan;
-use serde::*;
 use smol::prelude::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -18,6 +17,7 @@ use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
 use termwiz::input::Modifiers;
 use termwiz::surface::change::Change;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 static LUA_REGISTRY_USER_CALLBACK_COUNT: &str = "wezterm-user-callback-count";
 
@@ -278,12 +278,7 @@ pub fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
     TerminfoRenderer::new(CAPS.clone())
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-#[serde(transparent)]
-struct ChangeWrap(Change);
-impl_lua_conversion!(ChangeWrap);
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
 pub enum FormatColor {
     AnsiColor(AnsiColor),
     Color(String),
@@ -312,14 +307,14 @@ impl Into<ColorSpec> for FormatColor {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
 pub enum FormatItem {
     Foreground(FormatColor),
     Background(FormatColor),
     Attribute(AttributeChange),
     Text(String),
 }
-impl_lua_conversion!(FormatItem);
+impl_lua_conversion_dynamic!(FormatItem);
 
 impl Into<Change> for FormatItem {
     fn into(self) -> Change {
@@ -370,7 +365,7 @@ fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
     format_as_escapes(items).map_err(|e| mlua::Error::external(e))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(FromDynamic, ToDynamic, Debug)]
 struct BatteryInfo {
     state_of_charge: f32,
     vendor: String,
@@ -380,7 +375,7 @@ struct BatteryInfo {
     time_to_full: Option<f32>,
     time_to_empty: Option<f32>,
 }
-impl_lua_conversion!(BatteryInfo);
+impl_lua_conversion_dynamic!(BatteryInfo);
 
 fn opt_string(s: Option<&str>) -> String {
     match s {
@@ -442,17 +437,17 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, FromDynamic, ToDynamic, Clone, PartialEq, Eq, Hash)]
 struct TextStyleAttributes {
     /// Whether the font should be a bold variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub bold: Option<bool>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub weight: Option<FontWeight>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub style: FontStyle,
     // Ideally we'd simply use serde's aliasing functionality on the `style`
     // field to support backwards compatibility, but aliases are invisible
@@ -466,7 +461,7 @@ struct TextStyleAttributes {
 }
 impl<'lua> FromLua<'lua> for TextStyleAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
-        let mut attr: TextStyleAttributes = from_lua_value(value)?;
+        let mut attr: TextStyleAttributes = from_lua_value_dynamic(value)?;
         if let Some(italic) = attr.italic.take() {
             attr.style = if italic {
                 FontStyle::Italic
@@ -478,33 +473,33 @@ impl<'lua> FromLua<'lua> for TextStyleAttributes {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, FromDynamic, ToDynamic, Clone, PartialEq, Eq, Hash)]
 struct LuaFontAttributes {
     /// The font family name
     pub family: String,
     /// Whether the font should be a bold variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub weight: FontWeight,
-    #[serde(default)]
+    #[dynamic(default)]
     pub stretch: FontStretch,
     /// Whether the font should be an italic variant
-    #[serde(default)]
+    #[dynamic(default)]
     pub style: FontStyle,
     // Ideally we'd simply use serde's aliasing functionality on the `style`
     // field to support backwards compatibility, but aliases are invisible
     // to serde_lua, so we do a little fixup here ourselves in our from_lua impl.
-    #[serde(default)]
+    #[dynamic(default)]
     italic: Option<bool>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub harfbuzz_features: Option<Vec<String>>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_target: Option<FreeTypeLoadTarget>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub freetype_load_flags: Option<String>,
-    #[serde(default)]
+    #[dynamic(default)]
     pub scale: Option<NotNan<f64>>,
 }
 impl<'lua> FromLua<'lua> for LuaFontAttributes {
@@ -516,7 +511,7 @@ impl<'lua> FromLua<'lua> for LuaFontAttributes {
                 Ok(attr)
             }
             v => {
-                let mut attr: LuaFontAttributes = from_lua_value(v)?;
+                let mut attr: LuaFontAttributes = from_lua_value_dynamic(v)?;
                 if let Some(italic) = attr.italic.take() {
                     attr.style = if italic {
                         FontStyle::Italic
@@ -662,8 +657,8 @@ fn font_with_fallback<'lua>(
 ///    }
 /// }
 /// ```
-fn action<'lua>(_lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<KeyAssignment> {
-    Ok(from_lua_value(Value::Table(action))?)
+fn action<'lua>(lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<KeyAssignment> {
+    Ok(KeyAssignment::from_lua(Value::Table(action), lua)?)
 }
 
 fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {

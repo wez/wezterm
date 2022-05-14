@@ -1,7 +1,7 @@
-use luahelper::impl_lua_conversion;
-use serde::{Deserialize, Serialize};
+use luahelper::impl_lua_conversion_dynamic;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum Interpolation {
     Linear,
     Basis,
@@ -14,7 +14,7 @@ impl Default for Interpolation {
     }
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum BlendMode {
     Rgb,
     LinearRgb,
@@ -28,7 +28,7 @@ impl Default for BlendMode {
     }
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum GradientOrientation {
     Horizontal,
     Vertical,
@@ -45,7 +45,7 @@ impl Default for GradientOrientation {
     }
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum GradientPreset {
     Blues,
     BrBg,
@@ -132,34 +132,33 @@ impl GradientPreset {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct Gradient {
-    #[serde(default)]
+    #[dynamic(default)]
     pub orientation: GradientOrientation,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub colors: Vec<String>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub preset: Option<GradientPreset>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub interpolation: Interpolation,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub blend: BlendMode,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub segment_size: Option<usize>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub segment_smoothness: Option<f64>,
 
-    #[serde(default)]
+    #[dynamic(default)]
     pub noise: Option<usize>,
 }
-
-impl_lua_conversion!(Gradient);
+impl_lua_conversion_dynamic!(Gradient);
 
 impl Gradient {
     pub fn build(&self) -> anyhow::Result<colorgrad::Gradient> {

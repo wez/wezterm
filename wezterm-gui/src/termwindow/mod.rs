@@ -112,8 +112,8 @@ pub enum TermWindowNotif {
         name: String,
         again: bool,
     },
-    GetConfigOverrides(Sender<serde_json::Value>),
-    SetConfigOverrides(serde_json::Value),
+    GetConfigOverrides(Sender<wezterm_dynamic::Value>),
+    SetConfigOverrides(wezterm_dynamic::Value),
     CancelOverlayForPane(PaneId),
     CancelOverlayForTab {
         tab_id: TabId,
@@ -317,7 +317,7 @@ enum EventState {
 pub struct TermWindow {
     pub window: Option<Window>,
     pub config: ConfigHandle,
-    pub config_overrides: serde_json::Value,
+    pub config_overrides: wezterm_dynamic::Value,
     os_parameters: Option<parameters::Parameters>,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
@@ -748,7 +748,7 @@ impl TermWindow {
             window: None,
             window_background,
             config: config.clone(),
-            config_overrides: serde_json::Value::default(),
+            config_overrides: wezterm_dynamic::Value::default(),
             palette: None,
             focused: None,
             mux_window_id,

@@ -1,9 +1,10 @@
 use crate::*;
 use std::path::PathBuf;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 /// Configures an instance of a multiplexer that can be communicated
 /// with via a unix domain socket
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct UnixDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -14,12 +15,12 @@ pub struct UnixDomain {
     pub socket_path: Option<PathBuf>,
 
     /// If true, connect to this domain automatically at startup
-    #[serde(default)]
+    #[dynamic(default)]
     pub connect_automatically: bool,
 
     /// If true, do not attempt to start this server if we try and fail to
     /// connect to it.
-    #[serde(default)]
+    #[dynamic(default)]
     pub no_serve_automatically: bool,
 
     /// If we decide that we need to start the server, the command to run
@@ -40,20 +41,19 @@ pub struct UnixDomain {
     /// system, but is useful for example when running the
     /// server inside a WSL container but with the socket
     /// on the host NTFS volume.
-    #[serde(default)]
+    #[dynamic(default)]
     pub skip_permissions_check: bool,
 
-    #[serde(default = "default_read_timeout")]
+    #[dynamic(default = "default_read_timeout")]
     pub read_timeout: Duration,
 
-    #[serde(default = "default_write_timeout")]
+    #[dynamic(default = "default_write_timeout")]
     pub write_timeout: Duration,
 
     /// Don't use default_local_echo_threshold_ms() here to
     /// disable the predictive echo for Unix domains by default.
     pub local_echo_threshold_ms: Option<u64>,
 }
-impl_lua_conversion!(UnixDomain);
 
 impl Default for UnixDomain {
     fn default() -> Self {
