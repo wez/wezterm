@@ -294,7 +294,7 @@ case $ID in
   freebsd) # available since 13.0
     bsd_deps
   ;;
-  arch)
+  arch|artix)
     arch_deps
   ;;
   gentoo)
