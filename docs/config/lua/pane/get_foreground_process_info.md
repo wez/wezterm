@@ -1,8 +1,8 @@
-# `pane:get_foreground_process_name()`
+# `pane:get_foreground_process_info()`
 
-*Since: 20220101-133340-7edc5b5a*
+*Since: nightly builds only*
 
-Returns the path to the executable image for the pane.
+Returns a [LocalProcessInfo](../LocalProcessInfo.md) object corresponding to the current foreground process that is running in the pane.
 
 This method has some restrictions and caveats:
 
@@ -12,9 +12,9 @@ This method has some restrictions and caveats:
 * Querying the path may fail for a variety of reasons outside of the control of WezTerm
 * Querying process information has some runtime overhead, which may cause wezterm to slow down if over-used.
 
-If the path is not known then this method returns `nil`.
+If the process cannot be determined then this method returns `nil`.
 
-This example sets the right status to the executable path:
+This example sets the right status to show the process id and executable path:
 
 ```lua
 local wezterm = require 'wezterm'
@@ -27,11 +27,15 @@ function basename(s)
 end
 
 wezterm.on("update-right-status", function(window, pane)
-  window:set_right_status(basename(pane:get_foreground_process_name()))
+  local info = pane:get_foreground_process_info()
+  if info then
+    window:set_right_status(tostring(info.pid) .. " " .. basename(info.executable))
+  else
+    window:set_right_status("")
+  end
 end)
 
 return {
 }
 ```
 
-See also: [get_foreground_process_info](get_foreground_process_info.md)

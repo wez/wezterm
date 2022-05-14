@@ -41,6 +41,9 @@ impl UserData for PaneObject {
         methods.add_method("get_foreground_process_name", |_, this, _: ()| {
             Ok(this.pane()?.get_foreground_process_name())
         });
+        methods.add_method("get_foreground_process_info", |_, this, _: ()| {
+            Ok(this.pane()?.get_foreground_process_info())
+        });
         methods.add_method("paste", |_, this, text: String| {
             this.pane()?.send_paste(&text).map_err(luaerr)?;
             Ok(())

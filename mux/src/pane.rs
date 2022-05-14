@@ -390,6 +390,9 @@ pub trait Pane: Downcast {
     fn get_foreground_process_name(&self) -> Option<String> {
         None
     }
+    fn get_foreground_process_info(&self) -> Option<procinfo::LocalProcessInfo> {
+        None
+    }
 
     fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {

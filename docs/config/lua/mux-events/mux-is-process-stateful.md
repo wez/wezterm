@@ -8,17 +8,8 @@ to determine whether a given Pane can be closed without prompting the user.
 This event is *synchronous* and must return as quickly as possible in order
 to avoid blocking the multiplexer.
 
-The event is passed a `LocalProcessInfo` object representing the process that
-corresponds to the pane. `LocalProcessInfo` has the following fields:
-
-* `pid` - the process id
-* `ppid` - the parent process id
-* `name` - a short name for the process. You probably should prefer to look at the `executable` or `argv` fields instead of this one
-* `status` - a string holding the status of the process; it can be `Idle`, `Run`, `Sleep`, `Stop`, `Zombie`, `Tracing`, `Dead`, `Wakekill`, `Waking`, `Parked`, `LockBlocked`, `Unknown`.
-* `argv` - a table holding the argument array for the process
-* `executable` - the full path to the executable image for the process (may be empty)
-* `cwd` - the current working directory for the process (may be empty)
-* `children` - a table keyed by child process id and whose values are themselves `LocalProcessInfo` objects that describe the child processes
+The event is passed a [LocalProcessInfo](../LocalProcessInfo.md) object
+representing the process that corresponds to the pane.
 
 The hook can return one of the following values:
 

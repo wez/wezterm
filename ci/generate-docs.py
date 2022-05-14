@@ -219,6 +219,7 @@ clear and convenient.
 
 """,
                     ),
+                    Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),
                     Page("object: TabInformation", "config/lua/TabInformation.md"),
                     Page("object: SshDomain", "config/lua/SshDomain.md"),

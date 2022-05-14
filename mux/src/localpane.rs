@@ -371,6 +371,15 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
+    fn get_foreground_process_info(&self) -> Option<LocalProcessInfo> {
+        #[cfg(unix)]
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            return LocalProcessInfo::with_root_pid(pid as u32);
+        }
+
+        self.divine_foreground_process()
+    }
+
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
         if let Some(pid) = self.pty.borrow().process_group_leader() {
