@@ -48,3 +48,30 @@ jobs:
           cargo build -p termwiz --all-features
           cargo test -p termwiz --all-features
 
+  fuzz-termwiz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "nightly"
+          override: true
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: "ubuntu-latest-termwiz-fuzz-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          cd termwiz/fuzz
+          cargo +nightly fuzz run escape_parse -- -max_total_time=60
+
