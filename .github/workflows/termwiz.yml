@@ -69,10 +69,14 @@ jobs:
             ~/.cargo/git
             target
           key: "ubuntu-latest-termwiz-fuzz-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
-      - name: Build
+      - name: Install fuzzer
         run: |
           source $HOME/.cargo/env
           cargo install cargo-fuzz
+          cd termwiz/fuzz
+      - name: Fuzz
+        run: |
+          source $HOME/.cargo/env
           cd termwiz/fuzz
           RUST_BACKTRACE=full cargo +nightly fuzz run escape_parse -- -max_total_time=60
 
