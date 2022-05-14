@@ -476,6 +476,16 @@ impl LauncherState {
                     self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('G'),
+                    modifiers: Modifiers::CTRL,
+                })
+                | InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    ..
+                }) => {
+                    break;
+                }
+                InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
                     ..
                 }) if self.filtering => {
@@ -493,16 +503,6 @@ impl LauncherState {
                     ..
                 }) => {
                     self.move_down();
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('G'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::Escape,
-                    ..
-                }) => {
-                    break;
                 }
                 InputEvent::Mouse(MouseEvent {
                     y, mouse_buttons, ..
