@@ -219,30 +219,37 @@ impl SelectionRange {
     /// Must be called on a normalized range!
     pub fn cols_for_row(&self, row: StableRowIndex, rectangular: bool) -> Range<usize> {
         let norm = self.normalize();
-        let range = if row < norm.start.y || row > norm.end.y {
-            0..0
-        } else if norm.start.y == norm.end.y {
-            // A single line selection
-            if norm.start.x <= norm.end.x {
-                norm.start.x..norm.end.x.saturating_add(1)
-            } else {
-                norm.end.x..norm.start.x.saturating_add(1)
-            }
-        } else if row == norm.end.y {
-            // last line of multi-line
-            0..norm.end.x.saturating_add(1)
-        } else if row == norm.start.y {
-            // first line of multi-line
-            norm.start.x..usize::max_value()
-        } else {
-            // some "middle" line of multi-line
-            0..usize::max_value()
-        };
 
         if rectangular {
-            range.start.max(norm.start.x)..range.end.min(norm.end.x.saturating_add(1))
+            if row < norm.start.y || row > norm.end.y {
+                0..0
+            } else {
+                if norm.start.x <= norm.end.x {
+                    norm.start.x..norm.end.x.saturating_add(1)
+                } else {
+                    norm.end.x..norm.start.x.saturating_add(1)
+                }
+            }
         } else {
-            range
+            if row < norm.start.y || row > norm.end.y {
+                0..0
+            } else if norm.start.y == norm.end.y {
+                // A single line selection
+                if norm.start.x <= norm.end.x {
+                    norm.start.x..norm.end.x.saturating_add(1)
+                } else {
+                    norm.end.x..norm.start.x.saturating_add(1)
+                }
+            } else if row == norm.end.y {
+                // last line of multi-line
+                0..norm.end.x.saturating_add(1)
+            } else if row == norm.start.y {
+                // first line of multi-line
+                norm.start.x..usize::max_value()
+            } else {
+                // some "middle" line of multi-line
+                0..usize::max_value()
+            }
         }
     }
 }
