@@ -839,4 +839,10 @@ mod test {
             actions
         );
     }
+
+    #[test]
+    fn itermfiledata_oob() {
+        let mut p = Parser::new();
+        p.parse_as_vec(b"\x9d1337\xff;File\x1b");
+    }
 }

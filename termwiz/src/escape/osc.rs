@@ -881,8 +881,12 @@ impl ITermFileData {
         let last = osc.len() - 1;
         for (idx, s) in osc.iter().enumerate().skip(1) {
             let param = if idx == 1 {
-                // skip over File=
-                &s[5..]
+                if s.len() >= 5 {
+                    // skip over File=
+                    &s[5..]
+                } else {
+                    bail!("failed to parse file data; File= not found");
+                }
             } else {
                 s
             };
