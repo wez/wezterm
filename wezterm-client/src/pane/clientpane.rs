@@ -373,34 +373,58 @@ impl Pane for ClientPane {
         let client = Arc::clone(&self.client);
         let remote_pane_id = self.remote_pane_id;
         let local_domain_id = self.client.local_domain_id;
-        promise::spawn::spawn(async move {
-            client
-                .client
-                .kill_pane(KillPane {
-                    pane_id: remote_pane_id,
-                })
-                .await?;
 
-            // Arrange to resync the layout, to avoid artifacts
-            // <https://github.com/wez/wezterm/issues/1277>.
-            // We need a short delay to avoid racing with the observable
-            // effects of killing the pane.
-            // <https://github.com/wez/wezterm/issues/1752#issuecomment-1088269363>
-            smol::Timer::after(std::time::Duration::from_millis(200)).await;
+        // We only want to ask the server to kill the pane if the user
+        // explicitly requested it to die.
+        // Domain detaching can implicitly call Pane::kill on the panes
+        // in the domain, so we need to check here whether the domain is
+        // in the detached state; if so then we must skip sending the
+        // kill to the server.
+        let mut send_kill = true;
+
+        {
             let mux = Mux::get().expect("called on main thread");
-            let client_domain = mux
-                .get_domain(local_domain_id)
-                .ok_or_else(|| anyhow::anyhow!("no such domain {}", local_domain_id))?;
-            let client_domain = client_domain
-                .downcast_ref::<ClientDomain>()
-                .ok_or_else(|| {
-                    anyhow::anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
-                })?;
+            if let Some(client_domain) = mux.get_domain(local_domain_id) {
+                if client_domain.state() == mux::domain::DomainState::Detached {
+                    send_kill = false;
+                }
+            }
+        }
 
-            client_domain.resync().await?;
-            anyhow::Result::<()>::Ok(())
-        })
-        .detach();
+        if send_kill {
+            promise::spawn::spawn(async move {
+                client
+                    .client
+                    .kill_pane(KillPane {
+                        pane_id: remote_pane_id,
+                    })
+                    .await?;
+
+                // Arrange to resync the layout, to avoid artifacts
+                // <https://github.com/wez/wezterm/issues/1277>.
+                // We need a short delay to avoid racing with the observable
+                // effects of killing the pane.
+                // <https://github.com/wez/wezterm/issues/1752#issuecomment-1088269363>
+                smol::Timer::after(std::time::Duration::from_millis(200)).await;
+                let mux = Mux::get().expect("called on main thread");
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| anyhow::anyhow!("no such domain {}", local_domain_id))?;
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                                "domain {} is not a ClientDomain instance",
+                                local_domain_id
+                            )
+                        })?;
+
+                client_domain.resync().await?;
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+        }
         // Explicitly mark ourselves as dead.
         // Ideally we'd discover this later when polling the
         // status, but killing the pane prevents the server

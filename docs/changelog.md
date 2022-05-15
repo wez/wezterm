@@ -53,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Unable to use `ALT` as a modifier for the `leader` key. [#1958](https://github.com/wez/wezterm/issues/1958)
 * IME Candidate window position was incorrect. Thanks to [@kumattau](https://github.com/kumattau)! [#1976](https://github.com/wez/wezterm/pull/1976)
 * Prevent panic for some classes of invalid input, found while fuzzing. Thanks to [@5225225](https://github.com/5225225)! [#1990](https://github.com/wez/wezterm/pull/1990) [#1986](https://github.com/wez/wezterm/pull/1986)
+* Detaching an ssh multiplexer domain sometimes killed the associated panes! [#1993](https://github.com/wez/wezterm/issues/1993)
 
 ### 20220408-101518-b908e2dd
 

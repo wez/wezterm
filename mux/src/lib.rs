@@ -867,7 +867,7 @@ impl Mux {
             }
         }
 
-        log::error!("domain detached panes: {:?}", dead_panes);
+        log::info!("domain detached panes: {:?}", dead_panes);
         for pane_id in dead_panes {
             self.remove_pane_internal(pane_id);
         }
