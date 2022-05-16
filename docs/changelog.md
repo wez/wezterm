@@ -55,6 +55,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Prevent panic for some classes of invalid input, found while fuzzing. Thanks to [@5225225](https://github.com/5225225)! [#1990](https://github.com/wez/wezterm/pull/1990) [#1986](https://github.com/wez/wezterm/pull/1986)
 * Detaching an ssh multiplexer domain sometimes killed the associated panes! [#1993](https://github.com/wez/wezterm/issues/1993)
 * `DecreaseFontSize` wasn't quite the inverse of `IncreaseFontSize`. Thanks to [@Funami580](https://github.com/Funami580)! [#1997](https://github.com/wez/wezterm/pull/1997)
+* Wayland: unable to paste text that was copied before starting the initial wezterm window. Thanks to [@Funami580](https://github.com/Funami580)! [#1994](https://github.com/wez/wezterm/pull/1994) [#1385](https://github.com/wez/wezterm/issues/1385)
 
 ### 20220408-101518-b908e2dd
 
