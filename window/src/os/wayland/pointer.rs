@@ -325,6 +325,9 @@ impl PointerDispatcher {
         inner
             .surface_to_pending
             .insert(surface.as_ref().id(), Arc::clone(pending));
+        if inner.active_surface_id == 0 {
+            inner.active_surface_id = surface.as_ref().id();
+        }
     }
 
     pub fn set_cursor(&self, name: &str, serial: Option<u32>) {
