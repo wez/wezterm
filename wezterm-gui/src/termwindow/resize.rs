@@ -374,7 +374,7 @@ impl super::TermWindow {
     }
 
     pub fn decrease_font_size(&mut self, window: &Window) {
-        self.adjust_font_scale(self.fonts.get_font_scale() * 0.9, window);
+        self.adjust_font_scale(self.fonts.get_font_scale() / 1.1, window);
     }
 
     pub fn increase_font_size(&mut self, window: &Window) {
