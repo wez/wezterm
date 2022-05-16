@@ -49,7 +49,7 @@ use winreg::RegKey;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
-const ISC_SHOWUICOMPOSITIONWINDOW: LPARAM = 2147483648;
+const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
 
 #[allow(non_snake_case)]
 #[repr(C)]
@@ -1728,7 +1728,7 @@ unsafe fn ime_set_context(
     lparam: LPARAM,
 ) -> Option<LRESULT> {
     // Don't show system CompositionWindow because application itself draws it
-    let lparam = lparam & !ISC_SHOWUICOMPOSITIONWINDOW;
+    let lparam = lparam & !(ISC_SHOWUICOMPOSITIONWINDOW as LPARAM);
     let result = DefWindowProcW(hwnd, msg, wparam, lparam);
     Some(result)
 }
