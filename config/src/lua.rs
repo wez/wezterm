@@ -133,7 +133,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                         }
                     },
                     item @ _ => {
-                        let item = format!("{:?}", ValueWrapper(item));
+                        let item = format!("{:?}", item);
                         output.push_str(&item);
                     }
                 }

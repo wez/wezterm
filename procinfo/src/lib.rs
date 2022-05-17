@@ -1,12 +1,12 @@
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 mod linux;
 mod macos;
 mod windows;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum LocalProcessStatus {
     Idle,
     Run,
@@ -22,7 +22,7 @@ pub enum LocalProcessStatus {
     Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct LocalProcessInfo {
     /// The process identifier
     pub pid: u32,
@@ -55,7 +55,7 @@ pub struct LocalProcessInfo {
     /// Child processes, keyed by pid
     pub children: HashMap<u32, LocalProcessInfo>,
 }
-luahelper::impl_lua_conversion!(LocalProcessInfo);
+luahelper::impl_lua_conversion_dynamic!(LocalProcessInfo);
 
 impl LocalProcessInfo {
     /// Walk this sub-tree of processes and return a unique set

@@ -1,43 +1,16 @@
 #![macro_use]
 
+pub use mlua;
+use mlua::{ToLua, Value as LuaValue};
 use std::collections::BTreeMap;
 use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
-mod serde_lua;
-pub use mlua;
-use mlua::{ToLua, Value as LuaValue};
-pub use serde_lua::from_lua_value;
-pub use serde_lua::ser::to_lua_value;
-
 /// Implement lua conversion traits for a type.
 /// This implementation requires that the type implement
-/// serde Serialize and Deserialize.
+/// FromDynamic and ToDynamic.
 /// Why do we need these traits?  They allow `create_function` to
 /// operate in terms of our internal types rather than forcing
 /// the implementer to use generic Value parameter or return values.
-#[macro_export]
-macro_rules! impl_lua_conversion {
-    ($struct:ident) => {
-        impl<'lua> $crate::mlua::ToLua<'lua> for $struct {
-            fn to_lua(
-                self,
-                lua: &'lua $crate::mlua::Lua,
-            ) -> Result<$crate::mlua::Value<'lua>, $crate::mlua::Error> {
-                Ok($crate::to_lua_value(lua, self)?)
-            }
-        }
-
-        impl<'lua> $crate::mlua::FromLua<'lua> for $struct {
-            fn from_lua(
-                value: $crate::mlua::Value<'lua>,
-                _lua: &'lua $crate::mlua::Lua,
-            ) -> Result<Self, $crate::mlua::Error> {
-                Ok($crate::from_lua_value(value)?)
-            }
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! impl_lua_conversion_dynamic {
     ($struct:ident) => {
@@ -103,6 +76,7 @@ pub fn dynamic_to_lua_value<'lua>(
     })
 }
 
+/// FIXME: lua_value_to_dynamic should detect and avoid cycles in the underlying lua object
 pub fn lua_value_to_dynamic(value: LuaValue) -> mlua::Result<DynValue> {
     Ok(match value {
         LuaValue::Nil => DynValue::Null,
@@ -166,5 +140,3 @@ pub struct ValueLua {
     pub value: wezterm_dynamic::Value,
 }
 impl_lua_conversion_dynamic!(ValueLua);
-
-pub use serde_lua::ValueWrapper;
