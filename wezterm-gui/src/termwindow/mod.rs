@@ -1734,7 +1734,7 @@ impl TermWindow {
         let cursor = pane.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
             let top = pane.get_dimensions().physical_top;
-            let tab_bar_height = if self.show_tab_bar {
+            let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
                 self.tab_bar_pixel_height().unwrap()
             } else {
                 0.0
