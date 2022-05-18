@@ -2,6 +2,10 @@ use crate::array::Array;
 use crate::object::Object;
 use ordered_float::OrderedFloat;
 
+/// Represents values of various possible other types.
+/// Value is intended to be convertible to the same set
+/// of types as Lua and is a superset of the types possible
+/// in TOML and JSON.
 #[derive(Clone, Debug, PartialEq, Hash, Eq, Ord, PartialOrd)]
 pub enum Value {
     Null,

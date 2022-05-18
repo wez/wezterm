@@ -5,10 +5,15 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::hash::Hash;
 
+/// Specify how FromDynamic will treat unknown fields
+/// when converting from Value to a given target type
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum UnknownFieldAction {
+    /// Don't check, don't warn, don't raise an error
     Ignore,
+    /// Emit a log::warn log
     Warn,
+    /// Return an Error
     Deny,
 }
 
@@ -18,6 +23,7 @@ impl Default for UnknownFieldAction {
     }
 }
 
+/// Specify various options for FromDynamic::from_dynamic
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FromDynamicOptions {
     pub unknown_fields: UnknownFieldAction,
@@ -32,6 +38,8 @@ impl FromDynamicOptions {
     }
 }
 
+/// The FromDynamic trait allows a type to construct itself from a Value.
+/// This trait can be derived.
 pub trait FromDynamic {
     fn from_dynamic(value: &Value, options: FromDynamicOptions) -> Result<Self, Error>
     where
