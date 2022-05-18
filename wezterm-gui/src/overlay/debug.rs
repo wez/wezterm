@@ -1,6 +1,7 @@
 use crate::scripting::guiwin::GuiWin;
 use chrono::prelude::*;
 use log::Level;
+use luahelper::ValuePrinter;
 use mlua::Value;
 use mux::termwiztermtab::TermWizTerminal;
 use termwiz::cell::{AttributeChange, CellAttributes, Intensity};
@@ -133,7 +134,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
             let chunk = host.lua.load(&expr);
             match smol::block_on(chunk.eval_async::<Value>()) {
                 Ok(result) => {
-                    let value = luahelper::lua_value_to_dynamic(result);
+                    let value = ValuePrinter(result);
                     let text = format!("{:#?}", value);
                     term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
                 }

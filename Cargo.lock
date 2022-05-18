@@ -2229,7 +2229,7 @@ dependencies = [
 [[package]]
 name = "mlua"
 version = "0.8.0-beta.4"
-source = "git+https://github.com/wez/mlua?branch=table_to_pointer#7884481691169044c18a77ec495886db0d02bee9"
+source = "git+https://github.com/khvzak/mlua?branch=master#bcf2cbea3798504471d88345327671bf2da7e8e1"
 dependencies = [
  "bstr 0.2.17",
  "cc",

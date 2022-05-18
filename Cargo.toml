@@ -24,4 +24,4 @@ split-debuginfo = "unpacked"
 
 [patch.crates-io]
 xcb = {version="1.1", git="https://github.com/wez/rust-xcb", branch="ffi"}
-mlua = {version="0.8.0-beta.4", git="https://github.com/wez/mlua", branch="table_to_pointer"}
+mlua = {version="0.8.0-beta.4", git="https://github.com/khvzak/mlua", branch="master"}
