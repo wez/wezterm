@@ -65,7 +65,7 @@ impl<'a> std::hash::Hash for (dyn ObjectKeyTrait + 'a) {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Default, PartialEq, Eq, Hash)]
 pub struct Object {
     inner: BTreeMap<Value, Value>,
 }
@@ -74,6 +74,12 @@ impl Object {
     pub fn get_by_str(&self, field_name: &str) -> Option<&Value> {
         self.inner
             .get(&BorrowedKey::Str(field_name) as &dyn ObjectKeyTrait)
+    }
+}
+
+impl std::fmt::Debug for Object {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.inner.fmt(fmt)
     }
 }
 

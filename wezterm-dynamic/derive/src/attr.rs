@@ -106,11 +106,10 @@ impl<'a> FieldInfo<'a> {
             quote!(
                 #ident:
                     <#ty>::from_dynamic(value, options)
-                            .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                type_name: #struct_name,
-                                field_name: #name,
-                                error: source.to_string(),
-                            })?,
+                            .map_err(|source| source.field_context(
+                                #struct_name,
+                                #name,
+                                obj))?,
             )
         } else if let Some(try_from) = &self.try_from {
             match &self.allow_default {
@@ -120,16 +119,16 @@ impl<'a> FieldInfo<'a> {
                             Some(v) => {
                                 use std::convert::TryFrom;
                                 let target = <#try_from>::from_dynamic(v, options)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?;
+                                    .map_err(|source| source.field_context(
+                                        #struct_name,
+                                        #name,
+                                        obj,
+                                    ))?;
                                 <#ty>::try_from(target)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
+                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField{
+                                        type_name:#struct_name,
+                                        field_name:#name,
+                                        error: format!("{:#}", source)
                                     })?
                             }
                             None => {
@@ -144,16 +143,16 @@ impl<'a> FieldInfo<'a> {
                             Some(v) => {
                                 use std::convert::TryFrom;
                                 let target = <#try_from>::from_dynamic(v, options)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?;
+                                    .map_err(|source| source.field_context(
+                                        #struct_name,
+                                        #name,
+                                        obj,
+                                    ))?;
                                 <#ty>::try_from(target)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
+                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField{
+                                        type_name:#struct_name,
+                                        field_name:#name,
+                                        error: format!("{:#}", source),
                                     })?
                             }
                             None => {
@@ -167,16 +166,16 @@ impl<'a> FieldInfo<'a> {
                         #ident: {
                             use std::convert::TryFrom;
                             let target = <#try_from>::from_dynamic(obj.get_by_str(#name).unwrap_or(&Value::Null), options)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?;
+                                    .map_err(|source| source.field_context(
+                                        #struct_name,
+                                        #name,
+                                        obj,
+                                    ))?;
                             <#ty>::try_from(target)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
+                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField{
+                                        type_name:#struct_name,
+                                        field_name:#name,
+                                        error: format!("{:#}", source),
                                     })?
                         },
                     )
@@ -189,11 +188,11 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
                                 <#ty>::from_dynamic(v, options)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?
+                                    .map_err(|source| source.field_context(
+                                        #struct_name,
+                                        #name,
+                                        obj,
+                                    ))?
                             }
                             None => {
                                 <#ty>::default()
@@ -206,11 +205,11 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
                                 <#ty>::from_dynamic(v, options)
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?
+                                    .map_err(|source| source.field_context(
+                                        #struct_name,
+                                        #name,
+                                        obj,
+                                    ))?
                             }
                             None => {
                                 #default()
@@ -225,11 +224,7 @@ impl<'a> FieldInfo<'a> {
                                     obj.get_by_str(#name).unwrap_or(&Value::Null),
                                     options
                                 )
-                                    .map_err(|source| wezterm_dynamic::Error::ErrorInField {
-                                        type_name: #struct_name,
-                                        field_name: #name,
-                                        error: source.to_string(),
-                                    })?,
+                                .map_err(|source| source.field_context(#struct_name, #name, obj))?,
                     )
                 }
             }

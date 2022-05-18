@@ -1,4 +1,5 @@
 use crate::fromdynamic::{FromDynamicOptions, UnknownFieldAction};
+use crate::object::Object;
 use crate::value::Value;
 use thiserror::Error;
 
@@ -33,10 +34,16 @@ pub enum Error {
         type_name: &'static str,
         num_keys: usize,
     },
-    #[error("Error in {}::{}: {:#}", .type_name, .field_name, .error)]
+    #[error("Error processing {}::{}: {:#}", .type_name, .field_name, .error)]
     ErrorInField {
         type_name: &'static str,
         field_name: &'static str,
+        error: String,
+    },
+    #[error("Error processing {} (types: {}) {:#}", .field_name.join("."), .type_name.join(", "), .error)]
+    ErrorInNestedField {
+        type_name: Vec<&'static str>,
+        field_name: Vec<&'static str>,
         error: String,
     },
     #[error("`{}` is not a valid type to use as a field name in `{}`", .key_type, .type_name)]
@@ -147,31 +154,93 @@ impl Error {
             }
         }
         if !fields.is_empty() {
-            if suggestions.is_empty() {
-                message.push_str("Possible items are ");
-            } else {
-                message.push_str(" Other possible items are ");
-            }
             let limit = 5;
-            for (idx, candidate) in fields.iter().enumerate() {
-                if idx > 0 {
-                    message.push_str(", ");
-                }
-                message.push('`');
-                message.push_str(candidate);
-                message.push('`');
-
-                if idx > limit {
-                    break;
-                }
-            }
             if fields.len() > limit {
-                message.push_str(&format!(" and {} others", fields.len() - limit));
+                message.push_str(
+                    " There are too many alternatives to list here; consult the documentation!",
+                );
+            } else {
+                if suggestions.is_empty() {
+                    message.push_str("Possible alternatives are ");
+                } else if suggestions.len() == 1 {
+                    message.push_str(" The other option is ");
+                } else {
+                    message.push_str(" Other alternatives are ");
+                }
+                for (idx, candidate) in fields.iter().enumerate() {
+                    if idx > 0 {
+                        message.push_str(", ");
+                    }
+                    message.push('`');
+                    message.push_str(candidate);
+                    message.push('`');
+                }
             }
-            message.push('.');
         }
 
         message
+    }
+
+    pub fn field_context(
+        self,
+        type_name: &'static str,
+        field_name: &'static str,
+        obj: &Object,
+    ) -> Self {
+        let is_leaf = !matches!(self, Self::ErrorInField { .. });
+        fn add_obj_context(is_leaf: bool, obj: &Object, message: String) -> String {
+            if is_leaf {
+                // Show the object as context.
+                // However, some objects, like the main config, are very large and
+                // it isn't helpful to show that, so only include it when the context
+                // is more reasonable.
+                let obj_str = format!("{:#?}", obj);
+                if obj_str.len() > 128 || obj_str.lines().count() > 10 {
+                    message
+                } else {
+                    format!("{}.\n{}", message, obj_str)
+                }
+            } else {
+                message
+            }
+        }
+
+        match self {
+            Self::NoConversion { source_type, .. } if source_type == "Null" => Self::ErrorInField {
+                type_name,
+                field_name,
+                error: add_obj_context(is_leaf, obj, format!("missing field `{}`", field_name)),
+            },
+            Self::ErrorInField {
+                type_name: child_type,
+                field_name: child_field,
+                error,
+            } => Self::ErrorInNestedField {
+                type_name: vec![type_name, child_type],
+                field_name: vec![field_name, child_field],
+                error,
+            },
+            Self::ErrorInNestedField {
+                type_name: mut child_type,
+                field_name: mut child_field,
+                error,
+            } => Self::ErrorInNestedField {
+                type_name: {
+                    child_type.insert(0, type_name);
+                    child_type
+                },
+                field_name: {
+                    child_field.insert(0, field_name);
+                    child_field
+                },
+                error,
+            },
+            _ => Self::ErrorInField {
+                type_name,
+                field_name,
+                error: add_obj_context(is_leaf, obj, format!("{:#}", self)),
+            },
+        }
     }
 }
 

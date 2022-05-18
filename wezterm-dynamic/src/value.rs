@@ -6,7 +6,7 @@ use ordered_float::OrderedFloat;
 /// Value is intended to be convertible to the same set
 /// of types as Lua and is a superset of the types possible
 /// in TOML and JSON.
-#[derive(Clone, Debug, PartialEq, Hash, Eq, Ord, PartialOrd)]
+#[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
 pub enum Value {
     Null,
     Bool(bool),
@@ -21,6 +21,21 @@ pub enum Value {
 impl Default for Value {
     fn default() -> Self {
         Self::Null
+    }
+}
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::String(s) => fmt.write_fmt(format_args!("{:?}", s)),
+            Self::Null => fmt.write_str("nil"),
+            Self::Bool(i) => i.fmt(fmt),
+            Self::I64(i) => i.fmt(fmt),
+            Self::U64(i) => i.fmt(fmt),
+            Self::F64(i) => i.fmt(fmt),
+            Self::Array(a) => a.fmt(fmt),
+            Self::Object(o) => o.fmt(fmt),
+        }
     }
 }
 
