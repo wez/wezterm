@@ -1625,7 +1625,7 @@ impl super::TermWindow {
 
         for pos in panes {
             if pos.is_active {
-                self.update_text_cursor(&pos.pane);
+                self.update_text_cursor(&pos);
                 if focused {
                     pos.pane.advise_focus();
                     mux::Mux::get()
