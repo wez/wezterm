@@ -705,7 +705,7 @@ impl Config {
                 // file. Note that we can't catch this happening for files that are
                 // imported via the lua require function.
                 lua.load(s.trim_start_matches('\u{FEFF}'))
-                    .set_name(p.to_string_lossy().as_bytes())?
+                    .set_name(p.to_string_lossy())?
                     .eval_async(),
             )?;
             let config = Self::apply_overrides_to(&lua, config)?;

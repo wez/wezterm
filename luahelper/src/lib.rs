@@ -2,7 +2,7 @@
 
 pub use mlua;
 use mlua::{ToLua, Value as LuaValue};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
 /// Implement lua conversion traits for a type.
@@ -76,8 +76,15 @@ pub fn dynamic_to_lua_value<'lua>(
     })
 }
 
-/// FIXME: lua_value_to_dynamic should detect and avoid cycles in the underlying lua object
 pub fn lua_value_to_dynamic(value: LuaValue) -> mlua::Result<DynValue> {
+    let mut visited = HashSet::new();
+    lua_value_to_dynamic_impl(value, &mut visited)
+}
+
+fn lua_value_to_dynamic_impl(
+    value: LuaValue,
+    visited: &mut HashSet<usize>,
+) -> mlua::Result<DynValue> {
     Ok(match value {
         LuaValue::Nil => DynValue::Null,
         LuaValue::String(s) => DynValue::String(s.to_str()?.to_string()),
@@ -107,6 +114,14 @@ pub fn lua_value_to_dynamic(value: LuaValue) -> mlua::Result<DynValue> {
         }
         LuaValue::Error(e) => return Err(e),
         LuaValue::Table(table) => {
+            let ptr = table.to_pointer() as usize;
+            if visited.contains(&ptr) {
+                // Skip this one, as we've seen it before.
+                // Treat it as a Null value.
+                return Ok(DynValue::Null);
+            }
+            visited.insert(ptr);
+
             if let Ok(true) = table.contains_key(1) {
                 let mut array = vec![];
                 for value in table.sequence_values() {

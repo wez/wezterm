@@ -9,6 +9,5 @@ edition = "2018"
 [dependencies]
 bstr = "0.2"
 log = "0.4"
-mlua = "0.7"
-strsim = "0.10"
+mlua = "0.8.0-beta.4"
 wezterm-dynamic = { path = "../wezterm-dynamic" }

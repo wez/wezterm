@@ -2021,7 +2021,6 @@ dependencies = [
  "bstr 0.2.17",
  "log",
  "mlua",
- "strsim 0.10.0",
  "wezterm-dynamic",
 ]
 
@@ -2229,9 +2228,8 @@ dependencies = [
 
 [[package]]
 name = "mlua"
-version = "0.7.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29e2194305aa8301d5da9c1c98640047f4219f6b95c190f6860338ab9872b686"
+version = "0.8.0-beta.4"
+source = "git+https://github.com/wez/mlua?branch=table_to_pointer#7884481691169044c18a77ec495886db0d02bee9"
 dependencies = [
  "bstr 0.2.17",
  "cc",
