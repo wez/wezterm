@@ -11,7 +11,7 @@ keywords = ["terminal", "emulator", "vte"]
 readme = "README.md"
 
 [features]
-use_serde = ["termwiz/use_serde", "wezterm-bidi/use_serde"]
+use_serde = ["termwiz/use_serde"]
 
 [dependencies]
 anyhow = "1.0"

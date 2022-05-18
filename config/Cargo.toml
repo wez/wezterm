@@ -42,7 +42,7 @@ toml = "0.5"
 umask = { path = "../umask" }
 unicode-segmentation = "1.8"
 wezterm-dynamic = { path = "../wezterm-dynamic" }
-wezterm-bidi = { path = "../bidi", features=["use_serde"] }
+wezterm-bidi = { path = "../bidi" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }

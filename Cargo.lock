@@ -4652,7 +4652,6 @@ dependencies = [
  "env_logger",
  "k9",
  "log",
- "serde",
  "wezterm-dynamic",
 ]
 

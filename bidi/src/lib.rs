@@ -15,14 +15,11 @@ use bidi_brackets::BracketType;
 pub use bidi_class::BidiClass;
 pub use direction::Direction;
 pub use level::Level;
-#[cfg(feature = "use_serde")]
-use serde::{Deserialize, Serialize};
 
 /// Placeholder codepoint index that corresponds to NO_LEVEL
 const DELETED: usize = usize::max_value();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
-#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum ParagraphDirectionHint {
     LeftToRight,
     RightToLeft,
