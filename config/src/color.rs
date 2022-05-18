@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 use termwiz::cell::CellAttributes;
 pub use termwiz::color::{ColorSpec, RgbColor, SrgbaTuple};
-use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub struct HsbTransform {
@@ -24,52 +24,6 @@ impl Default for HsbTransform {
             saturation: 1.,
             brightness: 1.,
         }
-    }
-}
-
-struct IndexedMap(HashMap<String, RgbaColor>);
-
-impl ToDynamic for IndexedMap {
-    fn to_dynamic(&self) -> Value {
-        self.0.to_dynamic()
-    }
-}
-
-impl FromDynamic for IndexedMap {
-    fn from_dynamic(
-        value: &Value,
-        options: FromDynamicOptions,
-    ) -> Result<Self, wezterm_dynamic::Error> {
-        let inner = <HashMap<String, RgbaColor>>::from_dynamic(value, options)?;
-        Ok(Self(inner))
-    }
-}
-
-impl From<&HashMap<u8, RgbaColor>> for IndexedMap {
-    fn from(map: &HashMap<u8, RgbaColor>) -> IndexedMap {
-        IndexedMap(
-            map.iter()
-                .map(|(k, v)| (k.to_string(), v.clone()))
-                .collect(),
-        )
-    }
-}
-
-impl TryFrom<IndexedMap> for HashMap<u8, RgbaColor> {
-    type Error = String;
-
-    fn try_from(map: IndexedMap) -> Result<HashMap<u8, RgbaColor>, String> {
-        Ok(map
-            .0
-            .into_iter()
-            .filter_map(|(k, v)| match k.parse::<u8>() {
-                Ok(n) if n >= 16 => Some((n, v)),
-                _ => {
-                    log::warn!("Ignoring invalid color key {}", k);
-                    None
-                }
-            })
-            .collect())
     }
 }
 
@@ -113,7 +67,7 @@ impl Into<SrgbaTuple> for RgbaColor {
     }
 }
 
-impl std::convert::TryFrom<String> for RgbaColor {
+impl TryFrom<String> for RgbaColor {
     type Error = anyhow::Error;
     fn try_from(s: String) -> anyhow::Result<RgbaColor> {
         Ok(RgbaColor {
@@ -143,7 +97,7 @@ pub struct Palette {
     pub brights: Option<[RgbaColor; 8]>,
     /// A map for setting arbitrary colors ranging from 16 to 256 in the color
     /// palette
-    #[dynamic(default, try_from = "IndexedMap", into = "IndexedMap")]
+    #[dynamic(default)]
     pub indexed: HashMap<u8, RgbaColor>,
     /// Configure the colors and styling of the tab bar
     pub tab_bar: Option<TabBarColors>,
@@ -191,6 +145,14 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
             }
         }
         for (&idx, &col) in &cfg.indexed {
+            if idx < 16 {
+                log::warn!(
+                    "Ignoring invalid colors.indexed index {}; \
+                           use `ansi` or `brights` to specify lower indices",
+                    idx
+                );
+                continue;
+            }
             p.colors.0[idx as usize] = col.into();
         }
         p
