@@ -3875,6 +3875,7 @@ dependencies = [
  "open",
  "smol",
  "wezterm-dynamic",
+ "winapi 0.3.9",
 ]
 
 [[package]]
