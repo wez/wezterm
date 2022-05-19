@@ -28,7 +28,6 @@ ordered-float = "3.0"
 serde = {version="1.0", features = ["rc"]}
 terminfo = "0.7"
 unicode-segmentation = "1.8"
-unicode-width = "0.1"
 url = "2"
 wezterm-bidi = { path = "../bidi" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }

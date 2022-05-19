@@ -670,7 +670,6 @@ dependencies = [
  "portable-pty",
  "promise",
  "serde",
- "serde_json",
  "shlex",
  "smol",
  "termwiz",
@@ -1737,12 +1736,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indoc"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
-
-[[package]]
 name = "inflate"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2304,7 +2297,6 @@ dependencies = [
  "procinfo",
  "promise",
  "rangeset",
- "ratelim",
  "regex",
  "serde",
  "shell-words",
@@ -4330,12 +4322,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "099b7128301d285f79ddd55b9a83d5e6b9e97c92e0ea0daebee7263e932de992"
 
 [[package]]
-name = "unicode-general-category"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab1e2c61f9441613aca1a1c88803bb36df292990aada6abb5133b9b532e07ec"
-
-[[package]]
 name = "unicode-linebreak"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4809,12 +4795,10 @@ dependencies = [
  "log",
  "memmap2 0.2.3",
  "metrics",
- "mux",
  "ordered-float",
  "rangeset",
  "termwiz",
  "thiserror",
- "unicode-general-category",
  "unicode-segmentation",
  "walkdir",
  "wezterm-bidi",
@@ -4980,7 +4964,6 @@ dependencies = [
  "env_logger",
  "filedescriptor",
  "filenamegen",
- "indoc",
  "k9",
  "libc",
  "libssh-rs",
@@ -5023,7 +5006,6 @@ dependencies = [
  "termwiz",
  "unicode-normalization",
  "unicode-segmentation",
- "unicode-width",
  "url",
  "wezterm-bidi",
  "wezterm-dynamic",
