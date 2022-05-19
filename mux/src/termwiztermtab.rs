@@ -409,7 +409,7 @@ pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
 
     let (input_tx, input_rx) = channel();
 
-    let renderer = config::lua::new_wezterm_terminfo_renderer();
+    let renderer = termwiz_funcs::new_wezterm_terminfo_renderer();
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {
@@ -457,7 +457,7 @@ pub async fn run<
     let (input_tx, input_rx) = channel();
     let should_close_window = window_id.is_none();
 
-    let renderer = config::lua::new_wezterm_terminfo_renderer();
+    let renderer = termwiz_funcs::new_wezterm_terminfo_renderer();
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {

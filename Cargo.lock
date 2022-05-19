@@ -335,6 +335,17 @@ name = "base91"
 version = "0.1.0"
 
 [[package]]
+name = "battery"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "starship-battery",
+ "wezterm-dynamic",
+]
+
+[[package]]
 name = "benchmarking"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -643,13 +654,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
- "bstr 0.2.17",
  "chrono",
  "colorgrad",
  "dirs-next",
  "enum-display-derive",
  "env_logger",
- "filenamegen",
  "hostname",
  "lazy_static",
  "libc",
@@ -657,7 +666,6 @@ dependencies = [
  "luahelper",
  "mlua",
  "notify",
- "open",
  "ordered-float",
  "portable-pty",
  "promise",
@@ -665,16 +673,12 @@ dependencies = [
  "serde_json",
  "shlex",
  "smol",
- "starship-battery",
- "terminfo",
  "termwiz",
  "toml",
  "umask",
- "unicode-segmentation",
  "wezterm-bidi",
  "wezterm-dynamic",
  "wezterm-input-types",
- "wezterm-ssh",
  "wezterm-term",
  "winapi 0.3.9",
 ]
@@ -1070,16 +1074,22 @@ name = "env-bootstrap"
 version = "0.1.0"
 dependencies = [
  "backtrace",
+ "battery",
  "chrono",
  "cocoa",
  "config",
  "dirs-next",
  "env_logger",
+ "filesystem",
  "lazy_static",
  "libc",
  "log",
+ "logging",
  "objc",
+ "spawn-funcs",
+ "ssh-funcs",
  "termwiz",
+ "termwiz-funcs",
  "winapi 0.3.9",
 ]
 
@@ -1171,6 +1181,17 @@ dependencies = [
  "bstr 0.1.4",
  "regex",
  "walkdir",
+]
+
+[[package]]
+name = "filesystem"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "filenamegen",
+ "luahelper",
+ "smol",
 ]
 
 [[package]]
@@ -1997,6 +2018,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "logging"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "log",
+ "luahelper",
+]
+
+[[package]]
 name = "lru"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2280,6 +2311,7 @@ dependencies = [
  "smol",
  "terminfo",
  "termwiz",
+ "termwiz-funcs",
  "textwrap 0.15.0",
  "thiserror",
  "unicode-segmentation",
@@ -3841,6 +3873,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "spawn-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bstr 0.2.17",
+ "config",
+ "luahelper",
+ "open",
+ "smol",
+ "wezterm-dynamic",
+]
+
+[[package]]
 name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3853,6 +3898,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c530c2b0d0bf8b69304b39fe2001993e267461948b890cd037d8ad4293fa1a0d"
 dependencies = [
  "lock_api 0.4.7",
+]
+
+[[package]]
+name = "ssh-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "wezterm-ssh",
 ]
 
 [[package]]
@@ -4086,6 +4141,20 @@ dependencies = [
  "wezterm-color-types",
  "wezterm-dynamic",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "termwiz-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "lazy_static",
+ "luahelper",
+ "terminfo",
+ "termwiz",
+ "unicode-segmentation",
+ "wezterm-dynamic",
 ]
 
 [[package]]
@@ -4806,6 +4875,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
+ "termwiz-funcs",
  "textwrap 0.15.0",
  "thiserror",
  "tiny-skia",

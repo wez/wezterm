@@ -4,22 +4,49 @@ use crate::{
     TextStyle,
 };
 use anyhow::anyhow;
-use bstr::BString;
-pub use luahelper::*;
-use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
+use luahelper::from_lua_value_dynamic;
+use mlua::{FromLua, Lua, Table, ToLuaMulti, Value, Variadic};
 use ordered_float::NotNan;
-use smol::prelude::*;
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::Path;
-use termwiz::cell::{grapheme_column_width, unicode_column_width, AttributeChange, CellAttributes};
-use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
-use termwiz::input::Modifiers;
-use termwiz::surface::change::Change;
-use unicode_segmentation::UnicodeSegmentation;
+use std::sync::Mutex;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
+pub use mlua;
+
 static LUA_REGISTRY_USER_CALLBACK_COUNT: &str = "wezterm-user-callback-count";
+
+pub type SetupFunc = fn(&Lua) -> anyhow::Result<()>;
+
+lazy_static::lazy_static! {
+    static ref SETUP_FUNCS: Mutex<Vec<SetupFunc>> = Mutex::new(vec![]);
+}
+
+pub fn add_context_setup_func(func: SetupFunc) {
+    SETUP_FUNCS.lock().unwrap().push(func);
+}
+
+pub fn get_or_create_module<'lua>(lua: &'lua Lua, name: &str) -> anyhow::Result<mlua::Table<'lua>> {
+    let globals = lua.globals();
+    let package: Table = globals.get("package")?;
+    let loaded: Table = package.get("loaded")?;
+
+    let module = loaded.get(name)?;
+    match module {
+        Value::Nil => {
+            let module = lua.create_table()?;
+            loaded.set(name, module.clone())?;
+            Ok(module)
+        }
+        Value::Table(table) => Ok(table),
+        wat => anyhow::bail!(
+            "cannot register module {} as package.loaded.{} is already set to a value of type {}",
+            name,
+            name,
+            wat.type_name()
+        ),
+    }
+}
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
@@ -54,7 +81,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
     {
         let globals = lua.globals();
         // This table will be the `wezterm` module in the script
-        let wezterm_mod = lua.create_table()?;
+        let wezterm_mod = get_or_create_module(&lua, "wezterm")?;
 
         let package: Table = globals.get("package")?;
         let package_path: String = package.get("path")?;
@@ -100,7 +127,6 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set("target_triple", crate::wezterm_target_triple())?;
         wezterm_mod.set("version", crate::wezterm_version())?;
-        wezterm_mod.set("nerdfonts", NerdFonts {})?;
         wezterm_mod.set("home_dir", crate::HOME_DIR.to_str())?;
         wezterm_mod.set(
             "running_under_wsl",
@@ -117,92 +143,6 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(|_, ()| Ok(crate::COLOR_SCHEMES.clone()))?,
         )?;
 
-        fn print_helper(args: Variadic<Value>) -> String {
-            let mut output = String::new();
-            for (idx, item) in args.into_iter().enumerate() {
-                if idx > 0 {
-                    output.push(' ');
-                }
-
-                match item {
-                    Value::String(s) => match s.to_str() {
-                        Ok(s) => output.push_str(s),
-                        Err(_) => {
-                            let item = String::from_utf8_lossy(s.as_bytes());
-                            output.push_str(&item);
-                        }
-                    },
-                    item @ _ => {
-                        let item = format!("{:#?}", ValuePrinter(item));
-                        output.push_str(&item);
-                    }
-                }
-            }
-            output
-        }
-
-        wezterm_mod.set(
-            "log_error",
-            lua.create_function(|_, args: Variadic<Value>| {
-                let output = print_helper(args);
-                log::error!("lua: {}", output);
-                Ok(())
-            })?,
-        )?;
-        wezterm_mod.set(
-            "log_info",
-            lua.create_function(|_, args: Variadic<Value>| {
-                let output = print_helper(args);
-                log::info!("lua: {}", output);
-                Ok(())
-            })?,
-        )?;
-        wezterm_mod.set(
-            "log_warn",
-            lua.create_function(|_, args: Variadic<Value>| {
-                let output = print_helper(args);
-                log::warn!("lua: {}", output);
-                Ok(())
-            })?,
-        )?;
-        globals.set(
-            "print",
-            lua.create_function(|_, args: Variadic<Value>| {
-                let output = print_helper(args);
-                log::info!("lua: {}", output);
-                Ok(())
-            })?,
-        )?;
-
-        wezterm_mod.set(
-            "column_width",
-            lua.create_function(|_, s: String| Ok(unicode_column_width(&s, None)))?,
-        )?;
-
-        wezterm_mod.set(
-            "pad_right",
-            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_right(s, width)))?,
-        )?;
-
-        wezterm_mod.set(
-            "pad_left",
-            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_left(s, width)))?,
-        )?;
-
-        wezterm_mod.set(
-            "truncate_right",
-            lua.create_function(|_, (s, max_width): (String, usize)| {
-                Ok(truncate_right(&s, max_width))
-            })?,
-        )?;
-
-        wezterm_mod.set(
-            "truncate_left",
-            lua.create_function(|_, (s, max_width): (String, usize)| {
-                Ok(truncate_left(&s, max_width))
-            })?,
-        )?;
-
         wezterm_mod.set("font", lua.create_function(font)?)?;
         wezterm_mod.set(
             "font_with_fallback",
@@ -212,138 +152,23 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("action", lua.create_function(action)?)?;
         lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, 0)?;
         wezterm_mod.set("action_callback", lua.create_function(action_callback)?)?;
-        wezterm_mod.set("permute_any_mods", lua.create_function(permute_any_mods)?)?;
-        wezterm_mod.set(
-            "permute_any_or_no_mods",
-            lua.create_function(permute_any_or_no_mods)?,
-        )?;
-
-        wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
-        wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
 
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
-        wezterm_mod.set(
-            "run_child_process",
-            lua.create_async_function(run_child_process)?,
-        )?;
-        wezterm_mod.set(
-            "background_child_process",
-            lua.create_async_function(background_child_process)?,
-        )?;
-        wezterm_mod.set("open_with", lua.create_function(open_with)?)?;
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
-        wezterm_mod.set("format", lua.create_function(format)?)?;
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
-        wezterm_mod.set("battery_info", lua.create_function(battery_info)?)?;
         wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
-        wezterm_mod.set(
-            "enumerate_ssh_hosts",
-            lua.create_function(enumerate_ssh_hosts)?,
-        )?;
 
         package.set("path", path_array.join(";"))?;
+    }
 
-        let loaded: Table = package.get("loaded")?;
-        loaded.set("wezterm", wezterm_mod)?;
+    for func in SETUP_FUNCS.lock().unwrap().iter() {
+        func(&lua)?;
     }
 
     Ok(lua)
-}
-
-use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
-use termwiz::render::terminfo::TerminfoRenderer;
-
-lazy_static::lazy_static! {
-    static ref CAPS: Capabilities = {
-        let data = include_bytes!("../../termwiz/data/xterm-256color");
-        let db = terminfo::Database::from_buffer(&data[..]).unwrap();
-        Capabilities::new_with_hints(
-            ProbeHints::new_from_env()
-                .term(Some("xterm-256color".into()))
-                .terminfo_db(Some(db))
-                .color_level(Some(ColorLevel::TrueColor))
-                .colorterm(None)
-                .colorterm_bce(None)
-                .term_program(Some("WezTerm".into()))
-                .term_program_version(Some(crate::wezterm_version().into())),
-        )
-        .expect("cannot fail to make internal Capabilities")
-    };
-}
-
-pub fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
-    TerminfoRenderer::new(CAPS.clone())
-}
-
-#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
-pub enum FormatColor {
-    AnsiColor(AnsiColor),
-    Color(String),
-    Default,
-}
-
-impl FormatColor {
-    fn to_attr(self) -> ColorAttribute {
-        let spec: ColorSpec = self.into();
-        let attr: ColorAttribute = spec.into();
-        attr
-    }
-}
-
-impl Into<ColorSpec> for FormatColor {
-    fn into(self) -> ColorSpec {
-        match self {
-            FormatColor::AnsiColor(c) => c.into(),
-            FormatColor::Color(s) => {
-                let rgb = RgbColor::from_named_or_rgb_string(&s)
-                    .unwrap_or(RgbColor::new_8bpc(0xff, 0xff, 0xff));
-                rgb.into()
-            }
-            FormatColor::Default => ColorSpec::Default,
-        }
-    }
-}
-
-#[derive(Debug, FromDynamic, ToDynamic, Clone, PartialEq, Eq)]
-pub enum FormatItem {
-    Foreground(FormatColor),
-    Background(FormatColor),
-    Attribute(AttributeChange),
-    Text(String),
-}
-impl_lua_conversion_dynamic!(FormatItem);
-
-impl Into<Change> for FormatItem {
-    fn into(self) -> Change {
-        match self {
-            Self::Attribute(change) => change.into(),
-            Self::Text(t) => t.into(),
-            Self::Foreground(c) => AttributeChange::Foreground(c.to_attr()).into(),
-            Self::Background(c) => AttributeChange::Background(c.to_attr()).into(),
-        }
-    }
-}
-
-struct FormatTarget {
-    target: Vec<u8>,
-}
-
-impl std::io::Write for FormatTarget {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        std::io::Write::write(&mut self.target, buf)
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-impl termwiz::render::RenderTty for FormatTarget {
-    fn get_size_in_cells(&mut self) -> termwiz::Result<(usize, usize)> {
-        Ok((80, 24))
-    }
 }
 
 fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
@@ -352,77 +177,9 @@ fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
     Ok(local.format(&format).to_string())
 }
 
-pub fn format_as_escapes(items: Vec<FormatItem>) -> anyhow::Result<String> {
-    let mut changes: Vec<Change> = items.into_iter().map(Into::into).collect();
-    changes.push(Change::AllAttributes(CellAttributes::default()).into());
-    let mut renderer = new_wezterm_terminfo_renderer();
-    let mut target = FormatTarget { target: vec![] };
-    renderer.render_to(&changes, &mut target)?;
-    Ok(String::from_utf8(target.target)?)
-}
-
-fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
-    format_as_escapes(items).map_err(|e| mlua::Error::external(e))
-}
-
-#[derive(FromDynamic, ToDynamic, Debug)]
-struct BatteryInfo {
-    state_of_charge: f32,
-    vendor: String,
-    model: String,
-    state: String,
-    serial: String,
-    time_to_full: Option<f32>,
-    time_to_empty: Option<f32>,
-}
-impl_lua_conversion_dynamic!(BatteryInfo);
-
-fn opt_string(s: Option<&str>) -> String {
-    match s {
-        Some(s) => s,
-        None => "unknown",
-    }
-    .to_string()
-}
-
-fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
-    use starship_battery::{Manager, State};
-    let manager = Manager::new().map_err(|e| mlua::Error::external(e))?;
-    let mut result = vec![];
-    for b in manager.batteries().map_err(|e| mlua::Error::external(e))? {
-        let bat = b.map_err(|e| mlua::Error::external(e))?;
-        result.push(BatteryInfo {
-            state_of_charge: bat.state_of_charge().value,
-            vendor: opt_string(bat.vendor()),
-            model: opt_string(bat.model()),
-            serial: opt_string(bat.serial_number()),
-            state: match bat.state() {
-                State::Charging => "Charging",
-                State::Discharging => "Discharging",
-                State::Empty => "Empty",
-                State::Full => "Full",
-                State::Unknown | _ => "Unknown",
-            }
-            .to_string(),
-            time_to_full: bat.time_to_full().map(|q| q.value),
-            time_to_empty: bat.time_to_empty().map(|q| q.value),
-        })
-    }
-    Ok(result)
-}
-
 async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
     let duration = std::time::Duration::from_millis(milliseconds);
     smol::Timer::after(duration).await;
-    Ok(())
-}
-
-fn open_with<'lua>(_: &'lua Lua, (url, app): (String, Option<String>)) -> mlua::Result<()> {
-    if let Some(app) = app {
-        open::with_in_background(url, app);
-    } else {
-        open::that_in_background(url);
-    }
     Ok(())
 }
 
@@ -669,49 +426,6 @@ fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Resu
     return Ok(KeyAssignment::EmitEvent(user_event_id));
 }
 
-async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
-    let mut dir = smol::fs::read_dir(path)
-        .await
-        .map_err(|e| mlua::Error::external(e))?;
-    let mut entries = vec![];
-    for entry in dir.next().await {
-        let entry = entry.map_err(|e| mlua::Error::external(e))?;
-        if let Some(utf8) = entry.path().to_str() {
-            entries.push(utf8.to_string());
-        } else {
-            return Err(mlua::Error::external(anyhow!(
-                "path entry {} is not representable as utf8",
-                entry.path().display()
-            )));
-        }
-    }
-    Ok(entries)
-}
-
-async fn glob<'lua>(
-    _: &'lua Lua,
-    (pattern, path): (String, Option<String>),
-) -> mlua::Result<Vec<String>> {
-    let entries = smol::unblock(move || {
-        let mut entries = vec![];
-        let glob = filenamegen::Glob::new(&pattern)?;
-        for path in glob.walk(path.as_ref().map(|s| s.as_str()).unwrap_or(".")) {
-            if let Some(utf8) = path.to_str() {
-                entries.push(utf8.to_string());
-            } else {
-                return Err(anyhow!(
-                    "path entry {} is not representable as utf8",
-                    path.display()
-                ));
-            }
-        }
-        Ok(entries)
-    })
-    .await
-    .map_err(|e| mlua::Error::external(e))?;
-    Ok(entries)
-}
-
 fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<String>> {
     Ok(text
         .lines()
@@ -847,94 +561,6 @@ fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String>
     String::from_utf16(wide).map_err(|e| mlua::Error::external(e))
 }
 
-async fn run_child_process<'lua>(
-    _: &'lua Lua,
-    args: Vec<String>,
-) -> mlua::Result<(bool, BString, BString)> {
-    let mut cmd = smol::process::Command::new(&args[0]);
-
-    if args.len() > 1 {
-        cmd.args(&args[1..]);
-    }
-
-    #[cfg(windows)]
-    {
-        use smol::process::windows::CommandExt;
-        cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
-    }
-
-    let output = cmd.output().await.map_err(|e| mlua::Error::external(e))?;
-
-    Ok((
-        output.status.success(),
-        output.stdout.into(),
-        output.stderr.into(),
-    ))
-}
-
-async fn background_child_process<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<()> {
-    let mut cmd = smol::process::Command::new(&args[0]);
-
-    if args.len() > 1 {
-        cmd.args(&args[1..]);
-    }
-
-    #[cfg(windows)]
-    {
-        use smol::process::windows::CommandExt;
-        cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
-    }
-
-    cmd.stdin(smol::process::Stdio::null())
-        .spawn()
-        .map_err(|e| mlua::Error::external(e))?;
-
-    Ok(())
-}
-
-fn permute_any_mods<'lua>(
-    lua: &'lua Lua,
-    item: mlua::Table,
-) -> mlua::Result<Vec<mlua::Value<'lua>>> {
-    permute_mods(lua, item, false)
-}
-
-fn permute_any_or_no_mods<'lua>(
-    lua: &'lua Lua,
-    item: mlua::Table,
-) -> mlua::Result<Vec<mlua::Value<'lua>>> {
-    permute_mods(lua, item, true)
-}
-
-fn permute_mods<'lua>(
-    lua: &'lua Lua,
-    item: mlua::Table,
-    allow_none: bool,
-) -> mlua::Result<Vec<mlua::Value<'lua>>> {
-    let mut result = vec![];
-    for ctrl in &[Modifiers::NONE, Modifiers::CTRL] {
-        for shift in &[Modifiers::NONE, Modifiers::SHIFT] {
-            for alt in &[Modifiers::NONE, Modifiers::ALT] {
-                for sup in &[Modifiers::NONE, Modifiers::SUPER] {
-                    let flags = *ctrl | *shift | *alt | *sup;
-                    if flags == Modifiers::NONE && !allow_none {
-                        continue;
-                    }
-
-                    let new_item = lua.create_table()?;
-                    for pair in item.clone().pairs::<mlua::Value, mlua::Value>() {
-                        let (k, v) = pair?;
-                        new_item.set(k, v)?;
-                    }
-                    new_item.set("mods", format!("{:?}", flags))?;
-                    result.push(new_item.to_lua(lua)?);
-                }
-            }
-        }
-    }
-    Ok(result)
-}
-
 fn gradient_colors<'lua>(
     _lua: &'lua Lua,
     (gradient, num_colors): (Gradient, usize),
@@ -946,7 +572,7 @@ fn gradient_colors<'lua>(
         .collect())
 }
 
-fn add_to_config_reload_watch_list<'lua>(
+pub fn add_to_config_reload_watch_list<'lua>(
     lua: &'lua Lua,
     args: Variadic<String>,
 ) -> mlua::Result<()> {
@@ -954,33 +580,6 @@ fn add_to_config_reload_watch_list<'lua>(
     watch_paths.extend_from_slice(&args);
     lua.set_named_registry_value("wezterm-watch-paths", watch_paths)?;
     Ok(())
-}
-
-fn enumerate_ssh_hosts<'lua>(
-    lua: &'lua Lua,
-    config_files: Variadic<String>,
-) -> mlua::Result<HashMap<String, wezterm_ssh::ConfigMap>> {
-    let mut config = wezterm_ssh::Config::new();
-    for file in config_files {
-        config.add_config_file(file);
-    }
-    config.add_default_config_files();
-
-    // Trigger a config reload if any of the parsed ssh config files change
-    let files: Variadic<String> = config
-        .loaded_config_files()
-        .into_iter()
-        .filter_map(|p| p.to_str().map(|s| s.to_string()))
-        .collect();
-    add_to_config_reload_watch_list(lua, files)?;
-
-    let mut map = HashMap::new();
-    for host in config.enumerate_hosts() {
-        let host_config = config.for_host(&host);
-        map.insert(host, host_config);
-    }
-
-    Ok(map)
 }
 
 #[cfg(test)]
@@ -1047,7 +646,7 @@ mod test {
 local wezterm = require 'wezterm';
 
 wezterm.on('foo', function (n)
-    wezterm.log_error("lua hook recording " .. n);
+    print("lua hook recording " .. n);
 end);
 
 -- one of the foo handlers returns false, so the emit
@@ -1056,7 +655,7 @@ end);
 assert(wezterm.emit('foo', 2) == false)
 
 wezterm.on('bar', function (n, str)
-    wezterm.log_error("bar says " .. n .. " " .. str)
+    print("bar says " .. n .. " " .. str)
 end);
 
 -- None of the bar handlers return anything, so the
@@ -1071,70 +670,5 @@ assert(wezterm.emit('bar', 42, 'woot') == true)
         assert_eq!(*total.lock().unwrap(), 6);
 
         Ok(())
-    }
-}
-
-pub fn pad_right(mut result: String, width: usize) -> String {
-    let mut len = unicode_column_width(&result, None);
-    while len < width {
-        result.push(' ');
-        len += 1;
-    }
-
-    result
-}
-
-pub fn pad_left(mut result: String, width: usize) -> String {
-    let mut len = unicode_column_width(&result, None);
-    while len < width {
-        result.insert(0, ' ');
-        len += 1;
-    }
-
-    result
-}
-
-pub fn truncate_left(s: &str, max_width: usize) -> String {
-    let mut result = vec![];
-    let mut len = 0;
-    for g in s.graphemes(true).rev() {
-        let g_len = grapheme_column_width(g, None);
-        if g_len + len > max_width {
-            break;
-        }
-        result.push(g);
-        len += g_len;
-    }
-
-    result.reverse();
-    result.join("")
-}
-
-pub fn truncate_right(s: &str, max_width: usize) -> String {
-    let mut result = String::new();
-    let mut len = 0;
-    for g in s.graphemes(true) {
-        let g_len = grapheme_column_width(g, None);
-        if g_len + len > max_width {
-            break;
-        }
-        result.push_str(g);
-        len += g_len;
-    }
-    result
-}
-
-struct NerdFonts {}
-
-impl mlua::UserData for NerdFonts {
-    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method(
-            mlua::MetaMethod::Index,
-            |_, _, key: String| -> mlua::Result<Option<String>> {
-                Ok(termwiz::nerdfonts::NERD_FONTS
-                    .get(key.as_str())
-                    .map(|c| c.to_string()))
-            },
-        );
     }
 }

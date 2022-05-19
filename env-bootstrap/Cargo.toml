@@ -16,6 +16,12 @@ libc = "0.2"
 log = "0.4"
 env_logger = "0.9"
 termwiz = { path = "../termwiz" }
+battery = { path = "../lua-api-crates/battery" }
+termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
+logging = { path = "../lua-api-crates/logging" }
+filesystem = { path = "../lua-api-crates/filesystem" }
+ssh-funcs = { path = "../lua-api-crates/ssh-funcs" }
+spawn-funcs = { path = "../lua-api-crates/spawn-funcs" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.3"

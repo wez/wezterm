@@ -12,14 +12,11 @@ env_logger = "0.9"
 
 [dependencies]
 anyhow = "1.0"
-starship-battery = "0.7"
 bitflags = "1.3"
-bstr = "0.2"
 chrono = {version="0.4", features=["unstable-locales"]}
 colorgrad = "0.5"
 dirs-next = "2.0"
 enum-display-derive = "0.1"
-filenamegen = "0.2"
 hostname = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
@@ -28,7 +25,6 @@ luahelper = { path = "../luahelper" }
 mlua = {version="0.8.0-beta.4", features=["vendored", "lua54", "async", "send"]}
 # file change notification
 notify = "4.0"
-open = "2.0"
 ordered-float = { version = "3.0", features = ["serde"] }
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
@@ -36,15 +32,12 @@ serde = {version="1.0", features = ["rc", "derive"]}
 serde_json = "1.0"
 shlex = "1.1"
 smol = "1.2"
-terminfo = "0.7"
 termwiz = { path = "../termwiz", features=["use_serde"] }
 toml = "0.5"
 umask = { path = "../umask" }
-unicode-segmentation = "1.8"
 wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-bidi = { path = "../bidi" }
 wezterm-input-types = { path = "../wezterm-input-types" }
-wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]

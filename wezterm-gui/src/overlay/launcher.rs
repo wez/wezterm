@@ -9,7 +9,6 @@ use crate::inputmap::InputMap;
 use crate::termwindow::TermWindowNotif;
 use config::configuration;
 use config::keyassignment::{KeyAssignment, SpawnCommand, SpawnTabDomain};
-use config::lua::truncate_right;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
@@ -24,6 +23,7 @@ use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent};
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
+use termwiz_funcs::truncate_right;
 use window::WindowOps;
 
 pub use config::keyassignment::LauncherFlags;

@@ -1,4 +1,3 @@
-use crate::lua::{format_as_escapes, FormatItem};
 use crate::*;
 use luahelper::impl_lua_conversion_dynamic;
 use std::convert::TryFrom;
@@ -297,7 +296,7 @@ impl Default for TabBarStyle {
 }
 
 fn default_new_tab() -> String {
-    format_as_escapes(vec![FormatItem::Text(" + ".to_string())]).unwrap()
+    " + ".to_string()
 }
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]

@@ -158,6 +158,19 @@ fn register_panic_hook() {
     }));
 }
 
+fn register_lua_modules() {
+    for func in [
+        battery::register,
+        termwiz_funcs::register,
+        logging::register,
+        filesystem::register,
+        ssh_funcs::register,
+        spawn_funcs::register,
+    ] {
+        config::lua::add_context_setup_func(func);
+    }
+}
+
 pub fn bootstrap() {
     setup_logger();
     register_panic_hook();
@@ -168,6 +181,8 @@ pub fn bootstrap() {
     set_lang_from_locale();
 
     fixup_appimage();
+
+    register_lua_modules();
 
     // Remove this env var to avoid weirdness with some vim configurations.
     // wezterm never sets WINDOWID and we don't want to inherit it from a

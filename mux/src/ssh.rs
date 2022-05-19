@@ -409,7 +409,7 @@ fn connect_ssh_session(
         }
     }
 
-    let renderer = config::lua::new_wezterm_terminfo_renderer();
+    let renderer = termwiz_funcs::new_wezterm_terminfo_renderer();
     let mut shim = TerminalShim {
         stdout: &mut StdoutShim {
             stdout: stdout_write,
