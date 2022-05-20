@@ -45,6 +45,7 @@ pub(crate) struct SessionInner {
     pub next_channel_id: ChannelId,
     pub next_file_id: FileId,
     pub sender_read: FileDescriptor,
+    pub session_was_dropped: bool,
 }
 
 impl Drop for SessionInner {
@@ -353,6 +354,13 @@ impl SessionInner {
             self.drain_request_pipe();
             self.dispatch_pending_requests(sess)?;
 
+            if self.channels.is_empty() && self.session_was_dropped {
+                log::trace!(
+                    "Stopping session loop as there are no more channels and Session was dropped"
+                );
+                return Ok(());
+            }
+
             let mut poll_array = vec![
                 pollfd {
                     fd: self.sender_read.as_socket_descriptor(),
@@ -436,7 +444,8 @@ impl SessionInner {
     /// Goal: if we have data to write to channels, try to send it.
     /// If we have room in our channel fd write buffers, try to fill it
     fn tick_io(&mut self) -> anyhow::Result<()> {
-        for chan in self.channels.values_mut() {
+        let mut dead = vec![];
+        for (id, chan) in self.channels.iter_mut() {
             if chan.exit.is_some() {
                 if let Some(status) = chan.channel.exit_status() {
                     let exit = chan.exit.take().unwrap();
@@ -470,20 +479,36 @@ impl SessionInner {
                     Err(err) => {
                         if out.buf.is_empty() {
                             log::trace!(
-                                "Failed to read data from channel: {:#}, closing pipe",
+                                "Failed to read data from channel {} stream {}: {:#}, closing pipe",
+                                id,
+                                idx,
                                 err
                             );
                             out.fd.take();
                         } else {
                             log::trace!(
-                                "Failed to read data from channel: {:#}, but \
+                                "Failed to read data from channel {} stream {}: {:#}, but \
                                          still have some buffer to drain",
+                                id,
+                                idx,
                                 err
                             );
                         }
                     }
                 }
             }
+
+            if chan
+                .descriptors
+                .iter()
+                .all(|descriptor| descriptor.fd.is_none())
+            {
+                log::trace!("all descriptors on channel {} are closed", id);
+                dead.push(*id);
+            }
+        }
+        for id in dead {
+            self.channels.remove(&id);
         }
         Ok(())
     }
@@ -505,6 +530,10 @@ impl SessionInner {
             Ok(req) => {
                 sess.set_blocking(true);
                 let res = match req {
+                    SessionRequest::SessionDropped => {
+                        self.session_was_dropped = true;
+                        Ok(true)
+                    }
                     SessionRequest::NewPty(newpty, reply) => {
                         dispatch(reply, || self.new_pty(sess, newpty), "NewPty")
                     }

@@ -52,6 +52,7 @@ pub(crate) enum SessionRequest {
     Exec(Exec, Sender<anyhow::Result<ExecResult>>),
     Sftp(SftpRequest),
     SignalChannel(SignalChannel),
+    SessionDropped,
 }
 
 #[derive(Debug)]
@@ -73,6 +74,7 @@ pub struct Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+        self.tx.try_send(SessionRequest::SessionDropped).ok();
         log::trace!("Drop Session");
     }
 }
@@ -100,6 +102,7 @@ impl Session {
             next_channel_id: 1,
             next_file_id: 1,
             sender_read,
+            session_was_dropped: false,
         };
         std::thread::spawn(move || inner.run());
         Ok((Self { tx: session_sender }, rx_event))

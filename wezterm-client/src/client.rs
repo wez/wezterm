@@ -596,7 +596,7 @@ impl Reconnectable {
         let mut child = exec.child;
         std::thread::spawn(move || match child.wait() {
             Err(err) => log::error!("waiting on {} failed: {:#}", cmd, err),
-            Ok(status) if !status.success() => log::error!("{} failed", cmd),
+            Ok(status) if !status.success() => log::error!("{}: {}", cmd, status),
             _ => {}
         });
 
