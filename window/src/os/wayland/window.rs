@@ -124,6 +124,7 @@ pub struct WaylandWindowInner {
     window_id: usize,
     events: WindowEventSender,
     surface: Attached<WlSurface>,
+    surface_factor: i32,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
@@ -359,6 +360,7 @@ impl WaylandWindow {
             copy_and_paste,
             events: WindowEventSender::new(event_handler),
             surface,
+            surface_factor: 1,
             invalidated: false,
             window: Some(window),
             dimensions,
@@ -638,12 +640,6 @@ impl WaylandWindowInner {
                     }
                 }
 
-                // Avoid blurring by matching the scaling factor of the
-                // compositor; if it is going to double the size then
-                // we render at double the size anyway and tell it that
-                // the buffer is already doubled
-                self.surface.set_buffer_scale(factor);
-
                 // Update the window decoration size
                 self.window.as_mut().unwrap().resize(w, h);
 
@@ -653,6 +649,7 @@ impl WaylandWindowInner {
                     pixel_height: pixel_height.try_into().unwrap(),
                     dpi: factor as usize * crate::DEFAULT_DPI as usize,
                 };
+
                 // Only trigger a resize if the new dimensions are different;
                 // this makes things more efficient and a little more smooth
                 if new_dimensions != self.dimensions {
@@ -667,6 +664,23 @@ impl WaylandWindowInner {
                     });
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+                        // Avoid blurring by matching the scaling factor of the
+                        // compositor; if it is going to double the size then
+                        // we render at double the size anyway and tell it that
+                        // the buffer is already doubled.
+                        // Take care to detach the current buffer (managed by EGL),
+                        // so that the compositor doesn't get annoyed by it not
+                        // having dimensions that match the scale.
+                        // The wegl_surface.resize won't take effect until
+                        // we paint later on.
+                        // We do this only if the scale has actually changed,
+                        // otherwise interactive window resize will keep removing
+                        // the window contents!
+                        if self.surface_factor != factor {
+                            self.surface.attach(None, 0, 0);
+                            self.surface.set_buffer_scale(factor);
+                            self.surface_factor = factor;
+                        }
                     }
                 }
 
