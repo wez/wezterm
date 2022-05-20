@@ -277,6 +277,10 @@ thread_local! {
     static FRONT_END: RefCell<Option<Rc<GuiFrontEnd>>> = RefCell::new(None);
 }
 
+pub fn try_front_end() -> Option<Rc<GuiFrontEnd>> {
+    FRONT_END.with(|f| f.borrow().as_ref().map(Rc::clone))
+}
+
 pub fn front_end() -> Rc<GuiFrontEnd> {
     FRONT_END
         .with(|f| f.borrow().as_ref().map(Rc::clone))

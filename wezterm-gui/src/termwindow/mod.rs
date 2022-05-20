@@ -3,7 +3,7 @@ use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::cache::LruCache;
 use crate::colorease::ColorEase;
-use crate::frontend::front_end;
+use crate::frontend::{front_end, try_front_end};
 use crate::glium::texture::SrgbTexture2d;
 use crate::inputmap::InputMap;
 use crate::overlay::{
@@ -2892,7 +2892,9 @@ impl TermWindow {
 impl Drop for TermWindow {
     fn drop(&mut self) {
         if let Some(window) = self.window.take() {
-            front_end().forget_known_window(&window);
+            if let Some(fe) = try_front_end() {
+                fe.forget_known_window(&window);
+            }
         }
     }
 }

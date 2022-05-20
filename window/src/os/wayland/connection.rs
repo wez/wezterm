@@ -264,14 +264,8 @@ impl WaylandConnection {
 
         future
     }
-}
 
-impl ConnectionOps for WaylandConnection {
-    fn terminate_message_loop(&self) {
-        *self.should_terminate.borrow_mut() = true;
-    }
-
-    fn run_message_loop(&self) -> anyhow::Result<()> {
+    fn run_message_loop_impl(&self) -> anyhow::Result<()> {
         const TOK_WL: usize = 0xffff_fffc;
         const TOK_SPAWN: usize = 0xffff_fffd;
         let tok_wl = Token(TOK_WL);
@@ -343,8 +337,21 @@ impl ConnectionOps for WaylandConnection {
                 }
             }
         }
-        self.windows.borrow_mut().clear();
-
         Ok(())
+    }
+}
+
+impl ConnectionOps for WaylandConnection {
+    fn terminate_message_loop(&self) {
+        *self.should_terminate.borrow_mut() = true;
+    }
+
+    fn run_message_loop(&self) -> anyhow::Result<()> {
+        let res = self.run_message_loop_impl();
+        // Ensure that we drop these eagerly, to avoid
+        // noisy errors wrt. global destructors unwinding
+        // in unexpected places
+        self.windows.borrow_mut().clear();
+        res
     }
 }
