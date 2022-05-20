@@ -240,7 +240,7 @@ impl QuickSelectOverlay {
 
         let search_row = renderer.compute_search_row();
         renderer.dirty_results.add(search_row);
-        renderer.update_search();
+        renderer.update_search(true);
 
         Rc::new(QuickSelectOverlay {
             renderer: RefCell::new(renderer),
@@ -546,7 +546,7 @@ impl QuickSelectRenderable {
         self.height = dims.viewport_rows;
 
         let pos = self.result_pos;
-        self.update_search();
+        self.update_search(false);
         self.result_pos = pos;
     }
 
@@ -628,7 +628,7 @@ impl QuickSelectRenderable {
         }
     }
 
-    fn update_search(&mut self) {
+    fn update_search(&mut self, is_initial_run: bool) {
         for idx in self.by_line.keys() {
             self.dirty_results.add(*idx);
         }
@@ -665,9 +665,21 @@ impl QuickSelectRenderable {
                             let num_results = r.results.len();
 
                             if !r.results.is_empty() {
-                                r.activate_match_number(num_results - 1);
+                                match &r.viewport {
+                                    Some(y) if is_initial_run => {
+                                        r.result_pos = r
+                                            .results
+                                            .iter()
+                                            .position(|result| result.start_y >= *y);
+                                    }
+                                    _ => {
+                                        r.activate_match_number(num_results - 1);
+                                    }
+                                }
                             } else {
-                                r.set_viewport(None);
+                                if !is_initial_run {
+                                    r.set_viewport(None);
+                                }
                                 r.clear_selection();
                             }
                         }
@@ -677,7 +689,9 @@ impl QuickSelectRenderable {
             })
             .detach();
         } else {
-            self.set_viewport(None);
+            if !is_initial_run {
+                self.set_viewport(None);
+            }
             self.clear_selection();
         }
     }
