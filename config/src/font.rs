@@ -152,17 +152,20 @@ impl FromDynamic for FontWeight {
             Value::String(s) => {
                 Ok(Self::from_str(s).ok_or_else(|| format!("invalid font weight {}", s))?)
             }
-            Value::U64(value) => {
-                if *value > 0 && *value <= (u16::MAX as u64) {
-                    Ok(FontWeight(*value as u16))
+            other => {
+                if let Some(value) = value.coerce_unsigned() {
+                    if value > 0 && value <= (u16::MAX as u64) {
+                        Ok(FontWeight(value as u16))
+                    } else {
+                        Err(format!("invalid font weight {}", value).into())
+                    }
                 } else {
-                    Err(format!("invalid font weight {}", value).into())
+                    Err(wezterm_dynamic::Error::NoConversion {
+                        source_type: other.variant_name().to_string(),
+                        dest_type: "FontWeight",
+                    })
                 }
             }
-            other => Err(wezterm_dynamic::Error::NoConversion {
-                source_type: other.variant_name().to_string(),
-                dest_type: "FontWeight",
-            }),
         }
     }
 }
