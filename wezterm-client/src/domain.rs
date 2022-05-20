@@ -401,17 +401,41 @@ impl ClientDomain {
                     let mut window = mux
                         .get_window_mut(local_window_id)
                         .expect("no such window!?");
+                    log::debug!("adding tab to existing local window {}", local_window_id);
                     if window.idx_by_id(tab.tab_id()).is_none() {
                         window.push(&tab);
                     }
-                } else if let Some(local_window_id) = primary_window_id.take() {
-                    inner.record_remote_to_local_window_mapping(remote_window_id, local_window_id);
-                    mux.add_tab_to_window(&tab, local_window_id)?;
-                } else {
-                    let local_window_id = mux.new_empty_window(workspace.take());
-                    inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
-                    mux.add_tab_to_window(&tab, *local_window_id)?;
+                    continue;
                 }
+
+                if let Some(local_window_id) = primary_window_id {
+                    // Verify that the workspace is consistent between the local and remote
+                    // windows
+                    if Some(
+                        mux.get_window(local_window_id)
+                            .expect("primary window to be valid")
+                            .get_workspace(),
+                    ) == workspace.as_deref()
+                    {
+                        // Yes! We can use this window
+                        log::debug!("adding {} as tab to {}", remote_window_id, local_window_id);
+                        inner.record_remote_to_local_window_mapping(
+                            remote_window_id,
+                            local_window_id,
+                        );
+                        mux.add_tab_to_window(&tab, local_window_id)?;
+                        primary_window_id.take();
+                        continue;
+                    }
+                }
+                log::debug!(
+                    "making new local window for remote {} in workspace {:?}",
+                    remote_window_id,
+                    workspace
+                );
+                let local_window_id = mux.new_empty_window(workspace.take());
+                inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
+                mux.add_tab_to_window(&tab, *local_window_id)?;
             }
         }
 
