@@ -210,14 +210,13 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
                                 let ty = &f.ty;
                                 quote!(
                                     #ident: <#ty>::from_dynamic(
-                                        obj.get_by_str(#name)
-                                            .ok_or_else(|| wezterm_dynamic::Error::ErrorInField {
-                                                type_name: #literal,
-                                                field_name: #name,
-                                                error: "missing field".to_string(),
-                                            })?,
+                                        obj.get_by_str(#name).unwrap_or(&Value::Null),
                                             options
-                                        )?,
+                                        ).map_err(|source| source.field_context(
+                                                #literal,
+                                                #name,
+                                                obj
+                                            ))?,
                                 )
                             })
                         .collect::<Vec<_>>();
