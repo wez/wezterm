@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [Key Table](config/key-tables.md) lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. [#993](https://github.com/wez/wezterm/issues/993)
 * Search mode's search term is now remembered globally between activations of search mode. [#1912](https://github.com/wez/wezterm/issues/1912)
 * Quickselect no longer jumps to the bottom of the viewport when activated, allowing you to quickselect within the current viewport region
+* Quickselect now supports multi-line anchors such as `^` and `$`.  [#2008](https://github.com/wez/wezterm/issues/2008)
 
 #### Fixed
 * Flush after replying to XTGETTCAP and DECRQM. [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)

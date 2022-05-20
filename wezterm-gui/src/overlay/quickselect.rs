@@ -191,28 +191,32 @@ impl QuickSelectOverlay {
 
         let config = term_window.config.clone();
 
-        let mut pattern = "(".to_string();
+        let mut pattern = "(?m)(".to_string();
+        let mut have_patterns = false;
         if !args.patterns.is_empty() {
             for p in &args.patterns {
-                if pattern.len() > 1 {
+                if have_patterns {
                     pattern.push('|');
                 }
                 pattern.push_str(p);
+                have_patterns = true;
             }
         } else {
             if !config.disable_default_quick_select_patterns {
                 for p in &PATTERNS {
-                    if pattern.len() > 1 {
+                    if have_patterns {
                         pattern.push('|');
                     }
                     pattern.push_str(p);
+                    have_patterns = true;
                 }
             }
             for p in &config.quick_select_patterns {
-                if pattern.len() > 1 {
+                if have_patterns {
                     pattern.push('|');
                 }
                 pattern.push_str(p);
+                have_patterns = true;
             }
         }
         pattern.push(')');

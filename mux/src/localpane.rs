@@ -538,6 +538,7 @@ impl Pane for LocalPane {
                 Pattern::Regex(r) => {
                     if let Ok(re) = regex::Regex::new(r) {
                         // Allow for the regex to contain captures
+                        log::trace!("regex search for {:?} in `{:?}`", r, haystack);
                         for c in re.captures_iter(haystack) {
                             // Look for the captures in reverse order, as index==0 is
                             // the whole matched string.  We can't just call
@@ -545,6 +546,9 @@ impl Pane for LocalPane {
                             for idx in (0..c.len()).rev() {
                                 if let Some(m) = c.get(idx) {
                                     let s = m.as_str();
+                                    if s.is_empty() {
+                                        continue;
+                                    }
                                     let match_id = match uniq_matches.get(s).copied() {
                                         Some(id) => id,
                                         None => {
@@ -577,6 +581,8 @@ impl Pane for LocalPane {
             let stable_row = screen.phys_to_stable_row_index(idx);
 
             let mut wrapped = false;
+            let mut trailing_spaces = None;
+
             for (grapheme_idx, cell) in line.visible_cells() {
                 coords.push(Coord {
                     byte_idx: haystack.len(),
@@ -585,6 +591,15 @@ impl Pane for LocalPane {
                 });
 
                 let s = cell.str();
+                if s == " " {
+                    // Keep track of runs of trailing spaces; we'll prune
+                    // them out so that `$` in a regex works as expected.
+                    if trailing_spaces.is_none() {
+                        trailing_spaces.replace(haystack.len());
+                    }
+                } else {
+                    trailing_spaces.take();
+                }
                 if let Pattern::CaseInSensitiveString(_) = &pattern {
                     // normalize the case so we match everything lowercase
                     haystack.push_str(&s.to_lowercase());
@@ -592,6 +607,18 @@ impl Pane for LocalPane {
                     haystack.push_str(cell.str());
                 }
                 wrapped = cell.attrs().wrapped();
+            }
+
+            if let Some(trailing_spaces) = trailing_spaces {
+                // Remove trailing spaces from the haystack
+                haystack.truncate(trailing_spaces);
+                while coords
+                    .last()
+                    .map(|c| c.byte_idx >= trailing_spaces)
+                    .unwrap_or(false)
+                {
+                    coords.pop();
+                }
             }
 
             if !wrapped {
