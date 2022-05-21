@@ -9,7 +9,7 @@ use crate::{
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use config::{ConfigHandle, DimensionContext, GeometryOrigin};
+use config::{ConfigHandle, DimensionContext, GeometryOrigin, ImePreeditRendering};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::windows::WindowsHandle;
@@ -267,8 +267,7 @@ impl WindowInner {
         self.last_size.replace(current_dims);
 
         if !same {
-            let imc = ImmContext::get(self.hwnd.0);
-            imc.set_position(Rect::default());
+            self.set_ime_window_position(Rect::default());
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
@@ -730,8 +729,15 @@ impl WindowInner {
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
+        self.set_ime_window_position(cursor);
+    }
+
+    fn set_ime_window_position(&mut self, cursor: Rect) {
         let imc = ImmContext::get(self.hwnd.0);
-        imc.set_position(cursor);
+        match self.config.ime_preedit_rendering {
+            ImePreeditRendering::Builtin => imc.set_candidate_window_position(cursor),
+            ImePreeditRendering::System => imc.set_composition_window_position(cursor),
+        }
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
@@ -1667,7 +1673,7 @@ impl ImmContext {
     }
 
     /// Set the position of the IME candidate window relative to the cursor.
-    pub fn set_position(&self, cursor: Rect) {
+    pub fn set_candidate_window_position(&self, cursor: Rect) {
         let mut cf = CANDIDATEFORM {
             dwIndex: 0,
             // Don't draw the IME candidate window on the cursor
@@ -1688,6 +1694,21 @@ impl ImmContext {
         };
         unsafe {
             ImmSetCandidateWindow(self.imc, &mut cf);
+        }
+    }
+
+    /// Set the position of the IME composition window relative to the cursor.
+    pub fn set_composition_window_position(&self, cursor: Rect) {
+        let mut cf = COMPOSITIONFORM {
+            dwStyle: CFS_POINT,
+            ptCurrentPos: POINT {
+                x: cursor.origin.x.max(0) as i32,
+                y: cursor.origin.y.max(0) as i32,
+            },
+            rcArea: RECT::default(),
+        };
+        unsafe {
+            ImmSetCompositionWindow(self.imc, &mut cf);
         }
     }
 
@@ -1727,6 +1748,13 @@ unsafe fn ime_set_context(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd)?;
+    let inner = inner.borrow_mut();
+
+    if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
+        return None;
+    }
+
     // Don't show system CompositionWindow because application itself draws it
     let lparam = lparam & !(ISC_SHOWUICOMPOSITIONWINDOW as LPARAM);
     let result = DefWindowProcW(hwnd, msg, wparam, lparam);
@@ -1742,6 +1770,11 @@ unsafe fn ime_end_composition(
     // IME was cancelled
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
+
+    if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
+        return None;
+    }
+
     inner
         .events
         .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
@@ -1756,6 +1789,11 @@ unsafe fn ime_composition(
 ) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
+
+    if inner.config.ime_preedit_rendering == ImePreeditRendering::System {
+        return None;
+    }
+
     let imc = ImmContext::get(hwnd);
 
     let lparam = lparam as DWORD;

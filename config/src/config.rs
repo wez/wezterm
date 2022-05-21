@@ -501,6 +501,8 @@ pub struct Config {
     pub use_ime: bool,
     #[dynamic(default)]
     pub xim_im_name: Option<String>,
+    #[dynamic(default)]
+    pub ime_preedit_rendering: ImePreeditRendering,
 
     #[dynamic(default = "default_true")]
     pub use_dead_keys: bool,
@@ -1478,5 +1480,19 @@ impl DroppedFileQuoting {
             }
             Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
         }
+    }
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
+pub enum ImePreeditRendering {
+    /// IME preedit is rendered by WezTerm itself
+    Builtin,
+    /// IME preedit is rendered by system
+    System,
+}
+
+impl Default for ImePreeditRendering {
+    fn default() -> Self {
+        ImePreeditRendering::Builtin
     }
 }
