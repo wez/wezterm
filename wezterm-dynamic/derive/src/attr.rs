@@ -72,6 +72,7 @@ pub struct FieldInfo<'a> {
     pub allow_default: DefValue,
     pub into: Option<Path>,
     pub try_from: Option<Path>,
+    pub deprecated: Option<String>,
 }
 
 impl<'a> FieldInfo<'a> {
@@ -100,6 +101,15 @@ impl<'a> FieldInfo<'a> {
         let name = &self.name;
         let ident = &self.field.ident;
         let ty = &self.field.ty;
+
+        let check_deprecated = if let Some(reason) = &self.deprecated {
+            quote!(
+                wezterm_dynamic::Error::raise_deprecated_fields(options, #struct_name, #name, #reason)?;
+            )
+        } else {
+            quote!()
+        };
+
         if self.skip {
             quote!()
         } else if self.flatten {
@@ -118,6 +128,7 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
                                 use std::convert::TryFrom;
+                                #check_deprecated
                                 let target = <#try_from>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
@@ -142,6 +153,7 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(&#name) {
                             Some(v) => {
                                 use std::convert::TryFrom;
+                                #check_deprecated
                                 let target = <#try_from>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
@@ -165,7 +177,10 @@ impl<'a> FieldInfo<'a> {
                     quote!(
                         #ident: {
                             use std::convert::TryFrom;
-                            let target = <#try_from>::from_dynamic(obj.get_by_str(#name).unwrap_or(&Value::Null), options)
+                            let target = <#try_from>::from_dynamic(obj.get_by_str(#name).map(|v| {
+                                #check_deprecated
+                                v
+                            }).unwrap_or(&Value::Null), options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
                                         #name,
@@ -187,6 +202,7 @@ impl<'a> FieldInfo<'a> {
                     quote!(
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
+                                #check_deprecated
                                 <#ty>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
@@ -204,6 +220,7 @@ impl<'a> FieldInfo<'a> {
                     quote!(
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
+                                #check_deprecated
                                 <#ty>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
@@ -221,7 +238,11 @@ impl<'a> FieldInfo<'a> {
                     quote!(
                         #ident:
                             <#ty>::from_dynamic(
-                                    obj.get_by_str(#name).unwrap_or(&Value::Null),
+                                    obj.get_by_str(#name).map(|v| {
+                                        #check_deprecated
+                                        v
+                                    }).
+                                    unwrap_or(&Value::Null),
                                     options
                                 )
                                 .map_err(|source| source.field_context(#struct_name, #name, obj))?,
@@ -239,6 +260,7 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
     let mut allow_default = DefValue::None;
     let mut try_from = None;
     let mut into = None;
+    let mut deprecated = None;
 
     for attr in &field.attrs {
         if !attr.path.is_ident("dynamic") {
@@ -262,6 +284,12 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
                     if value.path.is_ident("default") {
                         if let Lit::Str(s) = &value.lit {
                             allow_default = DefValue::Path(s.parse()?);
+                            continue;
+                        }
+                    }
+                    if value.path.is_ident("deprecated") {
+                        if let Lit::Str(s) = &value.lit {
+                            deprecated.replace(s.value());
                             continue;
                         }
                     }
@@ -306,5 +334,6 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
         allow_default,
         try_from,
         into,
+        deprecated,
     })
 }

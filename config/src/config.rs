@@ -779,13 +779,26 @@ impl Config {
     ) -> anyhow::Result<mlua::Value<'l>> {
         let overrides = CONFIG_OVERRIDES.lock().unwrap();
         for (key, value) in &*overrides {
+            if value == "nil" {
+                // Literal nil as the value is the same as not specifying the value.
+                // We special case this here as we want to explicitly check for
+                // the value evaluating as nil, as can happen in the case where the
+                // user specifies something like: `--config term=xterm`.
+                // The RHS references a global that doesn't exist and evaluates as
+                // nil. We want to raise this as an error.
+                continue;
+            }
+            let literal = value.escape_debug();
             let code = format!(
                 r#"
                 local wezterm = require 'wezterm';
-                config.{} = {};
+                local value = {value};
+                if value == nil then
+                    error("{literal} evaluated as nil. Check for missing quotes or other syntax issues")
+                end
+                config.{key} = value;
                 return config;
                 "#,
-                key, value
             );
             let chunk = lua.load(&code);
             let chunk = chunk.set_name(&format!("--config {}={}", key, value))?;

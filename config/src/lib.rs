@@ -2,7 +2,7 @@
 
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
-use mlua::{FromLua, Lua};
+use mlua::Lua;
 use ordered_float::NotNan;
 use smol::channel::{Receiver, Sender};
 use smol::prelude::*;
@@ -17,7 +17,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use wezterm_dynamic::{ToDynamic, Value};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, UnknownFieldAction, Value};
 
 mod background;
 mod bell;
@@ -255,8 +255,16 @@ fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     let table = mlua::Value::Table(lua.create_table()?);
     let config = Config::apply_overrides_to(&lua, table)?;
 
-    let cfg: Config = Config::from_lua(config, &lua)
-        .context("Error converting lua value from overrides to Config struct")?;
+    let dyn_config = luahelper::lua_value_to_dynamic(config)?;
+
+    let cfg: Config = Config::from_dynamic(
+        &dyn_config,
+        FromDynamicOptions {
+            unknown_fields: UnknownFieldAction::Deny,
+            deprecated_fields: UnknownFieldAction::Warn,
+        },
+    )
+    .context("Error converting lua value from overrides to Config struct")?;
     // Compute but discard the key bindings here so that we raise any
     // problems earlier than we use them.
     let _ = cfg.key_bindings();
@@ -268,15 +276,16 @@ pub fn common_init(
     config_file: Option<&OsString>,
     overrides: &[(String, String)],
     skip_config: bool,
-) {
+) -> anyhow::Result<()> {
     if let Some(config_file) = config_file {
         set_config_file_override(Path::new(config_file));
     } else if skip_config {
         CONFIG_SKIP.store(true, Ordering::Relaxed);
     }
 
-    set_config_overrides(overrides);
+    set_config_overrides(overrides)?;
     reload();
+    Ok(())
 }
 
 pub fn assign_error_callback(cb: ErrorCallback) {
@@ -320,8 +329,11 @@ pub fn set_config_file_override(path: &Path) {
         .replace(path.to_path_buf());
 }
 
-pub fn set_config_overrides(items: &[(String, String)]) {
+pub fn set_config_overrides(items: &[(String, String)]) -> anyhow::Result<()> {
     *CONFIG_OVERRIDES.lock().unwrap() = items.to_vec();
+
+    let _ = default_config_with_overrides_applied()?;
+    Ok(())
 }
 
 pub fn is_config_overridden() -> bool {

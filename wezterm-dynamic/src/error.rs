@@ -51,6 +51,12 @@ pub enum Error {
         type_name: &'static str,
         key_type: String,
     },
+    #[error("{}::{} is deprecated: {}", .type_name, .field_name, .reason)]
+    DeprecatedField {
+        type_name: &'static str,
+        field_name: &'static str,
+        reason: &'static str,
+    },
 }
 
 impl Error {
@@ -82,6 +88,31 @@ impl Error {
         }
 
         errors
+    }
+
+    pub fn raise_deprecated_fields(
+        options: FromDynamicOptions,
+        type_name: &'static str,
+        field_name: &'static str,
+        reason: &'static str,
+    ) -> Result<(), Self> {
+        if options.deprecated_fields == UnknownFieldAction::Ignore {
+            return Ok(());
+        }
+        let err = Self::DeprecatedField {
+            type_name,
+            field_name,
+            reason,
+        };
+
+        match options.deprecated_fields {
+            UnknownFieldAction::Deny => Err(err),
+            UnknownFieldAction::Warn => {
+                log::warn!("{:#}", err);
+                Ok(())
+            }
+            UnknownFieldAction::Ignore => unreachable!(),
+        }
     }
 
     pub fn raise_unknown_fields(

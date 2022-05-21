@@ -27,6 +27,7 @@ impl Default for UnknownFieldAction {
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FromDynamicOptions {
     pub unknown_fields: UnknownFieldAction,
+    pub deprecated_fields: UnknownFieldAction,
 }
 
 impl FromDynamicOptions {

@@ -46,6 +46,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Search mode's search term is now remembered globally between activations of search mode. [#1912](https://github.com/wez/wezterm/issues/1912)
 * Quickselect no longer jumps to the bottom of the viewport when activated, allowing you to quickselect within the current viewport region
 * Quickselect now supports multi-line anchors such as `^` and `$`.  [#2008](https://github.com/wez/wezterm/issues/2008)
+* Overriding config using the cli `--config` option will now error out and prevent starting up if unknown config options are specified, or if the value evaluates to `nil`. Unknown options continue to generate warnings (rather than errors) when observed in the config file so that you're not "locked out" of wezterm if you make a typo in the config file.
 
 #### Fixed
 * Flush after replying to XTGETTCAP and DECRQM. [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)

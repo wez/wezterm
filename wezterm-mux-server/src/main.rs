@@ -76,7 +76,7 @@ fn run() -> anyhow::Result<()> {
         opts.config_file.as_ref(),
         &opts.config_override,
         opts.skip_config,
-    );
+    )?;
 
     let config = config::configuration();
     #[cfg(unix)]
