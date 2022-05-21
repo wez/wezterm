@@ -30,7 +30,7 @@ use config::{
     TermConfig, WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
-use mux::pane::{CloseReason, Pane, PaneId};
+use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
@@ -2263,7 +2263,7 @@ impl TermWindow {
                         let mut params = existing.get_params();
                         params.editing_search = true;
                         if !pattern.is_empty() {
-                            params.pattern = pattern.clone();
+                            params.pattern = self.resolve_search_pattern(pattern.clone(), &pane);
                         }
                         existing.apply_params(params);
                         replace_current = true;
@@ -2272,7 +2272,7 @@ impl TermWindow {
                             self,
                             &pane,
                             CopyModeParams {
-                                pattern: pattern.clone(),
+                                pattern: self.resolve_search_pattern(pattern.clone(), &pane),
                                 editing_search: true,
                             },
                         );
@@ -2320,7 +2320,7 @@ impl TermWindow {
                             self,
                             &pane,
                             CopyModeParams {
-                                pattern: Pattern::default(),
+                                pattern: MuxPattern::default(),
                                 editing_search: false,
                             },
                         );
@@ -2886,6 +2886,23 @@ impl TermWindow {
             key_table_state: KeyTableState::default(),
         });
         self.update_title();
+    }
+
+    fn resolve_search_pattern(&self, pattern: Pattern, pane: &Rc<dyn Pane>) -> MuxPattern {
+        match pattern {
+            Pattern::CaseSensitiveString(s) => MuxPattern::CaseSensitiveString(s),
+            Pattern::CaseInSensitiveString(s) => MuxPattern::CaseInSensitiveString(s),
+            Pattern::Regex(s) => MuxPattern::Regex(s),
+            Pattern::CurrentSelectionOrEmptyString => {
+                let text = self.selection_text(pane);
+                let first_line = text
+                    .lines()
+                    .next()
+                    .map(|s| s.to_string())
+                    .unwrap_or_default();
+                MuxPattern::CaseSensitiveString(first_line)
+            }
+        }
     }
 }
 

@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * In Copy Mode, `CTRL-v` will enable rectangular block selection mode. [#1656](https://github.com/wez/wezterm/issues/1656)
 * Copy Mode: key assignments are [now configurable](copymode.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
 * Search Mode: key assignments are [now configurable](scrollback.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
+* Search Mode: the default `CTRL-SHIFT-F` key assignment now defaults to the new `CurrentSelectionOrEmptyString` mode to search for the current selection text, if any.  See [Search](config/lua/keyassignment/Search.md) for more info.
 * Copy Mode and Search Mode can be toggled and remember search results and cursor positioning, making it easier to locate and select text without using the mouse [#1592](https://github.com/wez/wezterm/issues/1592)
 * In the Launcher Menu, you may now use `CTRL-G` to cancel/exit the launcher [#1977](https://github.com/wez/wezterm/issues/1977)
 * [cell_width](config/lua/config/cell_width.md) option to adjust the horizontal spacing when the availble font stretches are insufficient. [#1979](https://github.com/wez/wezterm/issues/1979)

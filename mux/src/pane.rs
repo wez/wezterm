@@ -41,7 +41,39 @@ pub struct SearchResult {
     pub match_id: usize,
 }
 
-pub use config::keyassignment::Pattern;
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum Pattern {
+    CaseSensitiveString(String),
+    CaseInSensitiveString(String),
+    Regex(String),
+}
+
+impl Default for Pattern {
+    fn default() -> Self {
+        Self::CaseSensitiveString("".to_string())
+    }
+}
+
+impl std::ops::Deref for Pattern {
+    type Target = String;
+    fn deref(&self) -> &String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
+        }
+    }
+}
+
+impl std::ops::DerefMut for Pattern {
+    fn deref_mut(&mut self) -> &mut String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
+        }
+    }
+}
 
 /// Why a close request is being made
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

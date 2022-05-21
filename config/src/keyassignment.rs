@@ -104,37 +104,28 @@ pub enum SelectionMode {
     Block,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum Pattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),
     Regex(String),
+    CurrentSelectionOrEmptyString,
+}
+
+impl Pattern {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::CaseSensitiveString(s) | Self::CaseInSensitiveString(s) | Self::Regex(s) => {
+                s.is_empty()
+            }
+            Self::CurrentSelectionOrEmptyString => true,
+        }
+    }
 }
 
 impl Default for Pattern {
     fn default() -> Self {
-        Self::CaseSensitiveString("".to_string())
-    }
-}
-
-impl std::ops::Deref for Pattern {
-    type Target = String;
-    fn deref(&self) -> &String {
-        match self {
-            Pattern::CaseSensitiveString(s) => s,
-            Pattern::CaseInSensitiveString(s) => s,
-            Pattern::Regex(s) => s,
-        }
-    }
-}
-
-impl std::ops::DerefMut for Pattern {
-    fn deref_mut(&mut self) -> &mut String {
-        match self {
-            Pattern::CaseSensitiveString(s) => s,
-            Pattern::CaseInSensitiveString(s) => s,
-            Pattern::Regex(s) => s,
-        }
+        Self::CurrentSelectionOrEmptyString
     }
 }
 

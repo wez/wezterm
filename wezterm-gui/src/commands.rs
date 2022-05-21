@@ -279,7 +279,7 @@ static DEFS: &[CommandDef] = &[
         brief: "Search pane output",
         doc: "Enters the search mode UI for the current pane",
         exp: |exp| {
-            exp.push(Search(Pattern::CaseSensitiveString("".into())));
+            exp.push(Search(Pattern::CurrentSelectionOrEmptyString));
         },
         keys: &[(Modifiers::SUPER, "f")],
         args: &[ArgType::ActivePane],

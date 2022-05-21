@@ -27,3 +27,8 @@ return {
 
 [Learn more about the search overlay](../../../scrollback.html#searching-the-scrollback)
 
+*since: nightly builds only*
+
+You may now use `wezterm.action{Search="CurrentSelectionOrEmptyString"}` to have the search take the currently selected text as the item to search.
+
+The selection text is adjusted to be a single line.
