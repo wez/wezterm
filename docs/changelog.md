@@ -31,6 +31,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Search Mode: key assignments are [now configurable](scrollback.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
 * Copy Mode and Search Mode can be toggled and remember search results and cursor positioning, making it easier to locate and select text without using the mouse [#1592](https://github.com/wez/wezterm/issues/1592)
 * In the Launcher Menu, you may now use `CTRL-G` to cancel/exit the launcher [#1977](https://github.com/wez/wezterm/issues/1977)
+* [cell_width](config/lua/config/cell_width.md) option to adjust the horizontal spacing when the availble font stretches are insufficient. [#1979](https://github.com/wez/wezterm/issues/1979)
+
 
 #### Updated
 * Bundled harfbuzz to 4.2.1

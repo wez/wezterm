@@ -47,6 +47,9 @@ pub struct Config {
     #[dynamic(default = "default_one_point_oh_f64")]
     pub line_height: f64,
 
+    #[dynamic(default = "default_one_point_oh_f64")]
+    pub cell_width: f64,
+
     #[dynamic(default)]
     pub allow_square_glyphs_to_overflow_width: AllowSquareGlyphOverflow,
 

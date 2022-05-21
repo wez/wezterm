@@ -69,6 +69,7 @@ Additional options for configuring fonts can be found elsewhere in the docs:
 * [freetype_load_flags](lua/config/freetype_load_flags.md) - advanced hinting configuration
 * [freetype_load_target](lua/config/freetype_load_target.md) - configure hinting and anti-aliasing
 * [freetype_render_target](lua/config/freetype_render_target.md) - configure anti-aliasing
+* [cell_width](lua/config/cell_width.md) - scale the font-specified cell width
 * [line_height](lua/config/line_height.md) - scale the font-specified line height
 * [wezterm.font](lua/wezterm/font.md) - select a font based on family and style attributes
 * [wezterm.font_with_fallback](lua/wezterm/font_with_fallback.md) - select a font from a list of candidates

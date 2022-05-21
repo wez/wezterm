@@ -61,9 +61,9 @@ impl RenderMetrics {
         }
     }
 
-    pub fn scale_cell_width(&self, scale: u8) -> Self {
+    pub fn scale_cell_width(&self, scale: f64) -> Self {
         let mut scaled = self.clone();
-        scaled.cell_size.width *= scale as isize;
+        scaled.cell_size.width = (self.cell_size.width as f64 * scale) as isize;
         scaled
     }
 
@@ -73,10 +73,11 @@ impl RenderMetrics {
             .context("failed to get font metrics!?")?;
 
         let line_height = fonts.config().line_height;
+        let cell_width = fonts.config().cell_width;
 
         let (cell_height, cell_width) = (
             (metrics.cell_height.get() * line_height).ceil() as usize,
-            metrics.cell_width.get().ceil() as usize,
+            (metrics.cell_width.get() * cell_width).ceil() as usize,
         );
 
         // When line_height != 1.0, we want to adjust the baseline position

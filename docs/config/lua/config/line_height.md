@@ -7,4 +7,4 @@ font feels too vertically cramped then you can set `line_height = 1.2` to
 increase the vertical spacing by 20%.  Conversely, setting `line_height = 0.9`
 will decrease the vertical spacing by 10%.
 
-
+See also: [cell_width](cell_width.md)

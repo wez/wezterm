@@ -3695,7 +3695,7 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(sprite.clone());
         }
 
-        let metrics = metrics.scale_cell_width(width);
+        let metrics = metrics.scale_cell_width(width as f64);
 
         let mut buffer = Image::new(
             metrics.cell_size.width as usize,
