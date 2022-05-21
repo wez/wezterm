@@ -6,6 +6,7 @@ use config::keyassignment::{
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
+use mux::tab::TabId;
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -25,7 +26,7 @@ use wezterm_term::{
 use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
 
 lazy_static::lazy_static! {
-    static ref SAVED_PATTERN: Mutex<Pattern> = Mutex::new(Pattern::default());
+    static ref SAVED_PATTERN: Mutex<HashMap<TabId, Pattern>> = Mutex::new(HashMap::new());
 }
 
 pub struct CopyOverlay {
@@ -54,6 +55,7 @@ struct CopyRenderable {
     height: usize,
     editing_search: bool,
     result_pos: Option<usize>,
+    tab_id: TabId,
 }
 
 #[derive(Debug)]
@@ -84,6 +86,11 @@ impl CopyOverlay {
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
         cursor.visibility = CursorVisibility::Visible;
 
+        let (_domain, _window, tab_id) = mux::Mux::get()
+            .expect("called on main thread")
+            .resolve_pane_id(pane.pane_id())
+            .expect("pane to have a containing tab");
+
         let window = term_window.window.clone().unwrap();
         let dims = pane.get_dimensions();
         let mut render = CopyRenderable {
@@ -99,8 +106,14 @@ impl CopyOverlay {
             height: dims.viewport_rows,
             last_result_seqno: SEQ_ZERO,
             last_bar_pos: None,
+            tab_id,
             pattern: if params.pattern.is_empty() {
-                SAVED_PATTERN.lock().unwrap().clone()
+                SAVED_PATTERN
+                    .lock()
+                    .unwrap()
+                    .get(&tab_id)
+                    .map(|p| p.clone())
+                    .unwrap_or(params.pattern)
             } else {
                 params.pattern
             },
@@ -216,7 +229,10 @@ impl CopyRenderable {
         self.by_line.clear();
         self.result_pos.take();
 
-        *SAVED_PATTERN.lock().unwrap() = self.pattern.clone();
+        SAVED_PATTERN
+            .lock()
+            .unwrap()
+            .insert(self.tab_id, self.pattern.clone());
 
         let bar_pos = self.compute_search_row();
         self.dirty_results.add(bar_pos);
