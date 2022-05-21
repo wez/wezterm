@@ -459,6 +459,7 @@ usually the best available version.</p>
 <li>In Copy Mode, <code>CTRL-v</code> will enable rectangular block selection mode. <a href="https://github.com/wez/wezterm/issues/1656">#1656</a></li>
 <li>Copy Mode: key assignments are <a href="copymode.html#configurable-key-assignments">now configurable</a> <a href="https://github.com/wez/wezterm/issues/993">#993</a></li>
 <li>Search Mode: key assignments are <a href="scrollback.html#configurable-key-assignments">now configurable</a> <a href="https://github.com/wez/wezterm/issues/993">#993</a></li>
+<li>Search Mode: the default <code>CTRL-SHIFT-F</code> key assignment now defaults to the new <code>CurrentSelectionOrEmptyString</code> mode to search for the current selection text, if any.  See <a href="config/lua/keyassignment/Search.html">Search</a> for more info.</li>
 <li>Copy Mode and Search Mode can be toggled and remember search results and cursor positioning, making it easier to locate and select text without using the mouse <a href="https://github.com/wez/wezterm/issues/1592">#1592</a></li>
 <li>In the Launcher Menu, you may now use <code>CTRL-G</code> to cancel/exit the launcher <a href="https://github.com/wez/wezterm/issues/1977">#1977</a></li>
 <li><a href="config/lua/config/cell_width.html">cell_width</a> option to adjust the horizontal spacing when the availble font stretches are insufficient. <a href="https://github.com/wez/wezterm/issues/1979">#1979</a></li>
@@ -14038,6 +14039,9 @@ return {
 }
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
+<p><em>since: nightly builds only</em></p>
+<p>You may now use <code>wezterm.action{Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
+<p>The selection text is adjusted to be a single line.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
 <p>Initiates selection of text at the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
