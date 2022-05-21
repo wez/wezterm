@@ -337,6 +337,9 @@ pub struct Config {
     #[dynamic(default)]
     pub enable_scroll_bar: bool,
 
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_half_cell")]
+    pub min_scroll_bar_height: Dimension,
+
     /// If false, do not try to use a Wayland protocol connection
     /// when starting the gui frontend, and instead use X11.
     /// This option is only considered on X11/Wayland systems and

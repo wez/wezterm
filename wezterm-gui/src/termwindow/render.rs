@@ -1293,13 +1293,22 @@ impl super::TermWindow {
         if pos.is_active && self.show_scroll_bar {
             let thumb_y_offset = top_bar_height as usize + border.top.get();
 
+            let min_height =
+                self.config
+                    .min_scroll_bar_height
+                    .evaluate_as_pixels(DimensionContext {
+                        dpi: self.dimensions.dpi as f32,
+                        pixel_max: self.terminal_size.pixel_height as f32,
+                        pixel_cell: self.render_metrics.cell_size.height as f32,
+                    });
+
             let info = ScrollHit::thumb(
                 &*pos.pane,
                 current_viewport,
                 self.dimensions.pixel_height.saturating_sub(
                     thumb_y_offset + border.bottom.get() + bottom_bar_height as usize,
                 ),
-                (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
+                min_height as usize,
             );
             let abs_thumb_top = thumb_y_offset + info.top;
             let thumb_size = info.height;
