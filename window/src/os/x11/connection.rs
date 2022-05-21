@@ -417,12 +417,17 @@ impl XConnection {
         let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));
         log::trace!("computed initial dpi: {:?}", default_dpi);
 
+        let input_style = match config::configuration().ime_preedit_rendering {
+            config::ImePreeditRendering::Builtin => xcb_imdkit::InputStyle::PREEDIT_CALLBACKS,
+            config::ImePreeditRendering::System => xcb_imdkit::InputStyle::DEFAULT,
+        };
+
         xcb_imdkit::ImeClient::set_logger(|msg| log::debug!("Ime: {}", msg));
         let ime = unsafe {
             xcb_imdkit::ImeClient::unsafe_new(
                 &conn,
                 screen_num,
-                xcb_imdkit::InputStyle::PREEDIT_CALLBACKS,
+                input_style,
                 config::configuration().xim_im_name.as_deref(),
             )
         };
@@ -479,7 +484,7 @@ impl XConnection {
                     }
                 });
         }
-        {
+        if config::configuration().ime_preedit_rendering == config::ImePreeditRendering::Builtin {
             let conn = conn.clone();
             conn.clone()
                 .ime
@@ -494,7 +499,7 @@ impl XConnection {
                     }
                 });
         }
-        {
+        if config::configuration().ime_preedit_rendering == config::ImePreeditRendering::Builtin {
             let conn = conn.clone();
             conn.clone()
                 .ime
