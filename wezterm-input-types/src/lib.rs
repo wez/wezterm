@@ -1252,6 +1252,7 @@ impl Default for WindowDecorations {
 /// to US keyboard layout (particularly the punctuation characters
 /// produced in combination with SHIFT) that may not be 100%
 /// the right thing to do here for users with non-US layouts.
+#[cfg(windows)]
 fn ctrl_mapping(c: char) -> Option<char> {
     // Please also sync with the copy of this function that
     // lives in termwiz :-/
