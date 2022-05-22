@@ -8,7 +8,9 @@ WezTerm supports the following IME preedit rendering.
 
 * `"Builtin"` - (Default) IME preedit is rendered by WezTerm itself
 
-  "Builtin" rendering provides good look and feel for many IMEs
+  "Builtin" rendering provides good look and feel for many IMEs,
+  rendering the text using the same font as the terminal and
+  works in concert with features like [window:composition_status()](../window/composition_status.md).
 
 * `"System"` - IME preedit is rendered by system
 
