@@ -56,6 +56,25 @@ fn main() {
         }
     } else {
         // Otherwise we'll derive it from the git information
+
+        if let Ok(repo) = git2::Repository::discover(".") {
+            if let Ok(ref_head) = repo.find_reference("HEAD") {
+                let repo_path = repo.path().to_path_buf();
+
+                if let Ok(resolved) = ref_head.resolve() {
+                    if let Some(name) = resolved.name() {
+                        let path = repo_path.join(name);
+                        if path.exists() {
+                            println!(
+                                "cargo:rerun-if-changed={}",
+                                path.canonicalize().unwrap().display()
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         let head = Path::new("../.git/HEAD");
         if head.exists() {
             let head = head.canonicalize().unwrap();
@@ -74,12 +93,6 @@ fn main() {
                 let info = String::from_utf8_lossy(&output.stdout);
                 ci_tag = info.trim().to_string();
             }
-        }
-
-        let index = Path::new("../.git/index");
-        if index.exists() {
-            let index = index.canonicalize().unwrap();
-            println!("cargo:rerun-if-changed={}", index.display());
         }
     }
 
