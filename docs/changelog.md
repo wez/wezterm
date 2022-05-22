@@ -34,6 +34,7 @@ As features stabilize some brief notes about them will accumulate here.
 * In the Launcher Menu, you may now use `CTRL-G` to cancel/exit the launcher [#1977](https://github.com/wez/wezterm/issues/1977)
 * [cell_width](config/lua/config/cell_width.md) option to adjust the horizontal spacing when the availble font stretches are insufficient. [#1979](https://github.com/wez/wezterm/issues/1979)
 * [min_scroll_bar_height](config/lua/config/min_scroll_bar_height.md) to control the minimum size of the scroll bar thumb [#1936](https://github.com/wez/wezterm/issues/1936)
+* [RotatePanes](config/lua/keyassignment/RotatePanes.md) key assignment for re-arranging the panes in a tab
 
 
 #### Updated

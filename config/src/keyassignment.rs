@@ -370,8 +370,15 @@ pub enum KeyAssignment {
     AttachDomain(String),
 
     CopyMode(CopyModeAssignment),
+    RotatePanes(RotationDirection),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
+
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub enum RotationDirection {
+    Clockwise,
+    CounterClockwise,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CopyModeAssignment {

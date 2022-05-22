@@ -23,7 +23,7 @@ use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, Pattern, QuickSelectArguments,
-    SpawnCommand,
+    RotationDirection, SpawnCommand,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
@@ -2476,6 +2476,17 @@ impl TermWindow {
             }
             CopyMode(_) => {
                 // NOP here; handled by the overlay directly
+            }
+            RotatePanes(direction) => {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
+                match direction {
+                    RotationDirection::Clockwise => tab.rotate_clockwise(),
+                    RotationDirection::CounterClockwise => tab.rotate_counter_clockwise(),
+                }
             }
         };
         Ok(())

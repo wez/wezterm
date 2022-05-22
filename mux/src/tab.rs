@@ -594,6 +594,70 @@ impl Tab {
         self.iter_panes_impl(false)
     }
 
+    pub fn rotate_counter_clockwise(&self) {
+        let panes = self.iter_panes_ignoring_zoom();
+        if panes.is_empty() {
+            // Shouldn't happen, but we check for this here so that the
+            // expect below cannot trigger a panic
+            return;
+        }
+        let mut pane_to_swap = panes
+            .first()
+            .map(|p| p.pane.clone())
+            .expect("at least one pane");
+
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
+
+        loop {
+            if cursor.is_leaf() {
+                std::mem::swap(&mut pane_to_swap, cursor.leaf_mut().unwrap());
+            }
+
+            match cursor.postorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    let size = *self.size.borrow();
+                    apply_sizes_from_splits(root.as_mut().unwrap(), &size);
+                    break;
+                }
+            }
+        }
+    }
+
+    pub fn rotate_clockwise(&self) {
+        let panes = self.iter_panes_ignoring_zoom();
+        if panes.is_empty() {
+            // Shouldn't happen, but we check for this here so that the
+            // expect below cannot trigger a panic
+            return;
+        }
+        let mut pane_to_swap = panes
+            .last()
+            .map(|p| p.pane.clone())
+            .expect("at least one pane");
+
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
+
+        loop {
+            if cursor.is_leaf() {
+                std::mem::swap(&mut pane_to_swap, cursor.leaf_mut().unwrap());
+            }
+
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    let size = *self.size.borrow();
+                    apply_sizes_from_splits(root.as_mut().unwrap(), &size);
+                    break;
+                }
+            }
+        }
+    }
+
     fn iter_panes_impl(&self, respect_zoom_state: bool) -> Vec<PositionedPane> {
         let mut panes = vec![];
 

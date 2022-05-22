@@ -459,6 +459,40 @@ impl<L, N> Cursor<L, N> {
         }
     }
 
+    /// Move the current position to the next in a postorder traversal.
+    /// Returns the modified cursor position.
+    ///
+    /// In the case where there are no more nodes in the postorder traversal,
+    /// yields `Err` with the newly adjusted cursor; calling `postorder_next`
+    /// after it has yielded `Err` can potentially yield `Ok` with previously
+    /// visited nodes, so the caller must take care to stop iterating when
+    /// `Err` is received!
+    pub fn postorder_next(mut self) -> Result<Self, Self> {
+        // Since we are a "proper" binary tree, we know we cannot have
+        // difficult cases such as a left without a right or vice versa.
+
+        if self.is_leaf() {
+            if self.is_right() {
+                return self.go_up()?.go_left();
+            }
+
+            // while (We were on the left)
+            loop {
+                self = self.go_up()?;
+
+                if self.is_top() {
+                    return Err(self);
+                }
+
+                if self.is_right() {
+                    return self.go_up()?.go_left();
+                }
+            }
+        } else {
+            self.go_right()
+        }
+    }
+
     /// Move to the nth (preorder) leaf from the current position.
     pub fn go_to_nth_leaf(mut self, n: usize) -> Result<Self, Self> {
         let mut next = 0;
