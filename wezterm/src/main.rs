@@ -4,7 +4,7 @@ use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
-use mux::tab::SplitDirection;
+use mux::tab::{SplitDirection, SplitRequest, SplitSize};
 use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
@@ -160,6 +160,7 @@ enum CliSubCommand {
 
     #[structopt(
         name = "split-pane",
+        rename_all = "kebab",
         about = "split the current pane.
 Outputs the pane-id for the newly created pane on success"
     )]
@@ -167,16 +168,47 @@ Outputs the pane-id for the newly created pane on success"
         /// Specify the pane that should be split.
         /// The default is to use the current pane based on the
         /// environment variable WEZTERM_PANE.
-        #[structopt(long = "pane-id")]
+        #[structopt(long)]
         pane_id: Option<PaneId>,
 
         /// Split horizontally rather than vertically
-        #[structopt(long = "horizontal")]
+        #[structopt(long, conflicts_with_all=&["left", "right", "top", "bottom"])]
         horizontal: bool,
+
+        /// Split horizontally, with the new pane on the left
+        #[structopt(long, conflicts_with_all=&["right", "top", "bottom"])]
+        left: bool,
+
+        /// Split horizontally, with the new pane on the right
+        #[structopt(long, conflicts_with_all=&["left", "top", "bottom"])]
+        right: bool,
+
+        /// Split vertically, with the new pane on the top
+        #[structopt(long, conflicts_with_all=&["left", "right", "bottom"])]
+        top: bool,
+
+        /// Split vertically, with the new pane on the bottom
+        #[structopt(long, conflicts_with_all=&["left", "right", "top"])]
+        bottom: bool,
+
+        /// Rather than splitting the active pane, split the entire
+        /// window.
+        #[structopt(long)]
+        top_level: bool,
+
+        /// The number of cells that the new split should have.
+        /// If omitted, 50% of the available space is used.
+        #[structopt(long)]
+        cells: Option<usize>,
+
+        /// Specify the number of cells that the new split should
+        /// have, expressed as a percentage of the available space.
+        #[structopt(long, conflicts_with = "cells")]
+        percent: Option<u8>,
 
         /// Specify the current working directory for the initially
         /// spawned program
-        #[structopt(long = "cwd", parse(from_os_str))]
+        #[structopt(long, parse(from_os_str))]
         cwd: Option<OsString>,
 
         /// Instead of executing your shell, run PROG.
@@ -743,17 +775,41 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             cwd,
             prog,
             horizontal,
+            left,
+            right,
+            top,
+            bottom,
+            top_level,
+            cells,
+            percent,
         } => {
             let pane_id = resolve_pane_id(&client, pane_id).await?;
+
+            let direction = if left || right || horizontal {
+                SplitDirection::Horizontal
+            } else if top || bottom {
+                SplitDirection::Vertical
+            } else {
+                anyhow::bail!("impossible combination of args");
+            };
+            let target_is_second = right || bottom;
+            let size = match (cells, percent) {
+                (Some(c), _) => SplitSize::Cells(c),
+                (_, Some(p)) => SplitSize::Percent(p),
+                (None, None) => SplitSize::Percent(50),
+            };
+
+            let split_request = SplitRequest {
+                direction,
+                target_is_second,
+                size,
+                top_level,
+            };
 
             let spawned = client
                 .split_pane(codec::SplitPane {
                     pane_id,
-                    direction: if horizontal {
-                        SplitDirection::Horizontal
-                    } else {
-                        SplitDirection::Vertical
-                    },
+                    split_request,
                     domain: config::keyassignment::SpawnTabDomain::CurrentPaneDomain,
                     command: if prog.is_empty() {
                         None

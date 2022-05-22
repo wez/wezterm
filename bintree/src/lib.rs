@@ -189,6 +189,14 @@ impl<L, N> Tree<L, N> {
             path: Box::new(Path::Top),
         }
     }
+
+    pub fn num_leaves(&self) -> usize {
+        match self {
+            Self::Empty => 0,
+            Self::Leaf(_) => 1,
+            Self::Node { left, right, .. } => left.num_leaves() + right.num_leaves(),
+        }
+    }
 }
 
 impl<L, N> Cursor<L, N> {
@@ -310,6 +318,34 @@ impl<L, N> Cursor<L, N> {
             (Tree::Leaf(_), Path::Top) => unreachable!(),
             (Tree::Empty, _) => unreachable!(),
             (Tree::Node { .. }, _) => unreachable!(),
+        }
+    }
+
+    pub fn split_node_and_insert_left(self, to_insert: L) -> Result<Self, Self> {
+        match *self.it {
+            Tree::Node { left, right, data } => Ok(Self {
+                it: Box::new(Tree::Node {
+                    data: None,
+                    right: Box::new(Tree::Node { left, right, data }),
+                    left: Box::new(Tree::Leaf(to_insert)),
+                }),
+                path: self.path,
+            }),
+            _ => Err(self),
+        }
+    }
+
+    pub fn split_node_and_insert_right(self, to_insert: L) -> Result<Self, Self> {
+        match *self.it {
+            Tree::Node { left, right, data } => Ok(Self {
+                it: Box::new(Tree::Node {
+                    data: None,
+                    left: Box::new(Tree::Node { left, right, data }),
+                    right: Box::new(Tree::Leaf(to_insert)),
+                }),
+                path: self.path,
+            }),
+            _ => Err(self),
         }
     }
 

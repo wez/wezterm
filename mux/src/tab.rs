@@ -79,6 +79,41 @@ pub struct SplitDirectionAndSize {
     pub second: PtySize,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SplitSize {
+    Cells(usize),
+    Percent(u8),
+}
+
+impl Default for SplitSize {
+    fn default() -> Self {
+        Self::Percent(50)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SplitRequest {
+    pub direction: SplitDirection,
+    /// Whether the newly created item will be in the second part
+    /// of the split (right/bottom)
+    pub target_is_second: bool,
+    /// Split across the top of the tab rather than the active pane
+    pub top_level: bool,
+    /// The size of the new item
+    pub size: SplitSize,
+}
+
+impl Default for SplitRequest {
+    fn default() -> Self {
+        Self {
+            direction: SplitDirection::Horizontal,
+            target_is_second: true,
+            top_level: false,
+            size: SplitSize::default(),
+        }
+    }
+}
+
 impl SplitDirectionAndSize {
     fn top_of_second(&self) -> usize {
         match self.direction {
@@ -1443,36 +1478,74 @@ impl Tab {
     pub fn compute_split_size(
         &self,
         pane_index: usize,
-        direction: SplitDirection,
+        request: SplitRequest,
     ) -> Option<SplitDirectionAndSize> {
         let cell_dims = self.cell_dimensions();
+
+        fn split_dimension(dim: usize, request: SplitRequest) -> (usize, usize) {
+            let target_size = match request.size {
+                SplitSize::Cells(n) => n,
+                SplitSize::Percent(n) => (dim * (n as usize)) / 100,
+            }
+            .max(1);
+
+            let remain = dim.saturating_sub(target_size + 1);
+
+            if request.target_is_second {
+                (remain, target_size)
+            } else {
+                (target_size, remain)
+            }
+        }
+
+        if request.top_level {
+            let size = self.size.borrow().clone();
+
+            let ((width1, width2), (height1, height2)) = match request.direction {
+                SplitDirection::Horizontal => (
+                    split_dimension(size.cols as usize, request),
+                    (size.rows as usize, size.rows as usize),
+                ),
+                SplitDirection::Vertical => (
+                    (size.cols as usize, size.cols as usize),
+                    split_dimension(size.rows as usize, request),
+                ),
+            };
+
+            return Some(SplitDirectionAndSize {
+                direction: request.direction,
+                first: PtySize {
+                    rows: height1 as _,
+                    cols: width1 as _,
+                    pixel_height: cell_dims.pixel_height * height1 as u16,
+                    pixel_width: cell_dims.pixel_width * width1 as u16,
+                },
+                second: PtySize {
+                    rows: height2 as _,
+                    cols: width2 as _,
+                    pixel_height: cell_dims.pixel_height * height2 as u16,
+                    pixel_width: cell_dims.pixel_width * width2 as u16,
+                },
+            });
+        }
 
         // Ensure that we're not zoomed, otherwise we'll end up in
         // a bogus split state (https://github.com/wez/wezterm/issues/723)
         self.set_zoomed(false);
 
         self.iter_panes().iter().nth(pane_index).map(|pos| {
-            fn split_dimension(dim: usize) -> (usize, usize) {
-                let halved = dim / 2;
-                if halved * 2 == dim {
-                    // Was an even size; we need to allow 1 cell to render
-                    // the split UI, so make the newly created leaf slightly
-                    // smaller
-                    (halved, halved.saturating_sub(1))
-                } else {
-                    (halved, halved)
+            let ((width1, width2), (height1, height2)) = match request.direction {
+                SplitDirection::Horizontal => (
+                    split_dimension(pos.width, request),
+                    (pos.height, pos.height),
+                ),
+                SplitDirection::Vertical => {
+                    ((pos.width, pos.width), split_dimension(pos.height, request))
                 }
-            }
-
-            let ((width1, width2), (height1, height2)) = match direction {
-                SplitDirection::Horizontal => {
-                    (split_dimension(pos.width), (pos.height, pos.height))
-                }
-                SplitDirection::Vertical => ((pos.width, pos.width), split_dimension(pos.height)),
             };
 
             SplitDirectionAndSize {
-                direction,
+                direction: request.direction,
                 first: PtySize {
                     rows: height1 as _,
                     cols: width1 as _,
@@ -1496,7 +1569,7 @@ impl Tab {
     pub fn split_and_insert(
         &self,
         pane_index: usize,
-        direction: SplitDirection,
+        request: SplitRequest,
         pane: Rc<dyn Pane>,
     ) -> anyhow::Result<usize> {
         if self.zoomed.borrow().is_some() {
@@ -1505,10 +1578,11 @@ impl Tab {
 
         {
             let split_info = self
-                .compute_split_size(pane_index, direction)
+                .compute_split_size(pane_index, request)
                 .ok_or_else(|| {
                     anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index)
                 })?;
+
             let tab_size = *self.size.borrow();
             if split_info.first.rows == 0
                 || split_info.first.cols == 0
@@ -1529,8 +1603,52 @@ impl Tab {
                 anyhow::bail!("No space for split!");
             }
 
+            let needs_resize = if request.top_level {
+                self.pane.borrow().as_ref().unwrap().num_leaves() > 1
+            } else {
+                false
+            };
+
+            if needs_resize {
+                // Pre-emptively resize the tab contents down to
+                // match the target size; it's easier to reuse
+                // existing resize logic that way
+                if request.target_is_second {
+                    self.resize(split_info.first.clone());
+                } else {
+                    self.resize(split_info.second.clone());
+                }
+            }
+
             let mut root = self.pane.borrow_mut();
             let mut cursor = root.take().unwrap().cursor();
+
+            if request.top_level && !cursor.is_leaf() {
+                let result = if request.target_is_second {
+                    cursor.split_node_and_insert_right(Rc::clone(&pane))
+                } else {
+                    cursor.split_node_and_insert_left(Rc::clone(&pane))
+                };
+                cursor = match result {
+                    Ok(c) => {
+                        cursor = match c.assign_node(Some(split_info)) {
+                            Err(c) | Ok(c) => c,
+                        };
+
+                        root.replace(cursor.tree());
+
+                        let pane_index = if request.target_is_second {
+                            root.as_ref().unwrap().num_leaves().saturating_sub(1)
+                        } else {
+                            0
+                        };
+
+                        *self.active.borrow_mut() = pane_index;
+                        return Ok(pane_index);
+                    }
+                    Err(cursor) => cursor,
+                };
+            }
 
             match cursor.go_to_nth_leaf(pane_index) {
                 Ok(c) => cursor = c,
@@ -1542,10 +1660,18 @@ impl Tab {
 
             let existing_pane = Rc::clone(cursor.leaf_mut().unwrap());
 
-            existing_pane.resize(split_info.first)?;
-            pane.resize(split_info.second.clone())?;
+            let (pane1, pane2) = if request.target_is_second {
+                (existing_pane, pane)
+            } else {
+                (pane, existing_pane)
+            };
 
-            match cursor.split_leaf_and_insert_right(pane) {
+            pane1.resize(split_info.first)?;
+            pane2.resize(split_info.second.clone())?;
+
+            *cursor.leaf_mut().unwrap() = pane1;
+
+            match cursor.split_leaf_and_insert_right(pane2) {
                 Ok(c) => cursor = c,
                 Err(c) => {
                     root.replace(c.tree());
@@ -1559,13 +1685,19 @@ impl Tab {
                 Err(c) | Ok(c) => root.replace(c.tree()),
             };
 
-            *self.active.borrow_mut() = pane_index + 1;
+            if request.target_is_second {
+                *self.active.borrow_mut() = pane_index + 1;
+            }
         }
 
         log::debug!("split info after split: {:#?}", self.iter_splits());
         log::debug!("pane info after split: {:#?}", self.iter_panes());
 
-        Ok(pane_index + 1)
+        Ok(if request.target_is_second {
+            pane_index + 1
+        } else {
+            pane_index
+        })
     }
 }
 
@@ -1784,23 +1916,35 @@ mod test {
         assert_eq!(24, panes[0].height);
 
         assert!(tab
-            .compute_split_size(1, SplitDirection::Horizontal)
+            .compute_split_size(
+                1,
+                SplitRequest {
+                    direction: SplitDirection::Horizontal,
+                    ..Default::default()
+                }
+            )
             .is_none());
 
         let horz_size = tab
-            .compute_split_size(0, SplitDirection::Horizontal)
+            .compute_split_size(
+                0,
+                SplitRequest {
+                    direction: SplitDirection::Horizontal,
+                    ..Default::default()
+                },
+            )
             .unwrap();
         assert_eq!(
             horz_size,
             SplitDirectionAndSize {
                 direction: SplitDirection::Horizontal,
-                first: PtySize {
+                second: PtySize {
                     rows: 24,
                     cols: 40,
                     pixel_width: 400,
                     pixel_height: 600
                 },
-                second: PtySize {
+                first: PtySize {
                     rows: 24,
                     cols: 39,
                     pixel_width: 390,
@@ -1809,18 +1953,26 @@ mod test {
             }
         );
 
-        let vert_size = tab.compute_split_size(0, SplitDirection::Vertical).unwrap();
+        let vert_size = tab
+            .compute_split_size(
+                0,
+                SplitRequest {
+                    direction: SplitDirection::Vertical,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         assert_eq!(
             vert_size,
             SplitDirectionAndSize {
                 direction: SplitDirection::Vertical,
-                first: PtySize {
+                second: PtySize {
                     rows: 12,
                     cols: 80,
                     pixel_width: 800,
                     pixel_height: 300
                 },
-                second: PtySize {
+                first: PtySize {
                     rows: 11,
                     cols: 80,
                     pixel_width: 800,
@@ -1832,7 +1984,10 @@ mod test {
         let new_index = tab
             .split_and_insert(
                 0,
-                SplitDirection::Horizontal,
+                SplitRequest {
+                    direction: SplitDirection::Horizontal,
+                    ..Default::default()
+                },
                 FakePane::new(2, horz_size.second),
             )
             .unwrap();
@@ -1845,27 +2000,40 @@ mod test {
         assert_eq!(false, panes[0].is_active);
         assert_eq!(0, panes[0].left);
         assert_eq!(0, panes[0].top);
-        assert_eq!(40, panes[0].width);
+        assert_eq!(39, panes[0].width);
         assert_eq!(24, panes[0].height);
-        assert_eq!(400, panes[0].pixel_width);
+        assert_eq!(390, panes[0].pixel_width);
         assert_eq!(600, panes[0].pixel_height);
         assert_eq!(1, panes[0].pane.pane_id());
 
         assert_eq!(1, panes[1].index);
         assert_eq!(true, panes[1].is_active);
-        assert_eq!(41, panes[1].left);
+        assert_eq!(40, panes[1].left);
         assert_eq!(0, panes[1].top);
-        assert_eq!(39, panes[1].width);
+        assert_eq!(40, panes[1].width);
         assert_eq!(24, panes[1].height);
-        assert_eq!(390, panes[1].pixel_width);
+        assert_eq!(400, panes[1].pixel_width);
         assert_eq!(600, panes[1].pixel_height);
         assert_eq!(2, panes[1].pane.pane_id());
 
-        let vert_size = tab.compute_split_size(0, SplitDirection::Vertical).unwrap();
+        let vert_size = tab
+            .compute_split_size(
+                0,
+                SplitRequest {
+                    direction: SplitDirection::Vertical,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         let new_index = tab
             .split_and_insert(
                 0,
-                SplitDirection::Vertical,
+                SplitRequest {
+                    direction: SplitDirection::Vertical,
+                    top_level: false,
+                    target_is_second: true,
+                    size: Default::default(),
+                },
                 FakePane::new(3, vert_size.second),
             )
             .unwrap();
@@ -1878,47 +2046,47 @@ mod test {
         assert_eq!(false, panes[0].is_active);
         assert_eq!(0, panes[0].left);
         assert_eq!(0, panes[0].top);
-        assert_eq!(40, panes[0].width);
-        assert_eq!(12, panes[0].height);
-        assert_eq!(400, panes[0].pixel_width);
-        assert_eq!(300, panes[0].pixel_height);
+        assert_eq!(39, panes[0].width);
+        assert_eq!(11, panes[0].height);
+        assert_eq!(390, panes[0].pixel_width);
+        assert_eq!(275, panes[0].pixel_height);
         assert_eq!(1, panes[0].pane.pane_id());
 
         assert_eq!(1, panes[1].index);
         assert_eq!(true, panes[1].is_active);
         assert_eq!(0, panes[1].left);
-        assert_eq!(13, panes[1].top);
-        assert_eq!(40, panes[1].width);
-        assert_eq!(11, panes[1].height);
-        assert_eq!(400, panes[1].pixel_width);
-        assert_eq!(275, panes[1].pixel_height);
+        assert_eq!(12, panes[1].top);
+        assert_eq!(39, panes[1].width);
+        assert_eq!(12, panes[1].height);
+        assert_eq!(390, panes[1].pixel_width);
+        assert_eq!(300, panes[1].pixel_height);
         assert_eq!(3, panes[1].pane.pane_id());
 
         assert_eq!(2, panes[2].index);
         assert_eq!(false, panes[2].is_active);
-        assert_eq!(41, panes[2].left);
+        assert_eq!(40, panes[2].left);
         assert_eq!(0, panes[2].top);
-        assert_eq!(39, panes[2].width);
+        assert_eq!(40, panes[2].width);
         assert_eq!(24, panes[2].height);
-        assert_eq!(390, panes[2].pixel_width);
+        assert_eq!(400, panes[2].pixel_width);
         assert_eq!(600, panes[2].pixel_height);
         assert_eq!(2, panes[2].pane.pane_id());
 
         tab.resize_split_by(1, 1);
         let panes = tab.iter_panes();
-        assert_eq!(40, panes[0].width);
-        assert_eq!(13, panes[0].height);
-        assert_eq!(400, panes[0].pixel_width);
-        assert_eq!(325, panes[0].pixel_height);
+        assert_eq!(39, panes[0].width);
+        assert_eq!(12, panes[0].height);
+        assert_eq!(390, panes[0].pixel_width);
+        assert_eq!(300, panes[0].pixel_height);
 
-        assert_eq!(40, panes[1].width);
-        assert_eq!(10, panes[1].height);
-        assert_eq!(400, panes[1].pixel_width);
-        assert_eq!(250, panes[1].pixel_height);
+        assert_eq!(39, panes[1].width);
+        assert_eq!(11, panes[1].height);
+        assert_eq!(390, panes[1].pixel_width);
+        assert_eq!(275, panes[1].pixel_height);
 
-        assert_eq!(39, panes[2].width);
+        assert_eq!(40, panes[2].width);
         assert_eq!(24, panes[2].height);
-        assert_eq!(390, panes[2].pixel_width);
+        assert_eq!(400, panes[2].pixel_width);
         assert_eq!(600, panes[2].pixel_height);
     }
 }

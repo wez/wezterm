@@ -8,7 +8,7 @@ use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
-use mux::tab::{SplitDirection, Tab, TabId};
+use mux::tab::{SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::{CommandBuilder, PtySize};
@@ -541,7 +541,7 @@ impl Domain for ClientDomain {
         command_dir: Option<String>,
         tab_id: TabId,
         pane_id: PaneId,
-        direction: SplitDirection,
+        split_request: SplitRequest,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         let inner = self
             .inner()
@@ -564,7 +564,7 @@ impl Domain for ClientDomain {
             .split_pane(SplitPane {
                 domain: SpawnTabDomain::CurrentPaneDomain,
                 pane_id: pane.remote_pane_id,
-                direction,
+                split_request,
                 command,
                 command_dir,
             })
@@ -587,7 +587,7 @@ impl Domain for ClientDomain {
             None => anyhow::bail!("invalid pane id {}", pane_id),
         };
 
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))
+        tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))
             .ok();
 
         mux.add_pane(&pane)?;

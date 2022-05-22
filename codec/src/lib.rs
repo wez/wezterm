@@ -15,7 +15,7 @@ use anyhow::{bail, Context as _, Error};
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitDirection, TabId};
+use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
 use mux::window::WindowId;
 use portable_pty::{CommandBuilder, PtySize};
 use rangeset::*;
@@ -416,7 +416,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 22;
+pub const CODEC_VERSION: usize = 23;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -592,7 +592,7 @@ pub struct ListPanesResponse {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SplitPane {
     pub pane_id: PaneId,
-    pub direction: SplitDirection,
+    pub split_request: SplitRequest,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub domain: config::keyassignment::SpawnTabDomain,

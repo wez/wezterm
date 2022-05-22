@@ -1,6 +1,6 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
+use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
@@ -941,7 +941,7 @@ impl Mux {
         &self,
         // TODO: disambiguate with TabId
         pane_id: PaneId,
-        direction: SplitDirection,
+        request: SplitRequest,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         domain: config::keyassignment::SpawnTabDomain,
@@ -966,7 +966,7 @@ impl Mux {
         let cwd = self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane)));
 
         let pane = domain
-            .split_pane(command, cwd, tab_id, pane_id, direction)
+            .split_pane(command, cwd, tab_id, pane_id, request)
             .await?;
         if let Some(config) = term_config {
             pane.set_config(config);

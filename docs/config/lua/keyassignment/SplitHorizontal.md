@@ -33,3 +33,4 @@ return {
 }
 ```
 
+See also: [SplitPane](SplitPane.md).

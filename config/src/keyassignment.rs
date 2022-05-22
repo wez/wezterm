@@ -371,8 +371,32 @@ pub enum KeyAssignment {
 
     CopyMode(CopyModeAssignment),
     RotatePanes(RotationDirection),
+    SplitPane(SplitPane),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
+
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub struct SplitPane {
+    pub direction: PaneDirection,
+    #[dynamic(default)]
+    pub size: SplitSize,
+    #[dynamic(default)]
+    pub command: SpawnCommand,
+    #[dynamic(default)]
+    pub top_level: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub enum SplitSize {
+    Cells(usize),
+    Percent(u8),
+}
+
+impl Default for SplitSize {
+    fn default() -> Self {
+        Self::Percent(50)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum RotationDirection {

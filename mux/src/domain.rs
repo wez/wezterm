@@ -7,7 +7,7 @@
 
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
+use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Error};
@@ -59,7 +59,7 @@ pub trait Domain: Downcast {
         command_dir: Option<String>,
         tab: TabId,
         pane_id: PaneId,
-        direction: SplitDirection,
+        split_request: SplitRequest,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_tab(tab) {
@@ -76,7 +76,7 @@ pub trait Domain: Downcast {
             None => anyhow::bail!("invalid pane id {}", pane_id),
         };
 
-        let split_size = match tab.compute_split_size(pane_index, direction) {
+        let split_size = match tab.compute_split_size(pane_index, split_request) {
             Some(s) => s,
             None => anyhow::bail!("invalid pane index {}", pane_index),
         };
@@ -85,7 +85,7 @@ pub trait Domain: Downcast {
             .spawn_pane(split_size.second, command, command_dir)
             .await?;
 
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
+        tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))?;
         Ok(pane)
     }
 

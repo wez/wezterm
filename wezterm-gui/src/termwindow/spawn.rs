@@ -3,7 +3,7 @@ use anyhow::{anyhow, bail, Context};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::TermConfig;
 use mux::activity::Activity;
-use mux::tab::SplitDirection;
+use mux::tab::SplitRequest;
 use mux::Mux;
 use portable_pty::{CommandBuilder, PtySize};
 use std::sync::Arc;
@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub enum SpawnWhere {
     NewWindow,
     NewTab,
-    SplitPane(SplitDirection),
+    SplitPane(SplitRequest),
 }
 
 impl super::TermWindow {

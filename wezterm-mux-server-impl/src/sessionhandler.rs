@@ -722,7 +722,7 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
     let (pane, size) = mux
         .split_pane(
             split.pane_id,
-            split.direction,
+            split.split_request,
             split.command,
             split.command_dir,
             split.domain,

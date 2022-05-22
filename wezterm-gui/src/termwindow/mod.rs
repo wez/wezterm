@@ -22,8 +22,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, Pattern, QuickSelectArguments,
-    RotationDirection, SpawnCommand,
+    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, PaneDirection, Pattern,
+    QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
@@ -32,7 +32,10 @@ use config::{
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern};
 use mux::renderable::RenderableDimensions;
-use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
+use mux::tab::{
+    PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
+    TabId,
+};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
@@ -2093,11 +2096,27 @@ impl TermWindow {
             }
             SplitHorizontal(spawn) => {
                 log::trace!("SplitHorizontal {:?}", spawn);
-                self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Horizontal));
+                self.spawn_command(
+                    spawn,
+                    SpawnWhere::SplitPane(SplitRequest {
+                        direction: SplitDirection::Horizontal,
+                        target_is_second: true,
+                        size: MuxSplitSize::Percent(50),
+                        top_level: false,
+                    }),
+                );
             }
             SplitVertical(spawn) => {
                 log::trace!("SplitVertical {:?}", spawn);
-                self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Vertical));
+                self.spawn_command(
+                    spawn,
+                    SpawnWhere::SplitPane(SplitRequest {
+                        direction: SplitDirection::Vertical,
+                        target_is_second: true,
+                        size: MuxSplitSize::Percent(50),
+                        top_level: false,
+                    }),
+                );
             }
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
@@ -2487,6 +2506,37 @@ impl TermWindow {
                     RotationDirection::Clockwise => tab.rotate_clockwise(),
                     RotationDirection::CounterClockwise => tab.rotate_counter_clockwise(),
                 }
+            }
+            SplitPane(split) => {
+                log::trace!("SplitPane {:?}", split);
+                self.spawn_command(
+                    &split.command,
+                    SpawnWhere::SplitPane(SplitRequest {
+                        direction: match split.direction {
+                            PaneDirection::Down | PaneDirection::Up => SplitDirection::Vertical,
+                            PaneDirection::Left | PaneDirection::Right => {
+                                SplitDirection::Horizontal
+                            }
+                            PaneDirection::Next | PaneDirection::Prev => {
+                                log::error!(
+                                    "Invalid direction {:?} for SplitPane",
+                                    split.direction
+                                );
+                                return Ok(());
+                            }
+                        },
+                        target_is_second: match split.direction {
+                            PaneDirection::Down | PaneDirection::Right => true,
+                            PaneDirection::Up | PaneDirection::Left => false,
+                            PaneDirection::Next | PaneDirection::Prev => unreachable!(),
+                        },
+                        size: match split.size {
+                            SplitSize::Percent(n) => MuxSplitSize::Percent(n),
+                            SplitSize::Cells(n) => MuxSplitSize::Cells(n),
+                        },
+                        top_level: split.top_level,
+                    }),
+                );
             }
         };
         Ok(())
