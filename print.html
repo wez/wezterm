@@ -466,6 +466,7 @@ usually the best available version.</p>
 <li><a href="config/lua/config/min_scroll_bar_height.html">min_scroll_bar_height</a> to control the minimum size of the scroll bar thumb <a href="https://github.com/wez/wezterm/issues/1936">#1936</a></li>
 <li><a href="config/lua/keyassignment/RotatePanes.html">RotatePanes</a> key assignment for re-arranging the panes in a tab</li>
 <li><a href="config/lua/keyassignment/SplitPane.html">SplitPane</a> key assignment that allows specifying the size and location of the split, as well as top-level (full width/height) splits. <code>wezterm cli split-pane --help</code> shows equivalent options you can use from the cli. <a href="https://github.com/wez/wezterm/issues/578">#578</a></li>
+<li><a href="config/lua/config/ime_preedit_rendering.html">ime_preedit_rendering</a> option to choose whether to use the builtin or the system IME preedit rendering mode. Thanks to <a href="https://github.com/kumattau">@kumattau</a>! <a href="https://github.com/wez/wezterm/pull/2006">#2006</a></li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
@@ -12277,7 +12278,9 @@ WezTerm supports the following IME preedit rendering.</p>
 <ul>
 <li>
 <p><code>&quot;Builtin&quot;</code> - (Default) IME preedit is rendered by WezTerm itself</p>
-<p>&quot;Builtin&quot; rendering provides good look and feel for many IMEs</p>
+<p>&quot;Builtin&quot; rendering provides good look and feel for many IMEs,
+rendering the text using the same font as the terminal and
+works in concert with features like <a href="config/lua/config/../window/composition_status.html">window:composition_status()</a>.</p>
 </li>
 <li>
 <p><code>&quot;System&quot;</code> - IME preedit is rendered by system</p>
