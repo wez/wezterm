@@ -171,7 +171,8 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(long)]
         pane_id: Option<PaneId>,
 
-        /// Split horizontally rather than vertically
+        /// Equivalent to `--right`. If neither this nor any other direction
+        /// is specified, the default is equivalent to `--bottom`.
         #[structopt(long, conflicts_with_all=&["left", "right", "top", "bottom"])]
         horizontal: bool,
 
@@ -212,7 +213,7 @@ Outputs the pane-id for the newly created pane on success"
         cwd: Option<OsString>,
 
         /// Instead of executing your shell, run PROG.
-        /// For example: `wezterm start -- bash -l` will spawn bash
+        /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
         /// as if it were a login shell.
         #[structopt(parse(from_os_str))]
         prog: Vec<OsString>,
@@ -790,9 +791,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             } else if top || bottom {
                 SplitDirection::Vertical
             } else {
-                anyhow::bail!("impossible combination of args");
+                SplitDirection::Vertical
             };
-            let target_is_second = right || bottom;
+            let target_is_second = !(left || top);
             let size = match (cells, percent) {
                 (Some(c), _) => SplitSize::Cells(c),
                 (_, Some(p)) => SplitSize::Percent(p),
