@@ -1714,10 +1714,9 @@ impl WindowView {
             range,
             actual
         );
-        let frame = unsafe {
-            let window: id = msg_send![this, window];
-            NSWindow::frame(window)
-        };
+        let window: id = unsafe { msg_send![this, window] };
+        let frame = unsafe { NSWindow::frame(window) };
+        let content: NSRect = unsafe { msg_send![window, contentRectForFrameRect: frame] };
         let backing_frame: NSRect = unsafe { msg_send![this, convertRectToBacking: frame] };
         let scale = frame.size.width / backing_frame.size.width;
 
@@ -1731,11 +1730,8 @@ impl WindowView {
 
             NSRect::new(
                 NSPoint::new(
-                    frame.origin.x + cursor_pos.origin.x,
-                    // Position below the text so that drop-downs
-                    // don't obscure the text in the terminal
-                    frame.origin.y + frame.size.height
-                        - (cursor_pos.max_y() + cursor_pos.size.height * 2.5),
+                    content.origin.x + cursor_pos.min_x(),
+                    content.origin.y + content.size.height - cursor_pos.max_y(),
                 ),
                 NSSize::new(cursor_pos.size.width, cursor_pos.size.height),
             )
