@@ -16,11 +16,11 @@ WezTerm supports the following IME preedit rendering.
 
   "Builtin" rendering may truncate displaying of IME preedit
   at the end of window if IME preedit is very long
-  because the rendering does not IME preedit overflow the window
+  because the rendering does not enable IME preedit to overflow the window
   and does not wrap IME preedit to the next line.
   "System" rendering can be useful
   to avoid the truncated displaying of IME preedit
-  but worse look and feel than "Builtin" rendering.
+  but provides worse look and feel than "Builtin" rendering.
 
 You can control IME preedit rendering in your configuraiton file:
 
