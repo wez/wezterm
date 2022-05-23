@@ -278,6 +278,13 @@ impl super::TermWindow {
                         );
                     }
 
+                    if let Some(modal) = self.get_modal() {
+                        if is_down {
+                            return modal.key_down(term_key, tw_raw_modifiers, self).is_ok();
+                        }
+                        return false;
+                    }
+
                     let res = if is_down {
                         pane.key_down(term_key, tw_raw_modifiers)
                     } else {
@@ -510,6 +517,13 @@ impl super::TermWindow {
                         key,
                         modifiers
                     );
+                }
+
+                if let Some(modal) = self.get_modal() {
+                    if window_key.key_is_down {
+                        modal.key_down(key, modifiers, self).ok();
+                    }
+                    return;
                 }
 
                 let res = if let Some(encoded) = self.encode_win32_input(&pane, &window_key) {

@@ -51,6 +51,9 @@ impl super::TermWindow {
         } else {
             self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
         }
+        if let Some(modal) = self.get_modal() {
+            modal.reconfigure(self);
+        }
         self.emit_window_event("window-resized", None);
     }
 

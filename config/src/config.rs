@@ -90,6 +90,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
+    #[dynamic(default = "default_pane_select_font_size")]
+    pub pane_select_font_size: f64,
+
     #[dynamic(default)]
     pub tab_bar_style: TabBarStyle,
 
@@ -1129,6 +1132,10 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_pane_select_font_size() -> f64 {
+    36.0
 }
 
 fn default_swallow_mouse_click_on_window_focus() -> bool {

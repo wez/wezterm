@@ -221,6 +221,7 @@ impl super::TermWindow {
                             self.render_state.as_mut().unwrap().vb[vb_idx].need_more_quads()
                         {
                             self.invalidate_fancy_tab_bar();
+                            self.invalidate_modal();
 
                             // Round up to next multiple of 1024 that is >=
                             // the number of needed quads for this frame
@@ -263,6 +264,7 @@ impl super::TermWindow {
                             self.recreate_texture_atlas(Some(size))
                         };
                         self.invalidate_fancy_tab_bar();
+                        self.invalidate_modal();
 
                         if let Err(err) = result {
                             if self.allow_images {
@@ -283,6 +285,7 @@ impl super::TermWindow {
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
                         self.invalidate_fancy_tab_bar();
+                        self.invalidate_modal();
                         self.shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
@@ -819,6 +822,24 @@ impl super::TermWindow {
         ));
 
         Ok(computed)
+    }
+
+    fn paint_modal(&mut self) -> anyhow::Result<()> {
+        if let Some(modal) = self.get_modal() {
+            for computed in modal.computed_element(self)?.iter() {
+                let mut ui_items = computed.ui_items();
+
+                let gl_state = self.render_state.as_ref().unwrap();
+                let vb = &gl_state.vb[1];
+                let mut vb_mut = vb.current_vb_mut();
+                let mut layer1 = vb.map(&mut vb_mut);
+                self.render_element(&computed, &mut layer1, None)?;
+
+                self.ui_items.append(&mut ui_items);
+            }
+        }
+
+        Ok(())
     }
 
     fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
@@ -1656,6 +1677,7 @@ impl super::TermWindow {
             self.paint_tab_bar()?;
         }
 
+        self.paint_modal()?;
         self.paint_window_borders()?;
 
         Ok(())

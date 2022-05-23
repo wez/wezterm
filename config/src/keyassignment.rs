@@ -265,6 +265,13 @@ impl Default for ClipboardPasteSource {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub struct PaneSelectArguments {
+    /// Overrides the main quick_select_alphabet config
+    #[dynamic(default)]
+    pub alphabet: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct QuickSelectArguments {
     /// Overrides the main quick_select_alphabet config
     #[dynamic(default)]
@@ -372,6 +379,7 @@ pub enum KeyAssignment {
     CopyMode(CopyModeAssignment),
     RotatePanes(RotationDirection),
     SplitPane(SplitPane),
+    PaneSelect(PaneSelectArguments),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

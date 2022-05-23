@@ -18,6 +18,7 @@ use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
 use crate::termwindow::keyevent::KeyTableState;
+use crate::termwindow::modal::Modal;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -60,7 +61,9 @@ use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
 pub mod box_model;
 pub mod clipboard;
 mod keyevent;
+pub mod modal;
 mod mouseevent;
+pub mod paneselect;
 mod prevcursor;
 mod render;
 pub mod resize;
@@ -381,6 +384,8 @@ pub struct TermWindow {
 
     ui_items: Vec<UIItem>,
     dragging: Option<(UIItem, MouseEvent)>,
+
+    modal: RefCell<Option<Rc<dyn Modal>>>,
 
     event_states: HashMap<String, EventState>,
     has_animation: RefCell<Option<Instant>>,
@@ -818,6 +823,7 @@ impl TermWindow {
             last_ui_item: None,
             is_click_to_focus_window: false,
             key_table_state: KeyTableState::default(),
+            modal: RefCell::new(None),
         };
 
         let tw = Rc::new(RefCell::new(myself));
@@ -887,6 +893,7 @@ impl TermWindow {
 
         crate::update::start_update_checker();
         front_end().record_known_window(window, mux_window_id);
+
         Ok(())
     }
 
@@ -1005,6 +1012,7 @@ impl TermWindow {
         match notif {
             TermWindowNotif::InvalidateShapeCache => {
                 self.shape_cache.borrow_mut().clear();
+                self.invalidate_modal();
                 window.invalidate();
             }
             TermWindowNotif::PerformAssignment {
@@ -1140,6 +1148,7 @@ impl TermWindow {
                 self.tab_state.borrow_mut().clear();
                 self.current_highlight.take();
                 self.invalidate_fancy_tab_bar();
+                self.invalidate_modal();
 
                 let mux = Mux::get().expect("to be main thread with mux running");
                 if let Some(window) = mux.get_window(self.mux_window_id) {
@@ -1503,6 +1512,7 @@ impl TermWindow {
         self.shape_cache.borrow_mut().clear();
         self.fancy_tab_bar.take();
         self.invalidate_fancy_tab_bar();
+        self.invalidate_modal();
         self.input_map = InputMap::new(&config);
         self.leader_is_down = None;
         let dimensions = self.dimensions;
@@ -1529,7 +1539,25 @@ impl TermWindow {
             window.invalidate();
         }
 
+        self.invalidate_modal();
         self.emit_window_event("window-config-reloaded", None);
+    }
+
+    fn invalidate_modal(&mut self) {
+        if let Some(modal) = self.get_modal() {
+            modal.reconfigure(self);
+        }
+    }
+
+    pub fn cancel_modal(&self) {
+        self.modal.borrow_mut().take();
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
+    }
+
+    fn get_modal(&self) -> Option<Rc<dyn Modal>> {
+        self.modal.borrow().as_ref().map(|m| Rc::clone(&m))
     }
 
     fn update_scrollbar(&mut self) {
@@ -1630,6 +1658,7 @@ impl TermWindow {
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
             self.invalidate_fancy_tab_bar();
+            self.invalidate_modal();
             if let Some(window) = self.window.as_ref() {
                 window.invalidate();
             }
@@ -2042,6 +2071,12 @@ impl TermWindow {
         assignment: &KeyAssignment,
     ) -> anyhow::Result<()> {
         use KeyAssignment::*;
+
+        if let Some(modal) = self.get_modal() {
+            if modal.perform_assignment(assignment, self) {
+                return Ok(());
+            }
+        }
 
         if pane.perform_assignment(assignment) {
             return Ok(());
@@ -2537,6 +2572,10 @@ impl TermWindow {
                         top_level: split.top_level,
                     }),
                 );
+            }
+            PaneSelect(args) => {
+                let modal = crate::termwindow::paneselect::PaneSelector::new(self, args);
+                self.modal.borrow_mut().replace(Rc::new(modal));
             }
         };
         Ok(())
