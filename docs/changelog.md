@@ -61,7 +61,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: uncommitted IME composition could get stuck when switching input methods. [#1922](https://github.com/wez/wezterm/issues/1922)
 * OSC sequences, such as those that change the window or tab title, that accept a single string parameter will now join multiple parameters together. This allows window and tab titles to contain a semicolo. Thanks to [@kumattau](https://github.com/kumattau)! [#1939](https://github.com/wez/wezterm/pull/1939)
 * Unable to use `ALT` as a modifier for the `leader` key. [#1958](https://github.com/wez/wezterm/issues/1958)
-* IME Candidate window position was incorrect. Thanks to [@kumattau](https://github.com/kumattau) and [@aznhe21](https://github.com/aznhe21)! [#1976](https://github.com/wez/wezterm/pull/1976) [#2001](https://github.com/wez/wezterm/pull/2001)
+* IME Candidate window position was incorrect. Thanks to [@kumattau](https://github.com/kumattau) and [@aznhe21](https://github.com/aznhe21)! [#1976](https://github.com/wez/wezterm/pull/1976) [#2001](https://github.com/wez/wezterm/pull/2001) [#2022](https://github.com/wez/wezterm/pull/2022)
 * Prevent panic for some classes of invalid input, found while fuzzing. Thanks to [@5225225](https://github.com/5225225)! [#1990](https://github.com/wez/wezterm/pull/1990) [#1986](https://github.com/wez/wezterm/pull/1986)
 * Detaching an ssh multiplexer domain sometimes killed the associated panes! [#1993](https://github.com/wez/wezterm/issues/1993)
 * `DecreaseFontSize` wasn't quite the inverse of `IncreaseFontSize`. Thanks to [@Funami580](https://github.com/Funami580)! [#1997](https://github.com/wez/wezterm/pull/1997)
