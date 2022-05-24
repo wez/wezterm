@@ -43,7 +43,7 @@ use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
 
-const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
+pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
     path: &[
         PolyCommand::MoveTo(BlockCoord::One, BlockCoord::One),
         PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
@@ -57,13 +57,41 @@ const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
     style: PolyStyle::Fill,
 }];
 
-const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
+pub const BOTTOM_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
+    path: &[
+        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+        PolyCommand::QuadTo {
+            control: (BlockCoord::Zero, BlockCoord::One),
+            to: (BlockCoord::Zero, BlockCoord::Zero),
+        },
+        PolyCommand::Close,
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Fill,
+}];
+
+pub const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
     path: &[
         PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
         PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
         PolyCommand::QuadTo {
             control: (BlockCoord::One, BlockCoord::Zero),
             to: (BlockCoord::One, BlockCoord::One),
+        },
+        PolyCommand::Close,
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Fill,
+}];
+
+pub const BOTTOM_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
+    path: &[
+        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+        PolyCommand::QuadTo {
+            control: (BlockCoord::One, BlockCoord::One),
+            to: (BlockCoord::One, BlockCoord::Zero),
         },
         PolyCommand::Close,
     ],
@@ -517,8 +545,8 @@ impl super::TermWindow {
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
                     .colors(ElementColors {
                         border: BorderColor::default(),
-                        bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                        bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
                     }),
                 TabBarItem::NewTabButton => Element::new(
                     &font,

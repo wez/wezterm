@@ -111,7 +111,7 @@ impl Corners {
             top_left: self.top_left.to_pixels(context),
             top_right: self.top_right.to_pixels(context),
             bottom_left: self.bottom_left.to_pixels(context),
-            bottom_right: self.bottom_left.to_pixels(context),
+            bottom_right: self.bottom_right.to_pixels(context),
         }
     }
 }
