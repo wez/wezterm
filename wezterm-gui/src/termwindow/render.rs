@@ -545,8 +545,8 @@ impl super::TermWindow {
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
                     .colors(ElementColors {
                         border: BorderColor::default(),
-                        bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
+                        bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
                     }),
                 TabBarItem::NewTabButton => Element::new(
                     &font,
