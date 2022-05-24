@@ -7,6 +7,8 @@ use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
 use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
+pub mod enumctor;
+
 /// Implement lua conversion traits for a type.
 /// This implementation requires that the type implement
 /// FromDynamic and ToDynamic.

@@ -149,7 +149,8 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(font_with_fallback)?,
         )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
-        wezterm_mod.set("action", lua.create_function(action)?)?;
+        wezterm_mod.set("action", luahelper::enumctor::Enum::<KeyAssignment>::new())?;
+
         lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, 0)?;
         wezterm_mod.set("action_callback", lua.create_function(action_callback)?)?;
 
@@ -400,22 +401,6 @@ fn font_with_fallback<'lua>(
     }
 
     Ok(text_style)
-}
-
-/// Helper for defining key assignment actions.
-/// Usage looks like this:
-///
-/// ```lua
-/// local wezterm = require 'wezterm';
-/// return {
-///    keys = {
-///      {key="{", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=-1}},
-///      {key="}", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=1}},
-///    }
-/// }
-/// ```
-fn action<'lua>(lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<KeyAssignment> {
-    Ok(KeyAssignment::from_lua(Value::Table(action), lua)?)
 }
 
 fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {
