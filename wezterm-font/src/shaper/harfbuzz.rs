@@ -401,13 +401,21 @@ impl HarfbuzzShaper {
                             std::mem::swap(&mut info, prior);
                             prior.len += info.len;
                             continue;
+                        } else if info.cluster + info.len == prior.cluster + prior.len {
+                            // Overlaps and coincide with the end of prior; this one folds away.
+                            // This can happen with NFD rather than NFC text.
+                            // <https://github.com/wez/wezterm/issues/2032>
+                            continue;
                         }
+                        // log::info!("prior={:#?}, info={:#?}", prior, info);
                     }
                 }
             }
             info_clusters.push(vec![info]);
         }
         //  log::error!("do_shape: font_idx={} {:?} {:#?}", font_idx, &s[range.clone()], info_clusters);
+        // log::info!("cluster_info: {:#?}", cluster_info);
+        // log::info!("info_clusters: {:#?}", info_clusters);
 
         let mut direct_clusters = 0;
 
@@ -425,7 +433,6 @@ impl HarfbuzzShaper {
                     log::error!("incomplete cluster for text={:?} {:?}", s, info_clusters);
                 }
                 */
-                //println!("Incomplete: {:?}.  infos: {:?}", cluster_info, infos);
 
                 let first_info = &infos[0];
 
