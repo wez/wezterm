@@ -165,7 +165,7 @@ impl Modal for PaneSelector {
         term_window: &mut TermWindow,
     ) -> anyhow::Result<()> {
         match (key, mods) {
-            (KeyCode::Escape, KeyModifiers::NONE) => {
+            (KeyCode::Escape, KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CTRL) => {
                 term_window.cancel_modal();
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
