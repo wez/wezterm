@@ -47,7 +47,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)
 * Windows: wezterm will now read the default environment variables from the `HKLM\System\CurrentControlSet\Control\Session Manager\Environment` and `HKCU\Environment` and apply those to the base environment prior to applying `set_environment_variables`. [#1848](https://github.com/wez/wezterm/issues/1848)
 * [Key Table](config/key-tables.md) lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. [#993](https://github.com/wez/wezterm/issues/993)
-* Search mode's search term is now remembered globally between activations of search mode. [#1912](https://github.com/wez/wezterm/issues/1912)
+* Search mode's search term is now remembered per-tab between activations of search mode. [#1912](https://github.com/wez/wezterm/issues/1912)
 * Quickselect no longer jumps to the bottom of the viewport when activated, allowing you to quickselect within the current viewport region
 * Quickselect now supports multi-line anchors such as `^` and `$`.  [#2008](https://github.com/wez/wezterm/issues/2008)
 * Overriding config using the cli `--config` option will now error out and prevent starting up if unknown config options are specified, or if the value evaluates to `nil`. Unknown options continue to generate warnings (rather than errors) when observed in the config file so that you're not "locked out" of wezterm if you make a typo in the config file.
