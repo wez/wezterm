@@ -7,7 +7,7 @@ use crate::termwindow::render::{
 use crate::termwindow::DimensionContext;
 use crate::utilsprites::RenderMetrics;
 use crate::TermWindow;
-use config::keyassignment::{KeyAssignment, PaneSelectArguments};
+use config::keyassignment::{KeyAssignment, PaneSelectArguments, PaneSelectMode};
 use config::{Dimension, TabBarColors};
 use mux::Mux;
 use std::cell::{Ref, RefCell};
@@ -18,6 +18,7 @@ pub struct PaneSelector {
     labels: RefCell<Vec<String>>,
     selection: RefCell<String>,
     alphabet: String,
+    mode: PaneSelectMode,
 }
 
 impl PaneSelector {
@@ -32,6 +33,7 @@ impl PaneSelector {
             labels: RefCell::new(vec![]),
             selection: RefCell::new(String::new()),
             alphabet,
+            mode: args.mode,
         }
     }
 
@@ -143,6 +145,38 @@ impl PaneSelector {
 
         Ok((elements, labels))
     }
+
+    fn perform_selection(
+        &self,
+        pane_index: usize,
+        term_window: &mut TermWindow,
+    ) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(term_window.mux_window_id) {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+
+        let tab_id = tab.tab_id();
+
+        if term_window.tab_state(tab_id).overlay.is_none() {
+            let panes = tab.iter_panes();
+
+            match self.mode {
+                PaneSelectMode::Activate => {
+                    if panes.iter().position(|p| p.index == pane_index).is_some() {
+                        tab.set_active_idx(pane_index);
+                    }
+                }
+                PaneSelectMode::SwapWithActive => {
+                    tab.swap_active_with_index(pane_index);
+                }
+            }
+        }
+
+        term_window.cancel_modal();
+        Ok(())
+    }
 }
 
 impl Modal for PaneSelector {
@@ -176,22 +210,7 @@ impl Modal for PaneSelector {
                 // and if we have a complete match, activate that pane
                 if let Some(pane_index) = self.labels.borrow().iter().position(|s| s == &*selection)
                 {
-                    let mux = Mux::get().unwrap();
-                    let tab = match mux.get_active_tab_for_window(term_window.mux_window_id) {
-                        Some(tab) => tab,
-                        None => return Ok(()),
-                    };
-
-                    let tab_id = tab.tab_id();
-
-                    if term_window.tab_state(tab_id).overlay.is_none() {
-                        let panes = tab.iter_panes();
-                        if panes.iter().position(|p| p.index == pane_index).is_some() {
-                            tab.set_active_idx(pane_index);
-                        }
-                    }
-
-                    term_window.cancel_modal();
+                    return self.perform_selection(pane_index, term_window);
                 }
             }
             (KeyCode::Backspace, KeyModifiers::NONE) => {

@@ -1470,6 +1470,58 @@ impl Tab {
         cell_dimensions(&*self.size.borrow())
     }
 
+    /// Swap the active pane with the specified pane_index
+    pub fn swap_active_with_index(&self, pane_index: usize) -> Option<()> {
+        let active_idx = self.get_active_idx();
+        let mut pane = self.get_active_pane()?;
+        log::trace!(
+            "swap_active_with_index: pane_index {} active {}",
+            pane_index,
+            active_idx
+        );
+
+        {
+            let mut root = self.pane.borrow_mut();
+            let mut cursor = root.take().unwrap().cursor();
+
+            // locate the requested index
+            match cursor.go_to_nth_leaf(pane_index) {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    log::trace!("didn't find pane {pane_index}");
+                    root.replace(c.tree());
+                    return None;
+                }
+            };
+
+            std::mem::swap(&mut pane, cursor.leaf_mut().unwrap());
+
+            // re-position to the root
+            cursor = cursor.tree().cursor();
+
+            // and now go and update the active idx
+            match cursor.go_to_nth_leaf(active_idx) {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    log::trace!("didn't find active {active_idx}");
+                    return None;
+                }
+            };
+
+            std::mem::swap(&mut pane, cursor.leaf_mut().unwrap());
+            root.replace(cursor.tree());
+
+            // Advise the panes of their new sizes
+            let size = *self.size.borrow();
+            apply_sizes_from_splits(root.as_mut().unwrap(), &size);
+        }
+
+        // And update focus
+        self.advise_focus_change(Some(pane));
+        None
+    }
+
     /// Computes the size of the pane that would result if the specified
     /// pane was split in a particular direction.
     /// The intent is to call this prior to spawning the new pane so that
