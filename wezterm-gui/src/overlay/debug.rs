@@ -115,7 +115,10 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
             changes.push(AttributeChange::Intensity(Intensity::Bold).into());
             changes.push(Change::Text(format!(" {}", entry.target)));
             changes.push(Change::AllAttributes(CellAttributes::default()));
-            changes.push(Change::Text(format!(" > {}\r\n", entry.msg)));
+            changes.push(Change::Text(format!(
+                " > {}\r\n",
+                entry.msg.replace("\n", "\r\n")
+            )));
         }
         term.render(&changes)
     }
