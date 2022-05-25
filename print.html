@@ -471,14 +471,14 @@ usually the best available version.</p>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
-<li>Bundled harfbuzz to 4.2.1</li>
+<li>Bundled harfbuzz to 4.3.0</li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
 <li>Debian packages now register wezterm as an alternative for <code>x-terminal-emulator</code>. Thanks to <a href="https://github.com/xpufx">@xpufx</a>! <a href="https://github.com/wez/wezterm/pull/1883">#1883</a></li>
 <li>Windows: wezterm will now read the default environment variables from the <code>HKLM\System\CurrentControlSet\Control\Session Manager\Environment</code> and <code>HKCU\Environment</code> and apply those to the base environment prior to applying <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1848">#1848</a></li>
 <li><a href="config/key-tables.html">Key Table</a> lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. <a href="https://github.com/wez/wezterm/issues/993">#993</a></li>
-<li>Search mode's search term is now remembered globally between activations of search mode. <a href="https://github.com/wez/wezterm/issues/1912">#1912</a></li>
+<li>Search mode's search term is now remembered per-tab between activations of search mode. <a href="https://github.com/wez/wezterm/issues/1912">#1912</a></li>
 <li>Quickselect no longer jumps to the bottom of the viewport when activated, allowing you to quickselect within the current viewport region</li>
 <li>Quickselect now supports multi-line anchors such as <code>^</code> and <code>$</code>.  <a href="https://github.com/wez/wezterm/issues/2008">#2008</a></li>
 <li>Overriding config using the cli <code>--config</code> option will now error out and prevent starting up if unknown config options are specified, or if the value evaluates to <code>nil</code>. Unknown options continue to generate warnings (rather than errors) when observed in the config file so that you're not &quot;locked out&quot; of wezterm if you make a typo in the config file.</li>
