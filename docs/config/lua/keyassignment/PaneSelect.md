@@ -6,6 +6,8 @@ This action activates the pane selection modal display. In this mode, each pane
 will be overlayed with a one- or two-character label taken from the selection
 alphabet.
 
+<img width="100%" height="100%" src="../../../screenshots/pane-select.png">
+
 Typing the label will select the pane, take an action and exit selection mode.
 Pressing `Escape` or `CTRL-g` will exit pane selection mode without taking any
 action.
