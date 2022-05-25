@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [RotatePanes](config/lua/keyassignment/RotatePanes.md) key assignment for re-arranging the panes in a tab
 * [SplitPane](config/lua/keyassignment/SplitPane.md) key assignment that allows specifying the size and location of the split, as well as top-level (full width/height) splits. `wezterm cli split-pane --help` shows equivalent options you can use from the cli. [#578](https://github.com/wez/wezterm/issues/578)
 * [ime_preedit_rendering](config/lua/config/ime_preedit_rendering.md) option to choose whether to use the builtin or the system IME preedit rendering mode. Thanks to [@kumattau](https://github.com/kumattau)! [#2006](https://github.com/wez/wezterm/pull/2006)
+* [wezterm.strftime_utc](config/lua/wezterm/strftime_utc.md) for manipulating times in UTC rather than the local timezone
 
 
 #### Updated

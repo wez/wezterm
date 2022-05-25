@@ -160,6 +160,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
+        wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;
         wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
 
         package.set("path", path_array.join(";"))?;
@@ -170,6 +171,12 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
     }
 
     Ok(lua)
+}
+
+fn strftime_utc<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
+    use chrono::prelude::*;
+    let local: DateTime<Utc> = Utc::now();
+    Ok(local.format(&format).to_string())
 }
 
 fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
