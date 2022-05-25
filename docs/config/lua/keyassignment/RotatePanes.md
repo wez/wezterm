@@ -48,3 +48,4 @@ return {
 }
 ```
 
+See also [PaneSelect](PaneSelect.md).

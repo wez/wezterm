@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [ime_preedit_rendering](config/lua/config/ime_preedit_rendering.md) option to choose whether to use the builtin or the system IME preedit rendering mode. Thanks to [@kumattau](https://github.com/kumattau)! [#2006](https://github.com/wez/wezterm/pull/2006)
 * [wezterm.strftime_utc](config/lua/wezterm/strftime_utc.md) for manipulating times in UTC rather than the local timezone
 * `wezterm cli send-text --no-paste` option to send text to a pain without wrapping it as a bracketed paste
+* [PaneSelect](config/lua/keyassignment/PaneSelect.md) key assignment to activate the pane selection UI to activate or swap the selected pane. [#1842](https://github.com/wez/wezterm/issues/1842) [#1975](https://github.com/wez/wezterm/issues/1975)
 
 #### Updated
 * Bundled harfbuzz to 4.3.0
