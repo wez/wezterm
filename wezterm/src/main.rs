@@ -266,13 +266,17 @@ Outputs the pane-id for the newly created pane on success"
     /// Send text to a pane as though it were pasted.
     /// If bracketed paste mode is enabled in the pane, then the
     /// text will be sent as a bracketed paste.
-    #[structopt(name = "send-text")]
+    #[structopt(name = "send-text", rename_all = "kebab")]
     SendText {
         /// Specify the target pane.
         /// The default is to use the current pane based on the
         /// environment variable WEZTERM_PANE.
-        #[structopt(long = "pane-id")]
+        #[structopt(long)]
         pane_id: Option<PaneId>,
+
+        /// Send the text directly, rather than as a bracketed paste.
+        #[structopt(long)]
+        no_paste: bool,
 
         /// The text to send. If omitted, will read the text from stdin.
         text: Option<String>,
@@ -825,7 +829,11 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             log::debug!("{:?}", spawned);
             println!("{}", spawned.pane_id);
         }
-        CliSubCommand::SendText { pane_id, text } => {
+        CliSubCommand::SendText {
+            pane_id,
+            text,
+            no_paste,
+        } => {
             let pane_id = resolve_pane_id(&client, pane_id).await?;
 
             let data = match text {
@@ -839,9 +847,18 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 }
             };
 
-            client
-                .send_paste(codec::SendPaste { pane_id, data })
-                .await?;
+            if no_paste {
+                client
+                    .write_to_pane(codec::WriteToPane {
+                        pane_id,
+                        data: data.as_bytes().to_vec(),
+                    })
+                    .await?;
+            } else {
+                client
+                    .send_paste(codec::SendPaste { pane_id, data })
+                    .await?;
+            }
         }
         CliSubCommand::SpawnCommand {
             cwd,
