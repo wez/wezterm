@@ -41,7 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 
 #### Updated
-* Bundled harfbuzz to 4.2.1
+* Bundled harfbuzz to 4.3.0
 
 #### Changed
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)

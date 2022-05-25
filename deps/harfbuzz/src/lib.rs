@@ -2399,6 +2399,9 @@ extern "C" {
     pub fn hb_map_get_population(map: *const hb_map_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
+    pub fn hb_map_is_equal(map: *const hb_map_t, other: *const hb_map_t) -> hb_bool_t;
+}
+extern "C" {
     pub fn hb_map_set(map: *mut hb_map_t, key: hb_codepoint_t, value: hb_codepoint_t);
 }
 extern "C" {
