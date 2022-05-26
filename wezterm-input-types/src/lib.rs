@@ -453,7 +453,7 @@ impl ToString for KeyCode {
 bitflags! {
     #[derive(Default, Deserialize, Serialize, FromDynamic, ToDynamic)]
     #[dynamic(into="String", try_from="String")]
-    pub struct Modifiers: u8 {
+    pub struct Modifiers: u16 {
         const NONE = 0;
         const SHIFT = 1<<1;
         const ALT = 1<<2;
@@ -462,6 +462,10 @@ bitflags! {
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
         const LEADER = 1<<7;
+        const LEFT_CTRL = 1<<8;
+        const RIGHT_CTRL = 1<<9;
+        const LEFT_SHIFT = 1<<10;
+        const RIGHT_SHIFT = 1<<11;
     }
 }
 
@@ -516,6 +520,10 @@ impl ToString for Modifiers {
             (Self::LEFT_ALT, "LEFT_ALT"),
             (Self::RIGHT_ALT, "RIGHT_ALT"),
             (Self::LEADER, "LEADER"),
+            (Self::LEFT_CTRL, "LEFT_CTRL"),
+            (Self::RIGHT_CTRL, "RIGHT_CTRL"),
+            (Self::LEFT_SHIFT, "LEFT_SHIFT"),
+            (Self::RIGHT_SHIFT, "RIGHT_SHIFT"),
         ] {
             if !self.contains(value) {
                 continue;
@@ -1161,18 +1169,29 @@ impl KeyEvent {
         // defines the dwControlKeyState values
         let mut control_key_state = 0;
         const SHIFT_PRESSED: usize = 0x10;
-        // const RIGHT_ALT_PRESSED: usize = 0x01;
+        const RIGHT_ALT_PRESSED: usize = 0x01;
         const LEFT_ALT_PRESSED: usize = 0x02;
         const LEFT_CTRL_PRESSED: usize = 0x08;
-        // const RIGHT_CTRL_PRESSED: usize = 0x04;
+        const RIGHT_CTRL_PRESSED: usize = 0x04;
 
         if self.modifiers.contains(Modifiers::SHIFT) {
             control_key_state |= SHIFT_PRESSED;
         }
-        if self.modifiers.contains(Modifiers::ALT) {
+
+        if self.modifiers.contains(Modifiers::RIGHT_ALT) {
+            control_key_state |= RIGHT_ALT_PRESSED;
+        } else if self.modifiers.contains(Modifiers::ALT) {
             control_key_state |= LEFT_ALT_PRESSED;
         }
-        if self.modifiers.contains(Modifiers::CTRL) {
+        if self.modifiers.contains(Modifiers::LEFT_ALT) {
+            control_key_state |= LEFT_ALT_PRESSED;
+        }
+        if self.modifiers.contains(Modifiers::RIGHT_CTRL) {
+            control_key_state |= RIGHT_CTRL_PRESSED;
+        } else if self.modifiers.contains(Modifiers::CTRL) {
+            control_key_state |= LEFT_CTRL_PRESSED;
+        }
+        if self.modifiers.contains(Modifiers::LEFT_CTRL) {
             control_key_state |= LEFT_CTRL_PRESSED;
         }
 

@@ -2204,6 +2204,18 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
     if keys[VK_SHIFT as usize] & 0x80 != 0 {
         modifiers |= Modifiers::SHIFT;
     }
+    if keys[VK_LSHIFT as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::LEFT_SHIFT;
+    }
+    if keys[VK_RSHIFT as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::RIGHT_SHIFT;
+    }
+    if keys[VK_LCONTROL as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::LEFT_CTRL;
+    }
+    if keys[VK_RCONTROL as usize] & 0x80 != 0 {
+        modifiers |= Modifiers::RIGHT_CTRL;
+    }
 
     if inner.keyboard_info.has_alt_gr()
         && (keys[VK_RMENU as usize] & 0x80 != 0)
