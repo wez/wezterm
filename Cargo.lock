@@ -160,9 +160,9 @@ dependencies = [
 
 [[package]]
 name = "async-io"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a811e6a479f2439f0c04038796b5cfb3d2ad56c230e0f2d3f7b04d68cfee607b"
+checksum = "e5e18f61464ae81cde0a23e713ae8fd299580c54d697a35820cfd0625b8b0e07"
 dependencies = [
  "concurrent-queue",
  "futures-lite",
@@ -2042,9 +2042,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32613e41de4c47ab04970c348ca7ae7382cf116625755af070b008a15516a889"
+checksum = "8015d95cb7b2ddd3c0d32ca38283ceb1eea09b4713ee380bceb942d85a244228"
 dependencies = [
  "hashbrown 0.11.2",
 ]
@@ -2272,8 +2272,8 @@ dependencies = [
 
 [[package]]
 name = "mlua"
-version = "0.8.0-beta.4"
-source = "git+https://github.com/khvzak/mlua?branch=master#bcf2cbea3798504471d88345327671bf2da7e8e1"
+version = "0.8.0-beta.5"
+source = "git+https://github.com/khvzak/mlua?branch=master#4f06f614a98b2fcbcac325a90837af7c2f5f5201"
 dependencies = [
  "bstr 0.2.17",
  "cc",
