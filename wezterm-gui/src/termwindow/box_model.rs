@@ -3,8 +3,7 @@ use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
 use crate::termwindow::{
-    MappedQuads, MouseCapture, RenderLayer, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
-    UIItemType,
+    MappedQuads, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
@@ -370,6 +369,7 @@ pub struct LayoutContext<'a> {
     pub bounds: RectF,
     pub metrics: &'a RenderMetrics,
     pub gl_state: &'a RenderState,
+    pub zindex: i8,
 }
 
 #[derive(Debug, Clone)]
@@ -524,6 +524,7 @@ impl super::TermWindow {
                 bounds: context.bounds,
                 gl_state: context.gl_state,
                 metrics: &local_metrics,
+                zindex: context.zindex,
             };
             &local_context
         } else {
@@ -603,7 +604,7 @@ impl super::TermWindow {
 
                 Ok(ComputedElement {
                     item_type: element.item_type.clone(),
-                    zindex: element.zindex,
+                    zindex: element.zindex + context.zindex,
                     baseline,
                     border,
                     border_corners,
@@ -656,6 +657,7 @@ impl super::TermWindow {
                                 pixel_cell: context.width.pixel_cell,
                                 pixel_max: max_width,
                             },
+                            zindex: context.zindex + element.zindex,
                         },
                         child,
                     )?;
@@ -713,7 +715,7 @@ impl super::TermWindow {
 
                 Ok(ComputedElement {
                     item_type: element.item_type.clone(),
-                    zindex: element.zindex,
+                    zindex: element.zindex + context.zindex,
                     baseline,
                     border,
                     border_corners,
@@ -733,7 +735,7 @@ impl super::TermWindow {
 
                 Ok(ComputedElement {
                     item_type: element.item_type.clone(),
-                    zindex: element.zindex,
+                    zindex: element.zindex + context.zindex,
                     baseline,
                     border,
                     border_corners,
@@ -755,10 +757,12 @@ impl super::TermWindow {
     pub fn render_element<'a>(
         &self,
         element: &ComputedElement,
-        layer: &RenderLayer,
+        gl_state: &RenderState,
         inherited_colors: Option<&ElementColors>,
     ) -> anyhow::Result<()> {
-        let vb = [&layer.vb[0], &layer.vb[1], &layer.vb[2]];
+        let layer = gl_state.layer_for_zindex(element.zindex)?;
+        let vbs = layer.vb.borrow();
+        let vb = [&vbs[0], &vbs[1], &vbs[2]];
         let mut vb_mut0 = vb[0].current_vb_mut();
         let mut vb_mut1 = vb[1].current_vb_mut();
         let mut vb_mut2 = vb[2].current_vb_mut();
@@ -768,15 +772,6 @@ impl super::TermWindow {
             vb[2].map(&mut vb_mut2),
         ];
 
-        self.render_element_impl(element, &mut layers, inherited_colors)
-    }
-
-    fn render_element_impl<'a>(
-        &self,
-        element: &ComputedElement,
-        layers: &mut [MappedQuads; 3],
-        inherited_colors: Option<&ElementColors>,
-    ) -> anyhow::Result<()> {
         let colors = match &element.hover_colors {
             Some(hc) => {
                 let hovering =
@@ -800,7 +795,7 @@ impl super::TermWindow {
             None => &element.colors,
         };
 
-        self.render_element_background(element, colors, layers, inherited_colors)?;
+        self.render_element_background(element, colors, &mut layers, inherited_colors)?;
         let left = self.dimensions.pixel_width as f32 / -2.0;
         let top = self.dimensions.pixel_height as f32 / -2.0;
         match &element.content {
@@ -864,8 +859,13 @@ impl super::TermWindow {
                 }
             }
             ComputedElementContent::Children(kids) => {
+                drop(layers);
+                drop(vb_mut0);
+                drop(vb_mut1);
+                drop(vb_mut2);
+
                 for kid in kids {
-                    self.render_element_impl(kid, layers, Some(colors))?;
+                    self.render_element(kid, gl_state, Some(colors))?;
                 }
             }
             ComputedElementContent::Poly { poly, line_width } => {

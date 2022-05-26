@@ -778,11 +778,11 @@ impl super::TermWindow {
                 right: Dimension::Cells(0.),
                 top: Dimension::Cells(0.),
                 bottom: Dimension::Cells(0.),
-            });
+            })
+            .zindex(1);
         let right_ele = Element::new(&font, ElementContent::Children(right_eles))
             .colors(bar_colors.clone())
-            .float(Float::Right)
-            .zindex(-1);
+            .float(Float::Right);
 
         let content = ElementContent::Children(vec![left_ele, right_ele]);
 
@@ -814,6 +814,7 @@ impl super::TermWindow {
                 ),
                 metrics: &metrics,
                 gl_state: self.render_state.as_ref().unwrap(),
+                zindex: 10,
             },
             &tabs,
         )?;
@@ -837,7 +838,7 @@ impl super::TermWindow {
                 let mut ui_items = computed.ui_items();
 
                 let gl_state = self.render_state.as_ref().unwrap();
-                self.render_element(&computed, &gl_state.modal_layer, None)?;
+                self.render_element(&computed, gl_state, None)?;
 
                 self.ui_items.append(&mut ui_items);
             }
@@ -854,7 +855,7 @@ impl super::TermWindow {
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
-        self.render_element(&computed, &gl_state.tab_layer, None)?;
+        self.render_element(&computed, gl_state, None)?;
 
         Ok(ui_items)
     }
@@ -910,11 +911,9 @@ impl super::TermWindow {
                 self.config.text_background_opacity
             });
 
-        let vb = [
-            &gl_state.main_layer.vb[0],
-            &gl_state.main_layer.vb[1],
-            &gl_state.main_layer.vb[2],
-        ];
+        let layer = gl_state.layer_for_zindex(0)?;
+        let vbs = layer.vb.borrow();
+        let vb = [&vbs[0], &vbs[1], &vbs[2]];
         let mut vb_mut0 = vb[0].current_vb_mut();
         let mut vb_mut1 = vb[1].current_vb_mut();
         let mut vb_mut2 = vb[2].current_vb_mut();
@@ -970,7 +969,8 @@ impl super::TermWindow {
         if let Some(ref os_params) = self.os_parameters {
             if let Some(ref border_dimensions) = os_params.border_dimensions {
                 let gl_state = self.render_state.as_ref().unwrap();
-                let vb = &gl_state.main_layer.vb[1];
+                let layer = gl_state.layer_for_zindex(0)?;
+                let vb = &layer.vb.borrow()[2];
                 let mut vb_mut = vb.current_vb_mut();
                 let mut layer1 = vb.map(&mut vb_mut);
 
@@ -1091,11 +1091,9 @@ impl super::TermWindow {
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = [
-            &gl_state.main_layer.vb[0],
-            &gl_state.main_layer.vb[1],
-            &gl_state.main_layer.vb[2],
-        ];
+        let layer = gl_state.layer_for_zindex(0)?;
+        let vbs = layer.vb.borrow();
+        let vb = [&vbs[0], &vbs[1], &vbs[2]];
 
         let start = Instant::now();
         let mut vb_mut0 = vb[0].current_vb_mut();
@@ -1523,9 +1521,9 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
-        for layer in gl_state.all_layers() {
+        for layer in gl_state.layers.borrow().iter() {
             for idx in 0..3 {
-                let vb = &layer.vb[idx];
+                let vb = &layer.vb.borrow()[idx];
                 let (vertex_count, index_count) = vb.vertex_index_count();
                 if vertex_count > 0 {
                     let vertices = vb.current_vb();
@@ -1585,7 +1583,8 @@ impl super::TermWindow {
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.main_layer.vb[2];
+        let layer = gl_state.layer_for_zindex(0)?;
+        let vb = &layer.vb.borrow()[2];
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
@@ -1652,7 +1651,7 @@ impl super::TermWindow {
     pub fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
         {
             let gl_state = self.render_state.as_ref().unwrap();
-            for layer in gl_state.all_layers() {
+            for layer in gl_state.layers.borrow().iter() {
                 layer.clear_quad_allocation();
             }
         }

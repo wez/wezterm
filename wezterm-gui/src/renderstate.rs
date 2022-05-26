@@ -103,12 +103,13 @@ impl TripleVertexBuffer {
 }
 
 pub struct RenderLayer {
-    pub vb: [TripleVertexBuffer; 3],
-    pub context: Rc<GliumContext>,
+    pub vb: RefCell<[TripleVertexBuffer; 3]>,
+    context: Rc<GliumContext>,
+    zindex: i8,
 }
 
 impl RenderLayer {
-    pub fn new(context: &Rc<GliumContext>, num_quads: usize) -> anyhow::Result<Self> {
+    pub fn new(context: &Rc<GliumContext>, num_quads: usize, zindex: i8) -> anyhow::Result<Self> {
         let vb = [
             Self::compute_vertices(context, 128)?,
             Self::compute_vertices(context, num_quads)?,
@@ -117,19 +118,24 @@ impl RenderLayer {
 
         Ok(Self {
             context: Rc::clone(context),
-            vb,
+            vb: RefCell::new(vb),
+            zindex,
         })
     }
 
     pub fn clear_quad_allocation(&self) {
-        for vb in &self.vb {
+        for vb in self.vb.borrow().iter() {
             vb.clear_quad_allocation();
         }
     }
 
-    pub fn reallocate_quads(&mut self, idx: usize, num_quads: usize) -> anyhow::Result<()> {
+    pub fn need_more_quads(&self, vb_idx: usize) -> Option<usize> {
+        self.vb.borrow()[vb_idx].need_more_quads()
+    }
+
+    pub fn reallocate_quads(&self, idx: usize, num_quads: usize) -> anyhow::Result<()> {
         let vb = Self::compute_vertices(&self.context, num_quads)?;
-        self.vb[idx] = vb;
+        self.vb.borrow_mut()[idx] = vb;
         Ok(())
     }
 
@@ -185,9 +191,7 @@ pub struct RenderState {
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     pub util_sprites: UtilSprites<SrgbTexture2d>,
     pub glyph_prog: glium::Program,
-    pub main_layer: RenderLayer,
-    pub tab_layer: RenderLayer,
-    pub modal_layer: RenderLayer,
+    pub layers: RefCell<Vec<Rc<RenderLayer>>>,
 }
 
 impl RenderState {
@@ -204,18 +208,14 @@ impl RenderState {
                 Ok(util_sprites) => {
                     let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
 
-                    let main_layer = RenderLayer::new(&context, 1024)?;
-                    let tab_layer = RenderLayer::new(&context, 128)?;
-                    let modal_layer = RenderLayer::new(&context, 128)?;
+                    let main_layer = Rc::new(RenderLayer::new(&context, 1024, 0)?);
 
                     return Ok(Self {
                         context,
                         glyph_cache,
                         util_sprites,
                         glyph_prog,
-                        main_layer,
-                        tab_layer,
-                        modal_layer,
+                        layers: RefCell::new(vec![main_layer]),
                     });
                 }
                 Err(OutOfTextureSpace {
@@ -230,24 +230,38 @@ impl RenderState {
         }
     }
 
-    pub fn all_layers(&self) -> [&RenderLayer; 3] {
-        [&self.main_layer, &self.tab_layer, &self.modal_layer]
+    pub fn layer_for_zindex(&self, zindex: i8) -> anyhow::Result<Rc<RenderLayer>> {
+        if let Some(layer) = self
+            .layers
+            .borrow()
+            .iter()
+            .find(|l| l.zindex == zindex)
+            .map(Rc::clone)
+        {
+            return Ok(layer);
+        }
+
+        let layer = Rc::new(RenderLayer::new(&self.context, 128, zindex)?);
+        let mut layers = self.layers.borrow_mut();
+        layers.push(Rc::clone(&layer));
+
+        // Keep the layers sorted by zindex so that they are rendered in
+        // the correct order when the layers array is iterated.
+        layers.sort_by(|a, b| a.zindex.cmp(&b.zindex));
+
+        Ok(layer)
     }
 
-    pub fn all_layers_mut(&mut self) -> [&mut RenderLayer; 3] {
-        [
-            &mut self.main_layer,
-            &mut self.tab_layer,
-            &mut self.modal_layer,
-        ]
-    }
-
+    /// Returns true if any of the layers needed more quads to be allocated,
+    /// and if we successfully allocated them.
+    /// Returns false if the quads were sufficient.
+    /// Returns Err if we needed to allocate but failed.
     pub fn allocated_more_quads(&mut self) -> anyhow::Result<bool> {
         let mut allocated = false;
 
-        for layer in self.all_layers_mut() {
+        for layer in self.layers.borrow().iter() {
             for vb_idx in 0..3 {
-                if let Some(need_quads) = layer.vb[vb_idx].need_more_quads() {
+                if let Some(need_quads) = layer.need_more_quads(vb_idx) {
                     // Round up to next multiple of 1024 that is >=
                     // the number of needed quads for this frame
                     let num_quads = (need_quads + 1023) & !1023;
