@@ -14,7 +14,8 @@ return {
     -- Can be "Vertical" or "Horizontal".  Specifies the direction
     -- in which the color gradient varies.  The default is "Horizontal",
     -- with the gradient going from left-to-right.
-    -- Radial gradients are also supported; see the other example below
+    -- Linear and Radial gradients are also supported; see the other
+    -- examples below
     orientation = "Vertical",
 
     -- Specifies the set of colors that are interpolated in the gradient.
@@ -67,6 +68,34 @@ return {
 Gradients are implemented using the `colorgrad` crate.
 Take a look at <https://github.com/mazznoer/colorgrad-rs#using-web-color-format>
 for some usage examples and additional information about gradients.
+
+## Linear gradient:
+
+*Since: nightly builds only*
+
+A linear gradient follows a linear path across the window. It can be rotated
+around the window center. The angle is described in degrees and moves 
+counter clockwise in the positive direction.
+
+So `0` degrees is equivalent to `Horizontal` with the gradient moving from left
+to right. `90` degrees is equivalent to `Vertical` with the gradient moving from
+bottom to top. `180` degrees is equivalent to `Horizontal` but with the gradient
+moving from right to left. `270` degrees is equivalent to `Vertical` but with
+the gradient going from top to bottom. Negative degrees are equivalent to going
+clockwise, so `-45` is equivalent to `315` degrees and results in a gradient
+that is moving from the top left corner down to the bottom right corner.
+
+```lua
+return {
+  window_background_gradient = {
+    colors = { "#EEBD89", "#D13ABD" },
+    -- Specifices a Linear gradient starting in the top left corner.
+    orientation = { Linear = { angle = -45.0 } },
+  }
+}
+```
+
+<img src="../../../screenshots/linear-gradient.png">
 
 ## Radial gradient:
 
