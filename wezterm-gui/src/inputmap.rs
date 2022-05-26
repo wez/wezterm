@@ -232,15 +232,20 @@ impl InputMap {
 
     pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
         if let Some((leader_key, leader_mods, timeout)) = self.leader.as_ref() {
-            if *leader_key == *key && *leader_mods == Self::remove_positional_alt(mods) {
+            if *leader_key == *key && *leader_mods == Self::remove_positional_mods(mods) {
                 return Some(timeout.clone());
             }
         }
         None
     }
 
-    fn remove_positional_alt(mods: Modifiers) -> Modifiers {
-        mods - (Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT)
+    fn remove_positional_mods(mods: Modifiers) -> Modifiers {
+        mods - (Modifiers::LEFT_ALT
+            | Modifiers::RIGHT_ALT
+            | Modifiers::LEFT_CTRL
+            | Modifiers::RIGHT_CTRL
+            | Modifiers::LEFT_SHIFT
+            | Modifiers::RIGHT_SHIFT)
     }
 
     pub fn has_table(&self, name: &str) -> bool {
@@ -259,13 +264,13 @@ impl InputMap {
         };
 
         table
-            .get(&key.normalize_shift(Self::remove_positional_alt(mods)))
+            .get(&key.normalize_shift(Self::remove_positional_mods(mods)))
             .cloned()
     }
 
     pub fn lookup_mouse(&self, event: MouseEventTrigger, mods: Modifiers) -> Option<KeyAssignment> {
         self.mouse
-            .get(&(event, Self::remove_positional_alt(mods)))
+            .get(&(event, Self::remove_positional_mods(mods)))
             .cloned()
     }
 }
