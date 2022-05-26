@@ -242,40 +242,19 @@ impl super::TermWindow {
 
         'pass: for pass in 0.. {
             match self.paint_opengl_pass() {
-                Ok(_) => {
-                    let mut allocated = false;
-                    for vb_idx in 0..3 {
-                        if let Some(need_quads) =
-                            self.render_state.as_mut().unwrap().vb[vb_idx].need_more_quads()
-                        {
-                            self.invalidate_fancy_tab_bar();
-                            self.invalidate_modal();
-
-                            // Round up to next multiple of 1024 that is >=
-                            // the number of needed quads for this frame
-                            let num_quads = (need_quads + 1023) & !1023;
-                            if let Err(err) = self
-                                .render_state
-                                .as_mut()
-                                .unwrap()
-                                .reallocate_quads(vb_idx, num_quads)
-                            {
-                                log::error!(
-                                    "Failed to allocate {} quads (needed {}): {:#}",
-                                    num_quads,
-                                    need_quads,
-                                    err
-                                );
-                                break 'pass;
-                            }
-                            log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
-                            allocated = true;
+                Ok(_) => match self.render_state.as_mut().unwrap().allocated_more_quads() {
+                    Ok(allocated) => {
+                        if !allocated {
+                            break 'pass;
                         }
+                        self.invalidate_fancy_tab_bar();
+                        self.invalidate_modal();
                     }
-                    if !allocated {
+                    Err(err) => {
+                        log::error!("{:#}", err);
                         break 'pass;
                     }
-                }
+                },
                 Err(err) => {
                     if let Some(&OutOfTextureSpace {
                         size: Some(size),
@@ -858,7 +837,7 @@ impl super::TermWindow {
                 let mut ui_items = computed.ui_items();
 
                 let gl_state = self.render_state.as_ref().unwrap();
-                let vb = &gl_state.vb[1];
+                let vb = &gl_state.modal_layer.vb[1];
                 let mut vb_mut = vb.current_vb_mut();
                 let mut layer1 = vb.map(&mut vb_mut);
                 self.render_element(&computed, &mut layer1, None)?;
@@ -878,7 +857,7 @@ impl super::TermWindow {
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.vb[1];
+        let vb = &gl_state.tab_layer.vb[1];
         let mut vb_mut = vb.current_vb_mut();
         let mut layer1 = vb.map(&mut vb_mut);
         self.render_element(&computed, &mut layer1, None)?;
@@ -937,7 +916,11 @@ impl super::TermWindow {
                 self.config.text_background_opacity
             });
 
-        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
+        let vb = [
+            &gl_state.main_layer.vb[0],
+            &gl_state.main_layer.vb[1],
+            &gl_state.main_layer.vb[2],
+        ];
         let mut vb_mut0 = vb[0].current_vb_mut();
         let mut vb_mut1 = vb[1].current_vb_mut();
         let mut vb_mut2 = vb[2].current_vb_mut();
@@ -993,7 +976,7 @@ impl super::TermWindow {
         if let Some(ref os_params) = self.os_parameters {
             if let Some(ref border_dimensions) = os_params.border_dimensions {
                 let gl_state = self.render_state.as_ref().unwrap();
-                let vb = &gl_state.vb[1];
+                let vb = &gl_state.main_layer.vb[1];
                 let mut vb_mut = vb.current_vb_mut();
                 let mut layer1 = vb.map(&mut vb_mut);
 
@@ -1114,7 +1097,11 @@ impl super::TermWindow {
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
+        let vb = [
+            &gl_state.main_layer.vb[0],
+            &gl_state.main_layer.vb[1],
+            &gl_state.main_layer.vb[2],
+        ];
 
         let start = Instant::now();
         let mut vb_mut0 = vb[0].current_vb_mut();
@@ -1478,7 +1465,7 @@ impl super::TermWindow {
         Ok(())
     }
 
-    pub fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
+    fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
@@ -1542,33 +1529,35 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
-        for idx in 0..3 {
-            let vb = &gl_state.vb[idx];
-            let (vertex_count, index_count) = vb.vertex_index_count();
-            if vertex_count > 0 {
-                let vertices = vb.current_vb();
-                let subpixel_aa = idx == 1;
+        for layer in gl_state.all_layers() {
+            for idx in 0..3 {
+                let vb = &layer.vb[idx];
+                let (vertex_count, index_count) = vb.vertex_index_count();
+                if vertex_count > 0 {
+                    let vertices = vb.current_vb();
+                    let subpixel_aa = idx == 1;
 
-                frame.draw(
-                    vertices.slice(0..vertex_count).unwrap(),
-                    vb.indices.slice(0..index_count).unwrap(),
-                    &gl_state.glyph_prog,
-                    &uniform! {
-                        projection: projection,
-                        atlas_nearest_sampler:  atlas_nearest_sampler,
-                        atlas_linear_sampler:  atlas_linear_sampler,
-                        foreground_text_hsb: foreground_text_hsb,
-                        subpixel_aa: subpixel_aa,
-                    },
-                    if subpixel_aa {
-                        &dual_source_blending
-                    } else {
-                        &alpha_blending
-                    },
-                )?;
+                    frame.draw(
+                        vertices.slice(0..vertex_count).unwrap(),
+                        vb.indices.slice(0..index_count).unwrap(),
+                        &gl_state.glyph_prog,
+                        &uniform! {
+                            projection: projection,
+                            atlas_nearest_sampler:  atlas_nearest_sampler,
+                            atlas_linear_sampler:  atlas_linear_sampler,
+                            foreground_text_hsb: foreground_text_hsb,
+                            subpixel_aa: subpixel_aa,
+                        },
+                        if subpixel_aa {
+                            &dual_source_blending
+                        } else {
+                            &alpha_blending
+                        },
+                    )?;
+                }
+
+                vb.next_index();
             }
-
-            vb.next_index();
         }
 
         Ok(())
@@ -1602,7 +1591,7 @@ impl super::TermWindow {
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.vb[2];
+        let vb = &gl_state.main_layer.vb[2];
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
@@ -1669,8 +1658,8 @@ impl super::TermWindow {
     pub fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
         {
             let gl_state = self.render_state.as_ref().unwrap();
-            for vb in &gl_state.vb {
-                vb.clear_quad_allocation();
+            for layer in gl_state.all_layers() {
+                layer.clear_quad_allocation();
             }
         }
 

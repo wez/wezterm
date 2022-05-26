@@ -7,6 +7,7 @@ use ::window::glium::buffer::Mapping;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
 use ::window::*;
+use anyhow::Context;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -101,101 +102,35 @@ impl TripleVertexBuffer {
     }
 }
 
-pub struct RenderState {
-    pub context: Rc<GliumContext>,
-    pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
-    pub util_sprites: UtilSprites<SrgbTexture2d>,
-    pub glyph_prog: glium::Program,
+pub struct RenderLayer {
     pub vb: [TripleVertexBuffer; 3],
+    pub context: Rc<GliumContext>,
 }
 
-impl RenderState {
-    pub fn new(
-        context: Rc<GliumContext>,
-        fonts: &Rc<FontConfiguration>,
-        metrics: &RenderMetrics,
-        mut atlas_size: usize,
-    ) -> anyhow::Result<Self> {
-        loop {
-            let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
-            let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
-            match result {
-                Ok(util_sprites) => {
-                    let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
+impl RenderLayer {
+    pub fn new(context: &Rc<GliumContext>, num_quads: usize) -> anyhow::Result<Self> {
+        let vb = [
+            Self::compute_vertices(context, 128)?,
+            Self::compute_vertices(context, num_quads)?,
+            Self::compute_vertices(context, 128)?,
+        ];
 
-                    let vb = [
-                        Self::compute_vertices(&context, 128)?,
-                        Self::compute_vertices(&context, 1024)?,
-                        Self::compute_vertices(&context, 128)?,
-                    ];
-
-                    return Ok(Self {
-                        context,
-                        glyph_cache,
-                        util_sprites,
-                        glyph_prog,
-                        vb,
-                    });
-                }
-                Err(OutOfTextureSpace {
-                    size: Some(size), ..
-                }) => {
-                    atlas_size = size;
-                }
-                Err(OutOfTextureSpace { size: None, .. }) => {
-                    anyhow::bail!("requested texture size is impossible!?")
-                }
-            };
-        }
+        Ok(Self {
+            context: Rc::clone(context),
+            vb,
+        })
     }
 
-    fn compile_prog(
-        context: &Rc<GliumContext>,
-        fragment_shader: fn(&str) -> (String, String),
-    ) -> anyhow::Result<glium::Program> {
-        let mut errors = vec![];
-
-        let caps = context.get_capabilities();
-        log::trace!("Compiling shader. context.capabilities.srgb={}", caps.srgb);
-
-        for version in &["330 core", "330", "320 es", "300 es"] {
-            let (vertex_shader, fragment_shader) = fragment_shader(version);
-            let source = glium::program::ProgramCreationInput::SourceCode {
-                vertex_shader: &vertex_shader,
-                fragment_shader: &fragment_shader,
-                outputs_srgb: true,
-                tessellation_control_shader: None,
-                tessellation_evaluation_shader: None,
-                transform_feedback_varyings: None,
-                uses_point_size: false,
-                geometry_shader: None,
-            };
-            match glium::Program::new(context, source) {
-                Ok(prog) => {
-                    return Ok(prog);
-                }
-                Err(err) => errors.push(format!("shader version: {}: {:#}", version, err)),
-            };
+    pub fn clear_quad_allocation(&self) {
+        for vb in &self.vb {
+            vb.clear_quad_allocation();
         }
-
-        anyhow::bail!("Failed to compile shaders: {}", errors.join("\n"))
     }
 
     pub fn reallocate_quads(&mut self, idx: usize, num_quads: usize) -> anyhow::Result<()> {
         let vb = Self::compute_vertices(&self.context, num_quads)?;
         self.vb[idx] = vb;
         Ok(())
-    }
-
-    fn glyph_shader(version: &str) -> (String, String) {
-        (
-            format!(
-                "#version {}\n{}",
-                version,
-                include_str!("glyph-vertex.glsl")
-            ),
-            format!("#version {}\n{}", version, include_str!("glyph-frag.glsl")),
-        )
     }
 
     /// Compute a vertex buffer to hold the quads that comprise the visible
@@ -242,6 +177,136 @@ impl RenderState {
         };
 
         Ok(buffer)
+    }
+}
+
+pub struct RenderState {
+    pub context: Rc<GliumContext>,
+    pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
+    pub util_sprites: UtilSprites<SrgbTexture2d>,
+    pub glyph_prog: glium::Program,
+    pub main_layer: RenderLayer,
+    pub tab_layer: RenderLayer,
+    pub modal_layer: RenderLayer,
+}
+
+impl RenderState {
+    pub fn new(
+        context: Rc<GliumContext>,
+        fonts: &Rc<FontConfiguration>,
+        metrics: &RenderMetrics,
+        mut atlas_size: usize,
+    ) -> anyhow::Result<Self> {
+        loop {
+            let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
+            let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
+            match result {
+                Ok(util_sprites) => {
+                    let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
+
+                    let main_layer = RenderLayer::new(&context, 1024)?;
+                    let tab_layer = RenderLayer::new(&context, 128)?;
+                    let modal_layer = RenderLayer::new(&context, 128)?;
+
+                    return Ok(Self {
+                        context,
+                        glyph_cache,
+                        util_sprites,
+                        glyph_prog,
+                        main_layer,
+                        tab_layer,
+                        modal_layer,
+                    });
+                }
+                Err(OutOfTextureSpace {
+                    size: Some(size), ..
+                }) => {
+                    atlas_size = size;
+                }
+                Err(OutOfTextureSpace { size: None, .. }) => {
+                    anyhow::bail!("requested texture size is impossible!?")
+                }
+            };
+        }
+    }
+
+    pub fn all_layers(&self) -> [&RenderLayer; 3] {
+        [&self.main_layer, &self.tab_layer, &self.modal_layer]
+    }
+
+    pub fn all_layers_mut(&mut self) -> [&mut RenderLayer; 3] {
+        [
+            &mut self.main_layer,
+            &mut self.tab_layer,
+            &mut self.modal_layer,
+        ]
+    }
+
+    pub fn allocated_more_quads(&mut self) -> anyhow::Result<bool> {
+        let mut allocated = false;
+
+        for layer in self.all_layers_mut() {
+            for vb_idx in 0..3 {
+                if let Some(need_quads) = layer.vb[vb_idx].need_more_quads() {
+                    // Round up to next multiple of 1024 that is >=
+                    // the number of needed quads for this frame
+                    let num_quads = (need_quads + 1023) & !1023;
+                    layer.reallocate_quads(vb_idx, num_quads).with_context(|| {
+                        format!(
+                            "Failed to allocate {} quads (needed {})",
+                            num_quads, need_quads,
+                        )
+                    })?;
+                    log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
+                    allocated = true;
+                }
+            }
+        }
+
+        Ok(allocated)
+    }
+
+    fn compile_prog(
+        context: &Rc<GliumContext>,
+        fragment_shader: fn(&str) -> (String, String),
+    ) -> anyhow::Result<glium::Program> {
+        let mut errors = vec![];
+
+        let caps = context.get_capabilities();
+        log::trace!("Compiling shader. context.capabilities.srgb={}", caps.srgb);
+
+        for version in &["330 core", "330", "320 es", "300 es"] {
+            let (vertex_shader, fragment_shader) = fragment_shader(version);
+            let source = glium::program::ProgramCreationInput::SourceCode {
+                vertex_shader: &vertex_shader,
+                fragment_shader: &fragment_shader,
+                outputs_srgb: true,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                transform_feedback_varyings: None,
+                uses_point_size: false,
+                geometry_shader: None,
+            };
+            match glium::Program::new(context, source) {
+                Ok(prog) => {
+                    return Ok(prog);
+                }
+                Err(err) => errors.push(format!("shader version: {}: {:#}", version, err)),
+            };
+        }
+
+        anyhow::bail!("Failed to compile shaders: {}", errors.join("\n"))
+    }
+
+    fn glyph_shader(version: &str) -> (String, String) {
+        (
+            format!(
+                "#version {}\n{}",
+                version,
+                include_str!("glyph-vertex.glsl")
+            ),
+            format!("#version {}\n{}", version, include_str!("glyph-frag.glsl")),
+        )
     }
 
     pub fn recreate_texture_atlas(
