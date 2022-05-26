@@ -59,6 +59,14 @@ impl<'a> Quad<'a> {
         }
     }
 
+    /// Mark as a grayscale polyquad; color and alpha will be
+    /// multipled with those in the texture
+    pub fn set_grayscale(&mut self) {
+        for v in self.vert.iter_mut() {
+            v.has_color = 4.0;
+        }
+    }
+
     /// Mark this quad as a background image.
     /// Mutually exclusive with set_has_color.
     pub fn set_is_background_image(&mut self) {

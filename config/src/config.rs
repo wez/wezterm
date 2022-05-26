@@ -1,6 +1,8 @@
 use crate::background::Gradient;
 use crate::bell::{AudibleBell, EasingFunction, VisualBell};
-use crate::color::{ColorSchemeFile, HsbTransform, Palette, TabBarStyle, WindowFrameConfig};
+use crate::color::{
+    ColorSchemeFile, HsbTransform, Palette, SrgbaTuple, TabBarStyle, WindowFrameConfig,
+};
 use crate::daemon::DaemonOptions;
 use crate::font::{
     AllowSquareGlyphOverflow, FontLocatorSelection, FontRasterizerSelection, FontShaperSelection,
@@ -19,7 +21,7 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, KeyMapPreference, LoadedConfig, CONFIG_DIR, CONFIG_FILE_OVERRIDE,
+    default_true, KeyMapPreference, LoadedConfig, RgbaColor, CONFIG_DIR, CONFIG_FILE_OVERRIDE,
     CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
@@ -92,6 +94,12 @@ pub struct Config {
 
     #[dynamic(default = "default_pane_select_font_size")]
     pub pane_select_font_size: f64,
+
+    #[dynamic(default = "default_pane_select_fg_color")]
+    pub pane_select_fg_color: RgbaColor,
+
+    #[dynamic(default = "default_pane_select_bg_color")]
+    pub pane_select_bg_color: RgbaColor,
 
     #[dynamic(default)]
     pub tab_bar_style: TabBarStyle,
@@ -1132,6 +1140,14 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_pane_select_fg_color() -> RgbaColor {
+    SrgbaTuple(0.75, 0.75, 0.75, 1.0).into()
+}
+
+fn default_pane_select_bg_color() -> RgbaColor {
+    SrgbaTuple(0., 0., 0., 0.5).into()
 }
 
 fn default_pane_select_font_size() -> f64 {

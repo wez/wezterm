@@ -1,14 +1,14 @@
 use crate::termwindow::box_model::*;
 use crate::termwindow::modal::Modal;
 use crate::termwindow::render::{
-    rgbcolor_to_window_color, BOTTOM_LEFT_ROUNDED_CORNER, BOTTOM_RIGHT_ROUNDED_CORNER,
-    TOP_LEFT_ROUNDED_CORNER, TOP_RIGHT_ROUNDED_CORNER,
+    BOTTOM_LEFT_ROUNDED_CORNER, BOTTOM_RIGHT_ROUNDED_CORNER, TOP_LEFT_ROUNDED_CORNER,
+    TOP_RIGHT_ROUNDED_CORNER,
 };
 use crate::termwindow::DimensionContext;
 use crate::utilsprites::RenderMetrics;
 use crate::TermWindow;
 use config::keyassignment::{KeyAssignment, PaneSelectArguments, PaneSelectMode};
-use config::{Dimension, TabBarColors};
+use config::Dimension;
 use mux::Mux;
 use std::cell::{Ref, RefCell};
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
@@ -60,24 +60,16 @@ impl PaneSelector {
         let labels =
             crate::overlay::quickselect::compute_labels_for_alphabet(alphabet, panes.len());
 
-        let colors = term_window
-            .config
-            .colors
-            .as_ref()
-            .and_then(|c| c.tab_bar.as_ref())
-            .cloned()
-            .unwrap_or_else(TabBarColors::default);
-
         let mut elements = vec![];
         for pos in panes {
             let caption = labels[pos.index].clone();
             let element = Element::new(&font, ElementContent::Text(caption))
                 .colors(ElementColors {
                     border: BorderColor::new(
-                        rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
+                        term_window.config.pane_select_bg_color.to_linear().into(),
                     ),
-                    bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
-                    text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
+                    bg: term_window.config.pane_select_bg_color.to_linear().into(),
+                    text: term_window.config.pane_select_fg_color.to_linear().into(),
                 })
                 .padding(BoxDimension {
                     left: Dimension::Cells(0.25),

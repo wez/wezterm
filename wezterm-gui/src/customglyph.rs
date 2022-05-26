@@ -3668,9 +3668,11 @@ impl<T: Texture2d> GlyphCache<T> {
             style,
         } in polys
         {
-            let intensity = (intensity.to_scale() * 255.) as u8;
             let mut paint = Paint::default();
-            paint.set_color_rgba8(intensity, intensity, intensity, intensity);
+            let intensity = intensity.to_scale();
+            paint.set_color(
+                tiny_skia::Color::from_rgba(intensity, intensity, intensity, intensity).unwrap(),
+            );
             paint.anti_alias = match aa {
                 PolyAA::AntiAlias => true,
                 PolyAA::MoarPixels => false,

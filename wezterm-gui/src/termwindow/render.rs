@@ -837,10 +837,7 @@ impl super::TermWindow {
                 let mut ui_items = computed.ui_items();
 
                 let gl_state = self.render_state.as_ref().unwrap();
-                let vb = &gl_state.modal_layer.vb[1];
-                let mut vb_mut = vb.current_vb_mut();
-                let mut layer1 = vb.map(&mut vb_mut);
-                self.render_element(&computed, &mut layer1, None)?;
+                self.render_element(&computed, &gl_state.modal_layer, None)?;
 
                 self.ui_items.append(&mut ui_items);
             }
@@ -857,10 +854,7 @@ impl super::TermWindow {
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.tab_layer.vb[1];
-        let mut vb_mut = vb.current_vb_mut();
-        let mut layer1 = vb.map(&mut vb_mut);
-        self.render_element(&computed, &mut layer1, None)?;
+        self.render_element(&computed, &gl_state.tab_layer, None)?;
 
         Ok(ui_items)
     }

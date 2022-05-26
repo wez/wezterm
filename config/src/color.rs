@@ -41,6 +41,12 @@ impl From<RgbColor> for RgbaColor {
     }
 }
 
+impl From<SrgbaTuple> for RgbaColor {
+    fn from(color: SrgbaTuple) -> Self {
+        Self { color }
+    }
+}
+
 impl std::ops::Deref for RgbaColor {
     type Target = SrgbaTuple;
     fn deref(&self) -> &SrgbaTuple {

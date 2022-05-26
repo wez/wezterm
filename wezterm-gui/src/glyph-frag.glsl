@@ -93,6 +93,11 @@ void main() {
     color = texture(atlas_nearest_sampler, o_tex);
     // this is the alpha
     colorMask = color.aaaa;
+  } else if (o_has_color == 4.0) {
+    // Grayscale poly quad for non-aa text render layers
+    colorMask = texture(atlas_nearest_sampler, o_tex);
+    color = o_fg_color;
+    color.a *= colorMask.a;
   } else if (o_has_color == 0.0) {
     // the texture is the alpha channel/color mask
     colorMask = texture(atlas_nearest_sampler, o_tex);
