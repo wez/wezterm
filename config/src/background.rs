@@ -32,6 +32,9 @@ impl Default for BlendMode {
 pub enum GradientOrientation {
     Horizontal,
     Vertical,
+    Linear {
+        angle: Option<f64>,
+    },
     Radial {
         radius: Option<f64>,
         cx: Option<f64>,

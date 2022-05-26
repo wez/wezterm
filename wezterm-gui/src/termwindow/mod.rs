@@ -594,6 +594,21 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
                             )));
                         }
                     }
+                    GradientOrientation::Linear { angle } => {
+                        let angle = angle.unwrap_or(0.0).to_radians();
+                        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                            let (x, y) = (x as f64, y as f64);
+                            let (x, y) = (x - fw / 2., y - fh / 2.);
+                            let t = x * f64::cos(angle) - y * f64::sin(angle);
+                            *pixel = to_pixel(grad.at(remap(
+                                t + noise(&rng, noise_amount),
+                                -fw / 2.,
+                                fw / 2.,
+                                dmin,
+                                dmax,
+                            )));
+                        }
+                    }
                     GradientOrientation::Radial { radius, cx, cy } => {
                         let radius = fw * radius.unwrap_or(0.5);
                         let cx = fw * cx.unwrap_or(0.5);
