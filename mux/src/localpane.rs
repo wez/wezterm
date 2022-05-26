@@ -818,7 +818,10 @@ impl LocalPane {
 
         #[cfg(windows)]
         if let Some(fg) = self.divine_foreground_process() {
-            return Url::parse(&format!("file://localhost{}", fg.cwd.display())).ok();
+            // Since windows paths typically start with something like C:\,
+            // we cannot simply stick `localhost` on the front; we have to
+            // omit the hostname otherwise the url parser is unhappy.
+            return Url::parse(&format!("file://{}", fg.cwd.display())).ok();
         }
 
         #[allow(unreachable_code)]

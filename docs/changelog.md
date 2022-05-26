@@ -69,6 +69,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `DecreaseFontSize` wasn't quite the inverse of `IncreaseFontSize`. Thanks to [@Funami580](https://github.com/Funami580)! [#1997](https://github.com/wez/wezterm/pull/1997)
 * Wayland: unable to paste text that was copied before starting the initial wezterm window. Thanks to [@Funami580](https://github.com/Funami580)! [#1994](https://github.com/wez/wezterm/pull/1994) [#1385](https://github.com/wez/wezterm/issues/1385)
 * Unicode NFD text could incorrectly render with repeated glyphs [#2032](https://github.com/wez/wezterm/issues/2032)
+* Windows: spawning new panes/tabs wouldn't automatically use the working directory of the current pane when OSC 7 was not being used [#2036](https://github.com/wez/wezterm/issues/2036)
 
 ### 20220408-101518-b908e2dd
 
