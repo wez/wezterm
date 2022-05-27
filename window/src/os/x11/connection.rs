@@ -54,6 +54,7 @@ pub struct XConnection {
     pub(crate) ime: RefCell<std::pin::Pin<Box<xcb_imdkit::ImeClient>>>,
     pub(crate) ime_process_event_result: RefCell<anyhow::Result<()>>,
     pub(crate) has_randr: bool,
+    pub(crate) atom_names: RefCell<HashMap<Atom, String>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -470,6 +471,7 @@ impl XConnection {
             ime: RefCell::new(ime),
             ime_process_event_result: RefCell::new(Ok(())),
             has_randr,
+            atom_names: RefCell::new(HashMap::new()),
         });
 
         {
@@ -526,6 +528,21 @@ impl XConnection {
         }
 
         Ok(conn)
+    }
+
+    pub fn atom_name(&self, atom: Atom) -> String {
+        if let Some(name) = self.atom_names.borrow().get(&atom) {
+            return name.to_string();
+        }
+        let cookie = self.conn.send_request(&xcb::x::GetAtomName { atom });
+        let name = if let Ok(reply) = self.conn.wait_for_reply(cookie) {
+            reply.name().to_string()
+        } else {
+            format!("{:?}", atom)
+        };
+
+        self.atom_names.borrow_mut().insert(atom, name.to_string());
+        name
     }
 
     pub fn conn(&self) -> &xcb::Connection {

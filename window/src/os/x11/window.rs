@@ -68,6 +68,7 @@ pub(crate) struct XWindowInner {
     appearance: Appearance,
     title: String,
     has_focus: Option<bool>,
+    verify_focus: bool,
     last_cursor_position: Rect,
     invalidated: bool,
     paint_throttled: bool,
@@ -215,29 +216,26 @@ impl XWindowInner {
             } else {
                 self.invalidated = false;
 
-                if self.has_focus.is_none() {
-                    log::trace!(
-                        "About to paint, but we've never received a FOCUS_IN/FOCUS_OUT \
-                         event; querying WM to determine focus state"
-                    );
+                if self.verify_focus || self.has_focus.is_none() {
+                    log::trace!("About to paint, but we're unsure about focus; querying!");
 
                     let focus = self
                         .conn()
                         .wait_for_reply(self.conn().send_request(&xcb::x::GetInputFocus {}))?;
                     let focused = focus.focus() == self.window_id;
                     log::trace!("Do I have focus? {}", focused);
-                    self.has_focus.replace(focused);
-                    self.events.dispatch(WindowEvent::FocusChanged(focused));
+                    if Some(focused) != self.has_focus {
+                        self.has_focus.replace(focused);
+                        self.events.dispatch(WindowEvent::FocusChanged(focused));
+                    }
+
+                    self.verify_focus = false;
                 }
 
                 if !self.dispatched_any_resize {
                     self.dispatched_any_resize = true;
 
-                    log::trace!(
-                        "About to paint, but we've never dispatched a Resized \
-                         event, and thus never received a CONFIGURE_NOTIFY; \
-                         querying WM for geometry"
-                    );
+                    log::trace!("About to paint, but we've unsure about geometry; querying!");
                     let geom = self.conn().wait_for_reply(self.conn().send_request(
                         &xcb::x::GetGeometry {
                             drawable: xcb::x::Drawable::Window(self.window_id),
@@ -251,18 +249,20 @@ impl XWindowInner {
                         self.height
                     );
 
-                    self.width = geom.width();
-                    self.height = geom.height();
+                    if self.width != geom.width() || self.height != geom.height() {
+                        self.width = geom.width();
+                        self.height = geom.height();
 
-                    self.events.dispatch(WindowEvent::Resized {
-                        dimensions: Dimensions {
-                            pixel_width: self.width as usize,
-                            pixel_height: self.height as usize,
-                            dpi: self.dpi as usize,
-                        },
-                        window_state: self.get_window_state().unwrap_or(WindowState::default()),
-                        live_resizing: false,
-                    });
+                        self.events.dispatch(WindowEvent::Resized {
+                            dimensions: Dimensions {
+                                pixel_width: self.width as usize,
+                                pixel_height: self.height as usize,
+                                dpi: self.dpi as usize,
+                            },
+                            window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                            live_resizing: false,
+                        });
+                    }
                 }
 
                 self.events.dispatch(WindowEvent::NeedRepaint);
@@ -363,7 +363,10 @@ impl XWindowInner {
                 if width == self.width && height == self.height && dpi == self.dpi {
                     // Effectively unchanged; perhaps it was simply moved?
                     // Do nothing!
-                    log::trace!("Ignoring CONFIGURE_NOTIFY because width,height,dpi are unchanged");
+                    log::trace!(
+                        "Ignoring CONFIGURE_NOTIFY ({width}x{height} dpi={dpi}) \
+                                 because width,height,dpi are unchanged"
+                    );
                     return Ok(());
                 }
 
@@ -470,22 +473,8 @@ impl XWindowInner {
                 self.selection_notify(e)?;
             }
             Event::X(xcb::x::Event::PropertyNotify(msg)) => {
-                /*
-                if let Ok(reply) = xcb::x::get_atom_name(&conn, msg.atom()).get_reply() {
-                    log::info!(
-                        "PropertyNotifyEvent atom={} {} xsel={}",
-                        msg.atom(),
-                        reply.name(),
-                        conn.atom_xsel_data
-                    );
-                }
-                */
-
-                log::trace!(
-                    "PropertyNotifyEvent atom={:?} xsel={:?}",
-                    msg.atom(),
-                    conn.atom_xsel_data
-                );
+                let atom_name = conn.atom_name(msg.atom());
+                log::trace!("PropertyNotifyEvent {atom_name}");
 
                 if msg.atom() == conn.atom_gtk_edge_constraints {
                     // "_GTK_EDGE_CONSTRAINTS" property is changed when the
@@ -501,17 +490,29 @@ impl XWindowInner {
                             .dispatch(WindowEvent::AppearanceChanged(appearance));
                     }
                 }
+
+                if msg.atom() == conn.atom_net_wm_state {
+                    // Change in window state should be accompanied by
+                    // a Configure Notify but not all WMs send these
+                    // events consistently/at all/in the same order.
+                    self.dispatched_any_resize = false;
+                    self.verify_focus = true;
+                }
             }
             Event::X(xcb::x::Event::FocusIn(_)) => {
-                self.has_focus.replace(true);
-                self.update_ime_position();
-                log::trace!("Calling focus_change(true)");
-                self.events.dispatch(WindowEvent::FocusChanged(true));
+                if self.has_focus != Some(true) {
+                    self.has_focus.replace(true);
+                    self.update_ime_position();
+                    log::trace!("Calling focus_change(true)");
+                    self.events.dispatch(WindowEvent::FocusChanged(true));
+                }
             }
             Event::X(xcb::x::Event::FocusOut(_)) => {
-                self.has_focus.replace(false);
-                log::trace!("Calling focus_change(false)");
-                self.events.dispatch(WindowEvent::FocusChanged(false));
+                if self.has_focus != Some(false) {
+                    self.has_focus.replace(false);
+                    log::trace!("Calling focus_change(false)");
+                    self.events.dispatch(WindowEvent::FocusChanged(false));
+                }
             }
             Event::X(xcb::x::Event::LeaveNotify(_)) => {
                 self.events.dispatch(WindowEvent::MouseLeave);
@@ -969,6 +970,7 @@ impl XWindow {
                 cursors: CursorInfo::new(&config, &conn),
                 config: config.clone(),
                 has_focus: None,
+                verify_focus: true,
                 last_cursor_position: Rect::default(),
                 paint_throttled: false,
                 invalidated: false,
