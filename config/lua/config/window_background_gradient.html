@@ -149,7 +149,8 @@ for <code>window_background_image</code> is ignored.</p>
     -- Can be &quot;Vertical&quot; or &quot;Horizontal&quot;.  Specifies the direction
     -- in which the color gradient varies.  The default is &quot;Horizontal&quot;,
     -- with the gradient going from left-to-right.
-    -- Radial gradients are also supported; see the other example below
+    -- Linear and Radial gradients are also supported; see the other
+    -- examples below
     orientation = &quot;Vertical&quot;,
 
     -- Specifies the set of colors that are interpolated in the gradient.
@@ -200,6 +201,27 @@ for <code>window_background_image</code> is ignored.</p>
 <p>Gradients are implemented using the <code>colorgrad</code> crate.
 Take a look at <a href="https://github.com/mazznoer/colorgrad-rs#using-web-color-format">https://github.com/mazznoer/colorgrad-rs#using-web-color-format</a>
 for some usage examples and additional information about gradients.</p>
+<h2 id="linear-gradient"><a class="header" href="#linear-gradient">Linear gradient:</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>A linear gradient follows a linear path across the window. It can be rotated
+around the window center. The angle is described in degrees and moves 
+counter clockwise in the positive direction.</p>
+<p>So <code>0</code> degrees is equivalent to <code>Horizontal</code> with the gradient moving from left
+to right. <code>90</code> degrees is equivalent to <code>Vertical</code> with the gradient moving from
+bottom to top. <code>180</code> degrees is equivalent to <code>Horizontal</code> but with the gradient
+moving from right to left. <code>270</code> degrees is equivalent to <code>Vertical</code> but with
+the gradient going from top to bottom. Negative degrees are equivalent to going
+clockwise, so <code>-45</code> is equivalent to <code>315</code> degrees and results in a gradient
+that is moving from the top left corner down to the bottom right corner.</p>
+<pre><code class="language-lua">return {
+  window_background_gradient = {
+    colors = { &quot;#EEBD89&quot;, &quot;#D13ABD&quot; },
+    -- Specifices a Linear gradient starting in the top left corner.
+    orientation = { Linear = { angle = -45.0 } },
+  }
+}
+</code></pre>
+<img src="../../../screenshots/linear-gradient.png">
 <h2 id="radial-gradient"><a class="header" href="#radial-gradient">Radial gradient:</a></h2>
 <p>Radial gradients are implemented using a notional perfect circle that is
 subsequently stretched to fill the dimensions of the window.</p>
