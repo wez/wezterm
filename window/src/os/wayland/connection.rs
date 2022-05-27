@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicUsize;
 use toolkit::environment::Environment;
 use toolkit::reexports::client::Display;
 use toolkit::seat::SeatListener;
+use toolkit::shm::AutoMemPool;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeymapFormat, WlKeyboard};
 use wayland_client::{EventQueue, Main};
 
@@ -44,6 +45,8 @@ pub struct WaylandConnection {
 
     /// Repeats per second
     pub(crate) key_repeat_rate: RefCell<i32>,
+
+    pub(crate) mem_pool: RefCell<AutoMemPool>,
 
     /// Delay before repeating, in milliseconds
     pub(crate) key_repeat_delay: RefCell<i32>,
@@ -139,6 +142,8 @@ impl WaylandConnection {
             });
         }
 
+        let mem_pool = environment.create_auto_pool()?;
+
         Ok(Self {
             display: RefCell::new(display),
             environment: RefCell::new(environment),
@@ -148,6 +153,7 @@ impl WaylandConnection {
             event_q: RefCell::new(event_q),
             pointer: RefCell::new(pointer.unwrap()),
             seat_listener,
+            mem_pool: RefCell::new(mem_pool),
             gl_connection: RefCell::new(None),
             keyboard_mapper: RefCell::new(None),
             key_repeat_rate: RefCell::new(25),

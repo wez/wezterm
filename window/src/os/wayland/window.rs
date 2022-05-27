@@ -677,9 +677,21 @@ impl WaylandWindowInner {
                         // otherwise interactive window resize will keep removing
                         // the window contents!
                         if self.surface_factor != factor {
-                            self.surface.attach(None, 0, 0);
-                            self.surface.set_buffer_scale(factor);
-                            self.surface_factor = factor;
+                            let wayland_conn = Connection::get().unwrap().wayland();
+                            let mut pool = wayland_conn.mem_pool.borrow_mut();
+                            // Make a "fake" buffer with the right dimensions, as
+                            // simply detaching the buffer can cause wlroots-derived
+                            // compositors consider the window to be unconfigured.
+                            if let Ok((_bytes, buffer)) = pool.buffer(
+                                factor,
+                                factor,
+                                factor * 4,
+                                wayland_client::protocol::wl_shm::Format::Argb8888,
+                            ) {
+                                self.surface.attach(Some(&buffer), 0, 0);
+                                self.surface.set_buffer_scale(factor);
+                                self.surface_factor = factor;
+                            }
                         }
                     }
                 }
