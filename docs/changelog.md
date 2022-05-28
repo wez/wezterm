@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm cli send-text --no-paste` option to send text to a pain without wrapping it as a bracketed paste
 * [PaneSelect](config/lua/keyassignment/PaneSelect.md) key assignment to activate the pane selection UI to activate or swap the selected pane. [#1842](https://github.com/wez/wezterm/issues/1842) [#1975](https://github.com/wez/wezterm/issues/1975)
 * [window_background_gradient](config/lua/config/window_background_gradient.md) now also supports `Linear` gradients with an angle of your choice. Thanks to [@erf](https://github.com/erf)! [#2038](https://github.com/wez/wezterm/pull/2038)
+* RPM and DEB packages now install zsh and bash `wezterm` CLI completions
 
 #### Updated
 * Bundled harfbuzz to 4.3.0

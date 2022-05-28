@@ -1,0 +1,377 @@
+#compdef wezterm
+
+autoload -U is-at-least
+
+_wezterm() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'(-n)--config-file=[Specify the configuration file to use, overrides the normal configuration file resolution]:CONFIG_FILE: ' \
+'*--config=[Override specific configuration values]:name=value: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'-V[Print version information]' \
+'--version[Print version information]' \
+'-n[Skip loading wezterm.lua]' \
+":: :_wezterm_commands" \
+"*::: :->wezterm" \
+&& ret=0
+    case $state in
+    (wezterm)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:wezterm-command-$line[1]:"
+        case $line[1] in
+            (start)
+_arguments "${_arguments_options[@]}" \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
+'--workspace=[Override the default workspace with the provided name. The default is "default"]:WORKSPACE: ' \
+'--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'--no-auto-connect[If true, do not connect to domains marked as connect_automatically in your wezterm configuration file]' \
+'--always-new-process[If enabled, don'\''t try to ask an existing wezterm GUI instance to start the command.  Instead, always start the GUI in this invocation of wezterm so that you can wait for the command to complete by waiting for this wezterm process to finish]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:' \
+&& ret=0
+;;
+(ssh)
+_arguments "${_arguments_options[@]}" \
+'*-o+[Override specific SSH configuration options. `wezterm ssh` is able to parse some (but not all!) options from your `~/.ssh/config` and `/etc/ssh/ssh_config` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
+'*--ssh-option=[Override specific SSH configuration options. `wezterm ssh` is able to parse some (but not all!) options from your `~/.ssh/config` and `/etc/ssh/ssh_config` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
+'--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
+'--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'-v[Enable verbose ssh protocol tracing. The trace information is printed to the stderr stream of the process]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':user-at-host-and-port -- Specifies the remote system using the form\: `\[username@\]host\[\:port\]`. If `username@` is omitted, then your local $USER is used instead. If `\:port` is omitted, then the standard ssh port (22) is used instead:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm ssh user@host -- bash -l` will spawn bash as if it were a login shell:' \
+&& ret=0
+;;
+(serial)
+_arguments "${_arguments_options[@]}" \
+'--baud=[Set the baud rate.  The default is 9600 baud]:BAUD: ' \
+'--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
+'--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':port -- Specifies the serial device name. On Windows systems this can be a name like `COM0`. On posix systems this will be something like `/dev/ttyUSB0`:' \
+&& ret=0
+;;
+(connect)
+_arguments "${_arguments_options[@]}" \
+'--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
+'--workspace=[Override the default workspace with the provided name. The default is "default"]:WORKSPACE: ' \
+'--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':domain-name -- Name of the multiplexer domain section from the configuration to which you'\''d like to connect:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:' \
+&& ret=0
+;;
+(ls-fonts)
+_arguments "${_arguments_options[@]}" \
+'(--list-system)--text=[Explain which fonts are used to render the supplied text string]:TEXT: ' \
+'--list-system[Whether to list all fonts available to the system]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(cli)
+_arguments "${_arguments_options[@]}" \
+'--class=[When connecting to a gui instance, if you started the gui with `--class SOMETHING`, you should also pass that same value here in order for the client to find the correct gui instance]:CLASS: ' \
+'--no-auto-start[Don'\''t automatically start the server]' \
+'--prefer-mux[Prefer connecting to a background mux server. The default is to prefer connecting to a running wezterm gui instance]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+":: :_wezterm__cli_commands" \
+"*::: :->cli" \
+&& ret=0
+
+    case $state in
+    (cli)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:wezterm-cli-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" \
+'--format=[Controls the output format. "table" and "json" are possible formats]:FORMAT: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(list-clients)
+_arguments "${_arguments_options[@]}" \
+'--format=[Controls the output format. "table" and "json" are possible formats]:FORMAT: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(proxy)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(tlscreds)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(move-pane-to-new-tab)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the pane that should be moved. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'--window-id=[Specify the window into which the new tab will be created. If omitted, the window associated with the current pane is used]:WINDOW_ID: ' \
+'--workspace=[If creating a new window, override the default workspace name with the provided name.  The default name is "default"]:WORKSPACE: ' \
+'(--window-id)--new-window[Create tab in a new window, rather than the window currently containing the pane]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(split-pane)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the pane that should be split. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'--cells=[The number of cells that the new split should have. If omitted, 50% of the available space is used]:CELLS: ' \
+'(--cells)--percent=[Specify the number of cells that the new split should have, expressed as a percentage of the available space]:PERCENT: ' \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'(--cwd)--move-pane-id=[Instead of spawning a new command, move the specified pane into the newly created split]:MOVE_PANE_ID: ' \
+'(--left --right --top --bottom)--horizontal[Equivalent to `--right`. If neither this nor any other direction is specified, the default is equivalent to `--bottom`]' \
+'(--right --top --bottom)--left[Split horizontally, with the new pane on the left]' \
+'(--left --top --bottom)--right[Split horizontally, with the new pane on the right]' \
+'(--left --right --bottom)--top[Split vertically, with the new pane on the top]' \
+'(--left --right --top)--bottom[Split vertically, with the new pane on the bottom]' \
+'--top-level[Rather than splitting the active pane, split the entire window]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli split-pane -- bash -l` will spawn bash as if it were a login shell:' \
+&& ret=0
+;;
+(spawn)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE. The pane is used to determine the current domain and window]:PANE_ID: ' \
+'--domain-name=[]:DOMAIN_NAME: ' \
+'--window-id=[Specify the window into which to spawn a tab. If omitted, the window associated with the current pane is used]:WINDOW_ID: ' \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'--workspace=[When creating a new window, override the default workspace name with the provided name.  The default name is "default"]:WORKSPACE: ' \
+'(--window-id)--new-window[Spawn into a new window, rather than a new tab]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli spawn -- bash -l` will spawn bash as if it were a login shell:' \
+&& ret=0
+;;
+(send-text)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'--no-paste[Send the text directly, rather than as a bracketed paste]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'::text -- The text to send. If omitted, will read the text from stdin:' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'*::subcommand -- The subcommand whose help message to display:' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(imgcat)
+_arguments "${_arguments_options[@]}" \
+'--width=[Specify the display width; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value `N` to specify the number of cells, or `Npx` to specify the number of pixels, or `N%` to size relative to the terminal width]:WIDTH: ' \
+'--height=[Specify the display height; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value `N` to specify the number of cells, or `Npx` to specify the number of pixels, or `N%` to size relative to the terminal height]:HEIGHT: ' \
+'--no-preserve-aspect-ratio[Do not respect the aspect ratio.  The default is to respect the aspect ratio]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'::file-name -- The name of the image file to be displayed. If omitted, will attempt to read it from stdin:' \
+&& ret=0
+;;
+(set-working-directory)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'::cwd -- The directory to specify. If omitted, will use the current directory of the process itself:' \
+'::host -- The hostname to use in the constructed file\:// URL. If omitted, the system hostname will be used:' \
+&& ret=0
+;;
+(record)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'*::prog:' \
+&& ret=0
+;;
+(replay)
+_arguments "${_arguments_options[@]}" \
+'--explain[Explain what is being sent/received]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':cast-file:' \
+&& ret=0
+;;
+(shell-completion)
+_arguments "${_arguments_options[@]}" \
+'--shell=[Which shell to generate for]:SHELL:(bash elvish fish powershell zsh)' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'*::subcommand -- The subcommand whose help message to display:' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_wezterm_commands] )) ||
+_wezterm_commands() {
+    local commands; commands=(
+'start:Start the GUI, optionally running an alternative program' \
+'ssh:Establish an ssh session' \
+'serial:Open a serial port' \
+'connect:Connect to wezterm multiplexer' \
+'ls-fonts:Display information about fonts' \
+'cli:Interact with experimental mux server' \
+'imgcat:Output an image to the terminal' \
+'set-working-directory:Advise the terminal of the current working directory by emitting an OSC 7 escape sequence' \
+'record:Record a terminal session as an asciicast' \
+'replay:Replay an asciicast terminal session' \
+'shell-completion:Generate shell completion information' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'wezterm commands' commands "$@"
+}
+(( $+functions[_wezterm__cli_commands] )) ||
+_wezterm__cli_commands() {
+    local commands; commands=(
+'list:list windows, tabs and panes' \
+'list-clients:list clients' \
+'proxy:start rpc proxy pipe' \
+'tlscreds:obtain tls credentials' \
+'move-pane-to-new-tab:Move a pane into a new tab' \
+'split-pane:split the current pane.
+Outputs the pane-id for the newly created pane on success' \
+'spawn:Spawn a command into a new window or tab
+Outputs the pane-id for the newly created pane on success' \
+'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'wezterm cli commands' commands "$@"
+}
+(( $+functions[_wezterm__connect_commands] )) ||
+_wezterm__connect_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm connect commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help_commands] )) ||
+_wezterm__cli__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help commands' commands "$@"
+}
+(( $+functions[_wezterm__help_commands] )) ||
+_wezterm__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help commands' commands "$@"
+}
+(( $+functions[_wezterm__imgcat_commands] )) ||
+_wezterm__imgcat_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm imgcat commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__list_commands] )) ||
+_wezterm__cli__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli list commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__list-clients_commands] )) ||
+_wezterm__cli__list-clients_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli list-clients commands' commands "$@"
+}
+(( $+functions[_wezterm__ls-fonts_commands] )) ||
+_wezterm__ls-fonts_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm ls-fonts commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__move-pane-to-new-tab_commands] )) ||
+_wezterm__cli__move-pane-to-new-tab_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli move-pane-to-new-tab commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__proxy_commands] )) ||
+_wezterm__cli__proxy_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli proxy commands' commands "$@"
+}
+(( $+functions[_wezterm__record_commands] )) ||
+_wezterm__record_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm record commands' commands "$@"
+}
+(( $+functions[_wezterm__replay_commands] )) ||
+_wezterm__replay_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm replay commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__send-text_commands] )) ||
+_wezterm__cli__send-text_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli send-text commands' commands "$@"
+}
+(( $+functions[_wezterm__serial_commands] )) ||
+_wezterm__serial_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm serial commands' commands "$@"
+}
+(( $+functions[_wezterm__set-working-directory_commands] )) ||
+_wezterm__set-working-directory_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm set-working-directory commands' commands "$@"
+}
+(( $+functions[_wezterm__shell-completion_commands] )) ||
+_wezterm__shell-completion_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm shell-completion commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__spawn_commands] )) ||
+_wezterm__cli__spawn_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli spawn commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__split-pane_commands] )) ||
+_wezterm__cli__split-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli split-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__ssh_commands] )) ||
+_wezterm__ssh_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm ssh commands' commands "$@"
+}
+(( $+functions[_wezterm__start_commands] )) ||
+_wezterm__start_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm start commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__tlscreds_commands] )) ||
+_wezterm__cli__tlscreds_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli tlscreds commands' commands "$@"
+}
+
+_wezterm "$@"

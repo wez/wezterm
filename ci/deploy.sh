@@ -161,6 +161,8 @@ install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
 install -Dsm755 target/release/strip-ansi-escapes -t %{buildroot}/usr/bin
 install -Dm644 assets/shell-integration/* -t %{buildroot}/etc/profile.d
+install -Dm644 assets/shell-completion/zsh %{buildroot}/usr/share/zsh/site-functions/_wezterm
+install -Dm644 assets/shell-completion/bash %{buildroot}/etc/bash_completion.d/wezterm
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
 install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
@@ -171,6 +173,8 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /usr/bin/wezterm-gui
 /usr/bin/wezterm-mux-server
 /usr/bin/strip-ansi-escapes
+/usr/share/zsh/site-functions/_wezterm
+/etc/bash_completion.d/wezterm
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/applications/org.wezfurlong.wezterm.desktop
 /usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
@@ -234,6 +238,8 @@ EOF
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
         install -Dm644 assets/wezterm-nautilus.py pkg/debian/usr/share/nautilus-python/extensions/wezterm-nautilus.py
+        install -Dm644 assets/shell-completion/bash pkg/debian/usr/share/bash-completion/bash_completion
+        install -Dm644 assets/shell-completion/zsh pkg/debian/usr/share/zsh/functions/Completion/Unix/_wezterm
         install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
