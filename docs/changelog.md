@@ -71,6 +71,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: unable to paste text that was copied before starting the initial wezterm window. Thanks to [@Funami580](https://github.com/Funami580)! [#1994](https://github.com/wez/wezterm/pull/1994) [#1385](https://github.com/wez/wezterm/issues/1385)
 * Unicode NFD text could incorrectly render with repeated glyphs [#2032](https://github.com/wez/wezterm/issues/2032)
 * Windows: spawning new panes/tabs wouldn't automatically use the working directory of the current pane when OSC 7 was not being used [#2036](https://github.com/wez/wezterm/issues/2036)
+* Wayland: panic when display scaling is enabled. [#1727](https://github.com/wez/wezterm/issues/1727)
 
 ### 20220408-101518-b908e2dd
 
