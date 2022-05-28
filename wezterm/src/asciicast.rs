@@ -1,6 +1,7 @@
 use anyhow::Context;
 use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, Utc};
+use clap::Parser;
 use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use portable_pty::{native_pty_system, PtySize};
@@ -11,8 +12,7 @@ use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
-use structopt::StructOpt;
-use termwiz::escape::parser::Parser;
+use termwiz::escape::parser::Parser as TWParser;
 use termwiz::escape::Action;
 #[cfg(unix)]
 use unix::UnixTty as Tty;
@@ -335,9 +335,9 @@ enum Message {
     Terminated(portable_pty::ExitStatus),
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct RecordCommand {
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     prog: Vec<OsString>,
 }
 
@@ -474,10 +474,10 @@ impl RecordCommand {
     }
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct PlayCommand {
     /// Explain what is being sent/received
-    #[structopt(long)]
+    #[clap(long)]
     explain: bool,
 
     cast_file: PathBuf,
@@ -532,7 +532,7 @@ impl PlayCommand {
 
         let start = Instant::now();
 
-        let mut sent_parser = Parser::new();
+        let mut sent_parser = TWParser::new();
         let mut sent_actions = vec![];
 
         for line in cast_file.lines() {
@@ -590,7 +590,7 @@ impl PlayCommand {
         if self.explain {
             println!("< RECV");
         }
-        let mut parser = Parser::new();
+        let mut parser = TWParser::new();
         while let Ok(msg) = rx.try_recv() {
             match msg {
                 Message::Stdin(data) => {

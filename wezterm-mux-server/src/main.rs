@@ -1,3 +1,4 @@
+use clap::*;
 use config::configuration;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -8,25 +9,23 @@ use std::process::Command;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
-use structopt::*;
 use wezterm_gui_subcommands::*;
 
 mod daemonize;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[clap(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
-    global_setting = structopt::clap::AppSettings::ColoredHelp,
     version = config::wezterm_version()
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[structopt(name = "skip-config", short = "n")]
+    #[clap(name = "skip-config", short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
     /// configuration file resolution
-    #[structopt(
+    #[clap(
         long = "config-file",
         parse(from_os_str),
         conflicts_with = "skip-config"
@@ -34,7 +33,7 @@ struct Opt {
     config_file: Option<OsString>,
 
     /// Override specific configuration values
-    #[structopt(
+    #[clap(
         long = "config",
         name = "name=value",
         parse(try_from_str = name_equals_value),
@@ -42,18 +41,18 @@ struct Opt {
     config_override: Vec<(String, String)>,
 
     /// Detach from the foreground and become a background process
-    #[structopt(long = "daemonize")]
+    #[clap(long = "daemonize")]
     daemonize: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[structopt(long = "cwd", parse(from_os_str))]
+    #[clap(long = "cwd", parse(from_os_str))]
     cwd: Option<OsString>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     prog: Vec<OsString>,
 }
 
@@ -71,7 +70,7 @@ fn run() -> anyhow::Result<()> {
     config::designate_this_as_the_main_thread();
     let _saver = umask::UmaskSaver::new();
 
-    let opts = Opt::from_args();
+    let opts = Opt::parse();
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,

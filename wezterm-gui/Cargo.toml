@@ -23,6 +23,7 @@ cc = "1.0"
 anyhow = "1.0"
 bitflags = "1.3"
 chrono = {version="0.4", features=["unstable-locales"]}
+clap = {version="3.1", features=["derive"]}
 codec = { path = "../codec" }
 colorgrad = "0.5"
 config = { path = "../config" }
@@ -56,7 +57,6 @@ serde = {version="1.0", features = ["rc", "derive"]}
 serde_json = "1.0"
 serial = "0.4"
 smol = "1.2"
-structopt = "0.3"
 tabout = { path = "../tabout" }
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }

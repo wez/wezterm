@@ -3,6 +3,7 @@
 
 use ::window::*;
 use anyhow::{anyhow, Context};
+use clap::Parser;
 use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -15,7 +16,6 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
-use structopt::StructOpt;
 use termwiz::cell::{CellAttributes, UnicodeVersion};
 use termwiz::surface::{Line, SEQ_ZERO};
 use wezterm_bidi::Direction;
@@ -49,20 +49,19 @@ mod utilsprites;
 pub use selection::SelectionMode;
 pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DATA};
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[clap(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
-    global_setting = structopt::clap::AppSettings::ColoredHelp,
     version = config::wezterm_version()
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[structopt(name = "skip-config", short = "n")]
+    #[clap(name = "skip-config", short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
     /// configuration file resolution
-    #[structopt(
+    #[clap(
         long = "config-file",
         parse(from_os_str),
         conflicts_with = "skip-config"
@@ -70,7 +69,7 @@ struct Opt {
     config_file: Option<OsString>,
 
     /// Override specific configuration values
-    #[structopt(
+    #[clap(
         long = "config",
         name = "name=value",
         parse(try_from_str = name_equals_value),
@@ -79,32 +78,32 @@ struct Opt {
 
     /// On Windows, whether to attempt to attach to the parent
     /// process console to display logging output
-    #[structopt(long = "attach-parent-console")]
+    #[clap(long = "attach-parent-console")]
     #[allow(dead_code)]
     attach_parent_console: bool,
 
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Option<SubCommand>,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 enum SubCommand {
-    #[structopt(
+    #[clap(
         name = "start",
         about = "Start the GUI, optionally running an alternative program"
     )]
     Start(StartCommand),
 
-    #[structopt(name = "ssh", about = "Establish an ssh session")]
+    #[clap(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
-    #[structopt(name = "serial", about = "Open a serial port")]
+    #[clap(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[structopt(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[clap(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
 
-    #[structopt(name = "ls-fonts", about = "Display information about fonts")]
+    #[clap(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
 }
 
@@ -913,7 +912,7 @@ fn run() -> anyhow::Result<()> {
         }
     }
 
-    let opts = Opt::from_args();
+    let opts = Opt::parse();
 
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
@@ -953,7 +952,7 @@ fn run() -> anyhow::Result<()> {
             for a in &config.default_gui_startup_args {
                 argv.push(a.clone());
             }
-            SubCommand::from_iter_safe(&argv).with_context(|| {
+            SubCommand::try_parse_from(&argv).with_context(|| {
                 format!(
                     "parsing the default_gui_startup_args config: {:?}",
                     config.default_gui_startup_args

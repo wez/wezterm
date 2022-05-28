@@ -1,12 +1,9 @@
+use clap::Parser;
 use std::io::{Read, Result};
-use structopt::StructOpt;
-use termwiz::escape::parser::Parser;
+use termwiz::escape::parser::Parser as TWParser;
 use termwiz::escape::{Action, ControlCode};
 
-#[derive(Debug, StructOpt)]
-#[structopt(
-    global_setting = structopt::clap::AppSettings::ColoredHelp,
-)]
+#[derive(Debug, Parser)]
 /// This is a little utility that strips escape sequences from
 /// stdin and prints the result on stdout.
 /// It preserves only printable characters and CR, LF and HT.
@@ -17,10 +14,10 @@ use termwiz::escape::{Action, ControlCode};
 struct Opt {}
 
 fn main() -> Result<()> {
-    let _ = Opt::from_args();
+    let _ = Opt::parse();
     let mut buf = [0u8; 4096];
 
-    let mut parser = Parser::new();
+    let mut parser = TWParser::new();
 
     loop {
         let len = std::io::stdin().read(&mut buf)?;

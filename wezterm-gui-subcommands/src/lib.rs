@@ -1,7 +1,7 @@
+use clap::Parser;
 use config::{Dimension, GeometryOrigin, SshParameters};
 use std::ffi::OsString;
 use std::str::FromStr;
-use structopt::StructOpt;
 
 pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
 
@@ -142,23 +142,23 @@ mod test {
     }
 }
 
-#[derive(Debug, StructOpt, Default, Clone)]
+#[derive(Debug, Parser, Default, Clone)]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
-    #[structopt(long = "no-auto-connect")]
+    #[clap(long = "no-auto-connect")]
     pub no_auto_connect: bool,
 
     /// If enabled, don't try to ask an existing wezterm GUI instance
     /// to start the command.  Instead, always start the GUI in this
     /// invocation of wezterm so that you can wait for the command
     /// to complete by waiting for this wezterm process to finish.
-    #[structopt(long = "always-new-process")]
+    #[clap(long = "always-new-process")]
     pub always_new_process: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[structopt(long = "cwd", parse(from_os_str))]
+    #[clap(long = "cwd", parse(from_os_str))]
     pub cwd: Option<OsString>,
 
     /// Override the default windowing system class.
@@ -168,12 +168,12 @@ pub struct StartCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[structopt(long = "class")]
+    #[clap(long = "class")]
     pub class: Option<String>,
 
     /// Override the default workspace with the provided name.
     /// The default is "default".
-    #[structopt(long = "workspace")]
+    #[clap(long = "workspace")]
     pub workspace: Option<String>,
 
     /// Override the position for the initial window launched by this process.
@@ -183,17 +183,17 @@ pub struct StartCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[structopt(long, verbatim_doc_comment)]
+    #[clap(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub prog: Vec<OsString>,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct SshCommand {
     /// Specifies the remote system using the form:
     /// `[username@]host[:port]`.
@@ -212,9 +212,9 @@ pub struct SshCommand {
     /// For example:
     ///
     /// `wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host`
-    #[structopt(
+    #[clap(
         long = "ssh-option",
-        short = "o",
+        short = 'o',
         name = "name=value",
         parse(try_from_str = name_equals_value),
         number_of_values = 1)]
@@ -223,7 +223,7 @@ pub struct SshCommand {
     /// Enable verbose ssh protocol tracing.
     /// The trace information is printed to the stderr stream of
     /// the process.
-    #[structopt(short = "v")]
+    #[clap(short = 'v')]
     pub verbose: bool,
 
     /// Override the default windowing system class.
@@ -233,7 +233,7 @@ pub struct SshCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[structopt(long = "class")]
+    #[clap(long = "class")]
     pub class: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -242,20 +242,20 @@ pub struct SshCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[structopt(long, verbatim_doc_comment)]
+    #[clap(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub prog: Vec<OsString>,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct SerialCommand {
     /// Set the baud rate.  The default is 9600 baud.
-    #[structopt(long = "baud")]
+    #[clap(long = "baud")]
     pub baud: Option<usize>,
 
     /// Override the default windowing system class.
@@ -265,7 +265,7 @@ pub struct SerialCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[structopt(long = "class")]
+    #[clap(long = "class")]
     pub class: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -274,17 +274,17 @@ pub struct SerialCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[structopt(long, verbatim_doc_comment)]
+    #[clap(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Specifies the serial device name.
     /// On Windows systems this can be a name like `COM0`.
     /// On posix systems this will be something like `/dev/ttyUSB0`
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub port: OsString,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct ConnectCommand {
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
@@ -297,12 +297,12 @@ pub struct ConnectCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[structopt(long = "class")]
+    #[clap(long = "class")]
     pub class: Option<String>,
 
     /// Override the default workspace with the provided name.
     /// The default is "default".
-    #[structopt(long = "workspace")]
+    #[clap(long = "workspace")]
     pub workspace: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -311,23 +311,23 @@ pub struct ConnectCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[structopt(long, verbatim_doc_comment)]
+    #[clap(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub prog: Vec<OsString>,
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct LsFontsCommand {
     /// Whether to list all fonts available to the system
-    #[structopt(long = "list-system")]
+    #[clap(long = "list-system")]
     pub list_system: bool,
 
     /// Explain which fonts are used to render the supplied text string
-    #[structopt(long = "text", conflicts_with = "list-system")]
+    #[clap(long = "text", conflicts_with = "list-system")]
     pub text: Option<String>,
 }

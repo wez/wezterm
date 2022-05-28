@@ -10,6 +10,7 @@ resolver = "2"
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }
+clap = {version="3.1", features=["derive"]}
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 libc = "0.2"
@@ -18,7 +19,6 @@ mux = { path = "../mux" }
 openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
-structopt = "0.3"
 umask = { path = "../umask" }
 wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
