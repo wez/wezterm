@@ -542,6 +542,14 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::MovePaneToNewTab(request) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    schedule_move_pane(request, send_response, client_id);
+                })
+                .detach();
+            }
+
             Pdu::GetPaneRenderChanges(GetPaneRenderChanges { pane_id, .. }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);
@@ -682,6 +690,7 @@ impl SessionHandler {
             | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
             | Pdu::GetImageCellResponse { .. }
+            | Pdu::MovePaneToNewTabResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }
@@ -762,5 +771,37 @@ async fn domain_spawn_v2(spawn: SpawnV2, client_id: Option<Arc<ClientId>>) -> an
         tab_id: tab.tab_id(),
         window_id,
         size: tab.get_size(),
+    }))
+}
+
+fn schedule_move_pane<SND>(
+    request: MovePaneToNewTab,
+    send_response: SND,
+    client_id: Option<Arc<ClientId>>,
+) where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(move_pane(request, client_id).await) })
+        .detach();
+}
+
+async fn move_pane(
+    request: MovePaneToNewTab,
+    client_id: Option<Arc<ClientId>>,
+) -> anyhow::Result<Pdu> {
+    let mux = Mux::get().unwrap();
+    let _identity = mux.with_identity(client_id);
+
+    let (tab, window_id) = mux
+        .move_pane_to_new_tab(
+            request.pane_id,
+            request.window_id,
+            request.workspace_for_new_window,
+        )
+        .await?;
+
+    Ok::<Pdu, anyhow::Error>(Pdu::MovePaneToNewTabResponse(MovePaneToNewTabResponse {
+        tab_id: tab.tab_id(),
+        window_id,
     }))
 }

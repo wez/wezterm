@@ -992,6 +992,53 @@ impl Mux {
         Ok((pane, size))
     }
 
+    pub async fn move_pane_to_new_tab(
+        &self,
+        pane_id: PaneId,
+        window_id: Option<WindowId>,
+        workspace_for_new_window: Option<String>,
+    ) -> anyhow::Result<(Rc<Tab>, WindowId)> {
+        let (_domain, _src_window, src_tab) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
+        let src_tab = match self.get_tab(src_tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", src_tab),
+        };
+
+        let window_builder;
+        let (window_id, size) = if let Some(window_id) = window_id {
+            let window = self
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+            let tab = window
+                .get_active()
+                .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
+            let size = tab.get_size();
+
+            (window_id, size)
+        } else {
+            window_builder = self.new_empty_window(workspace_for_new_window);
+            (*window_builder, src_tab.get_size())
+        };
+
+        let pane = src_tab
+            .remove_pane(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
+
+        let tab = Rc::new(Tab::new(&size));
+        tab.assign_pane(&pane);
+        pane.resize(size)?;
+        self.add_tab_and_active_pane(&tab)?;
+        self.add_tab_to_window(&tab, window_id)?;
+
+        if src_tab.is_dead() {
+            self.remove_tab(src_tab.tab_id());
+        }
+
+        Ok((tab, window_id))
+    }
+
     pub async fn spawn_tab_or_window(
         &self,
         window_id: Option<WindowId>,

@@ -1186,6 +1186,11 @@ impl Client {
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn_v2, SpawnV2, SpawnResponse);
     rpc!(split_pane, SplitPane, SpawnResponse);
+    rpc!(
+        move_pane_to_new_tab,
+        MovePaneToNewTab,
+        MovePaneToNewTabResponse
+    );
     rpc!(write_to_pane, WriteToPane, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);

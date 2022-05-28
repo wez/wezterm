@@ -159,6 +159,36 @@ enum CliSubCommand {
     TlsCreds,
 
     #[structopt(
+        name = "move-pane-to-new-tab",
+        rename_all = "kebab",
+        about = "Move a pane into a new tab"
+    )]
+    MovePaneToNewTab {
+        /// Specify the pane that should be moved.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[structopt(long)]
+        pane_id: Option<PaneId>,
+
+        /// Specify the window into which the new tab will be
+        /// created.
+        /// If omitted, the window associated with the current
+        /// pane is used.
+        #[structopt(long)]
+        window_id: Option<WindowId>,
+
+        /// Create tab in a new window, rather than the window
+        /// currently containing the pane.
+        #[structopt(long, conflicts_with = "window_id")]
+        new_window: bool,
+
+        /// If creating a new window, override the default workspace name
+        /// with the provided name.  The default name is "default".
+        #[structopt(long)]
+        workspace: Option<String>,
+    },
+
+    #[structopt(
         name = "split-pane",
         rename_all = "kebab",
         about = "split the current pane.
@@ -779,6 +809,52 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
                 }
             }
+        }
+        CliSubCommand::MovePaneToNewTab {
+            pane_id,
+            window_id,
+            new_window,
+            workspace,
+        } => {
+            let pane_id = resolve_pane_id(&client, pane_id).await?;
+            let window_id = if new_window {
+                None
+            } else {
+                match window_id {
+                    Some(w) => Some(w),
+                    None => {
+                        let panes = client.list_panes().await?;
+                        let mut window_id = None;
+                        'outer_move: for tabroot in panes.tabs {
+                            let mut cursor = tabroot.into_tree().cursor();
+
+                            loop {
+                                if let Some(entry) = cursor.leaf_mut() {
+                                    if entry.pane_id == pane_id {
+                                        window_id.replace(entry.window_id);
+                                        break 'outer_move;
+                                    }
+                                }
+                                match cursor.preorder_next() {
+                                    Ok(c) => cursor = c,
+                                    Err(_) => break,
+                                }
+                            }
+                        }
+                        window_id
+                    }
+                }
+            };
+
+            let moved = client
+                .move_pane_to_new_tab(codec::MovePaneToNewTab {
+                    pane_id,
+                    window_id,
+                    workspace_for_new_window: workspace,
+                })
+                .await?;
+
+            log::debug!("{:?}", moved);
         }
         CliSubCommand::SplitPane {
             pane_id,

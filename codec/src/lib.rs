@@ -462,6 +462,8 @@ pdu! {
     SetFocusedPane: 45,
     GetImageCell: 46,
     GetImageCellResponse: 47,
+    MovePaneToNewTab: 48,
+    MovePaneToNewTabResponse: 49,
 }
 
 impl Pdu {
@@ -599,6 +601,19 @@ pub struct SplitPane {
     /// Instead of spawning a command, move the specified
     /// pane into the new split target
     pub move_pane_id: Option<PaneId>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MovePaneToNewTab {
+    pub pane_id: PaneId,
+    pub window_id: Option<WindowId>,
+    pub workspace_for_new_window: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct MovePaneToNewTabResponse {
+    pub tab_id: TabId,
+    pub window_id: WindowId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
