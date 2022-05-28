@@ -212,6 +212,11 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(long, parse(from_os_str))]
         cwd: Option<OsString>,
 
+        /// Instead of spawning a new command, move the specified
+        /// pane into the newly created split.
+        #[structopt(long, conflicts_with_all=&["cwd", "prog"])]
+        move_pane_id: Option<PaneId>,
+
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
         /// as if it were a login shell.
@@ -787,6 +792,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             top_level,
             cells,
             percent,
+            move_pane_id,
         } => {
             let pane_id = resolve_pane_id(&client, pane_id).await?;
 
@@ -823,6 +829,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         Some(builder)
                     },
                     command_dir: canon_cwd(cwd)?,
+                    move_pane_id,
                 })
                 .await?;
 

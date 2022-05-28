@@ -5,7 +5,7 @@ use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior};
-use domain::{Domain, DomainId, DomainState};
+use domain::{Domain, DomainId, DomainState, SplitSource};
 use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
 #[cfg(unix)]
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
@@ -942,8 +942,7 @@ impl Mux {
         // TODO: disambiguate with TabId
         pane_id: PaneId,
         request: SplitRequest,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
+        source: SplitSource,
         domain: config::keyassignment::SpawnTabDomain,
     ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
         let (_pane_domain_id, window_id, tab_id) = self
@@ -963,11 +962,18 @@ impl Mux {
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
         let term_config = current_pane.get_config();
 
-        let cwd = self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane)));
+        let source = match source {
+            SplitSource::Spawn {
+                command,
+                command_dir,
+            } => SplitSource::Spawn {
+                command,
+                command_dir: self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane))),
+            },
+            other => other,
+        };
 
-        let pane = domain
-            .split_pane(command, cwd, tab_id, pane_id, request)
-            .await?;
+        let pane = domain.split_pane(source, tab_id, pane_id, request).await?;
         if let Some(config) = term_config {
             pane.set_config(config);
         }

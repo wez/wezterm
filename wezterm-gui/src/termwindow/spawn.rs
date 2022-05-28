@@ -3,6 +3,7 @@ use anyhow::{anyhow, bail, Context};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::TermConfig;
 use mux::activity::Activity;
+use mux::domain::SplitSource;
 use mux::tab::SplitRequest;
 use mux::Mux;
 use portable_pty::{CommandBuilder, PtySize};
@@ -102,8 +103,10 @@ impl super::TermWindow {
                             // tab.tab_id(),
                             pane.pane_id(),
                             direction,
-                            cmd_builder,
-                            cwd,
+                            SplitSource::Spawn {
+                                command: cmd_builder,
+                                command_dir: cwd,
+                            },
                             spawn.domain,
                         )
                         .await

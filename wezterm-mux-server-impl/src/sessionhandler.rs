@@ -2,6 +2,7 @@ use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
 use mux::client::ClientId;
+use mux::domain::SplitSource;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
@@ -719,14 +720,17 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
         .resolve_pane_id(split.pane_id)
         .ok_or_else(|| anyhow!("pane_id {} invalid", split.pane_id))?;
 
+    let source = if let Some(move_pane_id) = split.move_pane_id {
+        SplitSource::MovePane(move_pane_id)
+    } else {
+        SplitSource::Spawn {
+            command: split.command,
+            command_dir: split.command_dir,
+        }
+    };
+
     let (pane, size) = mux
-        .split_pane(
-            split.pane_id,
-            split.split_request,
-            split.command,
-            split.command_dir,
-            split.domain,
-        )
+        .split_pane(split.pane_id, split.split_request, source, split.domain)
         .await?;
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {

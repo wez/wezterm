@@ -1264,18 +1264,35 @@ impl Tab {
     }
 
     pub fn prune_dead_panes(&self) -> bool {
-        self.remove_pane_if(|_, pane| pane.is_dead())
+        !self
+            .remove_pane_if(|_, pane| pane.is_dead(), true)
+            .is_empty()
     }
 
     pub fn kill_pane(&self, pane_id: PaneId) -> bool {
-        self.remove_pane_if(|_, pane| pane.pane_id() == pane_id)
+        !self
+            .remove_pane_if(|_, pane| pane.pane_id() == pane_id, true)
+            .is_empty()
     }
 
     pub fn kill_panes_in_domain(&self, domain: DomainId) -> bool {
-        self.remove_pane_if(|_, pane| pane.domain_id() == domain)
+        !self
+            .remove_pane_if(|_, pane| pane.domain_id() == domain, true)
+            .is_empty()
     }
 
-    fn remove_pane_if<F>(&self, f: F) -> bool
+    /// Remove pane from tab.
+    /// The pane is still live in the mux; the intent is for the pane to
+    /// be added to a different tab.
+    pub fn remove_pane(&self, pane_id: PaneId) -> Option<Rc<dyn Pane>> {
+        let panes = self.remove_pane_if(|_, pane| pane.pane_id() == pane_id, false);
+        for pane in panes {
+            return Some(pane);
+        }
+        None
+    }
+
+    fn remove_pane_if<F>(&self, f: F, kill: bool) -> Vec<Rc<dyn Pane>>
     where
         F: Fn(usize, &Rc<dyn Pane>) -> bool,
     {
@@ -1316,7 +1333,7 @@ impl Tab {
                         let parent;
                         match cursor.unsplit_leaf() {
                             Ok((c, dead, p)) => {
-                                dead_panes.push(dead.pane_id());
+                                dead_panes.push(dead);
                                 parent = p.unwrap();
                                 cursor = c;
                             }
@@ -1324,7 +1341,7 @@ impl Tab {
                                 // We might be the root, for example
                                 if c.is_top() && c.is_leaf() {
                                     root.replace(Tree::Empty);
-                                    dead_panes.push(pane.pane_id());
+                                    dead_panes.push(pane);
                                 } else {
                                     root.replace(c.tree());
                                 }
@@ -1366,18 +1383,17 @@ impl Tab {
             *self.active.borrow_mut() = active_idx;
         }
 
-        if !dead_panes.is_empty() {
+        if !dead_panes.is_empty() && kill {
+            let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::get().unwrap();
-                for pane_id in dead_panes.into_iter() {
+                for pane_id in to_kill.into_iter() {
                     mux.remove_pane(pane_id);
                 }
             })
             .detach();
-            true
-        } else {
-            false
         }
+        dead_panes
     }
 
     pub fn can_close_without_prompting(&self, reason: CloseReason) -> bool {

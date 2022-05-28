@@ -6,7 +6,7 @@ use codec::{ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::{ConnectionUI, ConnectionUIParams};
-use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitRequest, Tab, TabId};
 use mux::window::WindowId;
@@ -537,8 +537,7 @@ impl Domain for ClientDomain {
 
     async fn split_pane(
         &self,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
+        source: SplitSource,
         tab_id: TabId,
         pane_id: PaneId,
         split_request: SplitRequest,
@@ -559,6 +558,14 @@ impl Domain for ClientDomain {
             .downcast_ref::<ClientPane>()
             .ok_or_else(|| anyhow!("pane_id {} is not a ClientPane", pane_id))?;
 
+        let (command, command_dir, move_pane_id) = match source {
+            SplitSource::Spawn {
+                command,
+                command_dir,
+            } => (command, command_dir, None),
+            SplitSource::MovePane(move_pane_id) => (None, None, Some(move_pane_id)),
+        };
+
         let result = inner
             .client
             .split_pane(SplitPane {
@@ -567,6 +574,7 @@ impl Domain for ClientDomain {
                 split_request,
                 command,
                 command_dir,
+                move_pane_id,
             })
             .await?;
 

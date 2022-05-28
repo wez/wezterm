@@ -31,6 +31,15 @@ pub fn alloc_domain_id() -> DomainId {
     DOMAIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum SplitSource {
+    Spawn {
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+    },
+    MovePane(PaneId),
+}
+
 #[async_trait(?Send)]
 pub trait Domain: Downcast {
     /// Spawn a new command within this domain
@@ -55,8 +64,7 @@ pub trait Domain: Downcast {
 
     async fn split_pane(
         &self,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
+        source: SplitSource,
         tab: TabId,
         pane_id: PaneId,
         split_request: SplitRequest,
@@ -81,9 +89,34 @@ pub trait Domain: Downcast {
             None => anyhow::bail!("invalid pane index {}", pane_index),
         };
 
-        let pane = self
-            .spawn_pane(split_size.second, command, command_dir)
-            .await?;
+        let pane = match source {
+            SplitSource::Spawn {
+                command,
+                command_dir,
+            } => {
+                self.spawn_pane(split_size.second, command, command_dir)
+                    .await?
+            }
+            SplitSource::MovePane(src_pane_id) => {
+                let (_domain, _window, src_tab) = mux
+                    .resolve_pane_id(src_pane_id)
+                    .ok_or_else(|| anyhow::anyhow!("pane {} not found", src_pane_id))?;
+                let src_tab = match mux.get_tab(src_tab) {
+                    Some(t) => t,
+                    None => anyhow::bail!("Invalid tab id {}", src_tab),
+                };
+
+                let pane = src_tab.remove_pane(src_pane_id).ok_or_else(|| {
+                    anyhow::anyhow!("pane {} not found in its containing tab!?", src_pane_id)
+                })?;
+
+                if src_tab.is_dead() {
+                    mux.remove_tab(src_tab.tab_id());
+                }
+
+                pane
+            }
+        };
 
         tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))?;
         Ok(pane)
