@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use clap::Parser;
+use clap_complete::{generate as generate_completion, Shell};
 use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
@@ -91,6 +92,14 @@ enum SubCommand {
 
     #[clap(name = "replay", about = "Replay an asciicast terminal session")]
     Replay(asciicast::PlayCommand),
+
+    /// Generate shell completion information
+    #[clap(name = "shell-completion")]
+    ShellCompletion {
+        /// Which shell to generate for
+        #[clap(long, possible_values=["bash", "elvish", "fish", "powershell", "zsh"])]
+        shell: Shell,
+    },
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -469,6 +478,13 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Cli(cli) => run_cli(config, cli),
         SubCommand::Record(cmd) => cmd.run(config),
         SubCommand::Replay(cmd) => cmd.run(),
+        SubCommand::ShellCompletion { shell } => {
+            use clap::CommandFactory;
+            let mut cmd = Opt::command();
+            let name = cmd.get_name().to_string();
+            generate_completion(shell, &mut cmd, name, &mut std::io::stdout());
+            Ok(())
+        }
     }
 }
 
