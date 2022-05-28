@@ -116,7 +116,7 @@ impl UserData for GuiWin {
 
             Ok((*config).clone())
         });
-        methods.add_async_method("get_config_overrides", |_, this, _: ()| async move {
+        methods.add_async_method("get_config_overrides", |lua, this, _: ()| async move {
             let (tx, rx) = smol::channel::bounded(1);
             this.window.notify(TermWindowNotif::GetConfigOverrides(tx));
             let overrides = rx
@@ -125,12 +125,12 @@ impl UserData for GuiWin {
                 .map_err(|e| anyhow::anyhow!("{:#}", e))
                 .map_err(luaerr)?;
 
-            let wrap = ValueLua { value: overrides };
-            Ok(wrap)
+            dynamic_to_lua_value(lua, overrides)
         });
-        methods.add_method("set_config_overrides", |_, this, value: ValueLua| {
+        methods.add_method("set_config_overrides", |_, this, value: mlua::Value| {
+            let value = lua_value_to_dynamic(value)?;
             this.window
-                .notify(TermWindowNotif::SetConfigOverrides(value.value));
+                .notify(TermWindowNotif::SetConfigOverrides(value));
             Ok(())
         });
         methods.add_async_method("leader_is_active", |_, this, _: ()| async move {
