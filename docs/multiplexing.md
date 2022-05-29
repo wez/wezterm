@@ -207,7 +207,7 @@ return {
   unix_domains = {
     {
       name = "wsl",
-      serve_command = ["wsl", "wezterm-mux-server", "--daemonize"],
+      serve_command = {"wsl", "wezterm-mux-server", "--daemonize"},
     }
   },
   default_gui_startup_args = {"connect", "wsl"},
