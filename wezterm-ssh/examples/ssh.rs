@@ -49,7 +49,7 @@ struct Opt {
 
 fn main() {
     env_logger::init();
-    let opts = Opt::from_args();
+    let opts = Opt::parse();
 
     let mut config = Config::new();
     config.add_default_config_files();
