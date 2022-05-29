@@ -238,7 +238,7 @@ EOF
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
         install -Dm644 assets/wezterm-nautilus.py pkg/debian/usr/share/nautilus-python/extensions/wezterm-nautilus.py
-        install -Dm644 assets/shell-completion/bash pkg/debian/usr/share/bash-completion/bash_completion
+        install -Dm644 assets/shell-completion/bash pkg/debian/usr/share/bash-completion/completions/wezterm
         install -Dm644 assets/shell-completion/zsh pkg/debian/usr/share/zsh/functions/Completion/Unix/_wezterm
         install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
