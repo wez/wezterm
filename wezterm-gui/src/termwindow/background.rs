@@ -1,11 +1,73 @@
+use crate::termwindow::RenderState;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
     BackgroundLayer, BackgroundSize, BackgroundSource, ConfigHandle, GradientOrientation,
 };
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 use termwiz::image::{ImageData, ImageDataType};
+use wezterm_term::color::ColorPalette;
+
+lazy_static::lazy_static! {
+    static ref IMAGE_CACHE: Mutex<HashMap<String, CachedImage>> = Mutex::new(HashMap::new());
+}
+
+struct CachedImage {
+    modified: SystemTime,
+    image: Arc<ImageData>,
+    marked: bool,
+}
+
+impl CachedImage {
+    fn load(path: &str) -> anyhow::Result<Arc<ImageData>> {
+        let modified = std::fs::metadata(path)
+            .and_then(|m| m.modified())
+            .with_context(|| format!("getting metadata for {}", path))?;
+        let mut cache = IMAGE_CACHE.lock().unwrap();
+        if let Some(cached) = cache.get_mut(path) {
+            if cached.modified == modified {
+                cached.marked = false;
+                return Ok(Arc::clone(&cached.image));
+            }
+        }
+
+        let data = std::fs::read(path)
+            .with_context(|| format!("Failed to load window_background_image {}", path))?;
+        log::trace!("loaded {}", path);
+        let data = ImageDataType::EncodedFile(data).decode();
+        let image = Arc::new(ImageData::with_data(data));
+
+        cache.insert(
+            path.to_string(),
+            Self {
+                modified,
+                image: Arc::clone(&image),
+                marked: false,
+            },
+        );
+
+        Ok(image)
+    }
+
+    fn mark() {
+        let mut cache = IMAGE_CACHE.lock().unwrap();
+        for entry in cache.values_mut() {
+            entry.marked = true;
+        }
+    }
+
+    fn sweep() {
+        let mut cache = IMAGE_CACHE.lock().unwrap();
+        cache.retain(|k, entry| {
+            if entry.marked {
+                log::trace!("Unloading {} from cache", k);
+            }
+            !entry.marked
+        });
+    }
+}
 
 pub struct LoadedBackgroundLayer {
     pub source: Arc<ImageData>,
@@ -136,19 +198,15 @@ fn load_background_layer(
             }
 
             let data = imgbuf.into_vec();
-            ImageData::with_data(ImageDataType::new_single_frame(width, height, data))
+            Arc::new(ImageData::with_data(ImageDataType::new_single_frame(
+                width, height, data,
+            )))
         }
-        BackgroundSource::File(path) => {
-            let data = std::fs::read(path)
-                .with_context(|| format!("Failed to load window_background_image {}", path))?;
-            log::info!("loaded {}", path);
-            let data = ImageDataType::EncodedFile(data).decode();
-            ImageData::with_data(data)
-        }
+        BackgroundSource::File(path) => CachedImage::load(path)?,
     };
 
     Ok(LoadedBackgroundLayer {
-        source: Arc::new(data),
+        source: data,
         def: layer.clone(),
     })
 }
@@ -159,8 +217,12 @@ pub fn load_background_image(
 ) -> Vec<LoadedBackgroundLayer> {
     let mut layers = vec![];
     for layer in &config.background {
+        let load_start = std::time::Instant::now();
         match load_background_layer(layer, dimensions) {
-            Ok(layer) => layers.push(layer),
+            Ok(layer) => {
+                log::trace!("loaded layer in {:?}", load_start.elapsed());
+                layers.push(layer);
+            }
             Err(err) => {
                 log::error!("Failed to load background: {:#}", err);
             }
@@ -182,7 +244,9 @@ pub fn reload_background_image(
         .map(|layer| (layer.source.hash(), &layer.source))
         .collect();
 
-    load_background_image(config, dimensions)
+    CachedImage::mark();
+
+    let result = load_background_image(config, dimensions)
         .into_iter()
         .map(|mut layer| {
             let hash = layer.source.hash();
@@ -193,5 +257,56 @@ pub fn reload_background_image(
 
             layer
         })
-        .collect()
+        .collect();
+
+    CachedImage::sweep();
+
+    result
+}
+
+impl crate::TermWindow {
+    pub fn render_backgrounds(
+        &self,
+        gl_state: &RenderState,
+        palette: &ColorPalette,
+    ) -> anyhow::Result<()> {
+        for (idx, layer) in self.window_background.iter().enumerate() {
+            self.render_background(gl_state, palette, layer, idx)?;
+        }
+        Ok(())
+    }
+
+    fn render_background(
+        &self,
+        gl_state: &RenderState,
+        palette: &ColorPalette,
+        layer: &LoadedBackgroundLayer,
+        layer_index: usize,
+    ) -> anyhow::Result<()> {
+        let render_layer = gl_state.layer_for_zindex(-127 + layer_index as i8)?;
+        let vbs = render_layer.vb.borrow();
+        let mut vb_mut0 = vbs[0].current_vb_mut();
+        let mut layer0 = vbs[0].map(&mut vb_mut0);
+
+        let color = palette.background.to_linear().mul_alpha(layer.def.opacity);
+
+        let (sprite, next_due) = gl_state
+            .glyph_cache
+            .borrow_mut()
+            .cached_image(&layer.source, None)?;
+        self.update_next_frame_time(next_due);
+        let mut quad = layer0.allocate()?;
+        quad.set_position(
+            self.dimensions.pixel_width as f32 / -2.,
+            self.dimensions.pixel_height as f32 / -2.,
+            self.dimensions.pixel_width as f32 / 2.,
+            self.dimensions.pixel_height as f32 / 2.,
+        );
+        quad.set_texture(sprite.texture_coords());
+        quad.set_is_background_image();
+        quad.set_hsv(Some(layer.def.hsb));
+        quad.set_fg_color(color);
+
+        Ok(())
+    }
 }

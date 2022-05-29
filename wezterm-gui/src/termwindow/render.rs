@@ -1128,27 +1128,7 @@ impl super::TermWindow {
         if pos.index == 0 {
             match (self.window_background.is_empty(), self.allow_images) {
                 (false, true) => {
-                    // Render the window background image(s)
-                    for layer in &self.window_background {
-                        let color = palette.background.to_linear().mul_alpha(layer.def.opacity);
-
-                        let (sprite, next_due) = gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cached_image(&layer.source, None)?;
-                        self.update_next_frame_time(next_due);
-                        let mut quad = layers[0].allocate()?;
-                        quad.set_position(
-                            self.dimensions.pixel_width as f32 / -2.,
-                            self.dimensions.pixel_height as f32 / -2.,
-                            self.dimensions.pixel_width as f32 / 2.,
-                            self.dimensions.pixel_height as f32 / 2.,
-                        );
-                        quad.set_texture(sprite.texture_coords());
-                        quad.set_is_background_image();
-                        quad.set_hsv(Some(layer.def.hsb));
-                        quad.set_fg_color(color);
-                    }
+                    self.render_backgrounds(gl_state, &palette)?;
                 }
                 _ if window_is_transparent && num_panes > 1 => {
                     // Avoid doubling up the background color: the panes
