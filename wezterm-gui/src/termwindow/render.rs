@@ -898,7 +898,7 @@ impl super::TermWindow {
         ));
 
         let window_is_transparent =
-            self.window_background.is_some() || self.config.window_background_opacity != 1.0;
+            !self.window_background.is_empty() || self.config.window_background_opacity != 1.0;
         let gl_state = self.render_state.as_ref().unwrap();
         let white_space = gl_state.util_sprites.white_space.texture_coords();
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
@@ -1113,7 +1113,7 @@ impl super::TermWindow {
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
 
         let window_is_transparent =
-            self.window_background.is_some() || config.window_background_opacity != 1.0;
+            !self.window_background.is_empty() || config.window_background_opacity != 1.0;
 
         let default_bg = palette
             .resolve_bg(ColorAttribute::Default)
@@ -1126,28 +1126,29 @@ impl super::TermWindow {
 
         // Render the full window background
         if pos.index == 0 {
-            match (self.window_background.as_ref(), self.allow_images) {
-                (Some(im), true) => {
-                    // Render the window background image
-                    let color = palette
-                        .background
-                        .to_linear()
-                        .mul_alpha(config.window_background_opacity);
+            match (self.window_background.is_empty(), self.allow_images) {
+                (false, true) => {
+                    // Render the window background image(s)
+                    for layer in &self.window_background {
+                        let color = palette.background.to_linear().mul_alpha(layer.def.opacity);
 
-                    let (sprite, next_due) =
-                        gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
-                    self.update_next_frame_time(next_due);
-                    let mut quad = layers[0].allocate()?;
-                    quad.set_position(
-                        self.dimensions.pixel_width as f32 / -2.,
-                        self.dimensions.pixel_height as f32 / -2.,
-                        self.dimensions.pixel_width as f32 / 2.,
-                        self.dimensions.pixel_height as f32 / 2.,
-                    );
-                    quad.set_texture(sprite.texture_coords());
-                    quad.set_is_background_image();
-                    quad.set_hsv(config.window_background_image_hsb);
-                    quad.set_fg_color(color);
+                        let (sprite, next_due) = gl_state
+                            .glyph_cache
+                            .borrow_mut()
+                            .cached_image(&layer.source, None)?;
+                        self.update_next_frame_time(next_due);
+                        let mut quad = layers[0].allocate()?;
+                        quad.set_position(
+                            self.dimensions.pixel_width as f32 / -2.,
+                            self.dimensions.pixel_height as f32 / -2.,
+                            self.dimensions.pixel_width as f32 / 2.,
+                            self.dimensions.pixel_height as f32 / 2.,
+                        );
+                        quad.set_texture(sprite.texture_coords());
+                        quad.set_is_background_image();
+                        quad.set_hsv(Some(layer.def.hsb));
+                        quad.set_fg_color(color);
+                    }
                 }
                 _ if window_is_transparent && num_panes > 1 => {
                     // Avoid doubling up the background color: the panes
@@ -1179,7 +1180,7 @@ impl super::TermWindow {
             }
         }
 
-        if num_panes > 1 && self.window_background.is_none() {
+        if num_panes > 1 && self.window_background.is_empty() {
             // Per-pane, palette-specified background
             let cell_width = self.render_metrics.cell_size.width as f32;
             let cell_height = self.render_metrics.cell_size.height as f32;

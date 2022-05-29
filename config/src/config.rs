@@ -1,4 +1,4 @@
-use crate::background::Gradient;
+use crate::background::{BackgroundLayer, Gradient};
 use crate::bell::{AudibleBell, EasingFunction, VisualBell};
 use crate::color::{
     ColorSchemeFile, HsbTransform, Palette, SrgbaTuple, TabBarStyle, WindowFrameConfig,
@@ -390,6 +390,9 @@ pub struct Config {
     pub window_background_image_hsb: Option<HsbTransform>,
     #[dynamic(default)]
     pub foreground_text_hsb: HsbTransform,
+
+    #[dynamic(default)]
+    pub background: Vec<BackgroundLayer>,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the
@@ -960,6 +963,10 @@ impl Config {
                     cfg.resolved_palette = p.clone();
                 }
             }
+        }
+
+        if let Some(bg) = BackgroundLayer::with_legacy(self) {
+            cfg.background.push(bg);
         }
 
         cfg

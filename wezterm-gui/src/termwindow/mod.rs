@@ -17,6 +17,9 @@ use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
+use crate::termwindow::background::{
+    load_background_image, reload_background_image, LoadedBackgroundLayer,
+};
 use crate::termwindow::keyevent::KeyTableState;
 use crate::termwindow::modal::Modal;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
@@ -27,8 +30,8 @@ use config::keyassignment::{
     QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
-    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, GradientOrientation,
-    TermConfig, WindowCloseConfirmation,
+    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, TermConfig,
+    WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern};
@@ -50,7 +53,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
-use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::SequenceNo;
 use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::GuiPosition;
@@ -58,6 +60,7 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
 
+pub mod background;
 pub mod box_model;
 pub mod clipboard;
 mod keyevent;
@@ -361,7 +364,7 @@ pub struct TermWindow {
     pane_state: RefCell<HashMap<PaneId, PaneState>>,
     semantic_zones: HashMap<PaneId, SemanticZoneCache>,
 
-    window_background: Option<Arc<ImageData>>,
+    window_background: Vec<LoadedBackgroundLayer>,
 
     current_mouse_buttons: Vec<MousePress>,
     current_mouse_capture: Option<MouseCapture>,
@@ -514,165 +517,6 @@ impl TermWindow {
         }
 
         Ok(())
-    }
-}
-
-fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Option<Arc<ImageData>> {
-    match &config.window_background_gradient {
-        Some(g) => match g.build() {
-            Ok(grad) => {
-                let mut width = dimensions.pixel_width as u32;
-                let mut height = dimensions.pixel_height as u32;
-
-                if matches!(g.orientation, GradientOrientation::Radial { .. }) {
-                    // To simplify the math, we compute a perfect circle
-                    // for the radial gradient, and let the texture sampler
-                    // perturb it to fill the window
-                    width = width.min(height);
-                    height = height.min(width);
-                }
-
-                let mut imgbuf = image::RgbaImage::new(width, height);
-                let fw = width as f64;
-                let fh = height as f64;
-
-                fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
-                    let (r, g, b, a) = c.rgba_u8();
-                    image::Rgba([r, g, b, a])
-                }
-
-                // Map t which is in range [a, b] to range [c, d]
-                fn remap(t: f64, a: f64, b: f64, c: f64, d: f64) -> f64 {
-                    (t - a) * ((d - c) / (b - a)) + c
-                }
-
-                let (dmin, dmax) = grad.domain();
-
-                let rng = fastrand::Rng::new();
-
-                // We add some randomness to the position that we use to
-                // index into the color gradient, so that we can avoid
-                // visible color banding.  The default 64 was selected
-                // because it it was the smallest value on my mac where
-                // the banding wasn't obvious.
-                let noise_amount = g.noise.unwrap_or_else(|| {
-                    if matches!(g.orientation, GradientOrientation::Radial { .. }) {
-                        16
-                    } else {
-                        64
-                    }
-                });
-
-                fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
-                    if noise_amount == 0 {
-                        0.
-                    } else {
-                        rng.usize(0..noise_amount) as f64 * -1.
-                    }
-                }
-
-                match g.orientation {
-                    GradientOrientation::Horizontal => {
-                        for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
-                            *pixel = to_pixel(grad.at(remap(
-                                x as f64 + noise(&rng, noise_amount),
-                                0.0,
-                                fw,
-                                dmin,
-                                dmax,
-                            )));
-                        }
-                    }
-                    GradientOrientation::Vertical => {
-                        for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                            *pixel = to_pixel(grad.at(remap(
-                                y as f64 + noise(&rng, noise_amount),
-                                0.0,
-                                fh,
-                                dmin,
-                                dmax,
-                            )));
-                        }
-                    }
-                    GradientOrientation::Linear { angle } => {
-                        let angle = angle.unwrap_or(0.0).to_radians();
-                        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                            let (x, y) = (x as f64, y as f64);
-                            let (x, y) = (x - fw / 2., y - fh / 2.);
-                            let t = x * f64::cos(angle) - y * f64::sin(angle);
-                            *pixel = to_pixel(grad.at(remap(
-                                t + noise(&rng, noise_amount),
-                                -fw / 2.,
-                                fw / 2.,
-                                dmin,
-                                dmax,
-                            )));
-                        }
-                    }
-                    GradientOrientation::Radial { radius, cx, cy } => {
-                        let radius = fw * radius.unwrap_or(0.5);
-                        let cx = fw * cx.unwrap_or(0.5);
-                        let cy = fh * cy.unwrap_or(0.5);
-
-                        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                            let nx = noise(&rng, noise_amount);
-                            let ny = noise(&rng, noise_amount);
-
-                            let t = (nx + (x as f64 - cx).powi(2) + (ny + y as f64 - cy).powi(2))
-                                .sqrt()
-                                / radius;
-                            *pixel = to_pixel(grad.at(t));
-                        }
-                    }
-                }
-
-                let data = imgbuf.into_vec();
-                return Some(Arc::new(ImageData::with_data(
-                    ImageDataType::new_single_frame(width, height, data),
-                )));
-            }
-            Err(err) => {
-                log::error!(
-                    "window_background_gradient: error building gradient: {:#} {:?}",
-                    err,
-                    g
-                );
-                return None;
-            }
-        },
-        None => {}
-    }
-    match &config.window_background_image {
-        Some(p) => match std::fs::read(p) {
-            Ok(data) => {
-                log::info!("loaded {}", p.display());
-                let data = ImageDataType::EncodedFile(data).decode();
-                Some(Arc::new(ImageData::with_data(data)))
-            }
-            Err(err) => {
-                log::error!(
-                    "Failed to load window_background_image {}: {}",
-                    p.display(),
-                    err
-                );
-                None
-            }
-        },
-        None => None,
-    }
-}
-
-fn reload_background_image(
-    config: &ConfigHandle,
-    image: &Option<Arc<ImageData>>,
-    dimensions: &Dimensions,
-) -> Option<Arc<ImageData>> {
-    let data = load_background_image(config, dimensions)?;
-    match image {
-        Some(existing) if existing.hash() == data.data().compute_hash() => {
-            Some(Arc::clone(existing))
-        }
-        _ => Some(data),
     }
 }
 

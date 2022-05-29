@@ -1,5 +1,184 @@
+use crate::{default_one_point_oh, Config, HsbTransform};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
+
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundSource {
+    Gradient(Gradient),
+    File(String),
+}
+
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub struct BackgroundLayer {
+    pub source: BackgroundSource,
+
+    /// Where the top left corner of the background begins
+    #[dynamic(default)]
+    pub origin: BackgroundOrigin,
+
+    #[dynamic(default)]
+    pub attachment: BackgroundAttachment,
+
+    #[dynamic(default)]
+    pub repeat_x: BackgroundRepeat,
+
+    #[dynamic(default)]
+    pub repeat_y: BackgroundRepeat,
+
+    #[dynamic(default)]
+    pub vertical_align: BackgroundVerticalAlignment,
+
+    #[dynamic(default)]
+    pub horizontal_align: BackgroundHorizontalAlignment,
+
+    /// Additional alpha modifier
+    #[dynamic(default = "default_one_point_oh")]
+    pub opacity: f32,
+
+    /// Additional hsb transform
+    #[dynamic(default)]
+    pub hsb: HsbTransform,
+
+    #[dynamic(default)]
+    pub width: BackgroundSize,
+
+    #[dynamic(default)]
+    pub height: BackgroundSize,
+}
+
+impl BackgroundLayer {
+    pub fn with_legacy(cfg: &Config) -> Option<Self> {
+        let source = if let Some(gradient) = &cfg.window_background_gradient {
+            BackgroundSource::Gradient(gradient.clone())
+        } else if let Some(path) = &cfg.window_background_image {
+            BackgroundSource::File(path.to_string_lossy().to_string())
+        } else {
+            return None;
+        };
+        Some(BackgroundLayer {
+            source,
+            opacity: cfg.window_background_opacity,
+            hsb: cfg.window_background_image_hsb.unwrap_or_default(),
+            origin: Default::default(),
+            attachment: Default::default(),
+            repeat_x: Default::default(),
+            repeat_y: Default::default(),
+            vertical_align: Default::default(),
+            horizontal_align: Default::default(),
+            width: BackgroundSize::Percent(100),
+            height: BackgroundSize::Percent(100),
+        })
+    }
+}
+
+/// <https://developer.mozilla.org/en-US/docs/Web/CSS/background-size>
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundSize {
+    /// Scales image as large as possible without cropping or stretching.
+    /// If the container is larger than the image, tiles the image unless
+    /// the correspond `repeat` is NoRepeat.
+    Contain,
+    /// Scale the image (preserving aspect ratio) to the smallest possible
+    /// size to the fill the container leaving no empty space.
+    /// If the aspect ratio differs from the background, the image is
+    /// cropped.
+    Cover,
+    /// Scales the image so that its aspect ratio is maintained
+    Auto,
+    /// Stretches the image to the specified length in pixels
+    Length(usize),
+    /// Stretches the image to a percentage of the background size
+    /// as determined by the `origin` property.
+    Percent(u8),
+}
+
+impl Default for BackgroundSize {
+    fn default() -> Self {
+        Self::Contain
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundHorizontalAlignment {
+    Left,
+    Center,
+    Right,
+}
+
+impl Default for BackgroundHorizontalAlignment {
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundVerticalAlignment {
+    Top,
+    Middle,
+    Bottom,
+}
+
+impl Default for BackgroundVerticalAlignment {
+    fn default() -> Self {
+        Self::Top
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundRepeat {
+    /// Repeat as much as possible to cover the area.
+    /// The last image will be clipped if it doesn't fit.
+    Repeat,
+    /// Repeat as much as possible without clipping.
+    /// The first and last images are aligned with the edges,
+    /// with any gaps being distributed evenly between
+    /// the images.
+    /// The `position` property is ignored unless only
+    /// a single image an be displayed without clipping.
+    /// Clipping will only occur when there isn't enough
+    /// room to display a single image.
+    Space,
+    /// As the available space increases, the images will
+    /// stretch until there is room (space >= 50% of image
+    /// size) for another one to be added. When adding a
+    /// new image, the current images compress to allow
+    /// room.
+    Round,
+    /// The image is not repeated.
+    /// The position of the image is defined by the
+    /// `position` property
+    NoRepeat,
+}
+
+impl Default for BackgroundRepeat {
+    fn default() -> Self {
+        Self::NoRepeat
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundAttachment {
+    Fixed,
+    Scroll,
+}
+
+impl Default for BackgroundAttachment {
+    fn default() -> Self {
+        Self::Fixed
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+pub enum BackgroundOrigin {
+    BorderBox,
+    PaddingBox,
+}
+
+impl Default for BackgroundOrigin {
+    fn default() -> Self {
+        Self::BorderBox
+    }
+}
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub enum Interpolation {
