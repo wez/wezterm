@@ -302,7 +302,7 @@ user. This option only applies when <code>multiplexing = &quot;WezTerm&quot;</co
   unix_domains = {
     {
       name = &quot;wsl&quot;,
-      serve_command = [&quot;wsl&quot;, &quot;wezterm-mux-server&quot;, &quot;--daemonize&quot;],
+      serve_command = {&quot;wsl&quot;, &quot;wezterm-mux-server&quot;, &quot;--daemonize&quot;},
     }
   },
   default_gui_startup_args = {&quot;connect&quot;, &quot;wsl&quot;},
