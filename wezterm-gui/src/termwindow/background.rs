@@ -3,13 +3,14 @@ use crate::termwindow::RenderState;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
-    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource, ConfigHandle,
-    GradientOrientation,
+    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource,
+    ConfigHandle, GradientOrientation,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use termwiz::image::{ImageData, ImageDataType};
+use wezterm_term::StableRowIndex;
 
 lazy_static::lazy_static! {
     static ref IMAGE_CACHE: Mutex<HashMap<String, CachedImage>> = Mutex::new(HashMap::new());
@@ -266,10 +267,14 @@ pub fn reload_background_image(
 }
 
 impl crate::TermWindow {
-    pub fn render_backgrounds(&self, bg_color: LinearRgba) -> anyhow::Result<()> {
+    pub fn render_backgrounds(
+        &self,
+        bg_color: LinearRgba,
+        top: StableRowIndex,
+    ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
         for (idx, layer) in self.window_background.iter().enumerate() {
-            self.render_background(gl_state, bg_color, layer, idx)?;
+            self.render_background(gl_state, bg_color, layer, idx, top)?;
         }
         Ok(())
     }
@@ -280,6 +285,7 @@ impl crate::TermWindow {
         bg_color: LinearRgba,
         layer: &LoadedBackgroundLayer,
         layer_index: usize,
+        top: StableRowIndex,
     ) -> anyhow::Result<()> {
         let render_layer = gl_state.layer_for_zindex(-127 + layer_index as i8)?;
         let vbs = render_layer.vb.borrow();
@@ -351,16 +357,25 @@ impl crate::TermWindow {
             BackgroundSize::Percent(p) => (pixel_height as f32 * p as f32) / 100.,
         };
         let origin_x = pixel_width / -2.;
-        let origin_y = pixel_height / -2.;
+        let top_pixel = pixel_height / -2.;
+        let mut origin_y = top_pixel;
+
+        if let Some(factor) = layer.def.attachment.scroll_factor() {
+            let distance = top as f32 * self.render_metrics.cell_size.height as f32 * factor;
+            let num_tiles = distance / height;
+            origin_y -= num_tiles.fract() * height;
+        }
+
+        let limit_y = top_pixel + pixel_height;
 
         for y_step in 0.. {
             let offset_y = y_step as f32 * height;
-            if offset_y >= pixel_height
+            let origin_y = origin_y + offset_y;
+            if origin_y >= limit_y
                 || (y_step > 0 && layer.def.repeat_y == BackgroundRepeat::NoRepeat)
             {
                 break;
             }
-            let origin_y = origin_y + offset_y;
 
             for x_step in 0.. {
                 let offset_x = x_step as f32 * width;

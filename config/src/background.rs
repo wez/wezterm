@@ -160,6 +160,17 @@ impl Default for BackgroundRepeat {
 pub enum BackgroundAttachment {
     Fixed,
     Scroll,
+    Parallax(f32),
+}
+
+impl BackgroundAttachment {
+    pub fn scroll_factor(&self) -> Option<f32> {
+        match self {
+            Self::Fixed => None,
+            Self::Scroll => Some(1.0),
+            Self::Parallax(f) => Some(*f),
+        }
+    }
 }
 
 impl Default for BackgroundAttachment {

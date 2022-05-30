@@ -1613,7 +1613,17 @@ impl super::TermWindow {
         match (self.window_background.is_empty(), self.allow_images) {
             (false, true) => {
                 let bg_color = self.palette().background.to_linear();
-                self.render_backgrounds(bg_color)?;
+
+                let top = panes
+                    .iter()
+                    .find(|p| p.is_active)
+                    .map(|p| match self.get_viewport(p.pane.pane_id()) {
+                        Some(top) => top,
+                        None => p.pane.get_dimensions().physical_top,
+                    })
+                    .unwrap_or(0);
+
+                self.render_backgrounds(bg_color, top)?;
             }
             _ if window_is_transparent && panes.len() > 1 => {
                 // Avoid doubling up the background color: the panes
