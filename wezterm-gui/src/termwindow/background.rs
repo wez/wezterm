@@ -303,9 +303,11 @@ impl crate::TermWindow {
         let pixel_width = self.dimensions.pixel_width as f32;
         let pixel_height = self.dimensions.pixel_height as f32;
 
-        let tex_width = sprite.texture.width() as f32;
-        let tex_height = sprite.texture.height() as f32;
+        let tex_width = sprite.coords.width() as f32;
+        let tex_height = sprite.coords.height() as f32;
         let aspect = tex_width as f32 / tex_height as f32;
+
+        // log::info!("tex {tex_width}x{tex_height} aspect={aspect}");
 
         // Compute the largest aspect-preserved size that will fill the space
         let (max_aspect_width, max_aspect_height) = if aspect >= 1.0 {
@@ -360,6 +362,7 @@ impl crate::TermWindow {
         let top_pixel = pixel_height / -2.;
         let mut origin_y = top_pixel;
 
+        // log::info!("computed {width}x{height}");
         if let Some(factor) = layer.def.attachment.scroll_factor() {
             let distance = top as f32 * self.render_metrics.cell_size.height as f32 * factor;
             let num_tiles = distance / height;
@@ -386,6 +389,7 @@ impl crate::TermWindow {
                 }
                 let origin_x = origin_x + offset_x;
                 let mut quad = layer0.allocate()?;
+                // log::info!("quad {origin_x},{origin_y} {width}x{height}");
                 quad.set_position(origin_x, origin_y, origin_x + width, origin_y + height);
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
