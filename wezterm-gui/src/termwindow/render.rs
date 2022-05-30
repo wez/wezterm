@@ -1040,7 +1040,6 @@ impl super::TermWindow {
         };
         */
 
-        let global_bg_color = self.palette().background;
         let global_cursor_fg = self.palette().cursor_fg;
         let global_cursor_bg = self.palette().cursor_bg;
         let config = &self.config;
@@ -1123,42 +1122,6 @@ impl super::TermWindow {
             } else {
                 config.text_background_opacity
             });
-
-        // Render the full window background
-        if pos.index == 0 {
-            match (self.window_background.is_empty(), self.allow_images) {
-                (false, true) => {
-                    self.render_backgrounds(gl_state, &palette)?;
-                }
-                _ if window_is_transparent && num_panes > 1 => {
-                    // Avoid doubling up the background color: the panes
-                    // will render out through the padding so there
-                    // should be no gaps that need filling in
-                }
-                _ => {
-                    // Regular window background color
-                    let background = if num_panes == 1 {
-                        // If we're the only pane, use the pane's palette
-                        // to draw the padding background
-                        palette.background
-                    } else {
-                        global_bg_color
-                    }
-                    .to_linear()
-                    .mul_alpha(config.window_background_opacity);
-                    self.filled_rectangle(
-                        &mut layers[0],
-                        euclid::rect(
-                            0.,
-                            0.,
-                            self.dimensions.pixel_width as f32,
-                            self.dimensions.pixel_height as f32,
-                        ),
-                        background,
-                    )?;
-                }
-            }
-        }
 
         if num_panes > 1 && self.window_background.is_empty() {
             // Per-pane, palette-specified background
@@ -1643,6 +1606,50 @@ impl super::TermWindow {
         let panes = self.get_panes_to_render();
         let num_panes = panes.len();
         let focused = self.focused.is_some();
+        let window_is_transparent =
+            !self.window_background.is_empty() || self.config.window_background_opacity != 1.0;
+
+        // Render the full window background
+        match (self.window_background.is_empty(), self.allow_images) {
+            (false, true) => {
+                let bg_color = self.palette().background.to_linear();
+                self.render_backgrounds(bg_color)?;
+            }
+            _ if window_is_transparent && panes.len() > 1 => {
+                // Avoid doubling up the background color: the panes
+                // will render out through the padding so there
+                // should be no gaps that need filling in
+            }
+            _ => {
+                // Regular window background color
+                let background = if panes.len() == 1 {
+                    // If we're the only pane, use the pane's palette
+                    // to draw the padding background
+                    panes[0].pane.palette().background
+                } else {
+                    self.palette().background
+                }
+                .to_linear()
+                .mul_alpha(self.config.window_background_opacity);
+
+                let gl_state = self.render_state.as_ref().unwrap();
+                let render_layer = gl_state.layer_for_zindex(0)?;
+                let vbs = render_layer.vb.borrow();
+                let mut vb_mut0 = vbs[0].current_vb_mut();
+                let mut layer0 = vbs[0].map(&mut vb_mut0);
+
+                self.filled_rectangle(
+                    &mut layer0,
+                    euclid::rect(
+                        0.,
+                        0.,
+                        self.dimensions.pixel_width as f32,
+                        self.dimensions.pixel_height as f32,
+                    ),
+                    background,
+                )?;
+            }
+        }
 
         for pos in panes {
             if pos.is_active {

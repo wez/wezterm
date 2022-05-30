@@ -1,3 +1,4 @@
+use crate::color::LinearRgba;
 use crate::termwindow::RenderState;
 use crate::Dimensions;
 use anyhow::Context;
@@ -9,7 +10,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use termwiz::image::{ImageData, ImageDataType};
-use wezterm_term::color::ColorPalette;
 
 lazy_static::lazy_static! {
     static ref IMAGE_CACHE: Mutex<HashMap<String, CachedImage>> = Mutex::new(HashMap::new());
@@ -266,13 +266,10 @@ pub fn reload_background_image(
 }
 
 impl crate::TermWindow {
-    pub fn render_backgrounds(
-        &self,
-        gl_state: &RenderState,
-        palette: &ColorPalette,
-    ) -> anyhow::Result<()> {
+    pub fn render_backgrounds(&self, bg_color: LinearRgba) -> anyhow::Result<()> {
+        let gl_state = self.render_state.as_ref().unwrap();
         for (idx, layer) in self.window_background.iter().enumerate() {
-            self.render_background(gl_state, palette, layer, idx)?;
+            self.render_background(gl_state, bg_color, layer, idx)?;
         }
         Ok(())
     }
@@ -280,7 +277,7 @@ impl crate::TermWindow {
     fn render_background(
         &self,
         gl_state: &RenderState,
-        palette: &ColorPalette,
+        bg_color: LinearRgba,
         layer: &LoadedBackgroundLayer,
         layer_index: usize,
     ) -> anyhow::Result<()> {
@@ -289,7 +286,7 @@ impl crate::TermWindow {
         let mut vb_mut0 = vbs[0].current_vb_mut();
         let mut layer0 = vbs[0].map(&mut vb_mut0);
 
-        let color = palette.background.to_linear().mul_alpha(layer.def.opacity);
+        let color = bg_color.mul_alpha(layer.def.opacity);
 
         let (sprite, next_due) = gl_state
             .glyph_cache
