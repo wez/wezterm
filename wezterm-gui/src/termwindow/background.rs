@@ -3,8 +3,8 @@ use crate::termwindow::RenderState;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
-    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource,
-    ConfigHandle, GradientOrientation,
+    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource, ConfigHandle,
+    GradientOrientation,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
