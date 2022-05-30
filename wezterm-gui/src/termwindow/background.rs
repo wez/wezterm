@@ -2,7 +2,8 @@ use crate::termwindow::RenderState;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
-    BackgroundLayer, BackgroundSize, BackgroundSource, ConfigHandle, GradientOrientation,
+    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource, ConfigHandle,
+    GradientOrientation,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -295,17 +296,91 @@ impl crate::TermWindow {
             .borrow_mut()
             .cached_image(&layer.source, None)?;
         self.update_next_frame_time(next_due);
-        let mut quad = layer0.allocate()?;
-        quad.set_position(
-            self.dimensions.pixel_width as f32 / -2.,
-            self.dimensions.pixel_height as f32 / -2.,
-            self.dimensions.pixel_width as f32 / 2.,
-            self.dimensions.pixel_height as f32 / 2.,
-        );
-        quad.set_texture(sprite.texture_coords());
-        quad.set_is_background_image();
-        quad.set_hsv(Some(layer.def.hsb));
-        quad.set_fg_color(color);
+
+        let pixel_width = self.dimensions.pixel_width as f32;
+        let pixel_height = self.dimensions.pixel_height as f32;
+
+        let tex_width = sprite.texture.width() as f32;
+        let tex_height = sprite.texture.height() as f32;
+        let aspect = tex_width as f32 / tex_height as f32;
+
+        // Compute the largest aspect-preserved size that will fill the space
+        let (max_aspect_width, max_aspect_height) = if aspect >= 1.0 {
+            // Width is the longest side
+            let target_height = pixel_width / aspect;
+            if target_height > pixel_height {
+                (pixel_width * pixel_height / target_height, pixel_height)
+            } else {
+                (pixel_width, target_height)
+            }
+        } else {
+            // Height is the longest side
+            let target_width = pixel_height / aspect;
+            if target_width > pixel_width {
+                (pixel_width, pixel_height * pixel_width / target_width)
+            } else {
+                (target_width, pixel_height)
+            }
+        };
+
+        // Compute the smallest aspect-preserved size that will fit the space
+        let (min_aspect_width, min_aspect_height) = if aspect >= 1.0 {
+            // Width is the longest side
+            if tex_height > pixel_height {
+                (tex_width * pixel_height / tex_height, pixel_height)
+            } else {
+                (tex_width, tex_height)
+            }
+        } else {
+            // Height is the longest side
+            if tex_width > pixel_width {
+                (pixel_width, tex_height * pixel_width / tex_width)
+            } else {
+                (tex_width, tex_height)
+            }
+        };
+
+        let width = match layer.def.width {
+            BackgroundSize::Contain => max_aspect_width as f32,
+            BackgroundSize::Cover => min_aspect_width as f32,
+            BackgroundSize::Length(n) => n as f32,
+            BackgroundSize::Percent(p) => (pixel_width as f32 * p as f32) / 100.,
+        };
+
+        let height = match layer.def.height {
+            BackgroundSize::Contain => max_aspect_height as f32,
+            BackgroundSize::Cover => min_aspect_height as f32,
+            BackgroundSize::Length(n) => n as f32,
+            BackgroundSize::Percent(p) => (pixel_height as f32 * p as f32) / 100.,
+        };
+        let origin_x = pixel_width / -2.;
+        let origin_y = pixel_height / -2.;
+
+        for y_step in 0.. {
+            let offset_y = y_step as f32 * height;
+            if offset_y >= pixel_height
+                || (y_step > 0 && layer.def.repeat_y == BackgroundRepeat::NoRepeat)
+            {
+                break;
+            }
+            let origin_y = origin_y + offset_y;
+
+            for x_step in 0.. {
+                let offset_x = x_step as f32 * width;
+                if offset_x >= pixel_width
+                    || (x_step > 0 && layer.def.repeat_x == BackgroundRepeat::NoRepeat)
+                {
+                    break;
+                }
+                let origin_x = origin_x + offset_x;
+                let mut quad = layer0.allocate()?;
+                quad.set_position(origin_x, origin_y, origin_x + width, origin_y + height);
+                quad.set_texture(sprite.texture_coords());
+                quad.set_is_background_image();
+                quad.set_hsv(Some(layer.def.hsb));
+                quad.set_fg_color(color);
+            }
+        }
 
         Ok(())
     }

@@ -83,10 +83,8 @@ pub enum BackgroundSize {
     /// If the aspect ratio differs from the background, the image is
     /// cropped.
     Cover,
-    /// Scales the image so that its aspect ratio is maintained
-    Auto,
     /// Stretches the image to the specified length in pixels
-    Length(usize),
+    Length(u32),
     /// Stretches the image to a percentage of the background size
     /// as determined by the `origin` property.
     Percent(u8),
@@ -94,7 +92,7 @@ pub enum BackgroundSize {
 
 impl Default for BackgroundSize {
     fn default() -> Self {
-        Self::Contain
+        Self::Cover
     }
 }
 
@@ -124,11 +122,12 @@ impl Default for BackgroundVerticalAlignment {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Eq)]
 pub enum BackgroundRepeat {
     /// Repeat as much as possible to cover the area.
     /// The last image will be clipped if it doesn't fit.
     Repeat,
+    /*
     /// Repeat as much as possible without clipping.
     /// The first and last images are aligned with the edges,
     /// with any gaps being distributed evenly between
@@ -144,6 +143,7 @@ pub enum BackgroundRepeat {
     /// new image, the current images compress to allow
     /// room.
     Round,
+    */
     /// The image is not repeated.
     /// The position of the image is defined by the
     /// `position` property
@@ -152,7 +152,7 @@ pub enum BackgroundRepeat {
 
 impl Default for BackgroundRepeat {
     fn default() -> Self {
-        Self::NoRepeat
+        Self::Repeat
     }
 }
 
