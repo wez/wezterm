@@ -86,7 +86,7 @@ void main() {
     if (subpixel_aa) {
       colorMask = o_fg_color.aaaa;
     } else {
-      color.a = o_fg_color.a;
+      color.a *= o_fg_color.a;
     }
   } else if (o_has_color == 1.0) {
     // the texture is full color info (eg: color emoji glyph)
