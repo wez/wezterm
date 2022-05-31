@@ -295,6 +295,15 @@ impl SrgbaTuple {
         )
     }
 
+    pub fn to_srgb_u8(self) -> (u8, u8, u8, u8) {
+        (
+            (self.0 * 255.) as u8,
+            (self.1 * 255.) as u8,
+            (self.2 * 255.) as u8,
+            (self.3 * 255.) as u8,
+        )
+    }
+
     /// Returns a string of the form `#RRGGBB`
     pub fn to_rgb_string(self) -> String {
         format!(

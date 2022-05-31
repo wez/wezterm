@@ -207,6 +207,39 @@ fn load_background_layer(
                 width, height, data,
             )))
         }
+        BackgroundSource::Color(color) => {
+            // In theory we could just make a 1x1 texture and allow
+            // the shader to stretch it, but if we do that, it'll blend
+            // around the edges and look weird.
+            // So we make a square texture in the ballpark of the window
+            // surface.
+            // It's not ideal.
+            let width = match layer.width {
+                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_width as u32) / 100,
+                BackgroundSize::Length(u) => u as u32,
+                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+            };
+            let height = match layer.height {
+                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_height as u32) / 100,
+                BackgroundSize::Length(u) => u as u32,
+                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+            };
+
+            let size = width.min(height);
+
+            let mut imgbuf = image::RgbaImage::new(size, size);
+            let src_pixel = {
+                let (r, g, b, a) = color.to_srgb_u8();
+                image::Rgba([r, g, b, a])
+            };
+            for (_x, _y, pixel) in imgbuf.enumerate_pixels_mut() {
+                *pixel = src_pixel;
+            }
+            let data = imgbuf.into_vec();
+            Arc::new(ImageData::with_data(ImageDataType::new_single_frame(
+                size, size, data,
+            )))
+        }
         BackgroundSource::File(source) => CachedImage::load(&source.path, source.speed)?,
     };
 

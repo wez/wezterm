@@ -1,4 +1,4 @@
-use crate::{default_one_point_oh, Config, HsbTransform};
+use crate::{default_one_point_oh, Config, HsbTransform, RgbaColor};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
@@ -48,6 +48,7 @@ impl FromDynamic for ImageFileSourceWrap {
 pub enum BackgroundSource {
     Gradient(Gradient),
     File(ImageFileSourceWrap),
+    Color(RgbaColor),
 }
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
