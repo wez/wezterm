@@ -1,6 +1,27 @@
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 #[derive(Debug, Copy, Clone)]
+pub struct OptPixelUnit(Option<Dimension>);
+
+impl FromDynamic for OptPixelUnit {
+    fn from_dynamic(
+        value: &Value,
+        _options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match value {
+            Value::Null => Ok(Self(None)),
+            value => Ok(Self(Some(DefaultUnit::Pixels.from_dynamic_impl(value)?))),
+        }
+    }
+}
+
+impl Into<Option<Dimension>> for OptPixelUnit {
+    fn into(self) -> Option<Dimension> {
+        self.0
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct PixelUnit(Dimension);
 
 impl Into<Dimension> for PixelUnit {

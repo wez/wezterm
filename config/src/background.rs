@@ -1,4 +1,4 @@
-use crate::{default_one_point_oh, Config, HsbTransform, RgbaColor};
+use crate::{default_one_point_oh, Config, Dimension, HsbTransform, RgbaColor};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
@@ -64,9 +64,13 @@ pub struct BackgroundLayer {
 
     #[dynamic(default)]
     pub repeat_x: BackgroundRepeat,
+    #[dynamic(try_from = "crate::units::OptPixelUnit", default)]
+    pub repeat_x_size: Option<Dimension>,
 
     #[dynamic(default)]
     pub repeat_y: BackgroundRepeat,
+    #[dynamic(try_from = "crate::units::OptPixelUnit", default)]
+    pub repeat_y_size: Option<Dimension>,
 
     #[dynamic(default)]
     pub vertical_align: BackgroundVerticalAlignment,
@@ -111,6 +115,8 @@ impl BackgroundLayer {
             attachment: Default::default(),
             repeat_x: Default::default(),
             repeat_y: Default::default(),
+            repeat_x_size: None,
+            repeat_y_size: None,
             vertical_align: Default::default(),
             horizontal_align: Default::default(),
             width: BackgroundSize::Percent(100),
@@ -136,6 +142,7 @@ pub enum BackgroundSize {
     /// Stretches the image to a percentage of the background size
     /// as determined by the `origin` property.
     Percent(u8),
+    // FIXME: Dimension
 }
 
 impl Default for BackgroundSize {

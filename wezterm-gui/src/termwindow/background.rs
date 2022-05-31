@@ -4,7 +4,7 @@ use crate::Dimensions;
 use anyhow::Context;
 use config::{
     BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource, ConfigHandle,
-    GradientOrientation,
+    DimensionContext, GradientOrientation,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -343,6 +343,17 @@ impl crate::TermWindow {
         let tex_height = sprite.coords.height() as f32;
         let aspect = tex_width as f32 / tex_height as f32;
 
+        let h_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: pixel_width,
+            pixel_cell: self.render_metrics.cell_size.width as f32,
+        };
+        let v_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: pixel_height,
+            pixel_cell: self.render_metrics.cell_size.height as f32,
+        };
+
         // log::info!("tex {tex_width}x{tex_height} aspect={aspect}");
 
         // Compute the largest aspect-preserved size that will fill the space
@@ -385,30 +396,41 @@ impl crate::TermWindow {
             BackgroundSize::Contain => max_aspect_width as f32,
             BackgroundSize::Cover => min_aspect_width as f32,
             BackgroundSize::Length(n) => n as f32,
-            BackgroundSize::Percent(p) => (pixel_width as f32 * p as f32) / 100.,
+            BackgroundSize::Percent(p) => (pixel_width * p as f32) / 100.,
         };
 
         let height = match layer.def.height {
             BackgroundSize::Contain => max_aspect_height as f32,
             BackgroundSize::Cover => min_aspect_height as f32,
             BackgroundSize::Length(n) => n as f32,
-            BackgroundSize::Percent(p) => (pixel_height as f32 * p as f32) / 100.,
+            BackgroundSize::Percent(p) => (pixel_height * p as f32) / 100.,
         };
         let origin_x = pixel_width / -2.;
         let top_pixel = pixel_height / -2.;
         let mut origin_y = top_pixel;
 
+        let repeat_x = layer
+            .def
+            .repeat_x_size
+            .map(|size| size.evaluate_as_pixels(h_context))
+            .unwrap_or(width);
+        let repeat_y = layer
+            .def
+            .repeat_y_size
+            .map(|size| size.evaluate_as_pixels(v_context))
+            .unwrap_or(height);
+
         // log::info!("computed {width}x{height}");
         if let Some(factor) = layer.def.attachment.scroll_factor() {
             let distance = top as f32 * self.render_metrics.cell_size.height as f32 * factor;
-            let num_tiles = distance / height;
-            origin_y -= num_tiles.fract() * height;
+            let num_tiles = distance / repeat_y;
+            origin_y -= num_tiles.fract() * repeat_y;
         }
 
         let limit_y = top_pixel + pixel_height;
 
         for y_step in 0.. {
-            let offset_y = y_step as f32 * height;
+            let offset_y = y_step as f32 * repeat_y;
             let origin_y = origin_y + offset_y;
             if origin_y >= limit_y
                 || (y_step > 0 && layer.def.repeat_y == BackgroundRepeat::NoRepeat)
@@ -417,7 +439,7 @@ impl crate::TermWindow {
             }
 
             for x_step in 0.. {
-                let offset_x = x_step as f32 * width;
+                let offset_x = x_step as f32 * repeat_x;
                 if offset_x >= pixel_width
                     || (x_step > 0 && layer.def.repeat_x == BackgroundRepeat::NoRepeat)
                 {
