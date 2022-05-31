@@ -20,16 +20,17 @@ struct CachedImage {
     modified: SystemTime,
     image: Arc<ImageData>,
     marked: bool,
+    speed: f32,
 }
 
 impl CachedImage {
-    fn load(path: &str) -> anyhow::Result<Arc<ImageData>> {
+    fn load(path: &str, speed: f32) -> anyhow::Result<Arc<ImageData>> {
         let modified = std::fs::metadata(path)
             .and_then(|m| m.modified())
             .with_context(|| format!("getting metadata for {}", path))?;
         let mut cache = IMAGE_CACHE.lock().unwrap();
         if let Some(cached) = cache.get_mut(path) {
-            if cached.modified == modified {
+            if cached.modified == modified && cached.speed == speed {
                 cached.marked = false;
                 return Ok(Arc::clone(&cached.image));
             }
@@ -38,7 +39,8 @@ impl CachedImage {
         let data = std::fs::read(path)
             .with_context(|| format!("Failed to load window_background_image {}", path))?;
         log::trace!("loaded {}", path);
-        let data = ImageDataType::EncodedFile(data).decode();
+        let mut data = ImageDataType::EncodedFile(data).decode();
+        data.adjust_speed(speed);
         let image = Arc::new(ImageData::with_data(data));
 
         cache.insert(
@@ -47,6 +49,7 @@ impl CachedImage {
                 modified,
                 image: Arc::clone(&image),
                 marked: false,
+                speed,
             },
         );
 
@@ -204,7 +207,7 @@ fn load_background_layer(
                 width, height, data,
             )))
         }
-        BackgroundSource::File(path) => CachedImage::load(path)?,
+        BackgroundSource::File(source) => CachedImage::load(&source.path, source.speed)?,
     };
 
     Ok(LoadedBackgroundLayer {

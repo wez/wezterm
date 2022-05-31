@@ -270,13 +270,36 @@ impl ImageDataType {
         match self {
             ImageDataType::EncodedFile(data) => hasher.update(data),
             ImageDataType::Rgba8 { data, .. } => hasher.update(data),
-            ImageDataType::AnimRgba8 { frames, .. } => {
+            ImageDataType::AnimRgba8 {
+                frames, durations, ..
+            } => {
                 for data in frames {
                     hasher.update(data);
+                }
+                for d in durations {
+                    let d = d.as_secs_f32();
+                    let b = d.to_ne_bytes();
+                    hasher.update(b);
                 }
             }
         };
         hasher.finalize().into()
+    }
+
+    /// Divides the animation frame durations by the provided
+    /// speed_factor, so a factor of 2 will halve the duration.
+    /// # Panics
+    /// if the speed_factor is negative, non-finite or the result
+    /// overflows the allow Duration range.
+    pub fn adjust_speed(&mut self, speed_factor: f32) {
+        match self {
+            Self::AnimRgba8 { durations, .. } => {
+                for d in durations {
+                    *d = d.mul_f32(1. / speed_factor);
+                }
+            }
+            _ => {}
+        }
     }
 
     /// Decode an encoded file into either an Rgba8 or AnimRgba8 variant

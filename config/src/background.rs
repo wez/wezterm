@@ -1,11 +1,53 @@
 use crate::{default_one_point_oh, Config, HsbTransform};
 use luahelper::impl_lua_conversion_dynamic;
-use wezterm_dynamic::{FromDynamic, ToDynamic};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
+
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub struct ImageFileSource {
+    pub path: String,
+
+    /// Adjust the animation rate for animated images
+    #[dynamic(default = "default_one_point_oh")]
+    pub speed: f32,
+}
+
+#[derive(Debug, Clone, ToDynamic)]
+pub struct ImageFileSourceWrap {
+    #[dynamic(flatten)]
+    inner: ImageFileSource,
+}
+
+impl std::ops::Deref for ImageFileSourceWrap {
+    type Target = ImageFileSource;
+    fn deref(&self) -> &ImageFileSource {
+        &self.inner
+    }
+}
+
+impl FromDynamic for ImageFileSourceWrap {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match value {
+            Value::String(path) => Ok(Self {
+                inner: ImageFileSource {
+                    path: path.to_string(),
+                    speed: 1.0,
+                },
+            }),
+            _ => {
+                let inner = ImageFileSource::from_dynamic(value, options)?;
+                Ok(Self { inner })
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub enum BackgroundSource {
     Gradient(Gradient),
-    File(String),
+    File(ImageFileSourceWrap),
 }
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
@@ -51,7 +93,12 @@ impl BackgroundLayer {
         let source = if let Some(gradient) = &cfg.window_background_gradient {
             BackgroundSource::Gradient(gradient.clone())
         } else if let Some(path) = &cfg.window_background_image {
-            BackgroundSource::File(path.to_string_lossy().to_string())
+            BackgroundSource::File(ImageFileSourceWrap {
+                inner: ImageFileSource {
+                    path: path.to_string_lossy().to_string(),
+                    speed: 1.0,
+                },
+            })
         } else {
             return None;
         };
