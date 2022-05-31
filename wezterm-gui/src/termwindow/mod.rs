@@ -597,7 +597,7 @@ impl TermWindow {
             dpi,
         };
 
-        let window_background = load_background_image(&config, &dimensions);
+        let window_background = load_background_image(&config, &dimensions, &render_metrics);
 
         log::trace!(
             "TermWindow::new_window called with mux_window_id {} {:?} {:?}",
@@ -1332,8 +1332,12 @@ impl TermWindow {
         self.config = config.clone();
         self.palette.take();
 
-        self.window_background =
-            reload_background_image(&config, &self.window_background, &self.dimensions);
+        self.window_background = reload_background_image(
+            &config,
+            &self.window_background,
+            &self.dimensions,
+            &self.render_metrics,
+        );
 
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {

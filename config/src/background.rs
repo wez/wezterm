@@ -1,4 +1,4 @@
-use crate::{default_one_point_oh, Config, Dimension, HsbTransform, RgbaColor};
+use crate::{default_one_point_oh, Config, Dimension, HsbTransform, PixelUnit, RgbaColor};
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
@@ -119,14 +119,14 @@ impl BackgroundLayer {
             repeat_y_size: None,
             vertical_align: Default::default(),
             horizontal_align: Default::default(),
-            width: BackgroundSize::Percent(100),
-            height: BackgroundSize::Percent(100),
+            width: BackgroundSize::Dimension(Dimension::Percent(1.)),
+            height: BackgroundSize::Dimension(Dimension::Percent(1.)),
         })
     }
 }
 
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/background-size>
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone)]
 pub enum BackgroundSize {
     /// Scales image as large as possible without cropping or stretching.
     /// If the container is larger than the image, tiles the image unless
@@ -138,11 +138,45 @@ pub enum BackgroundSize {
     /// cropped.
     Cover,
     /// Stretches the image to the specified length in pixels
-    Length(u32),
-    /// Stretches the image to a percentage of the background size
-    /// as determined by the `origin` property.
-    Percent(u8),
-    // FIXME: Dimension
+    Dimension(Dimension),
+}
+
+impl FromDynamic for BackgroundSize {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match value {
+            Value::String(label) => match label.as_str() {
+                "Contain" => return Ok(Self::Contain),
+                "Cover" => return Ok(Self::Cover),
+                _ => {}
+            },
+            _ => {}
+        }
+        match PixelUnit::from_dynamic(value, options) {
+            Ok(pix) => Ok(Self::Dimension(pix.into())),
+            Err(_) => Err(wezterm_dynamic::Error::Message(format!(
+                "expected either 'Contain', 'Cover', \
+                        a number, or a string of \
+                        the form '123px' where 'px' is a unit and \
+                        can be one of 'px', '%', 'pt' or 'cell', \
+                        but got {}",
+                value.variant_name()
+            ))),
+        }
+    }
+}
+
+impl ToDynamic for BackgroundSize {
+    fn to_dynamic(&self) -> Value {
+        let s = match self {
+            Self::Cover => "Cover".to_string(),
+            Self::Contain => "Contain".to_string(),
+            Self::Dimension(d) => return d.to_dynamic(),
+        };
+        Value::String(s)
+    }
 }
 
 impl Default for BackgroundSize {

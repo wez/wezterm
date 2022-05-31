@@ -1,5 +1,6 @@
 use crate::color::LinearRgba;
 use crate::termwindow::RenderState;
+use crate::utilsprites::RenderMetrics;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
@@ -82,7 +83,19 @@ pub struct LoadedBackgroundLayer {
 fn load_background_layer(
     layer: &BackgroundLayer,
     dimensions: &Dimensions,
+    render_metrics: &RenderMetrics,
 ) -> anyhow::Result<LoadedBackgroundLayer> {
+    let h_context = DimensionContext {
+        dpi: dimensions.dpi as f32,
+        pixel_max: dimensions.pixel_width as f32,
+        pixel_cell: render_metrics.cell_size.width as f32,
+    };
+    let v_context = DimensionContext {
+        dpi: dimensions.dpi as f32,
+        pixel_max: dimensions.pixel_height as f32,
+        pixel_cell: render_metrics.cell_size.height as f32,
+    };
+
     let data = match &layer.source {
         BackgroundSource::Gradient(g) => {
             let grad = g
@@ -90,15 +103,13 @@ fn load_background_layer(
                 .with_context(|| format!("building gradient {:?}", g))?;
 
             let mut width = match layer.width {
-                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_width as u32) / 100,
-                BackgroundSize::Length(u) => u as u32,
+                BackgroundSize::Dimension(d) => d.evaluate_as_pixels(h_context),
                 unsup => anyhow::bail!("{:?} not yet implemented", unsup),
-            };
+            } as u32;
             let mut height = match layer.height {
-                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_height as u32) / 100,
-                BackgroundSize::Length(u) => u as u32,
+                BackgroundSize::Dimension(d) => d.evaluate_as_pixels(v_context),
                 unsup => anyhow::bail!("{:?} not yet implemented", unsup),
-            };
+            } as u32;
 
             if matches!(g.orientation, GradientOrientation::Radial { .. }) {
                 // To simplify the math, we compute a perfect circle
@@ -215,15 +226,13 @@ fn load_background_layer(
             // surface.
             // It's not ideal.
             let width = match layer.width {
-                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_width as u32) / 100,
-                BackgroundSize::Length(u) => u as u32,
+                BackgroundSize::Dimension(d) => d.evaluate_as_pixels(h_context),
                 unsup => anyhow::bail!("{:?} not yet implemented", unsup),
-            };
+            } as u32;
             let height = match layer.height {
-                BackgroundSize::Percent(p) => (p as u32 * dimensions.pixel_height as u32) / 100,
-                BackgroundSize::Length(u) => u as u32,
+                BackgroundSize::Dimension(d) => d.evaluate_as_pixels(v_context),
                 unsup => anyhow::bail!("{:?} not yet implemented", unsup),
-            };
+            } as u32;
 
             let size = width.min(height);
 
@@ -252,11 +261,12 @@ fn load_background_layer(
 pub fn load_background_image(
     config: &ConfigHandle,
     dimensions: &Dimensions,
+    render_metrics: &RenderMetrics,
 ) -> Vec<LoadedBackgroundLayer> {
     let mut layers = vec![];
     for layer in &config.background {
         let load_start = std::time::Instant::now();
-        match load_background_layer(layer, dimensions) {
+        match load_background_layer(layer, dimensions, render_metrics) {
             Ok(layer) => {
                 log::trace!("loaded layer in {:?}", load_start.elapsed());
                 layers.push(layer);
@@ -273,6 +283,7 @@ pub fn reload_background_image(
     config: &ConfigHandle,
     existing: &[LoadedBackgroundLayer],
     dimensions: &Dimensions,
+    render_metrics: &RenderMetrics,
 ) -> Vec<LoadedBackgroundLayer> {
     // We want to reuse the existing version of the image where possible
     // so that the textures we may have cached can be re-used and so that
@@ -284,7 +295,7 @@ pub fn reload_background_image(
 
     CachedImage::mark();
 
-    let result = load_background_image(config, dimensions)
+    let result = load_background_image(config, dimensions, render_metrics)
         .into_iter()
         .map(|mut layer| {
             let hash = layer.source.hash();
@@ -395,15 +406,13 @@ impl crate::TermWindow {
         let width = match layer.def.width {
             BackgroundSize::Contain => max_aspect_width as f32,
             BackgroundSize::Cover => min_aspect_width as f32,
-            BackgroundSize::Length(n) => n as f32,
-            BackgroundSize::Percent(p) => (pixel_width * p as f32) / 100.,
+            BackgroundSize::Dimension(n) => n.evaluate_as_pixels(h_context),
         };
 
         let height = match layer.def.height {
             BackgroundSize::Contain => max_aspect_height as f32,
             BackgroundSize::Cover => min_aspect_height as f32,
-            BackgroundSize::Length(n) => n as f32,
-            BackgroundSize::Percent(p) => (pixel_height * p as f32) / 100.,
+            BackgroundSize::Dimension(n) => n.evaluate_as_pixels(v_context),
         };
         let origin_x = pixel_width / -2.;
         let top_pixel = pixel_height / -2.;
