@@ -1225,16 +1225,18 @@ impl TerminalState {
                 self.writer.flush().ok();
             }
             Device::RequestTertiaryDeviceAttributes => {
-                self.writer.write(b"\x1bP!|00000000").ok();
-                self.writer.write(ST.as_bytes()).ok();
+                self.writer
+                    .write(format!("\x1bP!|00000000{}", ST).as_bytes())
+                    .ok();
                 self.writer.flush().ok();
             }
             Device::RequestTerminalNameAndVersion => {
                 self.writer.write(DCS.as_bytes()).ok();
                 self.writer
-                    .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
+                    .write(
+                        format!(">|{} {}{}", self.term_program, self.term_version, ST).as_bytes(),
+                    )
                     .ok();
-                self.writer.write(ST.as_bytes()).ok();
                 self.writer.flush().ok();
             }
             Device::RequestTerminalParameters(a) => {
