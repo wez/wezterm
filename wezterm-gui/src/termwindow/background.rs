@@ -465,19 +465,22 @@ impl crate::TermWindow {
             .unwrap_or(height);
 
         // log::info!("computed {width}x{height}");
+
+        let mut start_tile = 0;
         if let Some(factor) = layer.def.attachment.scroll_factor() {
             let distance = top as f32 * self.render_metrics.cell_size.height as f32 * factor;
             let num_tiles = distance / repeat_y;
             origin_y -= num_tiles.fract() * repeat_y;
+            start_tile = num_tiles.floor() as usize;
         }
 
         let limit_y = top_pixel + pixel_height;
 
-        for y_step in 0.. {
-            let offset_y = y_step as f32 * repeat_y;
+        for y_step in start_tile.. {
+            let offset_y = (y_step - start_tile) as f32 * repeat_y;
             let origin_y = origin_y + offset_y;
             if origin_y >= limit_y
-                || (y_step > 0 && layer.def.repeat_y == BackgroundRepeat::NoRepeat)
+                || (y_step > start_tile && layer.def.repeat_y == BackgroundRepeat::NoRepeat)
             {
                 break;
             }
@@ -493,7 +496,20 @@ impl crate::TermWindow {
                 let mut quad = layer0.allocate()?;
                 // log::info!("quad {origin_x},{origin_y} {width}x{height}");
                 quad.set_position(origin_x, origin_y, origin_x + width, origin_y + height);
-                quad.set_texture(sprite.texture_coords());
+
+                let coords = sprite.texture_coords();
+                let mut x1 = coords.min_x();
+                let mut x2 = coords.max_x();
+                let mut y1 = coords.min_y();
+                let mut y2 = coords.max_y();
+                if layer.def.repeat_x == BackgroundRepeat::Mirror && x_step % 2 == 1 {
+                    std::mem::swap(&mut x1, &mut x2);
+                }
+                if layer.def.repeat_y == BackgroundRepeat::Mirror && y_step % 2 == 1 {
+                    std::mem::swap(&mut y1, &mut y2);
+                }
+
+                quad.set_texture_discrete(x1, x2, y1, y2);
                 quad.set_is_background_image();
                 quad.set_hsv(Some(layer.def.hsb));
                 quad.set_fg_color(color);

@@ -222,6 +222,10 @@ pub enum BackgroundRepeat {
     /// Repeat as much as possible to cover the area.
     /// The last image will be clipped if it doesn't fit.
     Repeat,
+    /// Like Repeat, except that the image is alternately
+    /// mirrored. Helpful when the image doesn't seamlessly
+    /// tile.
+    Mirror,
     /*
     /// Repeat as much as possible without clipping.
     /// The first and last images are aligned with the edges,

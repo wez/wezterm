@@ -45,10 +45,18 @@ pub struct Quad<'a> {
 impl<'a> Quad<'a> {
     /// Assign the texture coordinates
     pub fn set_texture(&mut self, coords: TextureRect) {
-        self.vert[V_TOP_LEFT].tex = (coords.min_x(), coords.min_y());
-        self.vert[V_TOP_RIGHT].tex = (coords.max_x(), coords.min_y());
-        self.vert[V_BOT_LEFT].tex = (coords.min_x(), coords.max_y());
-        self.vert[V_BOT_RIGHT].tex = (coords.max_x(), coords.max_y());
+        let x1 = coords.min_x();
+        let x2 = coords.max_x();
+        let y1 = coords.min_y();
+        let y2 = coords.max_y();
+        self.set_texture_discrete(x1, x2, y1, y2);
+    }
+
+    pub fn set_texture_discrete(&mut self, x1: f32, x2: f32, y1: f32, y2: f32) {
+        self.vert[V_TOP_LEFT].tex = (x1, y1);
+        self.vert[V_TOP_RIGHT].tex = (x2, y1);
+        self.vert[V_BOT_LEFT].tex = (x1, y2);
+        self.vert[V_BOT_RIGHT].tex = (x2, y2);
     }
 
     /// Set the color glyph "flag"
