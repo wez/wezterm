@@ -157,7 +157,13 @@ preceding layers.</p>
 <p>A layer is a lua table with the following fields:</p>
 <ul>
 <li><code>source</code> - defines the source of the layer texture data. See below for source definitions</li>
-<li><code>attachment</code> - controls whether the layer is fixed to the viewport or moves as it scrolls. Can be <code>&quot;Fixed&quot;</code> (the default) to not move as the window scrolls, <code>&quot;Scroll&quot;</code> to scroll 1:1 with the number of pixels scrolled in the viewport, or <code>{Parallax=0.1}</code> to scroll 1:10 with the number of pixels scrolled in the viewport.</li>
+<li><code>attachment</code> - controls whether the layer is fixed to the viewport or moves as it scrolls. Can be:
+<ul>
+<li><code>&quot;Fixed&quot;</code> (the default) to not move as the window scrolls,</li>
+<li><code>&quot;Scroll&quot;</code> to scroll 1:1 with the number of pixels scrolled in the viewport,</li>
+<li><code>{Parallax=0.1}</code> to scroll 1:10 with the number of pixels scrolled in the viewport.</li>
+</ul>
+</li>
 <li><code>repeat_x</code> - controls whether the image is repeated in the x-direction. Can be one of:
 <ul>
 <li><code>&quot;Repeat&quot;</code> - Repeat as much as possible to cover the area. The last image will be clipped if it doesn't fit.  This is the default.</li>
@@ -165,12 +171,36 @@ preceding layers.</p>
 <li><code>&quot;NoRepeat&quot;</code> - the image is not repeated.</li>
 </ul>
 </li>
-<li><code>repeat_x_size</code> - Normally, when repeating, the image is tiled based on its width such that each copy of the image is immediately adjacent to the preceding instance.  You may set <code>repeat_x_size</code> to a different value to increase or decrease the space between the repeated instances.  Accepts number values in pixels or string values like <code>&quot;100%&quot;</code> to specify a size relative to the viewport, <code>&quot;10cell&quot;</code> to specify a size based on the terminal cell metrics.</li>
+<li><code>repeat_x_size</code> - Normally, when repeating, the image is tiled based on its width such that each copy of the image is immediately adjacent to the preceding instance.  You may set <code>repeat_x_size</code> to a different value to increase or decrease the space between the repeated instances.  Accepts:
+<ul>
+<li>number values in pixels,</li>
+<li>string values like <code>&quot;100%&quot;</code> to specify a size relative to the viewport,</li>
+<li><code>&quot;10cell&quot;</code> to specify a size based on the terminal cell metrics.</li>
+</ul>
+</li>
 <li><code>repeat_y</code> - like <code>repeat_x</code> but affects the y-direction.</li>
 <li><code>repeat_y_size</code> - like <code>repeat_x_size</code> but affects the y-direction.</li>
-<li><code>vertical_align</code> - controls the initial vertical position of the layer. Can be one of <code>&quot;Top&quot;</code> (the default), <code>&quot;Middle&quot;</code> or <code>&quot;Bottom&quot;</code> to position relative to the top, middle or bottom of the viewport, respectively.</li>
-<li><code>vertical_offset</code> - specify an offset from the initial vertical position.  Accepts number values in pixels, or string values like <code>&quot;100%&quot;</code> to specify a size relative to the viewport, <code>&quot;10cell&quot;</code> to based on terminal cell metrics.</li>
-<li><code>horizontal_align</code> - controls the initial horizontal position of the layer. Can be one of <code>&quot;Left&quot;</code> (the default), <code>&quot;Center&quot;</code> or <code>&quot;Right&quot;</code> to position relative to the left, center or right of the viewport, respectively.</li>
+<li><code>vertical_align</code> - controls the initial vertical position of the layer, relative to the viewport:
+<ul>
+<li><code>&quot;Top&quot;</code> (the default),</li>
+<li><code>&quot;Middle&quot;</code>,</li>
+<li><code>&quot;Bottom&quot;</code></li>
+</ul>
+</li>
+<li><code>vertical_offset</code> - specify an offset from the initial vertical position.  Accepts:
+<ul>
+<li>number values in pixels,</li>
+<li>string values like <code>&quot;100%&quot;</code> to specify a size relative to the viewport,</li>
+<li><code>&quot;10cell&quot;</code> to specify a size based on terminal cell metrics.</li>
+</ul>
+</li>
+<li><code>horizontal_align</code> - controls the initial horizontal position of the layer, relative to the viewport:
+<ul>
+<li><code>&quot;Left&quot;</code> (the default),</li>
+<li><code>&quot;Center&quot;</code></li>
+<li><code>&quot;Right&quot;</code></li>
+</ul>
+</li>
 <li><code>horizontal_offset</code> - like <code>vertical_offset</code> but applies to the x-direction.</li>
 <li><code>opacity</code> - a number in the range <code>0</code> through <code>1.0</code> inclusive that is multiplied with the alpha channel of the source to adjust the opacity of the layer. The default is <code>1.0</code> to use the source alpha channel as-is. Using a smaller value makes the layer less opaque/more transparent.</li>
 <li><code>hsb</code> - a hue, saturation, brightness tranformation that can be used to adjust those attributes of the layer. See <a href="foreground_text_hsb.html">foreground_text_hsb</a> for more information about this kind of transform.</li>
