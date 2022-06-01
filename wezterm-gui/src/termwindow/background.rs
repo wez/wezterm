@@ -374,8 +374,11 @@ impl crate::TermWindow {
         top: StableRowIndex,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        for (idx, layer) in self.window_background.iter().enumerate() {
-            self.render_background(gl_state, bg_color, layer, idx, top)?;
+        let mut layer_idx = -127;
+        for layer in self.window_background.iter() {
+            if self.render_background(gl_state, bg_color, layer, layer_idx, top)? {
+                layer_idx = layer_idx.saturating_add(1);
+            }
         }
         Ok(())
     }
@@ -385,10 +388,10 @@ impl crate::TermWindow {
         gl_state: &RenderState,
         bg_color: LinearRgba,
         layer: &LoadedBackgroundLayer,
-        layer_index: usize,
+        layer_index: i8,
         top: StableRowIndex,
-    ) -> anyhow::Result<()> {
-        let render_layer = gl_state.layer_for_zindex(-127 + layer_index as i8)?;
+    ) -> anyhow::Result<bool> {
+        let render_layer = gl_state.layer_for_zindex(layer_index)?;
         let vbs = render_layer.vb.borrow();
         let mut vb_mut0 = vbs[0].current_vb_mut();
         let mut layer0 = vbs[0].map(&mut vb_mut0);
@@ -529,6 +532,8 @@ impl crate::TermWindow {
 
         let limit_y = top_pixel + pixel_height;
 
+        let mut emitted = false;
+
         for y_step in start_tile.. {
             let offset_y = (y_step - start_tile) as f32 * repeat_y;
             let origin_y = origin_y + offset_y;
@@ -547,6 +552,7 @@ impl crate::TermWindow {
                 }
                 let origin_x = origin_x + offset_x;
                 let mut quad = layer0.allocate()?;
+                emitted = true;
                 // log::info!("quad {origin_x},{origin_y} {width}x{height}");
                 quad.set_position(origin_x, origin_y, origin_x + width, origin_y + height);
 
@@ -569,6 +575,6 @@ impl crate::TermWindow {
             }
         }
 
-        Ok(())
+        Ok(emitted)
     }
 }
