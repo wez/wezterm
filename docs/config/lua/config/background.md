@@ -80,7 +80,9 @@ both the older and the newer configuration options.
 This example uses these [Alien Space Ship Background - Parallax -
 Repeatable
 (Vertical)](https://www.gameartguppy.com/shop/space-ship-background-repeatable-vertical/)
-assets to demonstrate most of the available features of `background`. That asset pack includes a background layer and a number of overlays. The overlays are positioned at varying offsets with differing parallax to pro
+assets to demonstrate most of the available features of `background`. That asset pack includes a background layer and a number of overlays. The overlays are positioned at varying offsets with differing parallax to provide a greater sense of depth.
+
+The video at the top of this page demonstrate this configuration in action.
 
 ```lua
 -- The art is a bit too bright and colorful to be useful as a backdrop
