@@ -26,17 +26,32 @@ preceding layers.
 A layer is a lua table with the following fields:
 
 * `source` - defines the source of the layer texture data. See below for source definitions
-* `attachment` - controls whether the layer is fixed to the viewport or moves as it scrolls. Can be `"Fixed"` (the default) to not move as the window scrolls, `"Scroll"` to scroll 1:1 with the number of pixels scrolled in the viewport, or `{Parallax=0.1}` to scroll 1:10 with the number of pixels scrolled in the viewport.
+* `attachment` - controls whether the layer is fixed to the viewport or moves as it scrolls. Can be:
+  * `"Fixed"` (the default) to not move as the window scrolls,
+  * `"Scroll"` to scroll 1:1 with the number of pixels scrolled in the viewport,
+  * `{Parallax=0.1}` to scroll 1:10 with the number of pixels scrolled in the viewport.
 * `repeat_x` - controls whether the image is repeated in the x-direction. Can be one of:
   * `"Repeat"` - Repeat as much as possible to cover the area. The last image will be clipped if it doesn't fit.  This is the default.
   * `"Mirror"` - Like `"Repeat"` except that the image is alternately mirrored which can make images that don't tile seamlessly look a bit better when repeated
   * `"NoRepeat"` - the image is not repeated.
-* `repeat_x_size` - Normally, when repeating, the image is tiled based on its width such that each copy of the image is immediately adjacent to the preceding instance.  You may set `repeat_x_size` to a different value to increase or decrease the space between the repeated instances.  Accepts number values in pixels or string values like `"100%"` to specify a size relative to the viewport, `"10cell"` to specify a size based on the terminal cell metrics.
+* `repeat_x_size` - Normally, when repeating, the image is tiled based on its width such that each copy of the image is immediately adjacent to the preceding instance.  You may set `repeat_x_size` to a different value to increase or decrease the space between the repeated instances.  Accepts:
+  * number values in pixels,
+  * string values like `"100%"` to specify a size relative to the viewport,
+  * `"10cell"` to specify a size based on the terminal cell metrics.
 * `repeat_y` - like `repeat_x` but affects the y-direction.
 * `repeat_y_size` - like `repeat_x_size` but affects the y-direction.
-* `vertical_align` - controls the initial vertical position of the layer. Can be one of `"Top"` (the default), `"Middle"` or `"Bottom"` to position relative to the top, middle or bottom of the viewport, respectively.
-* `vertical_offset` - specify an offset from the initial vertical position.  Accepts number values in pixels, or string values like `"100%"` to specify a size relative to the viewport, `"10cell"` to based on terminal cell metrics.
-* `horizontal_align` - controls the initial horizontal position of the layer. Can be one of `"Left"` (the default), `"Center"` or `"Right"` to position relative to the left, center or right of the viewport, respectively.
+* `vertical_align` - controls the initial vertical position of the layer, relative to the viewport:
+  * `"Top"` (the default),
+  * `"Middle"`,
+  * `"Bottom"`
+* `vertical_offset` - specify an offset from the initial vertical position.  Accepts:
+  * number values in pixels,
+  * string values like `"100%"` to specify a size relative to the viewport,
+  * `"10cell"` to specify a size based on terminal cell metrics.
+* `horizontal_align` - controls the initial horizontal position of the layer, relative to the viewport:
+  * `"Left"` (the default),
+  * `"Center"`
+  * `"Right"`
 * `horizontal_offset` - like `vertical_offset` but applies to the x-direction.
 * `opacity` - a number in the range `0` through `1.0` inclusive that is multiplied with the alpha channel of the source to adjust the opacity of the layer. The default is `1.0` to use the source alpha channel as-is. Using a smaller value makes the layer less opaque/more transparent.
 * `hsb` - a hue, saturation, brightness tranformation that can be used to adjust those attributes of the layer. See [foreground_text_hsb](foreground_text_hsb.md) for more information about this kind of transform.
