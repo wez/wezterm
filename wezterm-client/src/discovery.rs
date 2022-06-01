@@ -204,7 +204,7 @@ mod windows {
                 target_slice[0..len].copy_from_slice(path.as_bytes());
                 target_slice[len] = 0;
 
-                log::info!("published gui path as {}", path);
+                log::debug!("published gui path as {}", path);
 
                 Ok(Self {
                     _mapping: mapping,
