@@ -212,7 +212,7 @@ impl WindowInner {
             )?)
         })
         .or_else(|err| {
-            log::warn!("EGL init failed {:?}, fall back to WGL", err);
+            log::trace!("EGL init failed {:?}, fall back to WGL", err);
             super::wgl::GlState::create(self.hwnd.0).and_then(|state| unsafe {
                 Ok(glium::backend::Context::new(
                     Rc::new(state),
