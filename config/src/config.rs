@@ -966,7 +966,7 @@ impl Config {
         }
 
         if let Some(bg) = BackgroundLayer::with_legacy(self) {
-            cfg.background.push(bg);
+            cfg.background.insert(0, bg);
         }
 
         cfg
