@@ -74,9 +74,13 @@ pub struct BackgroundLayer {
 
     #[dynamic(default)]
     pub vertical_align: BackgroundVerticalAlignment,
+    #[dynamic(try_from = "crate::units::OptPixelUnit", default)]
+    pub vertical_offset: Option<Dimension>,
 
     #[dynamic(default)]
     pub horizontal_align: BackgroundHorizontalAlignment,
+    #[dynamic(try_from = "crate::units::OptPixelUnit", default)]
+    pub horizontal_offset: Option<Dimension>,
 
     /// Additional alpha modifier
     #[dynamic(default = "default_one_point_oh")]
@@ -119,6 +123,8 @@ impl BackgroundLayer {
             repeat_y_size: None,
             vertical_align: Default::default(),
             horizontal_align: Default::default(),
+            vertical_offset: None,
+            horizontal_offset: None,
             width: BackgroundSize::Dimension(Dimension::Percent(1.)),
             height: BackgroundSize::Dimension(Dimension::Percent(1.)),
         })

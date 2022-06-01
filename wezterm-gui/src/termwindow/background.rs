@@ -4,8 +4,9 @@ use crate::utilsprites::RenderMetrics;
 use crate::Dimensions;
 use anyhow::Context;
 use config::{
-    BackgroundLayer, BackgroundRepeat, BackgroundSize, BackgroundSource, ConfigHandle,
-    DimensionContext, GradientOrientation,
+    BackgroundHorizontalAlignment, BackgroundLayer, BackgroundRepeat, BackgroundSize,
+    BackgroundSource, BackgroundVerticalAlignment, ConfigHandle, DimensionContext,
+    GradientOrientation,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -414,9 +415,43 @@ impl crate::TermWindow {
             BackgroundSize::Cover => min_aspect_height as f32,
             BackgroundSize::Dimension(n) => n.evaluate_as_pixels(v_context),
         };
-        let origin_x = pixel_width / -2.;
+
+        let mut origin_x = pixel_width / -2.;
         let top_pixel = pixel_height / -2.;
         let mut origin_y = top_pixel;
+
+        match layer.def.vertical_align {
+            BackgroundVerticalAlignment::Top => {}
+            BackgroundVerticalAlignment::Bottom => {
+                origin_y += pixel_height - height;
+            }
+            BackgroundVerticalAlignment::Middle => {
+                origin_y += (pixel_height - height) / 2.;
+            }
+        }
+        match layer.def.horizontal_align {
+            BackgroundHorizontalAlignment::Left => {}
+            BackgroundHorizontalAlignment::Right => {
+                origin_x += pixel_width - width;
+            }
+            BackgroundHorizontalAlignment::Center => {
+                origin_x += (pixel_width - width) / 2.;
+            }
+        }
+
+        let vertical_offset = layer
+            .def
+            .vertical_offset
+            .map(|d| d.evaluate_as_pixels(v_context))
+            .unwrap_or(0.);
+        origin_y += vertical_offset;
+
+        let horizontal_offset = layer
+            .def
+            .horizontal_offset
+            .map(|d| d.evaluate_as_pixels(h_context))
+            .unwrap_or(0.);
+        origin_x += horizontal_offset;
 
         let repeat_x = layer
             .def
