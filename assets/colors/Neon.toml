@@ -1,0 +1,12 @@
+# Neon
+[colors]
+foreground = "#00fffc"
+background = "#14161a"
+cursor_bg = "#c7c7c7"
+cursor_border = "#c7c7c7"
+cursor_fg = "#ffffff"
+selection_bg = "#0013ff"
+selection_fg = "#08d2cf"
+
+ansi = ["#000000","#ff3045","#5ffa74","#fffc7e","#0208cb","#f924e7","#00fffc","#c7c7c7"]
+brights = ["#686868","#ff5a5a","#75ff88","#fffd96","#3c40cb","#f15be5","#88fffe","#ffffff"]

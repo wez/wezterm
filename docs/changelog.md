@@ -42,6 +42,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [PaneSelect](config/lua/keyassignment/PaneSelect.md) key assignment to activate the pane selection UI to activate or swap the selected pane. [#1842](https://github.com/wez/wezterm/issues/1842) [#1975](https://github.com/wez/wezterm/issues/1975)
 * [window_background_gradient](config/lua/config/window_background_gradient.md) now also supports `Linear` gradients with an angle of your choice. Thanks to [@erf](https://github.com/erf)! [#2038](https://github.com/wez/wezterm/pull/2038)
 * RPM and DEB packages now install zsh and bash `wezterm` CLI completions
+* `Grey-green`, `Neon` and `Oceanic-Next` color schemes
 
 #### Updated
 * Bundled harfbuzz to 4.3.0
@@ -73,6 +74,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Unicode NFD text could incorrectly render with repeated glyphs [#2032](https://github.com/wez/wezterm/issues/2032)
 * Windows: spawning new panes/tabs wouldn't automatically use the working directory of the current pane when OSC 7 was not being used [#2036](https://github.com/wez/wezterm/issues/2036)
 * Wayland: panic when display scaling is enabled. [#1727](https://github.com/wez/wezterm/issues/1727)
+* `Dark+` color scheme background color [#2013](https://github.com/wez/wezterm/pull/2013)
 
 ### 20220408-101518-b908e2dd
 

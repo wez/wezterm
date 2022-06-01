@@ -1,0 +1,12 @@
+# Oceanic-Next
+[colors]
+foreground = "#b3b8c3"
+background = "#121b21"
+cursor_bg = "#b3b8c3"
+cursor_border = "#b3b8c3"
+cursor_fg = "#121c21"
+selection_bg = "#3e4953"
+selection_fg = "#b3b8c3"
+
+ansi = ["#121c21","#e44754","#89bd82","#f7bd51","#5486c0","#b77eb8","#50a5a4","#ffffff"]
+brights = ["#52606b","#e44754","#89bd82","#f7bd51","#5486c0","#b77eb8","#50a5a4","#ffffff"]

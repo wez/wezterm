@@ -1,7 +1,7 @@
 # Dark+
 [colors]
 foreground = "#cccccc"
-background = "#0e0e0e"
+background = "#1e1e1e"
 cursor_bg = "#ffffff"
 cursor_border = "#ffffff"
 cursor_fg = "#000000"
