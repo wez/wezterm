@@ -290,7 +290,7 @@ impl Default for BackgroundOrigin {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
 pub enum Interpolation {
     Linear,
     Basis,
@@ -303,7 +303,7 @@ impl Default for Interpolation {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
 pub enum BlendMode {
     Rgb,
     LinearRgb,
@@ -317,7 +317,7 @@ impl Default for BlendMode {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
 pub enum GradientOrientation {
     Horizontal,
     Vertical,
@@ -337,7 +337,7 @@ impl Default for GradientOrientation {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
 pub enum GradientPreset {
     Blues,
     BrBg,
@@ -424,7 +424,7 @@ impl GradientPreset {
     }
 }
 
-#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic, PartialEq)]
 pub struct Gradient {
     #[dynamic(default)]
     pub orientation: GradientOrientation,

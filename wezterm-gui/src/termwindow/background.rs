@@ -5,7 +5,7 @@ use crate::Dimensions;
 use anyhow::Context;
 use config::{
     BackgroundHorizontalAlignment, BackgroundLayer, BackgroundRepeat, BackgroundSize,
-    BackgroundSource, BackgroundVerticalAlignment, ConfigHandle, DimensionContext,
+    BackgroundSource, BackgroundVerticalAlignment, ConfigHandle, DimensionContext, Gradient,
     GradientOrientation,
 };
 use std::collections::HashMap;
@@ -16,6 +16,158 @@ use wezterm_term::StableRowIndex;
 
 lazy_static::lazy_static! {
     static ref IMAGE_CACHE: Mutex<HashMap<String, CachedImage>> = Mutex::new(HashMap::new());
+    static ref GRADIENT_CACHE: Mutex<Vec<CachedGradient>> = Mutex::new(vec![]);
+}
+
+struct CachedGradient {
+    g: Gradient,
+    width: u32,
+    height: u32,
+    image: Arc<ImageData>,
+    marked: bool,
+}
+
+impl CachedGradient {
+    fn compute(g: &Gradient, width: u32, height: u32) -> anyhow::Result<Arc<ImageData>> {
+        let grad = g
+            .build()
+            .with_context(|| format!("building gradient {:?}", g))?;
+
+        let mut imgbuf = image::RgbaImage::new(width, height);
+        let fw = width as f64;
+        let fh = height as f64;
+
+        fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
+            let (r, g, b, a) = c.rgba_u8();
+            image::Rgba([r, g, b, a])
+        }
+
+        // Map t which is in range [a, b] to range [c, d]
+        fn remap(t: f64, a: f64, b: f64, c: f64, d: f64) -> f64 {
+            (t - a) * ((d - c) / (b - a)) + c
+        }
+
+        let (dmin, dmax) = grad.domain();
+
+        let rng = fastrand::Rng::new();
+
+        // We add some randomness to the position that we use to
+        // index into the color gradient, so that we can avoid
+        // visible color banding.  The default 64 was selected
+        // because it it was the smallest value on my mac where
+        // the banding wasn't obvious.
+        let noise_amount = g.noise.unwrap_or_else(|| {
+            if matches!(g.orientation, GradientOrientation::Radial { .. }) {
+                16
+            } else {
+                64
+            }
+        });
+
+        fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
+            if noise_amount == 0 {
+                0.
+            } else {
+                rng.usize(0..noise_amount) as f64 * -1.
+            }
+        }
+
+        match g.orientation {
+            GradientOrientation::Horizontal => {
+                for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
+                    *pixel = to_pixel(grad.at(remap(
+                        x as f64 + noise(&rng, noise_amount),
+                        0.0,
+                        fw,
+                        dmin,
+                        dmax,
+                    )));
+                }
+            }
+            GradientOrientation::Vertical => {
+                for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                    *pixel = to_pixel(grad.at(remap(
+                        y as f64 + noise(&rng, noise_amount),
+                        0.0,
+                        fh,
+                        dmin,
+                        dmax,
+                    )));
+                }
+            }
+            GradientOrientation::Linear { angle } => {
+                let angle = angle.unwrap_or(0.0).to_radians();
+                for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                    let (x, y) = (x as f64, y as f64);
+                    let (x, y) = (x - fw / 2., y - fh / 2.);
+                    let t = x * f64::cos(angle) - y * f64::sin(angle);
+                    *pixel = to_pixel(grad.at(remap(
+                        t + noise(&rng, noise_amount),
+                        -fw / 2.,
+                        fw / 2.,
+                        dmin,
+                        dmax,
+                    )));
+                }
+            }
+            GradientOrientation::Radial { radius, cx, cy } => {
+                let radius = fw * radius.unwrap_or(0.5);
+                let cx = fw * cx.unwrap_or(0.5);
+                let cy = fh * cy.unwrap_or(0.5);
+
+                for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                    let nx = noise(&rng, noise_amount);
+                    let ny = noise(&rng, noise_amount);
+
+                    let t = (nx + (x as f64 - cx).powi(2) + (ny + y as f64 - cy).powi(2)).sqrt()
+                        / radius;
+                    *pixel = to_pixel(grad.at(t));
+                }
+            }
+        }
+
+        let data = imgbuf.into_vec();
+        let image = Arc::new(ImageData::with_data(ImageDataType::new_single_frame(
+            width, height, data,
+        )));
+
+        Ok(image)
+    }
+
+    fn load(g: &Gradient, width: u32, height: u32) -> anyhow::Result<Arc<ImageData>> {
+        let mut cache = GRADIENT_CACHE.lock().unwrap();
+
+        if let Some(entry) = cache
+            .iter_mut()
+            .find(|entry| entry.g == *g && entry.width == width && entry.height == height)
+        {
+            entry.marked = false;
+            return Ok(Arc::clone(&entry.image));
+        }
+
+        let image = Self::compute(g, width, height)?;
+
+        cache.push(Self {
+            g: g.clone(),
+            width,
+            height,
+            image: Arc::clone(&image),
+            marked: false,
+        });
+        Ok(image)
+    }
+
+    fn mark() {
+        let mut cache = GRADIENT_CACHE.lock().unwrap();
+        for entry in cache.iter_mut() {
+            entry.marked = true;
+        }
+    }
+
+    fn sweep() {
+        let mut cache = GRADIENT_CACHE.lock().unwrap();
+        cache.retain(|entry| !entry.marked);
+    }
 }
 
 struct CachedImage {
@@ -99,10 +251,6 @@ fn load_background_layer(
 
     let data = match &layer.source {
         BackgroundSource::Gradient(g) => {
-            let grad = g
-                .build()
-                .with_context(|| format!("building gradient {:?}", g))?;
-
             let mut width = match layer.width {
                 BackgroundSize::Dimension(d) => d.evaluate_as_pixels(h_context),
                 unsup => anyhow::bail!("{:?} not yet implemented", unsup),
@@ -120,104 +268,7 @@ fn load_background_layer(
                 height = height.min(width);
             }
 
-            let mut imgbuf = image::RgbaImage::new(width, height);
-            let fw = width as f64;
-            let fh = height as f64;
-
-            fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
-                let (r, g, b, a) = c.rgba_u8();
-                image::Rgba([r, g, b, a])
-            }
-
-            // Map t which is in range [a, b] to range [c, d]
-            fn remap(t: f64, a: f64, b: f64, c: f64, d: f64) -> f64 {
-                (t - a) * ((d - c) / (b - a)) + c
-            }
-
-            let (dmin, dmax) = grad.domain();
-
-            let rng = fastrand::Rng::new();
-
-            // We add some randomness to the position that we use to
-            // index into the color gradient, so that we can avoid
-            // visible color banding.  The default 64 was selected
-            // because it it was the smallest value on my mac where
-            // the banding wasn't obvious.
-            let noise_amount = g.noise.unwrap_or_else(|| {
-                if matches!(g.orientation, GradientOrientation::Radial { .. }) {
-                    16
-                } else {
-                    64
-                }
-            });
-
-            fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
-                if noise_amount == 0 {
-                    0.
-                } else {
-                    rng.usize(0..noise_amount) as f64 * -1.
-                }
-            }
-
-            match g.orientation {
-                GradientOrientation::Horizontal => {
-                    for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
-                        *pixel = to_pixel(grad.at(remap(
-                            x as f64 + noise(&rng, noise_amount),
-                            0.0,
-                            fw,
-                            dmin,
-                            dmax,
-                        )));
-                    }
-                }
-                GradientOrientation::Vertical => {
-                    for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                        *pixel = to_pixel(grad.at(remap(
-                            y as f64 + noise(&rng, noise_amount),
-                            0.0,
-                            fh,
-                            dmin,
-                            dmax,
-                        )));
-                    }
-                }
-                GradientOrientation::Linear { angle } => {
-                    let angle = angle.unwrap_or(0.0).to_radians();
-                    for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                        let (x, y) = (x as f64, y as f64);
-                        let (x, y) = (x - fw / 2., y - fh / 2.);
-                        let t = x * f64::cos(angle) - y * f64::sin(angle);
-                        *pixel = to_pixel(grad.at(remap(
-                            t + noise(&rng, noise_amount),
-                            -fw / 2.,
-                            fw / 2.,
-                            dmin,
-                            dmax,
-                        )));
-                    }
-                }
-                GradientOrientation::Radial { radius, cx, cy } => {
-                    let radius = fw * radius.unwrap_or(0.5);
-                    let cx = fw * cx.unwrap_or(0.5);
-                    let cy = fh * cy.unwrap_or(0.5);
-
-                    for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                        let nx = noise(&rng, noise_amount);
-                        let ny = noise(&rng, noise_amount);
-
-                        let t = (nx + (x as f64 - cx).powi(2) + (ny + y as f64 - cy).powi(2))
-                            .sqrt()
-                            / radius;
-                        *pixel = to_pixel(grad.at(t));
-                    }
-                }
-            }
-
-            let data = imgbuf.into_vec();
-            Arc::new(ImageData::with_data(ImageDataType::new_single_frame(
-                width, height, data,
-            )))
+            CachedGradient::load(g, width, height)?
         }
         BackgroundSource::Color(color) => {
             // In theory we could just make a 1x1 texture and allow
@@ -295,6 +346,7 @@ pub fn reload_background_image(
         .collect();
 
     CachedImage::mark();
+    CachedGradient::mark();
 
     let result = load_background_image(config, dimensions, render_metrics)
         .into_iter()
@@ -310,6 +362,7 @@ pub fn reload_background_image(
         .collect();
 
     CachedImage::sweep();
+    CachedGradient::sweep();
 
     result
 }
