@@ -7,6 +7,8 @@ in float o_has_color;
 in vec2 o_tex;
 in vec3 o_hsv;
 in vec4 o_fg_color;
+in vec4 o_fg_color_alt;
+in float o_fg_color_mix;
 
 // The color + alpha
 layout(location=0, index=0) out vec4 color;
@@ -75,18 +77,19 @@ vec4 to_srgb(vec4 linearRGB)
 }
 
 void main() {
+  vec4 fg_color = mix(o_fg_color, o_fg_color_alt, o_fg_color_mix);
   if (o_has_color == 3.0) {
     // Solid color block
-    color = o_fg_color;
+    color = fg_color;
     colorMask = vec4(1.0);
   } else if (o_has_color == 2.0) {
     // The window background attachment
     color = texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
     if (subpixel_aa) {
-      colorMask = o_fg_color.aaaa;
+      colorMask = fg_color.aaaa;
     } else {
-      color.a *= o_fg_color.a;
+      color.a *= fg_color.a;
     }
   } else if (o_has_color == 1.0) {
     // the texture is full color info (eg: color emoji glyph)
@@ -96,13 +99,13 @@ void main() {
   } else if (o_has_color == 4.0) {
     // Grayscale poly quad for non-aa text render layers
     colorMask = texture(atlas_nearest_sampler, o_tex);
-    color = o_fg_color;
+    color = fg_color;
     color.a *= colorMask.a;
   } else if (o_has_color == 0.0) {
     // the texture is the alpha channel/color mask
     colorMask = texture(atlas_nearest_sampler, o_tex);
     // and we need to tint with the fg_color
-    color = o_fg_color;
+    color = fg_color;
     if (!subpixel_aa) {
       color.a = colorMask.a;
     }

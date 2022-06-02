@@ -202,8 +202,14 @@ pub struct ComputeCellFgBgParams<'a> {
 #[derive(Debug)]
 pub struct ComputeCellFgBgResult {
     pub fg_color: LinearRgba,
+    pub fg_color_alt: LinearRgba,
     pub bg_color: LinearRgba,
+    pub bg_color_alt: LinearRgba,
+    pub fg_color_mix: f32,
+    pub bg_color_mix: f32,
     pub cursor_border_color: LinearRgba,
+    pub cursor_border_color_alt: LinearRgba,
+    pub cursor_border_mix: f32,
     pub cursor_shape: Option<CursorShape>,
 }
 
@@ -2084,10 +2090,11 @@ impl super::TermWindow {
             };
 
             let ComputeCellFgBgResult {
-                fg_color: _glyph_color,
-                bg_color: _bg_color,
                 cursor_shape,
                 cursor_border_color,
+                cursor_border_color_alt,
+                cursor_border_mix,
+                ..
             } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                 cursor: Some(params.cursor),
                 selected: false,
@@ -2132,6 +2139,7 @@ impl super::TermWindow {
                 );
 
                 quad.set_fg_color(cursor_border_color);
+                quad.set_alt_color_and_mix_value(cursor_border_color_alt, cursor_border_mix);
             }
         }
 
@@ -2311,8 +2319,9 @@ impl super::TermWindow {
                             let ComputeCellFgBgResult {
                                 fg_color: glyph_color,
                                 bg_color,
-                                cursor_shape: _,
-                                cursor_border_color: _,
+                                fg_color_alt,
+                                fg_color_mix,
+                                ..
                             } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                                 cursor: if is_cursor { Some(params.cursor) } else { None },
                                 selected,
@@ -2353,6 +2362,7 @@ impl super::TermWindow {
                                 pos_y + top + texture.coords.size.height as f32 * height_scale,
                             );
                             quad.set_fg_color(glyph_color);
+                            quad.set_alt_color_and_mix_value(fg_color_alt, fg_color_mix);
                             quad.set_texture(texture_rect);
                             quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                 let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
@@ -2529,7 +2539,7 @@ impl super::TermWindow {
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         if params.cursor.is_some() {
-            if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
+            if let Some(bg_color_mix) = self.get_intensity_if_bell_target_ringing(
                 params.pane.expect("cursor only set if pane present"),
                 params.config,
                 VisualBellTarget::CursorColor,
@@ -2543,26 +2553,24 @@ impl super::TermWindow {
 
                 // interpolate between the background color
                 // and the the target color
-                let (r1, g1, b1, a) = bg_color.tuple();
-                let (r, g, b, _) = params
+                let bg_color_alt = params
                     .config
                     .resolved_palette
                     .visual_bell
-                    .map(|c| c.to_linear().tuple())
-                    .unwrap_or_else(|| fg_color.tuple());
-
-                let bg_color = LinearRgba::with_components(
-                    r1 + (r - r1) * intensity,
-                    g1 + (g - g1) * intensity,
-                    b1 + (b - b1) * intensity,
-                    a,
-                );
+                    .map(|c| c.to_linear())
+                    .unwrap_or(fg_color);
 
                 return ComputeCellFgBgResult {
                     fg_color,
+                    fg_color_alt: fg_color,
+                    fg_color_mix: 0.,
                     bg_color,
+                    bg_color_alt,
+                    bg_color_mix,
                     cursor_shape: Some(CursorShape::Default),
                     cursor_border_color: bg_color,
+                    cursor_border_color_alt: bg_color_alt,
+                    cursor_border_mix: bg_color_mix,
                 };
             }
 
@@ -2586,9 +2594,15 @@ impl super::TermWindow {
 
                 return ComputeCellFgBgResult {
                     fg_color,
+                    fg_color_alt: fg_color,
+                    fg_color_mix: 0.,
                     bg_color,
+                    bg_color_alt: bg_color,
+                    bg_color_mix: 0.,
                     cursor_shape: Some(CursorShape::Default),
                     cursor_border_color: color,
+                    cursor_border_color_alt: color,
+                    cursor_border_mix: 0.,
                 };
             }
         }
@@ -2606,7 +2620,7 @@ impl super::TermWindow {
 
         let focused_and_active = self.focused.is_some() && params.is_active_pane;
 
-        let (mut fg_color, bg_color, mut cursor_bg) = match (
+        let (fg_color, bg_color, cursor_bg) = match (
             params.selected,
             focused_and_active,
             cursor_shape,
@@ -2656,36 +2670,27 @@ impl super::TermWindow {
             && params.config.cursor_blink_rate != 0
             && self.focused.is_some();
 
+        let mut fg_color_alt = fg_color;
+        let bg_color_alt = bg_color;
+        let mut fg_color_mix = 0.;
+        let bg_color_mix = 0.;
+        let mut cursor_border_color_alt = cursor_bg;
+        let mut cursor_border_mix = 0.;
+
         if blinking {
             let mut color_ease = self.cursor_blink_state.borrow_mut();
             color_ease.update_start(self.prev_cursor.last_cursor_movement());
             let (intensity, next) = color_ease.intensity_continuous();
 
-            // Invert the intensity: we want to start with a visible
-            // cursor whenever the cursor moves, then fade out, then back.
-            let bg_intensity = 1.0 - intensity;
-
-            let (r1, g1, b1, a) = params.bg_color.tuple();
-            let (r, g, b, _a) = cursor_bg.tuple();
-            cursor_bg = LinearRgba::with_components(
-                r1 + (r - r1) * bg_intensity,
-                g1 + (g - g1) * bg_intensity,
-                b1 + (b - b1) * bg_intensity,
-                a,
-            );
+            cursor_border_mix = intensity;
+            cursor_border_color_alt = params.bg_color;
 
             if matches!(
                 cursor_shape,
                 CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
             ) {
-                let (r1, g1, b1, a) = fg_color.tuple();
-                let (r, g, b, _a) = params.fg_color.tuple();
-                fg_color = LinearRgba::with_components(
-                    r1 + (r - r1) * intensity,
-                    g1 + (g - g1) * intensity,
-                    b1 + (b - b1) * intensity,
-                    a,
-                );
+                fg_color_alt = params.fg_color;
+                fg_color_mix = intensity;
             }
 
             self.update_next_frame_time(Some(next));
@@ -2693,8 +2698,14 @@ impl super::TermWindow {
 
         ComputeCellFgBgResult {
             fg_color,
+            fg_color_alt,
             bg_color,
+            bg_color_alt,
+            fg_color_mix,
+            bg_color_mix,
             cursor_border_color: cursor_bg,
+            cursor_border_color_alt,
+            cursor_border_mix,
             cursor_shape: if visibility == CursorVisibility::Visible {
                 match cursor_shape {
                     CursorShape::BlinkingBlock | CursorShape::SteadyBlock if focused_and_active => {
