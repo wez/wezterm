@@ -73,7 +73,7 @@ pub(crate) struct XWindowInner {
     invalidated: bool,
     paint_throttled: bool,
     pending: Vec<WindowEvent>,
-    dispatched_any_resize: bool,
+    sure_about_geometry: bool,
 }
 
 impl Drop for XWindowInner {
@@ -206,7 +206,7 @@ impl XWindowInner {
         }
 
         if let Some(resize) = resize.take() {
-            self.dispatched_any_resize = true;
+            self.sure_about_geometry = true;
             self.events.dispatch(resize);
         }
 
@@ -232,8 +232,8 @@ impl XWindowInner {
                     self.verify_focus = false;
                 }
 
-                if !self.dispatched_any_resize {
-                    self.dispatched_any_resize = true;
+                if !self.sure_about_geometry {
+                    self.sure_about_geometry = true;
 
                     log::trace!("About to paint, but we've unsure about geometry; querying!");
                     let geom = self.conn().wait_for_reply(self.conn().send_request(
@@ -495,11 +495,12 @@ impl XWindowInner {
                     // Change in window state should be accompanied by
                     // a Configure Notify but not all WMs send these
                     // events consistently/at all/in the same order.
-                    self.dispatched_any_resize = false;
+                    self.sure_about_geometry = false;
                     self.verify_focus = true;
                 }
             }
             Event::X(xcb::x::Event::FocusIn(_)) => {
+                self.sure_about_geometry = false;
                 if self.has_focus != Some(true) {
                     self.has_focus.replace(true);
                     self.update_ime_position();
@@ -508,6 +509,7 @@ impl XWindowInner {
                 }
             }
             Event::X(xcb::x::Event::FocusOut(_)) => {
+                self.sure_about_geometry = false;
                 if self.has_focus != Some(false) {
                     self.has_focus.replace(false);
                     log::trace!("Calling focus_change(false)");
@@ -975,7 +977,7 @@ impl XWindow {
                 paint_throttled: false,
                 invalidated: false,
                 pending: vec![],
-                dispatched_any_resize: false,
+                sure_about_geometry: false,
             }))
         };
 
