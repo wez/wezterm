@@ -137,7 +137,16 @@ impl XWindowInner {
     /// If the new region intersects with the prior region, then we expand
     /// it to encompass both.  This avoids bloating the list with a series
     /// of increasing rectangles when resizing larger or smaller.
-    fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) {
+    fn expose(&mut self, x: u16, y: u16, width: u16, height: u16, count: u16) {
+        log::trace!("expose: {x},{y} {width}x{height} ({count} expose events follow this one)");
+        let max_x = x.saturating_add(width);
+        let max_y = y.saturating_add(height);
+        if max_x > self.width || max_y > self.height {
+            log::trace!(
+                "flagging geometry as unsure because exposed region is larger than known geom"
+            );
+            self.sure_about_geometry = false;
+        }
         self.queue_pending(WindowEvent::NeedRepaint);
     }
 
@@ -351,7 +360,13 @@ impl XWindowInner {
         let conn = self.conn();
         match event {
             Event::X(xcb::x::Event::Expose(expose)) => {
-                self.expose(expose.x(), expose.y(), expose.width(), expose.height());
+                self.expose(
+                    expose.x(),
+                    expose.y(),
+                    expose.width(),
+                    expose.height(),
+                    expose.count(),
+                );
             }
             Event::X(xcb::x::Event::ConfigureNotify(cfg)) => {
                 self.update_ime_position();
