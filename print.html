@@ -1421,21 +1421,36 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
 <p><code>wezterm</code> will look for a <a href="https://www.lua.org/manual/5.3/manual.html">lua</a>
-configuration file in the following locations, stopping at the first file that
-it finds; these steps apply to all operating systems unless otherwise noted:</p>
-<ul>
-<li>(since version 20210314-114017-04b7cedd) if the <code>--config-file</code> CLI argument was specified, then
-that path will be used.  If that path fails to load, then the defaults will be
-used instead.</li>
-<li>If the environment variable <code>$WEZTERM_CONFIG_FILE</code> is set, it will be treated as the
-path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
-then the defaults will be used instead.  In earlier releases, the following steps
-would be used as a fallback.</li>
-<li>On Windows: <code>wezterm.lua</code> from the directory that contains <code>wezterm.exe</code>.
-This is handy for users that want to carry their wezterm install around on a thumb drive.</li>
-<li><code>$HOME/.config/wezterm/wezterm.lua</code> (where <code>$HOME</code> is the home directory of the user)</li>
-<li><code>$HOME/.wezterm.lua</code> (where <code>$HOME</code> is the home directory of the user).</li>
-</ul>
+configuration file using the logic shown below.</p>
+<p>The recommendation is to place your configuration file at <code>$HOME/.wezterm.lua</code>
+to get started.</p>
+<p>More complex configurations that need to span multiple files can be placed in
+<code>$XDG_CONFIG_HOME/wezterm/wezterm.lua</code> (for X11/Wayland) or
+<code>$HOME/.config/wezterm/wezterm.lua</code> (for all other systems).</p>
+<pre class="mermaid">graph TD
+  X[Locate Configuration file] --&gt; A{{--config-file CLI argument specified?}}
+  A --&gt;|Yes| B{{Can that file be loaded?}}
+  B --&gt;|Yes| C[Use it]
+  B --&gt;|No| D[Use built-in default configuration]
+  A --&gt;|No| E{{$WEZTERM_CONFIG_FILE&lt;br/&gt;environment set?}}
+  E --&gt;|Yes| B
+  E --&gt;|No| F{{&quot;Running on Windows and&lt;br/&gt;wezterm.lua exists in same&lt;br/&gt;dir as wezterm.exe?&lt;br/&gt;(Thumb drive mode)&quot;}}
+  F --&gt;|Yes| B
+  F --&gt;|No| H{{Is $XDG_CONFIG_HOME&lt;br/&gt;environment set and&lt;br/&gt;wezterm/wezterm.lua&lt;br/&gt;exists inside it?}}
+  H --&gt;|Yes| C
+  J --&gt; B
+  H --&gt;|No| K{{Does $HOME/.config/wezterm/wezterm.lua exist?}}
+  K --&gt;|Yes| B
+  K --&gt;|No| J[Use $HOME/.wezterm.lua]
+</pre>
+<p>Prior to version 20210314-114017-04b7cedd, if the candidate file exists but
+failed to parse, wezterm would treat it as though it didn't exist and continue
+to try other candidate file locations. In all current versions of wezterm, an
+error will be shown and the default configuration will be used instead.</p>
+<p>Note that on Windows, to support uses that carry their wezterm application and
+configuration around on a thumb drive, wezterm will look for the config file in
+the same location as wezterm.exe.  That is shown in the chart above as thumb
+drive mode.</p>
 <p><code>wezterm</code> will watch the config file that it loads; if/when it changes, the
 configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the <code>CTRL+SHIFT+R</code> keyboard shortcut
