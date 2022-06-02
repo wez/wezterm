@@ -258,19 +258,19 @@ impl Sixel {
         // Compute it by evaluating the sixel data
         let mut max_x = 0;
         let mut max_y = 0;
-        let mut x = 0;
-        let mut rows = 1;
+        let mut x: u32 = 0;
+        let mut rows: u32 = 1;
 
         for d in &self.data {
             match d {
                 SixelData::Data(_) => {
                     max_y = max_y.max(rows * 6);
-                    x += 1;
+                    x = x.saturating_add(1);
                     max_x = max_x.max(x);
                 }
                 SixelData::Repeat { repeat_count, .. } => {
                     max_y = max_y.max(rows * 6);
-                    x += repeat_count;
+                    x = x.saturating_add(*repeat_count);
                     max_x = max_x.max(x);
                 }
                 SixelData::SelectColorMapEntry(_)
@@ -279,7 +279,7 @@ impl Sixel {
                 SixelData::NewLine => {
                     max_x = max_x.max(x);
                     x = 0;
-                    rows += 1;
+                    rows = rows.saturating_add(1);
                 }
                 SixelData::CarriageReturn => {
                     max_x = max_x.max(x);
