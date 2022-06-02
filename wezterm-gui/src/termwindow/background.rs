@@ -526,7 +526,7 @@ impl crate::TermWindow {
         if let Some(factor) = layer.def.attachment.scroll_factor() {
             let distance = top as f32 * self.render_metrics.cell_size.height as f32 * factor;
             let num_tiles = distance / repeat_y;
-            origin_y -= num_tiles.fract() * repeat_y;
+            origin_y -= (num_tiles.fract() * repeat_y).floor();
             start_tile = num_tiles.floor() as usize;
         }
 
