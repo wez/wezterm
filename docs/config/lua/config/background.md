@@ -70,7 +70,7 @@ A source can be one of the following:
 * `{File="/path/to/file.png"}` - load the specified image file.  PNG, JPEG,
   GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files can be loaded.
   Animated GIF and PNG files will animate while the window has focus.
-* `{File={source="/path/to/anim.gif", speed=0.2}}` - load the specified image file, which is an animated gif, and adjust the animation speed to 0.2 times its normal speed.
+* `{File={path="/path/to/anim.gif", speed=0.2}}` - load the specified image file, which is an animated gif, and adjust the animation speed to 0.2 times its normal speed.
 * `{Gradient={preset="Warm"}}` - generate a gradient. The gradient definitions
   are the same as those allowed for [window_background_gradient](window_background_gradient.md).
 * `{Color="black"}` - generate an image with the specified color.
