@@ -429,7 +429,10 @@ impl crate::TermWindow {
             // Width is the longest side
             let target_height = pixel_width / aspect;
             if target_height > pixel_height {
-                (pixel_width * pixel_height / target_height, pixel_height)
+                (
+                    (pixel_width * pixel_height / target_height).floor(),
+                    pixel_height,
+                )
             } else {
                 (pixel_width, target_height)
             }
@@ -437,7 +440,10 @@ impl crate::TermWindow {
             // Height is the longest side
             let target_width = pixel_height / aspect;
             if target_width > pixel_width {
-                (pixel_width, pixel_height * pixel_width / target_width)
+                (
+                    pixel_width,
+                    (pixel_height * pixel_width / target_width).floor(),
+                )
             } else {
                 (target_width, pixel_height)
             }
@@ -447,14 +453,17 @@ impl crate::TermWindow {
         let (min_aspect_width, min_aspect_height) = if aspect >= 1.0 {
             // Width is the longest side
             if tex_height > pixel_height {
-                (tex_width * pixel_height / tex_height, pixel_height)
+                (
+                    (tex_width * pixel_height / tex_height).floor(),
+                    pixel_height,
+                )
             } else {
                 (tex_width, tex_height)
             }
         } else {
             // Height is the longest side
             if tex_width > pixel_width {
-                (pixel_width, tex_height * pixel_width / tex_width)
+                (pixel_width, (tex_height * pixel_width / tex_width).floor())
             } else {
                 (tex_width, tex_height)
             }
