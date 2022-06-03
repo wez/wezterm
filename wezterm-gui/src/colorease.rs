@@ -1,7 +1,7 @@
 use config::EasingFunction;
 use std::time::{Duration, Instant};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ColorEase {
     in_duration: f32,
     in_function: EasingFunction,
@@ -35,6 +35,14 @@ impl ColorEase {
             _ => start,
         };
         self.start.replace(start);
+    }
+
+    pub fn intensity(&mut self, is_one_shot: bool) -> Option<(f32, Instant)> {
+        if is_one_shot {
+            self.intensity_one_shot()
+        } else {
+            Some(self.intensity_continuous())
+        }
     }
 
     pub fn intensity_continuous(&mut self) -> (f32, Instant) {

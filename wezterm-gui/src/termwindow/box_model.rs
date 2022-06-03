@@ -2,13 +2,16 @@
 use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
+use crate::quad::Quad;
 use crate::termwindow::{
-    MappedQuads, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem, UIItemType,
+    ColorEase, MappedQuads, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
+    UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
 use anyhow::anyhow;
 use config::{Dimension, DimensionContext};
+use std::cell::RefCell;
 use std::rc::Rc;
 use termwiz::cell::{grapheme_column_width, Presentation};
 use termwiz::surface::Line;
@@ -144,10 +147,16 @@ impl BoxDimension {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum InheritableColor {
     Inherited,
     Color(LinearRgba),
+    Animated {
+        color: LinearRgba,
+        alt_color: LinearRgba,
+        ease: Rc<RefCell<ColorEase>>,
+        one_shot: bool,
+    },
 }
 
 impl Default for InheritableColor {
@@ -181,31 +190,32 @@ impl BorderColor {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ElementColors {
     pub border: BorderColor,
     pub bg: InheritableColor,
     pub text: InheritableColor,
 }
 
-impl ElementColors {
-    pub fn resolve_bg(&self, inherited_colors: Option<&ElementColors>) -> LinearRgba {
-        match self.bg {
-            InheritableColor::Inherited => match inherited_colors {
-                Some(colors) => colors.resolve_bg(None),
-                None => LinearRgba::TRANSPARENT,
-            },
-            InheritableColor::Color(color) => color,
-        }
-    }
+struct ResolvedColor {
+    color: LinearRgba,
+    alt_color: LinearRgba,
+    mix_value: f32,
+}
 
-    pub fn resolve_text(&self, inherited_colors: Option<&ElementColors>) -> LinearRgba {
-        match self.text {
-            InheritableColor::Inherited => match inherited_colors {
-                Some(colors) => colors.resolve_text(None),
-                None => LinearRgba::TRANSPARENT,
-            },
-            InheritableColor::Color(color) => color,
+impl ResolvedColor {
+    fn apply(&self, quad: &mut Quad) {
+        quad.set_fg_color(self.color);
+        quad.set_alt_color_and_mix_value(self.alt_color, self.mix_value);
+    }
+}
+
+impl From<LinearRgba> for ResolvedColor {
+    fn from(color: LinearRgba) -> Self {
+        Self {
+            color,
+            alt_color: color,
+            mix_value: 0.,
         }
     }
 }
@@ -608,8 +618,8 @@ impl super::TermWindow {
                     baseline,
                     border,
                     border_corners,
-                    colors: element.colors,
-                    hover_colors: element.hover_colors,
+                    colors: element.colors.clone(),
+                    hover_colors: element.hover_colors.clone(),
                     bounds: rects.bounds,
                     border_rect: rects.border_rect,
                     padding: rects.padding,
@@ -719,8 +729,8 @@ impl super::TermWindow {
                     baseline,
                     border,
                     border_corners,
-                    colors: element.colors,
-                    hover_colors: element.hover_colors,
+                    colors: element.colors.clone(),
+                    hover_colors: element.hover_colors.clone(),
                     bounds: rects.bounds,
                     border_rect: rects.border_rect,
                     padding: rects.padding,
@@ -739,8 +749,8 @@ impl super::TermWindow {
                     baseline,
                     border,
                     border_corners,
-                    colors: element.colors,
-                    hover_colors: element.hover_colors,
+                    colors: element.colors.clone(),
+                    hover_colors: element.hover_colors.clone(),
                     bounds: rects.bounds,
                     border_rect: rects.border_rect,
                     padding: rects.padding,
@@ -822,7 +832,7 @@ impl super::TermWindow {
                                 pos_x + left + width as f32,
                                 pos_y + height as f32,
                             );
-                            quad.set_fg_color(colors.resolve_text(inherited_colors));
+                            self.resolve_text(colors, inherited_colors).apply(&mut quad);
                             quad.set_texture(sprite.texture_coords());
                             quad.set_hsv(None);
                             pos_x += width as f32;
@@ -848,7 +858,7 @@ impl super::TermWindow {
                                     pos_x + left + width,
                                     pos_y + height,
                                 );
-                                quad.set_fg_color(colors.resolve_text(inherited_colors));
+                                self.resolve_text(colors, inherited_colors).apply(&mut quad);
                                 quad.set_texture(texture.texture_coords());
                                 quad.set_has_color(glyph.has_color);
                                 quad.set_hsv(None);
@@ -870,19 +880,82 @@ impl super::TermWindow {
             }
             ComputedElementContent::Poly { poly, line_width } => {
                 if element.content_rect.width() >= poly.width {
-                    self.poly_quad(
+                    let mut quad = self.poly_quad(
                         &mut layers[1],
                         element.content_rect.origin,
                         poly.poly,
                         *line_width,
                         euclid::size2(poly.width, poly.height),
-                        colors.resolve_text(inherited_colors),
+                        LinearRgba::TRANSPARENT,
                     )?;
+                    self.resolve_text(colors, inherited_colors).apply(&mut quad);
                 }
             }
         }
 
         Ok(())
+    }
+
+    fn resolve_text(
+        &self,
+        colors: &ElementColors,
+        inherited_colors: Option<&ElementColors>,
+    ) -> ResolvedColor {
+        match &colors.text {
+            InheritableColor::Inherited => match inherited_colors {
+                Some(colors) => self.resolve_text(colors, None),
+                None => LinearRgba::TRANSPARENT.into(),
+            },
+            InheritableColor::Color(color) => (*color).into(),
+            InheritableColor::Animated {
+                color,
+                alt_color,
+                ease,
+                one_shot,
+            } => {
+                if let Some((mix_value, next)) = ease.borrow_mut().intensity(*one_shot) {
+                    self.update_next_frame_time(Some(next));
+                    ResolvedColor {
+                        color: *color,
+                        alt_color: *alt_color,
+                        mix_value,
+                    }
+                } else {
+                    (*color).into()
+                }
+            }
+        }
+    }
+
+    fn resolve_bg(
+        &self,
+        colors: &ElementColors,
+        inherited_colors: Option<&ElementColors>,
+    ) -> ResolvedColor {
+        match &colors.bg {
+            InheritableColor::Inherited => match inherited_colors {
+                Some(colors) => self.resolve_bg(colors, None),
+                None => LinearRgba::TRANSPARENT.into(),
+            },
+            InheritableColor::Color(color) => (*color).into(),
+            InheritableColor::Animated {
+                color,
+                alt_color,
+                ease,
+                one_shot,
+            } => {
+                if let Some((mix_value, next)) = ease.borrow_mut().intensity(*one_shot) {
+                    self.update_next_frame_time(Some(next));
+                    ResolvedColor {
+                        color: *color,
+                        alt_color: *alt_color,
+                        mix_value,
+                    }
+                } else {
+                    (*color).into()
+                }
+            }
+        }
     }
 
     fn render_element_background<'a>(
@@ -980,7 +1053,7 @@ impl super::TermWindow {
             // to do the rest
 
             // The `T` piece
-            self.filled_rectangle(
+            let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 euclid::rect(
                     element.border_rect.min_x() + top_left_width,
@@ -988,11 +1061,12 @@ impl super::TermWindow {
                     element.border_rect.width() - (top_left_width + top_right_width) as f32,
                     top_left_height.max(top_right_height),
                 ),
-                colors.resolve_bg(inherited_colors),
+                LinearRgba::TRANSPARENT,
             )?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
 
             // The `B` piece
-            self.filled_rectangle(
+            let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 euclid::rect(
                     element.border_rect.min_x() + bottom_left_width,
@@ -1000,11 +1074,12 @@ impl super::TermWindow {
                     element.border_rect.width() - (bottom_left_width + bottom_right_width),
                     bottom_left_height.max(bottom_right_height),
                 ),
-                colors.resolve_bg(inherited_colors),
+                LinearRgba::TRANSPARENT,
             )?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
 
             // The `L` piece
-            self.filled_rectangle(
+            let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 euclid::rect(
                     element.border_rect.min_x(),
@@ -1012,11 +1087,12 @@ impl super::TermWindow {
                     top_left_width.max(bottom_left_width),
                     element.border_rect.height() - (top_left_height + bottom_left_height),
                 ),
-                colors.resolve_bg(inherited_colors),
+                LinearRgba::TRANSPARENT,
             )?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
 
             // The `R` piece
-            self.filled_rectangle(
+            let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 euclid::rect(
                     element.border_rect.max_x() - top_right_width,
@@ -1024,11 +1100,12 @@ impl super::TermWindow {
                     top_right_width.max(bottom_right_width),
                     element.border_rect.height() - (top_right_height + bottom_right_height),
                 ),
-                colors.resolve_bg(inherited_colors),
+                LinearRgba::TRANSPARENT,
             )?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
 
             // The `C` piece
-            self.filled_rectangle(
+            let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 euclid::rect(
                     element.border_rect.min_x() + top_left_width,
@@ -1038,14 +1115,13 @@ impl super::TermWindow {
                         - (top_right_height.min(top_left_height)
                             + bottom_right_height.min(bottom_left_height)),
                 ),
-                colors.resolve_bg(inherited_colors),
+                LinearRgba::TRANSPARENT,
             )?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
         } else if colors.bg != InheritableColor::Color(LinearRgba::TRANSPARENT) {
-            self.filled_rectangle(
-                &mut layers[0],
-                element.padding,
-                colors.resolve_bg(inherited_colors),
-            )?;
+            let mut quad =
+                self.filled_rectangle(&mut layers[0], element.padding, LinearRgba::TRANSPARENT)?;
+            self.resolve_bg(colors, inherited_colors).apply(&mut quad);
         }
 
         if element.border_rect == element.padding {

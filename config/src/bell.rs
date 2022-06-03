@@ -1,7 +1,7 @@
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function>
-#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, PartialEq)]
 pub enum EasingFunction {
     Linear,
     CubicBezier(f32, f32, f32, f32),
