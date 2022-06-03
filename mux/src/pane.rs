@@ -13,7 +13,7 @@ use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use termwiz::hyperlink::Rule;
 use termwiz::input::KeyboardEncoding;
-use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
+use termwiz::surface::{Line, SequenceNo};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -175,7 +175,8 @@ impl LogicalLine {
     }
 
     pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
-        self.logical.invalidate_implicit_hyperlinks(SEQ_ZERO);
+        let seq = self.logical.current_seqno();
+        self.logical.invalidate_implicit_hyperlinks(seq);
         self.logical.scan_and_create_hyperlinks(rules);
         if !self.logical.has_hyperlink() {
             return;
@@ -186,11 +187,12 @@ impl LogicalLine {
         let num_phys = self.physical_lines.len();
         for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
             let len = phys.cells().len();
-            let remainder = line.split_off(len, SEQ_ZERO);
+            let seq = seq.max(phys.current_seqno());
+            let remainder = line.split_off(len, seq);
             *phys = line;
             line = remainder;
             let wrapped = idx == num_phys - 1;
-            phys.set_last_cell_was_wrapped(wrapped, SEQ_ZERO);
+            phys.set_last_cell_was_wrapped(wrapped, seq);
         }
     }
 }
@@ -293,8 +295,9 @@ pub trait Pane: Downcast {
                     if prior.logical.last_cell_was_wrapped()
                         && prior.logical.cells().len() <= MAX_LOGICAL_LINE_LEN
                     {
-                        prior.logical.set_last_cell_was_wrapped(false, SEQ_ZERO);
-                        prior.logical.append_line(line.clone(), SEQ_ZERO);
+                        let seqno = prior.logical.current_seqno().max(line.current_seqno());
+                        prior.logical.set_last_cell_was_wrapped(false, seqno);
+                        prior.logical.append_line(line.clone(), seqno);
                         prior.physical_lines.push(line);
                     } else {
                         let logical = line.clone();
@@ -448,6 +451,7 @@ impl_downcast!(Pane);
 mod test {
     use super::*;
     use k9::snapshot;
+    use termwiz::surface::SEQ_ZERO;
 
     struct FakePane {
         lines: Vec<Line>,
@@ -535,10 +539,23 @@ mod test {
     }
 
     #[test]
-    fn logical_lines() {
-        let text = "Hello there this is a long line.\nlogical line two\nanother long line here\nlogical line four\nlogical line five\ncap it off with another long line";
+    fn hyperlink_rule_apply_preserves_seqno() {
+        let text = "Hello https://example.com\nwoot";
+        let lines = physical_lines_from_text(text, 5);
+        let pane = FakePane { lines };
+        let (_first, lines) = pane.get_lines_with_hyperlinks_applied(
+            0..2,
+            &[Rule {
+                regex: regex::Regex::new("example").unwrap(),
+                format: "$0".to_string(),
+            }],
+        );
+        let seqs: Vec<_> = lines.iter().map(|line| line.current_seqno()).collect();
+        k9::assert_equal!(seqs, vec![1, 1]);
+    }
+
+    fn physical_lines_from_text(text: &str, width: usize) -> Vec<Line> {
         let mut physical_lines = vec![];
-        let width = 20;
         for logical in text.split('\n') {
             let chunks = logical
                 .chars()
@@ -548,13 +565,21 @@ mod test {
                 .collect::<Vec<String>>();
             let n_chunks = chunks.len();
             for (idx, chunk) in chunks.into_iter().enumerate() {
-                let mut line = Line::from_text(&chunk, &Default::default(), SEQ_ZERO, None);
+                let mut line = Line::from_text(&chunk, &Default::default(), 1, None);
                 if idx < n_chunks - 1 {
-                    line.set_last_cell_was_wrapped(true, SEQ_ZERO);
+                    line.set_last_cell_was_wrapped(true, 1);
                 }
                 physical_lines.push(line);
             }
         }
+        physical_lines
+    }
+
+    #[test]
+    fn logical_lines() {
+        let text = "Hello there this is a long line.\nlogical line two\nanother long line here\nlogical line four\nlogical line five\ncap it off with another long line";
+        let width = 20;
+        let physical_lines = physical_lines_from_text(text, width);
 
         fn text_from_lines(lines: &[Line]) -> Vec<String> {
             lines.iter().map(|l| l.as_str()).collect::<Vec<_>>()

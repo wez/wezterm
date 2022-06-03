@@ -138,7 +138,7 @@ pub struct Rule {
         )
     )]
     #[dynamic(into = "RegexWrap", try_from = "RegexWrap")]
-    regex: Regex,
+    pub regex: Regex,
     /// The format string that defines how to transform the matched
     /// text into a URL.  For example, a format string of `$0` expands
     /// to the entire matched text, whereas `mailto:$0` expands to
@@ -149,7 +149,7 @@ pub struct Rule {
     /// with the highest numbered capture first.  This avoids issues
     /// with ambiguous replacement of `$11` vs `$1` in the case of
     /// more complex regexes.
-    format: String,
+    pub format: String,
 }
 
 struct RegexWrap(Regex);
