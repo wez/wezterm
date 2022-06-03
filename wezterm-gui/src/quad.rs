@@ -97,8 +97,10 @@ impl<'a> Quad<'a> {
         for v in self.vert.iter_mut() {
             v.fg_color = color.tuple();
         }
+        self.set_alt_color_and_mix_value(color, 0.);
     }
 
+    /// Must be called after set_fg_color
     pub fn set_alt_color_and_mix_value(&mut self, color: LinearRgba, mix_value: f32) {
         for v in self.vert.iter_mut() {
             v.alt_color = color.tuple();
