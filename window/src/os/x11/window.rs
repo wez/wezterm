@@ -356,6 +356,52 @@ impl XWindowInner {
         self.do_mouse_event(event)
     }
 
+    fn configure_notify(&mut self, source: &str, width: u16, height: u16) -> anyhow::Result<()> {
+        let conn = self.conn();
+        self.update_ime_position();
+
+        let dpi = conn.default_dpi();
+
+        if width == self.width && height == self.height && dpi == self.dpi {
+            // Effectively unchanged; perhaps it was simply moved?
+            // Do nothing!
+            log::trace!(
+                "Ignoring {source} ({width}x{height} dpi={dpi}) \
+                                 because width,height,dpi are unchanged",
+            );
+            return Ok(());
+        }
+
+        log::trace!(
+            "{source}: width {} -> {}, height {} -> {}, dpi {} -> {}",
+            self.width,
+            width,
+            self.height,
+            height,
+            self.dpi,
+            dpi
+        );
+
+        self.width = width;
+        self.height = height;
+        self.dpi = dpi;
+
+        let dimensions = Dimensions {
+            pixel_width: self.width as usize,
+            pixel_height: self.height as usize,
+            dpi: self.dpi as usize,
+        };
+
+        self.queue_pending(WindowEvent::Resized {
+            dimensions,
+            window_state: self.get_window_state().unwrap_or(WindowState::default()),
+            // Assume that we're live resizing: we don't know for sure,
+            // but it seems like a reasonable assumption
+            live_resizing: true,
+        });
+        Ok(())
+    }
+
     pub fn dispatch_event(&mut self, event: &Event) -> anyhow::Result<()> {
         let conn = self.conn();
         match event {
@@ -368,50 +414,11 @@ impl XWindowInner {
                     expose.count(),
                 );
             }
+            Event::Present(xcb::present::Event::ConfigureNotify(cfg)) => {
+                self.configure_notify("Present::ConfigureNotify", cfg.width(), cfg.height())?;
+            }
             Event::X(xcb::x::Event::ConfigureNotify(cfg)) => {
-                self.update_ime_position();
-
-                let width = cfg.width();
-                let height = cfg.height();
-                let dpi = conn.default_dpi();
-
-                if width == self.width && height == self.height && dpi == self.dpi {
-                    // Effectively unchanged; perhaps it was simply moved?
-                    // Do nothing!
-                    log::trace!(
-                        "Ignoring CONFIGURE_NOTIFY ({width}x{height} dpi={dpi}) \
-                                 because width,height,dpi are unchanged"
-                    );
-                    return Ok(());
-                }
-
-                log::trace!(
-                    "CONFIGURE_NOTIFY: width {} -> {}, height {} -> {}, dpi {} -> {}",
-                    self.width,
-                    width,
-                    self.height,
-                    height,
-                    self.dpi,
-                    dpi
-                );
-
-                self.width = width;
-                self.height = height;
-                self.dpi = dpi;
-
-                let dimensions = Dimensions {
-                    pixel_width: self.width as usize,
-                    pixel_height: self.height as usize,
-                    dpi: self.dpi as usize,
-                };
-
-                self.queue_pending(WindowEvent::Resized {
-                    dimensions,
-                    window_state: self.get_window_state().unwrap_or(WindowState::default()),
-                    // Assume that we're live resizing: we don't know for sure,
-                    // but it seems like a reasonable assumption
-                    live_resizing: true,
-                });
+                self.configure_notify("X::ConfigureNotify", cfg.width(), cfg.height())?;
             }
             Event::X(xcb::x::Event::KeyPress(key_press)) => {
                 self.copy_and_paste.time = key_press.time();
@@ -1043,6 +1050,19 @@ impl XWindow {
         // creation, so we ask them again once the window is mapped
         if needs_reposition {
             window_handle.set_window_position(ScreenPoint::new(x.into(), y.into()));
+        }
+
+        if conn
+            .active_extensions()
+            .any(|e| e == xcb::Extension::Present)
+        {
+            let event_id = conn.generate_id();
+            conn.check_request(conn.send_request_checked(&xcb::present::SelectInput {
+                eid: event_id,
+                window: window_id,
+                event_mask: xcb::present::EventMask::CONFIGURE_NOTIFY,
+            }))
+            .context("Present::SelectInput")?;
         }
 
         Ok(window_handle)

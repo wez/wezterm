@@ -93,6 +93,7 @@ fn window_id_from_event(event: &xcb::Event) -> Option<xcb::x::Window> {
     match event {
         xcb::Event::X(xcb::x::Event::Expose(e)) => Some(e.window()),
         xcb::Event::X(xcb::x::Event::ConfigureNotify(e)) => Some(e.window()),
+        xcb::Event::Present(xcb::present::Event::ConfigureNotify(e)) => Some(e.window()),
         xcb::Event::X(xcb::x::Event::KeyPress(e)) => Some(e.event()),
         xcb::Event::X(xcb::x::Event::KeyRelease(e)) => Some(e.event()),
         xcb::Event::X(xcb::x::Event::MotionNotify(e)) => Some(e.event()),
@@ -325,6 +326,7 @@ impl XConnection {
         let (conn, screen_num) = xcb::Connection::connect_with_xlib_display_and_extensions(
             &[xcb::Extension::Xkb],
             &[
+                xcb::Extension::Present,
                 xcb::Extension::RandR,
                 xcb::Extension::Render,
                 xcb::Extension::Xkb,
