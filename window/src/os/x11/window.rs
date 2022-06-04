@@ -244,7 +244,7 @@ impl XWindowInner {
                 if !self.sure_about_geometry {
                     self.sure_about_geometry = true;
 
-                    log::trace!("About to paint, but we've unsure about geometry; querying!");
+                    log::trace!("About to paint, but we're unsure about geometry; querying!");
                     let geom = self.conn().wait_for_reply(self.conn().send_request(
                         &xcb::x::GetGeometry {
                             drawable: xcb::x::Drawable::Window(self.window_id),
@@ -522,21 +522,10 @@ impl XWindowInner {
                 }
             }
             Event::X(xcb::x::Event::FocusIn(_)) => {
-                self.sure_about_geometry = false;
-                if self.has_focus != Some(true) {
-                    self.has_focus.replace(true);
-                    self.update_ime_position();
-                    log::trace!("Calling focus_change(true)");
-                    self.events.dispatch(WindowEvent::FocusChanged(true));
-                }
+                self.focus_changed(true);
             }
             Event::X(xcb::x::Event::FocusOut(_)) => {
-                self.sure_about_geometry = false;
-                if self.has_focus != Some(false) {
-                    self.has_focus.replace(false);
-                    log::trace!("Calling focus_change(false)");
-                    self.events.dispatch(WindowEvent::FocusChanged(false));
-                }
+                self.focus_changed(false);
             }
             Event::X(xcb::x::Event::LeaveNotify(_)) => {
                 self.events.dispatch(WindowEvent::MouseLeave);
@@ -547,6 +536,37 @@ impl XWindowInner {
         }
 
         Ok(())
+    }
+
+    fn focus_changed(&mut self, focused: bool) {
+        log::trace!("focus_changed {focused}, flagging geometry as unsure");
+        self.sure_about_geometry = false;
+        if self.has_focus != Some(focused) {
+            self.has_focus.replace(focused);
+            self.update_ime_position();
+            log::trace!("Calling focus_change({focused})");
+            self.events.dispatch(WindowEvent::FocusChanged(focused));
+        }
+
+        // This is a bit gross; in <https://github.com/wez/wezterm/issues/2063>
+        // we observe that CONFIGURE_NOTIFY isn't being sent around certain
+        // WM operations when nvidia drivers are in used.
+        // However, focus events are in the right ballpark, but still happen
+        // before the new geometry is applied.
+        // This schedules an invalidation of both our sense of geometry and
+        // the window a short time after the focus event is processed in the
+        // hope that it can observe the changed window properties and update
+        // without the human needing to interact with the window.
+        let window_id = self.window_id;
+        promise::spawn::spawn(async move {
+            async_io::Timer::after(std::time::Duration::from_millis(100)).await;
+            XConnection::with_window_inner(window_id, |inner| {
+                inner.sure_about_geometry = false;
+                inner.invalidate();
+                Ok(())
+            });
+        })
+        .detach();
     }
 
     pub fn dispatch_ime_compose_status(&mut self, status: DeadKeyStatus) {
