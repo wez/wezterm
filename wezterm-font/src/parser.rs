@@ -656,7 +656,7 @@ impl ParsedFont {
         self.scale = attr.scale.map(|f| *f);
 
         self.synthesize_italic = self.style == FontStyle::Normal && attr.style != FontStyle::Normal;
-        self.synthesize_bold = attr.weight >= FontWeight::BOLD
+        self.synthesize_bold = attr.weight >= FontWeight::DEMIBOLD
             && attr.weight > self.weight
             && self.weight <= FontWeight::REGULAR;
         self.synthesize_dim = attr.weight < FontWeight::REGULAR

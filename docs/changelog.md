@@ -77,6 +77,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: panic when display scaling is enabled. [#1727](https://github.com/wez/wezterm/issues/1727)
 * `Dark+` color scheme background color [#2013](https://github.com/wez/wezterm/pull/2013)
 * Avoid fragmenting XTVERSION, DA2, DA3 query responses [#2060](https://github.com/wez/wezterm/issues/2060)
+* Synthesized bold didn't kick in for automatically computed `font_rules`. [#2074](https://github.com/wez/wezterm/issues/2074)
 
 ### 20220408-101518-b908e2dd
 
