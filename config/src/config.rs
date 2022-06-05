@@ -648,6 +648,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
+
+    #[dynamic(default = "default_focus_change_repaint_delay")]
+    pub focus_change_repaint_delay: u64,
 }
 impl_lua_conversion_dynamic!(Config);
 
@@ -1344,6 +1347,10 @@ fn default_inactive_pane_hsb() -> HsbTransform {
         saturation: 0.9,
         hue: 1.0,
     }
+}
+
+fn default_focus_change_repaint_delay() -> u64 {
+    100
 }
 
 #[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
