@@ -557,16 +557,19 @@ impl XWindowInner {
         // the window a short time after the focus event is processed in the
         // hope that it can observe the changed window properties and update
         // without the human needing to interact with the window.
-        let window_id = self.window_id;
-        promise::spawn::spawn(async move {
-            async_io::Timer::after(std::time::Duration::from_millis(100)).await;
-            XConnection::with_window_inner(window_id, |inner| {
-                inner.sure_about_geometry = false;
-                inner.invalidate();
-                Ok(())
-            });
-        })
-        .detach();
+        let delay = self.config.focus_change_repaint_delay;
+        if delay != 0 {
+            let window_id = self.window_id;
+            promise::spawn::spawn(async move {
+                async_io::Timer::after(std::time::Duration::from_millis(delay)).await;
+                XConnection::with_window_inner(window_id, |inner| {
+                    inner.sure_about_geometry = false;
+                    inner.invalidate();
+                    Ok(())
+                });
+            })
+            .detach();
+        }
     }
 
     pub fn dispatch_ime_compose_status(&mut self, status: DeadKeyStatus) {
