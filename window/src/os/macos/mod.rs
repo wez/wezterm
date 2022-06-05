@@ -19,11 +19,16 @@ fn nsstring(s: &str) -> StrongPtr {
     unsafe { StrongPtr::new(NSString::alloc(nil).init_str(s)) }
 }
 
-unsafe fn nsstring_to_str<'a>(mut ns: *mut Object) -> &'a str {
+unsafe fn unattributed(mut ns: *mut Object) -> *mut Object {
     let is_astring: bool = msg_send![ns, isKindOfClass: class!(NSAttributedString)];
     if is_astring {
         ns = msg_send![ns, string];
     }
+    ns
+}
+
+unsafe fn nsstring_to_str<'a>(mut ns: *mut Object) -> &'a str {
+    ns = unattributed(ns);
     let data = NSString::UTF8String(ns as id) as *const u8;
     let len = NSString::len(ns as id);
     let bytes = std::slice::from_raw_parts(data, len);

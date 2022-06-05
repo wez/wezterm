@@ -311,6 +311,7 @@ impl Keyboard {
                     );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
                         composition,
+                        None,
                     )));
                     return None;
                 }
