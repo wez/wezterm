@@ -32,7 +32,8 @@ reassignable.
 |                | `CTRL-C`   |
 |                | `CTRL-g`   |
 |                | `q`        |
-| Toggle cell selection mode | `v` |
+| Cell selection | `v` |
+| Line selection | `V` |
 | Rectangular selection | `CTRL-v` (*since: nightly builds only*)|
 | Move Left      | `LeftArrow`|
 |                | `h`        |
@@ -118,8 +119,10 @@ return {
       {key="^", mods="NONE", action=wezterm.action{CopyMode="MoveToStartOfLineContent"}},
       {key="^", mods="SHIFT", action=wezterm.action{CopyMode="MoveToStartOfLineContent"}},
 
-      {key=" ", mods="NONE", action=wezterm.action{CopyMode="ToggleSelectionByCell"}},
-      {key="v", mods="NONE", action=wezterm.action{CopyMode="ToggleSelectionByCell"}},
+      {key=" ", mods="NONE", action=wezterm.action{CopyMode={SetSelectionMode="Cell"}}},
+      {key="v", mods="NONE", action=wezterm.action{CopyMode={SetSelectionMode="Cell"}}},
+      {key="V", mods="NONE", action=wezterm.action{CopyMode={SetSelectionMode="Line"}}},
+      {key="V", mods="SHIFT", action=wezterm.action{CopyMode={SetSelectionMode="Line"}}},
       {key="v", mods="CTRL", action=wezterm.action{CopyMode={SetSelectionMode="Block"}}},
 
       {key="G", mods="NONE", action=wezterm.action{CopyMode="MoveToScrollbackBottom"}},

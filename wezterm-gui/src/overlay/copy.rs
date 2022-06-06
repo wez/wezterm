@@ -322,14 +322,37 @@ impl CopyRenderable {
     fn select_to_cursor_pos(&mut self) {
         self.clamp_cursor_to_scrollback();
         if let Some(start) = self.start {
-            let start = SelectionCoordinate {
-                x: start.x,
-                y: start.y,
+            let cursor_is_above_start = self.cursor.y < start.y;
+            let start = if self.selection_mode == SelectionMode::Line {
+                SelectionCoordinate {
+                    x: if cursor_is_above_start {
+                        usize::max_value()
+                    } else {
+                        0
+                    },
+                    y: start.y,
+                }
+            } else {
+                SelectionCoordinate {
+                    x: start.x,
+                    y: start.y,
+                }
             };
 
-            let end = SelectionCoordinate {
-                x: self.cursor.x,
-                y: self.cursor.y,
+            let end = if self.selection_mode == SelectionMode::Line {
+                SelectionCoordinate {
+                    x: if cursor_is_above_start {
+                        0
+                    } else {
+                        usize::max_value()
+                    },
+                    y: self.cursor.y,
+                }
+            } else {
+                SelectionCoordinate {
+                    x: self.cursor.x,
+                    y: self.cursor.y,
+                }
             };
 
             self.adjust_selection(start, SelectionRange { start, end });
@@ -712,18 +735,6 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
-    fn toggle_selection_by_cell(&mut self) {
-        if self.start.take().is_none() {
-            let coord = SelectionCoordinate {
-                x: self.cursor.x,
-                y: self.cursor.y,
-            };
-            self.start.replace(coord);
-            self.select_to_cursor_pos();
-            self.selection_mode = SelectionMode::Cell;
-        }
-    }
-
     fn set_selection_mode(&mut self, mode: &Option<SelectionMode>) {
         match mode {
             None => {
@@ -736,9 +747,9 @@ impl CopyRenderable {
                         y: self.cursor.y,
                     };
                     self.start.replace(coord);
-                    self.select_to_cursor_pos();
                 }
                 self.selection_mode = *mode;
+                self.select_to_cursor_pos();
             }
         }
     }
@@ -810,7 +821,6 @@ impl Pane for CopyOverlay {
                     MoveToViewportMiddle => render.move_to_viewport_middle(),
                     MoveToScrollbackTop => render.move_to_top(),
                     MoveToScrollbackBottom => render.move_to_bottom(),
-                    ToggleSelectionByCell => render.toggle_selection_by_cell(),
                     MoveToStartOfLineContent => render.move_to_start_of_line_content(),
                     MoveToEndOfLineContent => render.move_to_end_of_line_content(),
                     MoveToStartOfLine => render.move_to_start_of_line(),
@@ -1190,12 +1200,30 @@ pub fn copy_key_table() -> KeyTable {
         (
             WKeyCode::Char(' '),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::ToggleSelectionByCell),
+            KeyAssignment::CopyMode(CopyModeAssignment::SetSelectionMode(Some(
+                SelectionMode::Cell,
+            ))),
         ),
         (
             WKeyCode::Char('v'),
             Modifiers::NONE,
-            KeyAssignment::CopyMode(CopyModeAssignment::ToggleSelectionByCell),
+            KeyAssignment::CopyMode(CopyModeAssignment::SetSelectionMode(Some(
+                SelectionMode::Cell,
+            ))),
+        ),
+        (
+            WKeyCode::Char('V'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::SetSelectionMode(Some(
+                SelectionMode::Line,
+            ))),
+        ),
+        (
+            WKeyCode::Char('V'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::SetSelectionMode(Some(
+                SelectionMode::Line,
+            ))),
         ),
         (
             WKeyCode::Char('v'),
