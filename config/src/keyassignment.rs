@@ -434,7 +434,6 @@ pub enum CopyModeAssignment {
     MoveToViewportMiddle,
     MoveToScrollbackTop,
     MoveToScrollbackBottom,
-    ToggleSelectionByCell,
     SetSelectionMode(Option<SelectionMode>),
     MoveToStartOfLineContent,
     MoveToEndOfLineContent,
