@@ -2164,9 +2164,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "057a3db23999c867821a7a59feb06a578fcb03685e983dff90daf9e7d24ac08f"
+checksum = "d5172b50c23043ff43dd53e51392f36519d9b35a8f3a410d30ece5d1aedd58ae"
 dependencies = [
  "libc",
 ]
@@ -4200,9 +4200,9 @@ dependencies = [
 
 [[package]]
 name = "tiny-skia"
-version = "0.6.3"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bcfd4339bdd4545eabed74b208f2f1555f2e6540fb58135c01f46c0940aa138"
+checksum = "6f5ac9783610677139de05b2b438cf46d13ae3260721ad77f9f72d4f324bcbf7"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -5256,7 +5256,7 @@ version = "0.5.0-beta.0"
 source = "git+https://github.com/wez/xkbcommon-rs.git?branch=key-by-name#546ba7dbf2ace214b9947fc4646a0f4afd70cb0a"
 dependencies = [
  "libc",
- "memmap2 0.5.3",
+ "memmap2 0.5.4",
  "xcb",
 ]
 
