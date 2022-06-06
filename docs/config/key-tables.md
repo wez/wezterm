@@ -39,17 +39,17 @@ return {
         name="resize_pane",
         one_shot=false,
       }
-    },
+    }},
 
     -- CTRL|SHIFT+Space, followed by 'a' will put us in activate-pane
     -- mode until we press some other key or until 1 second (1000ms)
     -- of time elapses
     {key="a", mods="LEADER", action=wezterm.action{
       ActivateKeyTable={
-        name="activate_pane"
+        name="activate_pane",
         timeout_milliseconds=1000,
       }
-    },
+    }},
   },
 
   key_tables = {
