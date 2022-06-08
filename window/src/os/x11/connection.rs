@@ -329,7 +329,6 @@ impl XConnection {
                 xcb::Extension::Present,
                 xcb::Extension::RandR,
                 xcb::Extension::Render,
-                xcb::Extension::Xkb,
             ],
         )?;
 
