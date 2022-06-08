@@ -27,7 +27,7 @@ log = "0.4"
 luahelper = { path = "../luahelper" }
 mlua = {version="0.8.0-beta.4", features=["vendored", "lua54", "async", "send"]}
 # file change notification
-notify = "4.0"
+notify = "5.0.0-pre.15"
 ordered-float = { version = "3.0", features = ["serde"] }
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }

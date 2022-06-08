@@ -423,39 +423,43 @@ impl ConfigInner {
         if self.watcher.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             const DELAY: Duration = Duration::from_millis(200);
-            let watcher = notify::watcher(tx, DELAY).unwrap();
+            let watcher = notify::recommended_watcher(tx).unwrap();
+            let path = path.clone();
+
             std::thread::spawn(move || {
                 // block until we get an event
-                use notify::DebouncedEvent;
+                use notify::EventKind;
 
-                fn extract_path(event: DebouncedEvent) -> Option<PathBuf> {
-                    match event {
-                        // Defer acting until `Write`, otherwise we'll
-                        // reload twice in quick succession
-                        DebouncedEvent::NoticeWrite(_) => None,
-                        DebouncedEvent::Create(path)
-                        | DebouncedEvent::Write(path)
-                        | DebouncedEvent::Chmod(path)
-                        | DebouncedEvent::Remove(path)
-                        | DebouncedEvent::Rename(path, _) => Some(path),
-                        DebouncedEvent::NoticeRemove(path) => {
-                            // In theory, `notify` should deliver DebouncedEvent::Remove
-                            // shortly after this, but it doesn't always do so.
-                            // Let's just wait a bit and report the path changed
-                            // for ourselves.
-                            std::thread::sleep(DELAY);
-                            Some(path)
+                fn extract_path(event: notify::Event) -> Vec<PathBuf> {
+                    match event.kind {
+                        EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) => {
+                            event.paths
                         }
-                        DebouncedEvent::Error(_, path) => path,
-                        DebouncedEvent::Rescan => None,
+                        _ => vec![],
                     }
                 }
 
                 while let Ok(event) = rx.recv() {
-                    log::trace!("event:{:?}", event);
-                    if let Some(path) = extract_path(event) {
-                        log::debug!("path {} changed, reload config", path.display());
-                        reload();
+                    log::debug!("event:{:?}", event);
+                    match event {
+                        Ok(event) => {
+                            let mut paths = extract_path(event);
+                            if !paths.is_empty() {
+                                // Grace period to allow events to settle
+                                std::thread::sleep(DELAY);
+                                // Drain any other immediately ready events
+                                while let Ok(Ok(event)) = rx.try_recv() {
+                                    paths.append(&mut extract_path(event));
+                                }
+                                paths.sort();
+                                paths.dedup();
+                                log::debug!("paths {:?} changed, reload config", path);
+                                reload();
+                            }
+                        }
+                        Err(_) => {
+                            reload();
+                        }
                     }
                 }
             });
@@ -464,7 +468,7 @@ impl ConfigInner {
         if let Some(watcher) = self.watcher.as_mut() {
             use notify::Watcher;
             watcher
-                .watch(path, notify::RecursiveMode::NonRecursive)
+                .watch(&path, notify::RecursiveMode::NonRecursive)
                 .ok();
         }
     }
