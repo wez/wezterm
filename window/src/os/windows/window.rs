@@ -2216,6 +2216,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
     if keys[VK_RCONTROL as usize] & 0x80 != 0 {
         modifiers |= Modifiers::RIGHT_CTRL;
     }
+    modifiers.set(Modifiers::ENHANCED_KEY, is_extended);
 
     if inner.keyboard_info.has_alt_gr()
         && (keys[VK_RMENU as usize] & 0x80 != 0)

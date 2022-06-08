@@ -466,6 +466,7 @@ bitflags! {
         const RIGHT_CTRL = 1<<9;
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
+        const ENHANCED_KEY = 1<<12;
     }
 }
 
@@ -524,6 +525,7 @@ impl ToString for Modifiers {
             (Self::RIGHT_CTRL, "RIGHT_CTRL"),
             (Self::LEFT_SHIFT, "LEFT_SHIFT"),
             (Self::RIGHT_SHIFT, "RIGHT_SHIFT"),
+            (Self::ENHANCED_KEY, "ENHANCED_KEY"),
         ] {
             if !self.contains(value) {
                 continue;
@@ -535,6 +537,22 @@ impl ToString for Modifiers {
         }
 
         s
+    }
+}
+
+impl Modifiers {
+    /// Remove positional and other "supplemental" bits that
+    /// are used to carry around implementation details, but that
+    /// are not bits that should be matched when matching key
+    /// assignments.
+    pub fn remove_positional_mods(self) -> Self {
+        self - (Self::LEFT_ALT
+            | Self::RIGHT_ALT
+            | Self::LEFT_CTRL
+            | Self::RIGHT_CTRL
+            | Self::LEFT_SHIFT
+            | Self::RIGHT_SHIFT
+            | Self::ENHANCED_KEY)
     }
 }
 
@@ -1169,6 +1187,7 @@ impl KeyEvent {
         // defines the dwControlKeyState values
         let mut control_key_state = 0;
         const SHIFT_PRESSED: usize = 0x10;
+        const ENHANCED_KEY: usize = 0x100;
         const RIGHT_ALT_PRESSED: usize = 0x01;
         const LEFT_ALT_PRESSED: usize = 0x02;
         const LEFT_CTRL_PRESSED: usize = 0x08;
@@ -1193,6 +1212,9 @@ impl KeyEvent {
         }
         if self.modifiers.contains(Modifiers::LEFT_CTRL) {
             control_key_state |= LEFT_CTRL_PRESSED;
+        }
+        if self.modifiers.contains(Modifiers::ENHANCED_KEY) {
+            control_key_state |= ENHANCED_KEY;
         }
 
         let key_down = if self.key_is_down { 1 } else { 0 };
