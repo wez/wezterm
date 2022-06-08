@@ -1084,7 +1084,18 @@ impl Mux {
         let cwd = self.resolve_cwd(
             command_dir,
             match current_pane_id {
-                Some(id) => self.get_pane(id),
+                Some(id) => {
+                    // Only use the cwd from the current pane if the domain
+                    // is the same as the one we are spawning into
+                    let (current_domain_id, _, _) = self
+                        .resolve_pane_id(id)
+                        .ok_or_else(|| anyhow!("pane_id {} invalid", id))?;
+                    if current_domain_id == domain.domain_id() {
+                        self.get_pane(id)
+                    } else {
+                        None
+                    }
+                }
                 None => None,
             },
         );
