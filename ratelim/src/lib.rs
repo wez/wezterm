@@ -1,10 +1,11 @@
 use config::{configuration, ConfigHandle};
-use ratelimit_meter::algorithms::NonConformance;
-use ratelimit_meter::{DirectRateLimiter, LeakyBucket, NegativeMultiDecision};
-use std::time::{Duration, Instant};
+use governor::clock::{Clock, DefaultClock};
+use governor::{NegativeMultiDecision, Quota, RateLimiter as Limiter};
+use std::num::NonZeroU32;
+use std::time::Duration;
 
 pub struct RateLimiter {
-    lim: DirectRateLimiter<LeakyBucket>,
+    lim: Limiter<governor::state::direct::NotKeyed, governor::state::InMemoryState, DefaultClock>,
     get_limit_value: Box<dyn Fn(&ConfigHandle) -> u32 + 'static + Send>,
     generation: usize,
     capacity_per_second: u32,
@@ -23,10 +24,9 @@ impl RateLimiter {
         let get_limit_value = Box::new(get_limit_value);
         let capacity_per_second = get_limit_value(&config);
         Self {
-            lim: DirectRateLimiter::<LeakyBucket>::per_second(
-                std::num::NonZeroU32::new(capacity_per_second)
-                    .expect("RateLimiter capacity to be non-zero"),
-            ),
+            lim: Limiter::direct(Quota::per_second(
+                NonZeroU32::new(capacity_per_second).expect("RateLimiter capacity to be non-zero"),
+            )),
             get_limit_value,
             generation,
             capacity_per_second,
@@ -39,9 +39,9 @@ impl RateLimiter {
         if generation != self.generation {
             let value = (self.get_limit_value)(&config);
             if value != self.capacity_per_second {
-                self.lim = DirectRateLimiter::<LeakyBucket>::per_second(
-                    std::num::NonZeroU32::new(value).expect("RateLimiter capacity to be non-zero"),
-                );
+                self.lim = Limiter::direct(Quota::per_second(
+                    NonZeroU32::new(value).expect("RateLimiter capacity to be non-zero"),
+                ));
                 self.capacity_per_second = value;
             }
             self.generation = generation;
@@ -51,7 +51,9 @@ impl RateLimiter {
     #[allow(dead_code)]
     pub fn non_blocking_admittance_check(&mut self, amount: u32) -> bool {
         self.check_config_reload();
-        self.lim.check_n(amount).is_ok()
+        self.lim
+            .check_n(NonZeroU32::new(amount).expect("amount to be non-zero"))
+            .is_ok()
     }
 
     /// Attempt to admit up to `amount` number of items.
@@ -62,10 +64,14 @@ impl RateLimiter {
     pub fn admit_check(&mut self, mut amount: u32) -> Result<u32, Duration> {
         self.check_config_reload();
         loop {
-            match self.lim.check_n(amount) {
+            let non_zero_amount = match NonZeroU32::new(amount) {
+                Some(n) => n,
+                None => return Ok(0),
+            };
+            match self.lim.check_n(non_zero_amount) {
                 Ok(_) => return Ok(amount),
                 Err(NegativeMultiDecision::BatchNonConforming(_, over)) if amount == 1 => {
-                    return Err(over.wait_time_from(Instant::now()));
+                    return Err(over.wait_time_from(DefaultClock::default().now()));
                 }
                 _ => {}
             };
