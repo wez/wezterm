@@ -625,7 +625,7 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub allow_download_protocols: bool,
 
-    #[dynamic(default)]
+    #[dynamic(default = "default_true")]
     pub allow_win32_input_mode: bool,
 
     #[dynamic(default)]
