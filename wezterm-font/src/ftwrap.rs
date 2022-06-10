@@ -860,6 +860,22 @@ impl Library {
             }
         }
 
+        {
+            let no_long_names: FT_Bool = if config.freetype_pcf_long_family_names {
+                0
+            } else {
+                1
+            };
+            unsafe {
+                FT_Property_Set(
+                    lib.lib,
+                    b"pcf\0" as *const u8 as *const FT_String,
+                    b"no-long-family-names\0" as *const u8 as *const FT_String,
+                    &no_long_names as *const FT_Bool as *const _,
+                );
+            }
+        }
+
         // Due to patent concerns, the freetype library disables the LCD
         // filtering feature by default, and since we always build our
         // own copy of freetype, it is likewise disabled by default for

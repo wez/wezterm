@@ -148,6 +148,10 @@ fn freetype() {
                 "#define TT_CONFIG_OPTION_SUBPIXEL_HINTING  3",
             )
             .replace(
+                "/* #define PCF_CONFIG_OPTION_LONG_FAMILY_NAMES */",
+                "#define PCF_CONFIG_OPTION_LONG_FAMILY_NAMES",
+            )
+            .replace(
                 "/* #define FT_CONFIG_OPTION_SUBPIXEL_RENDERING */",
                 "#define FT_CONFIG_OPTION_SUBPIXEL_RENDERING",
             ),
