@@ -722,19 +722,16 @@ impl QuickSelectRenderable {
                 if let Some(pane) = mux.get_pane(pane_id) {
                     {
                         let mut selection = term_window.selection(pane_id);
-                        let start = SelectionCoordinate {
-                            x: result.start_x,
-                            y: result.start_y,
-                        };
+                        let start = SelectionCoordinate::x_y(result.start_x, result.start_y);
                         selection.origin = Some(start);
                         selection.range = Some(SelectionRange {
                             start,
-                            end: SelectionCoordinate {
-                                // inclusive range for selection, but the result
-                                // range is exclusive
-                                x: result.end_x.saturating_sub(1),
-                                y: result.end_y,
-                            },
+                            // inclusive range for selection, but the result
+                            // range is exclusive
+                            end: SelectionCoordinate::x_y(
+                                result.end_x.saturating_sub(1),
+                                result.end_y,
+                            ),
                         });
                         // Ensure that selection doesn't get invalidated when
                         // the overlay is closed

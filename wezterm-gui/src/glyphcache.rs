@@ -292,12 +292,11 @@ impl GlyphCache<SrgbTexture2d> {
         // include this check, but it doesn't, and instead, the texture
         // silently fails to bind when attempting to render into it later.
         // So! We check and raise here for ourselves!
-        if size
-            > caps
-                .max_texture_size
-                .try_into()
-                .context("represent Capabilities.max_texture_size as usize")?
-        {
+        let max_texture_size: usize = caps
+            .max_texture_size
+            .try_into()
+            .context("represent Capabilities.max_texture_size as usize")?;
+        if size > max_texture_size {
             anyhow::bail!(
                 "Cannot use a texture of size {} as it is larger \
                  than the max {} supported by your GPU",

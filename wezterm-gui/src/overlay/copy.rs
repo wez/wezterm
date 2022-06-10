@@ -1,4 +1,4 @@
-use crate::selection::{SelectionCoordinate, SelectionRange};
+use crate::selection::{SelectionCoordinate, SelectionRange, SelectionX};
 use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{
     CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode, SelectionMode,
@@ -290,16 +290,8 @@ impl CopyRenderable {
         self.cursor.y = result.end_y;
         self.cursor.x = result.end_x.saturating_sub(1);
 
-        let start = SelectionCoordinate {
-            x: result.start_x,
-            y: result.start_y,
-        };
-        let end = SelectionCoordinate {
-            // inclusive range for selection, but the result
-            // range is exclusive
-            x: result.end_x.saturating_sub(1),
-            y: result.end_y,
-        };
+        let start = SelectionCoordinate::x_y(result.start_x, result.start_y);
+        let end = SelectionCoordinate::x_y(result.end_x.saturating_sub(1), result.end_y);
         self.start.replace(start);
         self.adjust_selection(start, SelectionRange { start, end });
     }
@@ -324,14 +316,14 @@ impl CopyRenderable {
         if let Some(start) = self.start {
             let cursor_is_above_start = self.cursor.y < start.y;
             let start = if self.selection_mode == SelectionMode::Line {
-                SelectionCoordinate {
-                    x: if cursor_is_above_start {
+                SelectionCoordinate::x_y(
+                    if cursor_is_above_start {
                         usize::max_value()
                     } else {
                         0
                     },
-                    y: start.y,
-                }
+                    start.y,
+                )
             } else {
                 SelectionCoordinate {
                     x: start.x,
@@ -340,19 +332,16 @@ impl CopyRenderable {
             };
 
             let end = if self.selection_mode == SelectionMode::Line {
-                SelectionCoordinate {
-                    x: if cursor_is_above_start {
+                SelectionCoordinate::x_y(
+                    if cursor_is_above_start {
                         0
                     } else {
                         usize::max_value()
                     },
-                    y: self.cursor.y,
-                }
+                    self.cursor.y,
+                )
             } else {
-                SelectionCoordinate {
-                    x: self.cursor.x,
-                    y: self.cursor.y,
-                }
+                SelectionCoordinate::x_y(self.cursor.x, self.cursor.y)
             };
 
             self.adjust_selection(start, SelectionRange { start, end });
@@ -617,11 +606,12 @@ impl CopyRenderable {
     fn move_to_selection_other_end(&mut self) {
         if let Some(old_start) = self.start {
             // Swap cursor & start of selection
-            self.start.replace(SelectionCoordinate {
-                x: self.cursor.x,
-                y: self.cursor.y,
-            });
-            self.cursor.x = old_start.x;
+            self.start
+                .replace(SelectionCoordinate::x_y(self.cursor.x, self.cursor.y));
+            self.cursor.x = match &old_start.x {
+                SelectionX::Cell(x) => *x,
+                SelectionX::BeforeZero => 0,
+            };
             self.cursor.y = old_start.y;
             self.select_to_cursor_pos();
         }
@@ -633,11 +623,12 @@ impl CopyRenderable {
         }
         if let Some(old_start) = self.start {
             // Swap X coordinate of cursor & start of selection
-            self.start.replace(SelectionCoordinate {
-                x: self.cursor.x,
-                y: old_start.y,
-            });
-            self.cursor.x = old_start.x;
+            self.start
+                .replace(SelectionCoordinate::x_y(self.cursor.x, old_start.y));
+            self.cursor.x = match &old_start.x {
+                SelectionX::Cell(x) => *x,
+                SelectionX::BeforeZero => 0,
+            };
             self.select_to_cursor_pos();
         }
     }
@@ -742,10 +733,7 @@ impl CopyRenderable {
             }
             Some(mode) => {
                 if self.start.is_none() {
-                    let coord = SelectionCoordinate {
-                        x: self.cursor.x,
-                        y: self.cursor.y,
-                    };
+                    let coord = SelectionCoordinate::x_y(self.cursor.x, self.cursor.y);
                     self.start.replace(coord);
                 }
                 self.selection_mode = *mode;
