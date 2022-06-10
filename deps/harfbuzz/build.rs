@@ -92,9 +92,9 @@ fn harfbuzz() {
     // We know that these are present in our vendored freetype
     cfg.define("HAVE_FREETYPE", Some("1"));
 
-    cfg.define("HAVE_FT_Get_Var_Blend_Coordinates", Some("1"));
-    cfg.define("HAVE_FT_Set_Var_Blend_Coordinates", Some("1"));
-    cfg.define("HAVE_FT_Done_MM_Var", Some("1"));
+    cfg.define("HAVE_FT_GET_VAR_BLEND_COORDINATES", Some("1"));
+    cfg.define("HAVE_FT_SET_VAR_BLEND_COORDINATES", Some("1"));
+    cfg.define("HAVE_FT_DONE_MM_VAR", Some("1"));
 
     // Import the include dirs exported from deps/freetype/build.rs
     for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(';') {
