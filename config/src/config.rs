@@ -359,7 +359,7 @@ pub struct Config {
     /// This option is only considered on X11/Wayland systems and
     /// has no effect on macOS or Windows.
     /// The default is true.
-    #[dynamic(default)]
+    #[dynamic(default = "default_true")]
     pub enable_wayland: bool,
 
     /// Whether to prefer EGL over other GL implementations.

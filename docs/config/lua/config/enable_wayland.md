@@ -14,3 +14,6 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+The default is now `true`.
