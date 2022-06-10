@@ -39,11 +39,121 @@ impl Selection {
     }
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum SelectionX {
+    /// Zero-based cell index
+    Cell(usize),
+    /// Exactly before the 0th cell
+    BeforeZero,
+}
+
+impl SelectionX {
+    pub const fn saturating_add(self, rhs: usize) -> Self {
+        match self {
+            Self::Cell(x) => Self::Cell(x.saturating_add(rhs)),
+            Self::BeforeZero => {
+                if rhs == 0 {
+                    Self::BeforeZero
+                } else {
+                    Self::Cell(rhs - 1)
+                }
+            }
+        }
+    }
+
+    pub const fn saturating_sub(self, rhs: usize) -> Self {
+        match self {
+            Self::Cell(x) => match x.checked_sub(rhs) {
+                Some(x) => Self::Cell(x),
+                None => Self::BeforeZero,
+            },
+            Self::BeforeZero => Self::BeforeZero,
+        }
+    }
+
+    pub const fn range(self, rhs: Self) -> Range<usize> {
+        match self {
+            Self::Cell(left) => match rhs {
+                Self::Cell(right) => left..right,
+                Self::BeforeZero => 0..0,
+            },
+            Self::BeforeZero => match rhs {
+                Self::Cell(right) => 0..right,
+                Self::BeforeZero => 0..0,
+            },
+        }
+    }
+}
+
+impl Default for SelectionX {
+    // Default is 0th cell
+    fn default() -> Self {
+        Self::Cell(0)
+    }
+}
+
+impl PartialEq<usize> for SelectionX {
+    fn eq(&self, other: &usize) -> bool {
+        match self {
+            Self::Cell(x) => x == other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<SelectionX> for usize {
+    fn eq(&self, other: &SelectionX) -> bool {
+        other == self
+    }
+}
+
+impl Ord for SelectionX {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self {
+            Self::Cell(x1) => match other {
+                Self::Cell(x2) => x1.cmp(x2),
+                Self::BeforeZero => Ordering::Greater,
+            },
+            Self::BeforeZero => match other {
+                Self::Cell(_) => Ordering::Less,
+                Self::BeforeZero => Ordering::Equal,
+            },
+        }
+    }
+}
+
+impl PartialOrd for SelectionX {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialOrd<usize> for SelectionX {
+    fn partial_cmp(&self, other: &usize) -> Option<Ordering> {
+        self.partial_cmp(&Self::Cell(*other))
+    }
+}
+
+impl PartialOrd<SelectionX> for usize {
+    fn partial_cmp(&self, other: &SelectionX) -> Option<Ordering> {
+        SelectionX::Cell(*self).partial_cmp(other)
+    }
+}
+
 /// The x,y coordinates of either the start or end of a selection region
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct SelectionCoordinate {
-    pub x: usize,
+    pub x: SelectionX,
     pub y: StableRowIndex,
+}
+
+impl SelectionCoordinate {
+    pub const fn x_y(x: usize, y: StableRowIndex) -> Self {
+        Self {
+            x: SelectionX::Cell(x),
+            y,
+        }
+    }
 }
 
 /// Represents the selected text range.
@@ -74,14 +184,11 @@ impl SelectionRange {
         for logical in pane.get_logical_lines(start.y..start.y + 1) {
             if logical.contains_y(start.y) {
                 return Self {
-                    start: SelectionCoordinate {
-                        x: 0,
-                        y: logical.first_row,
-                    },
-                    end: SelectionCoordinate {
-                        x: usize::max_value(),
-                        y: logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex,
-                    },
+                    start: SelectionCoordinate::x_y(0, logical.first_row),
+                    end: SelectionCoordinate::x_y(
+                        usize::max_value(),
+                        logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex,
+                    ),
                 };
             }
         }
@@ -100,7 +207,7 @@ impl SelectionRange {
                 Ordering::Greater => return Ordering::Greater,
                 // If the zone starts on the same line then check that the
                 // x position is within bounds
-                Ordering::Equal => match zone.start_x.cmp(&start.x) {
+                Ordering::Equal => match SelectionX::Cell(zone.start_x).cmp(&start.x) {
                     Ordering::Greater => return Ordering::Greater,
                     Ordering::Equal | Ordering::Less => {}
                 },
@@ -110,7 +217,7 @@ impl SelectionRange {
                 Ordering::Less => Ordering::Less,
                 // If the zone ends on the same line then check that the
                 // x position is within bounds
-                Ordering::Equal => match zone.end_x.cmp(&start.x) {
+                Ordering::Equal => match SelectionX::Cell(zone.end_x).cmp(&start.x) {
                     Ordering::Less => Ordering::Less,
                     Ordering::Equal | Ordering::Greater => Ordering::Equal,
                 },
@@ -121,14 +228,8 @@ impl SelectionRange {
         if let Ok(idx) = zones.binary_search_by(|zone| find_zone(&start, zone)) {
             let zone = &zones[idx];
             Self {
-                start: SelectionCoordinate {
-                    x: zone.start_x,
-                    y: zone.start_y,
-                },
-                end: SelectionCoordinate {
-                    x: zone.end_x,
-                    y: zone.end_y,
-                },
+                start: SelectionCoordinate::x_y(zone.start_x, zone.start_y),
+                end: SelectionCoordinate::x_y(zone.end_x, zone.end_y),
             }
         } else {
             Self { start, end: start }
@@ -142,24 +243,25 @@ impl SelectionRange {
                 continue;
             }
 
-            let start_idx = logical.xy_to_logical_x(start.x, start.y);
-            return match logical
-                .logical
-                .compute_double_click_range(start_idx, is_double_click_word)
-            {
-                DoubleClickRange::RangeWithWrap(click_range)
-                | DoubleClickRange::Range(click_range) => {
-                    let (start_y, start_x) = logical.logical_x_to_physical_coord(click_range.start);
-                    let (end_y, end_x) = logical.logical_x_to_physical_coord(click_range.end - 1);
-                    Self {
-                        start: SelectionCoordinate {
-                            x: start_x,
-                            y: start_y,
-                        },
-                        end: SelectionCoordinate { x: end_x, y: end_y },
+            if let SelectionX::Cell(start_x) = start.x {
+                let start_idx = logical.xy_to_logical_x(start_x, start.y);
+                return match logical
+                    .logical
+                    .compute_double_click_range(start_idx, is_double_click_word)
+                {
+                    DoubleClickRange::RangeWithWrap(click_range)
+                    | DoubleClickRange::Range(click_range) => {
+                        let (start_y, start_x) =
+                            logical.logical_x_to_physical_coord(click_range.start);
+                        let (end_y, end_x) =
+                            logical.logical_x_to_physical_coord(click_range.end - 1);
+                        Self {
+                            start: SelectionCoordinate::x_y(start_x, start_y),
+                            end: SelectionCoordinate::x_y(end_x, end_y),
+                        }
                     }
-                }
-            };
+                };
+            }
         }
 
         // Shouldn't happen, but return a reasonable fallback
@@ -225,9 +327,9 @@ impl SelectionRange {
                 0..0
             } else {
                 if norm.start.x <= norm.end.x {
-                    norm.start.x..norm.end.x.saturating_add(1)
+                    norm.start.x.range(norm.end.x.saturating_add(1))
                 } else {
-                    norm.end.x..norm.start.x.saturating_add(1)
+                    norm.end.x.range(norm.start.x.saturating_add(1))
                 }
             }
         } else {
@@ -236,16 +338,16 @@ impl SelectionRange {
             } else if norm.start.y == norm.end.y {
                 // A single line selection
                 if norm.start.x <= norm.end.x {
-                    norm.start.x..norm.end.x.saturating_add(1)
+                    norm.start.x.range(norm.end.x.saturating_add(1))
                 } else {
-                    norm.end.x..norm.start.x.saturating_add(1)
+                    norm.end.x.range(norm.start.x.saturating_add(1))
                 }
             } else if row == norm.end.y {
                 // last line of multi-line
-                0..norm.end.x.saturating_add(1)
+                SelectionX::Cell(0).range(norm.end.x.saturating_add(1))
             } else if row == norm.start.y {
                 // first line of multi-line
-                norm.start.x..usize::max_value()
+                norm.start.x.range(SelectionX::Cell(usize::max_value()))
             } else {
                 // some "middle" line of multi-line
                 0..usize::max_value()

@@ -1,4 +1,4 @@
-use crate::selection::{Selection, SelectionCoordinate, SelectionMode, SelectionRange};
+use crate::selection::{Selection, SelectionCoordinate, SelectionMode, SelectionRange, SelectionX};
 use ::window::WindowOps;
 use mux::pane::{Pane, PaneId};
 use std::cell::RefMut;
@@ -83,7 +83,7 @@ impl super::TermWindow {
                 let origin = self
                     .selection(pane.pane_id())
                     .origin
-                    .unwrap_or(SelectionCoordinate { x, y });
+                    .unwrap_or(SelectionCoordinate::x_y(x, y));
                 self.selection(pane.pane_id()).origin = Some(origin);
                 self.selection(pane.pane_id()).rectangular = mode == SelectionMode::Block;
 
@@ -94,11 +94,11 @@ impl super::TermWindow {
                     if x >= origin.x {
                         // If the selection is extending forwards from the origin,
                         // it includes the origin
-                        (origin.x, x.saturating_sub(1))
+                        (origin.x, SelectionX::Cell(x).saturating_sub(1))
                     } else {
                         // If the selection is extending backwards from the origin,
                         // it doesn't include the origin
-                        (origin.x.saturating_sub(1), x)
+                        (origin.x.saturating_sub(1), SelectionX::Cell(x))
                     }
                 } else {
                     if (x >= origin.x && y == origin.y) || y > origin.y {
@@ -108,30 +108,34 @@ impl super::TermWindow {
                         // screen, so this causes a visual cell on the screen to be selected when
                         // the mouse moves over 50% of its width, which effectively means the next
                         // cell is being reported here, hence it's excluded
-                        (origin.x, x.saturating_sub(1))
+                        (origin.x, SelectionX::Cell(x).saturating_sub(1))
                     } else {
                         // If the selection is extending backwards from the origin, it doesn't
                         // include the origin and includes the cell under the cursor, which has
                         // the same effect as described above when going backwards
-                        (origin.x.saturating_sub(1), x)
+                        (origin.x.saturating_sub(1), SelectionX::Cell(x))
                     }
                 };
 
-                self.selection(pane.pane_id()).range = if origin.x != x || origin.y != y {
-                    // Only considers a selection if the cursor moved from the origin point
-                    Some(
-                        SelectionRange::start(SelectionCoordinate {
-                            x: start_x,
-                            y: origin.y,
-                        })
-                        .extend(SelectionCoordinate { x: end_x, y }),
-                    )
-                } else {
-                    None
-                };
+                self.selection(pane.pane_id()).range =
+                    if mode == SelectionMode::Block && origin.x == x {
+                        // Ignore rectangle selections with a width of zero
+                        None
+                    } else if origin.x != x || origin.y != y {
+                        // Only considers a selection if the cursor moved from the origin point
+                        Some(
+                            SelectionRange::start(SelectionCoordinate {
+                                x: start_x,
+                                y: origin.y,
+                            })
+                            .extend(SelectionCoordinate { x: end_x, y }),
+                        )
+                    } else {
+                        None
+                    };
             }
             SelectionMode::Word => {
-                let end_word = SelectionRange::word_around(SelectionCoordinate { x, y }, &**pane);
+                let end_word = SelectionRange::word_around(SelectionCoordinate::x_y(x, y), &**pane);
 
                 let start_coord = self
                     .selection(pane.pane_id())
@@ -145,7 +149,7 @@ impl super::TermWindow {
                 self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::Line => {
-                let end_line = SelectionRange::line_around(SelectionCoordinate { x, y }, &**pane);
+                let end_line = SelectionRange::line_around(SelectionCoordinate::x_y(x, y), &**pane);
 
                 let start_coord = self
                     .selection(pane.pane_id())
@@ -159,7 +163,7 @@ impl super::TermWindow {
                 self.selection(pane.pane_id()).rectangular = false;
             }
             SelectionMode::SemanticZone => {
-                let end_word = SelectionRange::zone_around(SelectionCoordinate { x, y }, &**pane);
+                let end_word = SelectionRange::zone_around(SelectionCoordinate::x_y(x, y), &**pane);
 
                 let start_coord = self
                     .selection(pane.pane_id())
@@ -196,7 +200,7 @@ impl super::TermWindow {
         };
         match mode {
             SelectionMode::Line => {
-                let start = SelectionCoordinate { x, y };
+                let start = SelectionCoordinate::x_y(x, y);
                 let selection_range = SelectionRange::line_around(start, &**pane);
 
                 self.selection(pane.pane_id()).origin = Some(start);
@@ -205,7 +209,7 @@ impl super::TermWindow {
             }
             SelectionMode::Word => {
                 let selection_range =
-                    SelectionRange::word_around(SelectionCoordinate { x, y }, &**pane);
+                    SelectionRange::word_around(SelectionCoordinate::x_y(x, y), &**pane);
 
                 self.selection(pane.pane_id()).origin = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
@@ -213,7 +217,7 @@ impl super::TermWindow {
             }
             SelectionMode::SemanticZone => {
                 let selection_range =
-                    SelectionRange::zone_around(SelectionCoordinate { x, y }, &**pane);
+                    SelectionRange::zone_around(SelectionCoordinate::x_y(x, y), &**pane);
 
                 self.selection(pane.pane_id()).origin = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
@@ -221,7 +225,7 @@ impl super::TermWindow {
             }
             SelectionMode::Cell | SelectionMode::Block => {
                 self.selection(pane.pane_id())
-                    .begin(SelectionCoordinate { x, y });
+                    .begin(SelectionCoordinate::x_y(x, y));
                 self.selection(pane.pane_id()).rectangular = mode == SelectionMode::Block;
             }
         }
