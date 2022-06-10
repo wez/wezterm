@@ -79,6 +79,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `Dark+` color scheme background color [#2013](https://github.com/wez/wezterm/pull/2013)
 * Avoid fragmenting XTVERSION, DA2, DA3 query responses [#2060](https://github.com/wez/wezterm/issues/2060)
 * Synthesized bold didn't kick in for automatically computed `font_rules`. [#2074](https://github.com/wez/wezterm/issues/2074)
+* Added [freetype_pcf_long_family_names](config/lua/config/freetype_pcf_long_family_names.md) option to workaround PCF font naming issues on certain Linux distributions. [#2100](https://github.com/wez/wezterm/issues/2100)
 
 ### 20220408-101518-b908e2dd
 
