@@ -74,6 +74,8 @@ pub(crate) struct XWindowInner {
     paint_throttled: bool,
     pending: Vec<WindowEvent>,
     sure_about_geometry: bool,
+    pos_x: i16,
+    pos_y: i16,
 }
 
 impl Drop for XWindowInner {
@@ -559,14 +561,46 @@ impl XWindowInner {
         // without the human needing to interact with the window.
         let delay = self.config.focus_change_repaint_delay;
         if delay != 0 {
+
             let window_id = self.window_id;
+
+            let width = self.width;
+            let height = self.height;
+
             promise::spawn::spawn(async move {
+
                 async_io::Timer::after(std::time::Duration::from_millis(delay)).await;
-                XConnection::with_window_inner(window_id, |inner| {
+                XConnection::with_window_inner(window_id, move |inner| {
+
                     inner.sure_about_geometry = false;
                     inner.invalidate();
+
+                    let new_geom = inner.conn().wait_for_reply(inner.conn().send_request(
+                        &xcb::x::GetGeometry {
+                            drawable: xcb::x::Drawable::Window(inner.window_id),
+                        },
+                    ))?;
+
+                    let coords = inner.conn().wait_for_reply(inner.conn().send_request(
+                            &xcb::x::TranslateCoordinates {
+                                src_window: inner.conn().root,
+                                dst_window: window_id,
+                                src_x: 0,
+                                src_y: 0,
+                            }
+                    ))?;
+
+                    if inner.pos_x != coords.dst_x() || inner.pos_y != coords.dst_y() || width != new_geom.width() || height != new_geom.height() {
+                        inner.has_focus = Some(true);
+                        inner.events.dispatch(WindowEvent::FocusChanged(true));
+                    }
+
+                    inner.pos_x = coords.dst_x();
+                    inner.pos_y = coords.dst_y();
+
                     Ok(())
                 });
+
             })
             .detach();
         }
@@ -1023,6 +1057,8 @@ impl XWindow {
                 invalidated: false,
                 pending: vec![],
                 sure_about_geometry: false,
+                pos_x: x,
+                pos_y: y,
             }))
         };
 
