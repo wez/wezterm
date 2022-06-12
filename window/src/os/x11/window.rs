@@ -564,6 +564,7 @@ impl XWindowInner {
                 async_io::Timer::after(std::time::Duration::from_millis(delay)).await;
                 XConnection::with_window_inner(window_id, |inner| {
                     inner.sure_about_geometry = false;
+                    inner.verify_focus = true;
                     inner.invalidate();
                     Ok(())
                 });
