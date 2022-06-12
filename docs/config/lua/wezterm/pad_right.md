@@ -8,7 +8,7 @@ Returns a copy of `string` that is at least `min_width` columns
 If the string is shorter than `min_width`, spaces are added to
 the right end of the string.
 
-For example, `wezterm.pad_righ("o", 3)` returns `"o  "`.
+For example, `wezterm.pad_right("o", 3)` returns `"o  "`.
 
 See also: [wezterm.truncate_left](truncate_left.md), [wezterm.pad_left](pad_left.md).
 
