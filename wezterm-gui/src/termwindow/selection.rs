@@ -13,6 +13,7 @@ impl super::TermWindow {
     pub fn selection_text(&self, pane: &Rc<dyn Pane>) -> String {
         let mut s = String::new();
         let rectangular = self.selection(pane.pane_id()).rectangular;
+        let trim_trailing_whitespace = config::configuration().copy_trim_trailing_whitespace;
         if let Some(sel) = self
             .selection(pane.pane_id())
             .range
@@ -23,8 +24,8 @@ impl super::TermWindow {
             let first_row = sel.rows().start;
             let last_row = sel.rows().end;
 
-            for line in pane.get_logical_lines(sel.rows()) {
-                if !s.is_empty() && !last_was_wrapped {
+            for (idl, line) in pane.get_logical_lines(sel.rows()).iter().enumerate() {
+                if (!s.is_empty() || (!trim_trailing_whitespace && idl > 0)) && !last_was_wrapped {
                     s.push('\n');
                 }
                 let last_idx = line.physical_lines.len().saturating_sub(1);
@@ -36,8 +37,8 @@ impl super::TermWindow {
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
                         let col_span = phys.columns_as_str(cols);
                         // Only trim trailing whitespace if we are the last line
-                        // in a wrapped sequence
-                        if idx == last_idx {
+                        // in a wrapped sequence and the config option is enabled
+                        if idx == last_idx && trim_trailing_whitespace {
                             s.push_str(col_span.trim_end());
                         } else {
                             s.push_str(&col_span);

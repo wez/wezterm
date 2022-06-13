@@ -648,6 +648,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
+
+    #[dynamic(default = "default_true")]
+    pub copy_trim_trailing_whitespace: bool,
 }
 impl_lua_conversion_dynamic!(Config);
 
