@@ -2603,6 +2603,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "open"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "360bcc8316bf6363aa3954c3ccc4de8add167b087e0259190a043c9514f910fe"
+dependencies = [
+ "pathdiff",
+ "windows-sys",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3774,7 +3784,7 @@ dependencies = [
  "bstr 0.2.17",
  "config",
  "luahelper",
- "open",
+ "open 2.1.3",
  "smol",
  "wezterm-dynamic",
  "winapi",
@@ -4692,7 +4702,7 @@ dependencies = [
  "metrics",
  "mlua",
  "mux",
- "open",
+ "open 3.0.1",
  "ordered-float",
  "portable-pty",
  "promise",
@@ -4870,7 +4880,7 @@ dependencies = [
  "futures-util",
  "log",
  "objc",
- "open",
+ "open 2.1.3",
  "serde",
  "windows",
  "xml-rs",
