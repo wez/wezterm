@@ -35,7 +35,7 @@ impl super::TermWindow {
                         let last_phys_idx = phys.cells().len().saturating_sub(1);
                         let cols = sel.cols_for_row(this_row, rectangular);
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
-                        let col_span = phys.columns_as_str(cols);
+                        let col_span = phys.columns_as_str(cols, true);
                         // Only trim trailing whitespace if we are the last line
                         // in a wrapped sequence and the config option is enabled
                         if idx == last_idx && trim_trailing_whitespace {

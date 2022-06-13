@@ -580,13 +580,24 @@ impl Line {
     }
 
     /// Returns a substring from the line.
-    pub fn columns_as_str(&self, range: Range<usize>) -> String {
+    pub fn columns_as_str(&self, range: Range<usize>, ignore_trailing_blank: bool) -> String {
         let mut s = String::new();
-        for (n, c) in self.visible_cells() {
-            if n < range.start {
-                continue;
-            }
-            if n >= range.end {
+        let cells = self
+            .visible_cells()
+            .skip_while(|(n, _)| *n < range.start)
+            .take_while(|(n, _)| *n < range.end)
+            .collect::<Vec<_>>();
+        let last_non_blank_index = if ignore_trailing_blank {
+            // only needed if ignore_trailing_blank is true
+            cells
+                .iter()
+                .filter_map(|(n, c)| if !c.attrs().empty() { Some(n) } else { None })
+                .last()
+        } else {
+            None
+        };
+        for (n, c) in &cells {
+            if ignore_trailing_blank && last_non_blank_index.map_or(true, |i| n > i) {
                 break;
             }
             s.push_str(c.str());

@@ -605,7 +605,7 @@ impl CopyRenderable {
             if self.cursor.x == usize::max_value() {
                 self.cursor.x = line.cells().len().saturating_sub(1);
             }
-            let s = line.columns_as_str(0..self.cursor.x.saturating_add(1));
+            let s = line.columns_as_str(0..self.cursor.x.saturating_add(1), false);
 
             // "hello there you"
             //              |_
@@ -652,7 +652,7 @@ impl CopyRenderable {
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             let width = line.cells().len();
-            let s = line.columns_as_str(self.cursor.x..width + 1);
+            let s = line.columns_as_str(self.cursor.x..width + 1, false);
             let mut words = s.split_word_bounds();
 
             if let Some(word) = words.next() {

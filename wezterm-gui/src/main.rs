@@ -754,15 +754,18 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
 
                 let text = if cluster.direction == Direction::LeftToRight {
                     if let Some(next) = iter.peek() {
-                        line.columns_as_str(idx..cluster.byte_to_cell_idx(next.cluster as usize))
+                        line.columns_as_str(
+                            idx..cluster.byte_to_cell_idx(next.cluster as usize),
+                            false,
+                        )
                     } else {
                         let last_idx = cluster.byte_to_cell_idx(cluster.text.len() - 1);
-                        line.columns_as_str(idx..last_idx + 1)
+                        line.columns_as_str(idx..last_idx + 1, false)
                     }
                 } else {
                     let info_len = byte_lens[info.cluster as usize];
                     let last_idx = cluster.byte_to_cell_idx(info.cluster as usize + info_len - 1);
-                    line.columns_as_str(idx..last_idx + 1)
+                    line.columns_as_str(idx..last_idx + 1, false)
                 };
 
                 let parsed = &handles[info.font_idx];

@@ -249,6 +249,7 @@ impl CellAttributes {
     bitfield!(wrapped, set_wrapped, 11);
     bitfield!(overline, set_overline, 12);
     bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13);
+    bitfield!(empty, set_empty, 15);
 
     pub const fn blank() -> Self {
         Self {
@@ -765,14 +766,17 @@ impl Cell {
         }
     }
 
-    pub const fn blank() -> Self {
+    pub fn blank() -> Self {
+        let mut attrs = CellAttributes::blank();
+        attrs.set_empty(true);
         Self {
             text: TeenyString::space(),
-            attrs: CellAttributes::blank(),
+            attrs: attrs,
         }
     }
 
-    pub const fn blank_with_attrs(attrs: CellAttributes) -> Self {
+    pub fn blank_with_attrs(mut attrs: CellAttributes) -> Self {
+        attrs.set_empty(true);
         Self {
             text: TeenyString::space(),
             attrs,
