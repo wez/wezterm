@@ -9,10 +9,11 @@ edition = "2021"
 anyhow = "1.0"
 config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
+log = "0.4"
 luahelper = { path = "../../luahelper" }
 smol = "1.2"
 bstr = "0.2"
-open = "2.0"
+open = "3.0"
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}

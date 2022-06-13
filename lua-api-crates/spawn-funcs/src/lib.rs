@@ -20,7 +20,9 @@ fn open_with<'lua>(_: &'lua Lua, (url, app): (String, Option<String>)) -> mlua::
     if let Some(app) = app {
         open::with_in_background(url, app);
     } else {
-        open::that_in_background(url);
+        if let Err(err) = open::that(&url) {
+            log::error!("Error opening {}: {:#}", url, err);
+        }
     }
     Ok(())
 }
