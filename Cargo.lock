@@ -641,7 +641,16 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62c834d2dcb442c0fdf4775e72707db38c5a358a6da74f3041f93563d02ce306"
 dependencies = [
- "csscolorparser",
+ "csscolorparser 0.5.0",
+]
+
+[[package]]
+name = "colorgrad"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "192bdc11e0b466299466ed672f9867c2bd3828fe6ca6bfd9e7efbc6092ae9ebc"
+dependencies = [
+ "csscolorparser 0.6.0",
 ]
 
 [[package]]
@@ -660,7 +669,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "chrono",
- "colorgrad",
+ "colorgrad 0.5.0",
  "dirs-next",
  "enum-display-derive",
  "env_logger",
@@ -863,6 +872,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2fb3bd93ef32553e3d5b9f8020028f41ac64ff8a230033d5d548b8222d21fbe"
 dependencies = [
  "phf 0.8.0",
+]
+
+[[package]]
+name = "csscolorparser"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841475b11553e394b89eebb5cdfe8ca0b960005ad464bca369ade02a62da053e"
+dependencies = [
+ "phf 0.10.1",
 ]
 
 [[package]]
@@ -2795,7 +2813,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"
 dependencies = [
- "phf_macros",
+ "phf_macros 0.8.0",
  "phf_shared 0.8.0",
  "proc-macro-hack",
 ]
@@ -2806,7 +2824,9 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fabbf1ead8a5bcbc20f5f8b939ee3f5b0f6f281b6ad3468b84656b658b455259"
 dependencies = [
+ "phf_macros 0.10.0",
  "phf_shared 0.10.0",
+ "proc-macro-hack",
 ]
 
 [[package]]
@@ -2815,7 +2835,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbffee61585b0411840d3ece935cce9cb6321f01c45477d30066498cd5e1a815"
 dependencies = [
- "phf_generator",
+ "phf_generator 0.8.0",
  "phf_shared 0.8.0",
 ]
 
@@ -2830,13 +2850,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "phf_generator"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d5285893bb5eb82e6aaf5d59ee909a06a16737a8970984dd7746ba9283498d6"
+dependencies = [
+ "phf_shared 0.10.0",
+ "rand 0.8.5",
+]
+
+[[package]]
 name = "phf_macros"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f6fde18ff429ffc8fe78e2bf7f8b7a5a5a6e2a8b58bc5a9ac69198bbda9189c"
 dependencies = [
- "phf_generator",
+ "phf_generator 0.8.0",
  "phf_shared 0.8.0",
+ "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "phf_macros"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58fdf3184dd560f160dd73922bea2d5cd6e8f064bf4b13110abd81b03697b4e0"
+dependencies = [
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro-hack",
  "proc-macro2",
  "quote",
@@ -4597,7 +4641,7 @@ dependencies = [
 name = "wezterm-color-types"
 version = "0.1.0"
 dependencies = [
- "csscolorparser",
+ "csscolorparser 0.5.0",
  "lazy_static",
  "serde",
 ]
@@ -4669,7 +4713,7 @@ dependencies = [
  "chrono",
  "clap",
  "codec",
- "colorgrad",
+ "colorgrad 0.6.0",
  "config",
  "dirs-next",
  "downcast-rs",
@@ -4839,7 +4883,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
- "csscolorparser",
+ "csscolorparser 0.5.0",
  "env_logger",
  "hex",
  "image",
