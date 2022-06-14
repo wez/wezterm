@@ -489,6 +489,8 @@ usually the best available version.</p>
 <li>Quickselect now supports multi-line anchors such as <code>^</code> and <code>$</code>.  <a href="https://github.com/wez/wezterm/issues/2008">#2008</a></li>
 <li>Overriding config using the cli <code>--config</code> option will now error out and prevent starting up if unknown config options are specified, or if the value evaluates to <code>nil</code>. Unknown options continue to generate warnings (rather than errors) when observed in the config file so that you're not &quot;locked out&quot; of wezterm if you make a typo in the config file.</li>
 <li>Windows: <code>allow_win32_input_mode</code> now defaults to <code>true</code> and enables using <a href="https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md">win32-input-mode</a> to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as <a href="https://github.com/FarGroup/FarManager">FAR Manager</a> that use the low level <code>INPUT_RECORD</code> API will now receive key-up events as well as events for modifier-only key presses. <a href="https://github.com/wez/wezterm/issues/1509">#1509</a> <a href="https://github.com/wez/wezterm/issues/2009">#2009</a> <a href="https://github.com/wez/wezterm/issues/2098">#2098</a> <a href="https://github.com/wez/wezterm/issues/1904">#1904</a></li>
+<li>Wayland: <a href="config/lua/config/enable_wayland.html">enable_wayland</a> now defaults to <code>true</code>. <a href="https://github.com/wez/wezterm/issues/2104">#2104</a></li>
+<li><a href="config/lua/config/exit_behavior.html">exit_behavior</a> now defaults to <code>&quot;Close&quot;</code>. <a href="https://github.com/wez/wezterm/issues/2105">#2105</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -12085,6 +12087,8 @@ has no effect on macOS or Windows.</p>
   enable_wayland = true,
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>The default is now <code>true</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Controls the behavior when the shell program spawned by the terminal exits.
@@ -12110,6 +12114,8 @@ exit
 the pane to remain open.</p>
 <p>See also: <a href="config/lua/config/clean_exit_codes.html">clean_exit_codes</a> for fine tuning what is
 considered to be a clean exit status.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>The default is now <code>&quot;Close&quot;</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
 <p>Configures the font to use by default.  The <code>font</code> setting can specify
 a set of fallbacks and other options, and is described in more detail
