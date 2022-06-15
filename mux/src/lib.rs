@@ -1100,7 +1100,15 @@ impl Mux {
             },
         );
 
-        let tab = domain.spawn(size, command, cwd, window_id).await?;
+        let tab = domain
+            .spawn(size, command.clone(), cwd.clone(), window_id)
+            .await
+            .with_context(|| {
+                format!(
+                    "Spawning in domain `{}`: {size:?} command={command:?} cwd={cwd:?}",
+                    domain.domain_name()
+                )
+            })?;
 
         let pane = tab
             .get_active_pane()

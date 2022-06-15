@@ -83,6 +83,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Synthesized bold didn't kick in for automatically computed `font_rules`. [#2074](https://github.com/wez/wezterm/issues/2074)
 * Added [freetype_pcf_long_family_names](config/lua/config/freetype_pcf_long_family_names.md) option to workaround PCF font naming issues on certain Linux distributions. [#2100](https://github.com/wez/wezterm/issues/2100)
 * X11/Wayland: wezterm.desktop now specifies `StartupWMClass`. Thanks to [@uncomfyhalomacro](https://github.com/uncomfyhalomacro)! [#2052](https://github.com/wez/wezterm/issues/2052) [#2125](https://github.com/wez/wezterm/pull/2125)
+* `sudo -i` in a pane would cause subsequent pane/tab creation to fail until the cwd was changed to an accessible directory [#2120](https://github.com/wez/wezterm/issues/2120)
 
 ### 20220408-101518-b908e2dd
 

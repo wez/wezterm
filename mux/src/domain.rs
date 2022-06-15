@@ -254,7 +254,15 @@ impl LocalDomain {
             // can be painful; in the case where a tab is local but has connected
             // to a remote system and that remote has used OSC 7 to set a path
             // that doesn't exist on the local system, process spawning can fail.
-            if !std::path::Path::new(&dir).exists() {
+            // Another situation is `sudo -i` has the pane with set to a cwd
+            // that is not accessible to the user.
+            if let Err(err) = std::path::Path::new(&dir).read_dir() {
+                log::warn!(
+                    "Directory {:?} is not readable and will not be \
+                     used for the command we are spawning: {:#}",
+                    dir,
+                    err
+                );
                 cmd.clear_cwd();
             }
         }
