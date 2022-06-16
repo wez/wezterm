@@ -42,7 +42,6 @@ use mux::tab::{
 };
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
-use portable_pty::PtySize;
 use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
@@ -58,7 +57,7 @@ use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::GuiPosition;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
+use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration, TerminalSize};
 
 pub mod background;
 pub mod box_model;
@@ -335,7 +334,7 @@ pub struct TermWindow {
     pub dimensions: Dimensions,
     pub window_state: WindowState,
     /// Terminal dimensions
-    terminal_size: PtySize,
+    terminal_size: TerminalSize,
     pub mux_window_id: MuxWindowId,
     pub mux_window_id_for_subscriptions: Arc<Mutex<MuxWindowId>>,
     pub render_metrics: RenderMetrics,
@@ -549,11 +548,12 @@ impl TermWindow {
             0
         };
 
-        let terminal_size = PtySize {
-            rows: physical_rows as u16,
-            cols: physical_cols as u16,
-            pixel_width: (render_metrics.cell_size.width as usize * physical_cols) as u16,
-            pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
+        let terminal_size = TerminalSize {
+            rows: physical_rows,
+            cols: physical_cols,
+            pixel_width: (render_metrics.cell_size.width as usize * physical_cols),
+            pixel_height: (render_metrics.cell_size.height as usize * physical_rows),
+            dpi: dpi as u32,
         };
 
         if terminal_size != size {
@@ -578,19 +578,19 @@ impl TermWindow {
             pixel_max: terminal_size.pixel_width as f32,
             pixel_cell: render_metrics.cell_size.width as f32,
         };
-        let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as u16;
-        let padding_right = resize::effective_right_padding(&config, h_context);
+        let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as usize;
+        let padding_right = resize::effective_right_padding(&config, h_context) as usize;
         let v_context = DimensionContext {
             dpi: dpi as f32,
             pixel_max: terminal_size.pixel_height as f32,
             pixel_cell: render_metrics.cell_size.height as f32,
         };
-        let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as u16;
-        let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
+        let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as usize;
+        let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as usize;
 
         let dimensions = Dimensions {
             pixel_width: (terminal_size.pixel_width + padding_left + padding_right) as usize,
-            pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as u16)
+            pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as usize)
                 + padding_top
                 + padding_bottom) as usize
                 + tab_bar_height,
@@ -2367,6 +2367,7 @@ impl TermWindow {
             AttachDomain(domain) => {
                 let window = self.mux_window_id;
                 let domain = domain.to_string();
+                let dpi = self.dimensions.dpi as u32;
 
                 promise::spawn::spawn(async move {
                     let mux = Mux::get().unwrap();
@@ -2383,7 +2384,7 @@ impl TermWindow {
                     if !have_panes_in_domain {
                         let config = config::configuration();
                         let _tab = domain
-                            .spawn(config.initial_size(), None, None, window)
+                            .spawn(config.initial_size(dpi), None, None, window)
                             .await?;
                     }
 

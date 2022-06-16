@@ -4823,6 +4823,7 @@ dependencies = [
  "umask",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
+ "wezterm-term",
  "winapi",
 ]
 

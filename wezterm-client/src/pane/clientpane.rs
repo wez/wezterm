@@ -10,7 +10,6 @@ use mux::pane::{alloc_pane_id, CloseReason, Pane, PaneId, Pattern, SearchResult}
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
-use portable_pty::PtySize;
 use rangeset::RangeSet;
 use ratelim::RateLimiter;
 use std::cell::{RefCell, RefMut};
@@ -22,7 +21,9 @@ use termwiz::input::KeyEvent;
 use termwiz::surface::SequenceNo;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
+use wezterm_term::{
+    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
+};
 
 pub struct ClientPane {
     client: Arc<ClientInner>,
@@ -44,7 +45,7 @@ impl ClientPane {
         client: &Arc<ClientInner>,
         remote_tab_id: TabId,
         remote_pane_id: PaneId,
-        size: PtySize,
+        size: TerminalSize,
         title: &str,
     ) -> Self {
         let local_pane_id = alloc_pane_id();
@@ -72,6 +73,7 @@ impl ClientPane {
                     scrollback_rows: size.rows as _,
                     physical_top: 0,
                     scrollback_top: 0,
+                    dpi: size.dpi,
                 },
                 title,
                 fetch_limiter,
@@ -278,7 +280,7 @@ impl Pane for ClientPane {
         inner.update_last_send();
     }
 
-    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
+    fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
         let render = self.renderable.borrow();
         let mut inner = render.inner.borrow_mut();
 

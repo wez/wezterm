@@ -13,6 +13,7 @@ use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
+use std::convert::TryInto;
 use std::io::Result as IoResult;
 use std::ops::Range;
 use std::sync::Arc;
@@ -24,7 +25,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, DownloadHandler, KeyCode, KeyModifiers,
-    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
+    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
 
 #[derive(Debug)]
@@ -275,14 +276,14 @@ impl Pane for LocalPane {
         self.terminal.borrow_mut().key_up(key, mods)
     }
 
-    fn resize(&self, size: PtySize) -> Result<(), Error> {
-        self.pty.borrow_mut().resize(size)?;
-        self.terminal.borrow_mut().resize(
-            size.rows as usize,
-            size.cols as usize,
-            size.pixel_width as usize,
-            size.pixel_height as usize,
-        );
+    fn resize(&self, size: TerminalSize) -> Result<(), Error> {
+        self.pty.borrow_mut().resize(PtySize {
+            rows: size.rows.try_into()?,
+            cols: size.cols.try_into()?,
+            pixel_width: size.pixel_width.try_into()?,
+            pixel_height: size.pixel_height.try_into()?,
+        })?;
+        self.terminal.borrow_mut().resize(size);
         Ok(())
     }
 

@@ -38,6 +38,7 @@ pub struct RenderableDimensions {
     /// The top of the scrollback (the earliest row we remember)
     /// expressed as a stable index.
     pub scrollback_top: StableRowIndex,
+    pub dpi: u32,
 }
 impl_lua_conversion_dynamic!(RenderableDimensions);
 
@@ -95,5 +96,6 @@ pub fn terminal_get_dimensions(term: &mut Terminal) -> RenderableDimensions {
         scrollback_rows: screen.scrollback_rows(),
         physical_top: screen.visible_row_to_stable_row(0),
         scrollback_top: screen.phys_to_stable_row_index(0),
+        dpi: screen.dpi,
     }
 }

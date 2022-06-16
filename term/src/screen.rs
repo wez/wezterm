@@ -38,6 +38,7 @@ pub struct Screen {
     pub physical_rows: usize,
     /// Physical, visible width of the screen
     pub physical_cols: usize,
+    pub dpi: u32,
 }
 
 fn scrollback_size(config: &Arc<dyn TerminalConfiguration>, allow_scrollback: bool) -> usize {
@@ -53,15 +54,14 @@ impl Screen {
     /// The Cells in the viewable portion of the screen are set to the
     /// default cell attributes.
     pub fn new(
-        physical_rows: usize,
-        physical_cols: usize,
+        size: TerminalSize,
         config: &Arc<dyn TerminalConfiguration>,
         allow_scrollback: bool,
         seqno: SequenceNo,
         bidi_mode: BidiMode,
     ) -> Screen {
-        let physical_rows = physical_rows.max(1);
-        let physical_cols = physical_cols.max(1);
+        let physical_rows = size.rows.max(1);
+        let physical_cols = size.cols.max(1);
 
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
@@ -78,6 +78,7 @@ impl Screen {
             physical_rows,
             physical_cols,
             stable_row_index_offset: 0,
+            dpi: size.dpi,
         }
     }
 
@@ -162,18 +163,25 @@ impl Screen {
     /// Resize the physical, viewable portion of the screen
     pub fn resize(
         &mut self,
-        physical_rows: usize,
-        physical_cols: usize,
+        size: TerminalSize,
         cursor: CursorPosition,
         seqno: SequenceNo,
         is_conpty: bool,
     ) -> CursorPosition {
-        let physical_rows = physical_rows.max(1);
-        let physical_cols = physical_cols.max(1);
-        if physical_rows == self.physical_rows && physical_cols == self.physical_cols {
+        let physical_rows = size.rows.max(1);
+        let physical_cols = size.cols.max(1);
+
+        if physical_rows == self.physical_rows
+            && physical_cols == self.physical_cols
+            && size.dpi == self.dpi
+        {
             return cursor;
         }
-        log::debug!("resize screen to {}x{}", physical_cols, physical_rows);
+        log::debug!(
+            "resize screen to {physical_cols}x{physical_rows} dpi={}",
+            size.dpi
+        );
+        self.dpi = size.dpi;
 
         // pre-prune blank lines that range from the cursor position to the end of the display;
         // this avoids growing the scrollback size when rapidly switching between normal and

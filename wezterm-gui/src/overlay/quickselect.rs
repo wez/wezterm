@@ -5,7 +5,6 @@ use config::ConfigHandle;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
-use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -17,7 +16,9 @@ use termwiz::color::AnsiColor;
 use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
+use wezterm_term::{
+    Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
+};
 use window::WindowOps;
 
 const PATTERNS: [&str; 14] = [
@@ -288,7 +289,7 @@ impl Pane for QuickSelectOverlay {
         self.delegate.writer()
     }
 
-    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
+    fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
         self.delegate.resize(size)
     }
 

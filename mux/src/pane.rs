@@ -4,7 +4,6 @@ use crate::Mux;
 use async_trait::async_trait;
 use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
 use downcast_rs::{impl_downcast, Downcast};
-use portable_pty::PtySize;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
@@ -18,7 +17,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
-    TerminalConfiguration,
+    TerminalConfiguration, TerminalSize,
 };
 
 static PANE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -353,7 +352,7 @@ pub trait Pane: Downcast {
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
-    fn resize(&self, size: PtySize) -> anyhow::Result<()>;
+    fn resize(&self, size: TerminalSize) -> anyhow::Result<()>;
     /// Called as a hint that the pane is being resized as part of
     /// a zoom-to-fill-all-the-tab-space operation.
     fn set_zoomed(&self, _zoomed: bool) {}
@@ -504,7 +503,7 @@ mod test {
         fn writer(&self) -> RefMut<dyn std::io::Write> {
             unimplemented!()
         }
-        fn resize(&self, _: PtySize) -> anyhow::Result<()> {
+        fn resize(&self, _: TerminalSize) -> anyhow::Result<()> {
             unimplemented!()
         }
 

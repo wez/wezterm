@@ -91,11 +91,25 @@ impl DerefMut for Terminal {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct TerminalSize {
-    pub physical_rows: usize,
-    pub physical_cols: usize,
+    pub rows: usize,
+    pub cols: usize,
     pub pixel_width: usize,
     pub pixel_height: usize,
+    pub dpi: u32,
+}
+
+impl Default for TerminalSize {
+    fn default() -> Self {
+        Self {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 0,
+        }
+    }
 }
 
 impl Terminal {

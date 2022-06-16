@@ -11,12 +11,13 @@ use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitRequest, Tab, TabId};
 use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
-use portable_pty::{CommandBuilder, PtySize};
+use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use wezterm_term::TerminalSize;
 
 pub struct ClientInner {
     pub client: Client,
@@ -482,7 +483,7 @@ impl Domain for ClientDomain {
 
     async fn spawn_pane(
         &self,
-        _size: PtySize,
+        _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
@@ -491,7 +492,7 @@ impl Domain for ClientDomain {
 
     async fn spawn(
         &self,
-        size: PtySize,
+        size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,

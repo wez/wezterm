@@ -13,6 +13,7 @@ use std::io::Write as _;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
 use termwiz::tmux_cc::*;
+use wezterm_term::TerminalSize;
 
 pub(crate) trait TmuxCommand: Send + Debug {
     fn get_command(&self) -> String;
@@ -129,11 +130,12 @@ impl TmuxDomainState {
             };
             let writer = pane_pty.try_clone_writer()?;
             let mux = Mux::get().expect("should be called at main thread");
-            let size = PtySize {
-                rows: pane.pane_height as u16,
-                cols: pane.pane_width as u16,
+            let size = TerminalSize {
+                rows: pane.pane_height as usize,
+                cols: pane.pane_width as usize,
                 pixel_width: 0,
                 pixel_height: 0,
+                dpi: 0,
             };
 
             let child = TmuxChild {
@@ -141,7 +143,7 @@ impl TmuxDomainState {
             };
 
             let terminal = wezterm_term::Terminal::new(
-                crate::pty_size_to_terminal_size(size),
+                size,
                 std::sync::Arc::new(config::TermConfig::new()),
                 "WezTerm",
                 config::wezterm_version(),
@@ -269,7 +271,7 @@ impl TmuxCommand for ListAllPanes {
 
 #[derive(Debug)]
 pub(crate) struct Resize {
-    pub size: portable_pty::PtySize,
+    pub size: PtySize,
 }
 
 impl TmuxCommand for Resize {

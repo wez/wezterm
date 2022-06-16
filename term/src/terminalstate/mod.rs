@@ -169,21 +169,13 @@ impl DerefMut for ScreenOrAlt {
 
 impl ScreenOrAlt {
     pub fn new(
-        physical_rows: usize,
-        physical_cols: usize,
+        size: TerminalSize,
         config: &Arc<dyn TerminalConfiguration>,
         seqno: SequenceNo,
         bidi_mode: BidiMode,
     ) -> Self {
-        let screen = Screen::new(physical_rows, physical_cols, config, true, seqno, bidi_mode);
-        let alt_screen = Screen::new(
-            physical_rows,
-            physical_cols,
-            config,
-            false,
-            seqno,
-            bidi_mode,
-        );
+        let screen = Screen::new(size, config, true, seqno, bidi_mode);
+        let alt_screen = Screen::new(size, config, false, seqno, bidi_mode);
 
         Self {
             screen,
@@ -196,19 +188,14 @@ impl ScreenOrAlt {
 
     pub fn resize(
         &mut self,
-        physical_rows: usize,
-        physical_cols: usize,
+        size: TerminalSize,
         cursor_main: CursorPosition,
         cursor_alt: CursorPosition,
         seqno: SequenceNo,
         is_conpty: bool,
     ) -> (CursorPosition, CursorPosition) {
-        let cursor_main =
-            self.screen
-                .resize(physical_rows, physical_cols, cursor_main, seqno, is_conpty);
-        let cursor_alt =
-            self.alt_screen
-                .resize(physical_rows, physical_cols, cursor_alt, seqno, is_conpty);
+        let cursor_main = self.screen.resize(size, cursor_main, seqno, is_conpty);
+        let cursor_alt = self.alt_screen.resize(size, cursor_alt, seqno, is_conpty);
         (cursor_main, cursor_alt)
     }
 
@@ -344,6 +331,7 @@ pub struct TerminalState {
 
     pixel_width: usize,
     pixel_height: usize,
+    dpi: u32,
 
     clipboard: Option<Arc<dyn Clipboard>>,
     device_control_handler: Option<Box<dyn DeviceControlHandler>>,
@@ -487,13 +475,7 @@ impl TerminalState {
     ) -> TerminalState {
         let writer = Box::new(ThreadedWriter::new(writer));
         let seqno = 1;
-        let screen = ScreenOrAlt::new(
-            size.physical_rows,
-            size.physical_cols,
-            &config,
-            seqno,
-            config.bidi_mode(),
-        );
+        let screen = ScreenOrAlt::new(size, &config, seqno, config.bidi_mode());
 
         let color_map = default_color_map();
 
@@ -504,8 +486,8 @@ impl TerminalState {
             screen,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
-            top_and_bottom_margins: 0..size.physical_rows as VisibleRowIndex,
-            left_and_right_margins: 0..size.physical_cols,
+            top_and_bottom_margins: 0..size.rows as VisibleRowIndex,
+            left_and_right_margins: 0..size.cols,
             left_and_right_margin_mode: false,
             wrap_next: false,
             clear_semantic_attribute_on_newline: false,
@@ -537,12 +519,13 @@ impl TerminalState {
             shift_out: false,
             newline_mode: false,
             current_mouse_buttons: vec![],
-            tabs: TabStop::new(size.physical_cols, 8),
+            tabs: TabStop::new(size.cols, 8),
             title: "wezterm".to_string(),
             icon_title: None,
             palette: None,
             pixel_height: size.pixel_height,
             pixel_width: size.pixel_width,
+            dpi: size.dpi,
             clipboard: None,
             device_control_handler: None,
             alert_handler: None,
@@ -795,13 +778,7 @@ impl TerminalState {
     /// specified dimensions.
     /// We need to resize both the primary and alt screens, adjusting
     /// the cursor positions of both accordingly.
-    pub fn resize(
-        &mut self,
-        physical_rows: usize,
-        physical_cols: usize,
-        pixel_width: usize,
-        pixel_height: usize,
-    ) {
+    pub fn resize(&mut self, size: TerminalSize) {
         let (cursor_main, cursor_alt) = if self.screen.alt_screen_is_active {
             (
                 self.screen
@@ -823,18 +800,18 @@ impl TerminalState {
         };
 
         let (adjusted_cursor_main, adjusted_cursor_alt) = self.screen.resize(
-            physical_rows,
-            physical_cols,
+            size,
             cursor_main,
             cursor_alt,
             self.seqno,
             self.enable_conpty_quirks,
         );
-        self.top_and_bottom_margins = 0..physical_rows as i64;
-        self.left_and_right_margins = 0..physical_cols;
-        self.pixel_height = pixel_height;
-        self.pixel_width = pixel_width;
-        self.tabs.resize(physical_cols);
+        self.top_and_bottom_margins = 0..size.rows as i64;
+        self.left_and_right_margins = 0..size.cols;
+        self.pixel_height = size.pixel_height;
+        self.pixel_width = size.pixel_width;
+        self.dpi = size.dpi;
+        self.tabs.resize(size.cols);
 
         if self.screen.alt_screen_is_active {
             self.set_cursor_pos(

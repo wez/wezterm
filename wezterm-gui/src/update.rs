@@ -4,7 +4,6 @@ use config::{configuration, wezterm_version};
 use http_req::request::{HttpVersion, Request};
 use http_req::uri::Uri;
 use mux::connui::{ConnectionUI, ConnectionUIParams};
-use portable_pty::PtySize;
 use regex::Regex;
 use serde::*;
 use std::collections::HashMap;
@@ -18,6 +17,7 @@ use termwiz::escape::csi::{Cursor, Sgr};
 use termwiz::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::{Change, CursorVisibility};
+use wezterm_term::TerminalSize;
 use wezterm_toast_notification::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -155,11 +155,12 @@ fn show_update_available(release: Release) {
     }
     let mut updater = UPDATER_WINDOW.lock().unwrap();
 
-    let size = PtySize {
+    let size = TerminalSize {
         cols: 80,
         rows: 35,
         pixel_width: 0,
         pixel_height: 0,
+        dpi: 0,
     };
     let ui = ConnectionUI::with_params(ConnectionUIParams {
         size,

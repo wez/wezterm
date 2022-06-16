@@ -14,9 +14,10 @@ use anyhow::{bail, Error};
 use async_trait::async_trait;
 use config::{configuration, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
-use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
+use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::ffi::OsString;
 use std::rc::Rc;
+use wezterm_term::TerminalSize;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type DomainId = usize;
@@ -45,7 +46,7 @@ pub trait Domain: Downcast {
     /// Spawn a new command within this domain
     async fn spawn(
         &self,
-        size: PtySize,
+        size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
@@ -124,7 +125,7 @@ pub trait Domain: Downcast {
 
     async fn spawn_pane(
         &self,
-        size: PtySize,
+        size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>>;
@@ -303,12 +304,14 @@ impl LocalDomain {
 impl Domain for LocalDomain {
     async fn spawn_pane(
         &self,
-        size: PtySize,
+        size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         let mut cmd = self.build_command(command, command_dir)?;
-        let pair = self.pty_system.openpty(size)?;
+        let pair = self
+            .pty_system
+            .openpty(crate::terminal_size_to_pty_size(size)?)?;
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
 
@@ -330,7 +333,7 @@ impl Domain for LocalDomain {
         let writer = pair.master.try_clone_writer()?;
 
         let mut terminal = wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(size),
+            size,
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),

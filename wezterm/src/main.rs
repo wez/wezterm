@@ -18,6 +18,7 @@ use tabout::{tabulate_output, Alignment, Column};
 use umask::UmaskSaver;
 use wezterm_client::client::{unix_connect_with_retry, Client};
 use wezterm_gui_subcommands::*;
+use wezterm_term::TerminalSize;
 
 mod asciicast;
 
@@ -563,8 +564,8 @@ async fn resolve_pane_id(client: &Client, pane_id: Option<PaneId>) -> anyhow::Re
 
 #[derive(serde::Serialize)]
 struct CliListResultPtySize {
-    rows: u16,
-    cols: u16,
+    rows: usize,
+    cols: usize,
 }
 // This will be serialized to JSON via the 'List' command.
 // As such it is intended to be a stable output format,
@@ -590,7 +591,7 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
             workspace,
             title,
             working_dir,
-            size: portable_pty::PtySize { rows, cols, .. },
+            size: TerminalSize { rows, cols, .. },
             ..
         } = pane;
 
@@ -1000,6 +1001,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
             let workspace = workspace.unwrap_or_else(|| mux::DEFAULT_WORKSPACE.to_string());
 
+            let size = config.initial_size(0);
+
             let spawned = client
                 .spawn_v2(codec::SpawnV2 {
                     domain: domain_name.map_or(SpawnTabDomain::DefaultDomain, |name| {
@@ -1013,7 +1016,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         Some(builder)
                     },
                     command_dir: canon_cwd(cwd)?,
-                    size: config::configuration().initial_size(),
+                    size,
                     workspace,
                 })
                 .await?;

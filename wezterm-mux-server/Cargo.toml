@@ -22,6 +22,7 @@ promise = { path = "../promise" }
 umask = { path = "../umask" }
 wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
+wezterm-term = { path = "../term" }
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [ "winuser" ]}

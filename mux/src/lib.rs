@@ -15,6 +15,7 @@ use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -24,7 +25,7 @@ use std::time::Instant;
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
-use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler};
+use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
@@ -944,7 +945,7 @@ impl Mux {
         request: SplitRequest,
         source: SplitSource,
         domain: config::keyassignment::SpawnTabDomain,
-    ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
+    ) -> anyhow::Result<(Rc<dyn Pane>, TerminalSize)> {
         let (_pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
@@ -982,11 +983,12 @@ impl Mux {
 
         let dims = pane.get_dimensions();
 
-        let size = PtySize {
-            cols: dims.cols as u16,
-            rows: dims.viewport_rows as u16,
+        let size = TerminalSize {
+            cols: dims.cols,
+            rows: dims.viewport_rows,
             pixel_height: 0, // FIXME: split pane pixel dimensions
             pixel_width: 0,
+            dpi: dims.dpi,
         };
 
         Ok((pane, size))
@@ -1045,7 +1047,7 @@ impl Mux {
         domain: SpawnTabDomain,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-        size: PtySize,
+        size: TerminalSize,
         current_pane_id: Option<PaneId>,
         workspace_for_new_window: String,
     ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
@@ -1154,13 +1156,13 @@ pub enum SessionTerminated {
     WindowClosed,
 }
 
-pub(crate) fn pty_size_to_terminal_size(size: portable_pty::PtySize) -> wezterm_term::TerminalSize {
-    wezterm_term::TerminalSize {
-        physical_rows: size.rows as usize,
-        physical_cols: size.cols as usize,
-        pixel_width: size.pixel_width as usize,
-        pixel_height: size.pixel_height as usize,
-    }
+pub(crate) fn terminal_size_to_pty_size(size: TerminalSize) -> anyhow::Result<PtySize> {
+    Ok(PtySize {
+        rows: size.rows.try_into()?,
+        cols: size.cols.try_into()?,
+        pixel_height: size.pixel_height.try_into()?,
+        pixel_width: size.pixel_width.try_into()?,
+    })
 }
 
 struct MuxClipboard {

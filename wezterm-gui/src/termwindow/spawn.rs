@@ -6,8 +6,9 @@ use mux::activity::Activity;
 use mux::domain::SplitSource;
 use mux::tab::SplitRequest;
 use mux::Mux;
-use portable_pty::{CommandBuilder, PtySize};
+use portable_pty::CommandBuilder;
 use std::sync::Arc;
+use wezterm_term::TerminalSize;
 
 #[derive(Copy, Debug, Clone, Eq, PartialEq)]
 pub enum SpawnWhere {
@@ -19,7 +20,7 @@ pub enum SpawnWhere {
 impl super::TermWindow {
     pub fn spawn_command(&self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
         let size = if spawn_where == SpawnWhere::NewWindow {
-            self.config.initial_size()
+            self.config.initial_size(self.dimensions.dpi as u32)
         } else {
             self.terminal_size
         };
@@ -31,7 +32,7 @@ impl super::TermWindow {
     fn spawn_command_impl(
         spawn: &SpawnCommand,
         spawn_where: SpawnWhere,
-        size: PtySize,
+        size: TerminalSize,
         src_window_id: MuxWindowId,
         term_config: Arc<TermConfig>,
     ) {
@@ -51,7 +52,7 @@ impl super::TermWindow {
     pub async fn spawn_command_internal(
         spawn: SpawnCommand,
         spawn_where: SpawnWhere,
-        size: PtySize,
+        size: TerminalSize,
         src_window_id: MuxWindowId,
         term_config: Arc<TermConfig>,
     ) -> anyhow::Result<()> {

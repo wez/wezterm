@@ -29,7 +29,7 @@ use termwiz::terminal::{ScreenSize, TerminalWaker};
 use termwiz::Context;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
+use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex, TerminalSize};
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -46,7 +46,7 @@ impl TermWizTerminalDomain {
 impl Domain for TermWizTerminalDomain {
     async fn spawn_pane(
         &self,
-        _size: PtySize,
+        _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
@@ -90,14 +90,14 @@ pub struct TermWizTerminalPane {
 impl TermWizTerminalPane {
     fn new(
         domain_id: DomainId,
-        size: PtySize,
+        size: TerminalSize,
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
     ) -> Self {
         let pane_id = alloc_pane_id();
 
         let terminal = RefCell::new(wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(size),
+            size,
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
@@ -167,18 +167,13 @@ impl Pane for TermWizTerminalPane {
         self.writer.borrow_mut()
     }
 
-    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
+    fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
         self.input_tx.send(InputEvent::Resized {
             rows: size.rows as usize,
             cols: size.cols as usize,
         })?;
 
-        self.terminal.borrow_mut().resize(
-            size.rows as usize,
-            size.cols as usize,
-            size.pixel_width as usize,
-            size.pixel_height as usize,
-        );
+        self.terminal.borrow_mut().resize(size);
 
         Ok(())
     }
@@ -404,7 +399,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
+pub fn allocate(size: TerminalSize) -> (TermWizTerminal, Rc<dyn Pane>) {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
 
     let (input_tx, input_rx) = channel();
@@ -448,7 +443,7 @@ pub async fn run<
     T: Send + 'static,
     F: Send + 'static + FnOnce(TermWizTerminal) -> anyhow::Result<T>,
 >(
-    size: PtySize,
+    size: TerminalSize,
     window_id: Option<WindowId>,
     f: F,
 ) -> anyhow::Result<T> {
@@ -477,7 +472,7 @@ pub async fn run<
     async fn register_tab(
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
-        size: PtySize,
+        size: TerminalSize,
         window_id: Option<WindowId>,
     ) -> anyhow::Result<(PaneId, WindowId)> {
         let mux = Mux::get().unwrap();

@@ -178,12 +178,13 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let mux = setup_mux(domain.clone(), &config, Some("local"), None)?;
 
     let gui = crate::frontend::try_new()?;
+    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
     {
         let window_id = mux.new_empty_window(None);
         block_on(domain.attach(Some(*window_id)))?; // FIXME: blocking
 
         // FIXME: blocking
-        let _tab = block_on(domain.spawn(config.initial_size(), None, None, *window_id))?;
+        let _tab = block_on(domain.spawn(config.initial_size(dpi), None, None, *window_id))?;
     }
 
     maybe_show_configuration_error_window();
@@ -301,8 +302,9 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         true
     });
 
+    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
     let _tab = domain
-        .spawn(config.initial_size(), cmd, None, *window_id)
+        .spawn(config.initial_size(dpi), cmd, None, *window_id)
         .await?;
     Ok(())
 }
@@ -462,7 +464,7 @@ impl Publish {
                                 window_id: None,
                                 command,
                                 command_dir: None,
-                                size: config.initial_size(),
+                                size: config.initial_size(0),
                                 workspace: workspace.unwrap_or(
                                     config
                                         .default_workspace

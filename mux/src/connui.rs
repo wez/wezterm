@@ -1,7 +1,6 @@
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use portable_pty::PtySize;
 use promise::spawn::block_on;
 use promise::Promise;
 use std::sync::Mutex;
@@ -11,6 +10,7 @@ use termwiz::lineedit::*;
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::*;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_term::TerminalSize;
 
 #[derive(Default)]
 struct PasswordPromptHost {
@@ -237,7 +237,7 @@ impl HeadlessImpl {
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct ConnectionUIParams {
-    pub size: PtySize,
+    pub size: TerminalSize,
     pub disable_close_delay: bool,
     pub window_id: Option<crate::WindowId>,
 }

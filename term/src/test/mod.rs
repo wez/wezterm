@@ -66,10 +66,11 @@ impl TestTerm {
 
         let mut term = Terminal::new(
             TerminalSize {
-                physical_rows: height,
-                physical_cols: width,
+                rows: height,
+                cols: width,
                 pixel_width: width * 8,
                 pixel_height: height * 16,
+                dpi: 0,
             },
             Arc::new(TestTermConfig { scrollback }),
             "WezTerm",
@@ -868,14 +869,26 @@ fn test_resize_wrap() {
             "111 ", "2222", "aa  ", "333 ", "    ", "    ", "    ", "    ",
         ],
     );
-    term.resize(LINES, 5, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 5,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
     assert_visible_contents(
         &term,
         file!(),
         line!(),
         &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
     );
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -884,7 +897,13 @@ fn test_resize_wrap() {
             "111 ", "2222aa", "333 ", "    ", "     ", "     ", "     ", "     ",
         ],
     );
-    term.resize(LINES, 7, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 7,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -893,7 +912,11 @@ fn test_resize_wrap() {
             "111 ", "2222aa", "333 ", "    ", "      ", "      ", "      ", "      ",
         ],
     );
-    term.resize(LINES, 8, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 8,
+        ..Default::default()
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -904,7 +927,11 @@ fn test_resize_wrap() {
     );
 
     // Resize smaller again
-    term.resize(LINES, 7, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 7,
+        ..Default::default()
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -913,7 +940,11 @@ fn test_resize_wrap() {
             "111 ", "2222aa", "333 ", "    ", "        ", "        ", "        ", "        ",
         ],
     );
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        ..Default::default()
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -922,7 +953,11 @@ fn test_resize_wrap() {
             "111 ", "2222aa", "333 ", "    ", "       ", "       ", "       ", "       ",
         ],
     );
-    term.resize(LINES, 5, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 5,
+        ..Default::default()
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -931,7 +966,11 @@ fn test_resize_wrap() {
             "111 ", "2222a", "a", "333 ", "    ", "      ", "      ", "      ",
         ],
     );
-    term.resize(LINES, 4, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 4,
+        ..Default::default()
+    });
     assert_visible_contents(
         &term,
         file!(),
@@ -948,7 +987,11 @@ fn test_resize_wrap_issue_971() {
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("====\r\nSS\r\n");
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        ..Default::default()
+    });
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 
@@ -958,7 +1001,11 @@ fn test_resize_wrap_sgc_issue_978() {
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("\u{1b}(0qqqq\u{1b}(B\r\nSS\r\n");
     assert_visible_contents(&term, file!(), line!(), &["────", "SS  ", "    ", "    "]);
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        ..Default::default()
+    });
     assert_visible_contents(&term, file!(), line!(), &["────", "SS  ", "    ", "    "]);
 }
 
@@ -968,7 +1015,11 @@ fn test_resize_wrap_dectcm_issue_978() {
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("\u{1b}[?25l====\u{1b}[?25h\r\nSS\r\n");
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        ..Default::default()
+    });
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 
@@ -978,7 +1029,11 @@ fn test_resize_wrap_escape_code_issue_978() {
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("====\u{1b}[0m\r\nSS\r\n");
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
-    term.resize(LINES, 6, 0, 0);
+    term.resize(TerminalSize {
+        rows: LINES,
+        cols: 6,
+        ..Default::default()
+    });
     assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 

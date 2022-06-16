@@ -7,7 +7,6 @@ use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
 use mux::tab::TabId;
-use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -22,6 +21,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    TerminalSize,
 };
 use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
 
@@ -741,7 +741,7 @@ impl Pane for CopyOverlay {
         self.delegate.writer()
     }
 
-    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
+    fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
         self.delegate.resize(size)
     }
 

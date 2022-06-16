@@ -17,7 +17,7 @@ use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
 use mux::window::WindowId;
-use portable_pty::{CommandBuilder, PtySize};
+use portable_pty::CommandBuilder;
 use rangeset::*;
 use serde::{Deserialize, Serialize};
 use smol::io::AsyncWriteExt;
@@ -32,7 +32,7 @@ use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
 use thiserror::Error;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Alert, ClipboardSelection, StableRowIndex};
+use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
 
 #[derive(Error, Debug)]
 #[error("Corrupt Response")]
@@ -416,7 +416,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 24;
+pub const CODEC_VERSION: usize = 25;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -623,7 +623,7 @@ pub struct SpawnV2 {
     pub window_id: Option<WindowId>,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
-    pub size: PtySize,
+    pub size: TerminalSize,
     pub workspace: String,
 }
 
@@ -642,7 +642,7 @@ pub struct SpawnResponse {
     pub tab_id: TabId,
     pub pane_id: PaneId,
     pub window_id: WindowId,
-    pub size: PtySize,
+    pub size: TerminalSize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -757,7 +757,7 @@ pub struct GetClientListResponse {
 pub struct Resize {
     pub containing_tab_id: TabId,
     pub pane_id: PaneId,
-    pub size: PtySize,
+    pub size: TerminalSize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

@@ -5,13 +5,14 @@ use crate::tmux_commands::{ListAllPanes, TmuxCommand};
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use filedescriptor::FileDescriptor;
-use portable_pty::{CommandBuilder, PtySize};
+use portable_pty::CommandBuilder;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Write;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
 use termwiz::tmux_cc::*;
+use wezterm_term::TerminalSize;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 enum State {
@@ -206,7 +207,7 @@ impl TmuxDomain {
 impl Domain for TmuxDomain {
     async fn spawn_pane(
         &self,
-        _size: PtySize,
+        _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
