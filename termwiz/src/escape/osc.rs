@@ -812,10 +812,14 @@ pub enum ITermProprietary {
     /// Request that the terminal send a ReportCellSize response
     RequestCellSize,
     /// The response to RequestCellSize.  The height and width are the dimensions
-    /// of a cell measured in points
+    /// of a cell measured in points according to the docs, but in practice, they
+    /// are actually pixels.
+    /// If scale is_some(), the width and height will be multiplied by scale to
+    /// get the true device dimensions
     ReportCellSize {
-        height_points: NotNan<f32>,
-        width_points: NotNan<f32>,
+        height_pixels: NotNan<f32>,
+        width_pixels: NotNan<f32>,
+        scale: Option<NotNan<f32>>,
     },
     /// Place a string in the systems pasteboard
     Copy(String),
@@ -1145,8 +1149,18 @@ impl ITermProprietary {
         if osc.len() == 3 && keyword == "ReportCellSize" && p1.is_some() {
             if let Some(p1) = p1 {
                 return Ok(ITermProprietary::ReportCellSize {
-                    height_points: NotNan::new(p1.parse()?)?,
-                    width_points: NotNan::new(String::from_utf8_lossy(osc[2]).parse()?)?,
+                    height_pixels: NotNan::new(p1.parse()?)?,
+                    width_pixels: NotNan::new(String::from_utf8_lossy(osc[2]).parse()?)?,
+                    scale: None,
+                });
+            }
+        }
+        if osc.len() == 4 && keyword == "ReportCellSize" && p1.is_some() {
+            if let Some(p1) = p1 {
+                return Ok(ITermProprietary::ReportCellSize {
+                    height_pixels: NotNan::new(p1.parse()?)?,
+                    width_pixels: NotNan::new(String::from_utf8_lossy(osc[2]).parse()?)?,
+                    scale: Some(NotNan::new(String::from_utf8_lossy(osc[3]).parse()?)?),
                 });
             }
         }
@@ -1216,9 +1230,18 @@ impl Display for ITermProprietary {
             }
             RequestCellSize => write!(f, "ReportCellSize")?,
             ReportCellSize {
-                height_points,
-                width_points,
-            } => write!(f, "ReportCellSize={};{}", height_points, width_points)?,
+                height_pixels,
+                width_pixels,
+                scale: None,
+            } => write!(f, "ReportCellSize={height_pixels:.1};{width_pixels:.1}")?,
+            ReportCellSize {
+                height_pixels,
+                width_pixels,
+                scale: Some(scale),
+            } => write!(
+                f,
+                "ReportCellSize={height_pixels:.1};{width_pixels:.1};{scale:.1}",
+            )?,
             Copy(s) => write!(f, "Copy=;{}", base64::encode(s))?,
             ReportVariable(s) => write!(f, "ReportVariable={}", base64::encode(s))?,
             SetUserVar { name, value } => {
@@ -1615,11 +1638,24 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "ReportCellSize=12.0", "15.5"],
-                "\x1b]1337;ReportCellSize=12;15.5\x1b\\"
+                "\x1b]1337;ReportCellSize=12.0;15.5\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::ReportCellSize {
-                height_points: NotNan::new(12.0).unwrap(),
-                width_points: NotNan::new(15.5).unwrap()
+                height_pixels: NotNan::new(12.0).unwrap(),
+                width_pixels: NotNan::new(15.5).unwrap(),
+                scale: None,
+            })
+        );
+
+        assert_eq!(
+            parse(
+                &["1337", "ReportCellSize=12.0", "15.5", "2.0"],
+                "\x1b]1337;ReportCellSize=12.0;15.5;2.0\x1b\\"
+            ),
+            OperatingSystemCommand::ITermProprietary(ITermProprietary::ReportCellSize {
+                height_pixels: NotNan::new(12.0).unwrap(),
+                width_pixels: NotNan::new(15.5).unwrap(),
+                scale: Some(NotNan::new(2.0).unwrap()),
             })
         );
 

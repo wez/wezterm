@@ -5,6 +5,7 @@ use crate::terminalstate::{
 use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex, DCS, ST};
 use log::{debug, error};
 use num_traits::FromPrimitive;
+use ordered_float::NotNan;
 use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
 use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType};
@@ -630,6 +631,37 @@ impl<'a> Performer<'a> {
                 }
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
+                ITermProprietary::RequestCellSize => {
+                    let screen = self.screen();
+                    let height = screen.physical_rows;
+                    let width = screen.physical_cols;
+
+                    let scale = if screen.dpi == 0 {
+                        1.0
+                    } else {
+                        // Since iTerm2 is a macOS specific piece
+                        // of software, it uses the macOS default dpi
+                        // if 72 for the basis of its scale, regardless
+                        // of the host base dpi.
+                        screen.dpi as f32 / 72.
+                    };
+                    let width = (self.pixel_width as f32 / width as f32) / scale;
+                    let height = (self.pixel_height as f32 / height as f32) / scale;
+
+                    let response = OperatingSystemCommand::ITermProprietary(
+                        ITermProprietary::ReportCellSize {
+                            width_pixels: NotNan::new(width).unwrap(),
+                            height_pixels: NotNan::new(height).unwrap(),
+                            scale: if screen.dpi == 0 {
+                                None
+                            } else {
+                                Some(NotNan::new(scale).unwrap())
+                            },
+                        },
+                    );
+                    write!(self.writer, "{}", response).ok();
+                    self.writer.flush().ok();
+                }
                 ITermProprietary::File(image) => self.set_image(*image),
                 ITermProprietary::SetUserVar { name, value } => {
                     self.user_vars.insert(name.clone(), value.clone());
