@@ -12,6 +12,7 @@
 /gh_pages/
 /docs/SUMMARY.md
 /docs/install/*.md
+/docs/cli/cli/index.md
 /docs/colorschemes/**/index.md
 /docs/config/lua/config/index.md
 /docs/config/lua/wezterm/index.md

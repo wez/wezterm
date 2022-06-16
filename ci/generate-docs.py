@@ -44,6 +44,13 @@ class Gen(object):
             if self.index:
                 idx.write(self.index)
                 idx.write("\n\n")
+            else:
+                try:
+                    with open(f"{self.dirname}/index.markdown", "r") as f:
+                        idx.write(f.read())
+                        idx.write("\n\n")
+                except FileNotFoundError:
+                    pass
             for page in children:
                 idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
@@ -156,6 +163,7 @@ TOC = [
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
+            Page("CLI Reference", "cli/general.md", children=[Gen("cli", "cli/cli")]),
             Page(
                 "Lua Reference",
                 "config/lua/general.md",
