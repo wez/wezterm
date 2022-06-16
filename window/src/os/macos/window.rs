@@ -1219,7 +1219,7 @@ enum TranslateStatus {
 /// Holds state needed to perform keymap translation.
 struct Keyboard {
     _kbd: InputSource,
-    layout_data: CFData,
+    layout_data: Option<CFData>,
 }
 
 /// Slightly more intelligible parameters for keymap translation
@@ -1244,18 +1244,26 @@ impl Keyboard {
             unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
 
         let layout_data = unsafe {
-            CFData::wrap_under_get_rule(TISGetInputSourceProperty(
+            let data = TISGetInputSourceProperty(
                 _kbd.as_concrete_TypeRef(),
                 kTISPropertyUnicodeKeyLayoutData,
-            ))
+            );
+            if data.is_null() {
+                None
+            } else {
+                Some(CFData::wrap_under_get_rule(data))
+            }
         };
         Self { _kbd, layout_data }
     }
 
     /// A wrapper around UCKeyTranslate
     pub fn translate(&self, params: TranslateParams) -> anyhow::Result<TranslateResults> {
-        let layout_data = unsafe {
-            CFDataGetBytePtr(self.layout_data.as_concrete_TypeRef()) as *const UCKeyboardLayout
+        let layout_data = match &self.layout_data {
+            Some(data) => unsafe {
+                CFDataGetBytePtr(data.as_concrete_TypeRef()) as *const UCKeyboardLayout
+            },
+            None => std::ptr::null(),
         };
 
         let modifier_key_state: u32 = (params.modifier_flags.bits() >> 16) as u32 & 0xFF;
