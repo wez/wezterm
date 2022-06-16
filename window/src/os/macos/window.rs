@@ -2054,7 +2054,7 @@ impl WindowView {
         // Shift-Tab on macOS produces \x19 for some reason.
         // Rewrite it to something we understand.
         // <https://github.com/wez/wezterm/issues/1902>
-        let chars = if virtual_key == kVK_Tab && modifiers == Modifiers::SHIFT {
+        let chars = if virtual_key == kVK_Tab && modifiers.contains(Modifiers::SHIFT) {
             "\t"
         } else {
             chars

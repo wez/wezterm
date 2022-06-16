@@ -85,6 +85,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11/Wayland: wezterm.desktop now specifies `StartupWMClass`. Thanks to [@uncomfyhalomacro](https://github.com/uncomfyhalomacro)! [#2052](https://github.com/wez/wezterm/issues/2052) [#2125](https://github.com/wez/wezterm/pull/2125)
 * `sudo -i` in a pane would cause subsequent pane/tab creation to fail until the cwd was changed to an accessible directory [#2120](https://github.com/wez/wezterm/issues/2120)
 * X11: Add [x11_focus_change_repaint_delay_ms](config/lua/config/x11_focus_change_repaint_delay_ms.md) option to workaround NVIDIA specific window resize quirks. Thanks to [@pjones123](https://github.com/pjones123)! [#2063](https://github.com/wez/wezterm/issues/2063) [#2111](https://github.com/wez/wezterm/pull/2111)
+* macOS: `SHIFT-Tab` and `CTRL-SHIFT-Tab` produced incorrect results [#1902](https://github.com/wez/wezterm/issues/1902)
 
 ### 20220408-101518-b908e2dd
 
