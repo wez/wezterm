@@ -651,7 +651,7 @@ pub struct Config {
     pub quote_dropped_files: DroppedFileQuoting,
 
     #[dynamic(default = "default_focus_change_repaint_delay")]
-    pub focus_change_repaint_delay: u64,
+    pub x11_focus_change_repaint_delay_ms: u64,
 }
 impl_lua_conversion_dynamic!(Config);
 

@@ -557,7 +557,7 @@ impl XWindowInner {
         // the window a short time after the focus event is processed in the
         // hope that it can observe the changed window properties and update
         // without the human needing to interact with the window.
-        let delay = self.config.focus_change_repaint_delay;
+        let delay = self.config.x11_focus_change_repaint_delay_ms;
         if delay != 0 {
             let window_id = self.window_id;
             promise::spawn::spawn(async move {
