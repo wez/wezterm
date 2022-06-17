@@ -2299,8 +2299,10 @@ dependencies = [
  "log",
  "luahelper",
  "mux",
+ "portable-pty",
  "smol",
  "wezterm-dynamic",
+ "wezterm-term",
 ]
 
 [[package]]

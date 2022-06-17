@@ -9,7 +9,9 @@ edition = "2021"
 anyhow = "1.0"
 config = { path = "../../config" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
+wezterm-term = { path = "../../term" }
 log = "0.4"
 luahelper = { path = "../../luahelper" }
+portable-pty = { path = "../../pty" }
 smol = "1.2"
 mux = { path = "../../mux" }
