@@ -173,6 +173,10 @@ TOC = [
                         "config/lua/wezterm",
                     ),
                     Gen(
+                        "module: wezterm.mux",
+                        "config/lua/wezterm.mux",
+                    ),
+                    Gen(
                         "struct: Config",
                         "config/lua/config",
                     ),
@@ -181,6 +185,9 @@ TOC = [
                         "config/lua/keyassignment",
                     ),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
+                    Page("object: MuxWindow", "config/lua/MuxWindow.md"),
+                    Page("object: MuxTab", "config/lua/MuxTab.md"),
+                    Page("object: MuxPane", "config/lua/MuxPane.md"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),
                     Page("object: TabInformation", "config/lua/TabInformation.md"),
                     Page("object: SshDomain", "config/lua/SshDomain.md"),
@@ -196,6 +203,10 @@ TOC = [
                         "config/lua/window",
                     ),
                     Page("object: WslDomain", "config/lua/WslDomain.md"),
+                    Gen(
+                        "events: Gui",
+                        "config/lua/gui-events",
+                    ),
                     Gen(
                         "events: Multiplexer",
                         "config/lua/mux-events",

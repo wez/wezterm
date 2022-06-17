@@ -252,8 +252,6 @@ impl MuxWindow {
 struct SpawnTab {
     #[dynamic(default)]
     domain: SpawnTabDomain,
-    width: Option<usize>,
-    height: Option<usize>,
     #[dynamic(flatten)]
     cmd_builder: CommandBuilderFrag,
 }
@@ -270,14 +268,7 @@ impl SpawnTab {
             size = window
                 .get_by_idx(0)
                 .map(|tab| tab.get_size())
-                .unwrap_or_else(|| match (self.width, self.height) {
-                    (Some(cols), Some(rows)) => TerminalSize {
-                        rows,
-                        cols,
-                        ..Default::default()
-                    },
-                    _ => config::configuration().initial_size(0),
-                });
+                .unwrap_or_else(|| config::configuration().initial_size(0));
 
             pane = window
                 .get_active()
