@@ -4833,6 +4833,7 @@ dependencies = [
  "env-bootstrap",
  "libc",
  "log",
+ "mlua",
  "mux",
  "openssl",
  "portable-pty",

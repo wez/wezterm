@@ -224,7 +224,8 @@ async fn async_run_with_domain_as_default(
     mux.add_domain(&domain);
     mux.set_default_domain(&domain);
 
-    spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
+    let is_connecting = true;
+    spawn_tab_in_default_domain_if_mux_is_empty(cmd, is_connecting).await
 }
 
 async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
@@ -273,10 +274,23 @@ fn run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
 
 async fn spawn_tab_in_default_domain_if_mux_is_empty(
     cmd: Option<CommandBuilder>,
+    is_connecting: bool,
 ) -> anyhow::Result<()> {
     let mux = Mux::get().unwrap();
 
     let domain = mux.default_domain();
+
+    if !is_connecting {
+        let have_panes_in_domain = mux
+            .iter_panes()
+            .iter()
+            .any(|p| p.domain_id() == domain.domain_id());
+
+        if have_panes_in_domain {
+            return Ok(());
+        }
+    }
+
     let window_id = mux.new_empty_window(None);
 
     domain.attach(Some(*window_id)).await?;
@@ -381,7 +395,27 @@ async fn async_run_terminal_gui(
     if !opts.no_auto_connect {
         connect_to_auto_connect_domains().await?;
     }
-    spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
+
+    async fn trigger_gui_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
+        if let Some(lua) = lua {
+            let args = lua.pack_multi(())?;
+            config::lua::emit_event(&lua, ("gui-startup".to_string(), args))
+                .await
+                .map_err(|e| {
+                    log::error!("while processing gui-startup event: {:#}", e);
+                    e
+                })?;
+        }
+        Ok(())
+    }
+
+    promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+        trigger_gui_startup(lua)
+    }))
+    .await?;
+
+    let is_connecting = false;
+    spawn_tab_in_default_domain_if_mux_is_empty(cmd, is_connecting).await
 }
 
 #[derive(Debug)]

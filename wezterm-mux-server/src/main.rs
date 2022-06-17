@@ -199,18 +199,43 @@ fn run() -> anyhow::Result<()> {
     }
 }
 
+async fn trigger_mux_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
+    if let Some(lua) = lua {
+        let args = lua.pack_multi(())?;
+        config::lua::emit_event(&lua, ("mux-startup".to_string(), args))
+            .await
+            .map_err(|e| {
+                log::error!("while processing mux-startup event: {:#}", e);
+                e
+            })?;
+    }
+    Ok(())
+}
+
 async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
     let mux = Mux::get().unwrap();
 
     let domain = mux.default_domain();
-    let window_id = mux.new_empty_window(None);
-    domain.attach(Some(*window_id)).await?;
 
-    let config = config::configuration();
-    let _tab = mux
-        .default_domain()
-        .spawn(config.initial_size(0), cmd, None, *window_id)
-        .await?;
+    {
+        config::with_lua_config_on_main_thread(move |lua| trigger_mux_startup(lua)).await?;
+    }
+
+    let have_panes_in_domain = mux
+        .iter_panes()
+        .iter()
+        .any(|p| p.domain_id() == domain.domain_id());
+
+    if !have_panes_in_domain {
+        let window_id = mux.new_empty_window(None);
+        domain.attach(Some(*window_id)).await?;
+
+        let config = config::configuration();
+        let _tab = mux
+            .default_domain()
+            .spawn(config.initial_size(0), cmd, None, *window_id)
+            .await?;
+    }
     Ok(())
 }
 
