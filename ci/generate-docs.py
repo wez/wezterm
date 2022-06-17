@@ -171,61 +171,14 @@ TOC = [
                     Gen(
                         "module: wezterm",
                         "config/lua/wezterm",
-                        index="""
-# `require wezterm`
-
-The wezterm module is the primary module that exposes wezterm configuration
-and control to your config file.
-
-You will typically place:
-
-```lua
-local wezterm = require 'wezterm';
-```
-
-at the top of your configuration file to enable it.
-
-## Available functions, constants
-""",
                     ),
                     Gen(
                         "struct: Config",
                         "config/lua/config",
-                        index="""
-# `Config` struct
-
-The `return` statement at the end of your `wezterm.lua` file returns
-a table that is interpreted as the internal `Config` struct type.
-
-This section documents the various available fields in the config
-struct.
-
-At the time of writing, it is not a complete list!
-
-""",
                     ),
                     Gen(
                         "enum: KeyAssignment",
                         "config/lua/keyassignment",
-                        index="""
-# `KeyAssignment` enumeration
-
-A `KeyAssignment` represents a pre-defined function that can be applied
-to control the Window, Tab, Pane state typically when a key or mouse event
-is triggered.
-
-Internally, in the underlying Rust code, `KeyAssignment` is an enum
-type with a variant for each possible action known to wezterm.  In Lua,
-enums get represented as a table with a single key corresponding to
-the variant name.
-
-In most cases the [`wezterm.action`](../wezterm/action.md) function is
-used to create an instance of `KeyAssignment` and make it a bit more
-clear and convenient.
-
-## Available Key Assignments
-
-""",
                     ),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),
@@ -237,54 +190,19 @@ clear and convenient.
                     Gen(
                         "object: Pane",
                         "config/lua/pane",
-                        index="""
-# `Pane` object
-
-A Pane object cannot be created in lua code; it is typically passed to your
-code via an event callback.  A Pane object is a handle to a live instance of a
-Pane that is known to the wezterm process.  A Pane object tracks the psuedo
-terminal (or real serial terminal) and associated process(es) and the parsed
-screen and scrollback.
-
-A Pane object can be used to send input to the associated processes and
-introspect the state of the terminal emulation for that pane.
-
-## Available methods
-
-""",
                     ),
                     Gen(
                         "object: Window",
                         "config/lua/window",
-                        index="""
-# `Window` object
-
-A Window object cannot be created in lua code; it is typically passed to
-your code via an event callback.  A Window object is a handle to a GUI
-TermWindow running in the wezterm process.
-
-## Available methods
-
-""",
                     ),
                     Page("object: WslDomain", "config/lua/WslDomain.md"),
                     Gen(
                         "events: Multiplexer",
                         "config/lua/mux-events",
-                        index="""
-# Events emitted by the Multiplexer
-
-The following events can be handled using [wezterm.on](../wezterm/on.md):
-""",
                     ),
                     Gen(
                         "events: Window",
                         "config/lua/window-events",
-                        index="""
-# Events emitted by the `Window` object
-
-The following events can be handled using [wezterm.on](../wezterm/on.md):
-""",
                     ),
                 ],
             ),
