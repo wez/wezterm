@@ -1,5 +1,6 @@
 use crate::scripting::guiwin::GuiWin;
 use chrono::prelude::*;
+use futures::FutureExt;
 use log::Level;
 use luahelper::ValuePrinter;
 use mlua::Value;
@@ -75,10 +76,10 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
     lua.globals().set("window", gui_win)?;
 
     let mut latest_log_entry = None;
-    let mut host = LuaReplHost {
+    let mut host = Some(LuaReplHost {
         history: BasicHistory::default(),
         lua,
-    };
+    });
 
     term.render(&[Change::Title("Debug".to_string())])?;
 
@@ -127,33 +128,69 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
         print_new_log_entries(&mut term, &mut latest_log_entry)?;
         let mut editor = LineEditor::new(&mut term);
         editor.set_prompt("> ");
-        if let Some(line) = editor.read_line(&mut host)? {
+        if let Some(line) = editor.read_line(host.as_mut().unwrap())? {
             if line.is_empty() {
                 continue;
             }
-            host.history().add(&line);
+            host.as_mut().unwrap().history().add(&line);
 
             let expr = format!("return {}", line);
-            let chunk = host.lua.load(&expr);
-            match smol::block_on(chunk.eval_async::<Value>()) {
-                Ok(result) => {
-                    let value = ValuePrinter(result);
-                    let text = format!("{:#?}", value);
-                    term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
-                }
-                Err(err) => {
-                    let text = match &err {
-                        mlua::Error::SyntaxError {
-                            incomplete_input: true,
-                            ..
-                        } => "...".to_string(),
-                        _ => format!("{:#}", err),
-                    };
-                    term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
-                }
-            }
+
+            let passed_host = host.take().unwrap();
+
+            let (host_res, text) =
+                smol::block_on(promise::spawn::spawn_into_main_thread(async move {
+                    evaluate_trampoline(passed_host, expr)
+                        .recv()
+                        .await
+                        .map_err(|e| mlua::Error::external(format!("{:#}", e)))
+                        .expect("returning result not to fail")
+                }));
+
+            host.replace(host_res);
+
+            term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
         } else {
             return Ok(());
         }
     }
+}
+
+// A bit of indirection because spawn_into_main_thread wants the
+// overall future to be Send but mlua::Value, mlua::Chunk are not
+// Send.  We need to split off the actual evaluation future to
+// run separately, so we spawn it and use a channel to funnel
+// the result back to the caller without blocking the gui thread.
+fn evaluate_trampoline(
+    host: LuaReplHost,
+    expr: String,
+) -> smol::channel::Receiver<(LuaReplHost, String)> {
+    let (tx, rx) = smol::channel::bounded(1);
+    promise::spawn::spawn(async move {
+        let _ = tx.send(evaluate(host, expr).await).await;
+    })
+    .detach();
+    rx
+}
+
+async fn evaluate(host: LuaReplHost, expr: String) -> (LuaReplHost, String) {
+    let result = host
+        .lua
+        .load(&expr)
+        .eval_async::<Value>()
+        .map(|result| match result {
+            Ok(result) => {
+                let value = ValuePrinter(result);
+                format!("{:#?}", value)
+            }
+            Err(err) => match &err {
+                mlua::Error::SyntaxError {
+                    incomplete_input: true,
+                    ..
+                } => "...".to_string(),
+                _ => format!("{:#}", err),
+            },
+        })
+        .await;
+    (host, result)
 }

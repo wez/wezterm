@@ -1111,6 +1111,7 @@ dependencies = [
  "libc",
  "log",
  "logging",
+ "mux-lua",
  "objc",
  "spawn-funcs",
  "ssh-funcs",
@@ -2287,6 +2288,19 @@ dependencies = [
  "wezterm-ssh",
  "wezterm-term",
  "winapi",
+]
+
+[[package]]
+name = "mux-lua"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "log",
+ "luahelper",
+ "mux",
+ "smol",
+ "wezterm-dynamic",
 ]
 
 [[package]]
@@ -4731,6 +4745,7 @@ dependencies = [
  "euclid",
  "fastrand",
  "filedescriptor",
+ "futures",
  "fuzzy-matcher",
  "hdrhistogram",
  "http_req",
