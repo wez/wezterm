@@ -15234,7 +15234,7 @@ defined in your configuration using the following:</p>
 <p>It has the following methods:</p>
 <h2 id="panepane_id"><a class="header" href="#panepane_id"><code>pane:pane_id()</code></a></h2>
 <p>Returns the pane id</p>
-<h2 id="panesplit"><a class="header" href="#panesplit"><code>pane::split{}</code></a></h2>
+<h2 id="panesplit"><a class="header" href="#panesplit"><code>pane:split{}</code></a></h2>
 <p>Splits <code>pane</code> and spawns a program into the split, returning the
 <code>MuxPane</code> object associated with it:</p>
 <pre><code class="language-lua">local new_pane = pane:split{}
@@ -15296,6 +15296,12 @@ total splits that each occupy 1/3 of the available space:</p>
 <pre><code class="language-lua">pane:split{direction=&quot;Top&quot;, size=0.333})
 pane:split{direction=&quot;Top&quot;, size=0.5})
 </code></pre>
+<h2 id="panesend_pastetext"><a class="header" href="#panesend_pastetext"><code>pane:send_paste(text)</code></a></h2>
+<p>Sends text to the pane as though it was pasted. If bracketed paste mode is
+enabled then the text will be sent as a bracketed paste. Otherwise, it will
+be sent as-is.</p>
+<h2 id="panesend_texttext"><a class="header" href="#panesend_texttext"><code>pane:send_text(text)</code></a></h2>
+<p>Sends text to the pane as-is.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paneinformation"><a class="header" href="#paneinformation">PaneInformation</a></h1>
 <p>The <code>PaneInformation</code> struct describes a pane.  Unlike <a href="config/lua/pane/index.html">the Pane
 object</a>, <code>PaneInformation</code> is a snapshot of some of
