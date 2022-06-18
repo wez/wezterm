@@ -21,8 +21,8 @@ local mux = wezterm.mux
 
 wezterm.on("gui-startup", function()
   local tab, pane, window = mux.spawn_window{}
-  mux.split_pane(pane, {size=0.3})
-  mux.split_pane(pane, {size=0.5})
+  pane:split{size=0.3}
+  pane:split{size=0.5}
 end)
 
 return {}

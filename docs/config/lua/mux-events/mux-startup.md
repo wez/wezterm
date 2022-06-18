@@ -20,7 +20,7 @@ local mux = wezterm.mux
 -- It makes a window split top/bottom
 wezterm.on("mux-startup", function()
   local tab, pane, window = mux.spawn_window{}
-  mux.split_pane(pane, {direction="Top"})
+  pane:split{direction="Top"}
 end)
 
 return {

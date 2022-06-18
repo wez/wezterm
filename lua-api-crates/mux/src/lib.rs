@@ -66,14 +66,6 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         lua.create_async_function(|_, spawn: SpawnWindow| async move { spawn.spawn().await })?,
     )?;
 
-    mux_mod.set(
-        "split_pane",
-        lua.create_async_function(|_, (pane, args): (MuxPane, Option<SplitPane>)| async move {
-            let args = args.unwrap_or_default();
-            args.run(pane).await
-        })?,
-    )?;
-
     wezterm_mod.set("mux", mux_mod)?;
     Ok(())
 }
@@ -327,6 +319,10 @@ impl MuxPane {
 impl UserData for MuxPane {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.0));
+        methods.add_async_method("split", |_, this, args: Option<SplitPane>| async move {
+            let args = args.unwrap_or_default();
+            args.run(this).await
+        });
     }
 }
 
