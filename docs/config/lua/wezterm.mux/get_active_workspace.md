@@ -1,4 +1,4 @@
-# `wezterm.mux.active_workspace()`
+# `wezterm.mux.get_active_workspace()`
 
 *Since: nightly builds only*
 

@@ -24,10 +24,31 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let mux_mod = lua.create_table()?;
 
     mux_mod.set(
-        "active_workspace",
+        "get_active_workspace",
         lua.create_function(|_, _: ()| {
             let mux = get_mux()?;
             Ok(mux.active_workspace())
+        })?,
+    )?;
+
+    mux_mod.set(
+        "get_workspace_names",
+        lua.create_function(|_, _: ()| {
+            let mux = get_mux()?;
+            Ok(mux.iter_workspaces())
+        })?,
+    )?;
+
+    mux_mod.set(
+        "set_active_workspace",
+        lua.create_function(|_, workspace: String| {
+            let mux = get_mux()?;
+            let workspaces = mux.iter_workspaces();
+            if workspaces.contains(&workspace) {
+                Ok(mux.set_active_workspace(&workspace))
+            } else {
+                Err(mlua::Error::external(format!("{:?} is not an existing workspace", workspace)))
+            }
         })?,
     )?;
 
