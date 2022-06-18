@@ -2442,12 +2442,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 );
 
                 match res {
-                    1 => {
-                        // Remove our AltGr placeholder modifier flag now that the
-                        // key press has been expanded.
-                        modifiers.remove(Modifiers::RIGHT_ALT);
-                        Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32)))
-                    }
+                    1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                     // No mapping, so use our raw info
                     0 => {
                         log::trace!(
