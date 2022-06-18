@@ -233,6 +233,11 @@ impl ScreenOrAlt {
             &mut self.saved_cursor
         }
     }
+
+    pub fn full_reset(&mut self) {
+        self.screen.full_reset();
+        self.alt_screen.full_reset();
+    }
 }
 
 /// Manages the state for the terminal
@@ -2530,6 +2535,10 @@ impl TerminalState {
     }
 
     pub fn get_keyboard_encoding(&self) -> KeyboardEncoding {
-        self.keyboard_encoding
+        self.screen()
+            .keyboard_stack
+            .last()
+            .copied()
+            .unwrap_or(self.keyboard_encoding)
     }
 }

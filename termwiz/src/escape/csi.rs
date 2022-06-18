@@ -4,6 +4,7 @@ use crate::color::{AnsiColor, ColorSpec, RgbColor};
 use crate::input::{Modifiers, MouseButtons};
 use num_derive::*;
 use num_traits::{FromPrimitive, ToPrimitive};
+use std::convert::TryInto;
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 pub use vtparse::CsiParam;
@@ -27,6 +28,8 @@ pub enum CSI {
 
     Window(Window),
 
+    Keyboard(Keyboard),
+
     /// ECMA-48 SCP
     SelectCharacterPath(CharacterPath, i64),
 
@@ -34,6 +37,40 @@ pub enum CSI {
     /// large, so it is boxed and kept outside of the enum
     /// body to help reduce space usage in the common cases.
     Unspecified(Box<Unspecified>),
+}
+
+bitflags::bitflags! {
+pub struct KittyKeyboardFlags: u16 {
+    const NONE = 0;
+    const DISAMBIGUATE_ESCAPE_CODES = 1;
+    const REPORT_EVENT_TYPES = 2;
+    const REPORT_ALTERNATE_KEYS = 4;
+    const REPORT_ALL_KEYS_AS_ESCAPE_CODES = 8;
+    const REPORT_ASSOCIATED_TEXT = 16;
+}
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u16)]
+pub enum KittyKeyboardMode {
+    AssignAll = 1,
+    SetSpecified = 2,
+    ClearSpecified = 3,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Keyboard {
+    SetKittyState {
+        flags: KittyKeyboardFlags,
+        mode: KittyKeyboardMode,
+    },
+    PushKittyState {
+        flags: KittyKeyboardFlags,
+        mode: KittyKeyboardMode,
+    },
+    PopKittyState(u32),
+    QueryKittySupport,
+    ReportKittyState(KittyKeyboardFlags),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,6 +119,15 @@ impl Display for CSI {
             CSI::Mouse(mouse) => mouse.fmt(f)?,
             CSI::Device(dev) => dev.fmt(f)?,
             CSI::Window(window) => window.fmt(f)?,
+            CSI::Keyboard(Keyboard::SetKittyState { flags, mode }) => {
+                write!(f, "={};{}u", flags.bits(), *mode as u16)?
+            }
+            CSI::Keyboard(Keyboard::PushKittyState { flags, mode }) => {
+                write!(f, ">{};{}u", flags.bits(), *mode as u16)?
+            }
+            CSI::Keyboard(Keyboard::PopKittyState(n)) => write!(f, "<{}u", *n)?,
+            CSI::Keyboard(Keyboard::QueryKittySupport) => write!(f, "?u")?,
+            CSI::Keyboard(Keyboard::ReportKittyState(flags)) => write!(f, "?{}u", flags.bits())?,
             CSI::SelectCharacterPath(path, n) => {
                 let a = match path {
                     CharacterPath::ImplementationDefault => 0,
@@ -1645,6 +1691,60 @@ impl<'a> CSIParser<'a> {
             ('m', [CsiParam::P(b'>'), ..]) => self.xterm_key_modifier(params),
 
             ('p', [CsiParam::P(b'!')]) => Ok(CSI::Device(Box::new(Device::SoftReset))),
+            ('u', [CsiParam::P(b'='), CsiParam::Integer(flags)]) => {
+                Ok(CSI::Keyboard(Keyboard::SetKittyState {
+                    flags: KittyKeyboardFlags::from_bits_truncate(
+                        (*flags).try_into().map_err(|_| ())?,
+                    ),
+                    mode: KittyKeyboardMode::AssignAll,
+                }))
+            }
+            (
+                'u',
+                [CsiParam::P(b'='), CsiParam::Integer(flags), CsiParam::P(b';'), CsiParam::Integer(mode)],
+            ) => Ok(CSI::Keyboard(Keyboard::SetKittyState {
+                flags: KittyKeyboardFlags::from_bits_truncate((*flags).try_into().map_err(|_| ())?),
+                mode: match *mode {
+                    1 => KittyKeyboardMode::AssignAll,
+                    2 => KittyKeyboardMode::SetSpecified,
+                    3 => KittyKeyboardMode::ClearSpecified,
+                    _ => return Err(()),
+                },
+            })),
+            ('u', [CsiParam::P(b'>')]) => Ok(CSI::Keyboard(Keyboard::PushKittyState {
+                flags: KittyKeyboardFlags::NONE,
+                mode: KittyKeyboardMode::AssignAll,
+            })),
+            ('u', [CsiParam::P(b'>'), CsiParam::Integer(flags)]) => {
+                Ok(CSI::Keyboard(Keyboard::PushKittyState {
+                    flags: KittyKeyboardFlags::from_bits_truncate(
+                        (*flags).try_into().map_err(|_| ())?,
+                    ),
+                    mode: KittyKeyboardMode::AssignAll,
+                }))
+            }
+            (
+                'u',
+                [CsiParam::P(b'>'), CsiParam::Integer(flags), CsiParam::P(b';'), CsiParam::Integer(mode)],
+            ) => Ok(CSI::Keyboard(Keyboard::PushKittyState {
+                flags: KittyKeyboardFlags::from_bits_truncate((*flags).try_into().map_err(|_| ())?),
+                mode: match *mode {
+                    1 => KittyKeyboardMode::AssignAll,
+                    2 => KittyKeyboardMode::SetSpecified,
+                    3 => KittyKeyboardMode::ClearSpecified,
+                    _ => return Err(()),
+                },
+            })),
+            ('u', [CsiParam::P(b'?')]) => Ok(CSI::Keyboard(Keyboard::QueryKittySupport)),
+            ('u', [CsiParam::P(b'?'), CsiParam::Integer(flags)]) => {
+                Ok(CSI::Keyboard(Keyboard::ReportKittyState(
+                    KittyKeyboardFlags::from_bits_truncate((*flags).try_into().map_err(|_| ())?),
+                )))
+            }
+            ('u', [CsiParam::P(b'<'), CsiParam::Integer(how_many)]) => Ok(CSI::Keyboard(
+                Keyboard::PopKittyState((*how_many).try_into().map_err(|_| ())?),
+            )),
+            ('u', [CsiParam::P(b'<')]) => Ok(CSI::Keyboard(Keyboard::PopKittyState(1))),
 
             _ => match self.control {
                 'c' => self

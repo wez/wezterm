@@ -2,7 +2,7 @@
 //! input received from a terminal.
 use crate::bail;
 use crate::error::Result;
-use crate::escape::csi::MouseReport;
+use crate::escape::csi::{KittyKeyboardFlags, MouseReport};
 use crate::escape::parser::Parser;
 use crate::escape::{Action, CSI};
 use crate::keymap::{Found, KeyMap};
@@ -22,6 +22,8 @@ pub enum KeyboardEncoding {
     CsiU,
     /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
     Win32,
+    /// <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>
+    Kitty(KittyKeyboardFlags),
 }
 
 /// Specifies terminal modes/configuration that can influence how a KeyCode

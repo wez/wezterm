@@ -4,11 +4,16 @@ use termwiz::input::{KeyCodeEncodeModes, KeyboardEncoding};
 
 impl TerminalState {
     fn effective_keyboard_encoding(&self) -> KeyboardEncoding {
-        match self.keyboard_encoding {
+        match self
+            .screen()
+            .keyboard_stack
+            .last()
+            .unwrap_or(&self.keyboard_encoding)
+        {
             KeyboardEncoding::Xterm if self.config.enable_csi_u_key_encoding() => {
                 KeyboardEncoding::CsiU
             }
-            enc => enc,
+            enc => *enc,
         }
     }
 

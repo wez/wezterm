@@ -4,6 +4,7 @@ use crate::config::BidiMode;
 use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::SequenceNo;
 
 /// Holds the model of a screen.  This can either be the primary screen
@@ -33,6 +34,8 @@ pub struct Screen {
     /// Whether scrollback is allowed; this is another way of saying
     /// that we're the primary rather than the alternate screen.
     allow_scrollback: bool,
+
+    pub(crate) keyboard_stack: Vec<KeyboardEncoding>,
 
     /// Physical, visible height of the screen (not including scrollback)
     pub physical_rows: usize,
@@ -79,7 +82,12 @@ impl Screen {
             physical_cols,
             stable_row_index_offset: 0,
             dpi: size.dpi,
+            keyboard_stack: vec![],
         }
+    }
+
+    pub fn full_reset(&mut self) {
+        self.keyboard_stack.clear();
     }
 
     fn scrollback_size(&self) -> usize {
