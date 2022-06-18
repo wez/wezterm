@@ -29,7 +29,7 @@ impl TerminalState {
     ) -> anyhow::Result<()> {
         let encoding = self.effective_keyboard_encoding();
 
-        let to_send = key.encode_up_down(
+        let to_send = key.encode(
             mods,
             KeyCodeEncodeModes {
                 encoding,
