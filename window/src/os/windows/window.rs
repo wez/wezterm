@@ -2091,13 +2091,23 @@ impl KeyboardLayoutInfo {
         self.has_alt_gr
     }
 
+    /// Similar to Modifiers::remove_positional_mods except that it preserves
+    /// RIGHT_ALT
+    fn fixup_mods(mods: Modifiers) -> Modifiers {
+        mods - (Modifiers::LEFT_SHIFT
+            | Modifiers::RIGHT_SHIFT
+            | Modifiers::LEFT_CTRL
+            | Modifiers::RIGHT_CTRL
+            | Modifiers::LEFT_ALT)
+    }
+
     pub fn is_dead_key_leader(&mut self, mods: Modifiers, vk: u32) -> Option<char> {
         unsafe {
             self.update();
         }
         if vk <= u8::MAX.into() {
             self.dead_keys
-                .get(&(mods.remove_positional_mods(), vk as u8))
+                .get(&(Self::fixup_mods(mods), vk as u8))
                 .map(|dead| dead.dead_char)
         } else {
             None
@@ -2115,11 +2125,11 @@ impl KeyboardLayoutInfo {
         if leader.1 <= u8::MAX.into() && key.1 <= u8::MAX.into() {
             if let Some(dead) = self
                 .dead_keys
-                .get(&(leader.0.remove_positional_mods(), leader.1 as u8))
+                .get(&(Self::fixup_mods(leader.0), leader.1 as u8))
             {
                 if let Some(c) = dead
                     .map
-                    .get(&(key.0.remove_positional_mods(), key.1 as u8))
+                    .get(&(Self::fixup_mods(key.0), key.1 as u8))
                     .map(|&c| c)
                 {
                     ResolvedDeadKey::Combined(c)
