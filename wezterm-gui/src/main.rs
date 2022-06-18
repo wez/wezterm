@@ -399,20 +399,18 @@ async fn async_run_terminal_gui(
     async fn trigger_gui_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
         if let Some(lua) = lua {
             let args = lua.pack_multi(())?;
-            config::lua::emit_event(&lua, ("gui-startup".to_string(), args))
-                .await
-                .map_err(|e| {
-                    log::error!("while processing gui-startup event: {:#}", e);
-                    e
-                })?;
+            config::lua::emit_event(&lua, ("gui-startup".to_string(), args)).await?;
         }
         Ok(())
     }
 
-    promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-        trigger_gui_startup(lua)
-    }))
-    .await?;
+    if let Err(err) =
+        config::with_lua_config_on_main_thread(move |lua| trigger_gui_startup(lua)).await
+    {
+        let message = format!("while processing gui-startup event: {:#}", err);
+        log::error!("{}", message);
+        persistent_toast_notification("Error", &message);
+    }
 
     let is_connecting = false;
     spawn_tab_in_default_domain_if_mux_is_empty(cmd, is_connecting).await
