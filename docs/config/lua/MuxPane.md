@@ -10,7 +10,7 @@ It has the following methods:
 
 Returns the pane id
 
-## `pane::split{}`
+## `pane:split{}`
 
 Splits `pane` and spawns a program into the split, returning the
 `MuxPane` object associated with it:
@@ -113,4 +113,14 @@ total splits that each occupy 1/3 of the available space:
 pane:split{direction="Top", size=0.333})
 pane:split{direction="Top", size=0.5})
 ```
+
+## `pane:send_paste(text)`
+
+Sends text to the pane as though it was pasted. If bracketed paste mode is
+enabled then the text will be sent as a bracketed paste. Otherwise, it will
+be sent as-is.
+
+## `pane:send_text(text)`
+
+Sends text to the pane as-is.
 

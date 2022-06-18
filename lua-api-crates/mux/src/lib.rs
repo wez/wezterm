@@ -323,6 +323,21 @@ impl UserData for MuxPane {
             let args = args.unwrap_or_default();
             args.run(this).await
         });
+        methods.add_method("send_paste", |_, this, text: String| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+            pane.send_paste(&text)
+                .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
+            Ok(())
+        });
+        methods.add_method("send_text", |_, this, text: String| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+            pane.writer()
+                .write_all(text.as_bytes())
+                .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
+            Ok(())
+        });
     }
 }
 
