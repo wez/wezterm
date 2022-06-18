@@ -2097,7 +2097,7 @@ impl KeyboardLayoutInfo {
         }
         if vk <= u8::MAX.into() {
             self.dead_keys
-                .get(&(mods, vk as u8))
+                .get(&(mods.remove_positional_mods(), vk as u8))
                 .map(|dead| dead.dead_char)
         } else {
             None
@@ -2113,8 +2113,15 @@ impl KeyboardLayoutInfo {
             self.update();
         }
         if leader.1 <= u8::MAX.into() && key.1 <= u8::MAX.into() {
-            if let Some(dead) = self.dead_keys.get(&(leader.0, leader.1 as u8)) {
-                if let Some(c) = dead.map.get(&(key.0, key.1 as u8)).map(|&c| c) {
+            if let Some(dead) = self
+                .dead_keys
+                .get(&(leader.0.remove_positional_mods(), leader.1 as u8))
+            {
+                if let Some(c) = dead
+                    .map
+                    .get(&(key.0.remove_positional_mods(), key.1 as u8))
+                    .map(|&c| c)
+                {
                     ResolvedDeadKey::Combined(c)
                 } else {
                     ResolvedDeadKey::InvalidCombination(dead.dead_char)
@@ -2458,7 +2465,15 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         // as -1 indicates the start of a dead key sequence,
                         // and any other n > 1 indicates an ambiguous expansion.
                         // Either way, indicate that we don't have a valid result.
-                        log::error!("unexpected dead key expansion: {:?}", out);
+                        log::error!(
+                            "unexpected dead key expansion: \
+                             modifiers={:?} vk={:?} res={} releasing={} {:?}",
+                            modifiers,
+                            vk,
+                            res,
+                            releasing,
+                            out
+                        );
                         KeyboardLayoutInfo::clear_key_state();
                         None
                     }
