@@ -28,3 +28,5 @@ end)
 return {}
 ```
 
+See also:
+* [wezterm.mux](../wezterm.mux/index.md)
