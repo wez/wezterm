@@ -14,7 +14,9 @@ use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use x11::xlib;
 use xcb::x::Atom;
+use xcb::{dri2, Raw};
 
 pub struct XConnection {
     pub conn: xcb::Connection,
@@ -272,7 +274,40 @@ impl XConnection {
         }
     }
 
+    unsafe fn rewire_event(&self, raw_ev: *mut xcb::ffi::xcb_generic_event_t) {
+        let ev_type = ((*raw_ev).response_type & 0x7f) as i32;
+
+        if let Some(func) = xlib::XESetWireToEvent(self.conn.get_raw_dpy(), ev_type, None) {
+            xlib::XESetWireToEvent(self.conn.get_raw_dpy(), ev_type, Some(func));
+            (*raw_ev).sequence = xlib::XLastKnownRequestProcessed(self.conn.get_raw_dpy()) as u16;
+            let mut dummy: xlib::XEvent = std::mem::zeroed();
+            func(
+                self.conn.get_raw_dpy(),
+                &mut dummy as *mut xlib::XEvent,
+                raw_ev as *mut xlib::xEvent,
+            );
+        }
+    }
+
     fn process_xcb_event(&self, event: &xcb::Event) -> anyhow::Result<()> {
+        match event {
+            // Following stuff is not obvious at all.
+            // This was necessary in the past to handle GL when XCB owns the event queue.
+            // It may not be necessary anymore, but it is included here
+            // because <https://github.com/wez/wezterm/issues/1992> is a resize related
+            // issue and it might possibly be related to these dri2 related issues:
+            // <https://bugs.freedesktop.org/show_bug.cgi?id=35945#c4>
+            // and mailing thread starting here:
+            // <http://lists.freedesktop.org/archives/xcb/2015-November/010556.html>
+            xcb::Event::Dri2(dri2::Event::BufferSwapComplete(ev)) => unsafe {
+                self.rewire_event(ev.as_raw())
+            },
+            xcb::Event::Dri2(dri2::Event::InvalidateBuffers(ev)) => unsafe {
+                self.rewire_event(ev.as_raw())
+            },
+            _ => {}
+        }
+
         if let Some(window_id) = window_id_from_event(event) {
             self.process_window_event(window_id, event)?;
         } else if matches!(event, xcb::Event::Xkb(_)) {
@@ -331,6 +366,7 @@ impl XConnection {
                 xcb::Extension::Render,
             ],
         )?;
+        conn.set_event_queue_owner(xcb::EventQueueOwner::Xcb);
 
         let atom_protocols = Self::intern_atom(&conn, "WM_PROTOCOLS")?;
         let atom_delete = Self::intern_atom(&conn, "WM_DELETE_WINDOW")?;
