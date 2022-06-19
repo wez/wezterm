@@ -3,7 +3,7 @@
 
 use ::window::*;
 use anyhow::{anyhow, Context};
-use clap::Parser;
+use clap::{Parser, ValueHint};
 use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -64,7 +64,8 @@ struct Opt {
     #[clap(
         long = "config-file",
         parse(from_os_str),
-        conflicts_with = "skip-config"
+        conflicts_with = "skip-config",
+        value_hint=ValueHint::FilePath,
     )]
     config_file: Option<OsString>,
 

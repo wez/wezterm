@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
-use clap::Parser;
+use clap::{Parser, ValueHint};
 use clap_complete::{generate as generate_completion, Shell};
 use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
@@ -39,7 +39,8 @@ struct Opt {
     #[clap(
         long = "config-file",
         parse(from_os_str),
-        conflicts_with = "skip-config"
+        conflicts_with = "skip-config",
+        value_hint=ValueHint::FilePath
     )]
     config_file: Option<OsString>,
 
@@ -200,6 +201,7 @@ enum CliSubCommand {
     #[clap(
         name = "split-pane",
         rename_all = "kebab",
+        trailing_var_arg = true,
         about = "split the current pane.
 Outputs the pane-id for the newly created pane on success"
     )]
@@ -248,7 +250,7 @@ Outputs the pane-id for the newly created pane on success"
 
         /// Specify the current working directory for the initially
         /// spawned program
-        #[clap(long, parse(from_os_str))]
+        #[clap(long, parse(from_os_str), value_hint=ValueHint::DirPath)]
         cwd: Option<OsString>,
 
         /// Instead of spawning a new command, move the specified
@@ -259,12 +261,13 @@ Outputs the pane-id for the newly created pane on success"
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
         /// as if it were a login shell.
-        #[clap(parse(from_os_str))]
+        #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
         prog: Vec<OsString>,
     },
 
     #[clap(
         name = "spawn",
+        trailing_var_arg = true,
         about = "Spawn a command into a new window or tab
 Outputs the pane-id for the newly created pane on success"
     )]
@@ -292,7 +295,7 @@ Outputs the pane-id for the newly created pane on success"
 
         /// Specify the current working directory for the initially
         /// spawned program
-        #[clap(long = "cwd", parse(from_os_str))]
+        #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
         cwd: Option<OsString>,
 
         /// When creating a new window, override the default workspace name
@@ -303,7 +306,7 @@ Outputs the pane-id for the newly created pane on success"
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm cli spawn -- bash -l` will spawn bash
         /// as if it were a login shell.
-        #[clap(parse(from_os_str))]
+        #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
         prog: Vec<OsString>,
     },
 
@@ -351,7 +354,7 @@ struct ImgCatCommand {
     no_preserve_aspect_ratio: bool,
     /// The name of the image file to be displayed.
     /// If omitted, will attempt to read it from stdin.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::FilePath)]
     file_name: Option<OsString>,
 }
 
@@ -389,12 +392,12 @@ impl ImgCatCommand {
 struct SetCwdCommand {
     /// The directory to specify.
     /// If omitted, will use the current directory of the process itself.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
     /// The hostname to use in the constructed file:// URL.
     /// If omitted, the system hostname will be used.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::Hostname)]
     host: Option<OsString>,
 }
 

@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueHint};
 use config::{Dimension, GeometryOrigin, SshParameters};
 use std::ffi::OsString;
 use std::str::FromStr;
@@ -143,6 +143,7 @@ mod test {
 }
 
 #[derive(Debug, Parser, Default, Clone)]
+#[clap(trailing_var_arg = true)]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
@@ -158,7 +159,7 @@ pub struct StartCommand {
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[clap(long = "cwd", parse(from_os_str))]
+    #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
     pub cwd: Option<OsString>,
 
     /// Override the default windowing system class.
@@ -189,11 +190,12 @@ pub struct StartCommand {
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
     pub prog: Vec<OsString>,
 }
 
 #[derive(Debug, Parser, Clone)]
+#[clap(trailing_var_arg = true)]
 pub struct SshCommand {
     /// Specifies the remote system using the form:
     /// `[username@]host[:port]`.
@@ -248,7 +250,7 @@ pub struct SshCommand {
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
     pub prog: Vec<OsString>,
 }
 
@@ -285,6 +287,7 @@ pub struct SerialCommand {
 }
 
 #[derive(Debug, Parser, Clone)]
+#[clap(trailing_var_arg = true)]
 pub struct ConnectCommand {
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
@@ -317,7 +320,7 @@ pub struct ConnectCommand {
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
     pub prog: Vec<OsString>,
 }
 

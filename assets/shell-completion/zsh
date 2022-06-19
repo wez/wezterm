@@ -15,7 +15,7 @@ _wezterm() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
-'(-n)--config-file=[Specify the configuration file to use, overrides the normal configuration file resolution]:CONFIG_FILE: ' \
+'(-n)--config-file=[Specify the configuration file to use, overrides the normal configuration file resolution]:CONFIG_FILE:_files' \
 '*--config=[Override specific configuration values]:name=value: ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
@@ -33,7 +33,7 @@ _wezterm() {
         case $line[1] in
             (start)
 _arguments "${_arguments_options[@]}" \
-'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
 '--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
 '--workspace=[Override the default workspace with the provided name. The default is "default"]:WORKSPACE: ' \
 '--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
@@ -41,7 +41,7 @@ _arguments "${_arguments_options[@]}" \
 '--always-new-process[If enabled, don'\''t try to ask an existing wezterm GUI instance to start the command.  Instead, always start the GUI in this invocation of wezterm so that you can wait for the command to complete by waiting for this wezterm process to finish]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
 && ret=0
 ;;
 (ssh)
@@ -54,7 +54,7 @@ _arguments "${_arguments_options[@]}" \
 '-h[Print help information]' \
 '--help[Print help information]' \
 ':user-at-host-and-port -- Specifies the remote system using the form\: `\[username@\]host\[\:port\]`. If `username@` is omitted, then your local $USER is used instead. If `\:port` is omitted, then the standard ssh port (22) is used instead:' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm ssh user@host -- bash -l` will spawn bash as if it were a login shell:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm ssh user@host -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
 && ret=0
 ;;
 (serial)
@@ -75,7 +75,7 @@ _arguments "${_arguments_options[@]}" \
 '-h[Print help information]' \
 '--help[Print help information]' \
 ':domain-name -- Name of the multiplexer domain section from the configuration to which you'\''d like to connect:' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm start -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
 && ret=0
 ;;
 (ls-fonts)
@@ -144,7 +144,7 @@ _arguments "${_arguments_options[@]}" \
 '--pane-id=[Specify the pane that should be split. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
 '--cells=[The number of cells that the new split should have. If omitted, 50% of the available space is used]:CELLS: ' \
 '(--cells)--percent=[Specify the number of cells that the new split should have, expressed as a percentage of the available space]:PERCENT: ' \
-'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
 '(--cwd)--move-pane-id=[Instead of spawning a new command, move the specified pane into the newly created split]:MOVE_PANE_ID: ' \
 '(--left --right --top --bottom)--horizontal[Equivalent to `--right`. If neither this nor any other direction is specified, the default is equivalent to `--bottom`]' \
 '(--right --top --bottom)--left[Split horizontally, with the new pane on the left]' \
@@ -154,7 +154,7 @@ _arguments "${_arguments_options[@]}" \
 '--top-level[Rather than splitting the active pane, split the entire window]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli split-pane -- bash -l` will spawn bash as if it were a login shell:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli split-pane -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
 && ret=0
 ;;
 (spawn)
@@ -162,12 +162,12 @@ _arguments "${_arguments_options[@]}" \
 '--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE. The pane is used to determine the current domain and window]:PANE_ID: ' \
 '--domain-name=[]:DOMAIN_NAME: ' \
 '--window-id=[Specify the window into which to spawn a tab. If omitted, the window associated with the current pane is used]:WINDOW_ID: ' \
-'--cwd=[Specify the current working directory for the initially spawned program]:CWD: ' \
+'--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
 '--workspace=[When creating a new window, override the default workspace name with the provided name.  The default name is "default"]:WORKSPACE: ' \
 '(--window-id)--new-window[Spawn into a new window, rather than a new tab]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli spawn -- bash -l` will spawn bash as if it were a login shell:' \
+'*::prog -- Instead of executing your shell, run PROG. For example\: `wezterm cli spawn -- bash -l` will spawn bash as if it were a login shell:_cmdambivalent' \
 && ret=0
 ;;
 (send-text)
@@ -195,15 +195,15 @@ _arguments "${_arguments_options[@]}" \
 '--no-preserve-aspect-ratio[Do not respect the aspect ratio.  The default is to respect the aspect ratio]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'::file-name -- The name of the image file to be displayed. If omitted, will attempt to read it from stdin:' \
+'::file-name -- The name of the image file to be displayed. If omitted, will attempt to read it from stdin:_files' \
 && ret=0
 ;;
 (set-working-directory)
 _arguments "${_arguments_options[@]}" \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'::cwd -- The directory to specify. If omitted, will use the current directory of the process itself:' \
-'::host -- The hostname to use in the constructed file\:// URL. If omitted, the system hostname will be used:' \
+'::cwd -- The directory to specify. If omitted, will use the current directory of the process itself:_files -/' \
+'::host -- The hostname to use in the constructed file\:// URL. If omitted, the system hostname will be used:_hosts' \
 && ret=0
 ;;
 (record)

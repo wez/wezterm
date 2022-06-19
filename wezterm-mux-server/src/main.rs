@@ -16,7 +16,8 @@ mod daemonize;
 #[derive(Debug, Parser)]
 #[clap(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
-    version = config::wezterm_version()
+    version = config::wezterm_version(),
+    trailing_var_arg = true,
 )]
 struct Opt {
     /// Skip loading wezterm.lua
@@ -28,7 +29,8 @@ struct Opt {
     #[clap(
         long = "config-file",
         parse(from_os_str),
-        conflicts_with = "skip-config"
+        conflicts_with = "skip-config",
+        value_hint=ValueHint::FilePath,
     )]
     config_file: Option<OsString>,
 
@@ -46,13 +48,13 @@ struct Opt {
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[clap(long = "cwd", parse(from_os_str))]
+    #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
     prog: Vec<OsString>,
 }
 
