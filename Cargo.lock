@@ -1113,6 +1113,7 @@ dependencies = [
  "logging",
  "mux-lua",
  "objc",
+ "share-data",
  "spawn-funcs",
  "ssh-funcs",
  "termwiz",
@@ -3657,6 +3658,17 @@ dependencies = [
  "cpufeatures",
  "digest 0.9.0",
  "opaque-debug 0.3.0",
+]
+
+[[package]]
+name = "share-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "lazy_static",
+ "luahelper",
+ "wezterm-dynamic",
 ]
 
 [[package]]

@@ -47,6 +47,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window_background_gradient](config/lua/config/window_background_gradient.md) now also supports `Linear` gradients with an angle of your choice. Thanks to [@erf](https://github.com/erf)! [#2038](https://github.com/wez/wezterm/pull/2038)
 * RPM and DEB packages now install zsh and bash `wezterm` CLI completions
 * `Grey-green`, `Neon` and `Oceanic-Next` color schemes
+* [wezterm.GLOBAL](config/lua/wezterm/GLOBAL.md) for persisting lua data across config reloads
 
 #### Updated
 * Bundled harfbuzz to 4.3.0

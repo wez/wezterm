@@ -167,6 +167,7 @@ fn register_lua_modules() {
         filesystem::register,
         ssh_funcs::register,
         spawn_funcs::register,
+        share_data::register,
     ] {
         config::lua::add_context_setup_func(func);
     }
