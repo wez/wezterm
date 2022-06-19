@@ -5,7 +5,7 @@
 Provides global, in-process, in-memory, data storage for json-like variables
 that persists across config reloads.
 
-wezterm's lua files may be re-loading and re-evaluated multiple times in
+wezterm's lua files may be re-loaded and re-evaluated multiple times in
 different contexts or in different threads. If you'd like to keep track
 of state that lasts for the lifetime of your wezterm process then you
 cannot simply use global variables in the lua script.
