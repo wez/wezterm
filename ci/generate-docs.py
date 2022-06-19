@@ -55,17 +55,6 @@ class Gen(object):
                 idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
 
-def image_dimensions(filename):
-    try:
-        out = subprocess.check_output(["identify", filename])
-        fields = out.split()
-        while fields[0] != b"PNG":
-            fields = fields[1:]
-        return [int(x) for x in fields[1].split(b"x")]
-    except FileNotFoundError:
-        return [100, 100]
-
-
 class GenColorScheme(object):
     def __init__(self, title, dirname, index=None):
         self.title = title
@@ -86,12 +75,11 @@ class GenColorScheme(object):
             with open(scheme_filename, "w") as idx:
                 images = sorted(glob.glob(f"{scheme_prefix}/*.png"))
                 for img in images:
-                    width, height = image_dimensions(img)
                     img = os.path.basename(img)
                     title = os.path.basename(img).rsplit(".", 1)[0]
                     idx.write(f"# {title}\n")
                     idx.write(
-                        f'<img width="{width}" height="{height}" src="{img}" alt="{title}">\n\n'
+                        f'<img src="{img}" alt="{title}">\n\n'
                     )
                     idx.write("To use this scheme, add this to your config:\n")
                     idx.write(
