@@ -651,6 +651,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
+
+    #[dynamic(default = "default_true")]
+    pub trim_leading_newlines_from_selection: bool,
 }
 impl_lua_conversion_dynamic!(Config);
 

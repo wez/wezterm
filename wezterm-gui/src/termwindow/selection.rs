@@ -13,6 +13,7 @@ impl super::TermWindow {
     pub fn selection_text(&self, pane: &Rc<dyn Pane>) -> String {
         let mut s = String::new();
         let rectangular = self.selection(pane.pane_id()).rectangular;
+        let trim_leading_newlines = config::configuration().trim_leading_newlines_from_selection;
         if let Some(sel) = self
             .selection(pane.pane_id())
             .range
@@ -23,8 +24,8 @@ impl super::TermWindow {
             let first_row = sel.rows().start;
             let last_row = sel.rows().end;
 
-            for line in pane.get_logical_lines(sel.rows()) {
-                if !s.is_empty() && !last_was_wrapped {
+            for (idl, line) in pane.get_logical_lines(sel.rows()).iter().enumerate() {
+                if (!s.is_empty() || (!trim_leading_newlines && idl > 0)) && !last_was_wrapped {
                     s.push('\n');
                 }
                 let last_idx = line.physical_lines.len().saturating_sub(1);
