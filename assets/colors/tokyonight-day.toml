@@ -1,0 +1,12 @@
+# tokyonight-day
+[colors]
+foreground = "#3760bf"
+background = "#e1e2e7"
+cursor_bg = "#3760bf"
+cursor_border = "#3760bf"
+cursor_fg = "#e1e2e7"
+selection_bg = "#99a7df"
+selection_fg = "#3760bf"
+
+ansi = ["#e9e9ed","#f52a65","#587539","#8c6c3e","#2e7de9","#9854f1","#007197","#6172b0"]
+brights = ["#a1a6c5","#f52a65","#587539","#8c6c3e","#2e7de9","#9854f1","#007197","#3760bf"]
