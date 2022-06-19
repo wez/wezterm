@@ -150,35 +150,48 @@ It is desirable to make this clickable, and that can be done with the following
 configuration in your <code>~/.wezterm.lua</code>:</p>
 <pre><code class="language-lua">return {
   hyperlink_rules = {
-    -- Linkify things that look like URLs
-    -- This is actually the default if you don't specify any hyperlink_rules
+    -- Linkify things that look like URLs and the host has a TLD name.
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = &quot;\\b\\w+://(?:[\\w.-]+)\\.[a-z]{2,15}\\S*\\b&quot;,
+      regex = &quot;\\b\\w+://[\\w.-]+\\.[a-z]{2,15}\\S*\\b&quot;,
       format = &quot;$0&quot;,
     },
 
     -- linkify email addresses
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = &quot;\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b&quot;,
+      regex = [[\b\w+@[\w-]+(\.[\w-]+)+\b]],
       format = &quot;mailto:$0&quot;,
     },
 
     -- file:// URI
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = &quot;\\bfile://\\S*\\b&quot;,
+      regex = [[\bfile://\S*\b]],
+      format = &quot;$0&quot;,
+    },
+
+    -- Linkify things that look like URLs with numeric addresses as hosts.
+    -- E.g. http://127.0.0.1:8000 for a local development server,
+    -- or http://192.168.1.1 for the web interface of many routers.
+    {
+      regex = [[\b\w+://(?:[\d]{1,3}\.){3}[\d]{1,3}\S*\b]],
       format = &quot;$0&quot;,
     },
 
     -- Make task numbers clickable
-    --[[
+    -- The first matched regex group is captured in $1.
     {
-      regex = &quot;\\b[tT](\\d+)\\b&quot;
-      format = &quot;https://example.com/tasks/?t=$1&quot;
+      regex = [[\b[tT](\d+)\b]],
+      format = &quot;https://example.com/tasks/?t=$1&quot;,
     }
-    ]]
   }
 }
 </code></pre>
+<p>Note that it is generally convenient to use literal strings (<code>[[...]]</code>)
+when declaring your hyperlink rules, so you won't have to escape
+backslashes.  In the example above, all cases except the first use
+literal strings for their regular expressions.</p>
 <h3 id="explicit-hyperlinks"><a class="header" href="#explicit-hyperlinks">Explicit Hyperlinks</a></h3>
 <p>wezterm supports the relatively new <a href="https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda">Hyperlinks in Terminal
 Emulators</a>
