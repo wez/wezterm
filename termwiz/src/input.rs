@@ -326,6 +326,10 @@ impl KeyCode {
     ) -> Result<String> {
         use KeyCode::*;
 
+        if !flags.contains(KittyKeyboardFlags::REPORT_EVENT_TYPES) && !is_down {
+            return Ok(String::new());
+        }
+
         // Normalize
         let key = match self {
             Char('\r') => Enter,
