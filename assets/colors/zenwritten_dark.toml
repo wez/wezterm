@@ -1,0 +1,12 @@
+# zenwritten_dark
+[colors]
+foreground = "#bbbbbb"
+background = "#191919"
+cursor_bg = "#c9c9c9"
+cursor_border = "#c9c9c9"
+cursor_fg = "#191919"
+selection_bg = "#404040"
+selection_fg = "#bbbbbb"
+
+ansi = ["#191919","#de6e7c","#819b69","#b77e64","#6099c0","#b279a7","#66a5ad","#bbbbbb"]
+brights = ["#3d3839","#e8838f","#8bae68","#d68c67","#61abda","#cf86c1","#65b8c1","#8e8e8e"]

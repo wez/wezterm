@@ -1,0 +1,12 @@
+# duckbones
+[colors]
+foreground = "#ebefc0"
+background = "#0e101a"
+cursor_bg = "#edf2c2"
+cursor_border = "#edf2c2"
+cursor_fg = "#0e101a"
+selection_bg = "#37382d"
+selection_fg = "#ebefc0"
+
+ansi = ["#0e101a","#e03600","#5dcd97","#e39500","#00a3cb","#795ccc","#00a3cb","#ebefc0"]
+brights = ["#2b2f46","#ff4821","#58db9e","#f6a100","#00b4e0","#b3a1e6","#00b4e0","#b3b692"]

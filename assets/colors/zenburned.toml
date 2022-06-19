@@ -1,0 +1,12 @@
+# zenburned
+[colors]
+foreground = "#f0e4cf"
+background = "#404040"
+cursor_bg = "#f3eadb"
+cursor_border = "#f3eadb"
+cursor_fg = "#404040"
+selection_bg = "#746956"
+selection_fg = "#f0e4cf"
+
+ansi = ["#404040","#e3716e","#819b69","#b77e64","#6099c0","#b279a7","#66a5ad","#f0e4cf"]
+brights = ["#625a5b","#ec8685","#8bae68","#d68c67","#61abda","#cf86c1","#65b8c1","#c0ab86"]

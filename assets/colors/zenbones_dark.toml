@@ -1,0 +1,12 @@
+# zenbones_dark
+[colors]
+foreground = "#b4bdc3"
+background = "#1c1917"
+cursor_bg = "#c4cacf"
+cursor_border = "#c4cacf"
+cursor_fg = "#1c1917"
+selection_bg = "#3d4042"
+selection_fg = "#b4bdc3"
+
+ansi = ["#1c1917","#de6e7c","#819b69","#b77e64","#6099c0","#b279a7","#66a5ad","#b4bdc3"]
+brights = ["#403833","#e8838f","#8bae68","#d68c67","#61abda","#cf86c1","#65b8c1","#888f94"]

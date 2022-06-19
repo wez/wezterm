@@ -1,0 +1,12 @@
+# seoulbones_light
+[colors]
+foreground = "#555555"
+background = "#e2e2e2"
+cursor_bg = "#555555"
+cursor_border = "#555555"
+cursor_fg = "#e2e2e2"
+selection_bg = "#cccccc"
+selection_fg = "#555555"
+
+ansi = ["#e2e2e2","#dc5284","#628562","#c48562","#0084a3","#896788","#008586","#555555"]
+brights = ["#bfbabb","#be3c6d","#487249","#a76b48","#006f89","#7f4c7e","#006f70","#777777"]

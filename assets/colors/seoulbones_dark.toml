@@ -1,0 +1,12 @@
+# seoulbones_dark
+[colors]
+foreground = "#dddddd"
+background = "#4b4b4b"
+cursor_bg = "#e2e2e2"
+cursor_border = "#e2e2e2"
+cursor_fg = "#4b4b4b"
+selection_bg = "#777777"
+selection_fg = "#dddddd"
+
+ansi = ["#4b4b4b","#e388a3","#98bd99","#ffdf9b","#97bdde","#a5a6c5","#6fbdbe","#dddddd"]
+brights = ["#6c6465","#eb99b1","#8fcd92","#ffe5b3","#a2c8e9","#b2b3da","#6bcacb","#a8a8a8"]
