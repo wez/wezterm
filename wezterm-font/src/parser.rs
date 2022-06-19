@@ -26,6 +26,7 @@ pub struct ParsedFont {
     pub synthesize_dim: bool,
     pub assume_emoji_presentation: bool,
     pub pixel_sizes: Vec<u16>,
+    pub is_built_in_fallback: bool,
 
     pub harfbuzz_features: Option<Vec<String>>,
     pub freetype_load_target: Option<FreeTypeLoadTarget>,
@@ -76,6 +77,7 @@ impl Clone for ParsedFont {
             freetype_load_target: self.freetype_load_target,
             freetype_render_target: self.freetype_render_target,
             freetype_load_flags: self.freetype_load_flags,
+            is_built_in_fallback: self.is_built_in_fallback,
             scale: self.scale,
         }
     }
@@ -403,6 +405,7 @@ impl ParsedFont {
             synthesize_italic: false,
             synthesize_bold: false,
             synthesize_dim: false,
+            is_built_in_fallback: false,
             assume_emoji_presentation,
             handle,
             coverage: Mutex::new(RangeSet::new()),
@@ -662,6 +665,16 @@ impl ParsedFont {
         self.synthesize_dim = attr.weight < FontWeight::REGULAR
             && attr.weight < self.weight
             && self.weight >= FontWeight::REGULAR;
+
+        // If they explicitly list an emoji font, assume that they
+        // want it to be used for emoji presentation
+        if !self.is_built_in_fallback
+            && !attr.is_synthetic
+            && self.names.full_name.to_lowercase().contains("emoji")
+        {
+            self.assume_emoji_presentation = true;
+        }
+
         self
     }
 }
@@ -716,7 +729,8 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
             coverage: None,
         };
         let face = lib.face_from_locator(&locator)?;
-        let parsed = ParsedFont::from_face(&face, locator)?;
+        let mut parsed = ParsedFont::from_face(&face, locator)?;
+        parsed.is_built_in_fallback = true;
         font_info.push(parsed);
     }
 
