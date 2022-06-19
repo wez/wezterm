@@ -461,8 +461,7 @@ impl KeyCode {
     ) -> Result<String> {
         match &modes.encoding {
             KeyboardEncoding::Kitty(flags) if *flags != KittyKeyboardFlags::NONE => {
-                log::info!("{:?}", flags);
-                return dbg!(self.encode_kitty(mods, is_down, *flags));
+                return self.encode_kitty(mods, is_down, *flags);
             }
             _ => {}
         }
