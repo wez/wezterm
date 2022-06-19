@@ -15,35 +15,50 @@ configuration in your `~/.wezterm.lua`:
 ```lua
 return {
   hyperlink_rules = {
-    -- Linkify things that look like URLs
-    -- This is actually the default if you don't specify any hyperlink_rules
+    -- Linkify things that look like URLs and the host has a TLD name.
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = "\\b\\w+://(?:[\\w.-]+)\\.[a-z]{2,15}\\S*\\b",
+      regex = "\\b\\w+://[\\w.-]+\\.[a-z]{2,15}\\S*\\b",
       format = "$0",
     },
 
     -- linkify email addresses
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = "\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b",
+      regex = [[\b\w+@[\w-]+(\.[\w-]+)+\b]],
       format = "mailto:$0",
     },
 
     -- file:// URI
+    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
     {
-      regex = "\\bfile://\\S*\\b",
+      regex = [[\bfile://\S*\b]],
+      format = "$0",
+    },
+
+    -- Linkify things that look like URLs with numeric addresses as hosts.
+    -- E.g. http://127.0.0.1:8000 for a local development server,
+    -- or http://192.168.1.1 for the web interface of many routers.
+    {
+      regex = [[\b\w+://(?:[\d]{1,3}\.){3}[\d]{1,3}\S*\b]],
       format = "$0",
     },
 
     -- Make task numbers clickable
-    --[[
+    -- The first matched regex group is captured in $1.
     {
-      regex = "\\b[tT](\\d+)\\b"
-      format = "https://example.com/tasks/?t=$1"
+      regex = [[\b[tT](\d+)\b]],
+      format = "https://example.com/tasks/?t=$1",
     }
-    ]]
   }
 }
 ```
+
+Note that it is generally convenient to use literal strings (`[[...]]`)
+when declaring your hyperlink rules, so you won't have to escape
+backslashes.  In the example above, all cases except the first use
+literal strings for their regular expressions.
+
 
 ### Explicit Hyperlinks
 
