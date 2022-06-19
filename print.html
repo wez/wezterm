@@ -15246,18 +15246,18 @@ right half has the default program spawned into it.</p>
 <h3 id="args-2"><a class="header" href="#args-2">args</a></h3>
 <p>Specifies the argument array for the command that should be spawned.
 If omitted the default program for the domain will be spawned.</p>
-<pre><code class="language-lua">pane:split{args={&quot;top&quot;})
+<pre><code class="language-lua">pane:split{args={&quot;top&quot;}}
 </code></pre>
 <h3 id="cwd-2"><a class="header" href="#cwd-2">cwd</a></h3>
 <p>Specify the current working directory that should be used for
 the program.</p>
 <p>If unspecified, follows the rules from <a href="config/lua/config/default_cwd.html">default_cwd</a></p>
-<pre><code class="language-lua">pane:split{cwd=&quot;/tmp&quot;})
+<pre><code class="language-lua">pane:split{cwd=&quot;/tmp&quot;}
 </code></pre>
 <h3 id="set_environment_variables-3"><a class="header" href="#set_environment_variables-3">set_environment_variables</a></h3>
 <p>Sets additional environment variables in the environment for
 this command invocation.</p>
-<pre><code class="language-lua">pane:split{set_environment_variables={&quot;FOO&quot;=&quot;BAR&quot;})
+<pre><code class="language-lua">pane:split{set_environment_variables={&quot;FOO&quot;=&quot;BAR&quot;}}
 </code></pre>
 <h3 id="domain-2"><a class="header" href="#domain-2">domain</a></h3>
 <p>Specifies the multiplexer domain into which the program should
@@ -15265,10 +15265,10 @@ be spawned.  The default value is assumed to be <code>&quot;CurrentPaneDomain&qu
 which causes the default domain to be used.</p>
 <p>You may specify the name of one of the multiplexer domains
 defined in your configuration using the following:</p>
-<pre><code class="language-lua">pane:split{domain={DomainName=&quot;my.name&quot;})
+<pre><code class="language-lua">pane:split{domain={DomainName=&quot;my.name&quot;}}
 </code></pre>
 <p>Or you may use the default domain:</p>
-<pre><code class="language-lua">pane:split{domain=&quot;DefaultDomain&quot;})
+<pre><code class="language-lua">pane:split{domain=&quot;DefaultDomain&quot;}
 </code></pre>
 <h3 id="direction"><a class="header" href="#direction">direction</a></h3>
 <p>Specifies where the new pane should be placed.  Possible values are:</p>
@@ -15278,12 +15278,12 @@ defined in your configuration using the following:</p>
 <li><code>&quot;Top&quot;</code> - splits the pane top/bottom and places the new pane on the top.</li>
 <li><code>&quot;Bottom&quot;</code> - splits the pane top/bottom and places the new pane on the bottom.</li>
 </ul>
-<pre><code class="language-lua">pane:split{direction=&quot;Top&quot;})
+<pre><code class="language-lua">pane:split{direction=&quot;Top&quot;}
 </code></pre>
 <h3 id="top_level"><a class="header" href="#top_level">top_level</a></h3>
 <p>If <code>true</code>, rather than splitting <code>pane</code> in half, the tab that contains it
 is split and the new pane runs the full extent of the tab dimensions.</p>
-<pre><code class="language-lua">pane:split{direction=&quot;Bottom&quot;, top_level=true})
+<pre><code class="language-lua">pane:split{direction=&quot;Bottom&quot;, top_level=true}
 </code></pre>
 <h3 id="size"><a class="header" href="#size">size</a></h3>
 <p>Controls the size of the new pane.</p>
@@ -15294,8 +15294,8 @@ cells.</p>
 <p>The default value is <code>0.5</code>.</p>
 <p>This creates two additional splits within <code>pane</code>, creating three
 total splits that each occupy 1/3 of the available space:</p>
-<pre><code class="language-lua">pane:split{direction=&quot;Top&quot;, size=0.333})
-pane:split{direction=&quot;Top&quot;, size=0.5})
+<pre><code class="language-lua">pane:split{direction=&quot;Top&quot;, size=0.333}
+pane:split{direction=&quot;Top&quot;, size=0.5}
 </code></pre>
 <h2 id="panesend_pastetext"><a class="header" href="#panesend_pastetext"><code>pane:send_paste(text)</code></a></h2>
 <p>Sends text to the pane as though it was pasted. If bracketed paste mode is
