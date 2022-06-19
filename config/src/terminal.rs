@@ -67,6 +67,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().enable_kitty_graphics
     }
 
+    fn enable_kitty_keyboard(&self) -> bool {
+        self.configuration().enable_kitty_keyboard
+    }
+
     fn canonicalize_pasted_newlines(&self) -> wezterm_term::config::NewlineCanon {
         match self.configuration().canonicalize_pasted_newlines {
             None => wezterm_term::config::NewlineCanon::default(),

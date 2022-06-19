@@ -432,34 +432,38 @@ impl<'a> Performer<'a> {
                     .replace(ParagraphDirectionHint::RightToLeft);
             }
             CSI::Keyboard(Keyboard::SetKittyState { flags, mode }) => {
-                let current_flags = match self.screen().keyboard_stack.last() {
-                    Some(KeyboardEncoding::Kitty(flags)) => *flags,
-                    _ => KittyKeyboardFlags::NONE,
-                };
-                let flags = match mode {
-                    KittyKeyboardMode::AssignAll => flags,
-                    KittyKeyboardMode::SetSpecified => current_flags | flags,
-                    KittyKeyboardMode::ClearSpecified => current_flags - flags,
-                };
-                self.screen_mut().keyboard_stack.pop();
-                self.screen_mut()
-                    .keyboard_stack
-                    .push(KeyboardEncoding::Kitty(flags));
+                if self.config.enable_kitty_keyboard() {
+                    let current_flags = match self.screen().keyboard_stack.last() {
+                        Some(KeyboardEncoding::Kitty(flags)) => *flags,
+                        _ => KittyKeyboardFlags::NONE,
+                    };
+                    let flags = match mode {
+                        KittyKeyboardMode::AssignAll => flags,
+                        KittyKeyboardMode::SetSpecified => current_flags | flags,
+                        KittyKeyboardMode::ClearSpecified => current_flags - flags,
+                    };
+                    self.screen_mut().keyboard_stack.pop();
+                    self.screen_mut()
+                        .keyboard_stack
+                        .push(KeyboardEncoding::Kitty(flags));
+                }
             }
             CSI::Keyboard(Keyboard::PushKittyState { flags, mode }) => {
-                let current_flags = match self.screen().keyboard_stack.last() {
-                    Some(KeyboardEncoding::Kitty(flags)) => *flags,
-                    _ => KittyKeyboardFlags::NONE,
-                };
-                let flags = match mode {
-                    KittyKeyboardMode::AssignAll => flags,
-                    KittyKeyboardMode::SetSpecified => current_flags | flags,
-                    KittyKeyboardMode::ClearSpecified => current_flags - flags,
-                };
-                let screen = self.screen_mut();
-                screen.keyboard_stack.push(KeyboardEncoding::Kitty(flags));
-                if screen.keyboard_stack.len() > 128 {
-                    screen.keyboard_stack.remove(0);
+                if self.config.enable_kitty_keyboard() {
+                    let current_flags = match self.screen().keyboard_stack.last() {
+                        Some(KeyboardEncoding::Kitty(flags)) => *flags,
+                        _ => KittyKeyboardFlags::NONE,
+                    };
+                    let flags = match mode {
+                        KittyKeyboardMode::AssignAll => flags,
+                        KittyKeyboardMode::SetSpecified => current_flags | flags,
+                        KittyKeyboardMode::ClearSpecified => current_flags - flags,
+                    };
+                    let screen = self.screen_mut();
+                    screen.keyboard_stack.push(KeyboardEncoding::Kitty(flags));
+                    if screen.keyboard_stack.len() > 128 {
+                        screen.keyboard_stack.remove(0);
+                    }
                 }
             }
             CSI::Keyboard(Keyboard::PopKittyState(n)) => {
@@ -468,12 +472,14 @@ impl<'a> Performer<'a> {
                 }
             }
             CSI::Keyboard(Keyboard::QueryKittySupport) => {
-                let flags = match self.screen().keyboard_stack.last() {
-                    Some(KeyboardEncoding::Kitty(flags)) => *flags,
-                    _ => KittyKeyboardFlags::NONE,
-                };
-                write!(self.writer, "\x1b[?{}u", flags.bits()).ok();
-                self.writer.flush().ok();
+                if self.config.enable_kitty_keyboard() {
+                    let flags = match self.screen().keyboard_stack.last() {
+                        Some(KeyboardEncoding::Kitty(flags)) => *flags,
+                        _ => KittyKeyboardFlags::NONE,
+                    };
+                    write!(self.writer, "\x1b[?{}u", flags.bits()).ok();
+                    self.writer.flush().ok();
+                }
             }
             CSI::Keyboard(Keyboard::ReportKittyState(_)) => {
                 // This is a response to QueryKittySupport and it is invalid for us

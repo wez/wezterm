@@ -160,6 +160,8 @@ pub struct Config {
 
     #[dynamic(default = "default_true")]
     pub enable_kitty_graphics: bool,
+    #[dynamic(default)]
+    pub enable_kitty_keyboard: bool,
 
     /// Specifies the width of a new window, expressed in character cells
     #[dynamic(default = "default_initial_cols")]

@@ -175,6 +175,10 @@ pub trait TerminalConfiguration: std::fmt::Debug {
         false
     }
 
+    fn enable_kitty_keyboard(&self) -> bool {
+        false
+    }
+
     /// The default unicode version to assume.
     /// This affects how the width of certain sequences is interpreted.
     /// At the time of writing, we default to 9 even though the current
