@@ -303,7 +303,7 @@ impl super::TermWindow {
             self.dimensions.pixel_height.saturating_sub(
                 y_offset as usize + border.bottom.get() + bottom_bar_height as usize,
             ),
-            (self.render_metrics.cell_size.height as f32 / 2.0) as usize,
+            self.min_scroll_bar_height() as usize,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);
         context.invalidate();
