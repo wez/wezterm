@@ -22,6 +22,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -466,6 +467,10 @@ impl WaylandWindowInner {
         mapper.update_modifier_state(0, 0, 0, 0);
         self.key_repeat.take();
         self.events.dispatch(WindowEvent::FocusChanged(focused));
+    }
+
+    pub(crate) fn dispatch_dropped_files(&mut self, paths: Vec<PathBuf>) {
+        self.events.dispatch(WindowEvent::DroppedFile(paths));
     }
 
     pub(crate) fn dispatch_pending_mouse(&mut self) {
@@ -968,7 +973,7 @@ impl WindowOps for WaylandWindow {
     }
 }
 
-fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
+pub(crate) fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
     let mut result = Vec::new();
 
     file.set_non_blocking(true)?;
