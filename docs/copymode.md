@@ -64,6 +64,8 @@ reassignable.
 |                                | `CTRL-b` |
 | Move down one screen           | `PageDown` |
 |                                | `CTRL-f`   |
+| Move to other end of the selection| `o` |
+| Move to other end of the selection horizontaly| `O` (only in Rectangular mode) |
 
 ### Configurable Key Assignments
 
@@ -130,6 +132,10 @@ return {
       {key="M", mods="SHIFT", action=wezterm.action{CopyMode="MoveToViewportMiddle"}},
       {key="L", mods="NONE", action=wezterm.action{CopyMode="MoveToViewportBottom"}},
       {key="L", mods="SHIFT", action=wezterm.action{CopyMode="MoveToViewportBottom"}},
+
+      {key="o", mods="NONE", action=wezterm.action{CopyMode="MoveToSelectionOtherEnd"}},
+      {key="O", mods="NONE", action=wezterm.action{CopyMode="MoveToSelectionOtherEndHoriz"}},
+      {key="O", mods="SHIFT", action=wezterm.action{CopyMode="MoveToSelectionOtherEndHoriz"}},
 
       {key="PageUp", mods="NONE", action=wezterm.action{CopyMode="PageUp"}},
       {key="PageDown", mods="NONE", action=wezterm.action{CopyMode="PageDown"}},

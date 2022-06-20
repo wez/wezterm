@@ -440,6 +440,8 @@ pub enum CopyModeAssignment {
     MoveToEndOfLineContent,
     MoveToStartOfLine,
     MoveToStartOfNextLine,
+    MoveToSelectionOtherEnd,
+    MoveToSelectionOtherEndHoriz,
     MoveBackwardWord,
     MoveForwardWord,
     MoveRight,
