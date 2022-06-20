@@ -28,4 +28,4 @@ Drag and drop support for files is a platform dependent feature
 |macOS     |nightly builds only|
 |Windows   |nightly builds only|
 |X11       |Not yet            |
-|Wayland   |Not yet            |
+|Wayland   |nightly builds only|
