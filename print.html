@@ -457,7 +457,7 @@ usually the best available version.</p>
 <li><a href="config/lua/config/clean_exit_codes.html">clean_exit_codes</a> config to fine tune <a href="config/lua/config/exit_behavior.html">exit_behavior</a> <a href="https://github.com/wez/wezterm/issues/1889">#1889</a></li>
 <li><a href="config/lua/keyassignment/ClearSelection.html">ClearSelection</a> key assignment <a href="https://github.com/wez/wezterm/issues/1900">#1900</a></li>
 <li><code>wezterm cli list --format json</code> and <code>wezterm cli list-clients --format json</code> allow retrieving data in json format. Thanks to <a href="https://github.com/ratmice">@ratmice</a>! <a href="https://github.com/wez/wezterm/pull/1911">#1911</a></li>
-<li>macOS, Windows: you may now drag and drop files from other programs and have their paths paste into the terminal. The new <a href="config/lua/config/quote_dropped_files.html">quote_dropped_files</a> option controls how the file names are quoted. Thanks to <a href="https://github.com/junnplus">@junnplus</a> and <a href="https://github.com/datasone">@datasone</a>! <a href="https://github.com/wez/wezterm/pull/1868">#1868</a> <a href="https://github.com/wez/wezterm/pull/1953">#1953</a></li>
+<li>macOS, Windows: you may now drag and drop files from other programs and have their paths paste into the terminal. The new <a href="config/lua/config/quote_dropped_files.html">quote_dropped_files</a> option controls how the file names are quoted. Thanks to <a href="https://github.com/junnplus">@junnplus</a>, <a href="https://github.com/datasone">@datasone</a> and <a href="https://github.com/Funami580">@Funami580</a>! <a href="https://github.com/wez/wezterm/pull/1868">#1868</a> <a href="https://github.com/wez/wezterm/pull/1953">#1953</a> <a href="https://github.com/wez/wezterm/pull/2148">#2148</a></li>
 <li>The mouse scroll wheel now cycles between tabs when hovering over the tab. Thanks to <a href="https://github.com/junnplus">@junnplus</a>! <a href="https://github.com/wez/wezterm/issues/1726">#1726</a></li>
 <li>Holding down <code>ALT</code> while dragging the left button will select a rectangular block. It is also possible to use <code>ALT+SHIFT</code> to select a rectangular block. <a href="config/lua/keyassignment/ExtendSelectionToMouseCursor.html">ExtendSelectionToMouseCursor</a> and <a href="config/lua/keyassignment/SelectTextAtMouseCursor.html">SelectTextAtMouseCursor</a> now accept <code>&quot;Block&quot;</code> as a selection mode. Thanks to <a href="https://github.com/Funami580">@Funami580</a> for helping! <a href="https://github.com/wez/wezterm/issues/1361">#1361</a></li>
 <li>In Copy Mode, <code>CTRL-v</code> will enable rectangular block selection mode. <a href="https://github.com/wez/wezterm/issues/1656">#1656</a></li>
@@ -13250,7 +13250,7 @@ There are five possible values:</p>
 <tr><td>macOS</td><td>nightly builds only</td></tr>
 <tr><td>Windows</td><td>nightly builds only</td></tr>
 <tr><td>X11</td><td>Not yet</td></tr>
-<tr><td>Wayland</td><td>Not yet</td></tr>
+<tr><td>Wayland</td><td>nightly builds only</td></tr>
 </tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="scroll_to_bottom_on_input"><a class="header" href="#scroll_to_bottom_on_input"><code>scroll_to_bottom_on_input</code></a></h1>
 <p>When <code>true</code> (the default), the viewport will automatically scroll to the
