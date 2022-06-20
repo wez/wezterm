@@ -591,6 +591,35 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    fn move_to_selection_other_end(&mut self) {
+        if let Some(old_start) = self.start {
+            // Swap cursor & start of selection
+            self.start.replace(SelectionCoordinate {
+                x: self.cursor.x,
+                y: self.cursor.y,
+            });
+            self.cursor.x = old_start.x;
+            self.cursor.y = old_start.y;
+            self.select_to_cursor_pos();
+        }
+    }
+
+    fn move_to_selection_other_end_horiz(&mut self) {
+        if self.selection_mode != SelectionMode::Block {
+            // This action makes sense ONLY in block mode
+            return;
+        }
+        if let Some(old_start) = self.start {
+            // Swap X coordinate of cursor & start of selection
+            self.start.replace(SelectionCoordinate {
+                x: self.cursor.x,
+                y: old_start.y,
+            });
+            self.cursor.x = old_start.x;
+            self.select_to_cursor_pos();
+        }
+    }
+
     fn move_backward_one_word(&mut self) {
         let y = if self.cursor.x == 0 && self.cursor.y > 0 {
             self.cursor.x = usize::max_value();
@@ -787,6 +816,8 @@ impl Pane for CopyOverlay {
                     MoveToEndOfLineContent => render.move_to_end_of_line_content(),
                     MoveToStartOfLine => render.move_to_start_of_line(),
                     MoveToStartOfNextLine => render.move_to_start_of_next_line(),
+                    MoveToSelectionOtherEnd => render.move_to_selection_other_end(),
+                    MoveToSelectionOtherEndHoriz => render.move_to_selection_other_end_horiz(),
                     MoveBackwardWord => render.move_backward_one_word(),
                     MoveForwardWord => render.move_forward_one_word(),
                     MoveRight => render.move_right_single_cell(),
@@ -1238,6 +1269,21 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('f'),
             Modifiers::CTRL,
             KeyAssignment::CopyMode(CopyModeAssignment::PageDown),
+        ),
+        (
+            WKeyCode::Char('o'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToSelectionOtherEnd),
+        ),
+        (
+            WKeyCode::Char('O'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToSelectionOtherEndHoriz),
+        ),
+        (
+            WKeyCode::Char('O'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToSelectionOtherEndHoriz),
         ),
     ] {
         table.insert((key, mods), KeyTableEntry { action });
