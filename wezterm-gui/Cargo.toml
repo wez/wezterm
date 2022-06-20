@@ -99,6 +99,6 @@ windows = { version="0.33.0", features = [
 ]}
 
 [dev-dependencies]
-k9 = "0.11.0"
+k9 = "0.11.5"
 env_logger = "0.9"
 benchmarking = "0.4"
