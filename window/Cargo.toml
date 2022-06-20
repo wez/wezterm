@@ -40,6 +40,7 @@ resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
 tiny-skia = "0.6"
 glium = { version = "0.31", default-features = false }
+url = "2"
 wezterm-bidi = { path = "../bidi" }
 wezterm-color-types = { path = "../color-types" }
 wezterm-font = { path = "../wezterm-font" }

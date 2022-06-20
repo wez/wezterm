@@ -140,11 +140,8 @@ impl CopyAndPaste {
                     offer.accept(self.last_serial, None);
                 }
             }
-            DataOfferEvent::SourceActions { source_actions } => {
-                log::error!("Offer source_actions {:?}", source_actions);
-            }
-            DataOfferEvent::Action { dnd_action } => {
-                log::error!("Offer dnd_action {:?}", dnd_action);
+            DataOfferEvent::SourceActions { .. } | DataOfferEvent::Action { .. } => {
+                // ignore drag and drop events
             }
             _ => {}
         }

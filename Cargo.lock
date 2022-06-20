@@ -5030,6 +5030,7 @@ dependencies = [
  "smithay-client-toolkit",
  "thiserror",
  "tiny-skia",
+ "url",
  "wayland-client",
  "wayland-egl",
  "wayland-protocols",
