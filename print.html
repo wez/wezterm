@@ -5301,6 +5301,15 @@ configuration in your <code>~/.wezterm.lua</code>:</p>
     {
       regex = [[\b[tT](\d+)\b]],
       format = &quot;https://example.com/tasks/?t=$1&quot;,
+    },
+    
+    -- Make username/project paths clickable. This implies paths like the following are for GitHub.
+    -- ( &quot;nvim-treesitter/nvim-treesitter&quot; | wbthomason/packer.nvim | wez/wezterm | &quot;wez/wezterm.git&quot; )
+    -- As long as a full URL hyperlink regex exists above this it should not match a full URL to 
+    -- GitHub or GitLab / BitBucket (i.e. https://gitlab.com/user/project.git is still a whole clickable URL)
+    {
+      regex = [[[&quot;]?([\w\d]{1}[-\w\d]+)(/){1}([-\w\d\.]+)[&quot;]?]],
+      format = &quot;https://www.github.com/$1/$3&quot;,
     }
   }
 }
