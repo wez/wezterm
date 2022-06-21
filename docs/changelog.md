@@ -93,6 +93,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11: Fixed an issue where some events could get lost around resize events, especially prevalent when using the NVIDIA proprietary drivers. Thanks to [@pjones123](https://github.com/pjones123) and [@yuttie](https://githug.com/yuttie) for working through this! [#1992](https://github.com/wez/wezterm/issues/1992) [#2063](https://github.com/wez/wezterm/issues/2063) [#2111](https://github.com/wez/wezterm/pull/2111) [#1628](https://github.com/wez/wezterm/issues/1628)
 * macOS: `SHIFT-Tab` and `CTRL-SHIFT-Tab` produced incorrect results [#1902](https://github.com/wez/wezterm/issues/1902)
 * X11: Fixed an issue where copy and paste between two wezterm windows could produce stale results. [#2110](https://github.com/wez/wezterm/issues/2110)
+* Mouse selection spanning multiple lines always included the first column even when the mouse was to the left of the first column. Thanks to [@Funami580](https://github.com/Funami580)! [#2106](https://github.com/wez/wezterm/pull/2106)
 
 ### 20220408-101518-b908e2dd
 
