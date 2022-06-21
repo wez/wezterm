@@ -31,6 +31,8 @@ As features stabilize some brief notes about them will accumulate here.
 * The mouse scroll wheel now cycles between tabs when hovering over the tab. Thanks to [@junnplus](https://github.com/junnplus)! [#1726](https://github.com/wez/wezterm/issues/1726)
 * Holding down `ALT` while dragging the left button will select a rectangular block. It is also possible to use `ALT+SHIFT` to select a rectangular block. [ExtendSelectionToMouseCursor](config/lua/keyassignment/ExtendSelectionToMouseCursor.md) and [SelectTextAtMouseCursor](config/lua/keyassignment/SelectTextAtMouseCursor.md) now accept `"Block"` as a selection mode. Thanks to [@Funami580](https://github.com/Funami580) for helping! [#1361](https://github.com/wez/wezterm/issues/1361)
 * In Copy Mode, `CTRL-v` will enable rectangular block selection mode. [#1656](https://github.com/wez/wezterm/issues/1656)
+* In Copy Mode, `SHIFT-v` will enable line selection mode. Thanks to [@bew](https://github.com/bew)! [#2086](https://github.com/wez/wezterm/pull/2086)
+* In Copy Mode, `o` and `O` can be used to move the cursor to the other end of the selection, as in vim. Thanks to [@bew](https://github.com/bew)! [#2150](https://github.com/wez/wezterm/pull/2150)
 * Copy Mode: key assignments are [now configurable](copymode.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
 * Search Mode: key assignments are [now configurable](scrollback.md#configurable-key-assignments) [#993](https://github.com/wez/wezterm/issues/993)
 * Search Mode: the default `CTRL-SHIFT-F` key assignment now defaults to the new `CurrentSelectionOrEmptyString` mode to search for the current selection text, if any.  See [Search](config/lua/keyassignment/Search.md) for more info.
