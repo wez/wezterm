@@ -90,6 +90,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `sudo -i` in a pane would cause subsequent pane/tab creation to fail until the cwd was changed to an accessible directory [#2120](https://github.com/wez/wezterm/issues/2120)
 * X11: Fixed an issue where some events could get lost around resize events, especially prevalent when using the NVIDIA proprietary drivers. Thanks to [@pjones123](https://github.com/pjones123) and [@yuttie](https://githug.com/yuttie) for working through this! [#1992](https://github.com/wez/wezterm/issues/1992) [#2063](https://github.com/wez/wezterm/issues/2063) [#2111](https://github.com/wez/wezterm/pull/2111) [#1628](https://github.com/wez/wezterm/issues/1628)
 * macOS: `SHIFT-Tab` and `CTRL-SHIFT-Tab` produced incorrect results [#1902](https://github.com/wez/wezterm/issues/1902)
+* X11: Fixed an issue where copy and paste between two wezterm windows could produce stale results. [#2110](https://github.com/wez/wezterm/issues/2110)
 
 ### 20220408-101518-b908e2dd
 
