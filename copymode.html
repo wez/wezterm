@@ -163,7 +163,8 @@ reassignable.</p>
 <tr><td></td><td><code>CTRL-C</code></td></tr>
 <tr><td></td><td><code>CTRL-g</code></td></tr>
 <tr><td></td><td><code>q</code></td></tr>
-<tr><td>Toggle cell selection mode</td><td><code>v</code></td></tr>
+<tr><td>Cell selection</td><td><code>v</code></td></tr>
+<tr><td>Line selection</td><td><code>V</code></td></tr>
 <tr><td>Rectangular selection</td><td><code>CTRL-v</code> (<em>since: nightly builds only</em>)</td></tr>
 <tr><td>Move Left</td><td><code>LeftArrow</code></td></tr>
 <tr><td></td><td><code>h</code></td></tr>
@@ -243,8 +244,10 @@ return {
       {key=&quot;^&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
       {key=&quot;^&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
 
-      {key=&quot; &quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;ToggleSelectionByCell&quot;}},
-      {key=&quot;v&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;ToggleSelectionByCell&quot;}},
+      {key=&quot; &quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Cell&quot;}}},
+      {key=&quot;v&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Cell&quot;}}},
+      {key=&quot;V&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Line&quot;}}},
+      {key=&quot;V&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Line&quot;}}},
       {key=&quot;v&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Block&quot;}}},
 
       {key=&quot;G&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackBottom&quot;}},
