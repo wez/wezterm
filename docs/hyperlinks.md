@@ -49,6 +49,13 @@ return {
     {
       regex = [[\b[tT](\d+)\b]],
       format = "https://example.com/tasks/?t=$1",
+    },
+    
+    -- Make github like username/project paths
+    -- inside quotes and without clickable
+    {
+      regex = [[["]?([\w\d]{1}[-\w\d]+)(/){1}([-\w\d\.]+)["]?]],
+      format = "https://www.github.com/$1/$3",
     }
   }
 }
