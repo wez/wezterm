@@ -606,8 +606,7 @@ impl CopyRenderable {
 
     fn move_to_selection_other_end_horiz(&mut self) {
         if self.selection_mode != SelectionMode::Block {
-            // This action makes sense ONLY in block mode
-            return;
+            return self.move_to_selection_other_end();
         }
         if let Some(old_start) = self.start {
             // Swap X coordinate of cursor & start of selection
