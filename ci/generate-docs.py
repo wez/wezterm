@@ -133,6 +133,7 @@ TOC = [
                     Page("Key Binding", "config/keys.md"),
                     Page("Key Tables", "config/key-tables.md"),
                     Page("Default Key Assignments", "config/default-keys.md"),
+                    Page("Keyboard Encoding", "config/key-encoding.md"),
                     Page("Mouse Binding", "config/mouse.md"),
                     Page("Colors & Appearance", "config/appearance.md"),
                     GenColorScheme("Color Schemes", "colorschemes"),

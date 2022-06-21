@@ -1,20 +1,14 @@
 # `enable_csi_u_key_encoding = false`
 
-This option affects how key presses are fed to the terminal; after processing
-any key binding assignments, if the key didn't match an assignment it is passed
-down to the terminal which then encodes the key press as a byte sequence to
-send to the application running in the terminal.
+When set to `true`, the [keyboard encoding](../../key-encoding.md) will be
+changed to use the scheme that is [described
+here](http://www.leonerd.org.uk/hacks/fixterms/).
 
-By default, wezterm aims to be compatible with the encoding used by `xterm`.
-
-In that encoding scheme there are some key combinations that have an ambiguous
-representation.
-
-Setting `enable_csi_u_key_encoding = true` will switch to an alternative
-encoding scheme that is [described here](http://www.leonerd.org.uk/hacks/fixterms/)
-that removes the ambiguity in a mostly-backwards-compatible way, but that
-requires that applications also know about this encoding scheme to have
-the best results.
+It is not recommended to enable this option as it does change the behavior of
+some keys in backwards incompatible ways and there isn't a way for applications
+to detect or request this behavior.
 
 The default for this option is `false`.
 
+Note that [allow_win32_input_mode](allow_win32_input_mode.md) takes
+precedence over this option.
