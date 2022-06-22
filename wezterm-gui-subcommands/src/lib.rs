@@ -334,3 +334,6 @@ pub struct LsFontsCommand {
     #[clap(long = "text", conflicts_with = "list-system")]
     pub text: Option<String>,
 }
+
+#[derive(Debug, Parser, Clone)]
+pub struct ShowKeysCommand {}

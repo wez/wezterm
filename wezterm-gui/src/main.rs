@@ -106,6 +106,9 @@ enum SubCommand {
 
     #[clap(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
+
+    #[clap(name = "show-keys", about = "Show key assignments")]
+    ShowKeys(ShowKeysCommand),
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
@@ -712,6 +715,12 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
+fn run_show_keys(config: config::ConfigHandle, _cmd: &ShowKeysCommand) -> anyhow::Result<()> {
+    let map = crate::inputmap::InputMap::new(&config);
+    map.show_keys();
+    Ok(())
+}
+
 pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyhow::Result<()> {
     use wezterm_font::parser::ParsedFont;
 
@@ -1005,5 +1014,6 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(connect),
         SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
+        SubCommand::ShowKeys(cmd) => run_show_keys(config, &cmd),
     }
 }

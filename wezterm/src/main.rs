@@ -76,6 +76,9 @@ enum SubCommand {
     #[clap(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
 
+    #[clap(name = "show-keys", about = "Show key assignments")]
+    ShowKeys(ShowKeysCommand),
+
     #[clap(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
 
@@ -474,6 +477,7 @@ fn run() -> anyhow::Result<()> {
     {
         SubCommand::Start(_)
         | SubCommand::LsFonts(_)
+        | SubCommand::ShowKeys(_)
         | SubCommand::Ssh(_)
         | SubCommand::Serial(_)
         | SubCommand::Connect(_) => delegate_to_gui(saver),

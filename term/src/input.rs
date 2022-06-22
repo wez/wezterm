@@ -13,7 +13,7 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 pub use termwiz::input::{KeyCode, Modifiers as KeyModifiers};
 
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, FromDynamic, ToDynamic)]
 pub enum MouseButton {
     Left,
     Middle,
