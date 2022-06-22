@@ -94,6 +94,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: `SHIFT-Tab` and `CTRL-SHIFT-Tab` produced incorrect results [#1902](https://github.com/wez/wezterm/issues/1902)
 * X11: Fixed an issue where copy and paste between two wezterm windows could produce stale results. [#2110](https://github.com/wez/wezterm/issues/2110)
 * Mouse selection spanning multiple lines always included the first column even when the mouse was to the left of the first column. Thanks to [@Funami580](https://github.com/Funami580)! [#2106](https://github.com/wez/wezterm/pull/2106)
+* Fonts: Codepoints for eg: symbol glyphs that were not explicitly listed in your font fallback list may not be resolved when used in styled (eg: bold) text. [#1913](https://github.com/wez/wezterm/issues/1913) [#2158](https://github.com/wez/wezterm/issues/2158)
 
 ### 20220408-101518-b908e2dd
 
