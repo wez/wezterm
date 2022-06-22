@@ -17,6 +17,40 @@ struct LuaReplHost {
     lua: mlua::Lua,
 }
 
+fn format_lua_err(err: mlua::Error) -> String {
+    match err {
+        mlua::Error::SyntaxError {
+            incomplete_input: true,
+            ..
+        } => "...".to_string(),
+        _ => format!("{:#}", err),
+    }
+}
+
+fn fragment_to_expr_or_statement(lua: &mlua::Lua, text: &str) -> Result<String, String> {
+    let expr = format!("return {};", text);
+
+    match lua.load(&expr).set_name("=repl") {
+        Ok(chunk) => match chunk.into_function() {
+            Ok(_) => {
+                // It's an expression
+                Ok(text.to_string())
+            }
+            Err(_) => {
+                // Try instead as a statement
+                match lua.load(text).set_name("=repl") {
+                    Ok(chunk) => match chunk.into_function() {
+                        Ok(_) => Ok(text.to_string()),
+                        Err(err) => Err(format_lua_err(err)),
+                    },
+                    Err(err) => Err(format_lua_err(err)),
+                }
+            }
+        },
+        Err(err) => Err(format_lua_err(err)),
+    }
+}
+
 impl LineEditorHost for LuaReplHost {
     fn history(&mut self) -> &mut dyn History {
         &mut self.history
@@ -44,22 +78,10 @@ impl LineEditorHost for LuaReplHost {
     }
 
     fn render_preview(&self, line: &str) -> Vec<OutputElement> {
-        let expr = format!("return {}", line);
         let mut preview = vec![];
 
-        let chunk = self.lua.load(&expr);
-        match chunk.into_function() {
-            Ok(_) => {}
-            Err(err) => {
-                let text = match &err {
-                    mlua::Error::SyntaxError {
-                        incomplete_input: true,
-                        ..
-                    } => "...".to_string(),
-                    _ => format!("{:#}", err),
-                };
-                preview.push(OutputElement::Text(text));
-            }
+        if let Err(err) = fragment_to_expr_or_statement(&self.lua, line) {
+            preview.push(OutputElement::Text(err))
         }
 
         preview
@@ -134,13 +156,11 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
             }
             host.as_mut().unwrap().history().add(&line);
 
-            let expr = format!("return {}", line);
-
             let passed_host = host.take().unwrap();
 
             let (host_res, text) =
                 smol::block_on(promise::spawn::spawn_into_main_thread(async move {
-                    evaluate_trampoline(passed_host, expr)
+                    evaluate_trampoline(passed_host, line)
                         .recv()
                         .await
                         .map_err(|e| mlua::Error::external(format!("{:#}", e)))
@@ -174,23 +194,30 @@ fn evaluate_trampoline(
 }
 
 async fn evaluate(host: LuaReplHost, expr: String) -> (LuaReplHost, String) {
-    let result = host
-        .lua
-        .load(&expr)
-        .eval_async::<Value>()
-        .map(|result| match result {
-            Ok(result) => {
-                let value = ValuePrinter(result);
-                format!("{:#?}", value)
-            }
-            Err(err) => match &err {
-                mlua::Error::SyntaxError {
-                    incomplete_input: true,
-                    ..
-                } => "...".to_string(),
-                _ => format!("{:#}", err),
-            },
-        })
-        .await;
+    async fn do_it(host: &LuaReplHost, expr: &str) -> String {
+        let code = match fragment_to_expr_or_statement(&host.lua, expr) {
+            Ok(code) => code,
+            Err(err) => return err,
+        };
+        let chunk = match host.lua.load(&code).set_name("repl") {
+            Err(err) => return format!("{err:#}"),
+            Ok(chunk) => chunk,
+        };
+
+        let result = chunk
+            .eval_async::<Value>()
+            .map(|result| match result {
+                Ok(result) => {
+                    let value = ValuePrinter(result);
+                    format!("{:#?}", value)
+                }
+                Err(err) => format_lua_err(err),
+            })
+            .await;
+
+        result
+    }
+
+    let result = do_it(&host, &expr).await;
     (host, result)
 }
