@@ -66,7 +66,7 @@ reassignable.
 | Move down one screen           | `PageDown` |
 |                                | `CTRL-f`   |
 | Move to other end of the selection| `o` |
-| Move to other end of the selection horizontaly| `O` (useful in Rectangular mode) |
+| Move to other end of the selection horizontally| `O` (useful in Rectangular mode) |
 
 ### Configurable Key Assignments
 
