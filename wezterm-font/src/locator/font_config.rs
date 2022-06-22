@@ -164,6 +164,7 @@ impl FontLocator for FontConfigFontLocator {
         &self,
         codepoints: &[char],
     ) -> anyhow::Result<Vec<ParsedFont>> {
+        log::trace!("locate_fallback_for_codepoints: {:?}", codepoints);
         let mut charset = CharSet::new()?;
         for &c in codepoints {
             charset.add(c)?;
@@ -201,17 +202,18 @@ impl FontLocator for FontConfigFontLocator {
                     continue;
                 }
 
-                let file = pat.get_file().context("pat.get_file")?;
-
-                let handle = FontDataHandle {
-                    source: FontDataSource::OnDisk(file.into()),
-                    index: pat.get_integer("index")?.try_into()?,
-                    variation: 0,
-                    origin: FontOrigin::FontConfig,
-                    coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
-                };
-                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                    fonts.push(parsed);
+                if let Ok(file) = pat.get_file().context("pat.get_file") {
+                    log::trace!("{file:?} has {num} codepoints from {codepoints:?}");
+                    let handle = FontDataHandle {
+                        source: FontDataSource::OnDisk(file.into()),
+                        index: pat.get_integer("index")?.try_into()?,
+                        variation: 0,
+                        origin: FontOrigin::FontConfig,
+                        coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
+                    };
+                    if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                        fonts.push(parsed);
+                    }
                 }
             }
         }

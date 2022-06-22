@@ -210,6 +210,8 @@ impl LoadedFont {
 
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');
         filter_out_synthetic(&mut no_glyphs);
+        no_glyphs.sort();
+        no_glyphs.dedup();
 
         let mut async_resolve = false;
 
@@ -427,7 +429,6 @@ struct FontConfigInner {
     locator: Arc<dyn FontLocator + Send + Sync>,
     font_dirs: RefCell<Arc<FontDatabase>>,
     built_in: RefCell<Arc<FontDatabase>>,
-    no_glyphs: RefCell<HashSet<char>>,
     title_font: RefCell<Option<Rc<LoadedFont>>>,
     pane_select_font: RefCell<Option<Rc<LoadedFont>>>,
     fallback_channel: RefCell<Option<Sender<FallbackResolveInfo>>>,
@@ -454,7 +455,6 @@ impl FontConfigInner {
             config: RefCell::new(config.clone()),
             font_dirs: RefCell::new(Arc::new(FontDatabase::with_font_dirs(&config)?)),
             built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
-            no_glyphs: RefCell::new(HashSet::new()),
             fallback_channel: RefCell::new(None),
         })
     }
@@ -467,22 +467,16 @@ impl FontConfigInner {
         self.title_font.borrow_mut().take();
         self.pane_select_font.borrow_mut().take();
         self.metrics.borrow_mut().take();
-        self.no_glyphs.borrow_mut().clear();
         *self.font_dirs.borrow_mut() = Arc::new(FontDatabase::with_font_dirs(config)?);
         Ok(())
     }
 
     fn schedule_fallback_resolve<F: FnOnce() + Send + 'static>(
         &self,
-        mut no_glyphs: Vec<char>,
+        no_glyphs: Vec<char>,
         pending: &Arc<Mutex<Vec<ParsedFont>>>,
         completion: F,
     ) {
-        let mut ng = self.no_glyphs.borrow_mut();
-        no_glyphs.retain(|c| !ng.contains(c));
-        for c in &no_glyphs {
-            ng.insert(*c);
-        }
         if no_glyphs.is_empty() {
             return;
         }
@@ -869,7 +863,6 @@ impl FontConfigInner {
         *self.font_scale.borrow_mut() = font_scale;
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
-        self.no_glyphs.borrow_mut().clear();
         self.title_font.borrow_mut().take();
 
         (prior_font, prior_dpi)
