@@ -317,6 +317,23 @@ fn section_header(title: &str) {
     println!();
 }
 
+fn human_key(key: &KeyCode) -> String {
+    match key {
+        KeyCode::Char('\x1b') => "Escape".to_string(),
+        KeyCode::Char('\x7f') => "Escape".to_string(),
+        KeyCode::Char('\x08') => "Backspace".to_string(),
+        KeyCode::Char('\r') => "Enter".to_string(),
+        KeyCode::Char(' ') => "Space".to_string(),
+        KeyCode::Char('\t') => "Tab".to_string(),
+        KeyCode::Char(c) if c.is_ascii_control() => c.escape_debug().to_string(),
+        KeyCode::Char(c) => c.to_string(),
+        KeyCode::Function(n) => format!("F{n}"),
+        KeyCode::Numpad(n) => format!("Numpad{n}"),
+        KeyCode::Physical(phys) => format!("{} (Physical)", phys.to_string()),
+        _ => format!("{key:?}"),
+    }
+}
+
 fn show_key_table(table: &config::keyassignment::KeyTable) {
     let ordered = table.iter().collect::<BTreeMap<_, _>>();
 
@@ -324,7 +341,7 @@ fn show_key_table(table: &config::keyassignment::KeyTable) {
     let mut mod_width = 0;
     for (key, mods) in ordered.keys() {
         mod_width = mod_width.max(format!("{mods:?}").len());
-        key_width = key_width.max(format!("{key:?}").len());
+        key_width = key_width.max(human_key(key).len());
     }
 
     for ((key, mods), entry) in ordered {
@@ -334,7 +351,7 @@ fn show_key_table(table: &config::keyassignment::KeyTable) {
         } else {
             format!("{mods:?}")
         };
-        let key = format!("{key:?}");
+        let key = human_key(key);
         println!("\t{mods:mod_width$}   {key:key_width$}   ->   {action:?}");
     }
 }
