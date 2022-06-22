@@ -1067,6 +1067,11 @@ impl XWindow {
         conn.windows.borrow_mut().insert(window_id, window);
 
         window_handle.set_title(name);
+        // Before we map the window, flush to ensure that all of the other properties
+        // have been applied to it.
+        // This is a speculative fix for this race condition issue:
+        // <https://github.com/wez/wezterm/issues/2155>
+        conn.flush().context("flushing before mapping window")?;
         window_handle.show();
 
         // Some window managers will ignore the x,y that we set during window
