@@ -59,6 +59,9 @@ pub struct LoadedFont {
     pending_fallback: Arc<Mutex<Vec<ParsedFont>>>,
     text_style: TextStyle,
     id: LoadedFontId,
+    /// Glyphs for which no font was found and for which we should
+    /// stop searching
+    tried_glyphs: RefCell<HashSet<char>>,
 }
 
 impl std::fmt::Debug for LoadedFont {
@@ -210,6 +213,13 @@ impl LoadedFont {
 
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');
         filter_out_synthetic(&mut no_glyphs);
+
+        let mut tried_glyphs = self.tried_glyphs.borrow_mut();
+        no_glyphs.retain(|c| !tried_glyphs.contains(c));
+        for c in &no_glyphs {
+            tried_glyphs.insert(*c);
+        }
+
         no_glyphs.sort();
         no_glyphs.dedup();
 
@@ -583,6 +593,7 @@ impl FontConfigInner {
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: text_style.clone(),
             id: alloc_font_id(),
+            tried_glyphs: RefCell::new(HashSet::new()),
         });
 
         Ok(loaded)
@@ -848,6 +859,7 @@ impl FontConfigInner {
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: style.clone(),
             id: alloc_font_id(),
+            tried_glyphs: RefCell::new(HashSet::new()),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));
