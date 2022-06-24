@@ -68,7 +68,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [exit_behavior](config/lua/config/exit_behavior.md) now defaults to `"Close"`. [#2105](https://github.com/wez/wezterm/issues/2105)
 
 #### Fixed
-* Flush after replying to `XTGETTCAP`, `DECRQM`, `XTVERSION`, `DA2`, `DA3` query responses [#2060](https://github.com/wez/wezterm/issues/2060) [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)
+* Flush after replying to `XTGETTCAP`, `DECRQM`, `XTVERSION`, `DA2`, `DA3` [#2060](https://github.com/wez/wezterm/issues/2060) [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)
 * macOS: `CMD-.` was treated as `CTRL-ESC` [#1867](https://github.com/wez/wezterm/issues/1867)
 * macOS: `CTRL-Backslash` on German layouts was incorrect [#1891](https://github.com/wez/wezterm/issues/1891)
 * `nf-mdi-contacts` nerdfont symbol treated as zero-width [#1864](https://github.com/wez/wezterm/issues/1864)
