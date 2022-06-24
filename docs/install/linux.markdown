@@ -44,7 +44,7 @@ you can try the AppImage download which should work on most Linux systems.
 |------------|------------------|---------------------|
 |Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |[{{ ubuntu18_deb_nightly_asset }}]({{ ubuntu18_deb_nightly }})|
 |Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
-|Ubuntu22    |Nightly builds only|[{{ ubuntu22_deb_nightly_asset }}]({{ ubuntu22_deb_nightly }})|
+|Ubuntu22    |[{{ ubuntu22_deb_stable_asset }}]({{ ubuntu20_deb_stable }}) |[{{ ubuntu22_deb_nightly_asset }}]({{ ubuntu22_deb_nightly }})|
 |Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }})|
 |Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
 |Debian11    |[{{ debian11_deb_stable_asset }}]({{ debian11_deb_stable }}) |[{{ debian11_deb_nightly_asset }}]({{ debian11_deb_nightly }})|
@@ -69,13 +69,13 @@ on most Linux systems.
 
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
-|CentOS7     |Nightly builds only |[{{ centos7_rpm_nightly_asset }}]({{ centos7_rpm_nightly }})|
+|CentOS7     |[{{ centos7_rpm_stable_asset }}]({{ centos7_rpm_stable }}) |[{{ centos7_rpm_nightly_asset }}]({{ centos7_rpm_nightly }})|
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
 |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
 |Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
-|Fedora36    |Nightly builds only |[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
+|Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
 |openSUSE Leap    |Nighty builds only|[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
 |openSUSE Tumbleweed    |Nighty builds only|[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
 
