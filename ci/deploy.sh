@@ -126,6 +126,7 @@ case $OSTYPE in
     ;;
   linux-gnu|linux)
     distro=$(lsb_release -is 2>/dev/null || sh -c "source /etc/os-release && echo \$NAME")
+    distroid=$(lsb_release -is 2>/dev/null || sh -c "source /etc/os-release && echo \$ID")
     distver=$(lsb_release -rs 2>/dev/null || sh -c "source /etc/os-release && echo \$VERSION_ID")
     case "$distro" in
       *Fedora*|*CentOS*|*SUSE*)
@@ -133,7 +134,7 @@ case $OSTYPE in
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
-Release: 1%{?dist}
+Release: 1.${distroid}${distver}
 Packager: Wez Furlong <wez@wezfurlong.org>
 License: MIT
 URL: https://wezfurlong.org/wezterm/
