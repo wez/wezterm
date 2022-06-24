@@ -440,6 +440,10 @@ least a daily scheduled build) from the <code>main</code> branch.  It <em>may</e
 and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
+<ul>
+<li>Not yet</li>
+</ul>
+<h3 id="20220624-141144-bd1b7c5d"><a class="header" href="#20220624-141144-bd1b7c5d">20220624-141144-bd1b7c5d</a></h3>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
 <ul>
 <li><a href="config/lua/config/background.html">background</a> option for rich background compositing and parallax scrolling effects.</li>
@@ -2299,7 +2303,7 @@ clear the entire stack.</p>
 <p>The stack is also cleared when the configuration is reloaded, so if you're
 working on a complex key table setup and get stuck, you may be able to unstick
 yourself by re-saving your wezterm configuration to trigger a reload.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>When resolving a key assignment, the top of stack is first searched for a match,
 and if one is not found, the next entry on the stack is searched and so on until a match is found.</p>
 <p>In previous releases, only a single lookup was performed on the top of the stack.</p>
@@ -2457,16 +2461,16 @@ that order.</p>
 <tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
-<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>SelectTextAtMouseCursor=&quot;Block&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
+<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>SelectTextAtMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
 <tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
 <tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Cell&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code> (<em>since: nightly builds only</em>)</td></tr>
-<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
-<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: nightly builds only</em>)</td></tr>
+<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
 <tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
 <tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
@@ -5046,7 +5050,7 @@ The matching mode is indicated in the search bar.</li>
 with the viewport scrolled to that location.</li>
 </ul>
 <h4 id="configurable-search-mode-key-assignments"><a class="header" href="#configurable-search-mode-key-assignments">Configurable search mode key assignments</a></h4>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The key assignments for copy mode are specified by the <code>search_mode</code> <a href="config/key-tables.html">Key Table</a>.</p>
 <p>You may provide your own definition of this key table if you wish to customize it.
 There isn't a way to override portions of the key table, only to replace the entire table.</p>
@@ -5147,7 +5151,7 @@ reassignable.</p>
 <tr><td></td><td><code>q</code></td></tr>
 <tr><td>Cell selection</td><td><code>v</code></td></tr>
 <tr><td>Line selection</td><td><code>V</code></td></tr>
-<tr><td>Rectangular selection</td><td><code>CTRL-v</code> (<em>since: nightly builds only</em>)</td></tr>
+<tr><td>Rectangular selection</td><td><code>CTRL-v</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
 <tr><td>Move Left</td><td><code>LeftArrow</code></td></tr>
 <tr><td></td><td><code>h</code></td></tr>
 <tr><td>Move Down</td><td><code>DownArrow</code></td></tr>
@@ -5182,7 +5186,7 @@ reassignable.</p>
 <tr><td>Move to other end of the selection horizontally</td><td><code>O</code> (useful in Rectangular mode)</td></tr>
 </tbody></table>
 <h3 id="configurable-key-assignments"><a class="header" href="#configurable-key-assignments">Configurable Key Assignments</a></h3>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The key assignments for copy mode are specified by the <code>copy_mode</code> <a href="config/key-tables.html">Key Table</a>.</p>
 <p>You may provide your own definition of this key table if you wish to customize it.
 There isn't a way to override portions of the key table, only to replace the entire table.</p>
@@ -6250,7 +6254,7 @@ emulator that runs powershell.</p>
 </ol>
 <p>If no XCursor was found, wezterm will fall back to using the default X11 cursor
 font provided by the system.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>When troubleshooting xcursor issues, you can enable tracing by turning on the log level shown
 below, and then moving the mouse over the wezterm window:</p>
 <pre><code>; WEZTERM_LOG=window::os::x11::cursor=trace wezterm
@@ -6371,7 +6375,7 @@ wez  foo  1098536 166.03140978s 31.40978ms default       0
 <li><code>WORKSPACE</code> - shows the active workspace for that session</li>
 <li><code>FOCUS</code> - shows the pane id of the pane that has focus in that session</li>
 </ul>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>You may request JSON output:</p>
 <pre><code>$ wezterm cli list-clients --format json
 [
@@ -6410,7 +6414,7 @@ WINID TABID PANEID WORKSPACE SIZE  TITLE                          CWD
 <li><code>TITLE</code> - the pane title</li>
 <li><code>CWD</code> - the current working directory associated with the pane</li>
 </ul>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>You may request JSON output:</p>
 <pre><code>$ wezterm cli list --format json
 [
@@ -6429,7 +6433,7 @@ WINID TABID PANEID WORKSPACE SIZE  TITLE                          CWD
 ]
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="wezterm-cli-move-pane-to-new-tab"><a class="header" href="#wezterm-cli-move-pane-to-new-tab"><code>wezterm cli move-pane-to-new-tab</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><em>Run <code>wezterm cli move-pane-to-new-tab --help</code> to see more help</em></p>
 <p>Allows moving a pane into a new tab either in the same window or in a new window.</p>
 <p>The default action is to move the current pane into a new tab in the same window.
@@ -6453,7 +6457,7 @@ enabled in the pane, then the text will be sent as a bracketed paste.</p>
 </code></pre>
 <p>The following arguments modify the behavior:</p>
 <ul>
-<li><code>--no-paste</code> - Send the text directly, rather than as a bracketed paste. (<em>Since: nightly builds only</em>)</li>
+<li><code>--no-paste</code> - Send the text directly, rather than as a bracketed paste. (<em>Since: 20220624-141144-bd1b7c5d</em>)</li>
 <li><code>--pane-id</code> - Specifies which pane to send the text to. See also <a href="cli/cli/index.html#targeting-panes">Targeting Panes</a>.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="wezterm-cli-spawn"><a class="header" href="#wezterm-cli-spawn"><code>wezterm cli spawn</code></a></h1>
@@ -6512,7 +6516,7 @@ launches bash as a login shell in a new pane at the bottom:</p>
 <li><code>--horizontal</code> - Equivalent to <code>--right</code>. If neither this nor any other direction is specified, the default is equivalent to <code>--bottom</code>.</li>
 <li><code>--pane-id</code> - Specifies the pane that should be split. See also <a href="cli/cli/index.html#targeting-panes">Targeting Panes</a>.</li>
 </ul>
-<p><em>Since nightly builds only</em></p>
+<p><em>Since 20220624-141144-bd1b7c5d</em></p>
 <ul>
 <li><code>--bottom</code> - Split vertically, with the new pane on the bottom.</li>
 <li><code>--cells CELLS</code> - The number of cells that the new split should have. If omitted, 50% of the available space is used.</li>
@@ -6524,7 +6528,7 @@ launches bash as a login shell in a new pane at the bottom:</p>
 <li><code>--top-level</code> - Rather than splitting the active pane, split the entire window.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="wezterm-show-keys"><a class="header" href="#wezterm-show-keys"><code>wezterm show-keys</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Prints the complete set of key assignments based on your config file.</p>
 <p>The command shows each key table as well as the set of mouse bindings.</p>
 <p>A truncated example of the output is shown below.</p>
@@ -6662,7 +6666,7 @@ and control to your config file.</p>
 <li><a href="config/lua/wezterm/version.html">version</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermglobal"><a class="header" href="#weztermglobal"><code>wezterm.GLOBAL</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Provides global, in-process, in-memory, data storage for json-like variables
 that persists across config reloads.</p>
 <p>wezterm's lua files may be re-loaded and re-evaluated multiple times in
@@ -11729,7 +11733,7 @@ wezterm.log_info(date_and_time);
 </code></pre>
 <p>See also <a href="config/lua/wezterm/strftime_utc.html">strftime_utc</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermstrftime_utcformat"><a class="header" href="#weztermstrftime_utcformat"><code>wezterm.strftime_utc(format)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Formats the current UTC date/time into a string using <a href="https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html">the Rust chrono
 strftime syntax</a>.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -11793,7 +11797,7 @@ the second component is the time and the final component is a git hash.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Version &quot; .. wezterm.version)
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><p><em>Since: nightly builds only</em></p>
+<div style="break-before: page; page-break-before: always;"></div><p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The <code>wezterm.mux</code> module exposes functions that operate on the multiplexer layer.</p>
 <p>The multiplexer manages the set of running programs into panes, tabs, windows
 and workspaces.</p>
@@ -11818,39 +11822,39 @@ local mux = wezterm.mux
 <li><a href="config/lua/wezterm.mux/spawn_window.html">spawn_window</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxget_active_workspace"><a class="header" href="#weztermmuxget_active_workspace"><code>wezterm.mux.get_active_workspace()</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Returns the name of the active workspace.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxget_panepane_id"><a class="header" href="#weztermmuxget_panepane_id"><code>wezterm.mux.get_pane(PANE_ID)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Given a pane ID, verifies that the ID is a valid pane known to the mux
 and returns a <a href="config/lua/wezterm.mux/../MuxPane.html">MuxPane</a> object that can be used to
 operate on the pane.</p>
 <p>This is useful for situations where you have obtained a pane id from
 some other source and want to use the various <code>MuxPane</code> methods with it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxget_tabwindow_id"><a class="header" href="#weztermmuxget_tabwindow_id"><code>wezterm.mux.get_tab(WINDOW_ID)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Given a tab ID, verifies that the ID is a valid tab known to the mux
 and returns a <a href="config/lua/wezterm.mux/../MuxTab.html">MuxTab</a> object that can be used to
 operate on the tab.</p>
 <p>This is useful for situations where you have obtained a tab id from
 some other source and want to use the various <code>MuxTab</code> methods with it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxget_windowwindow_id"><a class="header" href="#weztermmuxget_windowwindow_id"><code>wezterm.mux.get_window(WINDOW_ID)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Given a window ID, verifies that the ID is a valid window known to the mux
 and returns a <a href="config/lua/wezterm.mux/../MuxWindow.html">MuxWindow</a> object that can be used to
 operate on the window.</p>
 <p>This is useful for situations where you have obtained a window id from
 some other source and want to use the various <code>MuxWindow</code> methods with it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxget_workspace_names"><a class="header" href="#weztermmuxget_workspace_names"><code>wezterm.mux.get_workspace_names()</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Returns a table containing the names of the workspaces known to the mux.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermmuxset_active_workspaceworkspace"><a class="header" href="#weztermmuxset_active_workspaceworkspace"><code>wezterm.mux.set_active_workspace(WORKSPACE)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Sets the active workspace name.</p>
 <p>If the requested name doesn't correspond to an existing workspace,
 then an error is raised.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="weztermmuxspawn_window"><a class="header" href="#weztermmuxspawn_window"><code>wezterm.mux.spawn_window{}</code></a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Spawns a program into a new window, returning the <a href="config/lua/wezterm.mux/../MuxTab.html">MuxTab</a>,
 <a href="config/lua/wezterm.mux/../MuxPane.html">MuxPane</a> and <a href="config/lua/wezterm.mux/../MuxWindow.html">MuxWindow</a> objects
 associated with it:</p>
@@ -12044,7 +12048,7 @@ Windows ConPTY layer to switch the <a href="config/lua/config/../../key-encoding
 to a proprietary scheme that has maximum compatibility with win32 console
 applications.</p>
 <p>See also <a href="https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md">Improved Keyboard Handling in ConPTY</a>.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The default for <code>allow_win32_input_mode</code> is now true.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="alternate_buffer_wheel_scroll_speed--3"><a class="header" href="#alternate_buffer_wheel_scroll_speed--3"><code>alternate_buffer_wheel_scroll_speed = 3</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
@@ -12101,7 +12105,7 @@ with a key bound to the action <a href="config/lua/config/../keyassignment/Reloa
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="background"><a class="header" href="#background">background</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The <code>background</code> config option allows you to compose a number of layers to
 produce the background content in the terminal.</p>
 <p>Layers can be image files, gradients or solid blocks of color. Layers composite
@@ -12338,7 +12342,7 @@ at all, but when in WSL, pasting with CRLF gives excess blank lines.</p>
 unix newlines in their pastes (which is the UX most users will want) and
 cmd.exe will get CRLF.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cell_width--10"><a class="header" href="#cell_width--10"><code>cell_width = 1.0</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Scales the computed cell width to adjust the spacing between successive cells
 of text.</p>
 <p>If possible, you should prefer to specify the <code>stretch</code> parameter when
@@ -12389,7 +12393,7 @@ No data are collected for the wezterm project as part of this.</p>
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="clean_exit_codes---0-"><a class="header" href="#clean_exit_codes---0-"><code>clean_exit_codes = { 0 }</code></a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Defines the set of exit codes that are considered to be a &quot;clean&quot; exit by
 <a href="config/lua/config/exit_behavior.html">exit_behavior</a> when the program running in the terminal
 completes.</p>
@@ -12684,7 +12688,7 @@ to detect or request this behavior.</p>
 <p>Note that <a href="config/lua/config/allow_win32_input_mode.html">allow_win32_input_mode</a> takes
 precedence over this option.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="enable_kitty_keyboard--false"><a class="header" href="#enable_kitty_keyboard--false"><code>enable_kitty_keyboard = false</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>When set to <code>true</code>, wezterm will honor kitty keyboard protocol escape
 sequences that modify the <a href="config/lua/config/../../key-encoding.html">keyboard encoding</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="enable_scroll_bar"><a class="header" href="#enable_scroll_bar"><code>enable_scroll_bar</code></a></h1>
@@ -12709,7 +12713,7 @@ has no effect on macOS or Windows.</p>
   enable_wayland = true,
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The default is now <code>true</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
@@ -12736,7 +12740,7 @@ exit
 the pane to remain open.</p>
 <p>See also: <a href="config/lua/config/clean_exit_codes.html">clean_exit_codes</a> for fine tuning what is
 considered to be a clean exit status.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The default is now <code>&quot;Close&quot;</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
 <p>Configures the font to use by default.  The <code>font</code> setting can specify
@@ -13084,7 +13088,7 @@ glyph is rendered in non-monochrome modes.</li>
 <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> for more advanced flags that can
 be primarily used to influence font hinting.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="freetype_pcf_long_family_names--false"><a class="header" href="#freetype_pcf_long_family_names--false"><code>freetype_pcf_long_family_names = false</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>This option provides control over the
 <a href="https://freetype.org/freetype2/docs/reference/ft2-properties.html#no-long-family-names">no-long-family-names</a>
 FreeType PCF font driver property.</p>
@@ -13164,7 +13168,7 @@ clickable links.</p>
 <p>See <a href="config/lua/config/../../../hyperlinks.html">Hyperlinks</a> for more information and
 examples.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="ime_preedit_rendering"><a class="header" href="#ime_preedit_rendering"><code>ime_preedit_rendering</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Control IME preedit rendering.
 IME preedit is an area that is used to display the string being preedited in IME.
 WezTerm supports the following IME preedit rendering.</p>
@@ -13258,7 +13262,7 @@ increase the vertical spacing by 20%.  Conversely, setting <code>line_height = 0
 will decrease the vertical spacing by 10%.</p>
 <p>See also: <a href="config/lua/config/cell_width.html">cell_width</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="min_scroll_bar_height--05cell"><a class="header" href="#min_scroll_bar_height--05cell"><code>min_scroll_bar_height = &quot;0.5cell&quot;</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Controls the minimum size of the scroll bar &quot;thumb&quot;.</p>
 <p>The value can be a number to specify the number of pixels, or a string with a unit suffix:</p>
 <ul>
@@ -13339,7 +13343,7 @@ This setting is a table listing out a set of regular expressions.</p>
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="quote_dropped_files--spacesonly"><a class="header" href="#quote_dropped_files--spacesonly">quote_dropped_files = &quot;SpacesOnly&quot;</a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Controls how file names are quoted (or not) when dragging and dropping.
 There are five possible values:</p>
 <ul>
@@ -13359,10 +13363,10 @@ There are five possible values:</p>
 </tbody></table>
 <p>Drag and drop support for files is a platform dependent feature</p>
 <table><thead><tr><th>Platform</th><th>Supported since</th></tr></thead><tbody>
-<tr><td>macOS</td><td>nightly builds only</td></tr>
-<tr><td>Windows</td><td>nightly builds only</td></tr>
+<tr><td>macOS</td><td>20220624-141144-bd1b7c5d</td></tr>
+<tr><td>Windows</td><td>20220624-141144-bd1b7c5d</td></tr>
 <tr><td>X11</td><td>Not yet</td></tr>
-<tr><td>Wayland</td><td>nightly builds only</td></tr>
+<tr><td>Wayland</td><td>20220624-141144-bd1b7c5d</td></tr>
 </tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="scroll_to_bottom_on_input"><a class="header" href="#scroll_to_bottom_on_input"><code>scroll_to_bottom_on_input</code></a></h1>
 <p>When <code>true</code> (the default), the viewport will automatically scroll to the
@@ -13654,7 +13658,7 @@ visible text using an easing function.  See
 <p>Configures TLS multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#tls-domains">Read more about TLS Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../TlsDomainServer.html">TlsDomainServer</a> objects.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="treat_east_asian_ambiguous_width_as_wide--false"><a class="header" href="#treat_east_asian_ambiguous_width_as_wide--false"><code>treat_east_asian_ambiguous_width_as_wide = false</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Unicode defines a number of codepoints as having <a href="http://www.unicode.org/reports/tr11/#Ambiguous">Ambiguous
 Width</a>. These are characters
 whose width resolves differently according to context that is typically absent
@@ -13927,7 +13931,7 @@ for <code>window_background_image</code> is ignored.</p>
 Take a look at <a href="https://github.com/mazznoer/colorgrad-rs#using-web-color-format">https://github.com/mazznoer/colorgrad-rs#using-web-color-format</a>
 for some usage examples and additional information about gradients.</p>
 <h2 id="linear-gradient"><a class="header" href="#linear-gradient">Linear gradient:</a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>A linear gradient follows a linear path across the window. It can be rotated
 around the window center. The angle is described in degrees and moves 
 counter clockwise in the positive direction.</p>
@@ -14378,7 +14382,7 @@ return {
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="attachdomaindomain_name"><a class="header" href="#attachdomaindomain_name">AttachDomain(domain_name)</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Attempts to attach the named multiplexing domain.  The name can be any of the
 names used in you <code>ssh_domains</code>, <code>unix_domains</code> or <code>tls_clients</code>
 configurations.</p>
@@ -14425,7 +14429,7 @@ the scrollbar thumb to the full height of the window.</p>
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="clearselection"><a class="header" href="#clearselection">ClearSelection</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Clears the selection in the current pane.</p>
 <p>This example shows how to rebind <code>CTRL-C</code> to copy to the clipboard
 when there is a selection present (clearing it afterwards) or sending
@@ -14583,7 +14587,7 @@ return {
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="detachdomaindomain"><a class="header" href="#detachdomaindomain">DetachDomain(domain)</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Attempts to detach the specified domain.  Detaching a domain causes
 it to disconnect and remove its set of windows, tabs and panes from
 the local GUI.  Detaching does not cause those panes to close; if or
@@ -14648,7 +14652,7 @@ the scope of the selection.</p>
 <p>when unspecified, wezterm will use a default mode which at the time
 of writing is <code>Cell</code>, but in a future release may be context sensitive
 based on recent actions.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
@@ -14752,7 +14756,7 @@ return {
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paneselect"><a class="header" href="#paneselect">PaneSelect</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>This action activates the pane selection modal display. In this mode, each pane
 will be overlayed with a one- or two-character label taken from the selection
 alphabet.</p>
@@ -14956,7 +14960,7 @@ return {
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rotatepanes"><a class="header" href="#rotatepanes">RotatePanes</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Rotates the sequence of panes within the active tab, preserving the sizes based on the tab positions.</p>
 <p>Panes within a tab have an ordering that follows the creation order of the splits.</p>
 <p>As an example, if you have three panes created in sequence using horizontal
@@ -15077,7 +15081,7 @@ return {
 }
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20220624-141144-bd1b7c5d</em></p>
 <p>You may now use <code>wezterm.action{Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
 <p>The selection text is adjusted to be a single line.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
@@ -15101,7 +15105,7 @@ on any character withing that region:</p>
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../shell-integration.html">See Shell Integration docs</a> for more details on
 how to set up your shell to define semantic zones.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="sendkey"><a class="header" href="#sendkey">SendKey</a></h1>
 <p><em>Since: 20211204-082213-a66c61ee9</em></p>
@@ -15312,7 +15316,7 @@ return {
 </code></pre>
 <p>See also: <a href="config/lua/keyassignment/SplitPane.html">SplitPane</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="splitpane"><a class="header" href="#splitpane">SplitPane</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Splits the active pane in a particular direction, spawning a new command into the newly created pane.</p>
 <p>This assignment has a number of fields that control the overall action:</p>
 <ul>
@@ -15481,7 +15485,7 @@ Switching its zoom state off will restore the prior split arrangement.</p>
 </ul>
 <p>See <a href="config/lua/mux-events/mux-is-process-stateful.html">mux-is-process-stateful</a> and <a href="config/lua/pane/get_foreground_process_info.html">pane:get_foreground_process_info()</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="muxwindow"><a class="header" href="#muxwindow">MuxWindow</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><code>MuxWindow</code> represents a window that is managed by the multiplexer.</p>
 <p>It has the following methods:</p>
 <h2 id="windowwindow_id"><a class="header" href="#windowwindow_id"><code>window:window_id()</code></a></h2>
@@ -15523,13 +15527,13 @@ defined in your configuration using the following:</p>
 <pre><code class="language-lua">window:spawn_tab{domain={DomainName=&quot;my.name&quot;}}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="muxtab"><a class="header" href="#muxtab">MuxTab</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><code>MuxTab</code> represents a tab that is managed by the multiplexer.</p>
 <p>It has the following methods:</p>
 <h2 id="tabtab_id"><a class="header" href="#tabtab_id"><code>tab:tab_id()</code></a></h2>
 <p>Returns the tab id</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="muxpane"><a class="header" href="#muxpane">MuxPane</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><code>MuxPane</code> represents a pane that is managed by the multiplexer.</p>
 <p>It has the following methods:</p>
 <h2 id="panepane_id"><a class="header" href="#panepane_id"><code>pane:pane_id()</code></a></h2>
@@ -15690,7 +15694,7 @@ end)
 return {
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The <code>domain_name</code> field returns the name of the domain with which the pane is associated.</p>
 <p>This example shows the domain name of the active pane appended to the tab title:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
@@ -16073,10 +16077,10 @@ a stable index.</li>
 by wezterm.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paneget_domain_name"><a class="header" href="#paneget_domain_name"><code>pane:get_domain_name()</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Returns the name of the domain with which the pane is associated.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paneget_foreground_process_info"><a class="header" href="#paneget_foreground_process_info"><code>pane:get_foreground_process_info()</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>Returns a <a href="config/lua/pane/../LocalProcessInfo.html">LocalProcessInfo</a> object corresponding to the current foreground process that is running in the pane.</p>
 <p>This method has some restrictions and caveats:</p>
 <ul>
@@ -16717,7 +16721,7 @@ output from <code>wsl -l -v</code> and assigns that as the value of the
 <li><a href="config/lua/gui-events/gui-startup.html">gui-startup</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="gui-startup"><a class="header" href="#gui-startup"><code>gui-startup</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The <code>gui-startup</code> event is emitted once when the GUI server is starting up
 when running the <code>wezterm start</code> subcommand.</p>
 <p>It is triggered before any default program is started.</p>
@@ -16838,7 +16842,7 @@ INFO  config::lua &gt; lua:     argv=vim foo
 INFO  config::lua &gt; lua:     executable=/usr/bin/vim, cwd=/home/wez
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="mux-startup"><a class="header" href="#mux-startup"><code>mux-startup</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p>The <code>mux-startup</code> event is emitted once when the mux server is starting up.
 It is triggered before any default program is started.</p>
 <p>If the <code>mux-startup</code> event causes any panes to be created then those will
