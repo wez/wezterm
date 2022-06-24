@@ -2370,6 +2370,7 @@ impl WindowView {
         if (chars == "." && modifiers == Modifiers::SUPER)
             || (chars == "\u{1b}" && modifiers == Modifiers::CTRL)
             || (chars == "\t" && modifiers == Modifiers::CTRL)
+            || (chars == "\x19"/* Shift-Tab: See issue #1902 */)
         {
             // Synthesize a key down event for this, because macOS will
             // not do that, even though we tell it that we handled this event.
