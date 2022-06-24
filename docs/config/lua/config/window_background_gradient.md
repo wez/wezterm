@@ -71,7 +71,7 @@ for some usage examples and additional information about gradients.
 
 ## Linear gradient:
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 A linear gradient follows a linear path across the window. It can be rotated
 around the window center. The angle is described in degrees and moves 

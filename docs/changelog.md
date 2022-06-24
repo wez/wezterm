@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet
+
+### 20220624-141144-bd1b7c5d
+
 #### New
 * [background](config/lua/config/background.md) option for rich background compositing and parallax scrolling effects.
 * Added [docs for the cli](cli/general.md)

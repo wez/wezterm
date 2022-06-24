@@ -34,7 +34,7 @@ reassignable.
 |                | `q`        |
 | Cell selection | `v` |
 | Line selection | `V` |
-| Rectangular selection | `CTRL-v` (*since: nightly builds only*)|
+| Rectangular selection | `CTRL-v` (*since: 20220624-141144-bd1b7c5d*)|
 | Move Left      | `LeftArrow`|
 |                | `h`        |
 | Move Down      | `DownArrow`|
@@ -70,7 +70,7 @@ reassignable.
 
 ### Configurable Key Assignments
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 The key assignments for copy mode are specified by the `copy_mode` [Key Table](config/key-tables.md).
 

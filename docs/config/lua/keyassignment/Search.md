@@ -27,7 +27,7 @@ return {
 
 [Learn more about the search overlay](../../../scrollback.html#searching-the-scrollback)
 
-*since: nightly builds only*
+*since: 20220624-141144-bd1b7c5d*
 
 You may now use `wezterm.action{Search="CurrentSelectionOrEmptyString"}` to have the search take the currently selected text as the item to search.
 

@@ -9,7 +9,7 @@ applications.
 
 See also [Improved Keyboard Handling in ConPTY](https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md).
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 The default for `allow_win32_input_mode` is now true.
 

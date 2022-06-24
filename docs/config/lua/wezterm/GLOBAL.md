@@ -1,6 +1,6 @@
 # `wezterm.GLOBAL`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 Provides global, in-process, in-memory, data storage for json-like variables
 that persists across config reloads.

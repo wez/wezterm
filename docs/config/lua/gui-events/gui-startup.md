@@ -1,6 +1,6 @@
 # `gui-startup`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 The `gui-startup` event is emitted once when the GUI server is starting up
 when running the `wezterm start` subcommand.

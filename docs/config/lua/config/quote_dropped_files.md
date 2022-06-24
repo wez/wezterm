@@ -1,6 +1,6 @@
 ## quote_dropped_files = "SpacesOnly"
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 Controls how file names are quoted (or not) when dragging and dropping.
 There are five possible values:
@@ -25,7 +25,7 @@ Drag and drop support for files is a platform dependent feature
 
 |Platform  |Supported since    |
 |----------|-------------------|
-|macOS     |nightly builds only|
-|Windows   |nightly builds only|
+|macOS     |20220624-141144-bd1b7c5d|
+|Windows   |20220624-141144-bd1b7c5d|
 |X11       |Not yet            |
-|Wayland   |nightly builds only|
+|Wayland   |20220624-141144-bd1b7c5d|

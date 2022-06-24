@@ -1,6 +1,6 @@
 # PaneSelect
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 This action activates the pane selection modal display. In this mode, each pane
 will be overlayed with a one- or two-character label taken from the selection

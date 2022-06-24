@@ -1,6 +1,6 @@
 # `enable_kitty_keyboard = false`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 When set to `true`, wezterm will honor kitty keyboard protocol escape
 sequences that modify the [keyboard encoding](../../key-encoding.md).

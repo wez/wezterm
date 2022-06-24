@@ -293,7 +293,7 @@ When a cursor is needed, the XCursor theme is tried first:
 If no XCursor was found, wezterm will fall back to using the default X11 cursor
 font provided by the system.
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 When troubleshooting xcursor issues, you can enable tracing by turning on the log level shown
 below, and then moving the mouse over the wezterm window:

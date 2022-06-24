@@ -1,6 +1,6 @@
 # RotatePanes
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 Rotates the sequence of panes within the active tab, preserving the sizes based on the tab positions.
 

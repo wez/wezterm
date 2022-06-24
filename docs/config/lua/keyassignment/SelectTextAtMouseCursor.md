@@ -27,6 +27,6 @@ return {
 [See Shell Integration docs](../../../shell-integration.md) for more details on
 how to set up your shell to define semantic zones.
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 The mode argument can also be `"Block"` to enable a rectangular block selection.

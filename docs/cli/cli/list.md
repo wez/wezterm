@@ -22,7 +22,7 @@ Each row describes a pane.  The meaning of the fields are:
 * `TITLE` - the pane title
 * `CWD` - the current working directory associated with the pane
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 You may request JSON output:
 

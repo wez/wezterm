@@ -1,6 +1,6 @@
 # `cell_width = 1.0`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 Scales the computed cell width to adjust the spacing between successive cells
 of text.

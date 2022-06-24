@@ -1,6 +1,6 @@
 # `wezterm.mux.get_tab(WINDOW_ID)`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 Given a tab ID, verifies that the ID is a valid tab known to the mux
 and returns a [MuxTab](../MuxTab.md) object that can be used to

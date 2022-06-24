@@ -1,6 +1,6 @@
 # `wezterm show-keys`
 
-*Since: nightly builds only*
+*Since: 20220624-141144-bd1b7c5d*
 
 
 Prints the complete set of key assignments based on your config file.
