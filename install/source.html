@@ -155,9 +155,9 @@ attempt to install them for you.  If it doesn't know about your system,
 <p>If you don't plan to submit a pull request to the wezterm repo, you can
 download a smaller source tarball using these steps:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
-curl -LO https://github.com/wez/wezterm/releases/download/20220408-101518-b908e2dd/wezterm-20220408-101518-b908e2dd-src.tar.gz
-tar -xzf wezterm-20220408-101518-b908e2dd-src.tar.gz
-cd wezterm-20220408-101518-b908e2dd
+curl -LO https://github.com/wez/wezterm/releases/download/20220624-141144-bd1b7c5d/wezterm-nightly-src.tar.gz
+tar -xzf wezterm-nightly-src.tar.gz
+cd wezterm-20220624-141144-bd1b7c5d
 ./get-deps
 cargo build --release
 cargo run --release --bin wezterm -- start
