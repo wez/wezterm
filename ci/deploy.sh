@@ -130,8 +130,8 @@ case $OSTYPE in
     case "$distro" in
       *Fedora*|*CentOS*|*SUSE*)
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
-        distroid=$(sh -c "source /etc/os-release && echo \$ID")
-        distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID")
+        distroid=$(sh -c "source /etc/os-release && echo \$ID" | tr - _)
+        distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID" | tr - _)
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
