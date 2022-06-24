@@ -126,11 +126,12 @@ case $OSTYPE in
     ;;
   linux-gnu|linux)
     distro=$(lsb_release -is 2>/dev/null || sh -c "source /etc/os-release && echo \$NAME")
-    distroid=$(lsb_release -is 2>/dev/null || sh -c "source /etc/os-release && echo \$ID")
     distver=$(lsb_release -rs 2>/dev/null || sh -c "source /etc/os-release && echo \$VERSION_ID")
     case "$distro" in
       *Fedora*|*CentOS*|*SUSE*)
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
+        distroid=$(sh -c "source /etc/os-release && echo \$ID")
+        distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID")
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
