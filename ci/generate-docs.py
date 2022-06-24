@@ -78,9 +78,7 @@ class GenColorScheme(object):
                     img = os.path.basename(img)
                     title = os.path.basename(img).rsplit(".", 1)[0]
                     idx.write(f"# {title}\n")
-                    idx.write(
-                        f'<img src="{img}" alt="{title}">\n\n'
-                    )
+                    idx.write(f'<img src="{img}" alt="{title}">\n\n')
                     idx.write("To use this scheme, add this to your config:\n")
                     idx.write(
                         f"""
@@ -152,7 +150,14 @@ TOC = [
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
-            Page("CLI Reference", "cli/general.md", children=[Gen("cli", "cli/cli")]),
+            Page(
+                "CLI Reference",
+                "cli/general.md",
+                children=[
+                    Gen("cli", "cli/cli"),
+                    Page("show-keys", "cli/show-keys.md"),
+                ],
+            ),
             Page(
                 "Lua Reference",
                 "config/lua/general.md",
