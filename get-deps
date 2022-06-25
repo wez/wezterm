@@ -180,9 +180,9 @@ arch_deps() {
     'xcb-util-keysyms' \
     'xcb-util-wm'
 
-  if test_cmd; then
+  if test_flag; then
     $PACMAN -S --noconfirm --needed \
-      'openssh-server'
+      'openssh'
   fi
 }
 
