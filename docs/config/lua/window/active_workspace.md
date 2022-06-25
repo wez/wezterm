@@ -16,7 +16,7 @@ end)
 
 return {
   keys = {
-    {key="9", mods="ALT", action=wezterm.action{ShowLauncherArgs={flags="FUZZY|WORKSPACES"}}},
+    {key="9", mods="ALT", action=wezterm.action.ShowLauncherArgs{flags="FUZZY|WORKSPACES"}},
   },
 }
 ```

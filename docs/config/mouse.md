@@ -26,27 +26,29 @@ of that triple click, so for a triple click both
 `SelectTextAtMouseCursor="Line"` and `CompleteSelection` will be triggered in
 that order.
 
+NOTE: In the action column, `act` is an alias to `wezterm.action` (to avoid repetition).
+
 | Event | Modifiers | Action |
 | --------- | --- | ------ |
-| Triple Left Down | `NONE`   | `SelectTextAtMouseCursor="Line"`  |
-| Double Left Down | `NONE`   | `SelectTextAtMouseCursor="Word"`  |
-| Single Left Down | `NONE`   | `SelectTextAtMouseCursor="Cell"`  |
-| Single Left Down | `SHIFT`   | `ExtendSelectionToMouseCursor={}`  |
-| Single Left Down | `ALT`   | `SelectTextAtMouseCursor="Block"`  (*since: 20220624-141144-bd1b7c5d*) |
-| Single Left Up | `SHIFT`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
-| Single Left Up | `NONE`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
-| Single Left Up | `ALT`   | `CompleteSelection="PrimarySelection"`  (*since: 20220624-141144-bd1b7c5d*) |
-| Double Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
-| Triple Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
-| Single Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Cell"`  |
-| Single Left Drag | `ALT`   | `ExtendSelectionToMouseCursor="Block"` (*since: 20220624-141144-bd1b7c5d*) |
-| Single Left Down | `ALT+SHIFT`   | `ExtendSelectionToMouseCursor="Block"`  (*since: 20220624-141144-bd1b7c5d*) |
-| Single Left Up | `ALT+SHIFT`   | `CompleteSelection="PrimarySelection"`  (*since: 20220624-141144-bd1b7c5d*) |
-| Double Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Word"`  |
-| Triple Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Line"`  |
-| Single Middle Down | `NONE`   | `PasteFrom="PrimarySelection"`  |
-| Single Left Drag | `SUPER` | `StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
-| Single Left Drag | `CTRL+SHIFT` | `StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
+| Triple Left Down | `NONE`   | `act.SelectTextAtMouseCursor("Line")`  |
+| Double Left Down | `NONE`   | `act.SelectTextAtMouseCursor("Word")`  |
+| Single Left Down | `NONE`   | `act.SelectTextAtMouseCursor("Cell")`  |
+| Single Left Down | `SHIFT`   | `act.ExtendSelectionToMouseCursor("Cell")`  |
+| Single Left Down | `ALT`   | `act.SelectTextAtMouseCursor("Block")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Single Left Up | `SHIFT`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("PrimarySelection")`  |
+| Single Left Up | `NONE`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("PrimarySelection")`  |
+| Single Left Up | `ALT`   | `act.CompleteSelection("PrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Double Left Up | `NONE`   | `act.CompleteSelection("PrimarySelection")`  |
+| Triple Left Up | `NONE`   | `act.CompleteSelection("PrimarySelection")`  |
+| Single Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Cell")`  |
+| Single Left Drag | `ALT`   | `act.ExtendSelectionToMouseCursor("Block")` (*since: 20220624-141144-bd1b7c5d*) |
+| Single Left Down | `ALT+SHIFT`   | `act.ExtendSelectionToMouseCursor("Block")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Single Left Up | `ALT+SHIFT`   | `act.CompleteSelection("PrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Double Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Word")`  |
+| Triple Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Line")`  |
+| Single Middle Down | `NONE`   | `act.PasteFrom("PrimarySelection")`  |
+| Single Left Drag | `SUPER` | `act.StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
+| Single Left Drag | `CTRL+SHIFT` | `act.StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
 
 If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
@@ -66,6 +68,7 @@ You can define mouse actions using the `mouse_bindings` configuration section:
 
 ```lua
 local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   mouse_bindings = {
@@ -73,7 +76,7 @@ return {
     {
       event={Down={streak=1, button="Right"}},
       mods="NONE",
-      action=wezterm.action{SendString="woot"}
+      action=act.SendString("woot"),
     },
 
     -- Change the default click behavior so that it only selects
@@ -81,14 +84,14 @@ return {
     {
       event={Up={streak=1, button="Left"}},
       mods="NONE",
-      action=wezterm.action{CompleteSelection="PrimarySelection"},
+      action=act.CompleteSelection("PrimarySelection"),
     },
 
     -- and make CTRL-Click open hyperlinks
     {
       event={Up={streak=1, button="Left"}},
       mods="CTRL",
-      action="OpenLinkAtMouseCursor",
+      action=act.OpenLinkAtMouseCursor,
     },
     -- NOTE that binding only the 'Up' event can give unexpected behaviors.
     -- Read more below on the gotcha of binding an 'Up' event only.
@@ -133,19 +136,22 @@ event, but not the 'Up' event (which is bound to something in your config).
 To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
 be sent to the running program), for example:
 ```lua
+local wezterm = require "wezterm"
+local act = wezterm.action
+
 return {
   mouse_bindings = {
     -- Bind 'Up' event of CTRL-Click to open hyperlinks
     {
       event={Up={streak=1, button="Left"}},
       mods="CTRL",
-      action="OpenLinkAtMouseCursor",
+      action=act.OpenLinkAtMouseCursor,
     },
     -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
     {
       event={Down={streak=1, button="Left"}},
       mods="CTRL",
-      action="Nop",
+      action=act.Nop,
     },
   },
 }
@@ -156,5 +162,3 @@ return {
 
 See the [`KeyAssignment` reference](lua/keyassignment/index.md) for information
 on available actions.
-
-

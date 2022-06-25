@@ -12,7 +12,7 @@ The implementation is essentially the same as:
 function wezterm.action_callback(callback)
   local event_id = "..." -- the function generates a unique event id
   wezterm.on(event_id, callback)
-  return wezterm.action{EmitEvent=event_id}
+  return wezterm.action.EmitEvent(event_id)
 end
 ```
 

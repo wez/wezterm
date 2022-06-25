@@ -23,7 +23,7 @@ end)
 
 return {
   keys = {
-    {key="E", mods="CTRL", action=wezterm.action{EmitEvent="show-font-size"}},
+    {key="E", mods="CTRL", action=wezterm.action.EmitEvent("show-font-size")},
   },
 }
 ```
