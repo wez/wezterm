@@ -36,7 +36,13 @@ macro_rules! impl_lua_conversion_dynamic {
             ) -> Result<Self, $crate::mlua::Error> {
                 use wezterm_dynamic::FromDynamic;
                 let lua_type = value.type_name();
-                let value = $crate::lua_value_to_dynamic(value)?;
+                let value = $crate::lua_value_to_dynamic(value).map_err(|e| {
+                    $crate::mlua::Error::FromLuaConversionError {
+                        from: lua_type,
+                        to: stringify!($struct),
+                        message: Some(e.to_string()),
+                    }
+                })?;
                 $struct::from_dynamic(&value, Default::default()).map_err(|e| {
                     $crate::mlua::Error::FromLuaConversionError {
                         from: lua_type,
@@ -127,15 +133,46 @@ fn lua_value_to_dynamic_impl(
         LuaValue::Table(table) => {
             if let Ok(true) = table.contains_key(1) {
                 let mut array = vec![];
+                let pairs = table.clone();
                 for value in table.sequence_values() {
                     array.push(lua_value_to_dynamic(value?)?);
                 }
+
+                for pair in pairs.pairs::<LuaValue, LuaValue>() {
+                    let (key, _value) = pair?;
+                    match &key {
+                        LuaValue::Integer(n) if *n >= 1 && *n as usize <= array.len() => {
+                            // Ok!
+                        }
+                        _ => {
+                            let type_name = key.type_name();
+                            let key = ValuePrinter(key);
+                            return Err(mlua::Error::FromLuaConversionError {
+                                from: type_name,
+                                to: "numeric array index",
+                                message: Some(format!(
+                                    "Unexpected key {key:?} for array style table"
+                                )),
+                            });
+                        }
+                    }
+                }
+
                 DynValue::Array(array.into())
             } else {
                 let mut obj = BTreeMap::default();
                 for pair in table.pairs::<LuaValue, LuaValue>() {
                     let (key, value) = pair?;
-                    obj.insert(lua_value_to_dynamic(key)?, lua_value_to_dynamic(value)?);
+                    let key = lua_value_to_dynamic(key)?;
+                    let lua_type = value.type_name();
+                    let value = lua_value_to_dynamic(value).map_err(|e| {
+                        mlua::Error::FromLuaConversionError {
+                            from: lua_type,
+                            to: "value",
+                            message: Some(format!("while processing {key:?}: {}", e.to_string())),
+                        }
+                    })?;
+                    obj.insert(key, value);
                 }
                 DynValue::Object(obj.into())
             }
