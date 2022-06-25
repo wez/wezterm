@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-18.04"
     
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Update APT"

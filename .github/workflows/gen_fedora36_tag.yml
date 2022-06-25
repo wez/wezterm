@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "fedora:36"
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Install config manager"

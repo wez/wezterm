@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+from copy import deepcopy
 
 
 def yv(v, depth=0):
@@ -43,7 +44,10 @@ class RunStep(Step):
         f.write(f"{indent}- name: {yv(self.name)}\n")
         if self.env:
             f.write(f"{indent}  env:\n")
-            for k, v in self.env.items():
+            keys = list(self.env.keys())
+            keys.sort()
+            for k in keys:
+                v = self.env[k]
                 f.write(f"{indent}    {k}: {v}\n")
         if self.shell:
             f.write(f"{indent}  shell: {self.shell}\n")
@@ -793,6 +797,11 @@ TARGETS = [
 
 def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
     for t in TARGETS:
+        # Clone the definition, as some Target methods called
+        # in the body below have side effects that we don't
+        # want to bleed across into different schedule types
+        t = deepcopy(t)
+
         t.is_tag = is_tag
         # if t.continuous_only and not is_continuous:
         #    continue

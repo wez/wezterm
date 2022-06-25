@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "quay.io/centos/centos:stream9"
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Install config manager"

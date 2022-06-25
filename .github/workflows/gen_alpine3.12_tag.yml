@@ -11,7 +11,6 @@ jobs:
     container: "alpine:3.12"
     env:
       RUSTFLAGS: "-C target-feature=-crt-static"
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Upgrade system"

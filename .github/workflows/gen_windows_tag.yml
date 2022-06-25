@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "windows-latest"
     
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "checkout repo"

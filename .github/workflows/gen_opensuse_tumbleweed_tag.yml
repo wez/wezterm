@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "registry.opensuse.org/opensuse/tumbleweed"
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Seed GITHUB_PATH to work around possible @action/core bug"

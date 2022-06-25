@@ -24,8 +24,8 @@ jobs:
     runs-on: "macos-11"
     
     env:
-      MACOSX_DEPLOYMENT_TARGET: "10.9"
       BUILD_REASON: "Schedule"
+      MACOSX_DEPLOYMENT_TARGET: "10.9"
 
     steps:
       - name: "checkout repo"
@@ -58,11 +58,11 @@ jobs:
         run: "cargo test --target x86_64-apple-darwin --all --release"
       - name: "Package"
         env:
+          MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}
+          MACOS_APP_PW: ${{ secrets.MACOS_APP_PW }}
           MACOS_CERT: ${{ secrets.MACOS_CERT }}
           MACOS_CERT_PW: ${{ secrets.MACOS_CERT_PW }}
           MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
-          MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}
-          MACOS_APP_PW: ${{ secrets.MACOS_APP_PW }}
         shell: bash
         run: "bash ci/deploy.sh"
       - name: "Upload artifact"

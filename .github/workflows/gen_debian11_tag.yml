@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "debian:11"
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "set APT to non-interactive"

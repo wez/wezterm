@@ -9,8 +9,6 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     container: "quay.io/centos/centos:centos7"
-    env:
-      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Install SCL"

@@ -24,8 +24,8 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "alpine:3.15"
     env:
-      RUSTFLAGS: "-C target-feature=-crt-static"
       BUILD_REASON: "Schedule"
+      RUSTFLAGS: "-C target-feature=-crt-static"
 
     steps:
       - name: "Upgrade system"
