@@ -70,6 +70,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: [allow_win32_input_mode](config/lua/config/allow_win32_input_mode.md) now defaults to `true` and enables using [win32-input-mode](https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md) to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as [FAR Manager](https://github.com/FarGroup/FarManager) that use the low level `INPUT_RECORD` API will now receive key-up events as well as events for modifier-only key presses. [#1509](https://github.com/wez/wezterm/issues/1509) [#2009](https://github.com/wez/wezterm/issues/2009) [#2098](https://github.com/wez/wezterm/issues/2098) [#1904](https://github.com/wez/wezterm/issues/1904)
 * Wayland: [enable_wayland](config/lua/config/enable_wayland.md) now defaults to `true`. [#2104](https://github.com/wez/wezterm/issues/2104)
 * [exit_behavior](config/lua/config/exit_behavior.md) now defaults to `"Close"`. [#2105](https://github.com/wez/wezterm/issues/2105)
+* Improved [wezterm.action](config/lua/wezterm/action.md) syntax for slightly more ergnomic and understandable key assignments. [#1150](https://github.com/wez/wezterm/issues/1150)
 
 #### Fixed
 * Flush after replying to `XTGETTCAP`, `DECRQM`, `XTVERSION`, `DA2`, `DA3` [#2060](https://github.com/wez/wezterm/issues/2060) [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)
