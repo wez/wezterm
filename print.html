@@ -502,6 +502,7 @@ usually the best available version.</p>
 <li>Windows: <a href="config/lua/config/allow_win32_input_mode.html">allow_win32_input_mode</a> now defaults to <code>true</code> and enables using <a href="https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md">win32-input-mode</a> to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as <a href="https://github.com/FarGroup/FarManager">FAR Manager</a> that use the low level <code>INPUT_RECORD</code> API will now receive key-up events as well as events for modifier-only key presses. <a href="https://github.com/wez/wezterm/issues/1509">#1509</a> <a href="https://github.com/wez/wezterm/issues/2009">#2009</a> <a href="https://github.com/wez/wezterm/issues/2098">#2098</a> <a href="https://github.com/wez/wezterm/issues/1904">#1904</a></li>
 <li>Wayland: <a href="config/lua/config/enable_wayland.html">enable_wayland</a> now defaults to <code>true</code>. <a href="https://github.com/wez/wezterm/issues/2104">#2104</a></li>
 <li><a href="config/lua/config/exit_behavior.html">exit_behavior</a> now defaults to <code>&quot;Close&quot;</code>. <a href="https://github.com/wez/wezterm/issues/2105">#2105</a></li>
+<li>Improved <a href="config/lua/wezterm/action.html">wezterm.action</a> syntax for slightly more ergnomic and understandable key assignments. <a href="https://github.com/wez/wezterm/issues/1150">#1150</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -6709,6 +6710,68 @@ safely validating and setting up the configuration.</p>
 This is really just sugar for the underlying Lua -&gt; Rust deserialation
 mapping that makes it a bit easier to identify where syntax errors may
 exist in your configuration file.</p>
+<h2 id="constructor-syntax"><a class="header" href="#constructor-syntax">Constructor Syntax</a></h2>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
+<p><code>wezterm.action</code> is a special enum constructor type that makes it bit
+more ergonomic to express the various actions than in earlier releases.
+The older syntax is still supported, so you needn't scramble to update
+your configuration files.</p>
+<p>Indexing <code>wezterm.action</code> with a valid
+<a href="config/lua/wezterm/../keyassignment/index.html">KeyAssignment</a> name will act as a constructor for
+that key assignment type.  For example, the lua expression:</p>
+<pre><code class="language-lua">wezterm.action.QuickSelectArgs
+</code></pre>
+<p>is a constructor for <a href="config/lua/wezterm/../keyassignment/QuickSelectArgs.html">QuickSelectArgs</a>.</p>
+<p>If the key assignment type is a <em>unit variant</em> (has no parameters) such as
+<a href="config/lua/wezterm/../keyassignment/Copy.html">Copy</a>, or can be constructed with default values
+such as <a href="config/lua/wezterm/../keyassignment/QuickSelectArgs.html">QuickSelectArgs</a> then you can
+reference the constructor directly to have it evaluate as that value without
+having to add any extra punctuation:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+return {
+   keys = {
+     {key=&quot; &quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action.QuickSelectArgs},
+   }
+}
+</code></pre>
+<p>You may pass the optional parameters to <code>QuickSelectArgs</code> as you need
+them, like this:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+return {
+   keys = {
+     {key=&quot; &quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action.QuickSelectArgs{
+      alphabet=&quot;abc&quot;
+     }},
+   }
+}
+</code></pre>
+<p>If the key assignment type is a <em>tuple variant</em> (has positional parameters)
+such as <a href="config/lua/wezterm/../keyassignment/ActivatePaneByIndex.html">ActivatePaneByIndex</a>, then
+you can pass those by calling the constructor:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+-- shortcut to save typing below
+local act = wezterm.action
+
+return {
+   keys = {
+     {key=&quot;F1&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(0)},
+     {key=&quot;F2&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(1)},
+     {key=&quot;F3&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(2)},
+     {key=&quot;F4&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(3)},
+     {key=&quot;F5&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(4)},
+     {key=&quot;F6&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(5)},
+     {key=&quot;F7&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(6)},
+     {key=&quot;F8&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(7)},
+     {key=&quot;F9&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(8)},
+     {key=&quot;F10&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(9)},
+
+     -- Compare this with the older syntax shown in the section below
+     {key=&quot;{&quot;, mods=&quot;CTRL&quot;, action=act.ActivateTabRelative(-1)},
+     {key=&quot;}&quot;, mods=&quot;CTRL&quot;, action=act.ActivateTabRelative(1)},
+   }
+}
+</code></pre>
+<h2 id="older-versions"><a class="header" href="#older-versions">Older versions</a></h2>
 <p>Usage looks like this:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
