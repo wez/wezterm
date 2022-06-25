@@ -140,9 +140,11 @@
                     <main>
                         <h1 id="quitapplication"><a class="header" href="#quitapplication">QuitApplication</a></h1>
 <p>Terminate the WezTerm application, killing all tabs.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;q&quot;, mods=&quot;CMD&quot;, action=&quot;QuitApplication&quot;},
+    {key=&quot;q&quot;, mods=&quot;CMD&quot;, action=wezterm.action.QuitApplication},
   }
 }
 </code></pre>

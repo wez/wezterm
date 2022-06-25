@@ -149,6 +149,7 @@ immediately following the current workspace.</p>
 It shows the active workspace in the title bar.  The launcher menu can be used
 to create workspaces.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
   window:set_right_status(window:active_workspace())
@@ -156,9 +157,9 @@ end)
 
 return {
   keys = {
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={flags=&quot;FUZZY|WORKSPACES&quot;}}},
-    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{SwitchWorkspaceRelative=1}},
-    {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{SwitchWorkspaceRelative=-1}},
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=act.ShowLauncherArgs{flags=&quot;FUZZY|WORKSPACES&quot;}},
+    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.SwitchWorkspaceRelative(1)},
+    {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=act.SwitchWorkspaceRelative(-1)},
   },
 }
 </code></pre>

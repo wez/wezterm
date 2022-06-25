@@ -151,11 +151,11 @@ configuration:</p>
 return {
   keys = {
     {key=&quot;P&quot;, mods=&quot;CTRL&quot;,
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        patterns={
           &quot;https?://\\S+&quot;
        },
-     }}
+     }
    },
   },
 }
@@ -175,7 +175,7 @@ the selected URL using the web browser:</p>
 return {
   keys = {
     {key=&quot;P&quot;, mods=&quot;CTRL&quot;,
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        label = &quot;open url&quot;,
        patterns={
           &quot;https?://\\S+&quot;
@@ -185,7 +185,7 @@ return {
           wezterm.log_info(&quot;opening: &quot; .. url)
           wezterm.open_with(url)
        end)
-     }}
+     }
    },
   },
 }

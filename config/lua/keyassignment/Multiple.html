@@ -143,14 +143,17 @@
 <p>Performs a sequence of multiple assignments.  This is useful when you
 want a single key press to trigger multiple actions.</p>
 <p>The example below causes <code>LeftArrow</code> to effectively type <code>left</code>:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
+return {
   keys = {
-    {key=&quot;LeftArrow&quot;, action={Multiple={
-      {SendKey={key=&quot;l&quot;}},
-      {SendKey={key=&quot;e&quot;}},
-      {SendKey={key=&quot;f&quot;}},
-      {SendKey={key=&quot;t&quot;}},
-    }}}
+    {key=&quot;LeftArrow&quot;, action=act.Multiple{
+      act.SendKey{key=&quot;l&quot;},
+      act.SendKey{key=&quot;e&quot;},
+      act.SendKey{key=&quot;f&quot;},
+      act.SendKey{key=&quot;t&quot;}
+    }}
   }
 }
 </code></pre>

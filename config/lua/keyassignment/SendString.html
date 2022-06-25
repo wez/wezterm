@@ -141,11 +141,11 @@
                         <h1 id="sendstring"><a class="header" href="#sendstring">SendString</a></h1>
 <p>Sends the string specified argument to the terminal in the current tab, as
 though that text were literally typed into the terminal.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action{SendString=&quot;Hello&quot;}},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.SendString(&quot;Hello&quot;)},
   }
 }
 </code></pre>
@@ -153,14 +153,15 @@ return {
 how to bind Alt-LeftArrow/RightArrow to the Alt-b/f, an emacs style
 keybinding for moving backwards/forwards through a word in a line editor.</p>
 <p><code>\x1b</code> is the ESC character:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
     -- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
-    {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=wezterm.action{SendString=&quot;\x1bb&quot;}},
+    {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=act.SendString(&quot;\x1bb&quot;)},
     -- Make Option-Right equivalent to Alt-f; forward-word
-    {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=wezterm.action{SendString=&quot;\x1bf&quot;}},
+    {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=act.SendString(&quot;\x1bf&quot;)},
   }
 }
 </code></pre>

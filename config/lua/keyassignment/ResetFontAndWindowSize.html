@@ -142,10 +142,11 @@
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Reset both the font size and the terminal dimensions for the current window to
 the values specified by your <code>font</code>, <code>initial_rows</code>, and <code>initial_cols</code> configuration.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=&quot;ResetFontAndWindowSize&quot;},
+    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.ResetFontAndWindowSize},
   }
 }
 </code></pre>

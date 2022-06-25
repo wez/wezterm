@@ -14290,7 +14290,7 @@ clear and convenient.</p>
 <p>Activates copy mode!</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;X&quot;, mods=&quot;CTRL&quot;, action=&quot;ActivateCopyMode&quot;},
+    {key=&quot;X&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.ActivateCopyMode},
   }
 }
 </code></pre>
@@ -14313,7 +14313,7 @@ clear and convenient.</p>
   leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot; },
   keys = {
     -- CTRL-a, followed by CTRL-o will switch back to the last active tab
-    {key=&quot;o&quot;, mods=&quot;LEADER|CTRL&quot;, action=&quot;ActivateLastTab&quot;},
+    {key=&quot;o&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action.ActivateLastTab},
   }
 }
 </code></pre>
@@ -14323,13 +14323,14 @@ clear and convenient.</p>
 the current tab.  Invalid indices are ignored.</p>
 <p>This example causes ALT-a, ALT-b, ALT-c to switch to the 0th, 1st and 2nd
 panes, respectively:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=0}},
-    {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=1}},
-    {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=2}},
+    {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(0)},
+    {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(1)},
+    {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(2)},
   }
 }
 </code></pre>
@@ -14340,18 +14341,19 @@ In cases where there are multiple adjacent panes in the intended direction,
 wezterm will choose the pane that has the largest edge intersection.</p>
 <p>If the active pane is <a href="config/lua/keyassignment/TogglePaneZoomState.html">zoomed</a>, behavior is determined
 by the <a href="config/lua/keyassignment/../config/unzoom_on_switch_pane.html"><code>unzoom_on_switch_pane</code></a> flag. </p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
     { key = &quot;LeftArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
+      action=act.ActivatePaneDirection(&quot;Left&quot;)},
     { key = &quot;RightArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
+      action=act.ActivatePaneDirection(&quot;Right&quot;)},
     { key = &quot;UpArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
+      action=act.ActivatePaneDirection(&quot;Up&quot;)},
     { key = &quot;DownArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
+      action=act.ActivatePaneDirection(&quot;Down&quot;)},
   }
 }
 </code></pre>
@@ -14369,7 +14371,8 @@ leftmost tab, while <code>1</code> activates the second tab from the left, and s
 <p><code>ActivateTab</code> now accepts negative numbers; these wrap around from the start
 of the tabs to the end, so <code>-1</code> references the right-most tab, <code>-2</code> the tab
 to its left and so on.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 local mykeys = {}
 for i = 1, 8 do
@@ -14377,12 +14380,12 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods=&quot;CTRL|ALT&quot;,
-    action=wezterm.action{ActivateTab=i-1},
+    action=act.ActivateTab(i-1),
   })
   -- F1 through F8 to activate that tab
   table.insert(mykeys, {
     key=&quot;F&quot; .. tostring(i),
-    action=wezterm.action{ActivateTab=i-1},
+    action=act.ActivateTab(i-1),
   })
 end
 
@@ -14394,11 +14397,13 @@ return {
 <p>Activate a tab relative to the current tab.  The argument value specifies an
 offset. eg: <code>-1</code> activates the tab to the left of the current tab, while <code>1</code>
 activates the tab to the right.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
-    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelative=-1}},
-    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelative=1}},
+    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelative(-1)},
+    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelative(1)},
   }
 }
 </code></pre>
@@ -14411,11 +14416,13 @@ activates the tab to the right.</p>
 <p>This is almost identical to <a href="config/lua/keyassignment/ActivateTabRelative.html">ActivateTabRelative</a>
 but this one will not wrap around; for example, if the first tab is active
 <code>ActivateTabRelativeNoWrap=-1</code> will not move to the last tab and vice versa.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
-    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelativeNoWrap=-1}},
-    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelativeNoWrap=1}},
+    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelativeNoWrap(-1)},
+    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelativeNoWrap(1)},
   }
 }
 </code></pre>
@@ -14432,15 +14439,16 @@ then the pane will shrink by 1 cell and move the split 1 cell to the right.</p>
 of the active pane by 5 cells in the left direction.  The other <code>vi</code> style
 motion keys are used to adjust the size in their conventional directions,
 respectively.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot; },
   keys = {
-    { key = &quot;H&quot;, mods = &quot;LEADER&quot;, action=wezterm.action{AdjustPaneSize={&quot;Left&quot;, 5}}},
-    { key = &quot;J&quot;, mods = &quot;LEADER&quot;, action=wezterm.action{AdjustPaneSize={&quot;Down&quot;, 5}}},
-    { key = &quot;K&quot;, mods = &quot;LEADER&quot;, action=wezterm.action{AdjustPaneSize={&quot;Up&quot;, 5}}},
-    { key = &quot;L&quot;, mods = &quot;LEADER&quot;, action=wezterm.action{AdjustPaneSize={&quot;Right&quot;, 5}}},
+    { key = &quot;H&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Left&quot;, 5)}},
+    { key = &quot;J&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Down&quot;, 5)}},
+    { key = &quot;K&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Up&quot;, 5)}},
+    { key = &quot;L&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Right&quot;, 5)}},
  }
 }
 </code></pre>
@@ -14467,7 +14475,7 @@ return {
     }
   },
   keys = {
-    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{AttachDomain=&quot;devhost&quot;}},
+    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action.AttachDomain(&quot;devhost&quot;)},
   },
 }
 </code></pre>
@@ -14481,13 +14489,16 @@ return {
 the scrollbar thumb to the full height of the window.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
 <p>Added a parameter that allows additionally clear the viewport:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
+return {
   keys = {
     -- Clears only the scrollback and leaves the viewport intact.
     -- This is the default behavior.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackOnly&quot;}},
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.ClearScrollback(&quot;ScrollbackOnly&quot;)},
     -- Clears the scrollback and viewport leaving the prompt line the new first line.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackAndViewport&quot;}},
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.ClearScrollback(&quot;ScrollbackAndViewport&quot;)},
   }
 }
 </code></pre>
@@ -14498,6 +14509,7 @@ the scrollbar thumb to the full height of the window.</p>
 when there is a selection present (clearing it afterwards) or sending
 CTRL-C to the terminal when there is no selection:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
@@ -14508,13 +14520,13 @@ return {
         local has_selection = window:get_selection_text_for_pane(pane) ~= &quot;&quot;
         if has_selection then
           window:perform_action(
-            wezterm.action{CopyTo=&quot;ClipboardAndPrimarySelection&quot;},
+            act.CopyTo(&quot;ClipboardAndPrimarySelection&quot;),
             pane)
 
           window:perform_action(&quot;ClearSelection&quot;, pane)
         else
           window:perform_action(
-            wezterm.action{SendKey={key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
+            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
             pane)
         end
       end)
@@ -14528,9 +14540,11 @@ If that was the last tab, closes that window.  If that was the last window,
 wezterm terminates.</p>
 <p>The act of closing a pane shuts down the PTY associated with the pane and
 then kills the process associated with that pane.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentPane={confirm=true}}},
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action.CloseCurrentPane{confirm=true}},
   }
 }
 </code></pre>
@@ -14544,16 +14558,7 @@ the pane without prompting.</p>
 tab, closes that window.  If that was the last window, wezterm terminates.</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=&quot;CloseCurrentTab&quot;},
-  }
-}
-</code></pre>
-<p><em>Since: 20201031-154415-9614e117</em></p>
-<p><code>CloseCurrentTab</code> was changed so that it requires
-a boolean <code>confirm</code> parameter:</p>
-<pre><code class="language-lua">return {
-  keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentTab={confirm=true}}},
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action.CloseCurrentTab{confirm=true}},
   }
 }
 </code></pre>
@@ -14581,7 +14586,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{CompleteSelection=&quot;Clipboard&quot;},
+      action=wezterm.action.CompleteSelection(&quot;Clipboard&quot;),
     },
   },
 }
@@ -14604,7 +14609,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{CompleteSelectionOrOpenLinkAtMouseCursor=&quot;Clipboard&quot;},
+      action=wezterm.action.CompleteSelectionOrOpenLinkAtMouseCursor(&quot;Clipboard&quot;),
     },
   },
 }
@@ -14616,10 +14621,10 @@ return {
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/CopyTo.html">CopyTo</a> instead.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 return {
   keys = {
-    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=&quot;Copy&quot;},
+    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.Copy},
   }
 }
 </code></pre>
@@ -14631,10 +14636,11 @@ return {
 <li><code>PrimarySelection</code> - Copy the text to the primary selection buffer (applicable to X11 and some Wayland systems only)</li>
 <li><code>ClipboardAndPrimarySelection</code> - Copy to both the clipboard and the primary selection.</li>
 </ul>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyTo=&quot;ClipboardAndPrimarySelection&quot;}},
+    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.CopyTo(&quot;ClipboardAndPrimarySelection&quot;)},
   }
 }
 </code></pre>
@@ -14642,10 +14648,11 @@ return {
 <p><code>PrimarySelection</code> is now also supported on Wayland systems that support <a href="https://wayland.app/protocols/primary-selection-unstable-v1">primary-selection-unstable-v1</a> or the older Gtk primary selection protocol.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="decreasefontsize"><a class="header" href="#decreasefontsize">DecreaseFontSize</a></h1>
 <p>Decreases the font size of the current window by 10%</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;-&quot;, mods=&quot;CTRL&quot;, action=&quot;DecreaseFontSize&quot;},
+    {key=&quot;-&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.DecreaseFontSize},
   }
 }
 </code></pre>
@@ -14658,6 +14665,7 @@ when you later attach to the domain, they'll still be there.</p>
 <p>Not every domain supports detaching, and will log an error to the
 error log/debug overlay.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   ssh_domains = {
@@ -14667,11 +14675,11 @@ return {
     }
   },
   keys = {
-    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{AttachDomain=&quot;devhost&quot;}},
+    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.AttachDomain(&quot;devhost&quot;)},
     -- Detaches the domain associated with the current pane
-    {key=&quot;D&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{DetachDomain=&quot;CurrentPaneDomain&quot;}},
+    {key=&quot;D&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.DetachDomain(&quot;CurrentPaneDomain&quot;)},
     -- Detaches the &quot;devhost&quot; domain
-    {key=&quot;E&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{DetachDomain={DomainName=&quot;devhost&quot;}}},
+    {key=&quot;E&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.DetachDomain{DomainName=&quot;devhost&quot;}},
   },
 }
 
@@ -14682,11 +14690,13 @@ return {
 of a default assignment if that key/mouse/modifier combination is one of the
 default assignments and cause the key press to be propagated through
 to the tab for processing.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
     -- Turn off the default CMD-m Hide action, allowing CMD-m to
     -- be potentially recognized and handled by the tab
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;DisableDefaultAssignment&quot;},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.DisableDefaultAssignment},
   }
 }
 </code></pre>
@@ -14699,7 +14709,19 @@ example of using this action.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="extendselectiontomousecursor"><a class="header" href="#extendselectiontomousecursor">ExtendSelectionToMouseCursor</a></h1>
 <p>Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
-the scope of the selection.</p>
+the scope of the selection:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
+  mouse_bindings = {
+    {
+      event={Up={streak=1, button=&quot;Left&quot;}},
+      mods=&quot;SHIFT&quot;,
+      action=wezterm.action.ExtendSelectionToMouseCursor(&quot;Word&quot;),
+    },
+  }
+}
+</code></pre>
 <p>It is also possible to leave the mode unspecified like this:</p>
 <pre><code class="language-lua">return {
   mouse_bindings = {
@@ -14719,26 +14741,31 @@ based on recent actions.</p>
 <p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=&quot;Hide&quot;},
+    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=wezterm.action.Hide},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hideapplication"><a class="header" href="#hideapplication">HideApplication</a></h1>
 <p>On macOS, hide the WezTerm application.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=&quot;HideApplication&quot;},
+    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=wezterm.action.HideApplication},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="increasefontsize"><a class="header" href="#increasefontsize">IncreaseFontSize</a></h1>
 <p>Increases the font size of the current window by 10%</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;=&quot;, mods=&quot;CTRL&quot;, action=&quot;IncreaseFontSize&quot;},
+    {key=&quot;=&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.IncreaseFontSize},
   }
 }
 </code></pre>
@@ -14746,7 +14773,8 @@ return {
 <p>Move the tab so that it has the index specified by the argument. eg: <code>0</code>
 moves the tab to be  leftmost, while <code>1</code> moves the tab so that it is second tab
 from the left, and so on.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 local mykeys = {}
 for i = 1, 8 do
@@ -14754,7 +14782,7 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods=&quot;CTRL|ALT&quot;,
-    action=wezterm.action{MoveTab=i-1},
+    action=act.MoveTab(i-1),
   })
 end
 
@@ -14766,11 +14794,13 @@ return {
 <p>Move the current tab relative to its peers.  The argument specifies an
 offset. eg: <code>-1</code> moves the tab to the left of the current tab, while <code>1</code> moves
 the tab to the right.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
-    {key=&quot;{&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{MoveTabRelative=-1}},
-    {key=&quot;}&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{MoveTabRelative=1}},
+    {key=&quot;{&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.MoveTabRelative(-1)},
+    {key=&quot;}&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.MoveTabRelative(1)},
   }
 }
 </code></pre>
@@ -14779,14 +14809,17 @@ return {
 <p>Performs a sequence of multiple assignments.  This is useful when you
 want a single key press to trigger multiple actions.</p>
 <p>The example below causes <code>LeftArrow</code> to effectively type <code>left</code>:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
+return {
   keys = {
-    {key=&quot;LeftArrow&quot;, action={Multiple={
-      {SendKey={key=&quot;l&quot;}},
-      {SendKey={key=&quot;e&quot;}},
-      {SendKey={key=&quot;f&quot;}},
-      {SendKey={key=&quot;t&quot;}},
-    }}}
+    {key=&quot;LeftArrow&quot;, action=act.Multiple{
+      act.SendKey{key=&quot;l&quot;},
+      act.SendKey{key=&quot;e&quot;},
+      act.SendKey{key=&quot;f&quot;},
+      act.SendKey{key=&quot;t&quot;}
+    }}
   }
 }
 </code></pre>
@@ -14795,17 +14828,19 @@ want a single key press to trigger multiple actions.</p>
 keys were not pressed.</p>
 <p>If instead of this you want the key presses to pass through to
 the terminal, look at <a href="config/lua/keyassignment/DisableDefaultAssignment.html">DisableDefaultAssignment</a>.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
     -- Turn off any side effects from pressing CMD-m
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;Nop&quot;},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.Nop},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="openlinkatmousecursor"><a class="header" href="#openlinkatmousecursor">OpenLinkAtMouseCursor</a></h1>
 <p>If the current mouse cursor position is over a cell that contains
 a hyperlink, this action causes that link to be opened.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   mouse_bindings = {
@@ -14813,7 +14848,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;OpenLinkAtMouseCursor&quot;,
+      action=wezterm.action.OpenLinkAtMouseCursor,
     },
   },
 }
@@ -14834,6 +14869,7 @@ action.</p>
 </ul>
 <p>The selection alphabet defaults to the same value as <a href="config/lua/keyassignment/../config/quick_select_alphabet.html">quick_select_alphabet</a>, but can be explicitly via the <code>alphabet</code> field:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   -- 36 is the default, but you can choose a different size
@@ -14841,11 +14877,11 @@ return {
 
   keys = {
     -- activate pane selection mode with the default alphabet (labels are &quot;a&quot;, &quot;s&quot;, &quot;d&quot;, &quot;f&quot; and so on)
-    {key=&quot;8&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={}}},
+    {key=&quot;8&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect},
     -- activate pane selection mode with numeric labels
-    {key=&quot;9&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={alphabet=&quot;1234567890&quot;}}},
+    {key=&quot;9&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect{alphabet=&quot;1234567890&quot;}},
     -- show the pane selection mode, but have it swap the active and selected panes
-    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={mode=&quot;SwapWithActive&quot;}}},
+    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect{mode=&quot;SwapWithActive&quot;}},
   }
 }
 </code></pre>
@@ -14856,10 +14892,11 @@ return {
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/PasteFrom.html">PasteFrom</a> instead.</p>
 <h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;Paste&quot;},
+    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.Paste},
   },
 
   -- Middle mouse button pastes the clipboard.
@@ -14868,7 +14905,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Middle&quot;}},
       mods=&quot;NONE&quot;,
-      action=&quot;Paste&quot;,
+      action=wezterm.action.Paste,
     },
   }
 }
@@ -14882,14 +14919,16 @@ return {
 <li><code>PrimarySelection</code> - paste from the primary selection buffer</li>
 </ul>
 <p>See also <a href="config/lua/keyassignment/Paste.html">Paste</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- paste from the clipboard
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;Clipboard&quot;}},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=act.PasteFrom(&quot;Clipboard&quot;)},
 
     -- paste from the primary selection
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;PrimarySelection&quot;}},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=act.PasteFrom(&quot;PrimarySelection&quot;)},
   },
 }
 </code></pre>
@@ -14902,10 +14941,12 @@ On other systems, this behaves identically to <a href="config/lua/keyassignment/
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/PasteFrom.html">PasteFrom</a> instead.</p>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
-    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;PastePrimarySelection&quot;},
+    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.PastePrimarySelection},
   },
 
   -- Middle mouse button pastes the primary selection.
@@ -14913,7 +14954,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Middle&quot;}},
       mods=&quot;NONE&quot;,
-      action=&quot;PastePrimarySelection&quot;,
+      action=act.PastePrimarySelection,
     },
   }
 }
@@ -14925,10 +14966,11 @@ return {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="quickselect"><a class="header" href="#quickselect">QuickSelect</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Activates <a href="config/lua/keyassignment/../../../quickselect.html">Quick Select Mode</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot; &quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;QuickSelect&quot;},
+    {key=&quot; &quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.QuickSelect},
   }
 }
 </code></pre>
@@ -14946,11 +14988,11 @@ configuration:</p>
 return {
   keys = {
     {key=&quot;P&quot;, mods=&quot;CTRL&quot;,
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        patterns={
           &quot;https?://\\S+&quot;
        },
-     }}
+     }
    },
   },
 }
@@ -14970,7 +15012,7 @@ the selected URL using the web browser:</p>
 return {
   keys = {
     {key=&quot;P&quot;, mods=&quot;CTRL&quot;,
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        label = &quot;open url&quot;,
        patterns={
           &quot;https?://\\S+&quot;
@@ -14980,7 +15022,7 @@ return {
           wezterm.log_info(&quot;opening: &quot; .. url)
           wezterm.open_with(url)
        end)
-     }}
+     }
    },
   },
 }
@@ -14988,17 +15030,21 @@ return {
 <p>See also <a href="config/lua/keyassignment/../wezterm/open_with.html">wezterm.open_with</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="quitapplication"><a class="header" href="#quitapplication">QuitApplication</a></h1>
 <p>Terminate the WezTerm application, killing all tabs.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;q&quot;, mods=&quot;CMD&quot;, action=&quot;QuitApplication&quot;},
+    {key=&quot;q&quot;, mods=&quot;CMD&quot;, action=wezterm.action.QuitApplication},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="reloadconfiguration"><a class="header" href="#reloadconfiguration">ReloadConfiguration</a></h1>
 <p>Explicitly reload the configuration.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;r&quot;, mods=&quot;CMD|SHIFT&quot;, action=&quot;ReloadConfiguration&quot;},
+    {key=&quot;r&quot;, mods=&quot;CMD|SHIFT&quot;, action=wezterm.action.ReloadConfiguration},
   }
 }
 </code></pre>
@@ -15006,19 +15052,21 @@ return {
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Reset both the font size and the terminal dimensions for the current window to
 the values specified by your <code>font</code>, <code>initial_rows</code>, and <code>initial_cols</code> configuration.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=&quot;ResetFontAndWindowSize&quot;},
+    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.ResetFontAndWindowSize},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="resetfontsize"><a class="header" href="#resetfontsize">ResetFontSize</a></h1>
 <p>Reset the font size for the current window to the value in your configuration</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=&quot;ResetFontSize&quot;},
+    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.ResetFontSize},
   }
 }
 </code></pre>
@@ -15048,11 +15096,12 @@ so that the panes are now <code>1, 2, 0</code></p>
 above, the left-most pane is still the largest of the panes despite rotating
 the panes withing those placements.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{RotatePanes=&quot;CounterClockwise&quot;}},
-    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{RotatePanes=&quot;Clockwise&quot;}},
+    {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=act.RotatePanes(&quot;CounterClockwise&quot;)},
+    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.RotatePanes(&quot;Clockwise&quot;)},
   },
 }
 </code></pre>
@@ -15062,23 +15111,25 @@ return {
 <p>Adjusts the scroll position by the number of lines specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByLine=-1}},
-    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByLine=1}},
+    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByLine(-1)},
+    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByLine(1)},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="scrollbypage"><a class="header" href="#scrollbypage">ScrollByPage</a></h1>
 <p>Adjusts the scroll position by the number of pages specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
 
 return {
   keys = {
-    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=-1}},
-    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=1}},
+    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(-1)},
+    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(1)},
   }
 }
 </code></pre>
@@ -15089,8 +15140,8 @@ how to make the <code>PageUp</code>/<code>PageDown</code> scroll by half a page 
 
 return {
   keys = {
-    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=-0.5}},
-    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=0.5}},
+    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(-0.5)},
+    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(0.5)},
   }
 }
 </code></pre>
@@ -15111,12 +15162,13 @@ zone.</p>
 <p>This action is not bound by default.</p>
 <p>For the purposes of scrolling, the &quot;current zone&quot; is considered to be the one
 closest to the top of the viewport.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollToPrompt=-1}},
-    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollToPrompt=1}},
+    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollToPrompt(-1)},
+    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollToPrompt(1)},
   }
 }
 </code></pre>
@@ -15131,21 +15183,23 @@ It accepts a typed pattern string as its parameter, allowing for
 pattern matching types.</p>
 <p>The supported <a href="https://docs.rs/regex/1.3.9/regex/#syntax">regular expression syntax is described
 here</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- search for things that look like git hashes
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={Regex=&quot;[a-f0-9]{6,}&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{Regex=&quot;[a-f0-9]{6,}&quot;}},
     -- search for the lowercase string &quot;hash&quot; matching the case exactly
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={CaseSensitiveString=&quot;hash&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{CaseSensitiveString=&quot;hash&quot;}},
     -- search for the string &quot;hash&quot; matching regardless of case
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={CaseInSensitiveString=&quot;hash&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{CaseInSensitiveString=&quot;hash&quot;}},
   },
 }
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
 <p><em>since: 20220624-141144-bd1b7c5d</em></p>
-<p>You may now use <code>wezterm.action{Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
+<p>You may now use <code>wezterm.action.Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
 <p>The selection text is adjusted to be a single line.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
 <p>Initiates selection of text at the current mouse cursor position.
@@ -15157,10 +15211,12 @@ to take the surrounding semantic zone.</p>
 <p>In this example, the triple-left-click mouse action is set to
 automatically select the entire command output when clicking
 on any character withing that region:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   mouse_bindings = {
     { event={Down={streak=3, button=&quot;Left&quot;}},
-      action={SelectTextAtMouseCursor=&quot;SemanticZone&quot;},
+      action=wezterm.action.SelectTextAtMouseCursor(&quot;SemanticZone&quot;),
       mods=&quot;NONE&quot;
     },
   },
@@ -15183,11 +15239,14 @@ sequences are remapped to <code>ALT-b</code> and <code>ALT-f</code> which genera
 the cursor to move backwards or forwards by one word in most common unix
 shells and applications.</p>
 <p>The following configuration achieves that same effect:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
+return {
   keys = {
      -- Rebind OPT-Left, OPT-Right as ALT-b, ALT-f respectively to match Terminal.app behavior
-     {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action={SendKey={key=&quot;b&quot;, mods=&quot;ALT&quot;}}},
-     {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action={SendKey={key=&quot;f&quot;, mods=&quot;ALT&quot;}}},
+     {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=act.SendKey{key=&quot;b&quot;, mods=&quot;ALT&quot;}},
+     {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=act.SendKey{key=&quot;f&quot;, mods=&quot;ALT&quot;}},
   }
 }
 </code></pre>
@@ -15195,11 +15254,11 @@ shells and applications.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="sendstring"><a class="header" href="#sendstring">SendString</a></h1>
 <p>Sends the string specified argument to the terminal in the current tab, as
 though that text were literally typed into the terminal.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action{SendString=&quot;Hello&quot;}},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.SendString(&quot;Hello&quot;)},
   }
 }
 </code></pre>
@@ -15207,14 +15266,15 @@ return {
 how to bind Alt-LeftArrow/RightArrow to the Alt-b/f, an emacs style
 keybinding for moving backwards/forwards through a word in a line editor.</p>
 <p><code>\x1b</code> is the ESC character:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
     -- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
-    {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=wezterm.action{SendString=&quot;\x1bb&quot;}},
+    {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=act.SendString(&quot;\x1bb&quot;)},
     -- Make Option-Right equivalent to Alt-f; forward-word
-    {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=wezterm.action{SendString=&quot;\x1bf&quot;}},
+    {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=act.SendString(&quot;\x1bf&quot;)},
   }
 }
 </code></pre>
@@ -15234,19 +15294,23 @@ of a debug log and a lua <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eva
 <p>The lua context in the REPL is not connected to any global state; you cannot use it
 to dynamically assign event handlers for example.  It is primarily useful for
 prototyping lua snippets before you integrate them fully into your config.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
     -- CTRL-SHIFT-l activates the debug overlay
-    {key=&quot;L&quot;, mods=&quot;CTRL&quot;, action=&quot;ShowDebugOverlay&quot;},
+    {key=&quot;L&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.ShowDebugOverlay},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="showlauncher"><a class="header" href="#showlauncher">ShowLauncher</a></h1>
 <p>Activate the <a href="config/lua/keyassignment/../../launch.html#the-launcher-menu">Launcher Menu</a>
 in the current tab.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;l&quot;, mods=&quot;ALT&quot;, action=&quot;ShowLauncher&quot;},
+    {key=&quot;l&quot;, mods=&quot;ALT&quot;, action=wezterm.action.ShowLauncher},
   }
 }
 </code></pre>
@@ -15282,7 +15346,7 @@ matching mode, and have it show only tabs:</p>
 
 return {
   keys = {
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={flags=&quot;FUZZY|TABS&quot;}}},
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action.ShowLauncherArgs{flags=&quot;FUZZY|TABS&quot;}},
   },
 }
 </code></pre>
@@ -15290,9 +15354,11 @@ return {
 <p>Activate the tab navigator UI in the current tab.  The tab
 navigator displays a list of tabs and allows you to select
 and activate a tab from that list.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;F9&quot;, mods=&quot;ALT&quot;, action=&quot;ShowTabNavigator&quot;},
+    {key=&quot;F9&quot;, mods=&quot;ALT&quot;, action=wezterm.action.ShowTabNavigator},
   }
 }
 </code></pre>
@@ -15300,14 +15366,14 @@ and activate a tab from that list.</p>
 <p>Spawn a new tab into the current window.
 The argument is a <code>SpawnCommand</code> struct that is discussed in more
 detail in the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> docs.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- CMD-y starts `top` in a new window
-    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action{SpawnCommandInNewTab={
+    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.actionSpawnCommandInNewTab{
       args={&quot;top&quot;}
-    }}},
+    }},
   }
 }
 </code></pre>
@@ -15315,38 +15381,41 @@ return {
 <p>Spawn a new tab into a brand new window.
 The argument is a <code>SpawnCommand</code> struct that is discussed in more
 detail in the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> docs.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- CMD-y starts `top` in a new window
-    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action{SpawnCommandInNewWindow={
+    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action.SpawnCommandInNewWindow{
       args={&quot;top&quot;}
-    }}},
+    }},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="spawntab"><a class="header" href="#spawntab">SpawnTab</a></h1>
 <p>Create a new tab in the current window.  The argument defines to which <em>domain</em> the tab belongs:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
     -- Create a new tab in the same domain as the current pane.
     -- This is usually what you want.
-    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{SpawnTab=&quot;CurrentPaneDomain&quot;}},
+    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.SpawnTab(&quot;CurrentPaneDomain&quot;)},
     -- Create a new tab in the default domain
-    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{SpawnTab=&quot;DefaultDomain&quot;}},
+    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.SpawnTab(&quot;DefaultDomain&quot;)},
     -- Create a tab in a named domain
-    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{SpawnTab={DomainName=&quot;unix&quot;}}},
+    {key=&quot;t&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.SpawnTab{DomainName=&quot;unix&quot;}},
   }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="spawnwindow"><a class="header" href="#spawnwindow">SpawnWindow</a></h1>
 <p>Create a new window containing a tab from the default tab domain.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;SpawnWindow&quot;},
+    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.SpawnWindow},
   }
 }
 </code></pre>
@@ -15354,26 +15423,26 @@ return {
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Splits the current pane in half horizontally such that the current pane becomes
 the left half and the new right half spawns a new command.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- This will create a new split and run your default program inside it
     {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;,
-      action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+      action=wezterm.action.SplitHorizontal{domain=&quot;CurrentPaneDomain&quot;}},
   }
 }
 </code></pre>
 <p><code>SplitHorizontal</code> requires a <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> parameter to
 specify what should be spawned into the new split.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action{SplitHorizontal={
+    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action.SplitHorizontal{
       args={&quot;top&quot;}
-    }}},
+    }},
   }
 }
 </code></pre>
@@ -15388,16 +15457,16 @@ return {
 <li><code>command</code> - the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> that specifies what program to launch into the new pane. If omitted, the <a href="config/lua/keyassignment/../config/default_prog.html">default_prog</a> is used</li>
 <li><code>top_level</code> - if set to <code>true</code>, rather than splitting the active pane, the split will be made at the root of the tab and effectively split the entire tab across the full extent possible.  The default is <code>false</code>.</li>
 </ul>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action{SplitPane={
+    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action.SplitPane{
       direction=&quot;Left&quot;,
       command={args={&quot;top&quot;}},
       size={Percent=50},
-    }}},
+    }},
   }
 }
 </code></pre>
@@ -15406,13 +15475,13 @@ return {
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Splits the current pane in half vertically such that the current pane becomes
 the top half and the new bottom half spawns a new command.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- This will create a new split and run your default program inside it
     {key=&quot;\&quot;&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;,
-      action=wezterm.action{SplitVertical={domain=&quot;CurrentPaneDomain&quot;}}},
+      action=wezterm.action.SplitVertical{domain=&quot;CurrentPaneDomain&quot;}},
   }
 }
 </code></pre>
@@ -15423,9 +15492,9 @@ specify what should be spawned into the new split.</p>
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key=&quot;\&quot;&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action{SplitVertical={
+    {key=&quot;\&quot;&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action.SplitVertical{
       args={&quot;top&quot;}
-    }}},
+    }},
   }
 }
 </code></pre>
@@ -15435,17 +15504,19 @@ return {
 <p>Places the window in the drag-to-move state, which means that the window will
 move to follow your mouse pointer until the mouse button is released.</p>
 <p>By default this is bound to SUPER + left mouse drag, as well as CTRL-SHIFT + left mouse drag.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   mouse_bindings = {
     {
       event={Drag={streak=1, button=&quot;Left&quot;}},
       mods=&quot;SUPER&quot;,
-      action=&quot;StartWindowDrag&quot;
+      action=wezterm.action.StartWindowDrag
     },
     {
       event={Drag={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL|SHIFT&quot;,
-      action=&quot;StartWindowDrag&quot;
+      action=wezterm.action.StartWindowDrag
     },
   }
 }
@@ -15459,6 +15530,7 @@ move to follow your mouse pointer until the mouse button is released.</p>
 <li><code>spawn</code> - a <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> describing the command that should be started in the workspace if it doesn't already exist.  If omitted, the default program will be spawned in the newly created workspace.</li>
 </ul>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
   window:set_right_status(window:active_workspace())
@@ -15467,23 +15539,23 @@ end)
 return {
   keys = {
     -- Switch to the default workspace
-    {key=&quot;y&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={
+    {key=&quot;y&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace{
       name = &quot;default&quot;
-    }}},
+    }},
     -- Switch to a monitoring workspace, which will have `top` launched into it
-    {key=&quot;u&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={
+    {key=&quot;u&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace{
       name = &quot;monitoring&quot;,
       spawn = {
         args = {&quot;top&quot;},
       }
-    }}},
+    }},
     -- Create a new workspace with a random name and switch to it
-    {key=&quot;i&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={}}},
+    {key=&quot;i&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace},
     -- Show the launcher in fuzzy selection mode and have it list all workspaces
     -- and allow activating one.
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=act.ShowLauncherArgs{
       flags=&quot;FUZZY|WORKSPACES&quot;
-    }}},
+    }},
   },
 }
 </code></pre>
@@ -15498,6 +15570,7 @@ immediately following the current workspace.</p>
 It shows the active workspace in the title bar.  The launcher menu can be used
 to create workspaces.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
   window:set_right_status(window:active_workspace())
@@ -15505,18 +15578,20 @@ end)
 
 return {
   keys = {
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={flags=&quot;FUZZY|WORKSPACES&quot;}}},
-    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{SwitchWorkspaceRelative=1}},
-    {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{SwitchWorkspaceRelative=-1}},
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=act.ShowLauncherArgs{flags=&quot;FUZZY|WORKSPACES&quot;}},
+    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.SwitchWorkspaceRelative(1)},
+    {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=act.SwitchWorkspaceRelative(-1)},
   },
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="togglefullscreen"><a class="header" href="#togglefullscreen">ToggleFullScreen</a></h1>
 <p>Toggles full screen mode for the current window.  (But see:
 <a href="https://github.com/wez/wezterm/issues/177">https://github.com/wez/wezterm/issues/177</a>)</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;ToggleFullScreen&quot;},
+    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.ToggleFullScreen},
   }
 }
 </code></pre>
@@ -15525,9 +15600,11 @@ return {
 <p>Toggles the zoom state of the current pane.  A Zoomed pane takes up
 all available space in the tab, hiding all other panes while it is zoomed.
 Switching its zoom state off will restore the prior split arrangement.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    { key = &quot;Z&quot;, mods=&quot;CTRL&quot;, action=&quot;TogglePaneZoomState&quot; },
+    { key = &quot;Z&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.TogglePaneZoomState },
   }
 }
 </code></pre>

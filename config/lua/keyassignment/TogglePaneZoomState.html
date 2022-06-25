@@ -143,9 +143,11 @@
 <p>Toggles the zoom state of the current pane.  A Zoomed pane takes up
 all available space in the tab, hiding all other panes while it is zoomed.
 Switching its zoom state off will restore the prior split arrangement.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    { key = &quot;Z&quot;, mods=&quot;CTRL&quot;, action=&quot;TogglePaneZoomState&quot; },
+    { key = &quot;Z&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.TogglePaneZoomState },
   }
 }
 </code></pre>

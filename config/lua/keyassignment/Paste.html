@@ -144,10 +144,11 @@
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="PasteFrom.html">PasteFrom</a> instead.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;Paste&quot;},
+    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.Paste},
   },
 
   -- Middle mouse button pastes the clipboard.
@@ -156,7 +157,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Middle&quot;}},
       mods=&quot;NONE&quot;,
-      action=&quot;Paste&quot;,
+      action=wezterm.action.Paste,
     },
   }
 }

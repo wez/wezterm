@@ -143,10 +143,12 @@
 keys were not pressed.</p>
 <p>If instead of this you want the key presses to pass through to
 the terminal, look at <a href="DisableDefaultAssignment.html">DisableDefaultAssignment</a>.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
     -- Turn off any side effects from pressing CMD-m
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;Nop&quot;},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.Nop},
   }
 }
 </code></pre>

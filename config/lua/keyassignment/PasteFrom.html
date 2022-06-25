@@ -147,14 +147,16 @@
 <li><code>PrimarySelection</code> - paste from the primary selection buffer</li>
 </ul>
 <p>See also <a href="Paste.html">Paste</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- paste from the clipboard
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;Clipboard&quot;}},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=act.PasteFrom(&quot;Clipboard&quot;)},
 
     -- paste from the primary selection
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;PrimarySelection&quot;}},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=act.PasteFrom(&quot;PrimarySelection&quot;)},
   },
 }
 </code></pre>

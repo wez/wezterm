@@ -143,11 +143,13 @@
 of a default assignment if that key/mouse/modifier combination is one of the
 default assignments and cause the key press to be propagated through
 to the tab for processing.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
     -- Turn off the default CMD-m Hide action, allowing CMD-m to
     -- be potentially recognized and handled by the tab
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;DisableDefaultAssignment&quot;},
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=wezterm.action.DisableDefaultAssignment},
   }
 }
 </code></pre>

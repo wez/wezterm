@@ -151,11 +151,14 @@ sequences are remapped to <code>ALT-b</code> and <code>ALT-f</code> which genera
 the cursor to move backwards or forwards by one word in most common unix
 shells and applications.</p>
 <p>The following configuration achieves that same effect:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
+return {
   keys = {
      -- Rebind OPT-Left, OPT-Right as ALT-b, ALT-f respectively to match Terminal.app behavior
-     {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action={SendKey={key=&quot;b&quot;, mods=&quot;ALT&quot;}}},
-     {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action={SendKey={key=&quot;f&quot;, mods=&quot;ALT&quot;}}},
+     {key=&quot;LeftArrow&quot;, mods=&quot;OPT&quot;, action=act.SendKey{key=&quot;b&quot;, mods=&quot;ALT&quot;}},
+     {key=&quot;RightArrow&quot;, mods=&quot;OPT&quot;, action=act.SendKey{key=&quot;f&quot;, mods=&quot;ALT&quot;}},
   }
 }
 </code></pre>

@@ -141,9 +141,11 @@
                         <h1 id="togglefullscreen"><a class="header" href="#togglefullscreen">ToggleFullScreen</a></h1>
 <p>Toggles full screen mode for the current window.  (But see:
 <a href="https://github.com/wez/wezterm/issues/177">https://github.com/wez/wezterm/issues/177</a>)</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;ToggleFullScreen&quot;},
+    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.ToggleFullScreen},
   }
 }
 </code></pre>

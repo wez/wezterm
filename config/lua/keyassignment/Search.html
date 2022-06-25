@@ -146,21 +146,23 @@ It accepts a typed pattern string as its parameter, allowing for
 pattern matching types.</p>
 <p>The supported <a href="https://docs.rs/regex/1.3.9/regex/#syntax">regular expression syntax is described
 here</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- search for things that look like git hashes
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={Regex=&quot;[a-f0-9]{6,}&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{Regex=&quot;[a-f0-9]{6,}&quot;}},
     -- search for the lowercase string &quot;hash&quot; matching the case exactly
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={CaseSensitiveString=&quot;hash&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{CaseSensitiveString=&quot;hash&quot;}},
     -- search for the string &quot;hash&quot; matching regardless of case
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={CaseInSensitiveString=&quot;hash&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.Search{CaseInSensitiveString=&quot;hash&quot;}},
   },
 }
 </code></pre>
 <p><a href="../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
 <p><em>since: 20220624-141144-bd1b7c5d</em></p>
-<p>You may now use <code>wezterm.action{Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
+<p>You may now use <code>wezterm.action.Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
 <p>The selection text is adjusted to be a single line.</p>
 
                     </main>

@@ -144,10 +144,10 @@
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="CopyTo.html">CopyTo</a> instead.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 return {
   keys = {
-    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=&quot;Copy&quot;},
+    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.Copy},
   }
 }
 </code></pre>

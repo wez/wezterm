@@ -140,9 +140,11 @@
                     <main>
                         <h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=&quot;Hide&quot;},
+    {key=&quot;h&quot;, mods=&quot;CMD&quot;, action=wezterm.action.Hide},
   }
 }
 </code></pre>

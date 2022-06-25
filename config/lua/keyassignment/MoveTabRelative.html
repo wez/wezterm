@@ -142,11 +142,13 @@
 <p>Move the current tab relative to its peers.  The argument specifies an
 offset. eg: <code>-1</code> moves the tab to the left of the current tab, while <code>1</code> moves
 the tab to the right.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
-    {key=&quot;{&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{MoveTabRelative=-1}},
-    {key=&quot;}&quot;, mods=&quot;SHIFT|ALT&quot;, action=wezterm.action{MoveTabRelative=1}},
+    {key=&quot;{&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.MoveTabRelative(-1)},
+    {key=&quot;}&quot;, mods=&quot;SHIFT|ALT&quot;, action=act.MoveTabRelative(1)},
   }
 }
 </code></pre>

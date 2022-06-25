@@ -141,12 +141,13 @@
                         <h1 id="scrollbypage"><a class="header" href="#scrollbypage">ScrollByPage</a></h1>
 <p>Adjusts the scroll position by the number of pages specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
 
 return {
   keys = {
-    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=-1}},
-    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=1}},
+    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(-1)},
+    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(1)},
   }
 }
 </code></pre>
@@ -157,8 +158,8 @@ how to make the <code>PageUp</code>/<code>PageDown</code> scroll by half a page 
 
 return {
   keys = {
-    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=-0.5}},
-    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=0.5}},
+    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(-0.5)},
+    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByPage(0.5)},
   }
 }
 </code></pre>

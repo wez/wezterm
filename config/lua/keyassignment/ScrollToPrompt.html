@@ -152,12 +152,13 @@ zone.</p>
 <p>This action is not bound by default.</p>
 <p>For the purposes of scrolling, the &quot;current zone&quot; is considered to be the one
 closest to the top of the viewport.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollToPrompt=-1}},
-    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollToPrompt=1}},
+    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollToPrompt(-1)},
+    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollToPrompt(1)},
   }
 }
 </code></pre>

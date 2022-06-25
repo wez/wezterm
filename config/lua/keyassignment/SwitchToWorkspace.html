@@ -147,6 +147,7 @@
 <li><code>spawn</code> - a <a href="../SpawnCommand.html">SpawnCommand</a> describing the command that should be started in the workspace if it doesn't already exist.  If omitted, the default program will be spawned in the newly created workspace.</li>
 </ul>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
   window:set_right_status(window:active_workspace())
@@ -155,23 +156,23 @@ end)
 return {
   keys = {
     -- Switch to the default workspace
-    {key=&quot;y&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={
+    {key=&quot;y&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace{
       name = &quot;default&quot;
-    }}},
+    }},
     -- Switch to a monitoring workspace, which will have `top` launched into it
-    {key=&quot;u&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={
+    {key=&quot;u&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace{
       name = &quot;monitoring&quot;,
       spawn = {
         args = {&quot;top&quot;},
       }
-    }}},
+    }},
     -- Create a new workspace with a random name and switch to it
-    {key=&quot;i&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{SwitchToWorkspace={}}},
+    {key=&quot;i&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.SwitchToWorkspace},
     -- Show the launcher in fuzzy selection mode and have it list all workspaces
     -- and allow activating one.
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=act.ShowLauncherArgs{
       flags=&quot;FUZZY|WORKSPACES&quot;
-    }}},
+    }},
   },
 }
 </code></pre>

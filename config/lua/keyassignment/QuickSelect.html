@@ -141,10 +141,11 @@
                         <h1 id="quickselect"><a class="header" href="#quickselect">QuickSelect</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Activates <a href="../../../quickselect.html">Quick Select Mode</a>.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot; &quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;QuickSelect&quot;},
+    {key=&quot; &quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.QuickSelect},
   }
 }
 </code></pre>

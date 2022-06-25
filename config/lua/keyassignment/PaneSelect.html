@@ -154,6 +154,7 @@ action.</p>
 </ul>
 <p>The selection alphabet defaults to the same value as <a href="../config/quick_select_alphabet.html">quick_select_alphabet</a>, but can be explicitly via the <code>alphabet</code> field:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   -- 36 is the default, but you can choose a different size
@@ -161,11 +162,11 @@ return {
 
   keys = {
     -- activate pane selection mode with the default alphabet (labels are &quot;a&quot;, &quot;s&quot;, &quot;d&quot;, &quot;f&quot; and so on)
-    {key=&quot;8&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={}}},
+    {key=&quot;8&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect},
     -- activate pane selection mode with numeric labels
-    {key=&quot;9&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={alphabet=&quot;1234567890&quot;}}},
+    {key=&quot;9&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect{alphabet=&quot;1234567890&quot;}},
     -- show the pane selection mode, but have it swap the active and selected panes
-    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PaneSelect={mode=&quot;SwapWithActive&quot;}}},
+    {key=&quot;0&quot;, mods=&quot;CTRL&quot;, action=act.PaneSelect{mode=&quot;SwapWithActive&quot;}},
   }
 }
 </code></pre>

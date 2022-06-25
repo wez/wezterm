@@ -164,11 +164,12 @@ so that the panes are now <code>1, 2, 0</code></p>
 above, the left-most pane is still the largest of the panes despite rotating
 the panes withing those placements.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{RotatePanes=&quot;CounterClockwise&quot;}},
-    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{RotatePanes=&quot;Clockwise&quot;}},
+    {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=act.RotatePanes(&quot;CounterClockwise&quot;)},
+    {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.RotatePanes(&quot;Clockwise&quot;)},
   },
 }
 </code></pre>

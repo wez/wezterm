@@ -145,6 +145,7 @@
 when there is a selection present (clearing it afterwards) or sending
 CTRL-C to the terminal when there is no selection:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
@@ -155,13 +156,13 @@ return {
         local has_selection = window:get_selection_text_for_pane(pane) ~= &quot;&quot;
         if has_selection then
           window:perform_action(
-            wezterm.action{CopyTo=&quot;ClipboardAndPrimarySelection&quot;},
+            act.CopyTo(&quot;ClipboardAndPrimarySelection&quot;),
             pane)
 
           window:perform_action(&quot;ClearSelection&quot;, pane)
         else
           window:perform_action(
-            wezterm.action{SendKey={key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
+            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
             pane)
         end
       end)

@@ -148,10 +148,12 @@ to take the surrounding semantic zone.</p>
 <p>In this example, the triple-left-click mouse action is set to
 automatically select the entire command output when clicking
 on any character withing that region:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   mouse_bindings = {
     { event={Down={streak=3, button=&quot;Left&quot;}},
-      action={SelectTextAtMouseCursor=&quot;SemanticZone&quot;},
+      action=wezterm.action.SelectTextAtMouseCursor(&quot;SemanticZone&quot;),
       mods=&quot;NONE&quot;
     },
   },

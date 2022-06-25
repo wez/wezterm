@@ -144,13 +144,14 @@
 the current tab.  Invalid indices are ignored.</p>
 <p>This example causes ALT-a, ALT-b, ALT-c to switch to the 0th, 1st and 2nd
 panes, respectively:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=0}},
-    {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=1}},
-    {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivatePaneByIndex=2}},
+    {key=&quot;a&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(0)},
+    {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(1)},
+    {key=&quot;c&quot;, mods=&quot;ALT&quot;, action=act.ActivatePaneByIndex(2)},
   }
 }
 </code></pre>

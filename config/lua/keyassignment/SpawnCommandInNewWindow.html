@@ -142,14 +142,14 @@
 <p>Spawn a new tab into a brand new window.
 The argument is a <code>SpawnCommand</code> struct that is discussed in more
 detail in the <a href="../SpawnCommand.html">SpawnCommand</a> docs.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- CMD-y starts `top` in a new window
-    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action{SpawnCommandInNewWindow={
+    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action.SpawnCommandInNewWindow{
       args={&quot;top&quot;}
-    }}},
+    }},
   }
 }
 </code></pre>

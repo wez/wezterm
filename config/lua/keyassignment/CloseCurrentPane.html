@@ -144,9 +144,11 @@ If that was the last tab, closes that window.  If that was the last window,
 wezterm terminates.</p>
 <p>The act of closing a pane shuts down the PTY associated with the pane and
 then kills the process associated with that pane.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action{CloseCurrentPane={confirm=true}}},
+    {key=&quot;w&quot;, mods=&quot;CMD&quot;, action=wezterm.action.CloseCurrentPane{confirm=true}},
   }
 }
 </code></pre>

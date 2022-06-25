@@ -148,16 +148,16 @@
 <li><code>command</code> - the <a href="../SpawnCommand.html">SpawnCommand</a> that specifies what program to launch into the new pane. If omitted, the <a href="../config/default_prog.html">default_prog</a> is used</li>
 <li><code>top_level</code> - if set to <code>true</code>, rather than splitting the active pane, the split will be made at the root of the tab and effectively split the entire tab across the full extent possible.  The default is <code>false</code>.</li>
 </ul>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action{SplitPane={
+    {key=&quot;%&quot;, mods=&quot;CTRL|SHIFT|ALT&quot;, action=wezterm.action.SplitPane{
       direction=&quot;Left&quot;,
       command={args={&quot;top&quot;}},
       size={Percent=50},
-    }}},
+    }},
   }
 }
 </code></pre>

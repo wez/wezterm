@@ -145,10 +145,12 @@ On other systems, this behaves identically to <a href="Paste.html">Paste</a>.</p
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="PasteFrom.html">PasteFrom</a> instead.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
-    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;PastePrimarySelection&quot;},
+    {key=&quot;v&quot;, mods=&quot;SHIFT|CTRL&quot;, action=act.PastePrimarySelection},
   },
 
   -- Middle mouse button pastes the primary selection.
@@ -156,7 +158,7 @@ return {
     {
       event={Up={streak=1, button=&quot;Middle&quot;}},
       mods=&quot;NONE&quot;,
-      action=&quot;PastePrimarySelection&quot;,
+      action=act.PastePrimarySelection,
     },
   }
 }

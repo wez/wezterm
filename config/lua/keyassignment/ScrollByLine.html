@@ -143,11 +143,12 @@
 <p>Adjusts the scroll position by the number of lines specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   keys = {
-    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByLine=-1}},
-    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByLine=1}},
+    {key=&quot;UpArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByLine(-1)},
+    {key=&quot;DownArrow&quot;, mods=&quot;SHIFT&quot;, action=act.ScrollByLine(1)},
   }
 }
 </code></pre>

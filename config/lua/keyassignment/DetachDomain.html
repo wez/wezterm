@@ -147,6 +147,7 @@ when you later attach to the domain, they'll still be there.</p>
 <p>Not every domain supports detaching, and will log an error to the
 error log/debug overlay.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   ssh_domains = {
@@ -156,11 +157,11 @@ return {
     }
   },
   keys = {
-    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{AttachDomain=&quot;devhost&quot;}},
+    {key=&quot;U&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.AttachDomain(&quot;devhost&quot;)},
     -- Detaches the domain associated with the current pane
-    {key=&quot;D&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{DetachDomain=&quot;CurrentPaneDomain&quot;}},
+    {key=&quot;D&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.DetachDomain(&quot;CurrentPaneDomain&quot;)},
     -- Detaches the &quot;devhost&quot; domain
-    {key=&quot;E&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{DetachDomain={DomainName=&quot;devhost&quot;}}},
+    {key=&quot;E&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.DetachDomain{DomainName=&quot;devhost&quot;}},
   },
 }
 

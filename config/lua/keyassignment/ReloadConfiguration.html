@@ -140,9 +140,11 @@
                     <main>
                         <h1 id="reloadconfiguration"><a class="header" href="#reloadconfiguration">ReloadConfiguration</a></h1>
 <p>Explicitly reload the configuration.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;r&quot;, mods=&quot;CMD|SHIFT&quot;, action=&quot;ReloadConfiguration&quot;},
+    {key=&quot;r&quot;, mods=&quot;CMD|SHIFT&quot;, action=wezterm.action.ReloadConfiguration},
   }
 }
 </code></pre>

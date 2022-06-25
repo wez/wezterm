@@ -143,13 +143,16 @@
 the scrollbar thumb to the full height of the window.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
 <p>Added a parameter that allows additionally clear the viewport:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
+return {
   keys = {
     -- Clears only the scrollback and leaves the viewport intact.
     -- This is the default behavior.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackOnly&quot;}},
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.ClearScrollback(&quot;ScrollbackOnly&quot;)},
     -- Clears the scrollback and viewport leaving the prompt line the new first line.
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackAndViewport&quot;}},
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=act.ClearScrollback(&quot;ScrollbackAndViewport&quot;)},
   }
 }
 </code></pre>

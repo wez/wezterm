@@ -142,9 +142,11 @@
 <p>Activate the tab navigator UI in the current tab.  The tab
 navigator displays a list of tabs and allows you to select
 and activate a tab from that list.</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
   keys = {
-    {key=&quot;F9&quot;, mods=&quot;ALT&quot;, action=&quot;ShowTabNavigator&quot;},
+    {key=&quot;F9&quot;, mods=&quot;ALT&quot;, action=wezterm.action.ShowTabNavigator},
   }
 }
 </code></pre>

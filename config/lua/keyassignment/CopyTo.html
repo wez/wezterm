@@ -146,10 +146,11 @@
 <li><code>PrimarySelection</code> - Copy the text to the primary selection buffer (applicable to X11 and some Wayland systems only)</li>
 <li><code>ClipboardAndPrimarySelection</code> - Copy to both the clipboard and the primary selection.</li>
 </ul>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyTo=&quot;ClipboardAndPrimarySelection&quot;}},
+    {key=&quot;C&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.CopyTo(&quot;ClipboardAndPrimarySelection&quot;)},
   }
 }
 </code></pre>

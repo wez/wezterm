@@ -145,18 +145,19 @@ In cases where there are multiple adjacent panes in the intended direction,
 wezterm will choose the pane that has the largest edge intersection.</p>
 <p>If the active pane is <a href="TogglePaneZoomState.html">zoomed</a>, behavior is determined
 by the <a href="../config/unzoom_on_switch_pane.html"><code>unzoom_on_switch_pane</code></a> flag. </p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
     { key = &quot;LeftArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
+      action=act.ActivatePaneDirection(&quot;Left&quot;)},
     { key = &quot;RightArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
+      action=act.ActivatePaneDirection(&quot;Right&quot;)},
     { key = &quot;UpArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
+      action=act.ActivatePaneDirection(&quot;Up&quot;)},
     { key = &quot;DownArrow&quot;, mods=&quot;CTRL|SHIFT&quot;,
-      action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
+      action=act.ActivatePaneDirection(&quot;Down&quot;)},
   }
 }
 </code></pre>

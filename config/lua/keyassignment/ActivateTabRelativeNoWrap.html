@@ -146,11 +146,13 @@ activates the tab to the right.</p>
 <p>This is almost identical to <a href="ActivateTabRelative.html">ActivateTabRelative</a>
 but this one will not wrap around; for example, if the first tab is active
 <code>ActivateTabRelativeNoWrap=-1</code> will not move to the last tab and vice versa.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
-    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelativeNoWrap=-1}},
-    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ActivateTabRelativeNoWrap=1}},
+    {key=&quot;{&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelativeNoWrap(-1)},
+    {key=&quot;}&quot;, mods=&quot;ALT&quot;, action=act.ActivateTabRelativeNoWrap(1)},
   }
 }
 </code></pre>

@@ -140,10 +140,11 @@
                     <main>
                         <h1 id="spawnwindow"><a class="header" href="#spawnwindow">SpawnWindow</a></h1>
 <p>Create a new window containing a tab from the default tab domain.</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=&quot;SpawnWindow&quot;},
+    {key=&quot;n&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.SpawnWindow},
   }
 }
 </code></pre>
