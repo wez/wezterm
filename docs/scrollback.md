@@ -98,20 +98,21 @@ The default configuration is equivalent to:
 
 ```lua
 local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   key_tables = {
     search_mode = {
-      {key="Escape", mods="NONE", action=wezterm.action{CopyMode="Close"}},
-      {key="UpArrow", mods="NONE", action=wezterm.action{CopyMode="PriorMatch"}},
-      {key="Enter", mods="NONE", action=wezterm.action{CopyMode="PriorMatch"}},
-      {key="p", mods="CTRL", action=wezterm.action{CopyMode="PriorMatch"}},
-      {key="PageUp", mods="NONE", action=wezterm.action{CopyMode="PriorMatchPage"}},
-      {key="PageDown", mods="NONE", action=wezterm.action{CopyMode="NextMatchPage"}},
-      {key="n", mods="CTRL", action=wezterm.action{CopyMode="NextMatchPage"}},
-      {key="DownArrow", mods="NONE", action=wezterm.action{CopyMode="NextMatch"}},
-      {key="r", mods="CTRL", action=wezterm.action{CopyMode="CycleMatchType"}},
-      {key="u", mods="CTRL", action=wezterm.action{CopyMode="ClearPattern"}},
+      {key="Escape", mods="NONE", action=act.CopyMode("Close")},
+      {key="UpArrow", mods="NONE", action=act.CopyMode("PriorMatch")},
+      {key="Enter", mods="NONE", action=act.CopyMode("PriorMatch")},
+      {key="p", mods="CTRL", action=act.CopyMode("PriorMatch")},
+      {key="PageUp", mods="NONE", action=act.CopyMode("PriorMatchPage")},
+      {key="PageDown", mods="NONE", action=act.CopyMode("NextMatchPage")},
+      {key="n", mods="CTRL", action=act.CopyMode("NextMatchPage")},
+      {key="DownArrow", mods="NONE", action=act.CopyMode("NextMatch")},
+      {key="r", mods="CTRL", action=act.CopyMode("CycleMatchType")},
+      {key="u", mods="CTRL", action=act.CopyMode("ClearPattern")},
     }
   }
 }
@@ -135,7 +136,7 @@ local wezterm = require 'wezterm';
 return {
   keys = {
     -- search for things that look like git hashes
-    {key="H", mods="SHIFT|CTRL", action=wezterm.action{Search={Regex="[a-f0-9]{6,}"}}},
+    {key="H", mods="SHIFT|CTRL", action=wezterm.action.Search{Regex="[a-f0-9]{6,}"}},
   },
 }
 ```

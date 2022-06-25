@@ -6,7 +6,6 @@ from the left, and so on.
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.action
 
 local mykeys = {}
 for i = 1, 8 do
@@ -14,7 +13,7 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods="CTRL|ALT",
-    action=act.MoveTab(i-1),
+    action=wezterm.action.MoveTab(i - 1),
   })
 end
 

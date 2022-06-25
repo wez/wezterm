@@ -12,5 +12,4 @@ The first parameter is a key assignment such as that returned by [`wezterm.actio
 
 The second parameter is a `pane` object passed to your event callback.
 
-For an example of this method in action, see [`wezterm.on Custom Events`](../wezterm/on.md#custom-events).
-
+For an example of this method in action, see [`wezterm.on` Custom Events](../wezterm/on.md#custom-events).

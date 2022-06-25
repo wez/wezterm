@@ -37,7 +37,7 @@ end)
 
 return {
   keys = {
-    {key="E", mods="CTRL", action=wezterm.action{EmitEvent="toggle-ligature"}},
+    {key="E", mods="CTRL", action=wezterm.action.EmitEvent("toggle-ligature")},
   },
 }
 ```
@@ -60,7 +60,7 @@ end)
 
 return {
   keys = {
-    {key="B", mods="CTRL", action=wezterm.action{EmitEvent="toggle-opacity"}},
+    {key="B", mods="CTRL", action=wezterm.action.EmitEvent("toggle-opacity")},
   },
 }
 ```
