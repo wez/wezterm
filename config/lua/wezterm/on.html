@@ -148,6 +148,11 @@ that you specify.</p>
 an ordered list of callbacks is maintained for each event.  When the event
 is emitted, each of the registered callbacks is called in the order that
 they were registered.</p>
+<p>The callback will receive the following parameters:</p>
+<ul>
+<li>a <a href="../window/index.html"><code>window</code> object</a> that represents the active gui window.</li>
+<li>a <a href="../pane/index.html"><code>pane</code> object</a> that represents the active pane.</li>
+</ul>
 <p>If a callback returns <code>false</code> it will prevent any callbacks that were registered
 after it from being triggered for the current event.  Some events have
 a defined default action; returning <code>false</code> will prevent that default action
@@ -164,53 +169,52 @@ events.</p>
 has no special knowledge.  It is recommended that you avoid event names
 that are likely to be used future versions of wezterm in order to avoid
 unexpected behavior if/when those names might be used in future.</p>
-<p>The <code>wezterm.emit</code> function and the <code>EmitEvent</code> key assignment can be used
+<p>The <a href="emit.html">wezterm.emit</a> function and the <a href="../keyassignment/EmitEvent.html">EmitEvent</a> key assignment can be used to
 emit events.</p>
-<p>In this example, a key is assigned to capture the content of the active
+<hr />
+<p>In the following example, a key is assigned to capture the visible content of the active
 pane, write it to a file and then open that file in the <code>vim</code> editor:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
-local io = require 'io';
-local os = require 'os';
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
+local io = require &quot;io&quot;
+local os = require &quot;os&quot;
+local act = wezterm.action
 
-wezterm.on(&quot;trigger-vim-with-scrollback&quot;, function(window, pane)
+wezterm.on(&quot;trigger-vim-with-visible-text&quot;, function(window, pane)
   -- Retrieve the current viewport's text.
-  -- Pass an optional number of lines (eg: 2000) to retrieve
-  -- that number of lines starting from the bottom of the viewport.
-  local scrollback = pane:get_lines_as_text();
+  --
+  -- Note: You could also pass an optional number of lines (eg: 2000) to
+  -- retrieve that number of lines starting from the bottom of the viewport.
+  local viewport_text = pane:get_lines_as_text()
 
   -- Create a temporary file to pass to vim
-  local name = os.tmpname();
-  local f = io.open(name, &quot;w+&quot;);
-  f:write(scrollback);
-  f:flush();
-  f:close();
+  local name = os.tmpname()
+  local f = io.open(name, &quot;w+&quot;)
+  f:write(viewport_text)
+  f:flush()
+  f:close()
 
   -- Open a new window running vim and tell it to open the file
-  window:perform_action(wezterm.action{SpawnCommandInNewWindow={
-    args={&quot;vim&quot;, name}}
+  window:perform_action(act.SpawnCommandInNewWindow{
+    args={&quot;vim&quot;, name}
   }, pane)
 
-  -- wait &quot;enough&quot; time for vim to read the file before we remove it.
-  -- The window creation and process spawn are asynchronous
-  -- wrt. running this script and are not awaitable, so we just pick
-  -- a number.  We don't strictly need to remove this file, but it
-  -- is nice to avoid cluttering up the temporary file directory
-  -- location.
-  wezterm.sleep_ms(1000);
-  os.remove(name);
+  -- Wait &quot;enough&quot; time for vim to read the file before we remove it.
+  -- The window creation and process spawn are asynchronous wrt. running
+  -- this script and are not awaitable, so we just pick a number.
+  --
+  -- Note: We don't strictly need to remove this file, but it is nice
+  -- to avoid cluttering up the temporary directory.
+  wezterm.sleep_ms(1000)
+  os.remove(name)
 end)
 
 return {
   keys = {
     {key=&quot;E&quot;, mods=&quot;CTRL&quot;,
-      action=wezterm.action{EmitEvent=&quot;trigger-vim-with-scrollback&quot;}},
+      action=act.EmitEvent(&quot;trigger-vim-with-visible-text&quot;)},
   }
 }
 </code></pre>
-<p>The first event parameter is a <a href="../window/index.html"><code>window</code> object</a> that
-represents the gui window.</p>
-<p>The second event parameter is a <a href="../pane/index.html"><code>pane</code> object</a> that
-represents the pane.</p>
 
                     </main>
 
