@@ -4,46 +4,23 @@ import sys
 import re
 
 CATEGORIZE = {
-    r".el7.x86_64.rpm$": "centos7_rpm",
-    r".centos7.rpm$": "centos7_rpm",
-    r".el8.x86_64.rpm$": "centos8_rpm",
-    r".centos8.rpm$": "centos8_rpm",
-    r".el9.x86_64.rpm$": "centos9_rpm",
-    r".centos9.rpm$": "centos9_rpm",
-    r".fc31.x86_64.rpm$": "fedora31_rpm",
-    r".fedora31.rpm$": "fedora31_rpm",
-    r".fc32.x86_64.rpm$": "fedora32_rpm",
-    r".fedora32.rpm$": "fedora32_rpm",
-    r".fc33.x86_64.rpm$": "fedora33_rpm",
-    r".fedora33.rpm$": "fedora33_rpm",
-    r".fc34.x86_64.rpm$": "fedora34_rpm",
-    r".fedora34.rpm$": "fedora34_rpm",
-    r".fc35.x86_64.rpm$": "fedora35_rpm",
-    r".fedora35.rpm$": "fedora35_rpm",
-    r".fc36.x86_64.rpm$": "fedora36_rpm",
-    r".fedora36.rpm$": "fedora36_rpm",
+    r".centos(\d+).rpm$": "centos\\1_rpm",
+    r".fedora(\d+).rpm$": "fedora\\1_rpm",
+    r".el(\d+).x86_64.rpm$": "centos\\1_rpm",
+    r".fc(\d+).x86_64.rpm$": "fedora\\1_rpm",
     r".opensuse_leap.rpm$": "opensuse_leap_rpm",
-    r".opensuse_tumbleweed.rpm$": "opensuse_tumbleweed_rpm",
-    r"Debian9.12.deb$": "debian9_deb",
-    r"Debian10.deb$": "debian10_deb",
-    r"Debian11.deb$": "debian11_deb",
-    r"Ubuntu16.04.AppImage$": "ubuntu16_AppImage",
-    r"Ubuntu18.04.AppImage$": "ubuntu18_AppImage",
-    r"Ubuntu16.04.deb$": "ubuntu16_deb",
-    r"^wezterm-\d+-\d+-[a-f0-9]+.deb$": "ubuntu16_deb",
-    r"Ubuntu18.04.deb$": "ubuntu18_deb",
-    r"Ubuntu20.04.deb$": "ubuntu20_deb",
-    r"Ubuntu22.04.deb$": "ubuntu22_deb",
+    r".opensuse_leap.\d+.\d+.rpm$": "opensuse_leap_rpm",
+    r".opensuse_tumbleweed(\d+)?.rpm$": "opensuse_tumbleweed_rpm",
+    r"Debian(\d+)(\.\d+)?\.deb$": "debian\\1_deb",
+    r"Ubuntu(\d+)(\.\d+)?.AppImage$": "ubuntu\\1_AppImage",
+    r"Ubuntu(\d+)(\.\d+)?.deb$": "ubuntu\\1_deb",
     r"Ubuntu18.04.tar.xz$": "linux_raw_bin",
     r"^wezterm-\d+-\d+-[a-f0-9]+.tar.xz$": "linux_raw_bin",
     r"src.tar.gz$": "src",
     r"^WezTerm-macos-.*.zip$": "macos_zip",
     r"^WezTerm-windows-.*.zip$": "windows_zip",
     r"^WezTerm-.*.setup.exe$": "windows_exe",
-    r"alpine3.12.apk": "alpine3_12_apk",
-    r"alpine3.13.apk": "alpine3_13_apk",
-    r"alpine3.14.apk": "alpine3_14_apk",
-    r"alpine3.15.apk": "alpine3_15_apk",
+    r"alpine(\d+)\.(\d+).apk": "alpine\\1_\\2_apk",
 }
 
 
@@ -56,7 +33,9 @@ def categorize(rel):
         name = asset["name"]
 
         for k, v in CATEGORIZE.items():
-            if re.search(k, name):
+            matches = re.search(k, name)
+            if matches:
+                v = matches.expand(v)
                 downloads[v] = (url, name, tag_name)
 
     return downloads
@@ -83,7 +62,6 @@ def load_release_info():
 
     with open("/tmp/wezterm.nightly.json") as f:
         nightly = json.load(f)
-
 
     latest = None
     for rel in release_info:
