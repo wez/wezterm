@@ -60,7 +60,10 @@ pub fn dynamic_to_lua_value<'lua>(
     value: DynValue,
 ) -> mlua::Result<mlua::Value> {
     Ok(match value {
-        DynValue::Null => LuaValue::Nil,
+        // Use a special userdata as a proxy for Null, because if we are a value
+        // and we use Nil then the key is implicitly deleted and that changes
+        // the representation of the data in unexpected ways
+        DynValue::Null => LuaValue::LightUserData(mlua::LightUserData(std::ptr::null_mut())),
         DynValue::Bool(b) => LuaValue::Boolean(b),
         DynValue::String(s) => s.to_lua(lua)?,
         DynValue::U64(u) => u.to_lua(lua)?,
@@ -108,6 +111,8 @@ fn lua_value_to_dynamic_impl(
         LuaValue::Boolean(b) => DynValue::Bool(b),
         LuaValue::Integer(i) => DynValue::I64(i),
         LuaValue::Number(i) => DynValue::F64(i.into()),
+        // Handle our special Null userdata case and map it to Null
+        LuaValue::LightUserData(ud) if ud.0.is_null() => DynValue::Null,
         LuaValue::LightUserData(_) | LuaValue::UserData(_) => {
             return Err(mlua::Error::FromLuaConversionError {
                 from: "userdata",
