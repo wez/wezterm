@@ -11,10 +11,10 @@ a future release; please use [CopyTo](CopyTo.md) instead.
 
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
   keys = {
-    {key="C", mods="CTRL", action="Copy"},
+    {key="C", mods="CTRL", action=wezterm.action.Copy},
   }
 }
 ```

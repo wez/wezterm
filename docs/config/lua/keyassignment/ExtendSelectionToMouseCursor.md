@@ -2,7 +2,21 @@
 
 Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of `Cell`, `Word` or `Line` to control
-the scope of the selection.
+the scope of the selection:
+
+```lua
+local wezterm = require 'wezterm'
+
+return {
+  mouse_bindings = {
+    {
+      event={Up={streak=1, button="Left"}},
+      mods="SHIFT",
+      action=wezterm.action.ExtendSelectionToMouseCursor("Word"),
+    },
+  }
+}
+```
 
 It is also possible to leave the mode unspecified like this:
 

@@ -6,20 +6,7 @@ tab, closes that window.  If that was the last window, wezterm terminates.
 ```lua
 return {
   keys = {
-    {key="w", mods="CMD", action="CloseCurrentTab"},
-  }
-}
-```
-
-*Since: 20201031-154415-9614e117*
-
-`CloseCurrentTab` was changed so that it requires
-a boolean `confirm` parameter:
-
-```lua
-return {
-  keys = {
-    {key="w", mods="CMD", action=wezterm.action{CloseCurrentTab={confirm=true}}},
+    {key="w", mods="CMD", action=wezterm.action.CloseCurrentTab{confirm=true}},
   }
 }
 ```

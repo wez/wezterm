@@ -9,13 +9,14 @@ This example causes ALT-a, ALT-b, ALT-c to switch to the 0th, 1st and 2nd
 panes, respectively:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
-    {key="a", mods="ALT", action=wezterm.action{ActivatePaneByIndex=0}},
-    {key="b", mods="ALT", action=wezterm.action{ActivatePaneByIndex=1}},
-    {key="c", mods="ALT", action=wezterm.action{ActivatePaneByIndex=2}},
+    {key="a", mods="ALT", action=act.ActivatePaneByIndex(0)},
+    {key="b", mods="ALT", action=act.ActivatePaneByIndex(1)},
+    {key="c", mods="ALT", action=act.ActivatePaneByIndex(2)},
   }
 }
 ```

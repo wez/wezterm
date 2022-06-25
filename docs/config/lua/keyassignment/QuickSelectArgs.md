@@ -16,11 +16,11 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     {key="P", mods="CTRL",
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        patterns={
           "https?://\\S+"
        },
-     }}
+     }
    },
   },
 }
@@ -43,7 +43,7 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     {key="P", mods="CTRL",
-     action=wezterm.action{QuickSelectArgs={
+     action=wezterm.action.QuickSelectArgs{
        label = "open url",
        patterns={
           "https?://\\S+"
@@ -53,7 +53,7 @@ return {
           wezterm.log_info("opening: " .. url)
           wezterm.open_with(url)
        end)
-     }}
+     }
    },
   },
 }

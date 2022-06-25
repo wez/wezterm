@@ -9,7 +9,7 @@ return {
   leader = { key="a", mods="CTRL" },
   keys = {
     -- CTRL-a, followed by CTRL-o will switch back to the last active tab
-    {key="o", mods="LEADER|CTRL", action="ActivateLastTab"},
+    {key="o", mods="LEADER|CTRL", action=wezterm.action.ActivateLastTab},
   }
 }
 ```

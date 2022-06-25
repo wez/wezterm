@@ -18,11 +18,14 @@ shells and applications.
 The following configuration achieves that same effect:
 
 ```lua
+local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
      -- Rebind OPT-Left, OPT-Right as ALT-b, ALT-f respectively to match Terminal.app behavior
-     {key="LeftArrow", mods="OPT", action={SendKey={key="b", mods="ALT"}}},
-     {key="RightArrow", mods="OPT", action={SendKey={key="f", mods="ALT"}}},
+     {key="LeftArrow", mods="OPT", action=act.SendKey{key="b", mods="ALT"}},
+     {key="RightArrow", mods="OPT", action=act.SendKey{key="f", mods="ALT"}},
   }
 }
 ```

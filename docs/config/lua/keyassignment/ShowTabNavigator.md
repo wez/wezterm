@@ -5,9 +5,11 @@ navigator displays a list of tabs and allows you to select
 and activate a tab from that list.
 
 ```lua
+local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key="F9", mods="ALT", action="ShowTabNavigator"},
+    {key="F9", mods="ALT", action=wezterm.action.ShowTabNavigator},
   }
 }
 ```

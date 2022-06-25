@@ -10,18 +10,19 @@ If the active pane is [zoomed](TogglePaneZoomState.md), behavior is determined
 by the [`unzoom_on_switch_pane`](../config/unzoom_on_switch_pane.md) flag. 
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
     { key = "LeftArrow", mods="CTRL|SHIFT",
-      action=wezterm.action{ActivatePaneDirection="Left"}},
+      action=act.ActivatePaneDirection("Left")},
     { key = "RightArrow", mods="CTRL|SHIFT",
-      action=wezterm.action{ActivatePaneDirection="Right"}},
+      action=act.ActivatePaneDirection("Right")},
     { key = "UpArrow", mods="CTRL|SHIFT",
-      action=wezterm.action{ActivatePaneDirection="Up"}},
+      action=act.ActivatePaneDirection("Up")},
     { key = "DownArrow", mods="CTRL|SHIFT",
-      action=wezterm.action{ActivatePaneDirection="Down"}},
+      action=act.ActivatePaneDirection("Down")},
   }
 }
 ```

@@ -8,9 +8,11 @@ The act of closing a pane shuts down the PTY associated with the pane and
 then kills the process associated with that pane.
 
 ```lua
+local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key="w", mods="CMD", action=wezterm.action{CloseCurrentPane={confirm=true}}},
+    {key="w", mods="CMD", action=wezterm.action.CloseCurrentPane{confirm=true}},
   }
 }
 ```

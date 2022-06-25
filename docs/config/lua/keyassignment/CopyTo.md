@@ -9,10 +9,11 @@ Possible values for destination are:
 * `ClipboardAndPrimarySelection` - Copy to both the clipboard and the primary selection.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key="C", mods="CTRL", action=wezterm.action{CopyTo="ClipboardAndPrimarySelection"}},
+    {key="C", mods="CTRL", action=wezterm.action.CopyTo("ClipboardAndPrimarySelection")},
   }
 }
 ```

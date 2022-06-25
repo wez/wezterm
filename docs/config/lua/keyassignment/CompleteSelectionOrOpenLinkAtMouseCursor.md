@@ -21,7 +21,7 @@ return {
     {
       event={Up={streak=1, button="Left"}},
       mods="NONE",
-      action=wezterm.action{CompleteSelectionOrOpenLinkAtMouseCursor="Clipboard"},
+      action=wezterm.action.CompleteSelectionOrOpenLinkAtMouseCursor("Clipboard"),
     },
   },
 }

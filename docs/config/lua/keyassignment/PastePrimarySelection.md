@@ -11,10 +11,12 @@ a future release; please use [PasteFrom](PasteFrom.md) instead.
 ## Example
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.act
+
 return {
   keys = {
-    {key="v", mods="SHIFT|CTRL", action="PastePrimarySelection"},
+    {key="v", mods="SHIFT|CTRL", action=act.PastePrimarySelection},
   },
 
   -- Middle mouse button pastes the primary selection.
@@ -22,7 +24,7 @@ return {
     {
       event={Up={streak=1, button="Middle"}},
       mods="NONE",
-      action="PastePrimarySelection",
+      action=act.PastePrimarySelection,
     },
   }
 }

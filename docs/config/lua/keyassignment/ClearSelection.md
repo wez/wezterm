@@ -10,6 +10,7 @@ CTRL-C to the terminal when there is no selection:
 
 ```lua
 local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   keys = {
@@ -20,13 +21,13 @@ return {
         local has_selection = window:get_selection_text_for_pane(pane) ~= ""
         if has_selection then
           window:perform_action(
-            wezterm.action{CopyTo="ClipboardAndPrimarySelection"},
+            act.CopyTo("ClipboardAndPrimarySelection"),
             pane)
 
           window:perform_action("ClearSelection", pane)
         else
           window:perform_action(
-            wezterm.action{SendKey={key="c", mods="CTRL"}},
+            act.SendKey{key="c", mods="CTRL"}},
             pane)
         end
       end)

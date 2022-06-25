@@ -10,10 +10,11 @@ a future release; please use [PasteFrom](PasteFrom.md) instead.
 ## Example
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+
 return {
   keys = {
-    {key="v", mods="SHIFT|CTRL", action="Paste"},
+    {key="v", mods="SHIFT|CTRL", action=wezterm.action.Paste},
   },
 
   -- Middle mouse button pastes the clipboard.
@@ -22,7 +23,7 @@ return {
     {
       event={Up={streak=1, button="Middle"}},
       mods="NONE",
-      action="Paste",
+      action=wezterm.action.Paste,
     },
   }
 }

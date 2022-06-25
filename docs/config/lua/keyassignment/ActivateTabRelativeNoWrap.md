@@ -12,11 +12,13 @@ but this one will not wrap around; for example, if the first tab is active
 
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
-    {key="{", mods="ALT", action=wezterm.action{ActivateTabRelativeNoWrap=-1}},
-    {key="}", mods="ALT", action=wezterm.action{ActivateTabRelativeNoWrap=1}},
+    {key="{", mods="ALT", action=act.ActivateTabRelativeNoWrap(-1)},
+    {key="}", mods="ALT", action=act.ActivateTabRelativeNoWrap(1)},
   }
 }
 ```

@@ -4,12 +4,13 @@ Adjusts the scroll position by the number of pages specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.act
 
 return {
   keys = {
-    {key="PageUp", mods="SHIFT", action=wezterm.action{ScrollByPage=-1}},
-    {key="PageDown", mods="SHIFT", action=wezterm.action{ScrollByPage=1}},
+    {key="PageUp", mods="SHIFT", action=act.ScrollByPage(-1)},
+    {key="PageDown", mods="SHIFT", action=act.ScrollByPage(1)},
   }
 }
 ```
@@ -24,8 +25,8 @@ local wezterm = require 'wezterm';
 
 return {
   keys = {
-    {key="PageUp", mods="SHIFT", action=wezterm.action{ScrollByPage=-0.5}},
-    {key="PageDown", mods="SHIFT", action=wezterm.action{ScrollByPage=0.5}},
+    {key="PageUp", mods="SHIFT", action=act.ScrollByPage(-0.5)},
+    {key="PageDown", mods="SHIFT", action=act.ScrollByPage(0.5)},
   }
 }
 ```

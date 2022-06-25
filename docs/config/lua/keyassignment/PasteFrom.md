@@ -12,14 +12,16 @@ Possible values for source are:
 See also [Paste](Paste.md).
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- paste from the clipboard
-    {key="V", mods="CTRL", action=wezterm.action{PasteFrom="Clipboard"}},
+    {key="V", mods="CTRL", action=act.PasteFrom("Clipboard")},
 
     -- paste from the primary selection
-    {key="V", mods="CTRL", action=wezterm.action{PasteFrom="PrimarySelection"}},
+    {key="V", mods="CTRL", action=act.PasteFrom("PrimarySelection")},
   },
 }
 ```

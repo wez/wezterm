@@ -7,11 +7,12 @@ Negative values scroll upwards, while positive values scroll downwards.
 
 ```lua
 local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   keys = {
-    {key="UpArrow", mods="SHIFT", action=wezterm.action{ScrollByLine=-1}},
-    {key="DownArrow", mods="SHIFT", action=wezterm.action{ScrollByLine=1}},
+    {key="UpArrow", mods="SHIFT", action=act.ScrollByLine(-1)},
+    {key="DownArrow", mods="SHIFT", action=act.ScrollByLine(1)},
   }
 }
 ```

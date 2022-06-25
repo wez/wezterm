@@ -12,15 +12,17 @@ here](https://docs.rs/regex/1.3.9/regex/#syntax).
 
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
+local act = wezterm.action
+
 return {
   keys = {
     -- search for things that look like git hashes
-    {key="H", mods="SHIFT|CTRL", action=wezterm.action{Search={Regex="[a-f0-9]{6,}"}}},
+    {key="H", mods="SHIFT|CTRL", action=act.Search{Regex="[a-f0-9]{6,}"}},
     -- search for the lowercase string "hash" matching the case exactly
-    {key="H", mods="SHIFT|CTRL", action=wezterm.action{Search={CaseSensitiveString="hash"}}},
+    {key="H", mods="SHIFT|CTRL", action=act.Search{CaseSensitiveString="hash"}},
     -- search for the string "hash" matching regardless of case
-    {key="H", mods="SHIFT|CTRL", action=wezterm.action{Search={CaseInSensitiveString="hash"}}},
+    {key="H", mods="SHIFT|CTRL", action=act.Search{CaseInSensitiveString="hash"}},
   },
 }
 ```
@@ -29,6 +31,6 @@ return {
 
 *since: 20220624-141144-bd1b7c5d*
 
-You may now use `wezterm.action{Search="CurrentSelectionOrEmptyString"}` to have the search take the currently selected text as the item to search.
+You may now use `wezterm.action.Search="CurrentSelectionOrEmptyString"}` to have the search take the currently selected text as the item to search.
 
 The selection text is adjusted to be a single line.

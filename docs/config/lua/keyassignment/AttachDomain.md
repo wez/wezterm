@@ -29,7 +29,7 @@ return {
     }
   },
   keys = {
-    {key="U", mods="CTRL|SHIFT", action=wezterm.action{AttachDomain="devhost"}},
+    {key="U", mods="CTRL|SHIFT", action=wezterm.action.AttachDomain("devhost")},
   },
 }
 ```

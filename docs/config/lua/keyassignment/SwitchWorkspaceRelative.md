@@ -15,6 +15,7 @@ to create workspaces.
 
 ```lua
 local wezterm = require 'wezterm'
+local act = wezterm.action
 
 wezterm.on("update-right-status", function(window, pane)
   window:set_right_status(window:active_workspace())
@@ -22,9 +23,9 @@ end)
 
 return {
   keys = {
-    {key="9", mods="ALT", action=wezterm.action{ShowLauncherArgs={flags="FUZZY|WORKSPACES"}}},
-    {key="n", mods="CTRL", action=wezterm.action{SwitchWorkspaceRelative=1}},
-    {key="p", mods="CTRL", action=wezterm.action{SwitchWorkspaceRelative=-1}},
+    {key="9", mods="ALT", action=act.ShowLauncherArgs{flags="FUZZY|WORKSPACES"}},
+    {key="n", mods="CTRL", action=act.SwitchWorkspaceRelative(1)},
+    {key="p", mods="CTRL", action=act.SwitchWorkspaceRelative(-1)},
   },
 }
 ```

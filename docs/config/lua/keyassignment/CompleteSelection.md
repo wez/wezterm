@@ -22,7 +22,7 @@ return {
     {
       event={Up={streak=1, button="Left"}},
       mods="NONE",
-      action=wezterm.action{CompleteSelection="Clipboard"},
+      action=wezterm.action.CompleteSelection("Clipboard"),
     },
   },
 }

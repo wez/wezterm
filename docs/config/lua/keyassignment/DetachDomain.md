@@ -12,6 +12,7 @@ error log/debug overlay.
 
 ```lua
 local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   ssh_domains = {
@@ -21,11 +22,11 @@ return {
     }
   },
   keys = {
-    {key="U", mods="CTRL|SHIFT", action=wezterm.action{AttachDomain="devhost"}},
+    {key="U", mods="CTRL|SHIFT", action=act.AttachDomain("devhost")},
     -- Detaches the domain associated with the current pane
-    {key="D", mods="CTRL|SHIFT", action=wezterm.action{DetachDomain="CurrentPaneDomain"}},
+    {key="D", mods="CTRL|SHIFT", action=act.DetachDomain("CurrentPaneDomain")},
     -- Detaches the "devhost" domain
-    {key="E", mods="CTRL|SHIFT", action=wezterm.action{DetachDomain={DomainName="devhost"}}},
+    {key="E", mods="CTRL|SHIFT", action=act.DetachDomain{DomainName="devhost"}},
   },
 }
 
