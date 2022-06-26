@@ -205,19 +205,8 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
                             .named
                             .iter()
                             .map(|f| {
-                                let ident = f.ident.as_ref().unwrap();
-                                let name = ident.to_string();
-                                let ty = &f.ty;
-                                quote!(
-                                    #ident: <#ty>::from_dynamic(
-                                        obj.get_by_str(#name).unwrap_or(&Value::Null),
-                                            options
-                                        ).map_err(|source| source.field_context(
-                                                #literal,
-                                                #name,
-                                                obj
-                                            ))?,
-                                )
+                                let info = attr::field_info(f).unwrap();
+                                info.from_dynamic(&literal)
                             })
                         .collect::<Vec<_>>();
 

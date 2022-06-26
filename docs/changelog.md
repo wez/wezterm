@@ -11,7 +11,8 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* Not yet
+#### Fixed
+* [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
 
 ### 20220624-141144-bd1b7c5d
 
