@@ -274,6 +274,16 @@ impl OperatingSystemCommand {
 
         macro_rules! single_string {
             ($variant:ident) => {{
+                if osc.len() != 2 {
+                    bail!("wrong param count");
+                }
+                let s = String::from_utf8(osc[1].to_vec())?;
+                Ok(OperatingSystemCommand::$variant(s))
+            }};
+        }
+
+        macro_rules! single_title_string {
+            ($variant:ident) => {{
                 if osc.len() < 2 {
                     bail!("wrong param count");
                 }
@@ -288,13 +298,13 @@ impl OperatingSystemCommand {
 
         use self::OperatingSystemCommandCode::*;
         match osc_code {
-            SetIconNameAndWindowTitle => single_string!(SetIconNameAndWindowTitle),
-            SetWindowTitle => single_string!(SetWindowTitle),
+            SetIconNameAndWindowTitle => single_title_string!(SetIconNameAndWindowTitle),
+            SetWindowTitle => single_title_string!(SetWindowTitle),
             SetWindowTitleSun => Ok(OperatingSystemCommand::SetWindowTitleSun(
                 p1str[1..].to_owned(),
             )),
 
-            SetIconName => single_string!(SetIconName),
+            SetIconName => single_title_string!(SetIconName),
             SetIconNameSun => Ok(OperatingSystemCommand::SetIconNameSun(
                 p1str[1..].to_owned(),
             )),
