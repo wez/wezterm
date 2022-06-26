@@ -159,26 +159,27 @@ quick consecutive press.  <code>Triple Left Up</code> matches the subsequent rel
 of that triple click, so for a triple click both
 <code>SelectTextAtMouseCursor=&quot;Line&quot;</code> and <code>CompleteSelection</code> will be triggered in
 that order.</p>
+<p>NOTE: In the action column, <code>act</code> is an alias to <code>wezterm.action</code> (to avoid repetition).</p>
 <table><thead><tr><th>Event</th><th>Modifiers</th><th>Action</th></tr></thead><tbody>
-<tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Line&quot;</code></td></tr>
-<tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
-<tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
-<tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
-<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>SelectTextAtMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Cell&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
-<tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
-<tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
-<tr><td>Single Left Drag</td><td><code>CTRL+SHIFT</code></td><td><code>StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
+<tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Line&quot;)</code></td></tr>
+<tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Word&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Block&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>act.CompleteSelectionOrOpenLinkAtMouseCursor(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelectionOrOpenLinkAtMouseCursor(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Block&quot;)</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Block&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Word&quot;)</code></td></tr>
+<tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Line&quot;)</code></td></tr>
+<tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>act.PasteFrom(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
+<tr><td>Single Left Drag</td><td><code>CTRL+SHIFT</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
 </tbody></table>
 <p>If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
@@ -191,6 +192,7 @@ you must explicitly register every binding.</p>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>You can define mouse actions using the <code>mouse_bindings</code> configuration section:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   mouse_bindings = {
@@ -198,7 +200,7 @@ return {
     {
       event={Down={streak=1, button=&quot;Right&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{SendString=&quot;woot&quot;}
+      action=act.SendString(&quot;woot&quot;),
     },
 
     -- Change the default click behavior so that it only selects
@@ -206,14 +208,14 @@ return {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{CompleteSelection=&quot;PrimarySelection&quot;},
+      action=act.CompleteSelection(&quot;PrimarySelection&quot;),
     },
 
     -- and make CTRL-Click open hyperlinks
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;OpenLinkAtMouseCursor&quot;,
+      action=act.OpenLinkAtMouseCursor,
     },
     -- NOTE that binding only the 'Up' event can give unexpected behaviors.
     -- Read more below on the gotcha of binding an 'Up' event only.
@@ -249,19 +251,22 @@ you may experience <em>unintuitive behavior</em> as the program receives the 'Do
 event, but not the 'Up' event (which is bound to something in your config).</p>
 <p>To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
 be sent to the running program), for example:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
+local act = wezterm.action
+
+return {
   mouse_bindings = {
     -- Bind 'Up' event of CTRL-Click to open hyperlinks
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;OpenLinkAtMouseCursor&quot;,
+      action=act.OpenLinkAtMouseCursor,
     },
     -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
     {
       event={Down={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;Nop&quot;,
+      action=act.Nop,
     },
   },
 }

@@ -250,9 +250,9 @@ return {
   -- timeout_milliseconds defaults to 1000 and can be omitted
   leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot;, timeout_milliseconds=1000 },
   keys = {
-    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action.SplitHorizontal{domain=&quot;CurrentPaneDomain&quot;}},
     -- Send &quot;CTRL-A&quot; to the terminal when pressing CTRL-A, CTRL-A
-    {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action{SendString=&quot;\x01&quot;}},
+    {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action.SendString(&quot;\x01&quot;)},
   }
 }
 </code></pre>
@@ -270,8 +270,8 @@ return {
   -- for this example use `setxkbmap -option caps:none` in your terminal.
   leader = { key=&quot;VoidSymbol&quot;, mods=&quot;&quot;, timeout_milliseconds=1000 },
   keys = {
-    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
-    {key=&quot;-&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitVertical={domain=&quot;CurrentPaneDomain&quot;}}},
+    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action.SplitHorizontal{domain=&quot;CurrentPaneDomain&quot;}},
+    {key=&quot;-&quot;, mods=&quot;LEADER&quot;, action=wezterm.action.SplitVertical{domain=&quot;CurrentPaneDomain&quot;}},
   }
 }
 </code></pre>

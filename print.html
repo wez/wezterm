@@ -2168,9 +2168,9 @@ return {
   -- timeout_milliseconds defaults to 1000 and can be omitted
   leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot;, timeout_milliseconds=1000 },
   keys = {
-    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action.SplitHorizontal{domain=&quot;CurrentPaneDomain&quot;}},
     -- Send &quot;CTRL-A&quot; to the terminal when pressing CTRL-A, CTRL-A
-    {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action{SendString=&quot;\x01&quot;}},
+    {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action.SendString(&quot;\x01&quot;)},
   }
 }
 </code></pre>
@@ -2188,8 +2188,8 @@ return {
   -- for this example use `setxkbmap -option caps:none` in your terminal.
   leader = { key=&quot;VoidSymbol&quot;, mods=&quot;&quot;, timeout_milliseconds=1000 },
   keys = {
-    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
-    {key=&quot;-&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitVertical={domain=&quot;CurrentPaneDomain&quot;}}},
+    {key=&quot;|&quot;, mods=&quot;LEADER|SHIFT&quot;, action=wezterm.action.SplitHorizontal{domain=&quot;CurrentPaneDomain&quot;}},
+    {key=&quot;-&quot;, mods=&quot;LEADER&quot;, action=wezterm.action.SplitVertical{domain=&quot;CurrentPaneDomain&quot;}},
   }
 }
 </code></pre>
@@ -2210,7 +2210,8 @@ arrow key.  Our goal is to avoid holding down so many keys at once, or even
 having to remember so many key combinations, so what we'd like to do is use
 <code>CTRL-SHIFT-SPACE</code> as a leader prefix to select between resize and activation
 modes, using <code>r</code> for resize and <code>a</code> for activation:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 -- Show which key table is active in the status area
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
@@ -2219,28 +2220,24 @@ wezterm.on(&quot;update-right-status&quot;, function(window, pane)
     name = &quot;TABLE: &quot; .. name
   end
   window:set_right_status(name or &quot;&quot;)
-end);
+end)
 
 return {
   leader = {key=&quot;Space&quot;, mods=&quot;CTRL|SHIFT&quot;},
   keys = {
-    -- CTRL|SHIFT+Space, followed by 'r' will put us in resize-pane
+    -- CTRL+SHIFT+Space, followed by 'r' will put us in resize-pane
     -- mode until we cancel that mode.
-    {key=&quot;r&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{
-      ActivateKeyTable={
-        name=&quot;resize_pane&quot;,
-        one_shot=false,
-      }
+    {key=&quot;r&quot;, mods=&quot;LEADER&quot;, action=act.ActivateKeyTable{
+      name=&quot;resize_pane&quot;,
+      one_shot=false,
     }},
 
-    -- CTRL|SHIFT+Space, followed by 'a' will put us in activate-pane
+    -- CTRL+SHIFT+Space, followed by 'a' will put us in activate-pane
     -- mode until we press some other key or until 1 second (1000ms)
     -- of time elapses
-    {key=&quot;a&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{
-      ActivateKeyTable={
-        name=&quot;activate_pane&quot;,
-        timeout_milliseconds=1000,
-      }
+    {key=&quot;a&quot;, mods=&quot;LEADER&quot;, action=act.ActivateKeyTable{
+      name=&quot;activate_pane&quot;,
+      timeout_milliseconds=1000,
     }},
   },
 
@@ -2252,17 +2249,17 @@ return {
     -- 'resize_pane' here corresponds to the name=&quot;resize_pane&quot; in
     -- the key assignments above.
     resize_pane = {
-      {key=&quot;LeftArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Left&quot;, 1}}},
-      {key=&quot;h&quot;, action=wezterm.action{AdjustPaneSize={&quot;Left&quot;, 1}}},
+      {key=&quot;LeftArrow&quot;, action=act.AdjustPaneSize{&quot;Left&quot;, 1}},
+      {key=&quot;h&quot;,         action=act.AdjustPaneSize{&quot;Left&quot;, 1}},
 
-      {key=&quot;RightArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Right&quot;, 1}}},
-      {key=&quot;l&quot;, action=wezterm.action{AdjustPaneSize={&quot;Right&quot;, 1}}},
+      {key=&quot;RightArrow&quot;, action=act.AdjustPaneSize{&quot;Right&quot;, 1}},
+      {key=&quot;l&quot;,          action=act.AdjustPaneSize{&quot;Right&quot;, 1}},
 
-      {key=&quot;UpArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Up&quot;, 1}}},
-      {key=&quot;k&quot;, action=wezterm.action{AdjustPaneSize={&quot;Up&quot;, 1}}},
+      {key=&quot;UpArrow&quot;, action=act.AdjustPaneSize{&quot;Up&quot;, 1}},
+      {key=&quot;k&quot;,       action=act.AdjustPaneSize{&quot;Up&quot;, 1}},
 
-      {key=&quot;DownArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Down&quot;, 1}}},
-      {key=&quot;j&quot;, action=wezterm.action{AdjustPaneSize={&quot;Down&quot;, 1}}},
+      {key=&quot;DownArrow&quot;, action=act.AdjustPaneSize{&quot;Down&quot;, 1}},
+      {key=&quot;j&quot;,         action=act.AdjustPaneSize{&quot;Down&quot;, 1}},
 
       -- Cancel the mode by pressing escape
       {key=&quot;Escape&quot;, action=&quot;PopKeyTable&quot;},
@@ -2273,17 +2270,17 @@ return {
     -- 'activate_pane' here corresponds to the name=&quot;activate_pane&quot; in
     -- the key assignments above.
     activate_pane = {
-      {key=&quot;LeftArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
-      {key=&quot;h&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
+      {key=&quot;LeftArrow&quot;, action=act.ActivatePaneDirection(&quot;Left&quot;)},
+      {key=&quot;h&quot;,         action=act.ActivatePaneDirection(&quot;Left&quot;)},
 
-      {key=&quot;RightArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
-      {key=&quot;l&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
+      {key=&quot;RightArrow&quot;, action=act.ActivatePaneDirection(&quot;Right&quot;)},
+      {key=&quot;l&quot;,          action=act.ActivatePaneDirection(&quot;Right&quot;)},
 
-      {key=&quot;UpArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
-      {key=&quot;k&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
+      {key=&quot;UpArrow&quot;, action=act.ActivatePaneDirection(&quot;Up&quot;)},
+      {key=&quot;k&quot;,       action=act.ActivatePaneDirection(&quot;Up&quot;)},
 
-      {key=&quot;DownArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
-      {key=&quot;j&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
+      {key=&quot;DownArrow&quot;, action=act.ActivatePaneDirection(&quot;Down&quot;)},
+      {key=&quot;j&quot;,         action=act.ActivatePaneDirection(&quot;Down&quot;)},
     },
 
   },
@@ -2457,26 +2454,27 @@ quick consecutive press.  <code>Triple Left Up</code> matches the subsequent rel
 of that triple click, so for a triple click both
 <code>SelectTextAtMouseCursor=&quot;Line&quot;</code> and <code>CompleteSelection</code> will be triggered in
 that order.</p>
+<p>NOTE: In the action column, <code>act</code> is an alias to <code>wezterm.action</code> (to avoid repetition).</p>
 <table><thead><tr><th>Event</th><th>Modifiers</th><th>Action</th></tr></thead><tbody>
-<tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Line&quot;</code></td></tr>
-<tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
-<tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
-<tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
-<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>SelectTextAtMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Cell&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Block&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
-<tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
-<tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
-<tr><td>Single Left Drag</td><td><code>CTRL+SHIFT</code></td><td><code>StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
+<tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Line&quot;)</code></td></tr>
+<tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Word&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Down</td><td><code>ALT</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Block&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>act.CompleteSelectionOrOpenLinkAtMouseCursor(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelectionOrOpenLinkAtMouseCursor(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Up</td><td><code>ALT</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Cell&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>ALT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Block&quot;)</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Down</td><td><code>ALT+SHIFT</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Block&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Single Left Up</td><td><code>ALT+SHIFT</code></td><td><code>act.CompleteSelection(&quot;PrimarySelection&quot;)</code>  (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Word&quot;)</code></td></tr>
+<tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>act.ExtendSelectionToMouseCursor(&quot;Line&quot;)</code></td></tr>
+<tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>act.PasteFrom(&quot;PrimarySelection&quot;)</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
+<tr><td>Single Left Drag</td><td><code>CTRL+SHIFT</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
 </tbody></table>
 <p>If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
@@ -2489,6 +2487,7 @@ you must explicitly register every binding.</p>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>You can define mouse actions using the <code>mouse_bindings</code> configuration section:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
+local act = wezterm.action
 
 return {
   mouse_bindings = {
@@ -2496,7 +2495,7 @@ return {
     {
       event={Down={streak=1, button=&quot;Right&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{SendString=&quot;woot&quot;}
+      action=act.SendString(&quot;woot&quot;),
     },
 
     -- Change the default click behavior so that it only selects
@@ -2504,14 +2503,14 @@ return {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;NONE&quot;,
-      action=wezterm.action{CompleteSelection=&quot;PrimarySelection&quot;},
+      action=act.CompleteSelection(&quot;PrimarySelection&quot;),
     },
 
     -- and make CTRL-Click open hyperlinks
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;OpenLinkAtMouseCursor&quot;,
+      action=act.OpenLinkAtMouseCursor,
     },
     -- NOTE that binding only the 'Up' event can give unexpected behaviors.
     -- Read more below on the gotcha of binding an 'Up' event only.
@@ -2547,19 +2546,22 @@ you may experience <em>unintuitive behavior</em> as the program receives the 'Do
 event, but not the 'Up' event (which is bound to something in your config).</p>
 <p>To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
 be sent to the running program), for example:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
+local act = wezterm.action
+
+return {
   mouse_bindings = {
     -- Bind 'Up' event of CTRL-Click to open hyperlinks
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;OpenLinkAtMouseCursor&quot;,
+      action=act.OpenLinkAtMouseCursor,
     },
     -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
     {
       event={Down={streak=1, button=&quot;Left&quot;}},
       mods=&quot;CTRL&quot;,
-      action=&quot;Nop&quot;,
+      action=act.Nop,
     },
   },
 }
@@ -5057,20 +5059,21 @@ with the viewport scrolled to that location.</li>
 There isn't a way to override portions of the key table, only to replace the entire table.</p>
 <p>The default configuration is equivalent to:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   key_tables = {
     search_mode = {
-      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
-      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatchPage&quot;}},
-      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
-      {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
-      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatch&quot;}},
-      {key=&quot;r&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;CycleMatchType&quot;}},
-      {key=&quot;u&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;ClearPattern&quot;}},
+      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;Close&quot;)},
+      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatchPage&quot;)},
+      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;NextMatchPage&quot;)},
+      {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;NextMatchPage&quot;)},
+      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;NextMatch&quot;)},
+      {key=&quot;r&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;CycleMatchType&quot;)},
+      {key=&quot;u&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;ClearPattern&quot;)},
     }
   }
 }
@@ -5087,7 +5090,7 @@ this:</p>
 return {
   keys = {
     -- search for things that look like git hashes
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={Regex=&quot;[a-f0-9]{6,}&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.Search{Regex=&quot;[a-f0-9]{6,}&quot;}},
   },
 }
 </code></pre>
@@ -5193,71 +5196,72 @@ reassignable.</p>
 There isn't a way to override portions of the key table, only to replace the entire table.</p>
 <p>The default configuration is equivalent to:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   key_tables = {
     copy_mode = {
-      {key=&quot;c&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
-      {key=&quot;g&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
-      {key=&quot;q&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
-      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
+      {key=&quot;c&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;Close&quot;)},
+      {key=&quot;g&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;Close&quot;)},
+      {key=&quot;q&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;Close&quot;)},
+      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;Close&quot;)},
 
-      {key=&quot;h&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveLeft&quot;}},
-      {key=&quot;j&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveDown&quot;}},
-      {key=&quot;k&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveUp&quot;}},
-      {key=&quot;l&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveRight&quot;}},
+      {key=&quot;h&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveLeft&quot;)},
+      {key=&quot;j&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveDown&quot;)},
+      {key=&quot;k&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveUp&quot;)},
+      {key=&quot;l&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveRight&quot;)},
 
-      {key=&quot;LeftArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveLeft&quot;}},
-      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveDown&quot;}},
-      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveUp&quot;}},
-      {key=&quot;RightArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveRight&quot;}},
+      {key=&quot;LeftArrow&quot;,  mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveLeft&quot;)},
+      {key=&quot;DownArrow&quot;,  mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveDown&quot;)},
+      {key=&quot;UpArrow&quot;,    mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveUp&quot;)},
+      {key=&quot;RightArrow&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveRight&quot;)},
 
-      {key=&quot;RightArrow&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
-      {key=&quot;f&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
-      {key=&quot;Tab&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
-      {key=&quot;w&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveForwardWord&quot;}},
+      {key=&quot;RightArrow&quot;, mods=&quot;ALT&quot;,  action=act.CopyMode(&quot;MoveForwardWord&quot;)},
+      {key=&quot;f&quot;,          mods=&quot;ALT&quot;,  action=act.CopyMode(&quot;MoveForwardWord&quot;)},
+      {key=&quot;Tab&quot;,        mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveForwardWord&quot;)},
+      {key=&quot;w&quot;,          mods=&quot;NONE&quot;, action=act.CopyMode(&quot;MoveForwardWord&quot;)},
 
-      {key=&quot;LeftArrow&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
-      {key=&quot;b&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
-      {key=&quot;Tab&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
-      {key=&quot;b&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveBackwardWord&quot;}},
+      {key=&quot;LeftArrow&quot;, mods=&quot;ALT&quot;,   action=act.CopyMode(&quot;MoveBackwardWord&quot;)},
+      {key=&quot;b&quot;,         mods=&quot;ALT&quot;,   action=act.CopyMode(&quot;MoveBackwardWord&quot;)},
+      {key=&quot;Tab&quot;,       mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveBackwardWord&quot;)},
+      {key=&quot;b&quot;,         mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveBackwardWord&quot;)},
 
-      {key=&quot;0&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLine&quot;}},
-      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfNextLine&quot;}},
-      {key=&quot;$&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToEndOfLineContent&quot;}},
-      {key=&quot;$&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToEndOfLineContent&quot;}},
+      {key=&quot;0&quot;,     mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToStartOfLine&quot;)},
+      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToStartOfNextLine&quot;)},
 
-      {key=&quot;m&quot;, mods=&quot;ALT&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
-      {key=&quot;^&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
-      {key=&quot;^&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToStartOfLineContent&quot;}},
+      {key=&quot;$&quot;,     mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToEndOfLineContent&quot;)},
+      {key=&quot;$&quot;,     mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToEndOfLineContent&quot;)},
+      {key=&quot;^&quot;,     mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToStartOfLineContent&quot;)},
+      {key=&quot;^&quot;,     mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToStartOfLineContent&quot;)},
+      {key=&quot;m&quot;,     mods=&quot;ALT&quot;,   action=act.CopyMode(&quot;MoveToStartOfLineContent&quot;)},
 
-      {key=&quot; &quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Cell&quot;}}},
-      {key=&quot;v&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Cell&quot;}}},
-      {key=&quot;V&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Line&quot;}}},
-      {key=&quot;V&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Line&quot;}}},
-      {key=&quot;v&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode={SetSelectionMode=&quot;Block&quot;}}},
+      {key=&quot; &quot;, mods=&quot;NONE&quot;,  action=act.CopyMode{SetSelectionMode=&quot;Cell&quot;}},
+      {key=&quot;v&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode{SetSelectionMode=&quot;Cell&quot;}},
+      {key=&quot;V&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode{SetSelectionMode=&quot;Line&quot;}},
+      {key=&quot;V&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode{SetSelectionMode=&quot;Line&quot;}},
+      {key=&quot;v&quot;, mods=&quot;CTRL&quot;,  action=act.CopyMode{SetSelectionMode=&quot;Block&quot;}},
 
-      {key=&quot;G&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackBottom&quot;}},
-      {key=&quot;G&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackBottom&quot;}},
-      {key=&quot;g&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToScrollbackTop&quot;}},
+      {key=&quot;G&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToScrollbackBottom&quot;)},
+      {key=&quot;G&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToScrollbackBottom&quot;)},
+      {key=&quot;g&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToScrollbackTop&quot;)},
 
-      {key=&quot;H&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportTop&quot;}},
-      {key=&quot;H&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportTop&quot;}},
-      {key=&quot;M&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportMiddle&quot;}},
-      {key=&quot;M&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportMiddle&quot;}},
-      {key=&quot;L&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportBottom&quot;}},
-      {key=&quot;L&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToViewportBottom&quot;}},
+      {key=&quot;H&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToViewportTop&quot;)},
+      {key=&quot;H&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToViewportTop&quot;)},
+      {key=&quot;M&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToViewportMiddle&quot;)},
+      {key=&quot;M&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToViewportMiddle&quot;)},
+      {key=&quot;L&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToViewportBottom&quot;)},
+      {key=&quot;L&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToViewportBottom&quot;)},
 
-      {key=&quot;o&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToSelectionOtherEnd&quot;}},
-      {key=&quot;O&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;MoveToSelectionOtherEndHoriz&quot;}},
-      {key=&quot;O&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{CopyMode=&quot;MoveToSelectionOtherEndHoriz&quot;}},
+      {key=&quot;o&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToSelectionOtherEnd&quot;)},
+      {key=&quot;O&quot;, mods=&quot;NONE&quot;,  action=act.CopyMode(&quot;MoveToSelectionOtherEndHoriz&quot;)},
+      {key=&quot;O&quot;, mods=&quot;SHIFT&quot;, action=act.CopyMode(&quot;MoveToSelectionOtherEndHoriz&quot;)},
 
-      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PageUp&quot;}},
-      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PageDown&quot;}},
+      {key=&quot;PageUp&quot;,   mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PageUp&quot;)},
+      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PageDown&quot;)},
 
-      {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PageUp&quot;}},
-      {key=&quot;f&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PageDown&quot;}},
-    }
+      {key=&quot;b&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;PageUp&quot;)},
+      {key=&quot;f&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;PageDown&quot;)},
+    },
   },
 }
 </code></pre>
@@ -6772,7 +6776,7 @@ return {
 }
 </code></pre>
 <h2 id="older-versions"><a class="header" href="#older-versions">Older versions</a></h2>
-<p>Usage looks like this:</p>
+<p>For versions before <em>20220624-141144-bd1b7c5d</em>, usage looks like this:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
    keys = {
@@ -6796,7 +6800,7 @@ the event and use it in a different place.</p>
 <pre><code class="language-lua">function wezterm.action_callback(callback)
   local event_id = &quot;...&quot; -- the function generates a unique event id
   wezterm.on(event_id, callback)
-  return wezterm.action{EmitEvent=event_id}
+  return wezterm.action.EmitEvent(event_id)
 end
 </code></pre>
 <p>See <a href="config/lua/wezterm/./on.html">wezterm.on</a> and <a href="config/lua/wezterm/./action.html">wezterm.action</a> for more info on what you can do with these.</p>
@@ -14525,13 +14529,15 @@ return {
         if has_selection then
           window:perform_action(
             act.CopyTo(&quot;ClipboardAndPrimarySelection&quot;),
-            pane)
+            pane,
+          )
 
-          window:perform_action(&quot;ClearSelection&quot;, pane)
+          window:perform_action(act.ClearSelection, pane)
         else
           window:perform_action(
-            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
-            pane)
+            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;},
+            pane,
+          )
         end
       end)
     }
@@ -14713,8 +14719,10 @@ example of using this action.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="extendselectiontomousecursor"><a class="header" href="#extendselectiontomousecursor">ExtendSelectionToMouseCursor</a></h1>
 <p>Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
-the scope of the selection:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
+the scope of the selection.</p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
+<p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
 
 return {
   mouse_bindings = {
@@ -14727,13 +14735,14 @@ return {
 }
 </code></pre>
 <p>It is also possible to leave the mode unspecified like this:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
+
+return {
   mouse_bindings = {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;SHIFT&quot;,
-      -- Note that there is no `wezterm.action` here
-      action={ExtendSelectionToMouseCursor={}},
+      action=wezterm.action.ExtendSelectionToMouseCursor(nil),
     },
   }
 }
@@ -14741,8 +14750,6 @@ return {
 <p>when unspecified, wezterm will use a default mode which at the time
 of writing is <code>Cell</code>, but in a future release may be context sensitive
 based on recent actions.</p>
-<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
-<p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
@@ -14778,7 +14785,6 @@ return {
 moves the tab to be  leftmost, while <code>1</code> moves the tab so that it is second tab
 from the left, and so on.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
-local act = wezterm.action
 
 local mykeys = {}
 for i = 1, 8 do
@@ -14786,7 +14792,7 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods=&quot;CTRL|ALT&quot;,
-    action=act.MoveTab(i-1),
+    action=wezterm.action.MoveTab(i - 1),
   })
 end
 
@@ -15203,7 +15209,7 @@ return {
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
 <p><em>since: 20220624-141144-bd1b7c5d</em></p>
-<p>You may now use <code>wezterm.action.Search=&quot;CurrentSelectionOrEmptyString&quot;}</code> to have the search take the currently selected text as the item to search.</p>
+<p>You may now use <code>wezterm.action.Search(&quot;CurrentSelectionOrEmptyString&quot;)</code> to have the search take the currently selected text as the item to search.</p>
 <p>The selection text is adjusted to be a single line.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
 <p>Initiates selection of text at the current mouse cursor position.
@@ -15375,7 +15381,7 @@ detail in the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnComma
 return {
   keys = {
     -- CMD-y starts `top` in a new window
-    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.actionSpawnCommandInNewTab{
+    {key=&quot;y&quot;, mods=&quot;CMD&quot;, action=wezterm.action.SpawnCommandInNewTab{
       args={&quot;top&quot;}
     }},
   }
@@ -16402,7 +16408,7 @@ end)
 
 return {
   keys = {
-    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action{ShowLauncherArgs={flags=&quot;FUZZY|WORKSPACES&quot;}}},
+    {key=&quot;9&quot;, mods=&quot;ALT&quot;, action=wezterm.action.ShowLauncherArgs{flags=&quot;FUZZY|WORKSPACES&quot;}},
   },
 }
 </code></pre>
@@ -16448,7 +16454,7 @@ end)
 
 return {
   keys = {
-    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{EmitEvent=&quot;show-font-size&quot;}},
+    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.EmitEvent(&quot;show-font-size&quot;)},
   },
 }
 </code></pre>
@@ -16581,7 +16587,7 @@ end)
 
 return {
   keys = {
-    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{EmitEvent=&quot;log-selection&quot;}},
+    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.EmitEvent(&quot;log-selection&quot;)},
   }
 }
 </code></pre>
@@ -16616,7 +16622,7 @@ a <code>window</code> when configured via the <code>keys</code> and <code>mouse<
 <p>This method allows your lua script to trigger those actions for itself.</p>
 <p>The first parameter is a key assignment such as that returned by <a href="config/lua/window/../wezterm/action.html"><code>wezterm.action</code></a>.</p>
 <p>The second parameter is a <code>pane</code> object passed to your event callback.</p>
-<p>For an example of this method in action, see <a href="config/lua/window/../wezterm/on.html#custom-events"><code>wezterm.on Custom Events</code></a>.</p>
+<p>For an example of this method in action, see <a href="config/lua/window/../wezterm/on.html#custom-events"><code>wezterm.on</code> Custom Events</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="windowset_config_overridesoverrides"><a class="header" href="#windowset_config_overridesoverrides"><code>window:set_config_overrides(overrides)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Changes the set of configuration overrides for the window.
@@ -16649,7 +16655,7 @@ end)
 
 return {
   keys = {
-    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{EmitEvent=&quot;toggle-ligature&quot;}},
+    {key=&quot;E&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.EmitEvent(&quot;toggle-ligature&quot;)},
   },
 }
 </code></pre>
@@ -16669,7 +16675,7 @@ end)
 
 return {
   keys = {
-    {key=&quot;B&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{EmitEvent=&quot;toggle-opacity&quot;}},
+    {key=&quot;B&quot;, mods=&quot;CTRL&quot;, action=wezterm.action.EmitEvent(&quot;toggle-opacity&quot;)},
   },
 }
 </code></pre>
@@ -17189,15 +17195,15 @@ key/mouse assignment is triggered.</p>
 register for this event you can co-opt the default behavior.</p>
 <p>For example, if you prefer to launch your preferred MUA in a new window
 in response to clicking on <code>mailto:</code> URLs, you could do something like:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
 
 wezterm.on(&quot;open-uri&quot;, function(window, pane, uri)
   local start, match_end = uri:find(&quot;mailto:&quot;)
   if start == 1 then
     local recipient = uri:sub(match_end+1)
-    window:perform_action(wezterm.action{SpawnCommandInNewWindow={
-         args={&quot;mutt&quot;, recipient}
-      }}, pane);
+    window:perform_action(wezterm.action.SpawnCommandInNewWindow{
+      args={&quot;mutt&quot;, recipient}
+    }, pane)
     -- prevent the default action from opening in a browser
     return false
   end

@@ -152,7 +152,8 @@ arrow key.  Our goal is to avoid holding down so many keys at once, or even
 having to remember so many key combinations, so what we'd like to do is use
 <code>CTRL-SHIFT-SPACE</code> as a leader prefix to select between resize and activation
 modes, using <code>r</code> for resize and <code>a</code> for activation:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 -- Show which key table is active in the status area
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
@@ -161,28 +162,24 @@ wezterm.on(&quot;update-right-status&quot;, function(window, pane)
     name = &quot;TABLE: &quot; .. name
   end
   window:set_right_status(name or &quot;&quot;)
-end);
+end)
 
 return {
   leader = {key=&quot;Space&quot;, mods=&quot;CTRL|SHIFT&quot;},
   keys = {
-    -- CTRL|SHIFT+Space, followed by 'r' will put us in resize-pane
+    -- CTRL+SHIFT+Space, followed by 'r' will put us in resize-pane
     -- mode until we cancel that mode.
-    {key=&quot;r&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{
-      ActivateKeyTable={
-        name=&quot;resize_pane&quot;,
-        one_shot=false,
-      }
+    {key=&quot;r&quot;, mods=&quot;LEADER&quot;, action=act.ActivateKeyTable{
+      name=&quot;resize_pane&quot;,
+      one_shot=false,
     }},
 
-    -- CTRL|SHIFT+Space, followed by 'a' will put us in activate-pane
+    -- CTRL+SHIFT+Space, followed by 'a' will put us in activate-pane
     -- mode until we press some other key or until 1 second (1000ms)
     -- of time elapses
-    {key=&quot;a&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{
-      ActivateKeyTable={
-        name=&quot;activate_pane&quot;,
-        timeout_milliseconds=1000,
-      }
+    {key=&quot;a&quot;, mods=&quot;LEADER&quot;, action=act.ActivateKeyTable{
+      name=&quot;activate_pane&quot;,
+      timeout_milliseconds=1000,
     }},
   },
 
@@ -194,17 +191,17 @@ return {
     -- 'resize_pane' here corresponds to the name=&quot;resize_pane&quot; in
     -- the key assignments above.
     resize_pane = {
-      {key=&quot;LeftArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Left&quot;, 1}}},
-      {key=&quot;h&quot;, action=wezterm.action{AdjustPaneSize={&quot;Left&quot;, 1}}},
+      {key=&quot;LeftArrow&quot;, action=act.AdjustPaneSize{&quot;Left&quot;, 1}},
+      {key=&quot;h&quot;,         action=act.AdjustPaneSize{&quot;Left&quot;, 1}},
 
-      {key=&quot;RightArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Right&quot;, 1}}},
-      {key=&quot;l&quot;, action=wezterm.action{AdjustPaneSize={&quot;Right&quot;, 1}}},
+      {key=&quot;RightArrow&quot;, action=act.AdjustPaneSize{&quot;Right&quot;, 1}},
+      {key=&quot;l&quot;,          action=act.AdjustPaneSize{&quot;Right&quot;, 1}},
 
-      {key=&quot;UpArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Up&quot;, 1}}},
-      {key=&quot;k&quot;, action=wezterm.action{AdjustPaneSize={&quot;Up&quot;, 1}}},
+      {key=&quot;UpArrow&quot;, action=act.AdjustPaneSize{&quot;Up&quot;, 1}},
+      {key=&quot;k&quot;,       action=act.AdjustPaneSize{&quot;Up&quot;, 1}},
 
-      {key=&quot;DownArrow&quot;, action=wezterm.action{AdjustPaneSize={&quot;Down&quot;, 1}}},
-      {key=&quot;j&quot;, action=wezterm.action{AdjustPaneSize={&quot;Down&quot;, 1}}},
+      {key=&quot;DownArrow&quot;, action=act.AdjustPaneSize{&quot;Down&quot;, 1}},
+      {key=&quot;j&quot;,         action=act.AdjustPaneSize{&quot;Down&quot;, 1}},
 
       -- Cancel the mode by pressing escape
       {key=&quot;Escape&quot;, action=&quot;PopKeyTable&quot;},
@@ -215,17 +212,17 @@ return {
     -- 'activate_pane' here corresponds to the name=&quot;activate_pane&quot; in
     -- the key assignments above.
     activate_pane = {
-      {key=&quot;LeftArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
-      {key=&quot;h&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Left&quot;}},
+      {key=&quot;LeftArrow&quot;, action=act.ActivatePaneDirection(&quot;Left&quot;)},
+      {key=&quot;h&quot;,         action=act.ActivatePaneDirection(&quot;Left&quot;)},
 
-      {key=&quot;RightArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
-      {key=&quot;l&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Right&quot;}},
+      {key=&quot;RightArrow&quot;, action=act.ActivatePaneDirection(&quot;Right&quot;)},
+      {key=&quot;l&quot;,          action=act.ActivatePaneDirection(&quot;Right&quot;)},
 
-      {key=&quot;UpArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
-      {key=&quot;k&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Up&quot;}},
+      {key=&quot;UpArrow&quot;, action=act.ActivatePaneDirection(&quot;Up&quot;)},
+      {key=&quot;k&quot;,       action=act.ActivatePaneDirection(&quot;Up&quot;)},
 
-      {key=&quot;DownArrow&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
-      {key=&quot;j&quot;, action=wezterm.action{ActivatePaneDirection=&quot;Down&quot;}},
+      {key=&quot;DownArrow&quot;, action=act.ActivatePaneDirection(&quot;Down&quot;)},
+      {key=&quot;j&quot;,         action=act.ActivatePaneDirection(&quot;Down&quot;)},
     },
 
   },

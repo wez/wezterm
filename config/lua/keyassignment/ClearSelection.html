@@ -157,13 +157,15 @@ return {
         if has_selection then
           window:perform_action(
             act.CopyTo(&quot;ClipboardAndPrimarySelection&quot;),
-            pane)
+            pane,
+          )
 
-          window:perform_action(&quot;ClearSelection&quot;, pane)
+          window:perform_action(act.ClearSelection, pane)
         else
           window:perform_action(
-            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;}},
-            pane)
+            act.SendKey{key=&quot;c&quot;, mods=&quot;CTRL&quot;},
+            pane,
+          )
         end
       end)
     }

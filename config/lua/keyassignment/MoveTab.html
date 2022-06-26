@@ -143,7 +143,6 @@
 moves the tab to be  leftmost, while <code>1</code> moves the tab so that it is second tab
 from the left, and so on.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
-local act = wezterm.action
 
 local mykeys = {}
 for i = 1, 8 do
@@ -151,7 +150,7 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods=&quot;CTRL|ALT&quot;,
-    action=act.MoveTab(i-1),
+    action=wezterm.action.MoveTab(i - 1),
   })
 end
 

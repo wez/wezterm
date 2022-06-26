@@ -212,20 +212,21 @@ with the viewport scrolled to that location.</li>
 There isn't a way to override portions of the key table, only to replace the entire table.</p>
 <p>The default configuration is equivalent to:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
+local act = wezterm.action
 
 return {
   key_tables = {
     search_mode = {
-      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;Close&quot;}},
-      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;PriorMatch&quot;}},
-      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;PriorMatchPage&quot;}},
-      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
-      {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;NextMatchPage&quot;}},
-      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=wezterm.action{CopyMode=&quot;NextMatch&quot;}},
-      {key=&quot;r&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;CycleMatchType&quot;}},
-      {key=&quot;u&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{CopyMode=&quot;ClearPattern&quot;}},
+      {key=&quot;Escape&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;Close&quot;)},
+      {key=&quot;UpArrow&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;Enter&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;p&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;PriorMatch&quot;)},
+      {key=&quot;PageUp&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;PriorMatchPage&quot;)},
+      {key=&quot;PageDown&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;NextMatchPage&quot;)},
+      {key=&quot;n&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;NextMatchPage&quot;)},
+      {key=&quot;DownArrow&quot;, mods=&quot;NONE&quot;, action=act.CopyMode(&quot;NextMatch&quot;)},
+      {key=&quot;r&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;CycleMatchType&quot;)},
+      {key=&quot;u&quot;, mods=&quot;CTRL&quot;, action=act.CopyMode(&quot;ClearPattern&quot;)},
     }
   }
 }
@@ -242,7 +243,7 @@ this:</p>
 return {
   keys = {
     -- search for things that look like git hashes
-    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action{Search={Regex=&quot;[a-f0-9]{6,}&quot;}}},
+    {key=&quot;H&quot;, mods=&quot;SHIFT|CTRL&quot;, action=wezterm.action.Search{Regex=&quot;[a-f0-9]{6,}&quot;}},
   },
 }
 </code></pre>

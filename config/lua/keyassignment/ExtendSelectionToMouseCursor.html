@@ -141,8 +141,10 @@
                         <h1 id="extendselectiontomousecursor"><a class="header" href="#extendselectiontomousecursor">ExtendSelectionToMouseCursor</a></h1>
 <p>Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
-the scope of the selection:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
+the scope of the selection.</p>
+<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
+<p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
 
 return {
   mouse_bindings = {
@@ -155,13 +157,14 @@ return {
 }
 </code></pre>
 <p>It is also possible to leave the mode unspecified like this:</p>
-<pre><code class="language-lua">return {
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
+
+return {
   mouse_bindings = {
     {
       event={Up={streak=1, button=&quot;Left&quot;}},
       mods=&quot;SHIFT&quot;,
-      -- Note that there is no `wezterm.action` here
-      action={ExtendSelectionToMouseCursor={}},
+      action=wezterm.action.ExtendSelectionToMouseCursor(nil),
     },
   }
 }
@@ -169,8 +172,6 @@ return {
 <p>when unspecified, wezterm will use a default mode which at the time
 of writing is <code>Cell</code>, but in a future release may be context sensitive
 based on recent actions.</p>
-<p><em>Since: 20220624-141144-bd1b7c5d</em></p>
-<p>The mode argument can also be <code>&quot;Block&quot;</code> to enable a rectangular block selection.</p>
 
                     </main>
 

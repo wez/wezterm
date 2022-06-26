@@ -147,7 +147,7 @@ the event and use it in a different place.</p>
 <pre><code class="language-lua">function wezterm.action_callback(callback)
   local event_id = &quot;...&quot; -- the function generates a unique event id
   wezterm.on(event_id, callback)
-  return wezterm.action{EmitEvent=event_id}
+  return wezterm.action.EmitEvent(event_id)
 end
 </code></pre>
 <p>See <a href="./on.html">wezterm.on</a> and <a href="./action.html">wezterm.action</a> for more info on what you can do with these.</p>

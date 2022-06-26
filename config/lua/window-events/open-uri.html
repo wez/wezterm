@@ -145,15 +145,15 @@ key/mouse assignment is triggered.</p>
 register for this event you can co-opt the default behavior.</p>
 <p>For example, if you prefer to launch your preferred MUA in a new window
 in response to clicking on <code>mailto:</code> URLs, you could do something like:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
+<pre><code class="language-lua">local wezterm = require &quot;wezterm&quot;
 
 wezterm.on(&quot;open-uri&quot;, function(window, pane, uri)
   local start, match_end = uri:find(&quot;mailto:&quot;)
   if start == 1 then
     local recipient = uri:sub(match_end+1)
-    window:perform_action(wezterm.action{SpawnCommandInNewWindow={
-         args={&quot;mutt&quot;, recipient}
-      }}, pane);
+    window:perform_action(wezterm.action.SpawnCommandInNewWindow{
+      args={&quot;mutt&quot;, recipient}
+    }, pane)
     -- prevent the default action from opening in a browser
     return false
   end
