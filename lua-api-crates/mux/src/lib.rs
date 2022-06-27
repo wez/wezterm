@@ -1,6 +1,6 @@
 use config::keyassignment::SpawnTabDomain;
 use config::lua::get_or_create_module;
-use config::lua::mlua::{self, Lua, UserData, UserDataMethods};
+use config::lua::mlua::{self, Lua, UserData, UserDataMethods, Value as LuaValue};
 use luahelper::impl_lua_conversion_dynamic;
 use mux::domain::SplitSource;
 use mux::pane::{Pane, PaneId};
@@ -88,6 +88,18 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     mux_mod.set(
         "spawn_window",
         lua.create_async_function(|_, spawn: SpawnWindow| async move { spawn.spawn().await })?,
+    )?;
+
+    mux_mod.set(
+        "all_windows",
+        lua.create_function(|_, _: ()| {
+            let mux = get_mux()?;
+            Ok(mux
+                .iter_windows()
+                .into_iter()
+                .map(|id| MuxWindow(id))
+                .collect::<Vec<MuxWindow>>())
+        })?,
     )?;
 
     wezterm_mod.set("mux", mux_mod)?;
@@ -314,6 +326,13 @@ impl SpawnTab {
     }
 }
 
+#[derive(Clone, FromDynamic, ToDynamic)]
+struct MuxTabInfo {
+    pub index: usize,
+    pub is_active: bool,
+}
+impl_lua_conversion_dynamic!(MuxTabInfo);
+
 impl UserData for MuxWindow {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("window_id", |_, this, _: ()| Ok(this.0));
@@ -339,6 +358,35 @@ impl UserData for MuxWindow {
             let mux = get_mux()?;
             let mut window = this.resolve_mut(&mux)?;
             Ok(window.set_title(&title))
+        });
+        methods.add_method("tabs", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let window = this.resolve(&mux)?;
+            Ok(window
+                .iter()
+                .map(|tab| MuxTab(tab.tab_id()))
+                .collect::<Vec<MuxTab>>())
+        });
+        methods.add_method("tabs_with_info", |lua, this, _: ()| {
+            let mux = get_mux()?;
+            let window = this.resolve(&mux)?;
+            let result = lua.create_table()?;
+            let active_idx = window.get_active_idx();
+            for (index, tab) in window.iter().enumerate() {
+                let info = MuxTabInfo {
+                    index,
+                    is_active: index == active_idx,
+                };
+                let info = luahelper::dynamic_to_lua_value(lua, info.to_dynamic())?;
+                match &info {
+                    LuaValue::Table(t) => {
+                        t.set("tab", MuxTab(tab.tab_id()))?;
+                    }
+                    _ => {}
+                }
+                result.set(index + 1, info)?;
+            }
+            Ok(result)
         });
     }
 }
@@ -372,6 +420,18 @@ impl UserData for MuxPane {
                 .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
             Ok(())
         });
+        methods.add_method("window", |_, this, _: ()| {
+            let mux = get_mux()?;
+            Ok(mux
+                .resolve_pane_id(this.0)
+                .map(|(_domain_id, window_id, _tab_id)| MuxWindow(window_id)))
+        });
+        methods.add_method("tab", |_, this, _: ()| {
+            let mux = get_mux()?;
+            Ok(mux
+                .resolve_pane_id(this.0)
+                .map(|(_domain_id, _window_id, tab_id)| MuxTab(tab_id)))
+        });
     }
 }
 
@@ -382,9 +442,45 @@ impl MuxTab {
     }
 }
 
+#[derive(Clone, FromDynamic, ToDynamic)]
+struct MuxPaneInfo {
+    /// The topological pane index that can be used to reference this pane
+    pub index: usize,
+    /// true if this is the active pane at the time the position was computed
+    pub is_active: bool,
+    /// true if this pane is zoomed
+    pub is_zoomed: bool,
+    /// The offset from the top left corner of the containing tab to the top
+    /// left corner of this pane, in cells.
+    pub left: usize,
+    /// The offset from the top left corner of the containing tab to the top
+    /// left corner of this pane, in cells.
+    pub top: usize,
+    /// The width of this pane in cells
+    pub width: usize,
+    pub pixel_width: usize,
+    /// The height of this pane in cells
+    pub height: usize,
+    pub pixel_height: usize,
+}
+impl_lua_conversion_dynamic!(MuxPaneInfo);
+
 impl UserData for MuxTab {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("tab_id", |_, this, _: ()| Ok(this.0));
+        methods.add_method("window", |_, this, _: ()| {
+            let mux = get_mux()?;
+            for window_id in mux.iter_windows() {
+                if let Some(window) = mux.get_window(window_id) {
+                    for tab in window.iter() {
+                        if tab.tab_id() == this.0 {
+                            return Ok(Some(MuxWindow(window_id)));
+                        }
+                    }
+                }
+            }
+            Ok(None)
+        });
         methods.add_method("get_title", |_, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
@@ -394,6 +490,44 @@ impl UserData for MuxTab {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
             Ok(tab.set_title(&title))
+        });
+        methods.add_method("panes", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            Ok(tab
+                .iter_panes()
+                .into_iter()
+                .map(|info| MuxPane(info.pane.pane_id()))
+                .collect::<Vec<MuxPane>>())
+        });
+        methods.add_method("panes_with_info", |lua, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+
+            let result = lua.create_table()?;
+            for (idx, pos) in tab.iter_panes().into_iter().enumerate() {
+                let info = MuxPaneInfo {
+                    index: pos.index,
+                    is_active: pos.is_active,
+                    is_zoomed: pos.is_zoomed,
+                    left: pos.left,
+                    top: pos.top,
+                    width: pos.width,
+                    pixel_width: pos.pixel_width,
+                    height: pos.height,
+                    pixel_height: pos.pixel_height,
+                };
+                let info = luahelper::dynamic_to_lua_value(lua, info.to_dynamic())?;
+                match &info {
+                    LuaValue::Table(t) => {
+                        t.set("pane", MuxPane(pos.pane.pane_id()))?;
+                    }
+                    _ => {}
+                }
+                result.set(idx + 1, info)?;
+            }
+
+            Ok(result)
         });
     }
 }

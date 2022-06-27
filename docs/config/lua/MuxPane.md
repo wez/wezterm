@@ -124,3 +124,15 @@ be sent as-is.
 
 Sends text to the pane as-is.
 
+
+## `pane:window()`
+
+*Since: nightly builds only*
+
+Returns the [MuxWindow](MuxWindow.md) that contains the tab that contains this pane.
+
+## `pane:tab()`
+
+*Since: nightly builds only*
+
+Returns the [MuxTab](MuxTab.md) that contains this pane.
