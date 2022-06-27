@@ -295,9 +295,14 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         }
     }
 
-    let window_id = mux.new_empty_window(None);
+    let window_id = {
+        // Force the builder to notify the frontend early,
+        // so that the attach await below doesn't block it
+        let builder = mux.new_empty_window(None);
+        *builder
+    };
 
-    domain.attach(Some(*window_id)).await?;
+    domain.attach(Some(window_id)).await?;
 
     let have_panes_in_domain = mux
         .iter_panes()
@@ -322,7 +327,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 
     let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
     let _tab = domain
-        .spawn(config.initial_size(dpi), cmd, None, *window_id)
+        .spawn(config.initial_size(dpi), cmd, None, window_id)
         .await?;
     Ok(())
 }
