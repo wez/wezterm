@@ -180,6 +180,16 @@ which causes the domain from the currently active pane to be used.</p>
 defined in your configuration using the following:</p>
 <pre><code class="language-lua">window:spawn_tab{domain={DomainName=&quot;my.name&quot;}}
 </code></pre>
+<h2 id="windowget_title"><a class="header" href="#windowget_title">window:get_title()</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Returns the window title as set by <code>OSC 0</code>, <code>OSC 2</code> in a contained pane, or through
+<code>window:set_title()</code>.</p>
+<h2 id="windowset_titletitle"><a class="header" href="#windowset_titletitle">window:set_title(TITLE)</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Sets the window title to the provided string. Note that applications may
+subsequently change the title via escape sequences.</p>
+<pre><code class="language-lua">window:set_title(&quot;my title&quot;)
+</code></pre>
 
                     </main>
 

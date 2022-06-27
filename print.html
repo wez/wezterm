@@ -15678,12 +15678,30 @@ which causes the domain from the currently active pane to be used.</p>
 defined in your configuration using the following:</p>
 <pre><code class="language-lua">window:spawn_tab{domain={DomainName=&quot;my.name&quot;}}
 </code></pre>
+<h2 id="windowget_title"><a class="header" href="#windowget_title">window:get_title()</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Returns the window title as set by <code>OSC 0</code>, <code>OSC 2</code> in a contained pane, or through
+<code>window:set_title()</code>.</p>
+<h2 id="windowset_titletitle"><a class="header" href="#windowset_titletitle">window:set_title(TITLE)</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Sets the window title to the provided string. Note that applications may
+subsequently change the title via escape sequences.</p>
+<pre><code class="language-lua">window:set_title(&quot;my title&quot;)
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="muxtab"><a class="header" href="#muxtab">MuxTab</a></h1>
 <p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><code>MuxTab</code> represents a tab that is managed by the multiplexer.</p>
 <p>It has the following methods:</p>
 <h2 id="tabtab_id"><a class="header" href="#tabtab_id"><code>tab:tab_id()</code></a></h2>
 <p>Returns the tab id</p>
+<h2 id="tabget_title"><a class="header" href="#tabget_title">tab:get_title()</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Returns the tab title as set by <code>tab:set_title()</code>.</p>
+<h2 id="tabset_titletitle"><a class="header" href="#tabset_titletitle">tab:set_title(TITLE)</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Sets the tab title to the provided string.</p>
+<pre><code class="language-lua">tab:set_title(&quot;my title&quot;)
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="muxpane"><a class="header" href="#muxpane">MuxPane</a></h1>
 <p><em>Since: 20220624-141144-bd1b7c5d</em></p>
 <p><code>MuxPane</code> represents a pane that is managed by the multiplexer.</p>
@@ -15874,6 +15892,9 @@ and tab title bars.</p>
 <li><code>tab_index</code> - the logical tab position within its containing window, with 0 indicating the leftmost tab</li>
 <li><code>is_active</code> - is true if this tab is the active tab</li>
 <li><code>active_pane</code> - the <a href="config/lua/PaneInformation.html">PaneInformation</a> for the active pane in this tab</li>
+<li><code>window_id</code> - the ID of the window that contains this tab (<em>Since: nightly builds only</em>)</li>
+<li><code>window_title</code> - the title of the window that contains this tab (<em>Since: nightly builds only</em>)</li>
+<li><code>tab_title</code> - the title of the tab (<em>Since: nightly builds only</em>)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="sshdomain"><a class="header" href="#sshdomain">SshDomain</a></h1>
 <p>The <code>SshDomain</code> struct specifies information about an individual
