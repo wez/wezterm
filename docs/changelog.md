@@ -13,6 +13,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
+* `winget` causes toast notification spam [#2185](https://github.com/wez/wezterm/issues/2185)
 
 ### 20220624-141144-bd1b7c5d
 
