@@ -330,6 +330,16 @@ impl UserData for MuxWindow {
         methods.add_async_method("spawn_tab", |_, this, spawn: SpawnTab| async move {
             spawn.spawn(this).await
         });
+        methods.add_method("get_title", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let window = this.resolve(&mux)?;
+            Ok(window.get_title().to_string())
+        });
+        methods.add_method("set_title", |_, this, title: String| {
+            let mux = get_mux()?;
+            let mut window = this.resolve_mut(&mux)?;
+            Ok(window.set_title(&title))
+        });
     }
 }
 
@@ -375,5 +385,15 @@ impl MuxTab {
 impl UserData for MuxTab {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("tab_id", |_, this, _: ()| Ok(this.0));
+        methods.add_method("get_title", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            Ok(tab.get_title().to_string())
+        });
+        methods.add_method("set_title", |_, this, title: String| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            Ok(tab.set_title(&title))
+        });
     }
 }

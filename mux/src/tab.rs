@@ -25,6 +25,7 @@ pub struct Tab {
     size: RefCell<TerminalSize>,
     active: RefCell<usize>,
     zoomed: RefCell<Option<Rc<dyn Pane>>>,
+    title: RefCell<String>,
 }
 
 #[derive(Clone)]
@@ -461,7 +462,16 @@ impl Tab {
             size: RefCell::new(*size),
             active: RefCell::new(0),
             zoomed: RefCell::new(None),
+            title: RefCell::new(String::new()),
         }
+    }
+
+    pub fn get_title(&self) -> String {
+        self.title.borrow().clone()
+    }
+
+    pub fn set_title(&self, title: &str) {
+        *self.title.borrow_mut() = title.to_string();
     }
 
     /// Called by the multiplexer client when building a local tab to

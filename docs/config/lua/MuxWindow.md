@@ -74,3 +74,20 @@ defined in your configuration using the following:
 window:spawn_tab{domain={DomainName="my.name"}}
 ```
 
+## window:get_title()
+
+*Since: nightly builds only*
+
+Returns the window title as set by `OSC 0`, `OSC 2` in a contained pane, or through
+`window:set_title()`.
+
+## window:set_title(TITLE)
+
+*Since: nightly builds only*
+
+Sets the window title to the provided string. Note that applications may
+subsequently change the title via escape sequences.
+
+```lua
+window:set_title("my title")
+```

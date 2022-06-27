@@ -11,6 +11,7 @@ pub struct Window {
     active: usize,
     last_active: Option<TabId>,
     workspace: String,
+    title: String,
 }
 
 impl Window {
@@ -20,6 +21,7 @@ impl Window {
             tabs: vec![],
             active: 0,
             last_active: None,
+            title: String::new(),
             workspace: workspace.unwrap_or_else(|| {
                 Mux::get()
                     .expect("Window::new to be called on mux thread")
@@ -30,6 +32,14 @@ impl Window {
 
     pub fn get_workspace(&self) -> &str {
         &self.workspace
+    }
+
+    pub fn set_title(&mut self, title: &str) {
+        self.title = title.to_string();
+    }
+
+    pub fn get_title(&self) -> &str {
+        &self.title
     }
 
     pub fn set_workspace(&mut self, workspace: &str) {

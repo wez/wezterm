@@ -735,6 +735,24 @@ struct LocalPaneNotifHandler {
 impl AlertHandler for LocalPaneNotifHandler {
     fn alert(&mut self, alert: Alert) {
         if let Some(mux) = Mux::get() {
+            match &alert {
+                Alert::WindowTitleChanged(title) => {
+                    if let Some((_domain, window_id, _tab_id)) = mux.resolve_pane_id(self.pane_id) {
+                        if let Some(mut window) = mux.get_window_mut(window_id) {
+                            window.set_title(title);
+                        }
+                    }
+                }
+                Alert::TabTitleChanged(title) => {
+                    if let Some((_domain, _window_id, tab_id)) = mux.resolve_pane_id(self.pane_id) {
+                        if let Some(tab) = mux.get_tab(tab_id) {
+                            tab.set_title(title.as_deref().unwrap_or(""));
+                        }
+                    }
+                }
+                _ => {}
+            }
+
             mux.notify(MuxNotification::Alert {
                 pane_id: self.pane_id,
                 alert,

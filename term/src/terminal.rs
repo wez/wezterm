@@ -45,9 +45,10 @@ pub enum Alert {
         /// window/tab/pane that generated it
         focus: bool,
     },
-    /// When the title, or something that likely influences the title,
-    /// has been changed
-    TitleMaybeChanged,
+    CurrentWorkingDirectoryChanged,
+    IconTitleChanged(Option<String>),
+    WindowTitleChanged(String),
+    TabTitleChanged(Option<String>),
     /// When the color palette has been updated
     PaletteChanged,
     /// A UserVar has changed value

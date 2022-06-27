@@ -644,15 +644,17 @@ impl<'a> Performer<'a> {
                 } else {
                     self.icon_title = Some(title.clone());
                 }
+                let title = self.icon_title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::TitleMaybeChanged);
+                    handler.alert(Alert::IconTitleChanged(title));
                 }
             }
             OperatingSystemCommand::SetIconNameAndWindowTitle(title) => {
                 self.icon_title.take();
                 self.title = title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::TitleMaybeChanged);
+                    handler.alert(Alert::WindowTitleChanged(title.clone()));
+                    handler.alert(Alert::IconTitleChanged(Some(title.clone())));
                 }
             }
 
@@ -660,7 +662,7 @@ impl<'a> Performer<'a> {
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::TitleMaybeChanged);
+                    handler.alert(Alert::WindowTitleChanged(title.clone()));
                 }
             }
             OperatingSystemCommand::SetHyperlink(link) => {
@@ -826,7 +828,7 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::CurrentWorkingDirectory(url) => {
                 self.current_dir = Url::parse(&url).ok();
                 if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::TitleMaybeChanged);
+                    handler.alert(Alert::CurrentWorkingDirectoryChanged);
                 }
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {

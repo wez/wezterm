@@ -195,6 +195,7 @@ pub struct TabInformation {
     pub tab_index: usize,
     pub is_active: bool,
     pub active_pane: Option<PaneInformation>,
+    pub window_id: MuxWindowId,
 }
 
 impl UserData for TabInformation {
@@ -220,6 +221,21 @@ impl UserData for TabInformation {
                     .collect();
             }
             Ok(panes)
+        });
+        fields.add_field_method_get("window_id", |_, this| Ok(this.window_id));
+        fields.add_field_method_get("tab_title", |_, this| {
+            let mux = Mux::get().expect("event to run on main thread");
+            let tab = mux
+                .get_tab(this.tab_id)
+                .ok_or_else(|| mlua::Error::external(format!("tab {} not found", this.tab_id)))?;
+            Ok(tab.get_title())
+        });
+        fields.add_field_method_get("window_title", |_, this| {
+            let mux = Mux::get().expect("event to run on main thread");
+            let window = mux.get_window(this.window_id).ok_or_else(|| {
+                mlua::Error::external(format!("window {} not found", this.window_id))
+            })?;
+            Ok(window.get_title().to_string())
         });
     }
 }
@@ -928,7 +944,10 @@ impl TermWindow {
                 MuxNotification::Alert {
                     alert:
                         Alert::OutputSinceFocusLost
-                        | Alert::TitleMaybeChanged
+                        | Alert::CurrentWorkingDirectoryChanged
+                        | Alert::WindowTitleChanged(_)
+                        | Alert::TabTitleChanged(_)
+                        | Alert::IconTitleChanged(_)
                         | Alert::SetUserVar { .. },
                     ..
                 } => {
@@ -1084,7 +1103,13 @@ impl TermWindow {
         match n {
             MuxNotification::Alert {
                 pane_id,
-                alert: Alert::OutputSinceFocusLost | Alert::TitleMaybeChanged | Alert::Bell,
+                alert:
+                    Alert::OutputSinceFocusLost
+                    | Alert::CurrentWorkingDirectoryChanged
+                    | Alert::WindowTitleChanged(_)
+                    | Alert::TabTitleChanged(_)
+                    | Alert::IconTitleChanged(_)
+                    | Alert::Bell,
             }
             | MuxNotification::PaneOutput(pane_id) => {
                 // Ideally we'd check to see if pane_id is part of this window,
@@ -2733,6 +2758,7 @@ impl TermWindow {
                     tab_index: idx,
                     tab_id: tab.tab_id(),
                     is_active: tab_index == idx,
+                    window_id: self.mux_window_id,
                     active_pane: panes
                         .iter()
                         .find(|p| p.is_active)

@@ -11,4 +11,20 @@ It has the following methods:
 Returns the tab id
 
 
+## tab:get_title()
+
+*Since: nightly builds only*
+
+Returns the tab title as set by `tab:set_title()`.
+
+## tab:set_title(TITLE)
+
+*Since: nightly builds only*
+
+Sets the tab title to the provided string.
+
+```lua
+tab:set_title("my title")
+```
+
 

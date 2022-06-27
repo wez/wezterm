@@ -87,7 +87,10 @@ impl GuiFrontEnd {
                         alert:
                             Alert::OutputSinceFocusLost
                             | Alert::PaletteChanged
-                            | Alert::TitleMaybeChanged
+                            | Alert::CurrentWorkingDirectoryChanged
+                            | Alert::WindowTitleChanged(_)
+                            | Alert::TabTitleChanged(_)
+                            | Alert::IconTitleChanged(_)
                             | Alert::SetUserVar { .. },
                     } => {}
                     MuxNotification::Empty => {

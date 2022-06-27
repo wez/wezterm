@@ -11,4 +11,8 @@ The `TabInformation` struct contains the following fields:
 * `tab_index` - the logical tab position within its containing window, with 0 indicating the leftmost tab
 * `is_active` - is true if this tab is the active tab
 * `active_pane` - the [PaneInformation](PaneInformation.md) for the active pane in this tab
+* `window_id` - the ID of the window that contains this tab (*Since: nightly builds only*)
+* `window_title` - the title of the window that contains this tab (*Since: nightly builds only*)
+* `tab_title` - the title of the tab (*Since: nightly builds only*)
+
 
