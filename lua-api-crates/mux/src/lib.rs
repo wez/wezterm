@@ -258,11 +258,11 @@ impl SpawnWindow {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct MuxWindow(WindowId);
+pub struct MuxWindow(pub WindowId);
 #[derive(Clone, Copy, Debug)]
-struct MuxTab(TabId);
+pub struct MuxTab(pub TabId);
 #[derive(Clone, Copy, Debug)]
-struct MuxPane(PaneId);
+pub struct MuxPane(pub PaneId);
 
 impl MuxWindow {
     fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Ref<'a, Window>> {

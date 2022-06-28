@@ -31,6 +31,9 @@ impl PaneObject {
 impl UserData for PaneObject {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.pane()?.pane_id()));
+        methods.add_method("mux_pane", |_, this, _: ()| {
+            Ok(mux_lua::MuxPane(this.pane()?.pane_id()))
+        });
         methods.add_method("get_title", |_, this, _: ()| Ok(this.pane()?.get_title()));
         methods.add_method("get_current_working_dir", |_, this, _: ()| {
             Ok(this

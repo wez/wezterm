@@ -4761,6 +4761,7 @@ dependencies = [
  "metrics",
  "mlua",
  "mux",
+ "mux-lua",
  "open",
  "ordered-float",
  "portable-pty",
