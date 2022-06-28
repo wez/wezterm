@@ -410,3 +410,36 @@ impl ColorSchemeFile {
         ColorSchemeFile::from_toml_value(&scheme)
     }
 }
+
+#[cfg(test)]
+#[test]
+fn test_indexed_colors() {
+    let scheme = r##"
+[colors]
+foreground = "#005661"
+background = "#fef8ec"
+cursor_bg = "#005661"
+cursor_border = "#005661"
+cursor_fg = "#ffffff"
+selection_bg = "#cfe7f0"
+selection_fg = "#005661"
+
+ansi = [ "#8ca6a6" ,"#e64100" ,"#00b368" ,"#fa8900" ,"#0095a8" ,"#ff5792" ,"#00bdd6" ,"#005661" ]
+brights = [ "#8ca6a6" ,"#e5164a" ,"#00b368" ,"#b3694d" ,"#0094f0" ,"#ff5792" ,"#00bdd6" ,"#004d57" ]
+
+[colors.indexed]
+52 = "#fbdada" # minus
+88 = "#f6b6b6" # minus emph
+22 = "#d6ffd6" # plus
+28 = "#adffad" # plus emph
+53 = "#feecf7" # purple
+17 = "#e5dff6" # blue
+23 = "#d8fdf6" # cyan
+58 = "#f4ffe0" # yellow
+"##;
+    let scheme = ColorSchemeFile::from_toml_str(scheme).unwrap();
+    assert_eq!(
+        scheme.colors.indexed.get(&52),
+        Some(&RgbColor::new_8bpc(0xfb, 0xda, 0xda).into())
+    );
+}

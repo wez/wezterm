@@ -73,6 +73,10 @@ thread_local! {
     static LUA_CONFIG: RefCell<Option<LuaConfigState>> = RefCell::new(None);
 }
 
+fn toml_table_has_numeric_keys(t: &toml::value::Table) -> bool {
+    t.keys().all(|k| k.parse::<isize>().is_ok())
+}
+
 fn toml_to_dynamic(value: &toml::Value) -> Value {
     match value {
         toml::Value::String(s) => s.to_dynamic(),
@@ -85,6 +89,13 @@ fn toml_to_dynamic(value: &toml::Value) -> Value {
             .map(|element| toml_to_dynamic(&element))
             .collect::<Vec<_>>()
             .to_dynamic(),
+        // Allow `colors.indexed` to be passed through with actual integer keys
+        toml::Value::Table(t) if toml_table_has_numeric_keys(t) => Value::Object(
+            t.iter()
+                .map(|(k, v)| (k.parse::<isize>().unwrap().to_dynamic(), toml_to_dynamic(v)))
+                .collect::<BTreeMap<_, _>>()
+                .into(),
+        ),
         toml::Value::Table(t) => Value::Object(
             t.iter()
                 .map(|(k, v)| (Value::String(k.to_string()), toml_to_dynamic(v)))
