@@ -29,7 +29,7 @@ pub struct XcbCursor {
 impl Drop for XcbCursor {
     fn drop(&mut self) {
         if let Some(conn) = self.conn.upgrade() {
-            conn.send_request(&xcb::x::FreeCursor { cursor: self.id });
+            conn.send_request_no_reply_log(&xcb::x::FreeCursor { cursor: self.id });
         }
     }
 }
@@ -140,10 +140,10 @@ impl CursorInfo {
             .active_extensions()
             .any(|e| e == xcb::Extension::Render);
         if has_render {
-            if let Ok(vers) = conn.wait_for_reply(conn.send_request(&xcb::render::QueryVersion {
+            if let Ok(vers) = conn.send_and_wait_request(&xcb::render::QueryVersion {
                 client_major_version: xcb::render::MAJOR_VERSION,
                 client_minor_version: xcb::render::MINOR_VERSION,
-            })) {
+            }) {
                 // 0.5 and later have the required support
                 if (vers.major_version(), vers.minor_version()) >= (0, 5) {
                     size.replace(cursor_size(&config.xcursor_size, &*conn.xrm.borrow()));
@@ -155,7 +155,7 @@ impl CursorInfo {
 
                     // Locate the Pictformat corresponding to ARGB32
                     if let Ok(formats) =
-                        conn.wait_for_reply(conn.send_request(&xcb::render::QueryPictFormats {}))
+                        conn.send_and_wait_request(&xcb::render::QueryPictFormats {})
                     {
                         for fmt in formats.formats() {
                             if fmt.depth() == 32 {
@@ -211,10 +211,11 @@ impl CursorInfo {
             },
         };
 
-        conn.send_request(&xcb::x::ChangeWindowAttributes {
+        conn.send_request_no_reply(&xcb::x::ChangeWindowAttributes {
             window: window_id,
             value_list: &[xcb::x::Cw::Cursor(cursor_id)],
-        });
+        })
+        .context("set_cursor")?;
 
         self.cursor = cursor;
 
@@ -236,47 +237,52 @@ impl CursorInfo {
         )?;
 
         let pixmap = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::x::CreatePixmap {
+        log::info!("made pixmap {pixmap:?}");
+        conn.send_request_no_reply(&xcb::x::CreatePixmap {
             depth: 32,
             pid: pixmap,
             drawable: xcb::x::Drawable::Window(conn.root),
             width: 1,
             height: 1,
-        }))
+        })
         .context("CreatePixmap")?;
 
         let gc = conn.generate_id();
-        conn.send_request(&xcb::x::CreateGc {
+        log::info!("made gc {gc:?}");
+        conn.send_request_no_reply(&xcb::x::CreateGc {
             cid: gc,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
             value_list: &[],
-        });
+        })
+        .context("CreateGc")?;
 
         image.put(conn, pixmap.resource_id(), gc.resource_id(), 0, 0, 0);
 
         conn.send_request(&xcb::x::FreeGc { gc });
 
         let pic = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::render::CreatePicture {
+        log::info!("made pic {pic:?}");
+        conn.send_request_no_reply(&xcb::render::CreatePicture {
             pid: pic,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
             format: self.pict_format_id.unwrap(),
             value_list: &[],
-        }))
+        })
         .context("create_picture")?;
 
         conn.send_request(&xcb::x::FreePixmap { pixmap });
 
         let cursor_id: Cursor = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::render::CreateCursor {
+        conn.send_request_no_reply(&xcb::render::CreateCursor {
             cid: cursor_id,
             source: pic,
             x: 0,
             y: 0,
-        }))
+        })
         .context("create_cursor")?;
 
-        conn.send_request(&xcb::render::FreePicture { picture: pic });
+        conn.send_request_no_reply(&xcb::render::FreePicture { picture: pic })
+            .context("FreePicture")?;
 
         Ok(cursor_id)
     }
@@ -357,7 +363,7 @@ impl CursorInfo {
         log::trace!("loading X11 basic cursor {} for {:?}", id_no, cursor);
 
         let cursor_id: Cursor = conn.generate_id();
-        conn.send_request(&xcb::x::CreateGlyphCursor {
+        conn.send_request_no_reply_log(&xcb::x::CreateGlyphCursor {
             cid: cursor_id,
             source_font: conn.cursor_font_id,
             mask_font: conn.cursor_font_id,
@@ -550,47 +556,49 @@ impl CursorInfo {
         )?;
 
         let pixmap = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::x::CreatePixmap {
+        conn.send_request_no_reply(&xcb::x::CreatePixmap {
             depth: 32,
             pid: pixmap,
             drawable: xcb::x::Drawable::Window(conn.root),
             width: width as u16,
             height: height as u16,
-        }))
+        })
         .context("create_pixmap")?;
 
         let gc = conn.generate_id();
-        conn.send_request(&xcb::x::CreateGc {
+        log::info!("made gc {gc:?}");
+        conn.send_request_no_reply(&xcb::x::CreateGc {
             cid: gc,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
             value_list: &[],
-        });
+        })
+        .context("CreateGc")?;
 
         image.put(conn, pixmap.resource_id(), gc.resource_id(), 0, 0, 0);
 
-        conn.send_request(&xcb::x::FreeGc { gc });
+        conn.send_request_no_reply(&xcb::x::FreeGc { gc })?;
 
         let pic = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::render::CreatePicture {
+        conn.send_request_no_reply(&xcb::render::CreatePicture {
             pid: pic,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
             format: self.pict_format_id.unwrap(),
             value_list: &[],
-        }))
+        })
         .context("create_picture")?;
 
-        conn.send_request(&xcb::x::FreePixmap { pixmap });
+        conn.send_request_no_reply(&xcb::x::FreePixmap { pixmap })?;
 
         let cursor_id: Cursor = conn.generate_id();
-        conn.check_request(conn.send_request_checked(&xcb::render::CreateCursor {
+        conn.send_request_no_reply(&xcb::render::CreateCursor {
             cid: cursor_id,
             source: pic,
             x: xhot.try_into()?,
             y: yhot.try_into()?,
-        }))
+        })
         .context("create_cursor")?;
 
-        conn.send_request(&xcb::render::FreePicture { picture: pic });
+        conn.send_request_no_reply(&xcb::render::FreePicture { picture: pic })?;
 
         Ok(cursor_id)
     }

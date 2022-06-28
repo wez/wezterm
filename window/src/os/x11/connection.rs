@@ -171,7 +171,7 @@ impl ConnectionOps for XConnection {
             // The locally queued events won't mark the fd as ready, so we
             // could potentially sleep when there is work to be done if we
             // relied solely on that.
-            self.process_queued_xcb()?;
+            self.process_queued_xcb().context("process_queued_xcb")?;
 
             // Check the spawn queue before we try to sleep; there may
             // be work pending and we don't guarantee that there is a
@@ -183,7 +183,8 @@ impl ConnectionOps for XConnection {
                 continue;
             }
 
-            self.dispatch_pending_events()?;
+            self.dispatch_pending_events()
+                .context("dispatch_pending_events")?;
             if let Err(err) = poll.poll(&mut events, None) {
                 if err.kind() == std::io::ErrorKind::Interrupted {
                     continue;
@@ -249,17 +250,23 @@ impl XConnection {
                 return Err(err);
             }
         }
-        self.conn.flush()?;
+        self.conn.flush().context("flushing pending requests")?;
 
         loop {
-            match self.conn.poll_for_queued_event()? {
+            match self
+                .conn
+                .poll_for_queued_event()
+                .context("poll_for_queued_event")?
+            {
                 None => {
-                    self.conn.flush()?;
+                    self.conn.flush().context("flushing pending requests")?;
                     return Ok(());
                 }
-                Some(event) => self.process_xcb_event_ime(&event)?,
+                Some(event) => self
+                    .process_xcb_event_ime(&event)
+                    .context("process_xcb_event_ime")?,
             }
-            self.conn.flush()?;
+            self.conn.flush().context("flushing pending requests")?;
         }
     }
 
@@ -567,6 +574,38 @@ impl XConnection {
         Ok(conn)
     }
 
+    pub(crate) fn send_and_wait_request<R>(
+        &self,
+        req: &R,
+    ) -> anyhow::Result<<<R as xcb::Request>::Cookie as xcb::CookieWithReplyChecked>::Reply>
+    where
+        R: xcb::Request + std::fmt::Debug,
+        R::Cookie: xcb::CookieWithReplyChecked,
+    {
+        let cookie = self.conn.send_request(req);
+        self.conn
+            .wait_for_reply(cookie)
+            .with_context(|| format!("{req:#?}"))
+    }
+
+    pub(crate) fn send_request_no_reply<R>(&self, req: &R) -> anyhow::Result<()>
+    where
+        R: xcb::RequestWithoutReply + std::fmt::Debug,
+    {
+        self.conn
+            .send_and_check_request(req)
+            .with_context(|| format!("{req:#?}"))
+    }
+
+    pub(crate) fn send_request_no_reply_log<R>(&self, req: &R)
+    where
+        R: xcb::RequestWithoutReply + std::fmt::Debug,
+    {
+        if let Err(err) = self.send_request_no_reply(req) {
+            log::error!("{err:#}");
+        }
+    }
+
     pub fn atom_name(&self, atom: Atom) -> String {
         if let Some(name) = self.atom_names.borrow().get(&atom) {
             return name.to_string();
@@ -610,7 +649,11 @@ impl XConnection {
         promise::spawn::spawn_into_main_thread(async move {
             if let Some(handle) = Connection::get().unwrap().x11().window_by_id(window) {
                 let mut inner = handle.lock().unwrap();
-                prom.result(f(&mut inner));
+                if inner.window_id != window {
+                    prom.result(Err(anyhow!("window {window:?} has been destroyed")));
+                } else {
+                    prom.result(f(&mut inner));
+                }
             }
         })
         .detach();

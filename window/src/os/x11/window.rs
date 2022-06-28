@@ -56,7 +56,7 @@ impl CopyAndPaste {
 }
 
 pub(crate) struct XWindowInner {
-    window_id: xcb::x::Window,
+    pub window_id: xcb::x::Window,
     conn: Weak<XConnection>,
     events: WindowEventSender,
     width: u16,
@@ -80,7 +80,12 @@ impl Drop for XWindowInner {
     fn drop(&mut self) {
         if self.window_id != xcb::x::Window::none() {
             if let Some(conn) = self.conn.upgrade() {
-                conn.send_request(&xcb::x::DestroyWindow {
+                self.conn()
+                    .conn()
+                    .flush()
+                    .context("flush pending requests prior to issuing DestroyWindow")
+                    .ok();
+                conn.send_request_no_reply_log(&xcb::x::DestroyWindow {
                     window: self.window_id,
                 });
             }
@@ -230,7 +235,7 @@ impl XWindowInner {
 
                     let focus = self
                         .conn()
-                        .wait_for_reply(self.conn().send_request(&xcb::x::GetInputFocus {}))?;
+                        .send_and_wait_request(&xcb::x::GetInputFocus {})?;
                     let focused = focus.focus() == self.window_id;
                     log::trace!("Do I have focus? {}", focused);
                     if Some(focused) != self.has_focus {
@@ -244,12 +249,16 @@ impl XWindowInner {
                 if !self.sure_about_geometry {
                     self.sure_about_geometry = true;
 
-                    log::trace!("About to paint, but we're unsure about geometry; querying!");
-                    let geom = self.conn().wait_for_reply(self.conn().send_request(
-                        &xcb::x::GetGeometry {
+                    log::trace!(
+                        "About to paint, but we're unsure about geometry; querying window_id {:?}!",
+                        self.window_id
+                    );
+                    let geom = self
+                        .conn()
+                        .send_and_wait_request(&xcb::x::GetGeometry {
                             drawable: xcb::x::Drawable::Window(self.window_id),
-                        },
-                    ))?;
+                        })
+                        .context("querying geometry")?;
                     log::trace!(
                         "geometry is {}x{} vs. our initial {}x{}",
                         geom.width(),
@@ -282,7 +291,7 @@ impl XWindowInner {
                 promise::spawn::spawn(async move {
                     async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64))
                         .await;
-                    XConnection::with_window_inner(window_id, |inner| {
+                    XConnection::with_window_inner(window_id, move |inner| {
                         inner.paint_throttled = false;
                         if inner.invalidated {
                             inner.invalidate();
@@ -576,7 +585,7 @@ impl XWindowInner {
             Clipboard::Clipboard => conn.atom_clipboard,
         };
         let current_owner = conn
-            .wait_for_reply(conn.send_request(&xcb::x::GetSelectionOwner { selection }))
+            .send_and_wait_request(&xcb::x::GetSelectionOwner { selection })
             .unwrap()
             .owner();
 
@@ -588,22 +597,22 @@ impl XWindowInner {
                         but we don't: tell it to clear it"
             );
             // We don't have a selection but X thinks we do; disown it!
-            conn.send_request(&xcb::x::SetSelectionOwner {
+            conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
                 owner: xcb::x::Window::none(),
                 selection,
                 time: self.copy_and_paste.time,
-            });
+            })?;
         } else if we_own_it && current_owner != window_id {
             log::trace!(
                 "SEL: window_id={window_id:?} X doesn't think we own \
                  selection ({current_owner:?} has it), but we do: tell it we have it"
             );
             // We have the selection but X doesn't think we do; assert it!
-            conn.send_request(&xcb::x::SetSelectionOwner {
+            conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
                 owner: self.window_id,
                 selection,
                 time: self.copy_and_paste.time,
-            });
+            })?;
         } else {
             log::trace!(
                 "SEL: window_id={window_id:?} current_owner={current_owner:?} \
@@ -654,13 +663,13 @@ impl XWindowInner {
             // They want to know which targets we support
             let atoms: [Atom; 1] = [conn.atom_utf8_string];
             log::trace!("SEL: window_id={window_id:?} requestor wants supported targets");
-            conn.send_request(&xcb::x::ChangeProperty {
+            conn.send_request_no_reply(&xcb::x::ChangeProperty {
                 mode: PropMode::Replace,
                 window: request.requestor(),
                 property: request.property(),
                 r#type: xcb::x::ATOM_ATOM,
                 data: &atoms,
-            });
+            })?;
 
             // let the requestor know that we set their property
             request.property()
@@ -674,13 +683,13 @@ impl XWindowInner {
                 // whatever STRING represents; let's just assume that
                 // the other end is going to handle it correctly.
                 if let Some(text) = self.copy_and_paste.clipboard(clipboard) {
-                    conn.send_request(&xcb::x::ChangeProperty {
+                    conn.send_request_no_reply(&xcb::x::ChangeProperty {
                         mode: PropMode::Replace,
                         window: request.requestor(),
                         property: request.property(),
                         r#type: request.target(),
                         data: text.as_bytes(),
-                    });
+                    })?;
                     // let the requestor know that we set their property
                     request.property()
                 } else {
@@ -700,7 +709,7 @@ impl XWindowInner {
             selprop
         );
 
-        conn.send_request(&xcb::x::SendEvent {
+        conn.send_request_no_reply(&xcb::x::SendEvent {
             propagate: true,
             destination: xcb::x::SendEventDest::Window(request.requestor()),
             event_mask: xcb::x::EventMask::empty(),
@@ -711,7 +720,7 @@ impl XWindowInner {
                 request.target(),
                 selprop, // the disposition from the operation above
             ),
-        });
+        })?;
 
         Ok(())
     }
@@ -738,23 +747,23 @@ impl XWindowInner {
                     selection.requestor()
                 );
 
-                match conn.wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+                match conn.send_and_wait_request(&xcb::x::GetProperty {
                     delete: false,
                     window: selection.requestor(),
                     property: selection.property(),
                     r#type: conn.atom_utf8_string,
                     long_offset: 0,
                     long_length: u32::max_value(),
-                })) {
+                }) {
                     Ok(prop) => {
                         if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
                         {
                             promise.ok(String::from_utf8_lossy(prop.value()).to_string());
                         }
-                        conn.send_request(&xcb::x::DeleteProperty {
+                        conn.send_request_no_reply(&xcb::x::DeleteProperty {
                             window: self.window_id,
                             property: conn.atom_xsel_data,
-                        });
+                        })?;
                     }
                     Err(err) => {
                         log::error!("clipboard: err while getting clipboard property: {:?}", err);
@@ -775,14 +784,14 @@ impl XWindowInner {
     fn get_window_state(&self) -> anyhow::Result<WindowState> {
         let conn = self.conn();
 
-        let reply = conn.wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+        let reply = conn.send_and_wait_request(&xcb::x::GetProperty {
             delete: false,
             window: self.window_id,
             property: conn.atom_net_wm_state,
             r#type: xcb::x::ATOM_ATOM,
             long_offset: 0,
             long_length: 1024,
-        }))?;
+        })?;
 
         let state = reply.value::<u32>();
         let mut window_state = WindowState::default();
@@ -813,7 +822,7 @@ impl XWindowInner {
         ];
 
         // Ask window manager to change our fullscreen state
-        conn.send_request(&xcb::x::SendEvent {
+        conn.send_request_no_reply(&xcb::x::SendEvent {
             propagate: true,
             destination: xcb::x::SendEventDest::Window(conn.root),
             event_mask: xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
@@ -823,7 +832,7 @@ impl XWindowInner {
                 conn.atom_net_wm_state,
                 xcb::x::ClientMessageData::Data32(data),
             ),
-        });
+        })?;
         self.adjust_decorations(self.config.window_decorations)?;
 
         Ok(())
@@ -876,13 +885,13 @@ impl XWindowInner {
         let hints_slice =
             unsafe { std::slice::from_raw_parts(&hints as *const _ as *const u32, 5) };
 
-        conn.conn().send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
             property: conn.atom_motif_wm_hints,
             r#type: conn.atom_motif_wm_hints,
             data: hints_slice,
-        });
+        })?;
         Ok(())
     }
 
@@ -958,15 +967,15 @@ impl XWindow {
             window_id = conn.conn().generate_id();
 
             let color_map_id = conn.conn().generate_id();
-            conn.check_request(conn.conn().send_request_checked(&xcb::x::CreateColormap {
+            conn.send_request_no_reply(&xcb::x::CreateColormap {
                 alloc: xcb::x::ColormapAlloc::None,
                 mid: color_map_id,
                 window: screen.root(),
                 visual: conn.visual.visual_id(),
-            }))
+            })
             .context("create_colormap_checked")?;
 
-            conn.check_request(conn.conn().send_request_checked(&xcb::x::CreateWindow {
+            conn.send_request_no_reply(&xcb::x::CreateWindow {
                 depth: conn.depth,
                 wid: window_id,
                 parent: screen.root(),
@@ -997,7 +1006,7 @@ impl XWindow {
                     ),
                     xcb::x::Cw::Colormap(color_map_id),
                 ],
-            }))
+            })
             .context("xcb::create_window_checked")?;
 
             events.assign_window(Window::X11(XWindow::from_id(window_id)));
@@ -1033,29 +1042,29 @@ impl XWindow {
         class_string.extend_from_slice(class_name.as_bytes());
         class_string.push(0);
 
-        conn.send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: window_id,
             property: xcb::x::ATOM_WM_CLASS,
             r#type: xcb::x::ATOM_STRING,
             data: &class_string,
-        });
+        })?;
 
-        conn.send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: window_id,
             property: conn.atom_net_wm_pid,
             r#type: xcb::x::ATOM_CARDINAL,
             data: &[unsafe { libc::getpid() as u32 }],
-        });
+        })?;
 
-        conn.send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: window_id,
             property: conn.atom_protocols,
             r#type: xcb::x::ATOM_ATOM,
             data: &[conn.atom_delete],
-        });
+        })?;
 
         window
             .lock()
@@ -1085,11 +1094,11 @@ impl XWindow {
             .any(|e| e == xcb::Extension::Present)
         {
             let event_id = conn.generate_id();
-            conn.check_request(conn.send_request_checked(&xcb::present::SelectInput {
+            conn.send_request_no_reply(&xcb::present::SelectInput {
                 eid: event_id,
                 window: window_id,
                 event_mask: xcb::present::EventMask::CONFIGURE_NOTIFY,
-            }))
+            })
             .context("Present::SelectInput")?;
         }
 
@@ -1099,22 +1108,46 @@ impl XWindow {
 
 impl XWindowInner {
     fn close(&mut self) {
+        let conn = self.conn();
+        conn.flush()
+            .context("flush pending requests prior to issuing DestroyWindow")
+            .ok();
         // Remove the window from the map now, as GL state
         // requires that it is able to make_current() in its
         // Drop impl, and that cannot succeed after we've
         // destroyed the window at the X11 level.
         self.conn().windows.borrow_mut().remove(&self.window_id);
-        self.conn().conn().send_request(&xcb::x::DestroyWindow {
+
+        // Unmap the window first: calling DestroyWindow here may race
+        // with some requests made either by EGL or the IME, but I haven't
+        // been able to pin down the source.
+        // We'll destroy the window in a couple of seconds
+        conn.send_request_no_reply_log(&xcb::x::UnmapWindow {
             window: self.window_id,
         });
+
+        // Arrange to destroy the window after a couple of seconds; that
+        // should give whatever stuff is still referencing the window
+        // to finish and avoid triggering a protocol error.
+        // I don't really like this as a solution :-/
+        // <https://github.com/wez/wezterm/issues/2198>
+        let window = self.window_id;
+        promise::spawn::spawn(async move {
+            async_io::Timer::after(std::time::Duration::from_secs(2)).await;
+            let conn = Connection::get().unwrap().x11();
+            log::trace!("close sending DestroyWindow for {:?}", window);
+            conn.send_request_no_reply_log(&xcb::x::DestroyWindow { window });
+        })
+        .detach();
         // Ensure that we don't try to destroy the window twice,
         // otherwise the rust xcb bindings will generate a
         // fatal error!
+        log::trace!("clear out self.window_id");
         self.window_id = xcb::x::Window::none();
     }
     fn hide(&mut self) {}
     fn show(&mut self) {
-        self.conn().conn().send_request(&xcb::x::MapWindow {
+        self.conn().send_request_no_reply_log(&xcb::x::MapWindow {
             window: self.window_id,
         });
     }
@@ -1148,7 +1181,7 @@ impl XWindowInner {
         // under the crostini environment on a chromebook :-(
         let conn = self.conn();
 
-        conn.send_request(&xcb::x::SendEvent {
+        conn.send_request_no_reply_log(&xcb::x::SendEvent {
             propagate: true,
             destination: xcb::x::SendEventDest::Window(conn.root),
             event_mask: xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
@@ -1180,7 +1213,7 @@ impl XWindowInner {
 
         let conn = self.conn();
 
-        conn.send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply_log(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
             property: xcb::x::ATOM_WM_NAME,
@@ -1190,7 +1223,7 @@ impl XWindowInner {
 
         // Also set EWMH _NET_WM_NAME, as some clients don't correctly
         // fall back to reading WM_NAME
-        conn.send_request(&xcb::x::ChangeProperty {
+        conn.send_request_no_reply_log(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
             property: conn.atom_net_wm_name,
@@ -1235,13 +1268,14 @@ impl XWindowInner {
             icon_data.push(u32::from_be_bytes([a, r, g, b]));
         }
 
-        self.conn().send_request(&xcb::x::ChangeProperty {
-            mode: PropMode::Replace,
-            window: self.window_id,
-            property: self.conn().atom_net_wm_icon,
-            r#type: xcb::x::ATOM_CARDINAL,
-            data: &icon_data,
-        });
+        self.conn()
+            .send_request_no_reply_log(&xcb::x::ChangeProperty {
+                mode: PropMode::Replace,
+                window: self.window_id,
+                property: self.conn().atom_net_wm_icon,
+                r#type: xcb::x::ATOM_CARDINAL,
+                data: &icon_data,
+            });
     }
 
     fn set_resize_increments(&mut self, x: u16, y: u16) -> anyhow::Result<()> {
@@ -1274,13 +1308,13 @@ impl XWindowInner {
             )
         };
 
-        self.conn().send_request(&xcb::x::ChangeProperty {
+        self.conn().send_request_no_reply(&xcb::x::ChangeProperty {
             mode: PropMode::Replace,
             window: self.window_id,
             property: xcb::x::ATOM_WM_SIZE_HINTS,
             r#type: xcb::x::ATOM_CARDINAL,
             data,
-        });
+        })?;
 
         Ok(())
     }
@@ -1386,13 +1420,15 @@ impl WindowOps for XWindow {
 
     fn set_inner_size(&self, width: usize, height: usize) {
         XConnection::with_window_inner(self.0, move |inner| {
-            inner.conn().conn().send_request(&xcb::x::ConfigureWindow {
-                window: inner.window_id,
-                value_list: &[
-                    xcb::x::ConfigWindow::Width(width as u32),
-                    xcb::x::ConfigWindow::Height(height as u32),
-                ],
-            });
+            inner
+                .conn()
+                .send_request_no_reply_log(&xcb::x::ConfigureWindow {
+                    window: inner.window_id,
+                    value_list: &[
+                        xcb::x::ConfigWindow::Width(width as u32),
+                        xcb::x::ConfigWindow::Height(height as u32),
+                    ],
+                });
             Ok(())
         });
     }
@@ -1452,7 +1488,7 @@ impl WindowOps for XWindow {
             inner.copy_and_paste.request_mut(clipboard).replace(promise);
             let conn = inner.conn();
             // Find the owner and ask them to send us the buffer
-            conn.send_request(&xcb::x::ConvertSelection {
+            conn.send_request_no_reply_log(&xcb::x::ConvertSelection {
                 requestor: inner.window_id,
                 selection: match clipboard {
                     Clipboard::Clipboard => conn.atom_clipboard,
@@ -1500,11 +1536,7 @@ fn resolve_geometry(
 ) -> anyhow::Result<ResolvedGeometry> {
     let bounds = if conn.has_randr {
         let res = conn
-            .conn()
-            .wait_for_reply(
-                conn.conn()
-                    .send_request(&xcb::randr::GetScreenResources { window: conn.root }),
-            )
+            .send_and_wait_request(&xcb::randr::GetScreenResources { window: conn.root })
             .context("get_screen_resources")?;
 
         let mut virtual_screen: Rect = euclid::rect(0, 0, 0, 0);
@@ -1513,21 +1545,17 @@ fn resolve_geometry(
 
         for &o in res.outputs() {
             let info = conn
-                .conn()
-                .wait_for_reply(conn.conn().send_request(&xcb::randr::GetOutputInfo {
+                .send_and_wait_request(&xcb::randr::GetOutputInfo {
                     output: o,
                     config_timestamp: res.config_timestamp(),
-                }))
+                })
                 .context("get_output_info")?;
             let name = String::from_utf8_lossy(info.name()).to_string();
             let c = info.crtc();
-            if let Ok(cinfo) =
-                conn.conn()
-                    .wait_for_reply(conn.conn().send_request(&xcb::randr::GetCrtcInfo {
-                        crtc: c,
-                        config_timestamp: res.config_timestamp(),
-                    }))
-            {
+            if let Ok(cinfo) = conn.send_and_wait_request(&xcb::randr::GetCrtcInfo {
+                crtc: c,
+                config_timestamp: res.config_timestamp(),
+            }) {
                 let bounds = euclid::rect(
                     cinfo.x() as isize,
                     cinfo.y() as isize,
