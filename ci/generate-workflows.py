@@ -542,6 +542,34 @@ cargo build --all --release""",
             ),
         ]
 
+    def create_winget_pr(self):
+        steps = []
+        if "windows" in self.name:
+            steps += [
+                ActionStep(
+                    "Checkout winget-pkgs",
+                    action="actions/checkout@v3",
+                    params={
+                        "repository": "wez/winget-pkgs",
+                        "path": "winget-pkgs",
+                        "token": "${{ secrets.GH_PAT }}",
+                    },
+                ),
+                RunStep(
+                    "Create winget manifest and push to fork",
+                    "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe",
+                ),
+                RunStep(
+                    "Submit PR",
+                    'gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
+                    env={
+                        "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
+                    },
+                ),
+            ]
+
+        return steps
+
     def update_homebrew_tap(self):
         steps = []
         if "macos" in self.name:
@@ -747,6 +775,7 @@ cargo build --all --release""",
         steps += self.package(trusted=True)
         steps += self.upload_artifact()
         steps += self.update_homebrew_tap()
+        steps += self.create_winget_pr()
 
         uploader = Job(
             runs_on="ubuntu-latest",
@@ -773,7 +802,9 @@ TARGETS = [
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(container="debian:11", continuous_only=True),
-    Target(name="centos7", container="quay.io/centos/centos:centos7", bootstrap_git=True),
+    Target(
+        name="centos7", container="quay.io/centos/centos:centos7", bootstrap_git=True
+    ),
     Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-11"),

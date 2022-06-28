@@ -52,6 +52,20 @@ jobs:
           path: |
             WezTerm-*.zip
             WezTerm-*.exe
+      - name: "Checkout winget-pkgs"
+        uses: actions/checkout@v3
+        with:
+          repository: "wez/winget-pkgs"
+          path: "winget-pkgs"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Create winget manifest and push to fork"
+        shell: bash
+        run: "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe"
+      - name: "Submit PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        shell: bash
+        run: 'gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"'
 
   upload:
     runs-on: ubuntu-latest

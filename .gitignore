@@ -36,3 +36,4 @@
 /wezterm.rb
 /perf.data*
 .idea/
+/winget-pkgs
