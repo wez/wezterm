@@ -448,6 +448,7 @@ usually the best available version.</p>
 <li><code>colors.indexed</code> would error out with <code>Cannot convert String to u8</code>. <a href="https://github.com/wez/wezterm/issues/2197">#2197</a></li>
 <li>X11: closing a window when multiple were open could result in an X protocol error that closed all windows <a href="https://github.com/wez/wezterm/issues/2198">#2198</a></li>
 <li>Config will now automatically reload after error. Previously, you would need to manually reload the config using <a href="config/lua/keyassignment/ReloadConfiguration.html">ReloadConfiguration</a>. <a href="https://github.com/wez/wezterm/issues/1174">#1174</a></li>
+<li>Config will now automatically reload for changes made to 'require'd lua files. Previously, only the main config file and any files that you explicitly passed to <a href="config/lua/wezterm/add_to_config_reload_watch_list.html">add_to_config_reload_watch_list</a> would trigger a reload.</li>
 </ul>
 <h3 id="20220624-141144-bd1b7c5d"><a class="header" href="#20220624-141144-bd1b7c5d">20220624-141144-bd1b7c5d</a></h3>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
@@ -6832,8 +6833,8 @@ return {
 If <a href="config/lua/wezterm/../config/automatically_reload_config.html">automatically_reload_config</a>
 is enabled, then the config will be reloaded when any of the files
 that have been added to the watch list have changed.</p>
-<p>The intent of for this to be used together with a custom lua loader
-in a future iteration of wezterm.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>This function is now called implicitly when you <code>require</code> a lua file.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermbackground_child_processargs"><a class="header" href="#weztermbackground_child_processargs"><code>wezterm.background_child_process(args)</code></a></h1>
 <p><em>Since: 20211204-082213-a66c61ee9</em></p>
 <p>This function accepts an argument list; it will attempt to spawn that command
