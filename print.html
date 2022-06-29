@@ -447,6 +447,7 @@ usually the best available version.</p>
 <li><code>wezterm connect sshdomain</code> could hang on startup if password authentication was required <a href="https://github.com/wez/wezterm/issues/2194">#2194</a></li>
 <li><code>colors.indexed</code> would error out with <code>Cannot convert String to u8</code>. <a href="https://github.com/wez/wezterm/issues/2197">#2197</a></li>
 <li>X11: closing a window when multiple were open could result in an X protocol error that closed all windows <a href="https://github.com/wez/wezterm/issues/2198">#2198</a></li>
+<li>Config will now automatically reload after error. Previously, you would need to manually reload the config using <a href="config/lua/keyassignment/ReloadConfiguration.html">ReloadConfiguration</a>. <a href="https://github.com/wez/wezterm/issues/1174">#1174</a></li>
 </ul>
 <h3 id="20220624-141144-bd1b7c5d"><a class="header" href="#20220624-141144-bd1b7c5d">20220624-141144-bd1b7c5d</a></h3>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
