@@ -237,7 +237,6 @@ impl CursorInfo {
         )?;
 
         let pixmap = conn.generate_id();
-        log::info!("made pixmap {pixmap:?}");
         conn.send_request_no_reply(&xcb::x::CreatePixmap {
             depth: 32,
             pid: pixmap,
@@ -248,7 +247,6 @@ impl CursorInfo {
         .context("CreatePixmap")?;
 
         let gc = conn.generate_id();
-        log::info!("made gc {gc:?}");
         conn.send_request_no_reply(&xcb::x::CreateGc {
             cid: gc,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
@@ -261,7 +259,6 @@ impl CursorInfo {
         conn.send_request(&xcb::x::FreeGc { gc });
 
         let pic = conn.generate_id();
-        log::info!("made pic {pic:?}");
         conn.send_request_no_reply(&xcb::render::CreatePicture {
             pid: pic,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
@@ -566,7 +563,6 @@ impl CursorInfo {
         .context("create_pixmap")?;
 
         let gc = conn.generate_id();
-        log::info!("made gc {gc:?}");
         conn.send_request_no_reply(&xcb::x::CreateGc {
             cid: gc,
             drawable: xcb::x::Drawable::Pixmap(pixmap),
