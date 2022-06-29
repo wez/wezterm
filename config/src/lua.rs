@@ -111,6 +111,28 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             .to_str()
             .ok_or_else(|| anyhow!("config file path is not UTF-8"))?;
 
+        // Hook into loader and arrange to watch all require'd files.
+        // <https://www.lua.org/manual/5.3/manual.html#pdf-package.searchers>
+        // says that the second searcher function is the one that is responsible
+        // for loading lua files, so we shim around that and speculatively
+        // add the name of the file that it would find (as returned from
+        // package.searchpath) to the watch list, then we just call the
+        // original implementation.
+        lua.load(
+            r#"
+local orig = package.searchers[2]
+package.searchers[2] = function(module)
+  local name, err = package.searchpath(module, package.path)
+  if name then
+    package.loaded.wezterm.add_to_config_reload_watch_list(name)
+  end
+  return orig(module)
+end
+        "#,
+        )
+        .set_name("=searcher")?
+        .eval()?;
+
         wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",

@@ -7,5 +7,6 @@ If [automatically_reload_config](../config/automatically_reload_config.md)
 is enabled, then the config will be reloaded when any of the files
 that have been added to the watch list have changed.
 
-The intent of for this to be used together with a custom lua loader
-in a future iteration of wezterm.
+*Since: nightly builds only*
+
+This function is now called implicitly when you `require` a lua file.
