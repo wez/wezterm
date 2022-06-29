@@ -5,6 +5,8 @@ use log::Level;
 use luahelper::ValuePrinter;
 use mlua::Value;
 use mux::termwiztermtab::TermWizTerminal;
+use std::io::Write;
+use std::path::PathBuf;
 use termwiz::cell::{AttributeChange, CellAttributes, Intensity};
 use termwiz::color::AnsiColor;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent};
@@ -15,6 +17,43 @@ use termwiz::terminal::Terminal;
 struct LuaReplHost {
     history: BasicHistory,
     lua: mlua::Lua,
+}
+
+fn history_file_name() -> PathBuf {
+    config::RUNTIME_DIR.join("repl-history")
+}
+
+impl LuaReplHost {
+    fn new(lua: mlua::Lua) -> Self {
+        let mut history = BasicHistory::default();
+        if let Ok(data) = std::fs::read_to_string(history_file_name()) {
+            for line in data.lines() {
+                history.add(line);
+            }
+        }
+        Self { history, lua }
+    }
+
+    fn add_history(&mut self, line: &str) {
+        if line.is_empty() {
+            return;
+        }
+
+        if let Some(last) = self.history.last() {
+            if self.history.get(last).as_deref() == Some(line) {
+                // Don't add duplicate lines
+                return;
+            }
+        }
+        self.history.add(line);
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(history_file_name())
+        {
+            writeln!(file, "{}", line).ok();
+        }
+    }
 }
 
 fn format_lua_err(err: mlua::Error) -> String {
@@ -98,10 +137,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
     lua.globals().set("window", gui_win)?;
 
     let mut latest_log_entry = None;
-    let mut host = Some(LuaReplHost {
-        history: BasicHistory::default(),
-        lua,
-    });
+    let mut host = Some(LuaReplHost::new(lua));
 
     term.render(&[Change::Title("Debug".to_string())])?;
 
@@ -154,7 +190,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
             if line.is_empty() {
                 continue;
             }
-            host.as_mut().unwrap().history().add(&line);
+            host.as_mut().unwrap().add_history(&line);
 
             let passed_host = host.take().unwrap();
 
