@@ -500,31 +500,38 @@ impl ConfigInner {
     /// On failure, retain the existing configuration but
     /// replace any captured error message.
     fn reload(&mut self) {
-        match Config::load() {
-            Ok(LoadedConfig {
-                config,
-                file_name,
-                lua,
-            }) => {
+        let LoadedConfig {
+            config,
+            file_name,
+            lua,
+        } = Config::load();
+
+        // Before we process the success/failure, extract and update
+        // any paths that we should be watching
+        let mut watch_paths = vec![];
+        if let Some(path) = file_name {
+            // Let's also watch the parent directory for folks that do
+            // things with symlinks:
+            if let Some(parent) = path.parent() {
+                // But avoid watching the home dir itself, so that we
+                // don't keep reloading every time something in the
+                // home dir changes!
+                // <https://github.com/wez/wezterm/issues/1895>
+                if parent != &*HOME_DIR {
+                    watch_paths.push(parent.to_path_buf());
+                }
+            }
+            watch_paths.push(path);
+        }
+        if let Some(lua) = &lua {
+            ConfigInner::accumulate_watch_paths(lua, &mut watch_paths);
+        }
+
+        match config {
+            Ok(config) => {
                 self.config = Arc::new(config);
                 self.error.take();
                 self.generation += 1;
-
-                let mut watch_paths = vec![];
-                if let Some(path) = file_name {
-                    // Let's also watch the parent directory for folks that do
-                    // things with symlinks:
-                    if let Some(parent) = path.parent() {
-                        // But avoid watching the home dir itself, so that we
-                        // don't keep reloading every time something in the
-                        // home dir changes!
-                        // <https://github.com/wez/wezterm/issues/1895>
-                        if parent != &*HOME_DIR {
-                            watch_paths.push(parent.to_path_buf());
-                        }
-                    }
-                    watch_paths.push(path);
-                }
 
                 // If we loaded a user config, publish this latest version of
                 // the lua state to the LUA_PIPE.  This allows a subsequent
@@ -532,20 +539,9 @@ impl ConfigInner {
                 // even though we are (probably) resolving this from a background
                 // reloading thread.
                 if let Some(lua) = lua {
-                    ConfigInner::accumulate_watch_paths(&lua, &mut watch_paths);
                     LUA_PIPE.sender.try_send(lua).ok();
                 }
-
                 log::debug!("Reloaded configuration! generation={}", self.generation);
-                self.notify();
-                if self.config.automatically_reload_config {
-                    for path in watch_paths {
-                        self.watch_path(path);
-                    }
-                }
-
-                log::debug!("Reloaded configuration! generation={}", self.generation);
-                self.notify();
             }
             Err(err) => {
                 let err = format!("{:#}", err);
@@ -554,6 +550,13 @@ impl ConfigInner {
                     show_error(&err);
                 }
                 self.error.replace(err);
+            }
+        }
+
+        self.notify();
+        if self.config.automatically_reload_config {
+            for path in watch_paths {
+                self.watch_path(path);
             }
         }
     }
@@ -574,9 +577,9 @@ impl ConfigInner {
     }
 
     fn overridden(&mut self, overrides: &wezterm_dynamic::Value) -> Result<ConfigHandle, Error> {
-        let config = Config::load_with_overrides(overrides)?;
+        let config = Config::load_with_overrides(overrides);
         Ok(ConfigHandle {
-            config: Arc::new(config.config),
+            config: Arc::new(config.config?),
             generation: self.generation,
         })
     }
@@ -706,7 +709,7 @@ impl std::ops::Deref for ConfigHandle {
 }
 
 pub struct LoadedConfig {
-    pub config: Config,
+    pub config: anyhow::Result<Config>,
     pub file_name: Option<PathBuf>,
     pub lua: Option<mlua::Lua>,
 }

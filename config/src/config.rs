@@ -668,11 +668,11 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> anyhow::Result<LoadedConfig> {
+    pub fn load() -> LoadedConfig {
         Self::load_with_overrides(&wezterm_dynamic::Value::default())
     }
 
-    pub fn load_with_overrides(overrides: &wezterm_dynamic::Value) -> anyhow::Result<LoadedConfig> {
+    pub fn load_with_overrides(overrides: &wezterm_dynamic::Value) -> LoadedConfig {
         // Note that the directories crate has methods for locating project
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
@@ -712,52 +712,17 @@ impl Config {
                 break;
             }
 
-            let p = path_item.path.as_path();
-            log::trace!("consider config: {}", p.display());
-            let mut file = match std::fs::File::open(p) {
-                Ok(file) => file,
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound if !path_item.is_required => continue,
-                    _ => anyhow::bail!("Error opening {}: {}", p.display(), err),
-                },
-            };
-
-            let mut s = String::new();
-            file.read_to_string(&mut s)?;
-
-            let cfg: Self;
-
-            let lua = make_lua_context(p)?;
-            let config: mlua::Value = smol::block_on(
-                // Skip a potential BOM that Windows software may have placed in the
-                // file. Note that we can't catch this happening for files that are
-                // imported via the lua require function.
-                lua.load(s.trim_start_matches('\u{FEFF}'))
-                    .set_name(p.to_string_lossy())?
-                    .eval_async(),
-            )?;
-            let config = Self::apply_overrides_to(&lua, config)?;
-            let config = Self::apply_overrides_obj_to(&lua, config, overrides)?;
-            cfg = Config::from_lua(config, &lua).with_context(|| {
-                format!(
-                    "Error converting lua value returned by script {} to Config struct",
-                    p.display()
-                )
-            })?;
-
-            // Compute but discard the key bindings here so that we raise any
-            // problems earlier than we use them.
-            let _ = cfg.key_bindings();
-
-            std::env::set_var("WEZTERM_CONFIG_FILE", p);
-            if let Some(dir) = p.parent() {
-                std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+            match Self::try_load(path_item, overrides) {
+                Err(err) => {
+                    return LoadedConfig {
+                        config: Err(err),
+                        file_name: Some(path_item.path.clone()),
+                        lua: None,
+                    }
+                }
+                Ok(None) => continue,
+                Ok(Some(loaded)) => return loaded,
             }
-            return Ok(LoadedConfig {
-                config: cfg.compute_extra_defaults(Some(p)),
-                file_name: Some(p.to_path_buf()),
-                lua: Some(lua),
-            });
         }
 
         // We didn't find (or were asked to skip) a wezterm.lua file, so
@@ -766,13 +731,76 @@ impl Config {
         std::env::remove_var("WEZTERM_CONFIG_FILE");
         std::env::remove_var("WEZTERM_CONFIG_DIR");
 
-        let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
+        fn try_default() -> anyhow::Result<LoadedConfig> {
+            let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
 
-        Ok(LoadedConfig {
-            config,
-            file_name: None,
-            lua: Some(make_lua_context(Path::new(""))?),
-        })
+            Ok(LoadedConfig {
+                config: Ok(config),
+                file_name: None,
+                lua: Some(make_lua_context(Path::new(""))?),
+            })
+        }
+
+        match try_default() {
+            Err(err) => LoadedConfig {
+                config: Err(err),
+                file_name: None,
+                lua: None,
+            },
+            Ok(cfg) => cfg,
+        }
+    }
+
+    fn try_load(
+        path_item: &PathPossibility,
+        overrides: &wezterm_dynamic::Value,
+    ) -> anyhow::Result<Option<LoadedConfig>> {
+        let p = path_item.path.as_path();
+        log::trace!("consider config: {}", p.display());
+        let mut file = match std::fs::File::open(p) {
+            Ok(file) => file,
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound if !path_item.is_required => return Ok(None),
+                _ => anyhow::bail!("Error opening {}: {}", p.display(), err),
+            },
+        };
+
+        let mut s = String::new();
+        file.read_to_string(&mut s)?;
+
+        let cfg: Config;
+
+        let lua = make_lua_context(p)?;
+        let config: mlua::Value = smol::block_on(
+            // Skip a potential BOM that Windows software may have placed in the
+            // file. Note that we can't catch this happening for files that are
+            // imported via the lua require function.
+            lua.load(s.trim_start_matches('\u{FEFF}'))
+                .set_name(p.to_string_lossy())?
+                .eval_async(),
+        )?;
+        let config = Config::apply_overrides_to(&lua, config)?;
+        let config = Config::apply_overrides_obj_to(&lua, config, overrides)?;
+        cfg = Config::from_lua(config, &lua).with_context(|| {
+            format!(
+                "Error converting lua value returned by script {} to Config struct",
+                p.display()
+            )
+        })?;
+
+        // Compute but discard the key bindings here so that we raise any
+        // problems earlier than we use them.
+        let _ = cfg.key_bindings();
+
+        std::env::set_var("WEZTERM_CONFIG_FILE", p);
+        if let Some(dir) = p.parent() {
+            std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+        }
+        Ok(Some(LoadedConfig {
+            config: Ok(cfg.compute_extra_defaults(Some(p))),
+            file_name: Some(p.to_path_buf()),
+            lua: Some(lua),
+        }))
     }
 
     pub(crate) fn apply_overrides_obj_to<'l>(
