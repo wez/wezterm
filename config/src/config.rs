@@ -731,17 +731,7 @@ impl Config {
         std::env::remove_var("WEZTERM_CONFIG_FILE");
         std::env::remove_var("WEZTERM_CONFIG_DIR");
 
-        fn try_default() -> anyhow::Result<LoadedConfig> {
-            let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
-
-            Ok(LoadedConfig {
-                config: Ok(config),
-                file_name: None,
-                lua: Some(make_lua_context(Path::new(""))?),
-            })
-        }
-
-        match try_default() {
+        match Self::try_default() {
             Err(err) => LoadedConfig {
                 config: Err(err),
                 file_name: None,
@@ -749,6 +739,16 @@ impl Config {
             },
             Ok(cfg) => cfg,
         }
+    }
+
+    pub fn try_default() -> anyhow::Result<LoadedConfig> {
+        let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
+
+        Ok(LoadedConfig {
+            config: Ok(config),
+            file_name: None,
+            lua: Some(make_lua_context(Path::new(""))?),
+        })
     }
 
     fn try_load(

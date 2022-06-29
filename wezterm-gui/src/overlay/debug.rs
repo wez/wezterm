@@ -130,13 +130,17 @@ impl LineEditorHost for LuaReplHost {
 pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow::Result<()> {
     term.no_grab_mouse_in_raw_mode();
 
-    let config::LoadedConfig {
-        lua,
-        config,
-        file_name: _,
-    } = config::Config::load();
-    config?;
-    let lua = lua.ok_or_else(|| anyhow::anyhow!("failed to setup lua context"))?;
+    let config::LoadedConfig { lua, .. } = config::Config::load();
+    // Try hard to fall back to some kind of working lua context even
+    // if the user's config file is temporarily out of whack
+    let lua = match lua {
+        Some(lua) => lua,
+        None => match config::Config::try_default() {
+            Ok(config::LoadedConfig { lua: Some(lua), .. }) => lua,
+            _ => config::lua::make_lua_context(std::path::Path::new(""))?,
+        },
+    };
+
     lua.load("wezterm = require 'wezterm'").exec()?;
     lua.globals().set("window", gui_win)?;
 
