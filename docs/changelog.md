@@ -11,6 +11,9 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### New
+* [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md) now supports `until_unknown=true` to implicitly pop the table when a key not defined by that table is pressed. [#2178](https://github.com/wez/wezterm/issues/2178)
+
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
 * `winget` causes toast notification spam [#2185](https://github.com/wez/wezterm/issues/2185)

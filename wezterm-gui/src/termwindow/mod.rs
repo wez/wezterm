@@ -20,7 +20,7 @@ use crate::tabbar::{TabBarItem, TabBarState};
 use crate::termwindow::background::{
     load_background_image, reload_background_image, LoadedBackgroundLayer,
 };
-use crate::termwindow::keyevent::KeyTableState;
+use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
@@ -1978,18 +1978,20 @@ impl TermWindow {
                 timeout_milliseconds,
                 replace_current,
                 one_shot,
+                until_unknown,
             } => {
                 anyhow::ensure!(
                     self.input_map.has_table(name),
                     "ActivateKeyTable: no key_table named {}",
                     name
                 );
-                self.key_table_state.activate(
+                self.key_table_state.activate(KeyTableArgs {
                     name,
-                    *timeout_milliseconds,
-                    *replace_current,
-                    *one_shot,
-                );
+                    timeout_milliseconds: *timeout_milliseconds,
+                    replace_current: *replace_current,
+                    one_shot: *one_shot,
+                    until_unknown: *until_unknown,
+                });
                 self.update_title();
             }
             PopKeyTable => {
@@ -2224,12 +2226,13 @@ impl TermWindow {
                         .overlay
                         .as_mut()
                         .map(|overlay| {
-                            overlay.key_table_state.activate(
-                                "search_mode",
-                                None,
+                            overlay.key_table_state.activate(KeyTableArgs {
+                                name: "search_mode",
+                                timeout_milliseconds: None,
                                 replace_current,
-                                false,
-                            );
+                                one_shot: false,
+                                until_unknown: false,
+                            });
                         });
                 }
             }
@@ -2272,12 +2275,13 @@ impl TermWindow {
                         .overlay
                         .as_mut()
                         .map(|overlay| {
-                            overlay.key_table_state.activate(
-                                "copy_mode",
-                                None,
+                            overlay.key_table_state.activate(KeyTableArgs {
+                                name: "copy_mode",
+                                timeout_milliseconds: None,
                                 replace_current,
-                                false,
-                            );
+                                one_shot: false,
+                                until_unknown: false,
+                            });
                         });
                 }
             }

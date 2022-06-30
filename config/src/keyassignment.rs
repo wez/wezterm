@@ -385,6 +385,8 @@ pub enum KeyAssignment {
         replace_current: bool,
         #[dynamic(default = "crate::default_true")]
         one_shot: bool,
+        #[dynamic(default)]
+        until_unknown: bool,
     },
     PopKeyTable,
     ClearKeyTableStack,

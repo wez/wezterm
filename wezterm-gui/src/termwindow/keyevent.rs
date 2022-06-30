@@ -15,6 +15,16 @@ pub struct KeyTableStateEntry {
     expiration: Option<Instant>,
     /// Whether this activation pops itself after recognizing a key press
     one_shot: bool,
+    until_unknown: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyTableArgs<'a> {
+    pub name: &'a str,
+    pub timeout_milliseconds: Option<u64>,
+    pub replace_current: bool,
+    pub one_shot: bool,
+    pub until_unknown: bool,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -23,20 +33,17 @@ pub struct KeyTableState {
 }
 
 impl KeyTableState {
-    pub fn activate(
-        &mut self,
-        name: &str,
-        timeout_milliseconds: Option<u64>,
-        replace_current: bool,
-        one_shot: bool,
-    ) {
-        if replace_current {
+    pub fn activate(&mut self, args: KeyTableArgs) {
+        if args.replace_current {
             self.pop();
         }
         self.stack.push(KeyTableStateEntry {
-            name: name.to_string(),
-            expiration: timeout_milliseconds.map(|ms| Instant::now() + Duration::from_millis(ms)),
-            one_shot,
+            name: args.name.to_string(),
+            expiration: args
+                .timeout_milliseconds
+                .map(|ms| Instant::now() + Duration::from_millis(ms)),
+            one_shot: args.one_shot,
+            until_unknown: args.until_unknown,
         });
     }
 
@@ -64,6 +71,17 @@ impl KeyTableState {
         true
     }
 
+    pub fn pop_until_unknown(&mut self) {
+        while self
+            .stack
+            .last()
+            .map(|entry| entry.until_unknown)
+            .unwrap_or(false)
+        {
+            self.pop();
+        }
+    }
+
     pub fn current_table(&mut self) -> Option<&str> {
         while self.process_expiration() {}
         self.stack.last().map(|entry| entry.name.as_str())
@@ -74,15 +92,42 @@ impl KeyTableState {
         input_map: &InputMap,
         key: &KeyCode,
         mods: Modifiers,
-    ) -> Option<(KeyTableEntry, Option<&str>)> {
+    ) -> Option<(KeyTableEntry, Option<String>)> {
         while self.process_expiration() {}
+
+        let mut pop_count = 0;
+        let mut result = None;
+
         for entry in self.stack.iter().rev() {
             let name = entry.name.as_str();
             if let Some(entry) = input_map.lookup_key(key, mods, Some(name)) {
-                return Some((entry, Some(name)));
+                result = Some((entry, Some(name.to_string())));
+                break;
+            }
+
+            if entry.until_unknown {
+                pop_count += 1;
             }
         }
-        None
+
+        // This is a little bit tricky: until_unknown needs to
+        // pop entries if we didn't match, but since we need to
+        // make three separate passes to resolve a key using its
+        // various physical, mapped and raw forms, we cannot
+        // unilaterally pop here without breaking a later pass.
+        // It is only safe to pop here if we did match something:
+        // in that case we know that we won't make additional
+        // passes.
+        // It is important that `pop_until_unknown` is called
+        // in the final "no keys matched" case to correctly
+        // manage that state transition.
+        if result.is_some() {
+            for _ in 0..pop_count {
+                self.pop();
+            }
+        }
+
+        result
     }
 
     pub fn did_process_key(&mut self) {
@@ -499,6 +544,13 @@ impl super::TermWindow {
             window_key.key_is_down,
         ) {
             return;
+        }
+
+        // If we get here, then none of the keys matched
+        // any key table rules. Therefore, we should pop all `until_unknown`
+        // entries from the stack.
+        if window_key.key_is_down {
+            self.key_table_state.pop_until_unknown();
         }
 
         let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
