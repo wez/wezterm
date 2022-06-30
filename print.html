@@ -440,6 +440,10 @@ least a daily scheduled build) from the <code>main</code> branch.  It <em>may</e
 and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
+<h4 id="new"><a class="header" href="#new">New</a></h4>
+<ul>
+<li><a href="config/lua/keyassignment/ActivateKeyTable.html">ActivateKeyTable</a> now supports <code>until_unknown=true</code> to implicitly pop the table when a key not defined by that table is pressed. <a href="https://github.com/wez/wezterm/issues/2178">#2178</a></li>
+</ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li><a href="config/lua/keyassignment/ActivateKeyTable.html">ActivateKeyTable</a>'s <code>replace_current</code> field was not actually optional. Made it optional. <a href="https://github.com/wez/wezterm/issues/2179">#2179</a></li>
@@ -451,7 +455,7 @@ usually the best available version.</p>
 <li>Config will now automatically reload for changes made to <code>require</code>d lua files. Previously, only the main config file and any files that you explicitly passed to <a href="config/lua/wezterm/add_to_config_reload_watch_list.html">add_to_config_reload_watch_list</a> would trigger a reload.</li>
 </ul>
 <h3 id="20220624-141144-bd1b7c5d"><a class="header" href="#20220624-141144-bd1b7c5d">20220624-141144-bd1b7c5d</a></h3>
-<h4 id="new"><a class="header" href="#new">New</a></h4>
+<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
 <ul>
 <li><a href="config/lua/config/background.html">background</a> option for rich background compositing and parallax scrolling effects.</li>
 <li>Added <a href="cli/general.html">docs for the cli</a></li>
@@ -542,7 +546,7 @@ usually the best available version.</p>
 <li>Fonts: Codepoints for eg: symbol glyphs that were not explicitly listed in your font fallback list may not be resolved when used in styled (eg: bold) text. <a href="https://github.com/wez/wezterm/issues/1913">#1913</a> <a href="https://github.com/wez/wezterm/issues/2158">#2158</a></li>
 </ul>
 <h3 id="20220408-101518-b908e2dd"><a class="header" href="#20220408-101518-b908e2dd">20220408-101518-b908e2dd</a></h3>
-<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
+<h4 id="new-2"><a class="header" href="#new-2">New</a></h4>
 <ul>
 <li><a href="config/key-tables.html">Key Tables</a> feature for powerful modal key assignments</li>
 <li><code>wezterm start --position x,y</code>, <code>wezterm start --position displayname:30%,30%</code> option to control starting window position on all systems except for Wayland. See <code>wezterm start --help</code> for more info. <a href="https://github.com/wez/wezterm/issues/1794">#1794</a></li>
@@ -591,7 +595,7 @@ usually the best available version.</p>
 <li>Multiplexer render update laggy, especially when using multiple windows. <a href="https://github.com/wez/wezterm/issues/1814">#1814</a> <a href="https://github.com/wez/wezterm/issues/1841">#1841</a></li>
 </ul>
 <h3 id="20220319-142410-0fcdea07"><a class="header" href="#20220319-142410-0fcdea07">20220319-142410-0fcdea07</a></h3>
-<h4 id="new-2"><a class="header" href="#new-2">New</a></h4>
+<h4 id="new-3"><a class="header" href="#new-3">New</a></h4>
 <ul>
 <li><a href="config/lua/window/composition_status.html">window:composition_status()</a> and <a href="config/lua/window/leader_is_active.html">window:leader_is_active()</a> methods that can help populate <a href="config/lua/window/set_right_status.html">window:set_right_status()</a> <a href="https://github.com/wez/wezterm/issues/686">#686</a></li>
 <li>You may now use <code>colors = { compose_cursor = &quot;orange&quot; }</code> to change the cursor color when IME, dead key or leader key composition states are active.</li>
@@ -660,7 +664,7 @@ usually the best available version.</p>
 <li>Wayland input handling gets broken after suspend/resume. Thanks to <a href="https://github.com/LawnGnome">@LawnGnome</a>! <a href="https://github.com/wez/wezterm/issues/1497">#1497</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
-<h4 id="new-3"><a class="header" href="#new-3">New</a></h4>
+<h4 id="new-4"><a class="header" href="#new-4">New</a></h4>
 <ul>
 <li>Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting <a href="config/lua/config/use_fancy_tab_bar.html">use_fancy_tab_bar = false</a>.</li>
 <li>Support for the <a href="https://sw.kovidgoyal.net/kitty/graphics-protocol/">Kitty Image Protocol</a> is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing <a href="https://notcurses.com/">notcurses</a> if you want to see what modern terminal graphics can do! <a href="https://github.com/wez/wezterm/issues/986">#986</a></li>
@@ -730,7 +734,7 @@ usually the best available version.</p>
 <li>&quot;Update available&quot; message kept showing even though already running the latest version <a href="https://github.com/wez/wezterm/issues/1365">#1365</a></li>
 </ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
-<h4 id="new-4"><a class="header" href="#new-4">New</a></h4>
+<h4 id="new-5"><a class="header" href="#new-5">New</a></h4>
 <ul>
 <li>X11 now supports IME. It currently defaults to disabled, but you can set <code>use_ime = true</code> in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to <a href="https://github.com/H-M-H">@H-M-H</a> for bringing xcb-imdkit to Rust and implementing this in wezterm! <a href="https://github.com/wez/wezterm/issues/250">#250</a> <a href="https://github.com/wez/wezterm/pull/1043">#1043</a></li>
 <li>it is now possible to define colors in the range 16-255 in <code>colors</code> and color scheme definitions. Thanks to <a href="https://github.com/potamides">@potamides</a>! <a href="https://github.com/wez/wezterm/issues/841">#841</a> <a href="https://github.com/wez/wezterm/pull/1056">#1056</a></li>
@@ -14324,7 +14328,8 @@ clear and convenient.</p>
 <li><code>name</code> - the name of the table to activate.  The name must match up to an entry in the <code>key_tables</code> configuration.</li>
 <li><code>timeout_milliseconds</code> - an optional duration expressed in milliseconds. If specified, then the activation will automatically expire and pop itself from the key table stack once that duration elapses.  If omitted, this activation will not expire due to time.</li>
 <li><code>one_shot</code> - an optional boolean that controls whether the activation will pop itself after a single additional key press.  The default if left unspecified is <code>one_shot=true</code>. When set to <code>false</code>, pressing a key will not automatically pop the activation and you will need to use either a timeout or an explicit key assignment that triggers <a href="config/lua/keyassignment/PopKeyTable.html">PopKeyTable</a> to cancel the activation.</li>
-<li><code>replace_current</code> - an optional boolean. Defaults to <code>false</code> is unspecified. If set to <code>true</code> then behave as though <a href="config/lua/keyassignment/PopKeyTable.html">PopKeyTable</a> was triggered before pushing this new activation on the stack.  This is most useful for key assignments in a table that was activated using <code>one_shot=false</code>.</li>
+<li><code>replace_current</code> - an optional boolean. Defaults to <code>false</code> if unspecified. If set to <code>true</code> then behave as though <a href="config/lua/keyassignment/PopKeyTable.html">PopKeyTable</a> was triggered before pushing this new activation on the stack.  This is most useful for key assignments in a table that was activated using <code>one_shot=false</code>.</li>
+<li><code>until_unknown</code> - an optional boolean. Defaults to <code>false</code> if unspecified. If set to <code>true</code> then a key press that doesn't match any entries in the named key table will implicitly pop this entry from the stack. This can be used together with <code>timeout_milliseconds</code>. (<em>Since: nightly builds only</em>)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="activatelasttab"><a class="header" href="#activatelasttab">ActivateLastTab</a></h1>
 <p><em>Since: 20210404-112810-b63a949d</em></p>
