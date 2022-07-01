@@ -14470,10 +14470,10 @@ local act = wezterm.action
 return {
   leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot; },
   keys = {
-    { key = &quot;H&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Left&quot;, 5)}},
-    { key = &quot;J&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Down&quot;, 5)}},
-    { key = &quot;K&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Up&quot;, 5)}},
-    { key = &quot;L&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize(&quot;Right&quot;, 5)}},
+    { key = &quot;H&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize{&quot;Left&quot;, 5} },
+    { key = &quot;J&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize{&quot;Down&quot;, 5} },
+    { key = &quot;K&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize{&quot;Up&quot;, 5} },
+    { key = &quot;L&quot;, mods = &quot;LEADER&quot;, action=act.AdjustPaneSize{&quot;Right&quot;, 5} },
  }
 }
 </code></pre>
