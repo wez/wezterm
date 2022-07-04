@@ -23,6 +23,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Config will now automatically reload after error. Previously, you would need to manually reload the config using [ReloadConfiguration](config/lua/keyassignment/ReloadConfiguration.md). [#1174](https://github.com/wez/wezterm/issues/1174)
 * Config will now automatically reload for changes made to `require`d lua files. Previously, only the main config file and any files that you explicitly passed to [add_to_config_reload_watch_list](config/lua/wezterm/add_to_config_reload_watch_list.md) would trigger a reload.
 
+#### Updated
+* Bundled harfbuzz to 4.4.1
+
 ### 20220624-141144-bd1b7c5d
 
 #### New
