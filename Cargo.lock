@@ -4143,6 +4143,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-skia"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "642680569bb895b16e4b9d181c60be1ed136fa0c9c7f11d004daf053ba89bf82"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "bytemuck",
+ "cfg-if 1.0.0",
+ "png",
+ "safe_arch",
+ "tiny-skia-path",
+]
+
+[[package]]
+name = "tiny-skia-path"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c114d32f0c2ee43d585367cb013dfaba967ab9f62b90d9af0d696e955e70fa6c"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4781,7 +4806,7 @@ dependencies = [
  "termwiz-funcs",
  "textwrap",
  "thiserror",
- "tiny-skia",
+ "tiny-skia 0.7.0",
  "uds_windows",
  "umask",
  "unicode-normalization",
@@ -5031,7 +5056,7 @@ dependencies = [
  "shared_library",
  "smithay-client-toolkit",
  "thiserror",
- "tiny-skia",
+ "tiny-skia 0.6.6",
  "url",
  "wayland-client",
  "wayland-egl",
