@@ -1,0 +1,11 @@
+[colors]
+foreground = "#cad3f5"
+background = "#24273a"
+cursor_bg = "#f4dbd6"
+cursor_border = "#f4dbd6"
+cursor_fg = "#181926"
+selection_bg = "#5b6078"
+selection_fg = "#cad3f5"
+
+ansi = [ "#b8c0e0", "#ed8796", "#a6da95", "#eed49f", "#8aadf4", "#f5bde6", "#8bd5ca", "#b8c0e0" ]
+brights = [ "#5b6078", "#ed8796", "#a6da95", "#eed49f", "#8aadf4", "#f5bde6", "#8bd5ca", "#b8c0e0" ]
