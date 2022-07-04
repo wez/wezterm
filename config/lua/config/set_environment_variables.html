@@ -139,9 +139,11 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="set_environment_variables"><a class="header" href="#set_environment_variables"><code>set_environment_variables</code></a></h1>
-<p>Specifies a map of environment variables that should be set when spawning
-commands in the local domain.  This is not used when working with remote
-domains.</p>
+<p>Specifies a map of environment variables that should be set when spawning new
+commands in the <code>&quot;local&quot;</code> domain.  This configuration is consulted at the time
+that a program is launched.  It is not possible to update the environment of a
+running program on any Operating System.</p>
+<p>This is not used when working with remote domains.</p>
 <p>See also: <a href="../../launch.html#passing-environment-variables-to-the-spawned-program">Launching Programs</a></p>
 
                     </main>
