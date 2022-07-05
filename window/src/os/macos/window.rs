@@ -2036,20 +2036,21 @@ impl WindowView {
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
         // We want to emit Alt-BS in that situation.
-        let unmod = if virtual_key == kVK_Delete && modifiers.contains(Modifiers::ALT) {
-            "\x08"
-        } else if virtual_key == kVK_Tab {
-            "\t"
-        } else if virtual_key == kVK_Delete {
-            "\x08"
-        } else if virtual_key == kVK_ANSI_KeypadEnter {
-            // https://github.com/wez/wezterm/issues/739
-            // Keypad enter sends ctrl-c for some reason; explicitly
-            // treat that as enter here.
-            "\r"
-        } else {
-            unmod
-        };
+        let (prefer_vkey, unmod) =
+            if virtual_key == kVK_Delete && modifiers.contains(Modifiers::ALT) {
+                (true, "\x08")
+            } else if virtual_key == kVK_Tab {
+                (true, "\t")
+            } else if virtual_key == kVK_Delete {
+                (true, "\x08")
+            } else if virtual_key == kVK_ANSI_KeypadEnter {
+                // https://github.com/wez/wezterm/issues/739
+                // Keypad enter sends ctrl-c for some reason; explicitly
+                // treat that as enter here.
+                (true, "\r")
+            } else {
+                (false, unmod)
+            };
 
         // Shift-Tab on macOS produces \x19 for some reason.
         // Rewrite it to something we understand.
@@ -2285,7 +2286,18 @@ impl WindowView {
                 && virtual_key == kVK_ANSI_Slash);
 
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
-            let (key, raw_key) = if (only_left_alt && !send_composed_key_when_left_alt_is_pressed)
+            let (key, raw_key) = if prefer_vkey {
+                match phys_code {
+                    Some(phys) => (phys.to_key_code(), None),
+                    None => {
+                        log::error!(
+                            "prefer_vkey=true, but phys_code is None. {:?}",
+                            raw_key_event
+                        );
+                        return;
+                    }
+                }
+            } else if (only_left_alt && !send_composed_key_when_left_alt_is_pressed)
                 || (only_right_alt && !send_composed_key_when_right_alt_is_pressed)
             {
                 // Take the unmodified key only!
@@ -2313,13 +2325,6 @@ impl WindowView {
                         if is_ascii_control(*c) == Some(raw.to_ascii_lowercase()) =>
                     {
                         (KeyCode::Char(*raw), None)
-                    }
-                    (KeyCode::Char('\u{7f}'), Some(KeyCode::Char('\u{08}'))) => {
-                        // Special case: macOS reported backspace as \u7f but we set
-                        // the raw keycode and rewrote unmode to \u08 based on the
-                        // vk value above.
-                        // We want to propagate \u08.
-                        (KeyCode::Char('\u{08}'), None)
                     }
                     _ => (key, raw),
                 }
