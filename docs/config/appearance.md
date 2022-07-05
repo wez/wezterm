@@ -93,7 +93,6 @@ return {
 Colors now also accept the following CSS-style color specifications:
 
 ```
-#00ff00ff
 rgb(0,255,0)
 rgb(0% 100% 0%)
 rgb(0 255 0 / 100%)
