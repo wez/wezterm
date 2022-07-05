@@ -3,7 +3,7 @@ use super::luaerr;
 use super::pane::PaneObject;
 use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
-use config::keyassignment::KeyAssignment;
+use config::keyassignment::{ClipboardCopyDestination, KeyAssignment};
 use luahelper::*;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
@@ -188,5 +188,16 @@ impl UserData for GuiWin {
                 .map_err(luaerr)?;
             Ok(mux.active_workspace().to_string())
         });
+        methods.add_method(
+            "copy_to_clipboard",
+            |_, this, (text, clipboard): (String, Option<ClipboardCopyDestination>)| {
+                let clipboard = clipboard.unwrap_or_default();
+                this.window
+                    .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                        term_window.copy_to_clipboard(clipboard, text);
+                    })));
+                Ok(())
+            },
+        );
     }
 }

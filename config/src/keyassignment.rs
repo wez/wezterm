@@ -245,6 +245,7 @@ pub enum ClipboardCopyDestination {
     PrimarySelection,
     ClipboardAndPrimarySelection,
 }
+impl_lua_conversion_dynamic!(ClipboardCopyDestination);
 
 impl Default for ClipboardCopyDestination {
     fn default() -> Self {
