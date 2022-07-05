@@ -453,6 +453,7 @@ usually the best available version.</p>
 <li>X11: closing a window when multiple were open could result in an X protocol error that closed all windows <a href="https://github.com/wez/wezterm/issues/2198">#2198</a></li>
 <li>Config will now automatically reload after error. Previously, you would need to manually reload the config using <a href="config/lua/keyassignment/ReloadConfiguration.html">ReloadConfiguration</a>. <a href="https://github.com/wez/wezterm/issues/1174">#1174</a></li>
 <li>Config will now automatically reload for changes made to <code>require</code>d lua files. Previously, only the main config file and any files that you explicitly passed to <a href="config/lua/wezterm/add_to_config_reload_watch_list.html">add_to_config_reload_watch_list</a> would trigger a reload.</li>
+<li>macOS: numeric keypad enter generated CTRL-C instead of enter. Regression of <a href="https://github.com/wez/wezterm/issues/739">#739</a>. <a href="https://github.com/wez/wezterm/issues/2204">#2204</a></li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
