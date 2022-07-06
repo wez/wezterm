@@ -4,12 +4,12 @@ use crate::connection::ConnectionOps;
 use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ScreenPoint,
-    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResolvedGeometry,
+    ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
-use config::{ConfigHandle, DimensionContext, GeometryOrigin};
+use config::ConfigHandle;
 use promise::{Future, Promise};
 use raw_window_handle::unix::XcbHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
@@ -978,8 +978,8 @@ impl XWindow {
                 depth: conn.depth,
                 wid: window_id,
                 parent: screen.root(),
-                x,
-                y,
+                x: x.try_into()?,
+                y: y.try_into()?,
                 width: width.try_into()?,
                 height: height.try_into()?,
                 border_width: 0,
@@ -1085,7 +1085,7 @@ impl XWindow {
         // Some window managers will ignore the x,y that we set during window
         // creation, so we ask them again once the window is mapped
         if needs_reposition {
-            window_handle.set_window_position(ScreenPoint::new(x.into(), y.into()));
+            window_handle.set_window_position(ScreenPoint::new(x.try_into()?, y.try_into()?));
         }
 
         if conn
