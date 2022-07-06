@@ -84,6 +84,6 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    wezterm_mod.set("window", window_mod)?;
+    wezterm_mod.set("gui", window_mod)?;
     Ok(())
 }
