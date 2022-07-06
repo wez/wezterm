@@ -152,11 +152,11 @@ immediately while the clipboard is updated a few moments later in another
 thread. If you need to ensure that the published text is visible to other
 applications before you trigger some other action in your lua code then you may
 need to add a short sleep to allow for that to complete.</p>
-<pre><code class="language-lua">window:set_clipboard(&quot;put this text in the clipboard and primary selection!&quot;)
+<pre><code class="language-lua">window:copy_to_clipboard(&quot;put this text in the clipboard and primary selection!&quot;)
 </code></pre>
-<pre><code class="language-lua">window:set_clipboard(&quot;put me in the clipboard only&quot;, &quot;Clipboard&quot;)
+<pre><code class="language-lua">window:copy_to_clipboard(&quot;put me in the clipboard only&quot;, &quot;Clipboard&quot;)
 </code></pre>
-<pre><code class="language-lua">window:set_clipboard(&quot;put me in the primary selection&quot;, &quot;PrimarySelection&quot;)
+<pre><code class="language-lua">window:copy_to_clipboard(&quot;put me in the primary selection&quot;, &quot;PrimarySelection&quot;)
 </code></pre>
 
                     </main>
