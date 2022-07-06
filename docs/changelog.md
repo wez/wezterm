@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Config will now automatically reload after error. Previously, you would need to manually reload the config using [ReloadConfiguration](config/lua/keyassignment/ReloadConfiguration.md). [#1174](https://github.com/wez/wezterm/issues/1174)
 * Config will now automatically reload for changes made to `require`d lua files. Previously, only the main config file and any files that you explicitly passed to [add_to_config_reload_watch_list](config/lua/wezterm/add_to_config_reload_watch_list.md) would trigger a reload.
 * macOS: numeric keypad enter generated CTRL-C instead of enter. Regression of [#739](https://github.com/wez/wezterm/issues/739). [#2204](https://github.com/wez/wezterm/issues/2204)
+* Wayland: inconsistent pasting. Thanks to [@Funami580](https://github.com/Funami580)! [#2225](https://github.com/wez/wezterm/issues/2225) [#2226](https://github.com/wez/wezterm/pulls/2226)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
