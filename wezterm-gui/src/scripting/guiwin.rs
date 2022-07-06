@@ -243,6 +243,7 @@ fn lines_to_escapes(lines: Vec<Line>) -> anyhow::Result<String> {
             attr = a.clone();
         }
     }
+    changes.push(Change::AllAttributes(CellAttributes::blank()));
     let mut renderer = new_wezterm_terminfo_renderer();
 
     struct Target {
