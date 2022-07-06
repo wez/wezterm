@@ -97,12 +97,10 @@ pub trait ConnectionOps {
         let height = geometry.height.evaluate_as_pixels(height_context) as usize;
         let x = geometry
             .x
-            .map(|x| x.evaluate_as_pixels(width_context) as i32 + bounds.origin.x as i32)
-            .unwrap_or(0);
+            .map(|x| x.evaluate_as_pixels(width_context) as i32 + bounds.origin.x as i32);
         let y = geometry
             .y
-            .map(|y| y.evaluate_as_pixels(height_context) as i32 + bounds.origin.y as i32)
-            .unwrap_or(0);
+            .map(|y| y.evaluate_as_pixels(height_context) as i32 + bounds.origin.y as i32);
 
         ResolvedGeometry {
             x,

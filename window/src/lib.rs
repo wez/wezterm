@@ -322,8 +322,8 @@ pub struct RequestedWindowGeometry {
 
 #[derive(Debug, Clone)]
 pub struct ResolvedGeometry {
-    pub x: i32,
-    pub y: i32,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
     pub width: usize,
     pub height: usize,
 }

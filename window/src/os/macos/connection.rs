@@ -4,10 +4,13 @@
 use super::nsstring_to_str;
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
+use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::Appearance;
-use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
+use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular, NSScreen};
 use cocoa::base::{id, nil};
+use cocoa::foundation::{NSArray, NSRect};
+use objc::runtime::Object;
 use objc::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -118,6 +121,51 @@ impl ConnectionOps for Connection {
             NSBeep();
         }
     }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        let mut by_name = HashMap::new();
+        let mut virtual_rect = euclid::rect(0, 0, 0, 0);
+
+        let screens = unsafe { NSScreen::screens(nil) };
+        for idx in 0..unsafe { screens.count() } {
+            let screen = unsafe { screens.objectAtIndex(idx) };
+            let screen = nsscreen_to_screen_info(screen);
+            virtual_rect = virtual_rect.union(&screen.rect);
+            by_name.insert(screen.name.clone(), screen);
+        }
+
+        // The screen with the menu bar is always index 0
+        let main = nsscreen_to_screen_info(unsafe { screens.objectAtIndex(0) });
+
+        // The active screen is known as the "main" screen in macOS
+        let active = nsscreen_to_screen_info(unsafe { NSScreen::mainScreen(nil) });
+
+        Ok(Screens {
+            by_name,
+            active,
+            main,
+            virtual_rect,
+        })
+    }
+}
+
+fn screen_backing_frame(screen: *mut Object) -> NSRect {
+    unsafe {
+        let frame = NSScreen::frame(screen);
+        NSScreen::convertRectToBacking_(screen, frame)
+    }
+}
+
+fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
+    let name = unsafe { nsstring_to_str(msg_send!(screen, localizedName)) }.to_string();
+    let frame = screen_backing_frame(screen);
+    let rect = euclid::rect(
+        frame.origin.x as isize,
+        frame.origin.y as isize,
+        frame.size.width as isize,
+        frame.size.height as isize,
+    );
+    ScreenInfo { name, rect }
 }
 
 extern "C" {
