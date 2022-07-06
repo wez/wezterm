@@ -17,14 +17,14 @@ applications before you trigger some other action in your lua code then you may
 need to add a short sleep to allow for that to complete.
 
 ```lua
-window:set_clipboard("put this text in the clipboard and primary selection!")
+window:copy_to_clipboard("put this text in the clipboard and primary selection!")
 ```
 
 ```lua
-window:set_clipboard("put me in the clipboard only", "Clipboard")
+window:copy_to_clipboard("put me in the clipboard only", "Clipboard")
 ```
 
 ```lua
-window:set_clipboard("put me in the primary selection", "PrimarySelection")
+window:copy_to_clipboard("put me in the primary selection", "PrimarySelection")
 ```
 
