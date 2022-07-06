@@ -986,6 +986,7 @@ fn run() -> anyhow::Result<()> {
     // GUI environment specific and env_bootstrap is used to setup the
     // headless mux server.
     config::lua::add_context_setup_func(window_funcs::register);
+    config::lua::add_context_setup_func(crate::scripting::register);
 
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();

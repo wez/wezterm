@@ -18,7 +18,7 @@ use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
 
 #[derive(Clone)]
 pub struct GuiWin {
-    mux_window_id: MuxWindowId,
+    pub mux_window_id: MuxWindowId,
     pub window: ::window::Window,
 }
 

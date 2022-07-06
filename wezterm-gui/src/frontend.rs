@@ -1,3 +1,4 @@
+use crate::scripting::guiwin::GuiWin;
 use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use ::window::*;
@@ -275,6 +276,19 @@ impl GuiFrontEnd {
 
     pub fn is_switching_workspace(&self) -> bool {
         *self.switching_workspaces.borrow()
+    }
+
+    pub fn gui_window_for_mux_window(&self, mux_window_id: MuxWindowId) -> Option<GuiWin> {
+        let windows = self.known_windows.borrow();
+        for (window, v) in windows.iter() {
+            if *v == mux_window_id {
+                return Some(GuiWin {
+                    mux_window_id,
+                    window: window.clone(),
+                });
+            }
+        }
+        None
     }
 }
 
