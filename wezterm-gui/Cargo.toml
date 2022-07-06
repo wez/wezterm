@@ -82,6 +82,7 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window" }
+window-funcs = { path = "../lua-api-crates/window-funcs" }
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

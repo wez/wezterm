@@ -1,3 +1,4 @@
+use crate::screen::Screens;
 use crate::{Appearance, Connection};
 use anyhow::Result as Fallible;
 use std::cell::RefCell;
@@ -48,4 +49,9 @@ pub trait ConnectionOps {
 
     /// Perform the system beep/notification sound
     fn beep(&self) {}
+
+    /// Returns information about the screens
+    fn screens(&self) -> anyhow::Result<Screens> {
+        anyhow::bail!("Unable to query screen information");
+    }
 }

@@ -14,7 +14,6 @@ use promise::{Future, Promise};
 use raw_window_handle::unix::XcbHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
-use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
@@ -1534,69 +1533,34 @@ fn resolve_geometry(
     conn: &XConnection,
     geometry: RequestedWindowGeometry,
 ) -> anyhow::Result<ResolvedGeometry> {
-    let bounds = if conn.has_randr {
-        let res = conn
-            .send_and_wait_request(&xcb::randr::GetScreenResources { window: conn.root })
-            .context("get_screen_resources")?;
+    let bounds = match conn.screens() {
+        Ok(screens) => {
+            log::trace!("{screens:?}");
 
-        let mut virtual_screen: Rect = euclid::rect(0, 0, 0, 0);
-        let mut main_screen: Rect = euclid::rect(0, 0, 0, 0);
-        let mut by_name = HashMap::new();
-
-        for &o in res.outputs() {
-            let info = conn
-                .send_and_wait_request(&xcb::randr::GetOutputInfo {
-                    output: o,
-                    config_timestamp: res.config_timestamp(),
-                })
-                .context("get_output_info")?;
-            let name = String::from_utf8_lossy(info.name()).to_string();
-            let c = info.crtc();
-            if let Ok(cinfo) = conn.send_and_wait_request(&xcb::randr::GetCrtcInfo {
-                crtc: c,
-                config_timestamp: res.config_timestamp(),
-            }) {
-                let bounds = euclid::rect(
-                    cinfo.x() as isize,
-                    cinfo.y() as isize,
-                    cinfo.width() as isize,
-                    cinfo.height() as isize,
-                );
-                virtual_screen = virtual_screen.union(&bounds);
-                if bounds.origin.x == 0 && bounds.origin.y == 0 {
-                    main_screen = bounds;
+            match geometry.origin {
+                GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
+                GeometryOrigin::MainScreen => screens.main.rect,
+                GeometryOrigin::ActiveScreen => {
+                    // TODO: find focused window and resolve it!
+                    // Maybe something like <https://stackoverflow.com/a/43666928/149111>
+                    // but ported to Rust?
+                    screens.main.rect
                 }
-                by_name.insert(name, bounds);
-            }
-        }
-        log::trace!("{:?}", by_name);
-        log::trace!("virtual: {:?}", virtual_screen);
-        log::trace!("main: {:?}", main_screen);
-
-        match geometry.origin {
-            GeometryOrigin::ScreenCoordinateSystem => virtual_screen,
-            GeometryOrigin::MainScreen => main_screen,
-            GeometryOrigin::ActiveScreen => {
-                // TODO: find focused window and resolve it!
-                // Maybe something like <https://stackoverflow.com/a/43666928/149111>
-                // but ported to Rust?
-                main_screen
-            }
-            GeometryOrigin::Named(name) => match by_name.get(&name) {
-                Some(bounds) => bounds.clone(),
-                None => {
-                    log::error!(
-                        "Requested display {} was not found; available displays are: {:?}. \
+                GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
+                    Some(info) => info.rect.clone(),
+                    None => {
+                        log::error!(
+                            "Requested display {} was not found; available displays are: {:?}. \
                              Using primary display instead",
-                        name,
-                        by_name,
-                    );
-                    main_screen
-                }
-            },
+                            name,
+                            screens.by_name,
+                        );
+                        screens.main.rect
+                    }
+                },
+            }
         }
-    } else {
-        euclid::rect(0, 0, 65535, 65535)
+        Err(_) => euclid::rect(0, 0, 65535, 65535),
     };
 
     let dpi = conn.default_dpi();

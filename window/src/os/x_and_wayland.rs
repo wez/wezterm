@@ -5,6 +5,7 @@ use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 #[cfg(feature = "wayland")]
 use crate::os::wayland::window::WaylandWindow;
+use crate::screen::Screens;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::{
@@ -143,6 +144,14 @@ impl ConnectionOps for Connection {
             Self::X11(x) => x.beep(),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.beep(),
+        }
+    }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        match self {
+            Self::X11(x) => x.screens(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.screens(),
         }
     }
 }

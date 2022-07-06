@@ -4811,6 +4811,7 @@ dependencies = [
  "wezterm-toast-notification",
  "winapi",
  "window",
+ "window-funcs",
  "windows",
 ]
 
@@ -5058,6 +5059,17 @@ dependencies = [
  "xcb",
  "xcb-imdkit",
  "xkbcommon",
+]
+
+[[package]]
+name = "window-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "wezterm-dynamic",
+ "window",
 ]
 
 [[package]]

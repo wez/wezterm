@@ -3,8 +3,9 @@ use crate::connection::ConnectionOps;
 use crate::os::x11::window::XWindowInner;
 use crate::os::x11::xsettings::*;
 use crate::os::Connection;
+use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Appearance, DeadKeyStatus};
+use crate::{Appearance, DeadKeyStatus, ScreenRect};
 use anyhow::{anyhow, bail, Context as _};
 use mio::event::Source;
 use mio::unix::SourceFd;
@@ -142,6 +143,69 @@ impl ConnectionOps for XConnection {
         } else {
             Appearance::Dark
         }
+    }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        if !self.has_randr {
+            anyhow::bail!("XRANDR is not available, cannot query screen geometry");
+        }
+
+        let res = self
+            .send_and_wait_request(&xcb::randr::GetScreenResources { window: self.root })
+            .context("get_screen_resources")?;
+
+        let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        let mut by_name = HashMap::new();
+
+        for &o in res.outputs() {
+            let info = self
+                .send_and_wait_request(&xcb::randr::GetOutputInfo {
+                    output: o,
+                    config_timestamp: res.config_timestamp(),
+                })
+                .context("get_output_info")?;
+            let name = String::from_utf8_lossy(info.name()).to_string();
+            let c = info.crtc();
+            if let Ok(cinfo) = self.send_and_wait_request(&xcb::randr::GetCrtcInfo {
+                crtc: c,
+                config_timestamp: res.config_timestamp(),
+            }) {
+                let bounds = euclid::rect(
+                    cinfo.x() as isize,
+                    cinfo.y() as isize,
+                    cinfo.width() as isize,
+                    cinfo.height() as isize,
+                );
+                virtual_rect = virtual_rect.union(&bounds);
+                let info = ScreenInfo {
+                    name: name.clone(),
+                    rect: bounds,
+                };
+                by_name.insert(name, info);
+            }
+        }
+
+        // The main screen is the one either at the origin of
+        // the virtual area, or if that doesn't exist for some weird
+        // reason, the screen closest to the origin.
+        let main = by_name
+            .values()
+            .min_by_key(|screen| {
+                screen
+                    .rect
+                    .origin
+                    .to_f32()
+                    .distance_to(euclid::Point2D::origin())
+                    .abs() as isize
+            })
+            .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
+            .clone();
+
+        Ok(Screens {
+            main,
+            by_name,
+            virtual_rect,
+        })
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {

@@ -11,6 +11,7 @@ pub use wezterm_color_types as color;
 mod configuration;
 pub mod connection;
 pub mod os;
+pub mod screen;
 mod spawn;
 
 #[cfg(target_os = "macos")]
@@ -57,6 +58,7 @@ pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type RectF = euclid::Rect<f32, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
 pub type SizeF = euclid::Size2D<f32, PixelUnit>;
+pub type ScreenRect = euclid::Rect<isize, ScreenPixelUnit>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseCursor {
