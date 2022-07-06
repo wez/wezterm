@@ -594,6 +594,25 @@ impl Line {
         s
     }
 
+    pub fn columns_as_line(&self, range: Range<usize>) -> Self {
+        let mut cells = vec![];
+        for (n, c) in self.visible_cells() {
+            if n < range.start {
+                continue;
+            }
+            if n >= range.end {
+                break;
+            }
+            cells.push(c.clone());
+        }
+        Self {
+            bits: LineBits::NONE,
+            cells,
+            seqno: self.current_seqno(),
+            zones: vec![],
+        }
+    }
+
     /// If we're about to modify a cell obscured by a double-width
     /// character ahead of that cell, we need to nerf that sequence
     /// of cells to avoid partial rendering concerns.
