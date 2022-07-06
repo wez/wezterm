@@ -3,6 +3,7 @@ use bitflags::bitflags;
 use config::{ConfigHandle, Dimension, GeometryOrigin};
 use promise::Future;
 use std::any::Any;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::rc::Rc;
 use thiserror::Error;
@@ -133,7 +134,7 @@ pub enum DeadKeyStatus {
     None,
     /// Holding until composition is done; the string is the uncommitted
     /// composition text to show as a placeholder
-    Composing(String),
+    Composing(String, Option<Range<usize>>),
 }
 
 #[derive(Debug)]

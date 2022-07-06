@@ -21,6 +21,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::OsString;
 use std::io::{self, Error as IoError};
+use std::ops::Range;
 use std::os::windows::ffi::OsStringExt;
 use std::path::PathBuf;
 use std::ptr::{null, null_mut};
@@ -49,6 +50,8 @@ use winreg::RegKey;
 
 const GCS_RESULTSTR: DWORD = 0x800;
 const GCS_COMPSTR: DWORD = 0x8;
+const GCS_COMPATTR: DWORD = 0x10;
+const ATTR_TARGET_CONVERTED: u8 = 0x1;
 const ISC_SHOWUICOMPOSITIONWINDOW: DWORD = 0x80000000;
 
 #[allow(non_snake_case)]
@@ -174,6 +177,43 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
     } else {
         glium::debug::DebugCallbackBehavior::Ignore
     }
+}
+
+fn calc_str_selected_range(compstr: &[u16], compattr: &[u8], max: usize) -> Option<Range<usize>> {
+    fn selected(v: &u8) -> bool {
+        v & ATTR_TARGET_CONVERTED != 0
+    }
+    fn sub_tostr_len(compstr: &[u16], range: Range<usize>, max: usize) -> Option<usize> {
+        let sub = &compstr[range];
+        let len = OsString::from_wide(sub).into_string().ok()?.len();
+        Some(std::cmp::min(len, max))
+    }
+
+    if compstr.len() != compattr.len() {
+        return None;
+    }
+
+    let a_start = compattr.iter().position(selected)?;
+    let a_end = compattr.len() - compattr.iter().rev().position(selected)?;
+    if a_end <= a_start {
+        return None;
+    }
+
+    let s_start = if 0 < a_start {
+        sub_tostr_len(&compstr, 0..a_start, max)?
+    } else {
+        0
+    };
+    let s_end = if a_end < compattr.len() {
+        s_start + sub_tostr_len(&compstr, a_start..a_end, max)?
+    } else {
+        max
+    };
+    if s_end <= s_start {
+        return None;
+    }
+
+    Some(s_start..s_end)
 }
 
 unsafe impl HasRawWindowHandle for WindowInner {
@@ -1550,25 +1590,26 @@ impl ImmContext {
         }
     }
 
-    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
-        // This returns a size in bytes even though it is for a buffer of u16!
-        let byte_size =
-            unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
-        if byte_size > 0 {
-            let word_size = byte_size as usize / 2;
-            let mut wide_buf = vec![0u16; word_size];
-            unsafe {
-                ImmGetCompositionStringW(
-                    self.imc,
-                    which,
-                    wide_buf.as_mut_ptr() as *mut _,
-                    byte_size as u32,
-                )
-            };
-            OsString::from_wide(&wide_buf).into_string()
+    pub fn get_raw<T: Clone>(&self, which: DWORD) -> Result<Vec<T>, i32> {
+        let size = unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
+        if size < 0 {
+            Err(size)
+        } else if size == 0 {
+            Ok(vec![])
         } else {
-            Ok(String::new())
+            let mut buf: Vec<T>;
+            let len = size as usize / std::mem::size_of::<T>();
+            buf = Vec::<T>::with_capacity(len);
+            unsafe {
+                buf.set_len(len);
+                ImmGetCompositionStringW(self.imc, which, buf.as_mut_ptr() as *mut _, size as u32);
+            }
+            Ok(buf)
         }
+    }
+
+    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
+        OsString::from_wide(&self.get_raw(which).unwrap_or_default()[..]).into_string()
     }
 }
 
@@ -1647,11 +1688,17 @@ unsafe fn ime_composition(
     if lparam & GCS_RESULTSTR == 0 {
         // No finished result; continue with the default
         // processing
-        if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
+        let compstr = imc.get_raw::<u16>(GCS_COMPSTR).unwrap_or_default();
+        if let Ok(composing) = OsString::from_wide(&compstr[..]).into_string() {
+            let selected_range = match imc.get_raw::<u8>(GCS_COMPATTR) {
+                Ok(compattr) => calc_str_selected_range(&compstr, &compattr, composing.len()),
+                Err(_) => None,
+            };
             inner
                 .events
                 .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
                     composing,
+                    selected_range,
                 )));
         }
         // We will show the composing string ourselves.
@@ -2260,7 +2307,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 if inner.config.use_dead_keys {
                     inner.dead_pending.replace((modifiers, vk));
                     inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                        DeadKeyStatus::Composing(c.to_string()),
+                        DeadKeyStatus::Composing(c.to_string(), None),
                     ));
                     return Some(0);
                 }

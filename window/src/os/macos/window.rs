@@ -2,7 +2,7 @@
 #![allow(clippy::let_unit_value)]
 
 use super::keycodes::*;
-use super::{nsstring, nsstring_to_str};
+use super::{nsstring, nsstring_to_str, unattributed};
 use crate::connection::ConnectionOps;
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
@@ -41,6 +41,7 @@ use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -434,6 +435,7 @@ impl Window {
                 ime_last_event: None,
                 live_resizing: false,
                 ime_text: String::new(),
+                selected_range: None,
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -1154,6 +1156,7 @@ struct Inner {
     live_resizing: bool,
 
     ime_text: String,
+    selected_range: Option<Range<usize>>,
 }
 
 #[repr(C)]
@@ -1645,6 +1648,7 @@ impl WindowView {
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
             inner.ime_text = s.to_string();
+            inner.selected_range = calc_str_selected_range(astring, selected_range, s.len());
 
             /*
             let key_is_down = inner.key_is_down.take().unwrap_or(true);
@@ -2104,7 +2108,7 @@ impl WindowView {
                     Ok(TranslateStatus::Composing(composing)) => {
                         // Next key press in dead key sequence is pending.
                         inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
-                            DeadKeyStatus::Composing(composing),
+                            DeadKeyStatus::Composing(composing, None),
                         ));
 
                         return;
@@ -2214,7 +2218,10 @@ impl WindowView {
                             // If it didn't generate an event, then a composition
                             // is pending.
                             let status = if inner.ime_last_event.is_none() {
-                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                                DeadKeyStatus::Composing(
+                                    inner.ime_text.clone(),
+                                    inner.selected_range.clone(),
+                                )
                             } else {
                                 DeadKeyStatus::None
                             };
@@ -2244,7 +2251,10 @@ impl WindowView {
                             let status = if inner.ime_text.is_empty() {
                                 DeadKeyStatus::None
                             } else {
-                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                                DeadKeyStatus::Composing(
+                                    inner.ime_text.clone(),
+                                    inner.selected_range.clone(),
+                                )
                             };
                             inner
                                 .events
@@ -2883,4 +2893,49 @@ fn resolve_geom(geometry: RequestedWindowGeometry) -> ResolvedGeometry {
     };
 
     ResolvedGeometry { pos, width, height }
+}
+
+fn calc_str_selected_range(
+    astring: *mut Object,
+    selected_range: NSRange,
+    max: usize,
+) -> Option<Range<usize>> {
+    unsafe fn sub_tostr_len(ns: *mut Object, range: NSRange, max: usize) -> usize {
+        let sub = msg_send![ns, substringWithRange: range];
+        let len = nsstring_to_str(sub).len();
+        std::cmp::min(len, max)
+    }
+
+    let ns;
+    let ns_length;
+    unsafe {
+        ns = unattributed(astring);
+        ns_length = msg_send![ns, length];
+    }
+
+    let a_start = selected_range.0.location;
+    let a_end = a_start + selected_range.0.length;
+    if ns_length < a_end {
+        return None;
+    }
+
+    let s_start;
+    let s_end;
+    unsafe {
+        s_start = if 0 < a_start {
+            sub_tostr_len(ns, NSRange::new(0, a_start), max)
+        } else {
+            0
+        };
+        s_end = if a_end < ns_length {
+            s_start + sub_tostr_len(ns, NSRange::new(a_start, a_end - a_start), max)
+        } else {
+            max
+        };
+    }
+    if s_end <= s_start {
+        return None;
+    }
+
+    Some(s_start..s_end)
 }

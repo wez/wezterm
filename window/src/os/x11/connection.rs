@@ -12,12 +12,16 @@ use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Registry, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Range;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use x11::xlib;
 use xcb::x::Atom;
 use xcb::{dri2, Raw};
+
+#[allow(non_upper_case_globals)]
+const XIMReverse: u32 = 0x1;
 
 pub struct XConnection {
     pub conn: xcb::Connection,
@@ -284,6 +288,31 @@ fn compute_default_dpi(xrm: &HashMap<String, String>, xsettings: &XSettingsMap) 
             .parse::<f64>()
             .unwrap_or(crate::DEFAULT_DPI)
     }
+}
+
+fn calc_str_selected_range(text: &str, feedback_array: &[u32], max: usize) -> Option<Range<usize>> {
+    fn selected(v: &u32) -> bool {
+        v & XIMReverse != 0
+    }
+
+    let a_start = feedback_array.iter().position(selected)?;
+    let a_end = feedback_array.len() - feedback_array.iter().rev().position(selected)?;
+    if a_end <= a_start {
+        return None;
+    }
+
+    let mut char_indices = text.char_indices();
+    let s_start = std::cmp::min(char_indices.nth(a_start).unwrap().0, max);
+    let s_end = if a_end < feedback_array.len() {
+        std::cmp::min(char_indices.nth(a_end - a_start - 1).unwrap().0, max)
+    } else {
+        max
+    };
+    if s_end <= s_start {
+        return None;
+    }
+
+    Some(s_start..s_end)
 }
 
 impl XConnection {
@@ -612,7 +641,10 @@ impl XConnection {
                         let mut inner = window.lock().unwrap();
 
                         let text = info.text();
-                        let status = DeadKeyStatus::Composing(text);
+                        let selected_range =
+                            calc_str_selected_range(&text, info.feedback_array(), text.len());
+
+                        let status = DeadKeyStatus::Composing(text, selected_range);
                         inner.dispatch_ime_compose_status(status);
                     }
                 });

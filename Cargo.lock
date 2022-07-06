@@ -5200,7 +5200,7 @@ dependencies = [
 [[package]]
 name = "xcb-imdkit"
 version = "0.2.0"
-source = "git+https://github.com/wez/xcb-imdkit-rs.git?rev=ede7c71b85fe2537efef6cf999a45690316211cf#ede7c71b85fe2537efef6cf999a45690316211cf"
+source = "git+https://github.com/kumattau/xcb-imdkit-rs.git?rev=9ba1522493167c2430f20b06597240bd00bebd81#9ba1522493167c2430f20b06597240bd00bebd81"
 dependencies = [
  "bitflags",
  "cc",
