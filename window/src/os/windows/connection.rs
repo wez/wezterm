@@ -1,12 +1,17 @@
 //! The connection to the GUI subsystem
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
+use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::Appearance;
+use crate::{Appearance, ScreenRect};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ffi::OsString;
+use std::os::windows::ffi::OsStringExt;
 use std::ptr::null_mut;
 use std::rc::Rc;
+use winapi::shared::minwindef::*;
+use winapi::shared::windef::*;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
@@ -76,6 +81,84 @@ impl ConnectionOps for Connection {
         unsafe {
             MessageBeep(MB_OK);
         }
+    }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        // Iterate the monitors.
+        // The device names are things like "\\.\DISPLAY1" which isn't super
+        // user friendly.  There may be an alternative API to get a better name,
+        // but for now this is good enough.
+        struct Info {
+            primary: Option<ScreenInfo>,
+            by_name: HashMap<String, ScreenInfo>,
+            virtual_rect: ScreenRect,
+        }
+
+        unsafe extern "system" fn callback(
+            mon: HMONITOR,
+            _hdc: HDC,
+            _rect: *mut RECT,
+            data: LPARAM,
+        ) -> i32 {
+            let info: &mut Info = &mut *(data as *mut Info);
+            let mut mi: MONITORINFOEXW = std::mem::zeroed();
+            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+
+            // "\\.\DISPLAY1" -> "DISPLAY1"
+            let len = mi.szDevice.iter().position(|&c| c == 0).unwrap_or(0);
+            let monitor_name = OsString::from_wide(&mi.szDevice[0..len])
+                .to_string_lossy()
+                .to_string();
+            let monitor_name = if let Some(name) = monitor_name.strip_prefix("\\\\.\\") {
+                name.to_string()
+            } else {
+                monitor_name
+            };
+
+            let screen_info = ScreenInfo {
+                name: monitor_name.clone(),
+                rect: euclid::rect(
+                    mi.rcMonitor.left as isize,
+                    mi.rcMonitor.top as isize,
+                    mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
+                    mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
+                ),
+            };
+
+            info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
+
+            if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
+                info.primary.replace(screen_info.clone());
+            }
+
+            info.by_name.insert(monitor_name, screen_info);
+
+            winapi::shared::ntdef::TRUE.into()
+        }
+
+        let mut info = Info {
+            primary: None,
+            by_name: HashMap::new(),
+            virtual_rect: euclid::rect(0, 0, 0, 0),
+        };
+        unsafe {
+            EnumDisplayMonitors(
+                std::ptr::null_mut(),
+                std::ptr::null(),
+                Some(callback),
+                &mut info as *mut _ as LPARAM,
+            );
+        }
+
+        let main = info
+            .primary
+            .ok_or_else(|| anyhow::anyhow!("There is no primary monitor configured!?"))?;
+        Ok(Screens {
+            main,
+            by_name: info.by_name,
+            virtual_rect: info.virtual_rect,
+        })
     }
 }
 
