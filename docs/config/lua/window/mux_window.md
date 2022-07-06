@@ -2,4 +2,4 @@
 
 *Since: nightly builds only*
 
-Returns the [MuxWindow](../MuxWindow.md) representation of this window.
+Returns the [MuxWindow](../mux-window/index.md) representation of this window.

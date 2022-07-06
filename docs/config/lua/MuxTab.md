@@ -31,7 +31,7 @@ tab:set_title("my title")
 
 *Since: nightly builds only*
 
-Returns the [MuxWindow](MuxWindow.md) object that contains this tab.
+Returns the [MuxWindow](mux-window/index.md) object that contains this tab.
 
 ## tab:panes()
 

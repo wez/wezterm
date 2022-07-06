@@ -129,7 +129,7 @@ Sends text to the pane as-is.
 
 *Since: nightly builds only*
 
-Returns the [MuxWindow](MuxWindow.md) that contains the tab that contains this pane.
+Returns the [MuxWindow](mux-window/index.md) that contains the tab that contains this pane.
 
 ## `pane:tab()`
 

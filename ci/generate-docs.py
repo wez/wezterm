@@ -179,7 +179,7 @@ TOC = [
                         "config/lua/keyassignment",
                     ),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
-                    Page("object: MuxWindow", "config/lua/MuxWindow.md"),
+                    Gen("object: MuxWindow", "config/lua/mux-window"),
                     Page("object: MuxTab", "config/lua/MuxTab.md"),
                     Page("object: MuxPane", "config/lua/MuxPane.md"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),

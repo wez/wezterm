@@ -3,7 +3,7 @@
 *Since: 20220624-141144-bd1b7c5d*
 
 Given a window ID, verifies that the ID is a valid window known to the mux
-and returns a [MuxWindow](../MuxWindow.md) object that can be used to
+and returns a [MuxWindow](../mux-window/index.md) object that can be used to
 operate on the window.
 
 This is useful for situations where you have obtained a window id from
