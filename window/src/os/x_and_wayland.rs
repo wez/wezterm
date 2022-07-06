@@ -5,9 +5,9 @@ use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 #[cfg(feature = "wayland")]
 use crate::os::wayland::window::WaylandWindow;
-use crate::screen::Screens;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
+use crate::screen::Screens;
 use crate::{
     Appearance, Clipboard, MouseCursor, Rect, RequestedWindowGeometry, ScreenPoint, WindowEvent,
     WindowOps,
