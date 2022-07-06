@@ -945,7 +945,6 @@ impl XWindow {
             })?
             .x11();
 
-        let needs_reposition = geometry.x.is_some() && geometry.y.is_some();
         let ResolvedGeometry {
             x,
             y,
@@ -978,8 +977,8 @@ impl XWindow {
                 depth: conn.depth,
                 wid: window_id,
                 parent: screen.root(),
-                x: x.try_into()?,
-                y: y.try_into()?,
+                x: x.unwrap_or(0).try_into()?,
+                y: y.unwrap_or(0).try_into()?,
                 width: width.try_into()?,
                 height: height.try_into()?,
                 border_width: 0,
@@ -1084,7 +1083,7 @@ impl XWindow {
 
         // Some window managers will ignore the x,y that we set during window
         // creation, so we ask them again once the window is mapped
-        if needs_reposition {
+        if let (Some(x), Some(y)) = (x, y) {
             window_handle.set_window_position(ScreenPoint::new(x.try_into()?, y.try_into()?));
         }
 
