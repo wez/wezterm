@@ -25,6 +25,7 @@ impl_lua_conversion_dynamic!(ScreenInfo);
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct Screens {
     pub main: ScreenInfo,
+    pub active: ScreenInfo,
     pub by_name: HashMap<String, ScreenInfo>,
     pub origin_x: isize,
     pub origin_y: isize,
@@ -53,6 +54,7 @@ impl From<window::screen::Screens> for Screens {
         let virtual_height = screens.virtual_rect.height();
         Self {
             main: screens.main.into(),
+            active: screens.active.into(),
             by_name: screens
                 .by_name
                 .into_iter()
