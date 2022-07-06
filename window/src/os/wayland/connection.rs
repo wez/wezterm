@@ -42,6 +42,7 @@ pub struct WaylandConnection {
     pub(crate) keyboard_mapper: RefCell<Option<Keyboard>>,
     pub(crate) keyboard_window_id: RefCell<Option<usize>>,
     pub(crate) surface_to_window_id: RefCell<HashMap<u32, usize>>,
+    pub(crate) active_surface_id: RefCell<u32>,
 
     /// Repeats per second
     pub(crate) key_repeat_rate: RefCell<i32>,
@@ -161,6 +162,7 @@ impl WaylandConnection {
             keyboard_window_id: RefCell::new(None),
             last_serial: RefCell::new(0),
             surface_to_window_id: RefCell::new(HashMap::new()),
+            active_surface_id: RefCell::new(0),
         })
     }
 
@@ -173,6 +175,9 @@ impl WaylandConnection {
             WlKeyboardEvent::Enter {
                 serial, surface, ..
             } => {
+                // update global active surface id
+                *self.active_surface_id.borrow_mut() = surface.as_ref().id();
+
                 *self.last_serial.borrow_mut() = *serial;
                 if let Some(&window_id) = self
                     .surface_to_window_id

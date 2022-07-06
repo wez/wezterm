@@ -1,6 +1,7 @@
 use super::copy_and_paste::*;
 use super::drag_and_drop::*;
 use crate::os::wayland::connection::WaylandConnection;
+use crate::ConnectionOps;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -30,7 +31,12 @@ struct Inner {
 impl Inner {
     fn handle_event(&mut self, evt: PointerEvent) {
         if let PointerEvent::Enter { surface, .. } = &evt {
-            self.active_surface_id = surface.as_ref().id();
+            let surface_id = surface.as_ref().id();
+            // update global active surface id
+            let conn = WaylandConnection::get().unwrap().wayland();
+            *conn.active_surface_id.borrow_mut() = surface_id;
+            // update pointer-specific active surface id
+            self.active_surface_id = surface_id;
         }
         if let Some(serial) = event_serial(&evt) {
             self.serial = serial;
@@ -47,7 +53,9 @@ impl Inner {
     }
 
     fn resolve_copy_and_paste(&mut self) -> Option<Arc<Mutex<CopyAndPaste>>> {
-        if let Some(pending) = self.surface_to_pending.get(&self.active_surface_id) {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let active_surface_id = conn.active_surface_id.borrow();
+        if let Some(pending) = self.surface_to_pending.get(&active_surface_id) {
             Some(Arc::clone(&pending.lock().unwrap().copy_and_paste))
         } else {
             None
@@ -330,9 +338,6 @@ impl PointerDispatcher {
         inner
             .surface_to_pending
             .insert(surface.as_ref().id(), Arc::clone(pending));
-        if inner.active_surface_id == 0 {
-            inner.active_surface_id = surface.as_ref().id();
-        }
     }
 
     pub fn set_cursor(&self, name: &str, serial: Option<u32>) {
