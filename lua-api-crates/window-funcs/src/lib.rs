@@ -1,4 +1,4 @@
-use config::lua::get_or_create_module;
+use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua};
 use luahelper::impl_lua_conversion_dynamic;
 use std::collections::HashMap;
@@ -69,8 +69,7 @@ impl From<window::screen::Screens> for Screens {
 }
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
-    let window_mod = lua.create_table()?;
+    let window_mod = get_or_create_sub_module(lua, "gui")?;
 
     window_mod.set(
         "screens",
@@ -84,6 +83,5 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    wezterm_mod.set("gui", window_mod)?;
     Ok(())
 }

@@ -48,6 +48,26 @@ pub fn get_or_create_module<'lua>(lua: &'lua Lua, name: &str) -> anyhow::Result<
     }
 }
 
+pub fn get_or_create_sub_module<'lua>(
+    lua: &'lua Lua,
+    name: &str,
+) -> anyhow::Result<mlua::Table<'lua>> {
+    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let sub = wezterm_mod.get(name)?;
+    match sub {
+        Value::Nil => {
+            let sub = lua.create_table()?;
+            wezterm_mod.set(name, sub.clone())?;
+            Ok(sub)
+        }
+        Value::Table(sub) => Ok(sub),
+        wat => anyhow::bail!(
+            "cannot register module wezterm.{name} as it is already set to a value of type {}",
+            wat.type_name()
+        ),
+    }
+}
+
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
 /// passed in and is used to pre-set some global values in

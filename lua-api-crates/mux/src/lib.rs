@@ -1,5 +1,5 @@
 use config::keyassignment::SpawnTabDomain;
-use config::lua::get_or_create_module;
+use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua, UserData, UserDataMethods, Value as LuaValue};
 use luahelper::impl_lua_conversion_dynamic;
 use mux::domain::SplitSource;
@@ -20,8 +20,7 @@ fn get_mux() -> mlua::Result<Rc<Mux>> {
 }
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
-    let mux_mod = lua.create_table()?;
+    let mux_mod = get_or_create_sub_module(lua, "mux")?;
 
     mux_mod.set(
         "get_active_workspace",
@@ -102,7 +101,6 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    wezterm_mod.set("mux", mux_mod)?;
     Ok(())
 }
 
