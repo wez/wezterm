@@ -951,7 +951,7 @@ impl XWindow {
             y,
             width,
             height,
-        } = resolve_geometry(&conn, geometry)?;
+        } = conn.resolve_geometry(geometry);
 
         let mut events = WindowEventSender::new(event_handler);
 
@@ -1519,76 +1519,4 @@ impl WindowOps for XWindow {
             Ok(())
         });
     }
-}
-
-#[derive(Debug)]
-struct ResolvedGeometry {
-    x: i16,
-    y: i16,
-    width: usize,
-    height: usize,
-}
-
-fn resolve_geometry(
-    conn: &XConnection,
-    geometry: RequestedWindowGeometry,
-) -> anyhow::Result<ResolvedGeometry> {
-    let bounds = match conn.screens() {
-        Ok(screens) => {
-            log::trace!("{screens:?}");
-
-            match geometry.origin {
-                GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
-                GeometryOrigin::MainScreen => screens.main.rect,
-                GeometryOrigin::ActiveScreen => {
-                    // TODO: find focused window and resolve it!
-                    // Maybe something like <https://stackoverflow.com/a/43666928/149111>
-                    // but ported to Rust?
-                    screens.main.rect
-                }
-                GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
-                    Some(info) => info.rect.clone(),
-                    None => {
-                        log::error!(
-                            "Requested display {} was not found; available displays are: {:?}. \
-                             Using primary display instead",
-                            name,
-                            screens.by_name,
-                        );
-                        screens.main.rect
-                    }
-                },
-            }
-        }
-        Err(_) => euclid::rect(0, 0, 65535, 65535),
-    };
-
-    let dpi = conn.default_dpi();
-    let width_context = DimensionContext {
-        dpi: dpi as f32,
-        pixel_max: bounds.width() as f32,
-        pixel_cell: bounds.width() as f32,
-    };
-    let height_context = DimensionContext {
-        dpi: dpi as f32,
-        pixel_max: bounds.height() as f32,
-        pixel_cell: bounds.height() as f32,
-    };
-    let width = geometry.width.evaluate_as_pixels(width_context) as usize;
-    let height = geometry.height.evaluate_as_pixels(height_context) as usize;
-    let x = geometry
-        .x
-        .map(|x| x.evaluate_as_pixels(width_context) as i16 + bounds.origin.x as i16)
-        .unwrap_or(0);
-    let y = geometry
-        .y
-        .map(|y| y.evaluate_as_pixels(height_context) as i16 + bounds.origin.y as i16)
-        .unwrap_or(0);
-
-    Ok(ResolvedGeometry {
-        x,
-        y,
-        width,
-        height,
-    })
 }

@@ -1,6 +1,7 @@
 use crate::screen::Screens;
-use crate::{Appearance, Connection};
+use crate::{Appearance, Connection, GeometryOrigin, RequestedWindowGeometry, ResolvedGeometry};
 use anyhow::Result as Fallible;
+use config::DimensionContext;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -53,5 +54,61 @@ pub trait ConnectionOps {
     /// Returns information about the screens
     fn screens(&self) -> anyhow::Result<Screens> {
         anyhow::bail!("Unable to query screen information");
+    }
+
+    fn resolve_geometry(&self, geometry: RequestedWindowGeometry) -> ResolvedGeometry {
+        let bounds = match self.screens() {
+            Ok(screens) => {
+                log::trace!("{screens:?}");
+
+                match geometry.origin {
+                    GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
+                    GeometryOrigin::MainScreen => screens.main.rect,
+                    GeometryOrigin::ActiveScreen => screens.active.rect,
+                    GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
+                        Some(info) => info.rect.clone(),
+                        None => {
+                            log::error!(
+                            "Requested display {} was not found; available displays are: {:?}. \
+                             Using primary display instead",
+                            name,
+                            screens.by_name,
+                        );
+                            screens.main.rect
+                        }
+                    },
+                }
+            }
+            Err(_) => euclid::rect(0, 0, 65535, 65535),
+        };
+
+        let dpi = self.default_dpi();
+        let width_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: bounds.width() as f32,
+            pixel_cell: bounds.width() as f32,
+        };
+        let height_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: bounds.height() as f32,
+            pixel_cell: bounds.height() as f32,
+        };
+        let width = geometry.width.evaluate_as_pixels(width_context) as usize;
+        let height = geometry.height.evaluate_as_pixels(height_context) as usize;
+        let x = geometry
+            .x
+            .map(|x| x.evaluate_as_pixels(width_context) as i32 + bounds.origin.x as i32)
+            .unwrap_or(0);
+        let y = geometry
+            .y
+            .map(|y| y.evaluate_as_pixels(height_context) as i32 + bounds.origin.y as i32)
+            .unwrap_or(0);
+
+        ResolvedGeometry {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 }

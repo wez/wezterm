@@ -319,3 +319,11 @@ pub struct RequestedWindowGeometry {
     /// Also applies to width/height when computing % based dimensions
     pub origin: GeometryOrigin,
 }
+
+#[derive(Debug, Clone)]
+pub struct ResolvedGeometry {
+    pub x: i32,
+    pub y: i32,
+    pub width: usize,
+    pub height: usize,
+}

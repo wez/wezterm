@@ -201,8 +201,16 @@ impl ConnectionOps for XConnection {
             .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
             .clone();
 
+        // We don't yet know how to determine the active screen,
+        // so assume the main screen.
+        // TODO: find focused window and resolve it!
+        // Maybe something like <https://stackoverflow.com/a/43666928/149111>
+        // but ported to Rust?
+        let active = main.clone();
+
         Ok(Screens {
             main,
+            active,
             by_name,
             virtual_rect,
         })

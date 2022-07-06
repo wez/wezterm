@@ -61,6 +61,7 @@ winapi = { version = "0.3", features = [
 ]}
 windows = { version="0.33.0", features = [
     "UI_ViewManagement",
+    "Win32_Devices_Display",
 ]}
 winreg = "0.10"
 
