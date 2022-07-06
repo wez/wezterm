@@ -377,27 +377,32 @@ impl Window {
         let (width, height) =
             adjust_client_to_window_dimensions(style, geometry.width, geometry.height);
 
-        let (x, y) = if (style & WS_POPUP) == 0 {
-            (geometry.x, geometry.y)
-        } else {
-            // WS_POPUP windows need to specify the initial position.
-            // We pick the middle of the primary monitor
+        let (x, y) = match (geometry.x, geometry.y) {
+            (Some(x), Some(y)) => (x, y),
+            _ => {
+                if (style & WS_POPUP) == 0 {
+                    (CW_USEDEFAULT, CW_USEDEFAULT)
+                } else {
+                    // WS_POPUP windows need to specify the initial position.
+                    // We pick the middle of the primary monitor
 
-            unsafe {
-                let mut mi: MONITORINFO = std::mem::zeroed();
-                mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
-                GetMonitorInfoW(
-                    MonitorFromWindow(std::ptr::null_mut(), MONITOR_DEFAULTTOPRIMARY),
-                    &mut mi,
-                );
+                    unsafe {
+                        let mut mi: MONITORINFO = std::mem::zeroed();
+                        mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+                        GetMonitorInfoW(
+                            MonitorFromWindow(std::ptr::null_mut(), MONITOR_DEFAULTTOPRIMARY),
+                            &mut mi,
+                        );
 
-                let mon_width = mi.rcMonitor.right - mi.rcMonitor.left;
-                let mon_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+                        let mon_width = mi.rcMonitor.right - mi.rcMonitor.left;
+                        let mon_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 
-                (
-                    mi.rcMonitor.left + (mon_width - width) / 2,
-                    mi.rcMonitor.top + (mon_height - height) / 2,
-                )
+                        (
+                            mi.rcMonitor.left + (mon_width - width) / 2,
+                            mi.rcMonitor.top + (mon_height - height) / 2,
+                        )
+                    }
+                }
             }
         };
 
