@@ -509,12 +509,26 @@ impl Window {
     }
 }
 
-fn schedule_show_window(hwnd: HWindow, show: bool) {
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ShowWindowCommand {
+    Normal,
+    Minimize,
+    Maximize,
+}
+
+fn schedule_show_window(hwnd: HWindow, show: ShowWindowCommand) {
     // ShowWindow can call to the window proc and may attempt
     // to lock inner, so we avoid locking it ourselves here
     promise::spawn::spawn(async move {
         unsafe {
-            ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_MINIMIZE });
+            ShowWindow(
+                hwnd.0,
+                match show {
+                    ShowWindowCommand::Normal => SW_NORMAL,
+                    ShowWindowCommand::Minimize => SW_MINIMIZE,
+                    ShowWindowCommand::Maximize => SW_MAXIMIZE,
+                },
+            );
         }
     })
     .detach();
@@ -684,11 +698,19 @@ impl WindowOps for Window {
     }
 
     fn show(&self) {
-        schedule_show_window(self.0, true);
+        schedule_show_window(self.0, ShowWindowCommand::Normal);
     }
 
     fn hide(&self) {
-        schedule_show_window(self.0, false);
+        schedule_show_window(self.0, ShowWindowCommand::Minimize);
+    }
+
+    fn maximize(&self) {
+        schedule_show_window(self.0, ShowWindowCommand::Maximize);
+    }
+
+    fn restore(&self) {
+        schedule_show_window(self.0, ShowWindowCommand::Normal);
     }
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) {
