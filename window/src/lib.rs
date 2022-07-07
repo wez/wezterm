@@ -289,6 +289,9 @@ pub trait WindowOps {
     /// and/or in the task manager/task switcher
     fn set_icon(&self, _image: Image) {}
 
+    fn maximize(&self) {}
+    fn restore(&self) {}
+
     fn toggle_fullscreen(&self) {}
 
     fn config_did_change(&self, _config: &config::ConfigHandle) {}

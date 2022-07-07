@@ -687,6 +687,20 @@ impl WindowOps for Window {
         });
     }
 
+    fn maximize(&self) {
+        Connection::with_window_inner(self.id, move |inner| {
+            inner.maximize();
+            Ok(())
+        });
+    }
+
+    fn restore(&self) {
+        Connection::with_window_inner(self.id, move |inner| {
+            inner.restore();
+            Ok(())
+        });
+    }
+
     fn set_resize_increments(&self, x: u16, y: u16) {
         Connection::with_window_inner(self.id, move |inner| {
             inner.set_resize_increments(x, y);
@@ -1026,6 +1040,26 @@ impl WindowInner {
             unsafe {
                 let input_context: id = msg_send![&**self.view, inputContext];
                 let () = msg_send![input_context, invalidateCharacterCoordinates];
+            }
+        }
+    }
+
+    fn is_zoomed(&self) -> bool {
+        unsafe { msg_send![*self.window, isZoomed] }
+    }
+
+    fn maximize(&mut self) {
+        if !self.is_zoomed() {
+            unsafe {
+                NSWindow::zoom_(*self.window, nil);
+            }
+        }
+    }
+
+    fn restore(&mut self) {
+        if self.is_zoomed() {
+            unsafe {
+                NSWindow::zoom_(*self.window, nil);
             }
         }
     }
