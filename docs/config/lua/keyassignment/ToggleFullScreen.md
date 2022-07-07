@@ -1,7 +1,6 @@
 # ToggleFullScreen
 
-Toggles full screen mode for the current window.  (But see:
-<https://github.com/wez/wezterm/issues/177>)
+Toggles full screen mode for the current window.
 
 ```lua
 local wezterm = require 'wezterm'

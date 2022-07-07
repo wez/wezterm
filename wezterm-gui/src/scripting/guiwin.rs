@@ -58,6 +58,10 @@ impl UserData for GuiWin {
             this.window.restore();
             Ok(())
         });
+        methods.add_method("toggle_fullscreen", |_, this, _: ()| {
+            this.window.toggle_fullscreen();
+            Ok(())
+        });
         methods.add_method(
             "toast_notification",
             |_, _, (title, message, url, timeout): (String, String, Option<String>, Option<u64>)| {
