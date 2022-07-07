@@ -60,6 +60,7 @@ pub(crate) struct XWindowInner {
     events: WindowEventSender,
     width: u16,
     height: u16,
+    last_wm_state: WindowState,
     dpi: f64,
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
@@ -174,13 +175,14 @@ impl XWindowInner {
                 self.dpi
             );
             self.dpi = dpi;
+            self.last_wm_state = self.get_window_state().unwrap_or(WindowState::default());
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: Dimensions {
                     pixel_width: self.width as usize,
                     pixel_height: self.height as usize,
                     dpi: self.dpi as usize,
                 },
-                window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                window_state: self.last_wm_state,
                 live_resizing: false,
             });
         }
@@ -266,9 +268,15 @@ impl XWindowInner {
                         self.height
                     );
 
-                    if self.width != geom.width() || self.height != geom.height() {
+                    let window_state = self.get_window_state().unwrap_or(WindowState::default());
+
+                    if self.width != geom.width()
+                        || self.height != geom.height()
+                        || self.last_wm_state != window_state
+                    {
                         self.width = geom.width();
                         self.height = geom.height();
+                        self.last_wm_state = window_state;
 
                         self.events.dispatch(WindowEvent::Resized {
                             dimensions: Dimensions {
@@ -276,7 +284,7 @@ impl XWindowInner {
                                 pixel_height: self.height as usize,
                                 dpi: self.dpi as usize,
                             },
-                            window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                            window_state,
                             live_resizing: false,
                         });
                     }
@@ -393,6 +401,7 @@ impl XWindowInner {
         self.width = width;
         self.height = height;
         self.dpi = dpi;
+        self.last_wm_state = self.get_window_state().unwrap_or(WindowState::default());
 
         let dimensions = Dimensions {
             pixel_width: self.width as usize,
@@ -402,7 +411,7 @@ impl XWindowInner {
 
         self.queue_pending(WindowEvent::Resized {
             dimensions,
-            window_state: self.get_window_state().unwrap_or(WindowState::default()),
+            window_state: self.last_wm_state,
             // Assume that we're live resizing: we don't know for sure,
             // but it seems like a reasonable assumption
             live_resizing: true,
@@ -810,12 +819,17 @@ impl XWindowInner {
         Ok(window_state)
     }
 
-    fn set_fullscreen_hint(&mut self, enable: bool) -> anyhow::Result<()> {
+    fn set_wm_state(
+        &mut self,
+        action: NetWmStateAction,
+        atom: Atom,
+        atom2: Option<Atom>,
+    ) -> anyhow::Result<()> {
         let conn = self.conn();
         let data: [u32; 5] = [
-            if enable { 1 } else { 0 },
-            conn.atom_state_fullscreen.resource_id(),
-            0,
+            action as u32,
+            atom.resource_id(),
+            atom2.map(|a| a.resource_id()).unwrap_or(0),
             0,
             0,
         ];
@@ -832,9 +846,26 @@ impl XWindowInner {
                 xcb::x::ClientMessageData::Data32(data),
             ),
         })?;
+        conn.flush()?;
         self.adjust_decorations(self.config.window_decorations)?;
 
         Ok(())
+    }
+
+    fn set_maximized_hint(&mut self, enable: bool) -> anyhow::Result<()> {
+        self.set_wm_state(
+            NetWmStateAction::with_bool(enable),
+            self.conn().atom_state_maximized_vert,
+            Some(self.conn().atom_state_maximized_horz),
+        )
+    }
+
+    fn set_fullscreen_hint(&mut self, enable: bool) -> anyhow::Result<()> {
+        self.set_wm_state(
+            NetWmStateAction::with_bool(enable),
+            self.conn().atom_state_fullscreen,
+            None,
+        )
     }
 
     #[allow(clippy::identity_op)]
@@ -1027,6 +1058,7 @@ impl XWindow {
                 verify_focus: true,
                 last_cursor_position: Rect::default(),
                 paint_throttled: false,
+                last_wm_state: WindowState::default(),
                 invalidated: false,
                 pending: vec![],
                 sure_about_geometry: false,
@@ -1153,6 +1185,18 @@ impl XWindowInner {
     fn invalidate(&mut self) {
         self.queue_pending(WindowEvent::NeedRepaint);
         self.dispatch_pending_events().ok();
+    }
+
+    fn maximize(&mut self) {
+        if let Err(err) = self.set_maximized_hint(true) {
+            log::error!("Failed to maximize: {err:#}");
+        }
+    }
+
+    fn restore(&mut self) {
+        if let Err(err) = self.set_maximized_hint(false) {
+            log::error!("Failed to restore: {err:#}");
+        }
     }
 
     fn toggle_fullscreen(&mut self) {
@@ -1379,6 +1423,20 @@ impl WindowOps for XWindow {
         });
     }
 
+    fn maximize(&self) {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.maximize();
+            Ok(())
+        });
+    }
+
+    fn restore(&self) {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.restore();
+            Ok(())
+        });
+    }
+
     fn config_did_change(&self, config: &ConfigHandle) {
         let config = config.clone();
         XConnection::with_window_inner(self.0, move |inner| {
@@ -1517,5 +1575,24 @@ impl WindowOps for XWindow {
             inner.update_selection_owner(clipboard)?;
             Ok(())
         });
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(u32)]
+enum NetWmStateAction {
+    Remove = 0,
+    Add = 1,
+    #[allow(dead_code)]
+    Toggle = 2,
+}
+
+impl NetWmStateAction {
+    fn with_bool(enable: bool) -> Self {
+        if enable {
+            Self::Add
+        } else {
+            Self::Remove
+        }
     }
 }
