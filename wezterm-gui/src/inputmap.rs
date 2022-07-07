@@ -89,7 +89,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(None)
+                    ExtendSelectionToMouseCursor(SelectionMode::Cell)
                 ],
                 [
                     Modifiers::SHIFT,
@@ -125,7 +125,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(Some(SelectionMode::Block))
+                    ExtendSelectionToMouseCursor(SelectionMode::Block)
                 ],
                 [
                     Modifiers::ALT | Modifiers::SHIFT,
@@ -159,7 +159,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(Some(SelectionMode::Cell))
+                    ExtendSelectionToMouseCursor(SelectionMode::Cell)
                 ],
                 [
                     Modifiers::ALT,
@@ -167,7 +167,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(Some(SelectionMode::Block))
+                    ExtendSelectionToMouseCursor(SelectionMode::Block)
                 ],
                 [
                     Modifiers::NONE,
@@ -175,7 +175,7 @@ impl InputMap {
                         streak: 2,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(Some(SelectionMode::Word))
+                    ExtendSelectionToMouseCursor(SelectionMode::Word)
                 ],
                 [
                     Modifiers::NONE,
@@ -183,7 +183,7 @@ impl InputMap {
                         streak: 3,
                         button: MouseButton::Left
                     },
-                    ExtendSelectionToMouseCursor(Some(SelectionMode::Line))
+                    ExtendSelectionToMouseCursor(SelectionMode::Line)
                 ],
                 [
                     Modifiers::NONE,

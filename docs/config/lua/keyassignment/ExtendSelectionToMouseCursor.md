@@ -22,22 +22,3 @@ return {
 }
 ```
 
-It is also possible to leave the mode unspecified like this:
-
-```lua
-local wezterm = require "wezterm"
-
-return {
-  mouse_bindings = {
-    {
-      event={Up={streak=1, button="Left"}},
-      mods="SHIFT",
-      action=wezterm.action.ExtendSelectionToMouseCursor(nil),
-    },
-  }
-}
-```
-
-when unspecified, wezterm will use a default mode which at the time
-of writing is `Cell`, but in a future release may be context sensitive
-based on recent actions.

@@ -118,13 +118,8 @@ impl super::TermWindow {
         self.window.as_ref().unwrap().invalidate();
     }
 
-    pub fn extend_selection_at_mouse_cursor(
-        &mut self,
-        mode: Option<SelectionMode>,
-        pane: &Rc<dyn Pane>,
-    ) {
+    pub fn extend_selection_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Rc<dyn Pane>) {
         self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
-        let mode = mode.unwrap_or(SelectionMode::Cell);
         let (position, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
             Some(coords) => coords,
             None => return,

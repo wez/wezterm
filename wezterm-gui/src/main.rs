@@ -366,6 +366,15 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
         mux.add_domain(&domain);
     }
 
+    for exec_dom in &config.exec_domains {
+        if mux.get_domain_by_name(&exec_dom.name).is_some() {
+            continue;
+        }
+
+        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_exec_domain(exec_dom.clone())?);
+        mux.add_domain(&domain);
+    }
+
     if let Some(name) = &config.default_domain {
         if let Some(dom) = mux.get_domain_by_name(name) {
             mux.set_default_domain(&dom);

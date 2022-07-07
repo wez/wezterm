@@ -4,6 +4,7 @@ use crate::color::{
     ColorSchemeFile, HsbTransform, Palette, SrgbaTuple, TabBarStyle, WindowFrameConfig,
 };
 use crate::daemon::DaemonOptions;
+use crate::exec_domain::ExecDomain;
 use crate::font::{
     AllowSquareGlyphOverflow, FontLocatorSelection, FontRasterizerSelection, FontShaperSelection,
     FreeTypeLoadFlags, FreeTypeLoadTarget, StyleRule, TextStyle,
@@ -238,6 +239,9 @@ pub struct Config {
 
     #[dynamic(default = "WslDomain::default_domains")]
     pub wsl_domains: Vec<WslDomain>,
+
+    #[dynamic(default)]
+    pub exec_domains: Vec<ExecDomain>,
 
     /// The set of unix domains
     #[dynamic(default = "UnixDomain::default_unix_domains")]

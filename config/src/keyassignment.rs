@@ -190,6 +190,7 @@ pub struct SpawnCommand {
     #[dynamic(default)]
     pub domain: SpawnTabDomain,
 }
+impl_lua_conversion_dynamic!(SpawnCommand);
 
 impl std::fmt::Debug for SpawnCommand {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -352,7 +353,7 @@ pub enum KeyAssignment {
     ActivateCopyMode,
 
     SelectTextAtMouseCursor(SelectionMode),
-    ExtendSelectionToMouseCursor(Option<SelectionMode>),
+    ExtendSelectionToMouseCursor(SelectionMode),
     OpenLinkAtMouseCursor,
     ClearSelection,
     CompleteSelection(ClipboardCopyDestination),

@@ -1,3 +1,4 @@
+use crate::exec_domain::ExecDomain;
 use crate::keyassignment::KeyAssignment;
 use crate::{
     FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, RgbaColor,
@@ -195,6 +196,7 @@ end
 
         lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, 0)?;
         wezterm_mod.set("action_callback", lua.create_function(action_callback)?)?;
+        wezterm_mod.set("exec_domain", lua.create_function(exec_domain)?)?;
 
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
@@ -204,6 +206,9 @@ end
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
         wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;
         wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
+        wezterm_mod.set("shell_join_args", lua.create_function(shell_join_args)?)?;
+        wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
+        wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
 
         package.set("path", path_array.join(";"))?;
     }
@@ -213,6 +218,20 @@ end
     }
 
     Ok(lua)
+}
+
+fn shell_split<'lua>(_: &'lua Lua, line: String) -> mlua::Result<Vec<String>> {
+    shlex::split(&line).ok_or_else(|| {
+        mlua::Error::external(format!("cannot tokenize `{line}` using posix shell rules"))
+    })
+}
+
+fn shell_join_args<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<String> {
+    Ok(shlex::join(args.iter().map(|arg| arg.as_ref())))
+}
+
+fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
+    Ok(shlex::quote(&arg).into_owned().to_string())
 }
 
 fn strftime_utc<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
@@ -457,7 +476,16 @@ fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Resu
     let user_event_id = format!("user-defined-{}", callback_count);
     lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, callback_count + 1)?;
     register_event(lua, (user_event_id.clone(), callback))?;
-    return Ok(KeyAssignment::EmitEvent(user_event_id));
+    Ok(KeyAssignment::EmitEvent(user_event_id))
+}
+
+fn exec_domain<'lua>(
+    lua: &'lua Lua,
+    (name, callback): (String, mlua::Function),
+) -> mlua::Result<ExecDomain> {
+    let event_name = format!("exec-domain-{name}");
+    register_event(lua, (event_name.clone(), callback))?;
+    Ok(ExecDomain { name, event_name })
 }
 
 fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<String>> {

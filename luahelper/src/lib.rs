@@ -59,28 +59,7 @@ pub fn dynamic_to_lua_value<'lua>(
     lua: &'lua mlua::Lua,
     value: DynValue,
 ) -> mlua::Result<mlua::Value> {
-    dynamic_to_lua_value_impl(lua, value, false)
-}
-
-pub fn dynamic_to_lua_table_value<'lua>(
-    lua: &'lua mlua::Lua,
-    value: DynValue,
-) -> mlua::Result<mlua::Value> {
-    dynamic_to_lua_value_impl(lua, value, true)
-}
-
-fn dynamic_to_lua_value_impl<'lua>(
-    lua: &'lua mlua::Lua,
-    value: DynValue,
-    is_table_value: bool,
-) -> mlua::Result<mlua::Value> {
     Ok(match value {
-        // Use a special userdata as a proxy for Null, because if we are a value
-        // and we use Nil then the key is implicitly deleted and that changes
-        // the representation of the data in unexpected ways
-        DynValue::Null if is_table_value => {
-            LuaValue::LightUserData(mlua::LightUserData(std::ptr::null_mut()))
-        }
         DynValue::Null => LuaValue::Nil,
         DynValue::Bool(b) => LuaValue::Boolean(b),
         DynValue::String(s) => s.to_lua(lua)?,
@@ -99,7 +78,7 @@ fn dynamic_to_lua_value_impl<'lua>(
             for (key, value) in object.into_iter() {
                 table.set(
                     dynamic_to_lua_value(lua, key)?,
-                    dynamic_to_lua_table_value(lua, value)?,
+                    dynamic_to_lua_value(lua, value)?,
                 )?;
             }
             LuaValue::Table(table)

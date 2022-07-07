@@ -307,6 +307,20 @@ impl CommandBuilder {
         )
     }
 
+    pub fn iter_full_env_as_str(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.envs.values().filter_map(
+            |EnvEntry {
+                 preferred_key,
+                 value,
+                 ..
+             }| {
+                let key = preferred_key.to_str()?;
+                let value = value.to_str()?;
+                Some((key, value))
+            },
+        )
+    }
+
     /// Return the configured command and arguments as a single string,
     /// quoted per the unix shell conventions.
     pub fn as_unix_command_line(&self) -> anyhow::Result<String> {

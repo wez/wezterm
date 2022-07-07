@@ -10,12 +10,15 @@ use crate::pane::{alloc_pane_id, Pane, PaneId};
 use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use config::{configuration, WslDomain};
+use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use config::{configuration, ExecDomain, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
+use std::collections::HashMap;
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::rc::Rc;
 use wezterm_term::TerminalSize;
 
@@ -172,6 +175,7 @@ pub struct LocalDomain {
     id: DomainId,
     name: String,
     wsl: Option<WslDomain>,
+    exec_domain: Option<ExecDomain>,
 }
 
 impl LocalDomain {
@@ -186,12 +190,19 @@ impl LocalDomain {
             id,
             name: name.to_string(),
             wsl: None,
+            exec_domain: None,
         }
     }
 
     pub fn new_wsl(wsl: WslDomain) -> Result<Self, Error> {
         let mut dom = Self::new(&wsl.name)?;
         dom.wsl.replace(wsl);
+        Ok(dom)
+    }
+
+    pub fn new_exec_domain(exec_domain: ExecDomain) -> anyhow::Result<Self> {
+        let mut dom = Self::new(&exec_domain.name)?;
+        dom.exec_domain.replace(exec_domain);
         Ok(dom)
     }
 
@@ -207,7 +218,7 @@ impl LocalDomain {
             .is_some()
     }
 
-    fn fixup_command(&self, cmd: &mut CommandBuilder) {
+    fn fixup_command(&self, cmd: &mut CommandBuilder) -> anyhow::Result<()> {
         if let Some(wsl) = &self.wsl {
             let mut args: Vec<OsString> = cmd.get_argv().clone();
 
@@ -250,6 +261,64 @@ impl LocalDomain {
 
             cmd.clear_cwd();
             *cmd.get_argv_mut() = argv;
+        } else if let Some(ed) = &self.exec_domain {
+            let mut args = vec![];
+            let mut set_environment_variables = HashMap::new();
+            for arg in cmd.get_argv() {
+                args.push(
+                    arg.to_str()
+                        .ok_or_else(|| anyhow::anyhow!("command argument is not utf8"))?
+                        .to_string(),
+                );
+            }
+            for (k, v) in cmd.iter_full_env_as_str() {
+                set_environment_variables.insert(k.to_string(), v.to_string());
+            }
+            let cwd = match cmd.get_cwd() {
+                Some(cwd) => Some(PathBuf::from(cwd)),
+                None => None,
+            };
+            let spawn_command = SpawnCommand {
+                label: None,
+                domain: SpawnTabDomain::DomainName(ed.name.clone()),
+                args: if args.is_empty() { None } else { Some(args) },
+                set_environment_variables,
+                cwd,
+            };
+
+            let spawn_command = config::run_immediate_with_lua_config(|lua| {
+                let lua = lua.ok_or_else(|| anyhow::anyhow!("missing lua context"))?;
+                let value = config::lua::emit_sync_callback(
+                    &*lua,
+                    (ed.event_name.clone(), (spawn_command.clone())),
+                )?;
+                let cmd: SpawnCommand =
+                    luahelper::from_lua_value_dynamic(value).with_context(|| {
+                        format!(
+                            "interpreting SpawnCommand result from ExecDomain {}",
+                            ed.name
+                        )
+                    })?;
+                Ok(cmd)
+            })
+            .with_context(|| format!("calling ExecDomain {} function", ed.name))?;
+
+            // Reinterpret the SpawnCommand into the builder
+
+            cmd.get_argv_mut().clear();
+            if let Some(args) = &spawn_command.args {
+                for arg in args {
+                    cmd.get_argv_mut().push(arg.into());
+                }
+            }
+            cmd.env_clear();
+            for (k, v) in &spawn_command.set_environment_variables {
+                cmd.env(k, v);
+            }
+            cmd.clear_cwd();
+            if let Some(cwd) = &spawn_command.cwd {
+                cmd.cwd(cwd);
+            }
         } else if let Some(dir) = cmd.get_cwd() {
             // I'm not normally a fan of existence checking, but not checking here
             // can be painful; in the case where a tab is local but has connected
@@ -267,6 +336,7 @@ impl LocalDomain {
                 cmd.clear_cwd();
             }
         }
+        Ok(())
     }
 
     fn build_command(
@@ -295,7 +365,8 @@ impl LocalDomain {
         if let Some(dir) = command_dir {
             cmd.cwd(dir);
         }
-        self.fixup_command(&mut cmd);
+        self.fixup_command(&mut cmd)?;
+        log::info!("built: {cmd:?}");
         Ok(cmd)
     }
 }
