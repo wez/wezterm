@@ -300,6 +300,22 @@ impl WindowOps for Window {
         }
     }
 
+    fn maximize(&self) {
+        match self {
+            Self::X11(x) => x.maximize(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.maximize(),
+        }
+    }
+
+    fn restore(&self) {
+        match self {
+            Self::X11(x) => x.restore(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.restore(),
+        }
+    }
+
     fn set_inner_size(&self, width: usize, height: usize) {
         match self {
             Self::X11(x) => x.set_inner_size(width, height),
