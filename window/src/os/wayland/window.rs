@@ -911,6 +911,14 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn maximize(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.maximize()));
+    }
+
+    fn restore(&self) {
+        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.restore()));
+    }
+
     fn set_inner_size(&self, width: usize, height: usize) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             Ok(inner.set_inner_size(width, height))
@@ -1054,6 +1062,18 @@ impl WaylandWindowInner {
             return;
         }
         self.do_paint().unwrap();
+    }
+
+    fn maximize(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            window.set_maximized();
+        }
+    }
+
+    fn restore(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            window.unset_maximized();
+        }
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
