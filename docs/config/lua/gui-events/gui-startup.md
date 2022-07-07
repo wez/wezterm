@@ -34,6 +34,20 @@ end)
 return {}
 ```
 
+This example creates a default window but makes it maximize on startup:
+
+```lua
+local wezterm = require 'wezterm'
+local mux = wezterm.mux
+
+wezterm.on("gui-startup", function()
+  local tab, pane, window = mux.spawn_window{}
+  window:gui_window():maximize()
+end)
+
+return {}
+```
+
 Here's a more elaborate example that configures two workspaces:
 
 ```lua
