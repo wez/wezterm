@@ -7,6 +7,7 @@ pub use config::FrontEndSelection;
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
+use promise::{Future, Promise};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
@@ -151,7 +152,8 @@ impl GuiFrontEnd {
             .context("running message loop")
     }
 
-    pub fn reconcile_workspace(&self) {
+    pub fn reconcile_workspace(&self) -> Future<()> {
+        let mut promise = Promise::new();
         let mux = Mux::get().expect("mux started and running on main thread");
         let workspace = mux.active_workspace_for_client(&self.client_id);
 
@@ -160,7 +162,8 @@ impl GuiFrontEnd {
             // be running in other workspaces, so let's pick one
             // and activate it
             if self.is_switching_workspace() {
-                return;
+                promise.ok(());
+                return promise.get_future().unwrap();
             }
             for workspace in mux.iter_workspaces() {
                 if !mux.is_workspace_empty(&workspace) {
@@ -211,6 +214,8 @@ impl GuiFrontEnd {
         log::trace!("reconcile: windows -> {:?}", windows);
         *self.known_windows.borrow_mut() = windows;
 
+        let future = promise.get_future().unwrap();
+
         // then spawn any new windows that are needed
         promise::spawn::spawn(async move {
             while let Some(mux_window_id) = mux_windows.next() {
@@ -238,8 +243,10 @@ impl GuiFrontEnd {
                 }
             }
             *front_end().switching_workspaces.borrow_mut() = false;
+            promise.ok(());
         })
         .detach();
+        future
     }
 
     fn has_mux_window(&self, mux_window_id: MuxWindowId) -> bool {

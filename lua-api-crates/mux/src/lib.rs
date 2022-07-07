@@ -334,14 +334,14 @@ impl_lua_conversion_dynamic!(MuxTabInfo);
 impl UserData for MuxWindow {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("window_id", |_, this, _: ()| Ok(this.0));
-        methods.add_method("gui_window", |lua, this, _: ()| {
+        methods.add_async_method("gui_window", |lua, this, _: ()| async move {
             // Weakly bound to the gui module; mux cannot hard-depend
             // on wezterm-gui, but we can runtime resolve the appropriate module
             let wezterm_mod = get_or_create_module(lua, "wezterm")
                 .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
             let gui: mlua::Table = wezterm_mod.get("gui")?;
             let func: mlua::Function = gui.get("gui_window_for_mux_window")?;
-            func.call::<_, mlua::Value>(this.0)
+            func.call_async::<_, mlua::Value>(this.0).await
         });
         methods.add_method("get_workspace", |_, this, _: ()| {
             let mux = get_mux()?;
