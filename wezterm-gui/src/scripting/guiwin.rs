@@ -40,6 +40,17 @@ impl UserData for GuiWin {
             Ok(mux_lua::MuxWindow(this.mux_window_id))
         });
         methods.add_method(
+            "set_inner_size",
+            |_, this, (width, height): (usize, usize)| {
+                this.window.set_inner_size(width, height);
+                Ok(())
+            },
+        );
+        methods.add_method("set_position", |_, this, (x, y): (isize, isize)| {
+            this.window.set_window_position(euclid::point2(x, y));
+            Ok(())
+        });
+        methods.add_method(
             "toast_notification",
             |_, _, (title, message, url, timeout): (String, String, Option<String>, Option<u64>)| {
                 wezterm_toast_notification::show(ToastNotification {

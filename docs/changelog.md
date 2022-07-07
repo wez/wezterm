@@ -14,6 +14,8 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md) now supports `until_unknown=true` to implicitly pop the table when a key not defined by that table is pressed. [#2178](https://github.com/wez/wezterm/issues/2178)
 * [window:copy_to_clipboard](config/lua/window/copy_to_clipboard.md) method for putting arbitrary text into the clipboard/selection.
+* [window:set_inner_size](config/lua/window/set_inner_size.md) method for controlling window size.
+* [window:set_position](config/lua/window/set_position.md) method for controlling window position.
 * [window:get_selection_escapes_for_pane](config/lua/window/get_selection_escapes_for_pane.md) method for getting the current selection including escape sequences. [#2223](https://github.com/wez/wezterm/issues/2223)
 * New [wezterm.gui](config/lua/wezterm.gui/index.md) module and [mux_window:gui_window](config/lua/mux-window/gui_window.md) method.
 
