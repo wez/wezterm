@@ -136,6 +136,10 @@ impl<T: FromDynamic> FromDynamic for Vec<T> {
                 .iter()
                 .map(|v| T::from_dynamic(v, options))
                 .collect::<Result<Vec<T>, Error>>()?),
+            // lua uses tables for everything; we can end up here if we got an empty
+            // table and treated it as an object. Allow that to stand-in for an empty
+            // array instead.
+            Value::Object(obj) if obj.is_empty() => Ok(vec![]),
             other => Err(Error::NoConversion {
                 source_type: other.variant_name().to_string(),
                 dest_type: "Vec",
