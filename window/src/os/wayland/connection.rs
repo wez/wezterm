@@ -3,8 +3,9 @@ use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::os::x11::keyboard::Keyboard;
+use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::Connection;
+use crate::{Connection, ScreenRect};
 use anyhow::{bail, Context};
 use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Token};
@@ -364,5 +365,63 @@ impl ConnectionOps for WaylandConnection {
         // in unexpected places
         self.windows.borrow_mut().clear();
         res
+    }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        let mut by_name = HashMap::new();
+        let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        for output in self.environment.borrow().get_all_outputs() {
+            toolkit::output::with_output_info(&output, |info| {
+                let name = if info.name.is_empty() {
+                    format!("{} {}", info.model, info.make)
+                } else {
+                    info.name.clone()
+                };
+
+                let (width, height) = info
+                    .modes
+                    .iter()
+                    .find(|mode| mode.is_current)
+                    .map(|mode| mode.dimensions)
+                    .unwrap_or((info.physical_size.0, info.physical_size.1));
+
+                let rect = euclid::rect(
+                    info.location.0 as isize,
+                    info.location.1 as isize,
+                    width as isize,
+                    height as isize,
+                );
+
+                virtual_rect = virtual_rect.union(&rect);
+                by_name.insert(name.clone(), ScreenInfo { name, rect });
+            });
+        }
+
+        // The main screen is the one either at the origin of
+        // the virtual area, or if that doesn't exist for some weird
+        // reason, the screen closest to the origin.
+        let main = by_name
+            .values()
+            .min_by_key(|screen| {
+                screen
+                    .rect
+                    .origin
+                    .to_f32()
+                    .distance_to(euclid::Point2D::origin())
+                    .abs() as isize
+            })
+            .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
+            .clone();
+
+        // We don't yet know how to determine the active screen,
+        // so assume the main screen.
+        let active = main.clone();
+
+        Ok(Screens {
+            main,
+            active,
+            by_name,
+            virtual_rect,
+        })
     }
 }
