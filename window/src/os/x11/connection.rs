@@ -180,6 +180,7 @@ impl ConnectionOps for XConnection {
                 let info = ScreenInfo {
                     name: name.clone(),
                     rect: bounds,
+                    scale: 1.0,
                 };
                 by_name.insert(name, info);
             }

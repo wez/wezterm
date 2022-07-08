@@ -2,6 +2,7 @@
 use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
+use crate::os::wayland::output::OutputHandler;
 use crate::os::x11::keyboard::Keyboard;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
@@ -23,7 +24,13 @@ use toolkit::shm::AutoMemPool;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeymapFormat, WlKeyboard};
 use wayland_client::{EventQueue, Main};
 
-toolkit::default_environment!(MyEnvironment, desktop);
+toolkit::default_environment!(MyEnvironment, desktop,
+fields=[
+    output_handler: OutputHandler,
+],
+singles=[
+    wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1 => output_handler,
+]);
 
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
@@ -61,8 +68,11 @@ pub struct WaylandConnection {
 
 impl WaylandConnection {
     pub fn create_new() -> anyhow::Result<Self> {
-        let (environment, display, event_q) =
-            toolkit::new_default_environment!(MyEnvironment, desktop)?;
+        let (environment, display, event_q) = toolkit::new_default_environment!(
+            MyEnvironment,
+            desktop,
+            fields = [output_handler: OutputHandler::new()]
+        )?;
 
         let mut pointer = None;
         let mut seat_keyboards = HashMap::new();
@@ -368,6 +378,14 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn screens(&self) -> anyhow::Result<Screens> {
+        if let Some(screens) = self
+            .environment
+            .borrow()
+            .with_inner(|env| env.output_handler.screens())
+        {
+            return Ok(screens);
+        }
+
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
         for output in self.environment.borrow().get_all_outputs() {
@@ -392,8 +410,10 @@ impl ConnectionOps for WaylandConnection {
                     height as isize,
                 );
 
+                let scale = info.scale_factor as f64;
+
                 virtual_rect = virtual_rect.union(&rect);
-                by_name.insert(name.clone(), ScreenInfo { name, rect });
+                by_name.insert(name.clone(), ScreenInfo { name, rect, scale });
             });
         }
 

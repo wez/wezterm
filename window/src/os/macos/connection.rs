@@ -165,7 +165,11 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         frame.size.width as isize,
         frame.size.height as isize,
     );
-    ScreenInfo { name, rect }
+    ScreenInfo {
+        name,
+        rect,
+        scale: 1.0,
+    }
 }
 
 extern "C" {

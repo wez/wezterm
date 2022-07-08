@@ -19,6 +19,7 @@ pub struct ScreenInfo {
     pub y: isize,
     pub width: isize,
     pub height: isize,
+    pub scale: f64,
 }
 impl_lua_conversion_dynamic!(ScreenInfo);
 
@@ -42,6 +43,7 @@ impl From<window::screen::ScreenInfo> for ScreenInfo {
             y: info.rect.min_y(),
             width: info.rect.width(),
             height: info.rect.height(),
+            scale: info.scale,
         }
     }
 }

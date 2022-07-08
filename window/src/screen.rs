@@ -13,4 +13,5 @@ pub struct Screens {
 pub struct ScreenInfo {
     pub name: String,
     pub rect: ScreenRect,
+    pub scale: f64,
 }

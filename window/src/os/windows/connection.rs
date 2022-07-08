@@ -153,6 +153,7 @@ impl ConnectionOps for Connection {
                     mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
                     mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
                 ),
+                scale: 1.0,
             };
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
