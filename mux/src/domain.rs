@@ -366,7 +366,6 @@ impl LocalDomain {
             cmd.cwd(dir);
         }
         self.fixup_command(&mut cmd)?;
-        log::info!("built: {cmd:?}");
         Ok(cmd)
     }
 }
