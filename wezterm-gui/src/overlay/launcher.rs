@@ -368,16 +368,26 @@ impl LauncherState {
             if row_num > max_items {
                 break;
             }
+
+            let mut attr = CellAttributes::blank();
+
             if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(true).into());
+                attr.set_reverse(true);
             }
 
-            let label = truncate_right(&entry.label, max_width);
             if row_num < 9 && !self.filtering {
-                changes.push(Change::Text(format!(" {}. {} \r\n", row_num + 1, label)));
+                changes.push(Change::Text(format!(" {}. ", row_num + 1)));
             } else {
-                changes.push(Change::Text(format!("    {} \r\n", label)));
+                changes.push(Change::Text("    ".to_string()));
             }
+
+            let mut line = crate::tabbar::parse_status_text(&entry.label, attr.clone());
+            if line.cells().len() > max_width {
+                line.resize(max_width, termwiz::surface::SEQ_ZERO);
+            }
+            changes.append(&mut line.changes(&attr));
+            changes.push(Change::Text(" \r\n".to_string()));
 
             if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(false).into());

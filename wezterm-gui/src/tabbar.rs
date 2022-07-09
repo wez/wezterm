@@ -378,7 +378,7 @@ impl TabBarState {
     }
 }
 
-fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
+pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     let mut pen = default_cell.clone();
     let mut cells = vec![];
     let mut ignoring = false;
