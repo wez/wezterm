@@ -174,7 +174,6 @@ pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
     id: DomainId,
     name: String,
-    wsl: Option<WslDomain>,
 }
 
 impl LocalDomain {
@@ -190,20 +189,25 @@ impl LocalDomain {
             .cloned()
     }
 
+    fn resolve_wsl_domain(&self) -> Option<WslDomain> {
+        config::configuration()
+            .wsl_domains
+            .iter()
+            .find(|d| d.name == self.name)
+            .cloned()
+    }
+
     pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
         let id = alloc_domain_id();
         Self {
             pty_system,
             id,
             name: name.to_string(),
-            wsl: None,
         }
     }
 
     pub fn new_wsl(wsl: WslDomain) -> Result<Self, Error> {
-        let mut dom = Self::new(&wsl.name)?;
-        dom.wsl.replace(wsl);
-        Ok(dom)
+        Self::new(&wsl.name)
     }
 
     pub fn new_exec_domain(exec_domain: ExecDomain) -> anyhow::Result<Self> {
@@ -223,7 +227,7 @@ impl LocalDomain {
     }
 
     async fn fixup_command(&self, cmd: &mut CommandBuilder) -> anyhow::Result<()> {
-        if let Some(wsl) = &self.wsl {
+        if let Some(wsl) = self.resolve_wsl_domain() {
             let mut args: Vec<OsString> = cmd.get_argv().clone();
 
             if args.is_empty() {
@@ -356,17 +360,18 @@ impl LocalDomain {
                 config.apply_cmd_defaults(&mut cmd, config.default_cwd.as_ref());
                 cmd
             }
-            None => config.build_prog(
-                None,
-                self.wsl
-                    .as_ref()
-                    .map(|wsl| wsl.default_prog.as_ref())
-                    .unwrap_or(config.default_prog.as_ref()),
-                self.wsl
-                    .as_ref()
-                    .map(|wsl| wsl.default_cwd.as_ref())
-                    .unwrap_or(config.default_cwd.as_ref()),
-            )?,
+            None => {
+                let wsl = self.resolve_wsl_domain();
+                config.build_prog(
+                    None,
+                    wsl.as_ref()
+                        .map(|wsl| wsl.default_prog.as_ref())
+                        .unwrap_or(config.default_prog.as_ref()),
+                    wsl.as_ref()
+                        .map(|wsl| wsl.default_cwd.as_ref())
+                        .unwrap_or(config.default_cwd.as_ref()),
+                )?
+            }
         };
         if let Some(dir) = command_dir {
             cmd.cwd(dir);
@@ -468,6 +473,8 @@ impl Domain for LocalDomain {
                 }
                 _ => self.name.to_string(),
             }
+        } else if let Some(wsl) = self.resolve_wsl_domain() {
+            wsl.distribution.unwrap_or_else(|| self.name.to_string())
         } else {
             self.name.to_string()
         }
