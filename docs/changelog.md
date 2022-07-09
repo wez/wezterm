@@ -23,7 +23,6 @@ As features stabilize some brief notes about them will accumulate here.
 * You may now use [wezterm.format](config/lua/wezterm/format.md) (or otherwise use strings with escape sequences) in the labels of the [Launcher Menu](config/launch.md#the-launcher-menu).
 * You may now specify `assume_emoji_presentation = true` (or `false`) in [wezterm.font()](config/lua/wezterm/font.md) and [wezterm.font_with_fallback()](config/lua/wezterm/font_with_fallback.md)
 * Wayland: `zwp_text_input_v3` is now supported, which enables IME to work in wezterm if your compositor also implements this protocol.
-* Wayland: transparent gap under tab bar when window is transparent, split and using per-pane color schemes [#1256](https://github.com/wez/wezterm/issues/1256)
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
@@ -37,6 +36,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: inconsistent pasting. Thanks to [@Funami580](https://github.com/Funami580)! [#2225](https://github.com/wez/wezterm/issues/2225) [#2226](https://github.com/wez/wezterm/pulls/2226)
 * win32 input mode: fixed encoding of backspace and delete keys. Thanks to [@kreudom](https://github.com/kreudom)! [#2233](https://github.com/wez/wezterm/pull/2233)
 * Tab bar could glitch and show incorrect contents when adjusting for monitor or changed font scaling [#2208](https://github.com/wez/wezterm/issues/2208)
+* Wayland: transparent gap under tab bar when window is transparent, split and using per-pane color schemes [#1620](https://github.com/wez/wezterm/issues/1620)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
