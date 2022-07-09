@@ -1126,6 +1126,7 @@ impl WaylandWindowInner {
         if surface_id == *conn.active_surface_id.borrow() {
             if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
                 self.text_cursor.replace(rect);
+                let factor = get_surface_scale_factor(&self.surface);
 
                 conn.environment.with_inner(|env| {
                     if let Some(input) = env
@@ -1133,10 +1134,10 @@ impl WaylandWindowInner {
                         .get_text_input_for_surface(&self.surface)
                     {
                         input.set_cursor_rectangle(
-                            rect.min_x() as i32,
-                            rect.min_y() as i32,
-                            rect.width() as i32,
-                            rect.height() as i32,
+                            rect.min_x() as i32 / factor,
+                            rect.min_y() as i32 / factor,
+                            rect.width() as i32 / factor,
+                            rect.height() as i32 / factor,
                         );
                         input.commit();
                     }
