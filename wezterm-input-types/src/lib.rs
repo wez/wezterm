@@ -1222,13 +1222,33 @@ impl KeyEvent {
         match &self.key {
             KeyCode::Composed(_) => None,
             KeyCode::Char(c) => {
+                let c = match *c {
+                    // Delete key is transmitted as 0x0
+                    '\x7f' => '\x00',
+                    // Backspace key is transmitted as 0x8, 0x7f or 0x0
+                    '\x08' => {
+                        if self.modifiers.contains(Modifiers::CTRL) {
+                            if self.modifiers.contains(Modifiers::ALT)
+                                || self.modifiers.contains(Modifiers::SHIFT)
+                            {
+                                '\x00'
+                            } else {
+                                '\x7f'
+                            }
+                        } else {
+                            '\x08'
+                        }
+                    }
+                    _ => *c,
+                };
+
                 let c = if self.modifiers.contains(Modifiers::CTRL) {
                     // Ensure that we rewrite the unicode value to the ASCII CTRL
                     // equivalent value.
                     // <https://github.com/microsoft/terminal/issues/13134>
-                    ctrl_mapping(*c).unwrap_or(*c)
+                    ctrl_mapping(c).unwrap_or(c)
                 } else {
-                    *c
+                    c
                 };
                 let uni = c as u32;
 
