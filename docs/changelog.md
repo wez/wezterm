@@ -19,6 +19,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:maximize](config/lua/window/maximize.md) and [window:restore](config/lua/window/restore.md) methods for controlling window maximization state.
 * [window:get_selection_escapes_for_pane](config/lua/window/get_selection_escapes_for_pane.md) method for getting the current selection including escape sequences. [#2223](https://github.com/wez/wezterm/issues/2223)
 * New [wezterm.gui](config/lua/wezterm.gui/index.md) module and [mux_window:gui_window](config/lua/mux-window/gui_window.md) method.
+* You may now use [wezterm.format](config/lua/wezterm/format.md) (or otherwise use strings with escape sequences) in the labels of the [Launcher Menu](config/launch.md#the-launcher-menu).
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
