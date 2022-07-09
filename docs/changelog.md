@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * win32 input mode: fixed encoding of backspace and delete keys. Thanks to [@kreudom](https://github.com/kreudom)! [#2233](https://github.com/wez/wezterm/pull/2233)
 * Tab bar could glitch and show incorrect contents when adjusting for monitor or changed font scaling [#2208](https://github.com/wez/wezterm/issues/2208)
 * Wayland: transparent gap under tab bar when window is transparent, split and using per-pane color schemes [#1620](https://github.com/wez/wezterm/issues/1620)
+* Tab bar could show a gap to the right when resizing
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
