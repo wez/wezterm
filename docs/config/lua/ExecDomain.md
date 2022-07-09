@@ -25,7 +25,9 @@ wezterm.exec_domain(NAME, FIXUP [, LABEL])
 
 * *name* - uniquely identifies the domain. Must be different from any other multiplexer domains.
 * *fixup* - a lua function that will be called to *fixup* the requested command and return the revised command
-* *label* - optional. Can be either a string to serve as a label in the [Launcher Menu](../launch.md#the-launcher-menu), or a lua function that will return the label.
+* *label* - optional. Can be either a string to serve as a label in the
+  [Launcher Menu](../launch.md#the-launcher-menu), or a lua function that will
+  return the label.
 
 ### fixup
 
