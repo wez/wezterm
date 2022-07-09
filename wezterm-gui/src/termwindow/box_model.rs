@@ -239,6 +239,7 @@ pub struct Element {
     pub line_height: Option<f64>,
     pub max_width: Option<Dimension>,
     pub min_width: Option<Dimension>,
+    pub min_height: Option<Dimension>,
 }
 
 impl Element {
@@ -261,6 +262,7 @@ impl Element {
             line_height: None,
             max_width: None,
             min_width: None,
+            min_height: None,
         }
     }
 
@@ -362,6 +364,11 @@ impl Element {
 
     pub fn min_width(mut self, width: Option<Dimension>) -> Self {
         self.min_width = width;
+        self
+    }
+
+    pub fn min_height(mut self, height: Option<Dimension>) -> Self {
+        self.min_height = height;
         self
     }
 }
@@ -551,6 +558,10 @@ impl super::TermWindow {
             Some(w) => w.evaluate_as_pixels(context.width),
             None => 0.0,
         };
+        let min_height = match element.min_height {
+            Some(h) => h.evaluate_as_pixels(context.height),
+            None => 0.0,
+        };
 
         match &element.content {
             ElementContent::Text(s) => {
@@ -608,7 +619,12 @@ impl super::TermWindow {
                 .max(min_width)
                 .min(context.width.pixel_max);
 
-                let content_rect = euclid::rect(0., 0., pixel_width, context.height.pixel_cell);
+                let content_rect = euclid::rect(
+                    0.,
+                    0.,
+                    pixel_width,
+                    context.height.pixel_cell.max(min_height),
+                );
 
                 let rects = element.compute_rects(context, content_rect);
 
@@ -690,6 +706,8 @@ impl super::TermWindow {
 
                 let mut float_max_x = (max_x + float_width).min(max_width);
 
+                let pixel_height = pixel_height.max(min_height);
+
                 for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
                     match child.float {
                         Float::Right => {
@@ -740,7 +758,7 @@ impl super::TermWindow {
             }
             ElementContent::Poly { poly, line_width } => {
                 let poly = poly.to_pixels(context);
-                let content_rect = euclid::rect(0., 0., poly.width, poly.height);
+                let content_rect = euclid::rect(0., 0., poly.width, poly.height.max(min_height));
                 let rects = element.compute_rects(context, content_rect);
 
                 Ok(ComputedElement {

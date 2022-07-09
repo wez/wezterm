@@ -796,6 +796,8 @@ impl super::TermWindow {
             .display(DisplayType::Block)
             .item_type(UIItemType::TabBar(TabBarItem::None))
             .min_width(Some(Dimension::Pixels(self.dimensions.pixel_width as f32)))
+            .min_height(Some(Dimension::Pixels(tab_bar_height)))
+            .vertical_align(VerticalAlign::Bottom)
             .colors(bar_colors);
 
         let border = self.get_os_border();
