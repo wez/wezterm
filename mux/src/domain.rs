@@ -175,12 +175,19 @@ pub struct LocalDomain {
     id: DomainId,
     name: String,
     wsl: Option<WslDomain>,
-    exec_domain: Option<ExecDomain>,
 }
 
 impl LocalDomain {
     pub fn new(name: &str) -> Result<Self, Error> {
         Ok(Self::with_pty_system(name, native_pty_system()))
+    }
+
+    fn resolve_exec_domain(&self) -> Option<ExecDomain> {
+        config::configuration()
+            .exec_domains
+            .iter()
+            .find(|ed| ed.name == self.name)
+            .cloned()
     }
 
     pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
@@ -190,7 +197,6 @@ impl LocalDomain {
             id,
             name: name.to_string(),
             wsl: None,
-            exec_domain: None,
         }
     }
 
@@ -201,9 +207,7 @@ impl LocalDomain {
     }
 
     pub fn new_exec_domain(exec_domain: ExecDomain) -> anyhow::Result<Self> {
-        let mut dom = Self::new(&exec_domain.name)?;
-        dom.exec_domain.replace(exec_domain);
-        Ok(dom)
+        Self::new(&exec_domain.name)
     }
 
     #[cfg(unix)]
@@ -261,7 +265,7 @@ impl LocalDomain {
 
             cmd.clear_cwd();
             *cmd.get_argv_mut() = argv;
-        } else if let Some(ed) = &self.exec_domain {
+        } else if let Some(ed) = self.resolve_exec_domain() {
             let mut args = vec![];
             let mut set_environment_variables = HashMap::new();
             for arg in cmd.get_argv() {
@@ -439,7 +443,7 @@ impl Domain for LocalDomain {
     }
 
     async fn domain_label(&self) -> String {
-        if let Some(ed) = &self.exec_domain {
+        if let Some(ed) = self.resolve_exec_domain() {
             match &ed.label {
                 Some(ValueOrFunc::Value(wezterm_dynamic::Value::String(s))) => s.to_string(),
                 Some(ValueOrFunc::Func(label_func)) => {
