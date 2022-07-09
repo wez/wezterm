@@ -452,6 +452,7 @@ usually the best available version.</p>
 <li>New <a href="config/lua/wezterm.gui/screens.html">wezterm.gui.screens()</a> function for getting information about the available screens/monitors/displays</li>
 <li>You may now use <a href="config/lua/wezterm/format.html">wezterm.format</a> (or otherwise use strings with escape sequences) in the labels of the <a href="config/launch.html#the-launcher-menu">Launcher Menu</a>.</li>
 <li>You may now specify <code>assume_emoji_presentation = true</code> (or <code>false</code>) in <a href="config/lua/wezterm/font.html">wezterm.font()</a> and <a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback()</a></li>
+<li>Wayland: <code>zwp_text_input_v3</code> is now supported, which enables IME to work in wezterm if your compositor also implements this protocol.</li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -14000,7 +14001,7 @@ natively supported by the attached keyboard hardware.</p>
 <tr><td>Windows</td><td>Forever</td><td>Always enabled, cannot be disabled</td></tr>
 <tr><td>macOS</td><td>20200113-214446-bb6251f</td><td>defaults to enabled starting in 20220319-142410-0fcdea07. Earlier versions had problems with key repeat when enabled</td></tr>
 <tr><td>X11</td><td>20211204-082213-a66c61ee9</td><td><a href="https://en.wikipedia.org/wiki/X_Input_Method">XIM</a> based. Your system needs to have a running input method engine (such as ibus or fcitx) that support the XIM protocol in order for wezterm to use it.</td></tr>
-<tr><td>Wayland</td><td>Not yet</td><td><a href="https://github.com/wez/wezterm/issues/1772">#1772</a> is tracking IME support</td></tr>
+<tr><td>Wayland</td><td>Nightly builds only</td><td>Your compositor must support <code>zwp_text_input_v3</code></td></tr>
 </tbody></table>
 <p>You can control whether the IME is enabled in your configuration file:</p>
 <pre><code class="language-lua">return {
