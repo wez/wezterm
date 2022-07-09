@@ -22,7 +22,9 @@ wezterm.log_info(wezterm.format({
   {Attribute={Underline="Single"}},
   {Foreground={AnsiColor="Fuchsia"}},
   {Background={Color="blue"}},
-  {Text="Hello " .. date},
+  {Text="Hello " .. date .. " "},
+  "ResetAttributes",
+  {Text="this text has default attributes"}
 }))
 ```
 
@@ -44,4 +46,4 @@ Possible values for the `FormatItem` elements are:
 * `{Foreground={Color="yellow"}}` - set foreground color to a named color or rgb value like `#ffffff`.
 * `{Background={AnsiColor="Black"}}` - set the background color to an ansi color as per `Foreground` above.
 * `{Background={Color="blue"}}` - set the background color to a named color or rgb value as per `Foreground` above.
-
+* `"ResetAttributes"` - reset all attributes to default. (*Since: nightly builds only*)

@@ -98,6 +98,7 @@ pub enum FormatItem {
     Foreground(FormatColor),
     Background(FormatColor),
     Attribute(AttributeChange),
+    ResetAttributes,
     Text(String),
 }
 impl_lua_conversion_dynamic!(FormatItem);
@@ -109,6 +110,7 @@ impl Into<Change> for FormatItem {
             Self::Text(t) => t.into(),
             Self::Foreground(c) => AttributeChange::Foreground(c.to_attr()).into(),
             Self::Background(c) => AttributeChange::Background(c.to_attr()).into(),
+            Self::ResetAttributes => Change::AllAttributes(CellAttributes::default()),
         }
     }
 }
