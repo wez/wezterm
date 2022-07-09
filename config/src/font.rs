@@ -353,6 +353,8 @@ pub struct FontAttributes {
     pub freetype_load_flags: Option<FreeTypeLoadFlags>,
     #[dynamic(default)]
     pub scale: Option<NotNan<f64>>,
+    #[dynamic(default)]
+    pub assume_emoji_presentation: Option<bool>,
 }
 impl_lua_conversion_dynamic!(FontAttributes);
 
@@ -380,6 +382,7 @@ impl FontAttributes {
             freetype_render_target: None,
             freetype_load_flags: None,
             scale: None,
+            assume_emoji_presentation: None,
         }
     }
 
@@ -396,6 +399,7 @@ impl FontAttributes {
             freetype_render_target: None,
             freetype_load_flags: None,
             scale: None,
+            assume_emoji_presentation: None,
         }
     }
 }
@@ -414,6 +418,7 @@ impl Default for FontAttributes {
             freetype_render_target: None,
             freetype_load_flags: None,
             scale: None,
+            assume_emoji_presentation: None,
         }
     }
 }

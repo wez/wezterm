@@ -198,6 +198,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         freetype_render_target: None,
         freetype_load_flags: None,
         scale: None,
+        assume_emoji_presentation: None,
     };
     if let Ok(descriptors) = descriptor_from_attr(&symbols) {
         for descriptor in descriptors.iter() {

@@ -666,16 +666,23 @@ impl ParsedFont {
             && attr.weight < self.weight
             && self.weight >= FontWeight::REGULAR;
 
-        // If they explicitly list an emoji font, assume that they
-        // want it to be used for emoji presentation.
-        // We match on "moji" rather than "emoji" as there are
-        // emoji fonts that are moji rather than emoji :-/
-        // This heuristic is awful, TBH.
-        if !self.is_built_in_fallback
-            && !attr.is_synthetic
-            && self.names.full_name.to_lowercase().contains("moji")
-        {
-            self.assume_emoji_presentation = true;
+        match attr.assume_emoji_presentation {
+            Some(assume) => {
+                self.assume_emoji_presentation = assume;
+            }
+            None => {
+                // If they explicitly list an emoji font, assume that they
+                // want it to be used for emoji presentation.
+                // We match on "moji" rather than "emoji" as there are
+                // emoji fonts that are moji rather than emoji :-/
+                // This heuristic is awful, TBH.
+                if !self.is_built_in_fallback
+                    && !attr.is_synthetic
+                    && self.names.full_name.to_lowercase().contains("moji")
+                {
+                    self.assume_emoji_presentation = true;
+                }
+            }
         }
 
         self

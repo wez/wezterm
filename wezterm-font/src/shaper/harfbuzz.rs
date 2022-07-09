@@ -702,6 +702,7 @@ mod test {
                     freetype_render_target: None,
                     harfbuzz_features: None,
                     scale: None,
+                    assume_emoji_presentation: None,
                 },
                 14,
             )

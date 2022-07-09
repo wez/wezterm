@@ -327,6 +327,8 @@ struct LuaFontAttributes {
     pub freetype_load_flags: Option<String>,
     #[dynamic(default)]
     pub scale: Option<NotNan<f64>>,
+    #[dynamic(default)]
+    pub assume_emoji_presentation: Option<bool>,
 }
 impl<'lua> FromLua<'lua> for LuaFontAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
@@ -415,6 +417,7 @@ fn font<'lua>(
                 None => None,
             },
             scale: attrs.scale,
+            assume_emoji_presentation: attrs.assume_emoji_presentation,
         }));
 
     Ok(text_style)
@@ -465,6 +468,7 @@ fn font_with_fallback<'lua>(
                     None => None,
                 },
                 scale: attrs.scale,
+                assume_emoji_presentation: attrs.assume_emoji_presentation,
             }));
     }
 
