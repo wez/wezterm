@@ -62,7 +62,7 @@ pub struct LauncherArgs {
 
 impl LauncherArgs {
     /// Must be called on the Mux thread!
-    pub fn new(
+    pub async fn new(
         title: &str,
         flags: LauncherFlags,
         mux_window_id: WindowId,
@@ -120,24 +120,23 @@ impl LauncherArgs {
                 a.domain_id().cmp(&b.domain_id())
             });
             domains.retain(|dom| dom.spawnable());
-            domains
-                .iter()
-                .map(|dom| {
-                    let name = dom.domain_name();
-                    let label = dom.domain_label();
-                    let label = if name == label || label == "" {
-                        format!("domain `{}`", name)
-                    } else {
-                        format!("domain `{}` - {}", name, label)
-                    };
-                    LauncherDomainEntry {
-                        domain_id: dom.domain_id(),
-                        name: name.to_string(),
-                        state: dom.state(),
-                        label,
-                    }
-                })
-                .collect()
+            let mut d = vec![];
+            for dom in domains.into_iter() {
+                let name = dom.domain_name();
+                let label = dom.domain_label().await;
+                let label = if name == label || label == "" {
+                    format!("domain `{}`", name)
+                } else {
+                    format!("domain `{}` - {}", name, label)
+                };
+                d.push(LauncherDomainEntry {
+                    domain_id: dom.domain_id(),
+                    name: name.to_string(),
+                    state: dom.state(),
+                    label,
+                });
+            }
+            d
         } else {
             vec![]
         };

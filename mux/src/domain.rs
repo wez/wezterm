@@ -13,7 +13,7 @@ use crate::Mux;
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
-use config::{configuration, ExecDomain, WslDomain};
+use config::{configuration, ExecDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::collections::HashMap;
@@ -150,8 +150,8 @@ pub trait Domain: Downcast {
     fn domain_name(&self) -> &str;
 
     /// Returns a label describing the domain.
-    fn domain_label(&self) -> &str {
-        self.domain_name()
+    async fn domain_label(&self) -> String {
+        self.domain_name().to_string()
     }
 
     /// Re-attach to any tabs that might be pre-existing in this domain
@@ -218,7 +218,7 @@ impl LocalDomain {
             .is_some()
     }
 
-    fn fixup_command(&self, cmd: &mut CommandBuilder) -> anyhow::Result<()> {
+    async fn fixup_command(&self, cmd: &mut CommandBuilder) -> anyhow::Result<()> {
         if let Some(wsl) = &self.wsl {
             let mut args: Vec<OsString> = cmd.get_argv().clone();
 
@@ -286,12 +286,13 @@ impl LocalDomain {
                 cwd,
             };
 
-            let spawn_command = config::run_immediate_with_lua_config(|lua| {
+            let spawn_command = config::with_lua_config_on_main_thread(|lua| async {
                 let lua = lua.ok_or_else(|| anyhow::anyhow!("missing lua context"))?;
-                let value = config::lua::emit_sync_callback(
+                let value = config::lua::emit_async_callback(
                     &*lua,
-                    (ed.event_name.clone(), (spawn_command.clone())),
-                )?;
+                    (ed.fixup_command.clone(), (spawn_command.clone())),
+                )
+                .await?;
                 let cmd: SpawnCommand =
                     luahelper::from_lua_value_dynamic(value).with_context(|| {
                         format!(
@@ -301,6 +302,7 @@ impl LocalDomain {
                     })?;
                 Ok(cmd)
             })
+            .await
             .with_context(|| format!("calling ExecDomain {} function", ed.name))?;
 
             // Reinterpret the SpawnCommand into the builder
@@ -339,7 +341,7 @@ impl LocalDomain {
         Ok(())
     }
 
-    fn build_command(
+    async fn build_command(
         &self,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
@@ -365,7 +367,7 @@ impl LocalDomain {
         if let Some(dir) = command_dir {
             cmd.cwd(dir);
         }
-        self.fixup_command(&mut cmd)?;
+        self.fixup_command(&mut cmd).await?;
         Ok(cmd)
     }
 }
@@ -378,7 +380,7 @@ impl Domain for LocalDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
-        let mut cmd = self.build_command(command, command_dir)?;
+        let mut cmd = self.build_command(command, command_dir).await?;
         let pair = self
             .pty_system
             .openpty(crate::terminal_size_to_pty_size(size)?)?;
@@ -434,6 +436,37 @@ impl Domain for LocalDomain {
 
     fn domain_name(&self) -> &str {
         &self.name
+    }
+
+    async fn domain_label(&self) -> String {
+        if let Some(ed) = &self.exec_domain {
+            match &ed.label {
+                Some(ValueOrFunc::Value(wezterm_dynamic::Value::String(s))) => s.to_string(),
+                Some(ValueOrFunc::Func(label_func)) => {
+                    let label = config::with_lua_config_on_main_thread(|lua| async {
+                        let lua = lua.ok_or_else(|| anyhow::anyhow!("missing lua context"))?;
+                        let value = config::lua::emit_async_callback(
+                            &*lua,
+                            (label_func.clone(), (self.name.clone())),
+                        )
+                        .await?;
+                        let label: String =
+                            luahelper::from_lua_value_dynamic(value).with_context(|| {
+                                format!(
+                                    "interpreting SpawnCommand result from ExecDomain {}",
+                                    ed.name
+                                )
+                            })?;
+                        Ok(label)
+                    })
+                    .await;
+                    label.unwrap_or_else(|_| self.name.to_string())
+                }
+                _ => self.name.to_string(),
+            }
+        } else {
+            self.name.to_string()
+        }
     }
 
     async fn attach(&self, _window_id: Option<WindowId>) -> anyhow::Result<()> {

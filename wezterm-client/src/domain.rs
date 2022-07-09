@@ -477,8 +477,8 @@ impl Domain for ClientDomain {
         self.config.name()
     }
 
-    fn domain_label(&self) -> &str {
-        &self.label
+    async fn domain_label(&self) -> String {
+        self.label.to_string()
     }
 
     async fn spawn_pane(

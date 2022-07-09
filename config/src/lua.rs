@@ -1,11 +1,11 @@
-use crate::exec_domain::ExecDomain;
+use crate::exec_domain::{ExecDomain, ValueOrFunc};
 use crate::keyassignment::KeyAssignment;
 use crate::{
     FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, RgbaColor,
     TextStyle,
 };
 use anyhow::anyhow;
-use luahelper::from_lua_value_dynamic;
+use luahelper::{from_lua_value_dynamic, lua_value_to_dynamic};
 use mlua::{FromLua, Lua, Table, ToLuaMulti, Value, Variadic};
 use ordered_float::NotNan;
 use std::convert::TryFrom;
@@ -481,11 +481,35 @@ fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Resu
 
 fn exec_domain<'lua>(
     lua: &'lua Lua,
-    (name, callback): (String, mlua::Function),
+    (name, fixup_command, label): (String, mlua::Function, Option<mlua::Value>),
 ) -> mlua::Result<ExecDomain> {
-    let event_name = format!("exec-domain-{name}");
-    register_event(lua, (event_name.clone(), callback))?;
-    Ok(ExecDomain { name, event_name })
+    let fixup_command = {
+        let event_name = format!("exec-domain-{name}");
+        register_event(lua, (event_name.clone(), fixup_command))?;
+        event_name
+    };
+
+    let label = match label {
+        Some(Value::Function(callback)) => {
+            let event_name = format!("exec-domain-{name}-label");
+            register_event(lua, (event_name.clone(), callback))?;
+            Some(ValueOrFunc::Func(event_name))
+        }
+        Some(Value::String(value)) => Some(ValueOrFunc::Value(lua_value_to_dynamic(
+            Value::String(value),
+        )?)),
+        Some(_) => {
+            return Err(mlua::Error::external(
+                "label function parameter must be either a string or a lua function",
+            ))
+        }
+        None => None,
+    };
+    Ok(ExecDomain {
+        name,
+        fixup_command,
+        label,
+    })
 }
 
 fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<String>> {
@@ -598,6 +622,27 @@ where
             for func in tbl.sequence_values::<mlua::Function>() {
                 let func = func?;
                 return func.call(args);
+            }
+            Ok(mlua::Value::Nil)
+        }
+        _ => Ok(mlua::Value::Nil),
+    }
+}
+
+pub async fn emit_async_callback<'lua, A>(
+    lua: &'lua Lua,
+    (name, args): (String, A),
+) -> mlua::Result<mlua::Value<'lua>>
+where
+    A: ToLuaMulti<'lua>,
+{
+    let decorated_name = format!("wezterm-event-{}", name);
+    let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
+    match tbl {
+        mlua::Value::Table(tbl) => {
+            for func in tbl.sequence_values::<mlua::Function>() {
+                let func = func?;
+                return func.call_async(args).await;
             }
             Ok(mlua::Value::Nil)
         }

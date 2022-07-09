@@ -1802,6 +1802,9 @@ impl TermWindow {
     }
 
     fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags) {
+        let mux_window_id = self.mux_window_id;
+        let window = self.window.as_ref().unwrap().clone();
+
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -1813,29 +1816,40 @@ impl TermWindow {
             None => return,
         };
 
-        let mux_window_id = self.mux_window_id;
-
-        let window = self.window.as_ref().unwrap().clone();
-
         let domain_id_of_current_pane = tab
             .get_active_pane()
             .expect("tab has no panes!")
             .domain_id();
         let pane_id = pane.pane_id();
+        let tab_id = tab.tab_id();
+        let title = title.to_string();
 
-        let args = LauncherArgs::new(
-            title,
-            flags,
-            mux_window_id,
-            pane_id,
-            domain_id_of_current_pane,
-        );
+        promise::spawn::spawn(async move {
+            let args = LauncherArgs::new(
+                &title,
+                flags,
+                mux_window_id,
+                pane_id,
+                domain_id_of_current_pane,
+            )
+            .await;
 
-        let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
-            launcher(args, term, window)
-        });
-        self.assign_overlay(tab.tab_id(), overlay);
-        promise::spawn::spawn(future).detach();
+            let win = window.clone();
+            win.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                let mux = Mux::get().unwrap();
+                if let Some(tab) = mux.get_tab(tab_id) {
+                    let window = window.clone();
+                    let (overlay, future) =
+                        start_overlay(term_window, &tab, move |_tab_id, term| {
+                            launcher(args, term, window)
+                        });
+
+                    term_window.assign_overlay(tab_id, overlay);
+                    promise::spawn::spawn(future).detach();
+                }
+            })));
+        })
+        .detach();
     }
 
     /// Returns the Prompt semantic zones
