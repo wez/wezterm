@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Config will now automatically reload for changes made to `require`d lua files. Previously, only the main config file and any files that you explicitly passed to [add_to_config_reload_watch_list](config/lua/wezterm/add_to_config_reload_watch_list.md) would trigger a reload.
 * macOS: numeric keypad enter generated CTRL-C instead of enter. Regression of [#739](https://github.com/wez/wezterm/issues/739). [#2204](https://github.com/wez/wezterm/issues/2204)
 * Wayland: inconsistent pasting. Thanks to [@Funami580](https://github.com/Funami580)! [#2225](https://github.com/wez/wezterm/issues/2225) [#2226](https://github.com/wez/wezterm/pulls/2226)
+* win32 input mode: fixed encoding of backspace and delete keys. Thanks to [@kreudom](https://github.com/kreudom)! [#2233](https://github.com/wez/wezterm/pull/2233)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
