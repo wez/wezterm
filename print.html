@@ -7278,7 +7278,9 @@ wezterm.log_info(wezterm.format({
   {Attribute={Underline=&quot;Single&quot;}},
   {Foreground={AnsiColor=&quot;Fuchsia&quot;}},
   {Background={Color=&quot;blue&quot;}},
-  {Text=&quot;Hello &quot; .. date},
+  {Text=&quot;Hello &quot; .. date .. &quot; &quot;},
+  &quot;ResetAttributes&quot;,
+  {Text=&quot;this text has default attributes&quot;}
 }))
 </code></pre>
 <p>Possible values for the <code>FormatItem</code> elements are:</p>
@@ -7299,6 +7301,7 @@ wezterm.log_info(wezterm.format({
 <li><code>{Foreground={Color=&quot;yellow&quot;}}</code> - set foreground color to a named color or rgb value like <code>#ffffff</code>.</li>
 <li><code>{Background={AnsiColor=&quot;Black&quot;}}</code> - set the background color to an ansi color as per <code>Foreground</code> above.</li>
 <li><code>{Background={Color=&quot;blue&quot;}}</code> - set the background color to a named color or rgb value as per <code>Foreground</code> above.</li>
+<li><code>&quot;ResetAttributes&quot;</code> - reset all attributes to default. (<em>Since: nightly builds only</em>)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermget_builtin_color_schemes"><a class="header" href="#weztermget_builtin_color_schemes"><code>wezterm.get_builtin_color_schemes()</code></a></h1>
 <p><em>Since: 20220101-133340-7edc5b5a</em></p>
