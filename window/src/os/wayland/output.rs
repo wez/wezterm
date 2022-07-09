@@ -1,5 +1,6 @@
 //! Dealing with Wayland outputs
 
+use crate::os::wayland::wl_id;
 use crate::screen::{ScreenInfo, Screens};
 use crate::ScreenRect;
 use smithay_client_toolkit::environment::GlobalHandler;
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wayland_client::protocol::wl_output::Transform;
 use wayland_client::protocol::wl_registry::WlRegistry;
-use wayland_client::{Attached, DispatchData, Interface, Main, Proxy};
+use wayland_client::{Attached, DispatchData, Main};
 use wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_head_v1::{
     Event as ZwlrOutputHeadEvent, ZwlrOutputHeadV1,
 };
@@ -53,17 +54,6 @@ struct Inner {
     zwlr_modes: HashMap<u32, Attached<ZwlrOutputModeV1>>,
     zwlr_mode_info: HashMap<u32, ModeInfo>,
     zwlr_head_info: HashMap<u32, HeadInfo>,
-}
-
-fn wl_id<I, T>(obj: T) -> u32
-where
-    I: Interface,
-    T: AsRef<Proxy<I>>,
-    I: AsRef<wayland_client::Proxy<I>>,
-    I: From<wayland_client::Proxy<I>>,
-{
-    let proxy: &Proxy<I> = obj.as_ref();
-    proxy.id()
 }
 
 impl Inner {

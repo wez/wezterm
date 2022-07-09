@@ -78,7 +78,6 @@ impl CopyAndPaste {
         let pointer = conn.pointer.borrow();
         let primary_selection = if let Clipboard::PrimarySelection = clipboard {
             conn.environment
-                .borrow()
                 .get_primary_selection_manager()
                 .zip(pointer.primary_selection_device.as_ref())
         } else {
@@ -111,7 +110,6 @@ impl CopyAndPaste {
             None => {
                 let source = conn
                     .environment
-                    .borrow()
                     .require_global::<WlDataDeviceManager>()
                     .create_data_source();
                 source.quick_assign(move |_source, event, _dispatch_data| {

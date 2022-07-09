@@ -3,9 +3,10 @@ use super::frame::{ConceptConfig, ConceptFrame};
 use super::pointer::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
+use crate::os::wayland::wl_id;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, RequestedWindowGeometry,
+    Clipboard, Connection, Dimensions, MouseCursor, Point, Rect, RequestedWindowGeometry,
     ResolvedGeometry, ScreenPoint, Window, WindowEvent, WindowEventSender, WindowKeyEvent,
     WindowOps, WindowState,
 };
@@ -124,7 +125,7 @@ impl KeyRepeatState {
 
 pub struct WaylandWindowInner {
     window_id: usize,
-    events: WindowEventSender,
+    pub(crate) events: WindowEventSender,
     surface: Attached<WlSurface>,
     surface_factor: i32,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
@@ -144,6 +145,7 @@ pub struct WaylandWindowInner {
     frame_callback: Option<Main<WlCallback>>,
     invalidated: bool,
     font_config: Rc<FontConfiguration>,
+    text_cursor: Option<Rect>,
     config: Option<ConfigHandle>,
     // cache the title for comparison to avoid spamming
     // the compositor with updates that don't actually change it
@@ -254,24 +256,21 @@ impl WaylandWindow {
 
         let (pending_first_configure, wait_configure) = async_channel::bounded(1);
 
-        let surface = conn
-            .environment
-            .borrow_mut()
-            .create_surface_with_scale_callback({
-                let pending_event = Arc::clone(&pending_event);
-                move |dpi, surface, _dispatch_data| {
-                    pending_event.lock().unwrap().dpi.replace(dpi);
-                    log::debug!(
-                        "surface id={} dpi scale changed to {}",
-                        surface.as_ref().id(),
-                        dpi
-                    );
-                    WaylandConnection::with_window_inner(window_id, move |inner| {
-                        inner.dispatch_pending_event();
-                        Ok(())
-                    });
-                }
-            });
+        let surface = conn.environment.create_surface_with_scale_callback({
+            let pending_event = Arc::clone(&pending_event);
+            move |dpi, surface, _dispatch_data| {
+                pending_event.lock().unwrap().dpi.replace(dpi);
+                log::debug!(
+                    "surface id={} dpi scale changed to {}",
+                    surface.as_ref().id(),
+                    dpi
+                );
+                WaylandConnection::with_window_inner(window_id, move |inner| {
+                    inner.dispatch_pending_event();
+                    Ok(())
+                });
+            }
+        });
         conn.surface_to_window_id
             .borrow_mut()
             .insert(surface.as_ref().id(), window_id);
@@ -293,7 +292,6 @@ impl WaylandWindow {
 
         let mut window = conn
             .environment
-            .borrow()
             .create_window::<ConceptFrame, _>(
                 surface.clone().detach(),
                 theme_manager,
@@ -373,6 +371,7 @@ impl WaylandWindow {
             title: None,
             gl_state: None,
             wegl_surface: None,
+            text_cursor: None,
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
@@ -461,6 +460,7 @@ impl WaylandWindowInner {
         mapper.update_modifier_state(0, 0, 0, 0);
         self.key_repeat.take();
         self.events.dispatch(WindowEvent::FocusChanged(focused));
+        self.text_cursor.take();
     }
 
     pub(crate) fn dispatch_dropped_files(&mut self, paths: Vec<PathBuf>) {
@@ -897,6 +897,13 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
+            Ok(())
+        });
+    }
+
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         WaylandConnection::with_window_inner(self.0, move |inner| {
@@ -1110,6 +1117,31 @@ impl WaylandWindowInner {
             let serial = self.copy_and_paste.lock().unwrap().last_serial;
             let conn = Connection::get().unwrap().wayland();
             window.start_interactive_move(&conn.pointer.borrow().seat, serial);
+        }
+    }
+
+    fn set_text_cursor_position(&mut self, rect: Rect) {
+        let surface_id = wl_id(&*self.surface);
+        let conn = Connection::get().unwrap().wayland();
+        if surface_id == *conn.active_surface_id.borrow() {
+            if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
+                self.text_cursor.replace(rect);
+
+                conn.environment.with_inner(|env| {
+                    if let Some(input) = env
+                        .input_handler()
+                        .get_text_input_for_surface(&self.surface)
+                    {
+                        input.set_cursor_rectangle(
+                            rect.min_x() as i32,
+                            rect.min_y() as i32,
+                            rect.width() as i32,
+                            rect.height() as i32,
+                        );
+                        input.commit();
+                    }
+                });
+            }
         }
     }
 

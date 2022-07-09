@@ -2,11 +2,12 @@
 use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
+use crate::os::wayland::inputhandler::InputHandler;
 use crate::os::wayland::output::OutputHandler;
 use crate::os::x11::keyboard::Keyboard;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Connection, ScreenRect};
+use crate::{Connection, ScreenRect, WindowEvent};
 use anyhow::{bail, Context};
 use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Token};
@@ -27,10 +28,18 @@ use wayland_client::{EventQueue, Main};
 toolkit::default_environment!(MyEnvironment, desktop,
 fields=[
     output_handler: OutputHandler,
+    input_handler: InputHandler,
 ],
 singles=[
     wayland_protocols::wlr::unstable::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1 => output_handler,
+    wayland_protocols::unstable::text_input::v3::client::zwp_text_input_manager_v3::ZwpTextInputManagerV3 => input_handler,
 ]);
+
+impl MyEnvironment {
+    pub fn input_handler(&mut self) -> &mut InputHandler {
+        &mut self.input_handler
+    }
+}
 
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
@@ -61,7 +70,7 @@ pub struct WaylandConnection {
     pub(crate) key_repeat_delay: RefCell<i32>,
     pub(crate) last_serial: RefCell<u32>,
     seat_listener: SeatListener,
-    pub(crate) environment: RefCell<Environment<MyEnvironment>>,
+    pub(crate) environment: Environment<MyEnvironment>,
     event_q: RefCell<EventQueue>,
     pub(crate) display: RefCell<Display>,
 }
@@ -71,7 +80,10 @@ impl WaylandConnection {
         let (environment, display, event_q) = toolkit::new_default_environment!(
             MyEnvironment,
             desktop,
-            fields = [output_handler: OutputHandler::new()]
+            fields = [
+                output_handler: OutputHandler::new(),
+                input_handler: InputHandler::new(),
+            ]
         )?;
 
         let mut pointer = None;
@@ -95,6 +107,7 @@ impl WaylandConnection {
                             log::error!("keyboard_event: {:#}", err);
                         }
                     });
+                    environment.with_inner(|env| env.input_handler.advise_seat(&seat, &keyboard));
                     seat_keyboards.insert(name, keyboard);
                 }
                 if has_ptr {
@@ -111,6 +124,7 @@ impl WaylandConnection {
 
         let seat_listener;
         {
+            let env = environment.clone();
             seat_listener = environment.listen_for_seats(move |seat, seat_data, _| {
                 if seat_data.has_keyboard {
                     if !seat_data.defunct {
@@ -131,14 +145,18 @@ impl WaylandConnection {
                         // up handling key events twice.
                         if !seat_keyboards.contains_key(&seat_data.name) {
                             let keyboard = seat.get_keyboard();
+
                             keyboard.quick_assign(|keyboard, event, _| {
                                 let conn = Connection::get().unwrap().wayland();
                                 if let Err(err) = conn.keyboard_event(keyboard, event) {
                                     log::error!("keyboard_event: {:#}", err);
                                 }
                             });
+                            env.with_inner(|env| env.input_handler.advise_seat(&seat, &keyboard));
                             seat_keyboards.insert(seat_data.name.clone(), keyboard);
                         }
+                    } else {
+                        env.with_inner(|env| env.input_handler.seat_defunct(&seat));
                     }
                 } else {
                     // If we previously had a keyboard object on this seat, it's no longer valid if
@@ -158,7 +176,7 @@ impl WaylandConnection {
 
         Ok(Self {
             display: RefCell::new(display),
-            environment: RefCell::new(environment),
+            environment,
             should_terminate: RefCell::new(false),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
@@ -179,7 +197,7 @@ impl WaylandConnection {
 
     fn keyboard_event(
         &self,
-        _pointer: Main<WlKeyboard>,
+        keyboard: Main<WlKeyboard>,
         event: WlKeyboardEvent,
     ) -> anyhow::Result<()> {
         match &event {
@@ -196,13 +214,30 @@ impl WaylandConnection {
                     .get(&surface.as_ref().id())
                 {
                     self.keyboard_window_id.borrow_mut().replace(window_id);
+                    self.environment.with_inner(|env| {
+                        if let Some(input) =
+                            env.input_handler.get_text_input_for_keyboard(&keyboard)
+                        {
+                            input.enable();
+                            input.commit();
+                        }
+                        env.input_handler.advise_surface(&surface, &keyboard);
+                    });
                 } else {
                     log::warn!("{:?}, no known surface", event);
                 }
             }
-            WlKeyboardEvent::Leave { serial, .. }
-            | WlKeyboardEvent::Key { serial, .. }
-            | WlKeyboardEvent::Modifiers { serial, .. } => {
+            WlKeyboardEvent::Leave { serial, .. } => {
+                if let Some(input) = self
+                    .environment
+                    .with_inner(|env| env.input_handler.get_text_input_for_keyboard(&keyboard))
+                {
+                    input.disable();
+                    input.commit();
+                }
+                *self.last_serial.borrow_mut() = *serial;
+            }
+            WlKeyboardEvent::Key { serial, .. } | WlKeyboardEvent::Modifiers { serial, .. } => {
                 *self.last_serial.borrow_mut() = *serial;
             }
             WlKeyboardEvent::RepeatInfo { rate, delay } => {
@@ -243,6 +278,15 @@ impl WaylandConnection {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn dispatch_to_focused_window(&self, event: WindowEvent) {
+        if let Some(&window_id) = self.keyboard_window_id.borrow().as_ref() {
+            if let Some(win) = self.window_by_id(window_id) {
+                let mut inner = win.borrow_mut();
+                inner.events.dispatch(event);
+            }
+        }
     }
 
     pub(crate) fn next_window_id(&self) -> usize {
@@ -380,7 +424,6 @@ impl ConnectionOps for WaylandConnection {
     fn screens(&self) -> anyhow::Result<Screens> {
         if let Some(screens) = self
             .environment
-            .borrow()
             .with_inner(|env| env.output_handler.screens())
         {
             return Ok(screens);
@@ -388,7 +431,7 @@ impl ConnectionOps for WaylandConnection {
 
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
-        for output in self.environment.borrow().get_all_outputs() {
+        for output in self.environment.get_all_outputs() {
             toolkit::output::with_output_info(&output, |info| {
                 let name = if info.name.is_empty() {
                     format!("{} {}", info.model, info.make)

@@ -344,7 +344,7 @@ impl WindowOps for Window {
         match self {
             Self::X11(x) => x.set_text_cursor_position(cursor),
             #[cfg(feature = "wayland")]
-            Self::Wayland(_) => {}
+            Self::Wayland(w) => w.set_text_cursor_position(cursor),
         }
     }
 
