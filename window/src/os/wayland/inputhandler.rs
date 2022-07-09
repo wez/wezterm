@@ -55,11 +55,7 @@ impl Inner {
                     None => WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None),
                 });
             }
-            Event::Done { serial: _ } => {
-                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(
-                    DeadKeyStatus::None,
-                ));
-            }
+            Event::Done { serial: _ } => {}
             _ => {}
         }
     }
