@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Tab bar could glitch and show incorrect contents when adjusting for monitor or changed font scaling [#2208](https://github.com/wez/wezterm/issues/2208)
 * Wayland: transparent gap under tab bar when window is transparent, split and using per-pane color schemes [#1620](https://github.com/wez/wezterm/issues/1620)
 * Tab bar could show a gap to the right when resizing
+* Padding could show window background rather than pane background around split panes at certain window sizes [#2210](https://github.com/wez/wezterm/issues/2210)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1

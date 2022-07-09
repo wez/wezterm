@@ -1174,36 +1174,18 @@ impl super::TermWindow {
                 euclid::rect(
                     x,
                     y,
-                    (pos.width as f32 * cell_width)
-                        + width_delta
-                        + if pos.left + pos.width >= self.terminal_size.cols as usize {
-                            // And all the way to the right edge if we're right-most
-                            crate::termwindow::resize::effective_right_padding(
-                                &self.config,
-                                DimensionContext {
-                                    dpi: self.dimensions.dpi as f32,
-                                    pixel_max: self.terminal_size.pixel_width as f32,
-                                    pixel_cell: cell_width,
-                                },
-                            ) as f32
-                        } else {
-                            0.
-                        },
-                    (pos.height as f32 * cell_height)
-                        + height_delta as f32
-                        + if pos.top + pos.height >= self.terminal_size.rows as usize {
-                            // And all the way to the bottom if we're bottom-most
-                            self.config
-                                .window_padding
-                                .bottom
-                                .evaluate_as_pixels(DimensionContext {
-                                    dpi: self.dimensions.dpi as f32,
-                                    pixel_max: self.terminal_size.pixel_height as f32,
-                                    pixel_cell: cell_height,
-                                })
-                        } else {
-                            0.
-                        },
+                    // Go all the way to the right edge if we're right-most
+                    if pos.left + pos.width >= self.terminal_size.cols as usize {
+                        self.dimensions.pixel_width as f32 - x
+                    } else {
+                        (pos.width as f32 * cell_width) + width_delta
+                    },
+                    // Go all the way to the bottom if we're bottom-most
+                    if pos.top + pos.height >= self.terminal_size.rows as usize {
+                        self.dimensions.pixel_height as f32 - y
+                    } else {
+                        (pos.height as f32 * cell_height) + height_delta as f32
+                    },
                 ),
                 palette
                     .background
