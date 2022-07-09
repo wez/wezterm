@@ -469,7 +469,16 @@ impl Domain for LocalDomain {
                         Ok(label)
                     })
                     .await;
-                    label.unwrap_or_else(|_| self.name.to_string())
+                    match label {
+                        Ok(label) => label,
+                        Err(err) => {
+                            log::error!(
+                                "Error while calling label function for ExecDomain `{}`: {err:#}",
+                                self.name
+                            );
+                            self.name.to_string()
+                        }
+                    }
                 }
                 _ => self.name.to_string(),
             }
