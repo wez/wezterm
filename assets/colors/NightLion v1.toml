@@ -1,12 +1,34 @@
-# NightLion v1
 [colors]
-foreground = "#bbbbbb"
-background = "#000000"
-cursor_bg = "#bbbbbb"
-cursor_border = "#bbbbbb"
-cursor_fg = "#ffffff"
-selection_bg = "#b5d5ff"
-selection_fg = "#000000"
+ansi = [
+    '#4c4c4c',
+    '#bb0000',
+    '#5fde8f',
+    '#f3f167',
+    '#276bd8',
+    '#bb00bb',
+    '#00dadf',
+    '#bbbbbb',
+]
+background = '#000000'
+brights = [
+    '#555555',
+    '#ff5555',
+    '#55ff55',
+    '#ffff55',
+    '#5555ff',
+    '#ff55ff',
+    '#55ffff',
+    '#ffffff',
+]
+cursor_bg = '#bbbbbb'
+cursor_border = '#bbbbbb'
+cursor_fg = '#ffffff'
+foreground = '#bbbbbb'
+selection_bg = '#b5d5ff'
+selection_fg = '#000000'
 
-ansi = ["#4c4c4c","#bb0000","#5fde8f","#f3f167","#276bd8","#bb00bb","#00dadf","#bbbbbb"]
-brights = ["#555555","#ff5555","#55ff55","#ffff55","#5555ff","#ff55ff","#55ffff","#ffffff"]
+[colors.indexed]
+
+[metadata]
+name = 'NightLion v1'
+origin_url = 'https://github.com/mbadolato/iTerm2-Color-Schemes'

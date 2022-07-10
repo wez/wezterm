@@ -3,6 +3,7 @@ members = [
   "bidi",
   "bidi/generate",
   "strip-ansi-escapes",
+  "sync-color-schemes",
   "wezterm",
   "wezterm-dynamic",
   "wezterm-gui",

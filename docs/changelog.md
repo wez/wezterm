@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 * You may now specify `assume_emoji_presentation = true` (or `false`) in [wezterm.font()](config/lua/wezterm/font.md) and [wezterm.font_with_fallback()](config/lua/wezterm/font_with_fallback.md)
 * Wayland: `zwp_text_input_v3` is now supported, which enables IME to work in wezterm if your compositor also implements this protocol.
 * New [wezterm.json_parse()](config/lua/wezterm/json_parse.md) and [wezterm.json_encode()](config/lua/wezterm/json_encode.md) functions for working with JSON.
+* New over 100 new color schemes have been imported from [Gogh](https://gogh-co.github.io/Gogh/). [Browse the schemes](colorschemes/index.md) and look for themes with `(Gogh)` in the name to discover them!
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)

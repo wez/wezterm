@@ -1,12 +1,34 @@
-# Red Sands
 [colors]
-foreground = "#d7c9a7"
-background = "#7a251e"
-cursor_bg = "#ffffff"
-cursor_border = "#ffffff"
-cursor_fg = "#000000"
-selection_bg = "#a4a390"
-selection_fg = "#000000"
+ansi = [
+    '#000000',
+    '#ff3f00',
+    '#00bb00',
+    '#e7b000',
+    '#0072ff',
+    '#bb00bb',
+    '#00bbbb',
+    '#bbbbbb',
+]
+background = '#7a251e'
+brights = [
+    '#555555',
+    '#bb0000',
+    '#00bb00',
+    '#e7b000',
+    '#0072ae',
+    '#ff55ff',
+    '#55ffff',
+    '#ffffff',
+]
+cursor_bg = '#ffffff'
+cursor_border = '#ffffff'
+cursor_fg = '#000000'
+foreground = '#d7c9a7'
+selection_bg = '#a4a390'
+selection_fg = '#000000'
 
-ansi = ["#000000","#ff3f00","#00bb00","#e7b000","#0072ff","#bb00bb","#00bbbb","#bbbbbb"]
-brights = ["#555555","#bb0000","#00bb00","#e7b000","#0072ae","#ff55ff","#55ffff","#ffffff"]
+[colors.indexed]
+
+[metadata]
+name = 'Red Sands'
+origin_url = 'https://github.com/mbadolato/iTerm2-Color-Schemes'

@@ -30,6 +30,7 @@ mod frontend;
 pub mod keyassignment;
 mod keys;
 pub mod lua;
+mod scheme_data;
 mod ssh;
 mod terminal;
 mod tls;
@@ -109,7 +110,7 @@ fn toml_to_dynamic(value: &toml::Value) -> Value {
 
 pub fn build_default_schemes() -> HashMap<String, Palette> {
     let mut color_schemes = HashMap::new();
-    for (scheme_name, data) in SCHEMES.iter() {
+    for (scheme_name, data) in scheme_data::SCHEMES.iter() {
         let scheme_name = scheme_name.to_string();
         let scheme = ColorSchemeFile::from_toml_str(data).unwrap();
         color_schemes.insert(scheme_name, scheme.colors);
@@ -312,8 +313,6 @@ pub fn show_error(err: &str) {
         cb(err)
     }
 }
-
-include!(concat!(env!("OUT_DIR"), "/scheme_data.rs"));
 
 pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
     let mut builder = DirBuilder::new();

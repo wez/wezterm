@@ -3919,6 +3919,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sync-color-schemes"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "http_req",
+ "serde",
+ "serde_json",
+ "toml",
+ "wezterm-dynamic",
+]
+
+[[package]]
 name = "tabout"
 version = "0.3.0"
 dependencies = [

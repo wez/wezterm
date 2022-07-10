@@ -1,12 +1,34 @@
-# Belafonte Day
 [colors]
-foreground = "#45373c"
-background = "#d5ccba"
-cursor_bg = "#45373c"
-cursor_border = "#45373c"
-cursor_fg = "#d5ccba"
-selection_bg = "#968c83"
-selection_fg = "#45373c"
+ansi = [
+    '#20111b',
+    '#be100e',
+    '#858162',
+    '#eaa549',
+    '#426a79',
+    '#97522c',
+    '#989a9c',
+    '#968c83',
+]
+background = '#d5ccba'
+brights = [
+    '#5e5252',
+    '#be100e',
+    '#858162',
+    '#eaa549',
+    '#426a79',
+    '#97522c',
+    '#989a9c',
+    '#d5ccba',
+]
+cursor_bg = '#45373c'
+cursor_border = '#45373c'
+cursor_fg = '#d5ccba'
+foreground = '#45373c'
+selection_bg = '#968c83'
+selection_fg = '#45373c'
 
-ansi = ["#20111b","#be100e","#858162","#eaa549","#426a79","#97522c","#989a9c","#968c83"]
-brights = ["#5e5252","#be100e","#858162","#eaa549","#426a79","#97522c","#989a9c","#d5ccba"]
+[colors.indexed]
+
+[metadata]
+name = 'Belafonte Day'
+origin_url = 'https://github.com/mbadolato/iTerm2-Color-Schemes'

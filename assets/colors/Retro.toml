@@ -1,12 +1,34 @@
-# Retro
 [colors]
-foreground = "#13a10e"
-background = "#000000"
-cursor_bg = "#13a10e"
-cursor_border = "#13a10e"
-cursor_fg = "#000000"
-selection_bg = "#ffffff"
-selection_fg = "#000000"
+ansi = [
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+    '#13a10e',
+]
+background = '#000000'
+brights = [
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+    '#16ba10',
+]
+cursor_bg = '#13a10e'
+cursor_border = '#13a10e'
+cursor_fg = '#000000'
+foreground = '#13a10e'
+selection_bg = '#ffffff'
+selection_fg = '#000000'
 
-ansi = ["#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e","#13a10e"]
-brights = ["#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10","#16ba10"]
+[colors.indexed]
+
+[metadata]
+name = 'Retro'
+origin_url = 'https://github.com/mbadolato/iTerm2-Color-Schemes'

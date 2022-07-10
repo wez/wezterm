@@ -82,7 +82,7 @@ impl TryFrom<String> for RgbaColor {
     }
 }
 
-#[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Default, Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
     pub foreground: Option<RgbaColor>,
@@ -165,7 +165,7 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
 }
 
 /// Specify the text styling for a tab in the tab bar
-#[derive(Debug, Clone, Default, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Default, PartialEq, FromDynamic, ToDynamic)]
 pub struct TabBarColor {
     /// Specifies the intensity attribute for the tab title text
     #[dynamic(default)]
@@ -201,7 +201,7 @@ impl TabBarColor {
 /// Specifies the colors to use for the tab bar portion of the UI.
 /// These are not part of the terminal model and cannot be updated
 /// in the same way that the dynamic color schemes are.
-#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct TabBarColors {
     /// The background color for the tab bar
     #[dynamic(default = "default_background")]
@@ -393,10 +393,20 @@ fn default_button_bg() -> RgbColor {
     RgbColor::new_8bpc(0x33, 0x33, 0x33)
 }
 
-#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, FromDynamic, ToDynamic)]
+pub struct ColorSchemeMetaData {
+    pub name: Option<String>,
+    pub author: Option<String>,
+    pub origin_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct ColorSchemeFile {
     /// The color palette
     pub colors: Palette,
+    /// Info about the scheme
+    #[dynamic(default)]
+    pub metadata: ColorSchemeMetaData,
 }
 
 impl ColorSchemeFile {
@@ -407,7 +417,18 @@ impl ColorSchemeFile {
 
     pub fn from_toml_str(s: &str) -> anyhow::Result<Self> {
         let scheme: toml::Value = toml::from_str(s)?;
-        ColorSchemeFile::from_toml_value(&scheme)
+        let mut scheme = ColorSchemeFile::from_toml_value(&scheme)?;
+
+        // Little hack to extract comment style metadata from
+        // iTerm2-Color-Schemes generated toml files
+        if scheme.metadata.name.is_none() {
+            if let Some(first_line) = s.lines().next() {
+                if let Some(name) = first_line.strip_prefix("# ") {
+                    scheme.metadata.name.replace(name.to_string());
+                }
+            }
+        }
+        Ok(scheme)
     }
 }
 

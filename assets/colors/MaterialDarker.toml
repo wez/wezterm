@@ -1,12 +1,34 @@
-# MaterialDarker
 [colors]
-foreground = "#eeffff"
-background = "#212121"
-cursor_bg = "#ffffff"
-cursor_border = "#ffffff"
-cursor_fg = "#ffffff"
-selection_bg = "#eeffff"
-selection_fg = "#545454"
+ansi = [
+    '#000000',
+    '#ff5370',
+    '#c3e88d',
+    '#ffcb6b',
+    '#82aaff',
+    '#c792ea',
+    '#89ddff',
+    '#ffffff',
+]
+background = '#212121'
+brights = [
+    '#545454',
+    '#ff5370',
+    '#c3e88d',
+    '#ffcb6b',
+    '#82aaff',
+    '#c792ea',
+    '#89ddff',
+    '#ffffff',
+]
+cursor_bg = '#ffffff'
+cursor_border = '#ffffff'
+cursor_fg = '#ffffff'
+foreground = '#eeffff'
+selection_bg = '#eeffff'
+selection_fg = '#545454'
 
-ansi = ["#000000","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
-brights = ["#545454","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
+[colors.indexed]
+
+[metadata]
+name = 'MaterialDarker'
+origin_url = 'https://github.com/mbadolato/iTerm2-Color-Schemes'

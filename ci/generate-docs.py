@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import base64
-import configparser
 import glob
 import json
 import os
@@ -58,46 +57,49 @@ class Gen(object):
                 idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
 
-def load_scheme(name):
-    config = configparser.ConfigParser()
-    config.read(name)
+def load_scheme(scheme):
+    ident = re.sub(
+        "[^a-z0-9_]", "_", scheme["metadata"]["name"].lower().replace("+", "plus")
+    )
 
-    name = os.path.splitext(os.path.basename(name))[0]
-    ident = re.sub("[^a-z0-9_]", "_", name.lower().replace('+', 'plus'))
+    colors = scheme["colors"]["ansi"] + scheme["colors"]["brights"]
 
-    colors = eval(config["colors"]["ansi"]) + eval(config["colors"]["brights"])
-
-    selection_bg = eval(config["colors"]["selection_bg"])
-    selection_fg = eval(config["colors"]["selection_fg"])
-
-    scheme = {
-        "name": name,
+    data = {
+        "name": scheme["metadata"]["name"],
+        "prefix": scheme["metadata"]["prefix"],
         "ident": ident,
-        "fg": eval(config["colors"]["foreground"]),
-        "bg": eval(config["colors"]["background"]),
-        "cursor": eval(config["colors"]["cursor_border"]),
+        "fg": scheme["colors"]["foreground"],
+        "bg": scheme["colors"]["background"],
+        "cursor": scheme["colors"]["cursor_border"],
+        "metadata": scheme["metadata"],
     }
 
     # <https://github.com/asciinema/asciinema-player/wiki/Custom-terminal-themes>
     css = f"""
 .asciinema-theme-{ident} .asciinema-terminal {{
-    color: {scheme["fg"]};
-    background-color: {scheme["bg"]};
-    border-color: {scheme["bg"]};
+    color: {data["fg"]};
+    background-color: {data["bg"]};
+    border-color: {data["bg"]};
 }}
 
 .asciinema-theme-{ident} .fg-bg {{
-    color: {scheme["bg"]};
+    color: {data["bg"]};
 }}
 
 .asciinema-theme-{ident} .bg-fg {{
-    background-color: {scheme["fg"]};
+    background-color: {data["fg"]};
 }}
 
 .asciinema-theme-{ident} .cursor-b {{
-    background-color: {scheme["cursor"]} !important;
+    background-color: {data["cursor"]} !important;
 }}
+"""
 
+    if "selection_fg" in scheme["colors"] and "selection_bg" in scheme["colors"]:
+        selection_bg = scheme["colors"]["selection_bg"]
+        selection_fg = scheme["colors"]["selection_fg"]
+
+        css += f"""
 .asciinema-theme-{ident} .asciinema-terminal ::selection {{
     color: {selection_fg};
     background-color: {selection_bg};
@@ -114,9 +116,8 @@ def load_scheme(name):
 }}
 """
 
-    scheme["css"] = css
-
-    return scheme
+    data["css"] = css
+    return data
 
 
 def screen_shot_table(scheme):
@@ -177,10 +178,12 @@ class GenColorScheme(object):
         self.index = index
 
     def render(self, output, depth=0):
-        schemes = [load_scheme(f) for f in sorted(glob.glob("../assets/colors/*.toml"))]
+        with open("colorschemes/data.json") as f:
+            scheme_data = json.load(f)
         by_prefix = {}
-        for scheme in schemes:
-            prefix = scheme["name"][0].lower()
+        for scheme in scheme_data:
+            scheme = load_scheme(scheme)
+            prefix = scheme["prefix"]
             if prefix not in by_prefix:
                 by_prefix[prefix] = []
             by_prefix[prefix].append(scheme)
@@ -239,7 +242,7 @@ return {{
         index_page.render(output, depth)
 
         with open(f"{self.dirname}/index.md", "w") as idx:
-            idx.write(f"{len(schemes)} Color schemes listed by first letter\n\n")
+            idx.write(f"{len(scheme_data)} Color schemes listed by first letter\n\n")
             for page in children:
                 upper = page.title.upper()
                 idx.write(f"  - [{upper}]({page.title}/index.md)\n")
