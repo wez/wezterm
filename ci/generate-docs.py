@@ -63,7 +63,7 @@ def load_scheme(name):
     config.read(name)
 
     name = os.path.splitext(os.path.basename(name))[0]
-    ident = re.sub("[^a-z09_]", "_", name.lower())
+    ident = re.sub("[^a-z0-9_]", "_", name.lower().replace('+', 'plus'))
 
     colors = eval(config["colors"]["ansi"]) + eval(config["colors"]["brights"])
 
@@ -201,7 +201,7 @@ class GenColorScheme(object):
 
                     idx.write(
                         f"""
-<div id="{ident}"></div>
+<div id="{ident}-player"></div>
 
 <style>
 {scheme["css"]}
@@ -211,7 +211,7 @@ class GenColorScheme(object):
 window.addEventListener('load', function () {{
     AsciinemaPlayer.create(
         'data:text/plain;base64,{data}',
-        document.getElementById('{ident}'), {{
+        document.getElementById('{ident}-player'), {{
         theme: "{ident}",
         autoPlay: true,
     }});
