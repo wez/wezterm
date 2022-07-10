@@ -751,9 +751,6 @@ fn is_ambiguous_ascii_ctrl(c: char) -> bool {
 /// produced in combination with SHIFT) that may not be 100%
 /// the right thing to do here for users with non-US layouts.
 fn ctrl_mapping(c: char) -> Option<char> {
-    // Please also sync with the copy of this function that
-    // lives in wezterm-input-types :-/
-    // FIXME: move this to wezterm-input-types and take a dep on it?
     Some(match c {
         '@' | '`' | ' ' | '2' => '\x00',
         'A' | 'a' => '\x01',
