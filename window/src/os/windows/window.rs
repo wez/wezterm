@@ -2262,8 +2262,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             modifiers,
                             repeat_count: 1,
                             key_is_down: !releasing,
-                            win32_uni_char: None,
-                            raw: None,
+                            win32_uni_char: Some(c),
+                            // In this case windows will encode both keys with
+                            // the same key code and state, but the scan_code
+                            // of the first key will be zero.
+                            raw: Some(RawKeyEvent {
+                                scan_code: 0,
+                                ..raw_key_event.clone()
+                            }),
                         }
                         .normalize_shift()
                         .normalize_ctrl();
@@ -2275,18 +2281,19 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         if let Some(new_dead_char) =
                             inner.keyboard_info.is_dead_key_leader(modifiers, vk)
                         {
-                            if new_dead_char != c {
-                                // Happens to be the start of its own new,
-                                // different, dead key sequence
-                                inner.dead_pending.replace((modifiers, vk));
-                                return Some(0);
-                            }
+                            let key = KeyEvent {
+                                key: KeyCode::Char(new_dead_char),
+                                modifiers,
+                                repeat_count: 1,
+                                key_is_down: !releasing,
+                                win32_uni_char: Some(new_dead_char),
+                                raw: Some(raw_key_event),
+                            };
 
-                            // They pressed the same dead key twice,
-                            // emit the underlying char again and call
-                            // it done.
+                            // Pressing any two dead keys will emit both of
+                            // them
                             // <https://github.com/wez/wezterm/issues/1729>
-                            inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
+                            inner.events.dispatch(WindowEvent::KeyEvent(key));
                             return Some(0);
                         }
 
