@@ -1724,6 +1724,7 @@ unsafe fn ime_composition(
                 modifiers: Modifiers::NONE,
                 repeat_count: 1,
                 key_is_down: true,
+                win32_uni_char: None,
                 raw: None,
             };
             inner
@@ -2112,6 +2113,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
     let mut keys = [0u8; 256];
     GetKeyboardState(keys.as_mut_ptr());
+    // Don't modify the key state before the exact win32_uni_char was
+    // looked up.
+    let keys = keys;
 
     let mut modifiers = Modifiers::default();
     if keys[VK_SHIFT as usize] & 0x80 != 0 {
@@ -2171,18 +2175,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         modifiers |= Modifiers::SUPER;
     }
 
-    // If control is pressed, clear that out and remember it in our
-    // own set of modifiers.
-    // We used to also remove shift from this set, but it impacts
-    // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
-    // layout.
-    // The shift normalization is now handled by the normalize_shift() method.
-    if modifiers.contains(Modifiers::CTRL) {
-        keys[VK_CONTROL as usize] = 0;
-        keys[VK_LCONTROL as usize] = 0;
-        keys[VK_RCONTROL as usize] = 0;
-    }
-
     let handled_raw = Handled::new();
     let raw_key_event = RawKeyEvent {
         key: match phys_code {
@@ -2198,11 +2190,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         handled: handled_raw.clone(),
     };
 
-    let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+    let (key, win32_uni_char) = if msg == WM_IME_CHAR || msg == WM_CHAR {
         // If we were sent a character by the IME, some other apps,
         // or by ourselves via TranslateMessage, then take that
         // value as-is.
-        Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        (
+            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32))),
+            None,
+        )
     } else {
         // Otherwise we're dealing with a raw key message.
         // ToUnicode has frustrating statefulness so we take care to
@@ -2227,7 +2222,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // If this event is only modifiers then don't ask the system
             // for further resolution, as we don't want ToUnicode to
             // perturb its inscrutable global state.
-            phys_code.map(|p| p.to_key_code())
+            // Modifiers are always sent with character \x00 in the win32
+            // encoding.
+            (phys_code.map(|p| p.to_key_code()), Some('\x00'))
         } else {
             // If we think this might be a dead key, process it for ourselves.
             // Our KeyboardLayoutInfo struct probed the layout for the key
@@ -2265,6 +2262,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             modifiers,
                             repeat_count: 1,
                             key_is_down: !releasing,
+                            win32_uni_char: None,
                             raw: None,
                         }
                         .normalize_shift()
@@ -2330,13 +2328,74 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             };
 
             if dead.is_some() {
-                dead
+                // Dead key probing already detects the character for any given
+                // combination of modifiers. Therefore, we shouldn't need to
+                // probe for win32_uni_char here.
+                (dead, None)
             } else {
                 // We get here for the various UP (but not DOWN as we shortcircuit
                 // those above) messages.
                 // We perform conversion to unicode for ourselves,
                 // rather than calling TranslateMessage to do it for us,
                 // so that we have tighter control over the key processing.
+
+                // Look up win32_uni_char with the unmodified key state.
+                // We only need this if win32 input mode is allowed.
+                let win32_uni_char = if inner.config.allow_win32_input_mode {
+                    let mut out = [0u16; 16];
+                    let res = ToUnicode(
+                        wparam as u32,
+                        scan_code as u32,
+                        keys.as_ptr(),
+                        out.as_mut_ptr(),
+                        out.len() as i32,
+                        0,
+                    );
+
+                    match res {
+                        1 => Some(std::char::from_u32_unchecked(out[0] as u32)),
+                        // No character is assigned with the pressed key.
+                        0 => Some('\x00'),
+                        _ => {
+                            // dead key: if our dead key mapping in KeyboardLayoutInfo was
+                            // correct, we shouldn't be able to get here as we should have
+                            // landed in the dead key case above.
+                            // If somehow we do get here, we don't have a valid mapping
+                            // as -1 indicates the start of a dead key sequence,
+                            // and any other n > 1 indicates an ambiguous expansion.
+                            // Either way, indicate that we don't have a valid result.
+                            log::error!(
+                                "unexpected dead key expansion: \
+                                 modifiers={:?} vk={:?} res={} releasing={} {:?}",
+                                modifiers,
+                                vk,
+                                res,
+                                releasing,
+                                out
+                            );
+                            KeyboardLayoutInfo::clear_key_state();
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                // If control is pressed, clear that out and remember it in our
+                // own set of modifiers.
+                // We used to also remove shift from this set, but it impacts
+                // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
+                // layout.
+                // The shift normalization is now handled by the normalize_shift() method.
+                let mut keys = keys;
+                if modifiers.contains(Modifiers::CTRL) {
+                    keys[VK_CONTROL as usize] = 0;
+                    keys[VK_LCONTROL as usize] = 0;
+                    keys[VK_RCONTROL as usize] = 0;
+                }
+
+                // Now we can look up the character of they pressed key itself,
+                // without the result being modified by the CTRL modifier.
                 let mut out = [0u16; 16];
                 let res = ToUnicode(
                     wparam as u32,
@@ -2347,7 +2406,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     0,
                 );
 
-                match res {
+                let key = match res {
                     1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                     // No mapping, so use our raw info
                     0 => {
@@ -2378,7 +2437,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         KeyboardLayoutInfo::clear_key_state();
                         None
                     }
-                }
+                };
+
+                (key, win32_uni_char)
             }
         }
     };
@@ -2393,6 +2454,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             modifiers,
             repeat_count: repeat,
             key_is_down: !releasing,
+            win32_uni_char,
             raw: Some(raw_key_event),
         }
         .normalize_shift();

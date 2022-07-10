@@ -1108,6 +1108,10 @@ pub struct KeyEvent {
     /// If true, this is a key down rather than a key up event
     pub key_is_down: bool,
 
+    /// The character code used for win32 keyboard encoding, if available.
+    #[cfg(windows)]
+    pub win32_uni_char: Option<char>,
+
     /// If triggered from a raw key event, here it is.
     pub raw: Option<RawKeyEvent>,
 }
