@@ -271,20 +271,24 @@ impl WindowInner {
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
-                window_state: if self.saved_placement.is_some() {
-                    WindowState::FULL_SCREEN
-                } else {
-                    match get_window_state(self.hwnd.0) {
-                        SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
-                        SW_SHOWMINIMIZED => WindowState::HIDDEN,
-                        _ => WindowState::default(),
-                    }
-                },
+                window_state: self.get_window_state(),
                 live_resizing: self.in_size_move,
             });
         }
 
         !same
+    }
+
+    fn get_window_state(&self) -> WindowState {
+        if self.saved_placement.is_some() {
+            WindowState::FULL_SCREEN
+        } else {
+            match get_window_state(self.hwnd.0) {
+                SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
+                SW_SHOWMINIMIZED => WindowState::HIDDEN,
+                _ => WindowState::default(),
+            }
+        }
     }
 
     fn apply_decoration(&mut self) {
@@ -519,8 +523,10 @@ enum ShowWindowCommand {
 fn schedule_show_window(hwnd: HWindow, show: ShowWindowCommand) {
     // ShowWindow can call to the window proc and may attempt
     // to lock inner, so we avoid locking it ourselves here
+    log::trace!("scheduling ShowWindowCommand {show:?}");
     promise::spawn::spawn(async move {
         unsafe {
+            log::trace!("applying ShowWindowCommand {show:?}");
             ShowWindow(
                 hwnd.0,
                 match show {
@@ -551,7 +557,9 @@ impl WindowInner {
 
     fn set_window_position(&self, coords: ScreenPoint) {
         let hwnd = self.hwnd.0;
+        log::trace!("set_window_position wants {coords:?}");
         promise::spawn::spawn(async move {
+            log::trace!("set_window_position apply {coords:?}");
             let mut rect = RECT {
                 left: 0,
                 bottom: 0,
@@ -760,27 +768,37 @@ impl WindowOps for Window {
 
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.0, move |inner| {
+            log::trace!("set_inner_size called with {width}x{height}");
             let (width, height) = adjust_client_to_window_dimensions(
                 decorations_to_style(inner.config.window_decorations),
                 width,
                 height,
             );
             let hwnd = inner.hwnd;
-            promise::spawn::spawn(async move {
-                unsafe {
-                    SetWindowPos(
-                        hwnd.0,
-                        hwnd.0,
-                        0,
-                        0,
-                        width,
-                        height,
-                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
+            Connection::with_window_inner(hwnd, move |inner| {
+                let window_state = inner.get_window_state();
+                if window_state.can_resize() {
+                    log::trace!("set_inner_size now calling SetWindowPos with {width}x{height}");
+                    unsafe {
+                        SetWindowPos(
+                            hwnd.0,
+                            hwnd.0,
+                            0,
+                            0,
+                            width,
+                            height,
+                            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
+                        );
+                        wm_paint(hwnd.0, 0, 0, 0);
+                    }
+                } else {
+                    log::trace!(
+                        "ignoring set_inner_size({width}, {height}) call \
+                                because window_state is {window_state:?}"
                     );
-                    wm_paint(hwnd.0, 0, 0, 0);
                 }
-            })
-            .detach();
+                Ok(())
+            });
             Ok(())
         });
     }
