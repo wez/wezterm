@@ -294,7 +294,7 @@ impl VTActor for CollectingVTActor {
 }
 
 const MAX_INTERMEDIATES: usize = 2;
-const MAX_OSC: usize = 16;
+const MAX_OSC: usize = 64;
 const MAX_PARAMS: usize = 32;
 
 struct OscState {
@@ -779,28 +779,20 @@ mod test {
 
     #[test]
     fn test_osc_too_many_params() {
-        assert_eq!(
-            parse_as_vec(b"\x1b]0;1;2;3;4;5;6;7;8;9;a;b;c;d;e;f;g\x07"),
-            vec![VTAction::OscDispatch(vec![
-                b"0".to_vec(),
-                b"1".to_vec(),
-                b"2".to_vec(),
-                b"3".to_vec(),
-                b"4".to_vec(),
-                b"5".to_vec(),
-                b"6".to_vec(),
-                b"7".to_vec(),
-                b"8".to_vec(),
-                b"9".to_vec(),
-                b"a".to_vec(),
-                b"b".to_vec(),
-                b"c".to_vec(),
-                b"d".to_vec(),
-                b"e".to_vec(),
-                b"f".to_vec(),
-                // g is discarded
-            ])]
-        );
+        let fields = (0..MAX_OSC + 2)
+            .into_iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>();
+        let input = format!("\x1b]{}\x07", fields.join(";"));
+        let actions = parse_as_vec(input.as_bytes());
+        assert_eq!(actions.len(), 1);
+        match &actions[0] {
+            VTAction::OscDispatch(parsed_fields) => {
+                let fields: Vec<_> = fields.into_iter().map(|s| s.as_bytes().to_vec()).collect();
+                assert_eq!(parsed_fields.as_slice(), &fields[0..MAX_OSC]);
+            }
+            other => panic!("Expected OscDispatch but got {:?}", other),
+        }
     }
 
     #[test]

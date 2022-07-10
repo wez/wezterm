@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: transparent gap under tab bar when window is transparent, split and using per-pane color schemes [#1620](https://github.com/wez/wezterm/issues/1620)
 * Tab bar could show a gap to the right when resizing
 * Padding could show window background rather than pane background around split panes at certain window sizes [#2210](https://github.com/wez/wezterm/issues/2210)
+* Loading dynamic escape sequence scripts from the [iTerm2-Color-Scheme dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors) would only apply the first 7 colors
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
