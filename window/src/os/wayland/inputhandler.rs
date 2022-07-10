@@ -15,36 +15,48 @@ use wayland_protocols::unstable::text_input::v3::client::zwp_text_input_v3::{
     Event, ZwpTextInputV3,
 };
 
+#[derive(Default, Debug)]
+struct PendingState {
+    pre_edit: Option<String>,
+    commit: Option<String>,
+}
+
 #[derive(Debug, Default)]
 struct Inner {
     input_by_seat: HashMap<u32, Attached<ZwpTextInputV3>>,
     keyboard_to_seat: HashMap<u32, u32>,
     surface_to_keyboard: HashMap<u32, u32>,
+    pending_state: HashMap<u32, PendingState>,
 }
 
 impl Inner {
     fn handle_event(
         &mut self,
-        _input: Main<ZwpTextInputV3>,
+        input: Main<ZwpTextInputV3>,
         event: Event,
         _ddata: DispatchData,
         _inner: &Arc<Mutex<Self>>,
     ) {
         log::trace!("{event:?}");
         let conn = WaylandConnection::get().unwrap().wayland();
+        let mut pending_state = self.pending_state.entry(wl_id(&**input)).or_default();
         match event {
             Event::PreeditString {
                 text,
                 cursor_begin: _,
                 cursor_end: _,
             } => {
-                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(match text {
-                    Some(text) => DeadKeyStatus::Composing(text),
-                    None => DeadKeyStatus::None,
-                }));
+                pending_state.pre_edit = text;
             }
             Event::CommitString { text } => {
-                if let Some(text) = text {
+                pending_state.commit = text;
+                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(
+                    DeadKeyStatus::None,
+                ));
+            }
+            Event::Done { serial } => {
+                *conn.last_serial.borrow_mut() = serial;
+                if let Some(text) = pending_state.commit.take() {
                     conn.dispatch_to_focused_window(WindowEvent::KeyEvent(KeyEvent {
                         key: KeyCode::composed(&text),
                         modifiers: Modifiers::NONE,
@@ -53,11 +65,13 @@ impl Inner {
                         raw: None,
                     }));
                 }
-                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(
-                    DeadKeyStatus::None,
-                ));
+                let status = if let Some(text) = pending_state.pre_edit.take() {
+                    DeadKeyStatus::Composing(text)
+                } else {
+                    DeadKeyStatus::None
+                };
+                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(status));
             }
-            Event::Done { serial: _ } => {}
             _ => {}
         }
     }
