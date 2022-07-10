@@ -1197,7 +1197,13 @@ impl KeyEvent {
         const LEFT_CTRL_PRESSED: usize = 0x08;
         const RIGHT_CTRL_PRESSED: usize = 0x04;
 
-        if self.modifiers.contains(Modifiers::SHIFT) {
+        // Shift normalization sometimes removes the shift modifier from an
+        // event. Luckily we can fall back on the individual left and right
+        // modifiers.
+        if self
+            .modifiers
+            .intersects(Modifiers::SHIFT | Modifiers::LEFT_SHIFT | Modifiers::RIGHT_SHIFT)
+        {
             control_key_state |= SHIFT_PRESSED;
         }
 
