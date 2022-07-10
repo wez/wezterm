@@ -8,11 +8,11 @@ build-dir = "../gh_pages"
 create-missing = false
 
 [output.html]
-additional-css = ["custom.css"]
+additional-css = ["custom.css", "asciinema-player.css"]
 default-theme = "ayu"
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/wez/wezterm"
-additional-js = ["mermaid.min.js", "mermaid-init.js"]
+additional-js = ["mermaid.min.js", "mermaid-init.js", "asciinema-player.min.js"]
 
 [output.html.fold]
 enable = true
