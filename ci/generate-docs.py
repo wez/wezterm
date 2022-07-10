@@ -188,6 +188,7 @@ class GenColorScheme(object):
         children = []
         for scheme_prefix in sorted(by_prefix.keys()):
             scheme_filename = f"{self.dirname}/{scheme_prefix}/index.md"
+            os.makedirs(os.path.dirname(scheme_filename), exist_ok=True)
             children.append(Page(scheme_prefix, scheme_filename))
 
             with open(scheme_filename, "w") as idx:
