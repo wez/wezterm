@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-import sys
-import os
+import base64
+import configparser
 import glob
+import json
+import os
 import re
 import subprocess
+import sys
 
 
 class Page(object):
@@ -55,6 +58,120 @@ class Gen(object):
                 idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
 
+def load_scheme(name):
+    config = configparser.ConfigParser()
+    config.read(name)
+
+    name = os.path.splitext(os.path.basename(name))[0]
+    ident = name.lower()
+    for c in ["-", " ", "+"]:
+        ident = ident.replace(c, "_")
+
+    colors = eval(config["colors"]["ansi"]) + eval(config["colors"]["brights"])
+
+    selection_bg = eval(config["colors"]["selection_bg"])
+    selection_fg = eval(config["colors"]["selection_fg"])
+
+    scheme = {
+        "name": name,
+        "ident": ident,
+        "fg": eval(config["colors"]["foreground"]),
+        "bg": eval(config["colors"]["background"]),
+        "cursor": eval(config["colors"]["cursor_border"]),
+    }
+
+    # <https://github.com/asciinema/asciinema-player/wiki/Custom-terminal-themes>
+    css = f"""
+.asciinema-theme-{ident} .asciinema-terminal {{
+    color: {scheme["fg"]};
+    background-color: {scheme["bg"]};
+    border-color: {scheme["bg"]};
+}}
+
+.asciinema-theme-{ident} .fg-bg {{
+    color: {scheme["bg"]};
+}}
+
+.asciinema-theme-{ident} .bg-fg {{
+    background-color: {scheme["fg"]};
+}}
+
+.asciinema-theme-{ident} .cursor-b {{
+    background-color: {scheme["cursor"]} !important;
+}}
+
+.asciinema-theme-{ident} .asciinema-terminal ::selection {{
+    color: {selection_fg};
+    background-color: {selection_bg};
+}}
+"""
+
+    for idx, color in enumerate(colors):
+        css += f"""
+.asciinema-theme-{ident} .fg-{idx} {{
+    color: {color};
+}}
+.asciinema-theme-{ident} .bg-{idx} {{
+    background-color: {color};
+}}
+"""
+
+    scheme["css"] = css
+
+    return scheme
+
+
+def screen_shot_table(scheme):
+    T = "gYw"
+    lines = [
+        scheme["name"],
+        "",
+        "         def     40m     41m     42m     43m     44m     45m     46m     47m",
+    ]
+    for fg_space in [
+        "    m",
+        "   1m",
+        "  30m",
+        "1;30m",
+        "  31m",
+        "1;31m",
+        "  32m",
+        "1;32m",
+        "  33m",
+        "1;33m",
+        "  34m",
+        "1;34m",
+        "  35m",
+        "1;35m",
+        "  36m",
+        "1;36m",
+        "  37m",
+        "1;37m",
+    ]:
+        fg = fg_space.strip()
+        line = f" {fg_space} \033[{fg}  {T}  "
+
+        for bg in ["40m", "41m", "42m", "43m", "44m", "45m", "46m", "47m"]:
+            line += f" \033[{fg}\033[{bg}  {T}  \033[0m"
+        lines.append(line)
+
+    lines.append("")
+    lines.append("")
+
+    screen = "\r\n".join(lines)
+
+    header = {
+        "version": 2,
+        "width": 80,
+        "height": 24,
+        "title": scheme["name"],
+    }
+    header = json.dumps(header, sort_keys=True)
+    data = json.dumps([0.0, "o", screen])
+
+    return base64.b64encode(f"{header}\n{data}\n".encode("UTF-8")).decode("UTF-8")
+
+
 class GenColorScheme(object):
     def __init__(self, title, dirname, index=None):
         self.title = title
@@ -62,23 +179,50 @@ class GenColorScheme(object):
         self.index = index
 
     def render(self, output, depth=0):
-        names = sorted(glob.glob(f"{self.dirname}/*"))
-        children = []
-        for scheme_prefix in names:
-            title = os.path.basename(scheme_prefix).rsplit(".", 1)[0]
-            if title == "index":
-                continue
+        schemes = [load_scheme(f) for f in sorted(glob.glob("../assets/colors/*.toml"))]
+        by_prefix = {}
+        for scheme in schemes:
+            prefix = scheme["name"][0].lower()
+            if prefix not in by_prefix:
+                by_prefix[prefix] = []
+            by_prefix[prefix].append(scheme)
 
-            scheme_filename = f"{scheme_prefix}/index.md"
-            children.append(Page(title, scheme_filename))
+        children = []
+        for scheme_prefix in sorted(by_prefix.keys()):
+            scheme_filename = f"{self.dirname}/{scheme_prefix}/index.md"
+            children.append(Page(scheme_prefix, scheme_filename))
 
             with open(scheme_filename, "w") as idx:
-                images = sorted(glob.glob(f"{scheme_prefix}/*.png"))
-                for img in images:
-                    img = os.path.basename(img)
-                    title = os.path.basename(img).rsplit(".", 1)[0]
+
+                for scheme in by_prefix[scheme_prefix]:
+                    title = scheme["name"]
                     idx.write(f"# {title}\n")
-                    idx.write(f'<img src="{img}" alt="{title}">\n\n')
+
+                    data = screen_shot_table(scheme)
+                    ident = scheme["ident"]
+
+                    idx.write(
+                        f"""
+<div id="{ident}"></div>
+
+<style>
+{scheme["css"]}
+</style>
+
+<script>
+window.addEventListener('load', function () {{
+    AsciinemaPlayer.create(
+        'data:text/plain;base64,{data}',
+        document.getElementById('{ident}'), {{
+        theme: "{ident}",
+        autoPlay: true,
+    }});
+}});
+
+</script>
+"""
+                    )
+
                     idx.write("To use this scheme, add this to your config:\n")
                     idx.write(
                         f"""
