@@ -63,9 +63,7 @@ def load_scheme(name):
     config.read(name)
 
     name = os.path.splitext(os.path.basename(name))[0]
-    ident = name.lower()
-    for c in ["-", " ", "+"]:
-        ident = ident.replace(c, "_")
+    ident = re.sub("[^a-z09_]", "_", name.lower())
 
     colors = eval(config["colors"]["ansi"]) + eval(config["colors"]["brights"])
 
