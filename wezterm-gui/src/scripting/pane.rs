@@ -63,6 +63,9 @@ impl UserData for PaneObject {
         methods.add_method("has_unseen_output", |_, this, _: ()| {
             Ok(this.pane()?.has_unseen_output())
         });
+        methods.add_method("is_alt_screen_active", |_, this, _: ()| {
+            Ok(this.pane()?.is_alt_screen_active())
+        });
 
         // When called with no arguments, returns the lines from the
         // viewport as plain text (no escape sequences).
