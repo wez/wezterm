@@ -21,6 +21,7 @@ termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 logging = { path = "../lua-api-crates/logging" }
 mux-lua = { path = "../lua-api-crates/mux" }
 filesystem = { path = "../lua-api-crates/filesystem" }
+json = { path = "../lua-api-crates/json" }
 share-data = { path = "../lua-api-crates/share-data" }
 ssh-funcs = { path = "../lua-api-crates/ssh-funcs" }
 spawn-funcs = { path = "../lua-api-crates/spawn-funcs" }

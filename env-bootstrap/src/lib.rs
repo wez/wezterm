@@ -165,6 +165,7 @@ fn register_lua_modules() {
         logging::register,
         mux_lua::register,
         filesystem::register,
+        json::register,
         ssh_funcs::register,
         spawn_funcs::register,
         share_data::register,

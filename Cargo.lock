@@ -1096,6 +1096,7 @@ dependencies = [
  "dirs-next",
  "env_logger",
  "filesystem",
+ "json",
  "lazy_static",
  "libc",
  "log",
@@ -1833,6 +1834,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3fac17f7123a73ca62df411b1bf727ccc805daa070338fda671c86dac1bdc27"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "json"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "luahelper",
+ "serde_json",
 ]
 
 [[package]]
