@@ -59,6 +59,13 @@ impl Inner {
             _ => {}
         }
     }
+
+    fn disable_all(&mut self) {
+        for input in self.input_by_seat.values() {
+            input.disable();
+            input.commit();
+        }
+    }
 }
 
 pub struct InputHandler {
@@ -134,6 +141,13 @@ impl InputHandler {
             .unwrap()
             .keyboard_to_seat
             .insert(keyboard_id, seat_id);
+    }
+
+    /// Workaround for <https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4776>
+    /// If we make sure to disable things before we close the app,
+    /// mutter is less likely to get in a bad state
+    pub fn shutdown(&self) {
+        self.inner.lock().unwrap().disable_all();
     }
 
     pub fn seat_defunct(&self, seat: &WlSeat) {

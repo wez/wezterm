@@ -75,6 +75,13 @@ pub struct WaylandConnection {
     pub(crate) display: RefCell<Display>,
 }
 
+impl Drop for WaylandConnection {
+    fn drop(&mut self) {
+        self.environment
+            .with_inner(|env| env.input_handler.shutdown());
+    }
+}
+
 impl WaylandConnection {
     pub fn create_new() -> anyhow::Result<Self> {
         let (environment, display, event_q) = toolkit::new_default_environment!(
