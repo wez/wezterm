@@ -11,6 +11,72 @@
         "#b5e4f4",
         "#a5a2a2"
       ],
+      "background": "#090300",
+      "brights": [
+        "#5c5855",
+        "#db2d20",
+        "#01a252",
+        "#fded02",
+        "#01a0e4",
+        "#a16a94",
+        "#b5e4f4",
+        "#f7f7f7"
+      ],
+      "foreground": "#a5a2a2",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "3024 (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "3"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#090300",
+        "#db2d20",
+        "#01a252",
+        "#fded02",
+        "#01a0e4",
+        "#a16a94",
+        "#b5e4f4",
+        "#a5a2a2"
+      ],
+      "background": "#f7f7f7",
+      "brights": [
+        "#5c5855",
+        "#db2d20",
+        "#01a252",
+        "#fded02",
+        "#01a0e4",
+        "#a16a94",
+        "#b5e4f4",
+        "#f7f7f7"
+      ],
+      "foreground": "#4a4543",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "3024 (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "3"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#090300",
+        "#db2d20",
+        "#01a252",
+        "#fded02",
+        "#01a0e4",
+        "#a16a94",
+        "#b5e4f4",
+        "#a5a2a2"
+      ],
       "background": "#f7f7f7",
       "brights": [
         "#5c5855",
@@ -329,6 +395,39 @@
   {
     "colors": {
       "ansi": [
+        "#757475",
+        "#936a6f",
+        "#668462",
+        "#7f7b62",
+        "#6e7291",
+        "#846887",
+        "#637e7b",
+        "#9a9a9a"
+      ],
+      "background": "#f1eee9",
+      "brights": [
+        "#4a4a4a",
+        "#d76572",
+        "#4fae42",
+        "#a8981f",
+        "#7782cf",
+        "#b754c4",
+        "#2ea89a",
+        "#c4c4c4"
+      ],
+      "foreground": "#b2b3b8",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Gutterslob",
+      "name": "aikofog (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#aa3731",
         "#448c27",
@@ -545,6 +644,435 @@
     "metadata": {
       "name": "Arthur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c2023",
+        "#c7ae95",
+        "#95c7ae",
+        "#aec795",
+        "#ae95c7",
+        "#c795ae",
+        "#95aec7",
+        "#c7ccd1"
+      ],
+      "background": "#1c2023",
+      "brights": [
+        "#747c84",
+        "#c7ae95",
+        "#95c7ae",
+        "#aec795",
+        "#ae95c7",
+        "#c795ae",
+        "#95aec7",
+        "#f3f4f5"
+      ],
+      "foreground": "#c7ccd1",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Ashes (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c2023",
+        "#c7ae95",
+        "#95c7ae",
+        "#aec795",
+        "#ae95c7",
+        "#c795ae",
+        "#95aec7",
+        "#c7ccd1"
+      ],
+      "background": "#f3f4f5",
+      "brights": [
+        "#747c84",
+        "#c7ae95",
+        "#95c7ae",
+        "#aec795",
+        "#ae95c7",
+        "#c795ae",
+        "#95aec7",
+        "#f3f4f5"
+      ],
+      "foreground": "#565e65",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Ashes (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c1c1c",
+        "#d770af",
+        "#9acc79",
+        "#d0d26b",
+        "#77b6c5",
+        "#a488d9",
+        "#7fcab3",
+        "#8d8d8d"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#3d3a3a",
+        "#d28abf",
+        "#8fb676",
+        "#c8bc45",
+        "#8fa7b9",
+        "#bd89de",
+        "#6ec2a8",
+        "#dad3d3"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "astromouse (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#20201d",
+        "#d73737",
+        "#60ac39",
+        "#cfb017",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#a6a28c"
+      ],
+      "background": "#20201d",
+      "brights": [
+        "#7d7a68",
+        "#d73737",
+        "#60ac39",
+        "#cfb017",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#fefbec"
+      ],
+      "foreground": "#a6a28c",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierdune (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#20201d",
+        "#d73737",
+        "#60ac39",
+        "#cfb017",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#a6a28c"
+      ],
+      "background": "#fefbec",
+      "brights": [
+        "#7d7a68",
+        "#d73737",
+        "#60ac39",
+        "#cfb017",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#fefbec"
+      ],
+      "foreground": "#6e6b5e",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierdune (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1918",
+        "#f22c40",
+        "#5ab738",
+        "#d5911a",
+        "#407ee7",
+        "#6666ea",
+        "#00ad9c",
+        "#a8a19f"
+      ],
+      "background": "#1b1918",
+      "brights": [
+        "#766e6b",
+        "#f22c40",
+        "#5ab738",
+        "#d5911a",
+        "#407ee7",
+        "#6666ea",
+        "#00ad9c",
+        "#f1efee"
+      ],
+      "foreground": "#a8a19f",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierforest (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1918",
+        "#f22c40",
+        "#5ab738",
+        "#d5911a",
+        "#407ee7",
+        "#6666ea",
+        "#00ad9c",
+        "#a8a19f"
+      ],
+      "background": "#f1efee",
+      "brights": [
+        "#766e6b",
+        "#f22c40",
+        "#5ab738",
+        "#d5911a",
+        "#407ee7",
+        "#6666ea",
+        "#00ad9c",
+        "#f1efee"
+      ],
+      "foreground": "#68615e",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierforest (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b181b",
+        "#ca402b",
+        "#379a37",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#ab9bab"
+      ],
+      "background": "#1b181b",
+      "brights": [
+        "#776977",
+        "#ca402b",
+        "#379a37",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#f7f3f7"
+      ],
+      "foreground": "#ab9bab",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierheath (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b181b",
+        "#ca402b",
+        "#379a37",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#ab9bab"
+      ],
+      "background": "#f7f3f7",
+      "brights": [
+        "#776977",
+        "#ca402b",
+        "#379a37",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#f7f3f7"
+      ],
+      "foreground": "#695d69",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierheath (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#161b1d",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#5d5db1",
+        "#2d8f6f",
+        "#7ea2b4"
+      ],
+      "background": "#161b1d",
+      "brights": [
+        "#5a7b8c",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#5d5db1",
+        "#2d8f6f",
+        "#ebf8ff"
+      ],
+      "foreground": "#7ea2b4",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierlakeside (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#161b1d",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#5d5db1",
+        "#2d8f6f",
+        "#7ea2b4"
+      ],
+      "background": "#ebf8ff",
+      "brights": [
+        "#5a7b8c",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#5d5db1",
+        "#2d8f6f",
+        "#ebf8ff"
+      ],
+      "foreground": "#516d7b",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierlakeside (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#131513",
+        "#e6193c",
+        "#29a329",
+        "#c3c322",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#8ca68c"
+      ],
+      "background": "#131513",
+      "brights": [
+        "#687d68",
+        "#e6193c",
+        "#29a329",
+        "#c3c322",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#f0fff0"
+      ],
+      "foreground": "#8ca68c",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierseaside (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#131513",
+        "#e6193c",
+        "#29a329",
+        "#c3c322",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#8ca68c"
+      ],
+      "background": "#f0fff0",
+      "brights": [
+        "#687d68",
+        "#e6193c",
+        "#29a329",
+        "#c3c322",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#f0fff0"
+      ],
+      "foreground": "#5e6e5e",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Atelierseaside (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "a"
     }
   },
@@ -1168,6 +1696,105 @@
   {
     "colors": {
       "ansi": [
+        "#252525",
+        "#ef6769",
+        "#a6e22e",
+        "#fd971f",
+        "#6495ed",
+        "#deb887",
+        "#b0c4de",
+        "#dbdcdc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#454545",
+        "#fc7ca5",
+        "#b6e354",
+        "#fd971f",
+        "#87ceeb",
+        "#996600",
+        "#87ceeb",
+        "#fdfdfd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Belge (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#28211c",
+        "#cf6a4c",
+        "#54be0d",
+        "#f9ee98",
+        "#5ea6ea",
+        "#9b859d",
+        "#afc4db",
+        "#8a8986"
+      ],
+      "background": "#28211c",
+      "brights": [
+        "#666666",
+        "#cf6a4c",
+        "#54be0d",
+        "#f9ee98",
+        "#5ea6ea",
+        "#9b859d",
+        "#afc4db",
+        "#baae9e"
+      ],
+      "foreground": "#8a8986",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Bespin (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#28211c",
+        "#cf6a4c",
+        "#54be0d",
+        "#f9ee98",
+        "#5ea6ea",
+        "#9b859d",
+        "#afc4db",
+        "#8a8986"
+      ],
+      "background": "#baae9e",
+      "brights": [
+        "#666666",
+        "#cf6a4c",
+        "#54be0d",
+        "#f9ee98",
+        "#5ea6ea",
+        "#9b859d",
+        "#afc4db",
+        "#baae9e"
+      ],
+      "foreground": "#5e5d5c",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Bespin (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2c2423",
         "#f557a0",
         "#a9ee55",
@@ -1240,6 +1867,39 @@
   {
     "colors": {
       "ansi": [
+        "#282828",
+        "#b76969",
+        "#719d72",
+        "#909858",
+        "#68668f",
+        "#966894",
+        "#688891",
+        "#8e8e8e"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#494949",
+        "#b87e7e",
+        "#839d84",
+        "#919864",
+        "#73718f",
+        "#987397",
+        "#758c93",
+        "#aeaeae"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Bitmute (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#b87a7a",
         "#7ab87a",
@@ -1271,6 +1931,39 @@
     "metadata": {
       "name": "Blazer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#666666",
+        "#996578",
+        "#889965",
+        "#998565",
+        "#657a99",
+        "#8b6599",
+        "#65998d",
+        "#a5a5a4"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#8c847f",
+        "#bd4b76",
+        "#95b548",
+        "#bd814b",
+        "#4c83bf",
+        "#a04bbd",
+        "#4dbda8",
+        "#848484"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Bleh-1 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "b"
     }
   },
@@ -1600,6 +2293,72 @@
     "metadata": {
       "name": "Breeze",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0c0d0e",
+        "#e31a1c",
+        "#31a354",
+        "#dca060",
+        "#3182bd",
+        "#756bb1",
+        "#80b1d3",
+        "#b7b8b9"
+      ],
+      "background": "#0c0d0e",
+      "brights": [
+        "#737475",
+        "#e31a1c",
+        "#31a354",
+        "#dca060",
+        "#3182bd",
+        "#756bb1",
+        "#80b1d3",
+        "#fcfdfe"
+      ],
+      "foreground": "#b7b8b9",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Brewer (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0c0d0e",
+        "#e31a1c",
+        "#31a354",
+        "#dca060",
+        "#3182bd",
+        "#756bb1",
+        "#80b1d3",
+        "#b7b8b9"
+      ],
+      "background": "#fcfdfe",
+      "brights": [
+        "#737475",
+        "#e31a1c",
+        "#31a354",
+        "#dca060",
+        "#3182bd",
+        "#756bb1",
+        "#80b1d3",
+        "#fcfdfe"
+      ],
+      "foreground": "#515253",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Brewer (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "b"
     }
   },
@@ -2085,6 +2844,72 @@
   {
     "colors": {
       "ansi": [
+        "#26251c",
+        "#323027",
+        "#3d4339",
+        "#443b2c",
+        "#534d35",
+        "#646756",
+        "#7b8574",
+        "#837b61"
+      ],
+      "background": "#170f0d",
+      "brights": [
+        "#999f91",
+        "#9b9773",
+        "#b2b08c",
+        "#c4bb8c",
+        "#c4b67a",
+        "#cfc995",
+        "#d3d4b6",
+        "#d6d3ac"
+      ],
+      "foreground": "#746c48",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Canvased Pastel (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#130f0c",
+        "#604c38",
+        "#8d7f85",
+        "#907256",
+        "#aa8d70",
+        "#b9a38d",
+        "#c4bfbf",
+        "#c4ae99"
+      ],
+      "background": "#170f0d",
+      "brights": [
+        "#c69f77",
+        "#cab9a8",
+        "#d5c6b8",
+        "#dcd1c7",
+        "#e0e0e2",
+        "#e4dad2",
+        "#eae3dc",
+        "#f6f2f0"
+      ],
+      "foreground": "#f9f9f9",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Catch Me If You Can (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#aa0000",
         "#00aa00",
@@ -2159,6 +2984,39 @@
   {
     "colors": {
       "ansi": [
+        "#151515",
+        "#fb9fb1",
+        "#acc267",
+        "#ddb26f",
+        "#6fc2ef",
+        "#e1a3ee",
+        "#12cfc0",
+        "#d0d0d0"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#505050",
+        "#fb9fb1",
+        "#acc267",
+        "#ddb26f",
+        "#6fc2ef",
+        "#e1a3ee",
+        "#12cfc0",
+        "#f5f5f5"
+      ],
+      "foreground": "#d0d0d0",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Chalk (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#646464",
         "#f58e8e",
         "#a9d3ab",
@@ -2188,6 +3046,39 @@
     "metadata": {
       "name": "Chalk (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#fb9fb1",
+        "#acc267",
+        "#ddb26f",
+        "#6fc2ef",
+        "#e1a3ee",
+        "#12cfc0",
+        "#d0d0d0"
+      ],
+      "background": "#f5f5f5",
+      "brights": [
+        "#505050",
+        "#fb9fb1",
+        "#acc267",
+        "#ddb26f",
+        "#6fc2ef",
+        "#e1a3ee",
+        "#12cfc0",
+        "#f5f5f5"
+      ],
+      "foreground": "#303030",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Chalk (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "c"
     }
   },
@@ -2377,6 +3268,39 @@
   {
     "colors": {
       "ansi": [
+        "#201e24",
+        "#2d2b30",
+        "#3f3d40",
+        "#413c3e",
+        "#423e41",
+        "#4e4a4b",
+        "#6e6765",
+        "#837e81"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#837c78",
+        "#89827d",
+        "#a7a099",
+        "#c2bec1",
+        "#c3bcb2",
+        "#cbc5ba",
+        "#e3ddd2",
+        "#efe8dc"
+      ],
+      "foreground": "#d3d3d3",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "City Streets (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2e3436",
         "#cc0000",
         "#4e9a06",
@@ -2406,6 +3330,39 @@
     "metadata": {
       "name": "CloneofUbuntu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#222827",
+        "#d5a8e3",
+        "#9c75dd",
+        "#9898ae",
+        "#654a96",
+        "#625566",
+        "#a9d1df",
+        "#e6ebe5"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5d6f74",
+        "#cd749c",
+        "#63b0b0",
+        "#c0c0dd",
+        "#5786bc",
+        "#3f3442",
+        "#849da2",
+        "#d9d6cf"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Cloud (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "c"
     }
   },
@@ -2523,6 +3480,72 @@
   {
     "colors": {
       "ansi": [
+        "#232c31",
+        "#2a5491",
+        "#237986",
+        "#a03b1e",
+        "#484d79",
+        "#c59820",
+        "#b02f30",
+        "#9ea7a6"
+      ],
+      "background": "#232c31",
+      "brights": [
+        "#3f4944",
+        "#2a5491",
+        "#237986",
+        "#a03b1e",
+        "#484d79",
+        "#c59820",
+        "#b02f30",
+        "#b5d8f6"
+      ],
+      "foreground": "#9ea7a6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Codeschool (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#232c31",
+        "#2a5491",
+        "#237986",
+        "#a03b1e",
+        "#484d79",
+        "#c59820",
+        "#b02f30",
+        "#9ea7a6"
+      ],
+      "background": "#b5d8f6",
+      "brights": [
+        "#3f4944",
+        "#2a5491",
+        "#237986",
+        "#a03b1e",
+        "#484d79",
+        "#c59820",
+        "#b02f30",
+        "#b5d8f6"
+      ],
+      "foreground": "#2a343a",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Codeschool (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#c91b00",
         "#00c200",
@@ -2560,6 +3583,39 @@
   {
     "colors": {
       "ansi": [
+        "#03010f",
+        "#503b43",
+        "#353b64",
+        "#8c2424",
+        "#6067ac",
+        "#624d19",
+        "#7c83c0",
+        "#9a600f"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#ab9e9e",
+        "#b28930",
+        "#bbada9",
+        "#c37305",
+        "#d0ae58",
+        "#d7b559",
+        "#f4e199",
+        "#f6f4df"
+      ],
+      "foreground": "#d3d3d3",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Color Star (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#d70000",
         "#5faf00",
@@ -2589,6 +3645,72 @@
     "metadata": {
       "name": "Colorcli (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#ff8eaf",
+        "#a6e25f",
+        "#f8e578",
+        "#a6e2f0",
+        "#e85b92",
+        "#5f868f",
+        "#d5f1f2"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#696969",
+        "#ed4c7a",
+        "#a6e179",
+        "#ffdf6b",
+        "#79d2ff",
+        "#bb5d79",
+        "#87a8af",
+        "#e2f1f6"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Colorful Colors (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#303030",
+        "#c10023",
+        "#a83334",
+        "#b51d2c",
+        "#8c4b46",
+        "#7d534f",
+        "#9a413d",
+        "#c6c6c6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5e5e5e",
+        "#ff8781",
+        "#ffa095",
+        "#ff948b",
+        "#feb2aa",
+        "#ebbbb5",
+        "#ffaaa0",
+        "#ffffff"
+      ],
+      "foreground": "#919191",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Count Von Count (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "c"
     }
   },
@@ -2701,6 +3823,72 @@
       "name": "cyberpunk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#e84f4f",
+        "#b8d68c",
+        "#e1aa5d",
+        "#7dc1cf",
+        "#9b64fb",
+        "#6d878d",
+        "#dddddd"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#404040",
+        "#d23d3d",
+        "#a0cf5d",
+        "#f39d21",
+        "#4e9fb1",
+        "#8542ff",
+        "#42717b",
+        "#dddddd"
+      ],
+      "foreground": "#d7d0c7",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "crshd",
+      "name": "X::DotShare (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#571dc2",
+        "#14db49",
+        "#403d70",
+        "#385a70",
+        "#384894",
+        "#4f3a5e",
+        "#999999"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#38372c",
+        "#7c54b0",
+        "#a2e655",
+        "#9c6f59",
+        "#323f5c",
+        "#5e6c99",
+        "#667d77",
+        "#ffffff"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "DOOMICIDE",
+      "name": "Dark Ocean (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
     }
   },
   {
@@ -2891,6 +4079,72 @@
   {
     "colors": {
       "ansi": [
+        "#353535",
+        "#744b40",
+        "#6d6137",
+        "#765636",
+        "#61564b",
+        "#6b4a49",
+        "#435861",
+        "#b3b3b3"
+      ],
+      "background": "#181b20",
+      "brights": [
+        "#5f5f5f",
+        "#785850",
+        "#6f6749",
+        "#776049",
+        "#696057",
+        "#6f5a59",
+        "#525f66",
+        "#cdcdcd"
+      ],
+      "foreground": "#9b9081",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Escapist",
+      "name": "Dawn (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3d3e3d",
+        "#755a5b",
+        "#68755a",
+        "#756e5a",
+        "#5b6976",
+        "#755b76",
+        "#465457",
+        "#ccccc6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5a5b5c",
+        "#a37679",
+        "#87a376",
+        "#a39b76",
+        "#758ba3",
+        "#9f76a3",
+        "#899ca1",
+        "#f8f8f2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Deafened (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#d70005",
         "#1cd915",
@@ -2922,6 +4176,72 @@
     "metadata": {
       "name": "deep",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#d0d0d0"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#505050",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#f5f5f5"
+      ],
+      "foreground": "#d0d0d0",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Default (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#d0d0d0"
+      ],
+      "background": "#f5f5f5",
+      "brights": [
+        "#505050",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#f5f5f5"
+      ],
+      "foreground": "#303030",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Default (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "d"
     }
   },
@@ -2963,6 +4283,39 @@
   {
     "colors": {
       "ansi": [
+        "#111111",
+        "#d36265",
+        "#aece91",
+        "#e7e18c",
+        "#5297cf",
+        "#963c59",
+        "#5e7175",
+        "#bebebe"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#666666",
+        "#ef8171",
+        "#cfefb3",
+        "#fff796",
+        "#74b8ef",
+        "#b85e7b",
+        "#a3babf",
+        "#ffffff"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Derp (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4d4d4d",
         "#ff2b2b",
         "#98fb98",
@@ -2994,6 +4347,39 @@
     "metadata": {
       "name": "Desert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#303030",
+        "#c03000",
+        "#b1d631",
+        "#fecf35",
+        "#426870",
+        "#6d506d",
+        "#4bb5c1",
+        "#e2e2e5"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5f5f5f",
+        "#ff3a78",
+        "#a6cd07",
+        "#b5c865",
+        "#4a7781",
+        "#ff3b77",
+        "#4bb5c1",
+        "#e2e2e5"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Digerati (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "d"
     }
   },
@@ -3294,6 +4680,39 @@
   {
     "colors": {
       "ansi": [
+        "#101010",
+        "#e84f4f",
+        "#b8d68c",
+        "#e1aa5d",
+        "#7dc1cf",
+        "#9b64fb",
+        "#6d878d",
+        "#dddddd"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#404040",
+        "#d23d3d",
+        "#a0cf5d",
+        "#f39d21",
+        "#4e9fb1",
+        "#8542ff",
+        "#42717b",
+        "#dddddd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Dotshare (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#ff5555",
         "#50fa7b",
@@ -3477,6 +4896,72 @@
   {
     "colors": {
       "ansi": [
+        "#151515",
+        "#bf7979",
+        "#97b26b",
+        "#cdcda1",
+        "#4a5463",
+        "#9c3885",
+        "#88aadd",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#505450",
+        "#f4a45f",
+        "#c5f779",
+        "#ffffaf",
+        "#7d8794",
+        "#e628ba",
+        "#99ccff",
+        "#dedede"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "DWM rob (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#332d29",
+        "#8c644c",
+        "#746c48",
+        "#908a66",
+        "#646a6d",
+        "#605655",
+        "#4b5c5e",
+        "#504339"
+      ],
+      "background": "#181512",
+      "brights": [
+        "#817267",
+        "#9f7155",
+        "#857b52",
+        "#9c956e",
+        "#71777a",
+        "#656565",
+        "#556d70",
+        "#9a875f"
+      ],
+      "foreground": "#bea492",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "earsplit",
+      "name": "X::Erosion (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#121418",
         "#c94234",
         "#85c54c",
@@ -3508,6 +4993,105 @@
     "metadata": {
       "name": "Earthsong",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2d2d2d",
+        "#f2777a",
+        "#99cc99",
+        "#ffcc66",
+        "#6699cc",
+        "#cc99cc",
+        "#66cccc",
+        "#d3d0c8"
+      ],
+      "background": "#2d2d2d",
+      "brights": [
+        "#747369",
+        "#f2777a",
+        "#99cc99",
+        "#ffcc66",
+        "#6699cc",
+        "#cc99cc",
+        "#66cccc",
+        "#f2f0ec"
+      ],
+      "foreground": "#d3d0c8",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Eighties (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2d2d2d",
+        "#f2777a",
+        "#99cc99",
+        "#ffcc66",
+        "#6699cc",
+        "#cc99cc",
+        "#66cccc",
+        "#d3d0c8"
+      ],
+      "background": "#f2f0ec",
+      "brights": [
+        "#747369",
+        "#f2777a",
+        "#99cc99",
+        "#ffcc66",
+        "#6699cc",
+        "#cc99cc",
+        "#66cccc",
+        "#f2f0ec"
+      ],
+      "foreground": "#515151",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Eighties (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4e4e4e",
+        "#a9635d",
+        "#468459",
+        "#84763d",
+        "#5879af",
+        "#9c6594",
+        "#008592",
+        "#cfcfcf"
+      ],
+      "background": "#292929",
+      "brights": [
+        "#777777",
+        "#ffbbb2",
+        "#9ddeaf",
+        "#e0ce91",
+        "#b3d1ff",
+        "#fabdf0",
+        "#79e0ed",
+        "#ffffff"
+      ],
+      "foreground": "#a2a2a2",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Eldorado dark (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "e"
     }
   },
@@ -3693,6 +5277,72 @@
   {
     "colors": {
       "ansi": [
+        "#16130f",
+        "#826d57",
+        "#57826d",
+        "#6d8257",
+        "#6d5782",
+        "#82576d",
+        "#576d82",
+        "#a39a90"
+      ],
+      "background": "#16130f",
+      "brights": [
+        "#5a5047",
+        "#826d57",
+        "#57826d",
+        "#6d8257",
+        "#6d5782",
+        "#82576d",
+        "#576d82",
+        "#dbd6d1"
+      ],
+      "foreground": "#a39a90",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Embers (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#16130f",
+        "#826d57",
+        "#57826d",
+        "#6d8257",
+        "#6d5782",
+        "#82576d",
+        "#576d82",
+        "#a39a90"
+      ],
+      "background": "#dbd6d1",
+      "brights": [
+        "#5a5047",
+        "#826d57",
+        "#57826d",
+        "#6d8257",
+        "#6d5782",
+        "#82576d",
+        "#576d82",
+        "#dbd6d1"
+      ],
+      "foreground": "#433b32",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Embers (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#9f0000",
         "#008b00",
@@ -3724,6 +5374,105 @@
     "metadata": {
       "name": "ENCOM",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#565656",
+        "#ac4f4f",
+        "#88ab77",
+        "#d0d9ad",
+        "#677088",
+        "#cdcdb4",
+        "#445362",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#656565",
+        "#e85555",
+        "#8ccd6c",
+        "#c5d67d",
+        "#647396",
+        "#cdb4c9",
+        "#505b6c",
+        "#c0c0c0"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Epiphany (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#222222",
+        "#e84f4f",
+        "#b7ce42",
+        "#fea63c",
+        "#66a9b9",
+        "#b7416e",
+        "#6d878d",
+        "#cccccc"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#666666",
+        "#d23d3d",
+        "#bde077",
+        "#ffe863",
+        "#aaccbb",
+        "#e16a98",
+        "#42717b",
+        "#ffffff"
+      ],
+      "foreground": "#cccccc",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Eqie6 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#757575",
+        "#ff5f5f",
+        "#de8a36",
+        "#d78787",
+        "#af5fd7",
+        "#ff87d7",
+        "#dea3e5",
+        "#b8b8b8"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#b8b8b8",
+        "#d78787",
+        "#ff9f6f",
+        "#ff5f5f",
+        "#dea3e5",
+        "#d7afaf",
+        "#af5fd7",
+        "#757575"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Erebus (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "e"
     }
   },
@@ -3798,6 +5547,39 @@
     "metadata": {
       "name": "Espresso Libre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#192033",
+        "#a62a3e",
+        "#38912b",
+        "#b27d12",
+        "#355c9a",
+        "#7c4f9f",
+        "#258f8f",
+        "#77858c"
+      ],
+      "background": "#cfcfd9",
+      "brights": [
+        "#666666",
+        "#f04758",
+        "#93c724",
+        "#ddb62b",
+        "#45a3e6",
+        "#c953ef",
+        "#60c6c8",
+        "#c0c0c0"
+      ],
+      "foreground": "#1c2027",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Euphrasia (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "e"
     }
   },
@@ -3948,6 +5730,39 @@
   {
     "colors": {
       "ansi": [
+        "#303030",
+        "#a43261",
+        "#006ca5",
+        "#007086",
+        "#6751a6",
+        "#913e88",
+        "#0061b1",
+        "#c6c6c6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5e5e5e",
+        "#ff9fc9",
+        "#3bd6ff",
+        "#00ddf4",
+        "#d5b8ff",
+        "#ffa7f6",
+        "#93c9ff",
+        "#ffffff"
+      ],
+      "foreground": "#919191",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "FarSide (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "f"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#292f33",
         "#cb1e2d",
         "#edb8ac",
@@ -4053,6 +5868,39 @@
     "metadata": {
       "name": "Firewatch",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#293b3b",
+        "#bf5357",
+        "#41a551",
+        "#aea64f",
+        "#416ea5",
+        "#bf6053",
+        "#714da5",
+        "#876868"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#344040",
+        "#bf6367",
+        "#51a55f",
+        "#aea75d",
+        "#5177a5",
+        "#bf6e63",
+        "#7859a5",
+        "#876f6f"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Fishbone (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "f"
     }
   },
@@ -4678,6 +6526,39 @@
   {
     "colors": {
       "ansi": [
+        "#1c1c1c",
+        "#ff005b",
+        "#cee318",
+        "#ffe755",
+        "#048ac7",
+        "#833c9f",
+        "#0ac1cd",
+        "#e5e5e5"
+      ],
+      "background": "#1c1c1c",
+      "brights": [
+        "#666666",
+        "#ff00a0",
+        "#ccff00",
+        "#ff9f00",
+        "#48c6ff",
+        "#be67e1",
+        "#63e7f0",
+        "#f3f3f3"
+      ],
+      "foreground": "#c5c5c5",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "GJM (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2e343c",
         "#bd0f2f",
         "#35a770",
@@ -4779,6 +6660,72 @@
     "metadata": {
       "name": "gooey (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d1f21",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#c5c8c6"
+      ],
+      "background": "#1d1f21",
+      "brights": [
+        "#969896",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#ffffff"
+      ],
+      "foreground": "#c5c8c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Google (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d1f21",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#c5c8c6"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#969896",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#ffffff"
+      ],
+      "foreground": "#373b41",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Google (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g"
     }
   },
@@ -4890,6 +6837,39 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#f25a5a",
+        "#77bb33",
+        "#efc334",
+        "#5555dd",
+        "#c350ff",
+        "#5af2ee",
+        "#bebebe"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#222222",
+        "#ffbbbb",
+        "#dcf692",
+        "#f6df92",
+        "#b2baf6",
+        "#f09fff",
+        "#5af2ee",
+        "#eeeeee"
+      ],
+      "foreground": "#bebebe",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Grandshell (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2d283f",
         "#ed2261",
         "#1fa91b",
@@ -4958,6 +6938,138 @@
     "metadata": {
       "name": "Grass",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#b9b9b9"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#525252",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#f7f7f7"
+      ],
+      "foreground": "#b9b9b9",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Grayscale (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#b9b9b9"
+      ],
+      "background": "#f7f7f7",
+      "brights": [
+        "#525252",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#f7f7f7"
+      ],
+      "foreground": "#464646",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Grayscale (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#001100",
+        "#007700",
+        "#00bb00",
+        "#007700",
+        "#009900",
+        "#00bb00",
+        "#005500",
+        "#00bb00"
+      ],
+      "background": "#001100",
+      "brights": [
+        "#007700",
+        "#007700",
+        "#00bb00",
+        "#007700",
+        "#009900",
+        "#00bb00",
+        "#005500",
+        "#00ff00"
+      ],
+      "foreground": "#00bb00",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Greenscreen (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#001100",
+        "#007700",
+        "#00bb00",
+        "#007700",
+        "#009900",
+        "#00bb00",
+        "#005500",
+        "#00bb00"
+      ],
+      "background": "#00ff00",
+      "brights": [
+        "#007700",
+        "#007700",
+        "#00bb00",
+        "#007700",
+        "#009900",
+        "#00bb00",
+        "#005500",
+        "#00ff00"
+      ],
+      "foreground": "#005500",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Greenscreen (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g"
     }
   },
@@ -5766,6 +7878,39 @@
   {
     "colors": {
       "ansi": [
+        "#222222",
+        "#e84f4f",
+        "#b7ce42",
+        "#fea63c",
+        "#66aabb",
+        "#b7416e",
+        "#6d878d",
+        "#dddddd"
+      ],
+      "background": "#161616",
+      "brights": [
+        "#666666",
+        "#d23d3d",
+        "#bde077",
+        "#ffe863",
+        "#aaccbb",
+        "#e16a98",
+        "#42717b",
+        "#cccccc"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "hund",
+      "name": "hund (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#575757",
         "#ff1b00",
         "#a5e055",
@@ -5869,6 +8014,72 @@
     "metadata": {
       "name": "Hybrid (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282a2e",
+        "#a54242",
+        "#8c9440",
+        "#de935f",
+        "#5f819d",
+        "#85678f",
+        "#5e8d87",
+        "#707880"
+      ],
+      "background": "#1d1f21",
+      "brights": [
+        "#373b41",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b294bb",
+        "#8abeb7",
+        "#c5c8c6"
+      ],
+      "foreground": "#c5c8c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "w0ng",
+      "name": "Hybrid (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#393939",
+        "#da4939",
+        "#9acc79",
+        "#d0d26b",
+        "#6d9cbe",
+        "#9f5079",
+        "#435d75",
+        "#c2c2c2"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#474747",
+        "#ff6c5c",
+        "#8fb676",
+        "#c8bc45",
+        "#d0d0ff",
+        "#a761c2",
+        "#6e98a4",
+        "#c2c2c2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Hybrid (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "h"
     }
   },
@@ -6202,6 +8413,105 @@
   {
     "colors": {
       "ansi": [
+        "#393939",
+        "#da4939",
+        "#519f50",
+        "#cc7833",
+        "#6d9cbe",
+        "#9f5079",
+        "#435d75",
+        "#dddddd"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#474747",
+        "#ff6c5c",
+        "#a5c261",
+        "#bc9458",
+        "#d0d0ff",
+        "#a761c2",
+        "#6e98a4",
+        "#dddddd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "iiamblack",
+      "name": "Iiamblack (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3d3e3d",
+        "#755a5b",
+        "#68755a",
+        "#756e5a",
+        "#5b6976",
+        "#755b76",
+        "#5b7674",
+        "#808080"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5a5b5c",
+        "#a37679",
+        "#87a376",
+        "#a39b76",
+        "#758ba3",
+        "#9f76a3",
+        "#75a3a1",
+        "#aeafb0"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Insignificato (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#303030",
+        "#d370a3",
+        "#6d9e3f",
+        "#b58858",
+        "#6095c5",
+        "#ac7bde",
+        "#3ba275",
+        "#cfcfcf"
+      ],
+      "background": "#232323",
+      "brights": [
+        "#686868",
+        "#ffa7da",
+        "#a3d572",
+        "#efbd8b",
+        "#98cbfe",
+        "#e5b0ff",
+        "#75daa9",
+        "#ffffff"
+      ],
+      "foreground": "#a0a0a0",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Invisibone (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4f4f4f",
         "#fa6c60",
         "#a8ff60",
@@ -6268,6 +8578,138 @@
     "metadata": {
       "name": "IrBlack (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#ff0000",
+        "#33ff00",
+        "#ff0099",
+        "#0066ff",
+        "#cc00ff",
+        "#00ffff",
+        "#d0d0d0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#808080",
+        "#ff0000",
+        "#33ff00",
+        "#ff0099",
+        "#0066ff",
+        "#cc00ff",
+        "#00ffff",
+        "#ffffff"
+      ],
+      "foreground": "#d0d0d0",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Isotope (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#ff0000",
+        "#33ff00",
+        "#ff0099",
+        "#0066ff",
+        "#cc00ff",
+        "#00ffff",
+        "#d0d0d0"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#808080",
+        "#ff0000",
+        "#33ff00",
+        "#ff0099",
+        "#0066ff",
+        "#cc00ff",
+        "#00ffff",
+        "#ffffff"
+      ],
+      "foreground": "#606060",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Isotope (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5b5955",
+        "#c4756e",
+        "#559a6a",
+        "#9b8a4b",
+        "#6a8dca",
+        "#b577ac",
+        "#019baa",
+        "#dbdde2"
+      ],
+      "background": "#2d2c28",
+      "brights": [
+        "#707277",
+        "#f6a299",
+        "#82c896",
+        "#cab775",
+        "#98bbfb",
+        "#e5a4db",
+        "#53cad9",
+        "#f7f9ff"
+      ],
+      "foreground": "#a4a6ab",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Ivory Dark (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#c5c1b4",
+        "#e75c58",
+        "#00a250",
+        "#a08a00",
+        "#208ffb",
+        "#d160c4",
+        "#00a4c1",
+        "#3e424d"
+      ],
+      "background": "#fef9ec",
+      "brights": [
+        "#a1a6b2",
+        "#b22b31",
+        "#007427",
+        "#715f00",
+        "#0065ca",
+        "#a03196",
+        "#007693",
+        "#282c36"
+      ],
+      "foreground": "#6d727e",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Ivory Light (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "i"
     }
   },
@@ -6348,6 +8790,39 @@
   {
     "colors": {
       "ansi": [
+        "#222222",
+        "#9e5641",
+        "#6c7e55",
+        "#caaf2b",
+        "#4c8ea1",
+        "#956d9d",
+        "#7c9aa6",
+        "#909090"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#454545",
+        "#cc896d",
+        "#7db37d",
+        "#bfb556",
+        "#6bc1d0",
+        "#c18fcb",
+        "#8fadbf",
+        "#ffffff"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Jason Wryan (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "j"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#929292",
         "#e27373",
         "#94b979",
@@ -6416,6 +8891,39 @@
     "metadata": {
       "name": "JetBrains Darcula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "j"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5a7260",
+        "#8f423c",
+        "#bbbb88",
+        "#f9d25b",
+        "#e0ba69",
+        "#709289",
+        "#d13516",
+        "#efe2e0"
+      ],
+      "background": "#1e1e1e",
+      "brights": [
+        "#8da691",
+        "#eeaa88",
+        "#ccc68d",
+        "#eedd99",
+        "#c9b957",
+        "#ffcbab",
+        "#c25431",
+        "#f9f1ed"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "jmbi",
+      "name": "jmbi (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "j"
     }
   },
@@ -6494,6 +9002,39 @@
   {
     "colors": {
       "ansi": [
+        "#333333",
+        "#8c4665",
+        "#287373",
+        "#7c7c99",
+        "#395573",
+        "#5e468c",
+        "#31658c",
+        "#899ca1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#3d3d3d",
+        "#bf4d80",
+        "#53a6a6",
+        "#9e9ecb",
+        "#477ab3",
+        "#7e62b3",
+        "#6096bf",
+        "#c0c0c0"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "JWR dark (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "j"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1f1f28",
         "#e46a78",
         "#98bc6d",
@@ -6525,6 +9066,39 @@
     "metadata": {
       "name": "kanagawabones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "k"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3d3d3d",
+        "#6673bf",
+        "#3ea290",
+        "#b0ead9",
+        "#31658c",
+        "#596196",
+        "#8292b2",
+        "#c8cacc"
+      ],
+      "background": "#1b1b1b",
+      "brights": [
+        "#4d4d4d",
+        "#899aff",
+        "#52ad91",
+        "#98c9bb",
+        "#477ab3",
+        "#7882bf",
+        "#95a7cc",
+        "#edeff2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Kori Ayakashi",
+      "name": "Kasugano (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "k"
     }
   },
@@ -6860,6 +9434,39 @@
   {
     "colors": {
       "ansi": [
+        "#808080",
+        "#c48980",
+        "#8da862",
+        "#b29b7a",
+        "#809bc4",
+        "#aa88b2",
+        "#82adad",
+        "#bfbfbf"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#9c9c9c",
+        "#a15048",
+        "#4b7508",
+        "#916f27",
+        "#567cb0",
+        "#964e8f",
+        "#4e848a",
+        "#9c9c9c"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Gutterslob",
+      "name": "Light White (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#ff3030",
         "#559a70",
@@ -6971,6 +9578,105 @@
   {
     "colors": {
       "ansi": [
+        "#231f20",
+        "#ee2e24",
+        "#00853e",
+        "#ffd204",
+        "#009ddc",
+        "#98005d",
+        "#85cebc",
+        "#d9d8d8"
+      ],
+      "background": "#231f20",
+      "brights": [
+        "#737171",
+        "#ee2e24",
+        "#00853e",
+        "#ffd204",
+        "#009ddc",
+        "#98005d",
+        "#85cebc",
+        "#ffffff"
+      ],
+      "foreground": "#d9d8d8",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Londontube (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#231f20",
+        "#ee2e24",
+        "#00853e",
+        "#ffd204",
+        "#009ddc",
+        "#98005d",
+        "#85cebc",
+        "#d9d8d8"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#737171",
+        "#ee2e24",
+        "#00853e",
+        "#ffd204",
+        "#009ddc",
+        "#98005d",
+        "#85cebc",
+        "#ffffff"
+      ],
+      "foreground": "#5a5758",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Londontube (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#303030",
+        "#a13a38",
+        "#00715d",
+        "#006f32",
+        "#a43261",
+        "#913e88",
+        "#007086",
+        "#c6c6c6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5e5e5e",
+        "#ffa59a",
+        "#24dfc4",
+        "#73db95",
+        "#ff9fc9",
+        "#ffa7f6",
+        "#00ddf4",
+        "#ffffff"
+      ],
+      "foreground": "#919191",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Baskerville",
+      "name": "Lost Woods (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#282a36",
         "#f37f97",
         "#5adecd",
@@ -7002,6 +9708,72 @@
     "metadata": {
       "name": "lovelace",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5f5f5f",
+        "#d96468",
+        "#a2d964",
+        "#d9c964",
+        "#64a2d9",
+        "#9a64d9",
+        "#64d9d5",
+        "#989898"
+      ],
+      "background": "#3c3b37",
+      "brights": [
+        "#828282",
+        "#d98f93",
+        "#b8d98f",
+        "#d9cf8f",
+        "#8f99d9",
+        "#b08fd9",
+        "#8fd9d5",
+        "#c5c5c5"
+      ],
+      "foreground": "#93a1a1",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Muzieca",
+      "name": "Low Contrast (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "l"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#515151",
+        "#bf6382",
+        "#65a446",
+        "#ad8a43",
+        "#6b85c2",
+        "#9e6bb8",
+        "#5c9d88",
+        "#919191"
+      ],
+      "background": "#1e2021",
+      "brights": [
+        "#707172",
+        "#eaaec2",
+        "#aed49b",
+        "#d4c3a0",
+        "#afc4e9",
+        "#d2b1e2",
+        "#a4d0c1",
+        "#d0d0d0"
+      ],
+      "foreground": "#888a8c",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Gutterslob",
+      "name": "Lumifoo (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "l"
     }
   },
@@ -7257,6 +10029,105 @@
   {
     "colors": {
       "ansi": [
+        "#201602",
+        "#c35359",
+        "#18974e",
+        "#a88339",
+        "#477ca1",
+        "#8868b3",
+        "#75a738",
+        "#948e48"
+      ],
+      "background": "#201602",
+      "brights": [
+        "#6c6823",
+        "#c35359",
+        "#18974e",
+        "#a88339",
+        "#477ca1",
+        "#8868b3",
+        "#75a738",
+        "#faf0a5"
+      ],
+      "foreground": "#948e48",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Marrakesh (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#201602",
+        "#c35359",
+        "#18974e",
+        "#a88339",
+        "#477ca1",
+        "#8868b3",
+        "#75a738",
+        "#948e48"
+      ],
+      "background": "#faf0a5",
+      "brights": [
+        "#6c6823",
+        "#c35359",
+        "#18974e",
+        "#a88339",
+        "#477ca1",
+        "#8868b3",
+        "#75a738",
+        "#faf0a5"
+      ],
+      "foreground": "#5f5b17",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Marrakesh (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202020",
+        "#bf3f34",
+        "#707d22",
+        "#bf7a29",
+        "#627a92",
+        "#75507b",
+        "#757978",
+        "#b2a191"
+      ],
+      "background": "#171717",
+      "brights": [
+        "#404040",
+        "#ff6c5f",
+        "#b8ca4b",
+        "#c7a551",
+        "#95b9de",
+        "#ad7fa8",
+        "#9fa590",
+        "#e8d0c3"
+      ],
+      "foreground": "#b2a191",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "user 77",
+      "name": "Mashup Colors (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#212121",
         "#b7141f",
         "#457b24",
@@ -7323,6 +10194,39 @@
     "metadata": {
       "name": "Material (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#263238",
+        "#ff9800",
+        "#8bc34a",
+        "#ffc107",
+        "#03a9f4",
+        "#e91e63",
+        "#009688",
+        "#cfd8dc"
+      ],
+      "background": "#263238",
+      "brights": [
+        "#37474f",
+        "#ffa74d",
+        "#9ccc65",
+        "#ffa000",
+        "#81d4fa",
+        "#ad1457",
+        "#26a69a",
+        "#eceff1"
+      ],
+      "foreground": "#eceff1",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Material (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m"
     }
   },
@@ -7552,6 +10456,39 @@
     "colors": {
       "ansi": [
         "#000000",
+        "#55ff55",
+        "#00cc00",
+        "#00cc00",
+        "#005500",
+        "#55ff55",
+        "#00cc00",
+        "#00cc00"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#000000",
+        "#55ff55",
+        "#55ff55",
+        "#55ff55",
+        "#005500",
+        "#55ff55",
+        "#55ff55",
+        "#00cc00"
+      ],
+      "foreground": "#00cc00",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "OK100",
+      "name": "Matrix (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
         "#b64c00",
         "#7c8b16",
         "#d3bd26",
@@ -7619,6 +10556,72 @@
     "metadata": {
       "name": "midnight-in-mojave",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#322a2c",
+        "#a04363",
+        "#9b9329",
+        "#bf7a29",
+        "#6a8c8c",
+        "#856774",
+        "#757978",
+        "#bcbcaf"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#46423b",
+        "#ae837a",
+        "#b4aa30",
+        "#c7a551",
+        "#74999e",
+        "#9c818e",
+        "#9fa590",
+        "#c1c4bc"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Mikado (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2a1d17",
+        "#da1657",
+        "#3ea250",
+        "#e3d33d",
+        "#3ea290",
+        "#ff850d",
+        "#8c16da",
+        "#e9e9e9"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#4f362b",
+        "#da4375",
+        "#6cb87a",
+        "#e3da84",
+        "#8ca8a3",
+        "#ffa64f",
+        "#a167c7",
+        "#fdfdfd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Mikazuki (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m"
     }
   },
@@ -7693,6 +10696,72 @@
     "metadata": {
       "name": "Misterioso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3b3228",
+        "#cb6077",
+        "#beb55b",
+        "#f4bc87",
+        "#8ab3b5",
+        "#a89bb9",
+        "#7bbda4",
+        "#d0c8c6"
+      ],
+      "background": "#3b3228",
+      "brights": [
+        "#7e705a",
+        "#cb6077",
+        "#beb55b",
+        "#f4bc87",
+        "#8ab3b5",
+        "#a89bb9",
+        "#7bbda4",
+        "#f5eeeb"
+      ],
+      "foreground": "#d0c8c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Mocha (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3b3228",
+        "#cb6077",
+        "#beb55b",
+        "#f4bc87",
+        "#8ab3b5",
+        "#a89bb9",
+        "#7bbda4",
+        "#d0c8c6"
+      ],
+      "background": "#f5eeeb",
+      "brights": [
+        "#7e705a",
+        "#cb6077",
+        "#beb55b",
+        "#f4bc87",
+        "#8ab3b5",
+        "#a89bb9",
+        "#7bbda4",
+        "#f5eeeb"
+      ],
+      "foreground": "#645240",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Mocha (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m"
     }
   },
@@ -7802,6 +10871,72 @@
     "metadata": {
       "name": "MonaLisa",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#111111",
+        "#222222",
+        "#333333",
+        "#444444",
+        "#555555",
+        "#666666",
+        "#777777"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#090909",
+        "#181818",
+        "#272727",
+        "#393939",
+        "#484848",
+        "#595959",
+        "#707070",
+        "#818181"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Muzieca",
+      "name": "Mono (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#6b6b6b",
+        "#c4c4c4",
+        "#b3b3b3",
+        "#999999",
+        "#717171",
+        "#8a8a8a",
+        "#b5cabb"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#202020",
+        "#464646",
+        "#f8f8f8",
+        "#eeeeee",
+        "#7c7c7c",
+        "#adadad",
+        "#c0c0c0",
+        "#99ac9e"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Mono Theme (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m"
     }
   },
@@ -8012,6 +11147,105 @@
     "metadata": {
       "name": "mono-yellow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#272822",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#a1efe4",
+        "#f8f8f2"
+      ],
+      "background": "#272822",
+      "brights": [
+        "#75715e",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#a1efe4",
+        "#f9f8f5"
+      ],
+      "foreground": "#f8f8f2",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Monokai (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#272822",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#a1efe4",
+        "#f8f8f2"
+      ],
+      "background": "#f9f8f5",
+      "brights": [
+        "#75715e",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#a1efe4",
+        "#f9f8f5"
+      ],
+      "foreground": "#49483e",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Monokai (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#48483e",
+        "#dc2566",
+        "#8fc029",
+        "#d4c96e",
+        "#55bcce",
+        "#9358fe",
+        "#56b7a5",
+        "#acada1"
+      ],
+      "background": "#272822",
+      "brights": [
+        "#76715e",
+        "#fa2772",
+        "#a7e22e",
+        "#e7db75",
+        "#66d9ee",
+        "#ae82ff",
+        "#66efd5",
+        "#cfd0c2"
+      ],
+      "foreground": "#f1ebeb",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Cacodaimon",
+      "name": "Monokai (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m"
     }
   },
@@ -8269,6 +11503,72 @@
   {
     "colors": {
       "ansi": [
+        "#d3d3d3",
+        "#ef6b7b",
+        "#a1d569",
+        "#f59335",
+        "#4ec2e8",
+        "#fec7cd",
+        "#95c1c0",
+        "#707070"
+      ],
+      "background": "#f3f3f3",
+      "brights": [
+        "#b3b3b3",
+        "#ed5466",
+        "#afdb80",
+        "#f59335",
+        "#5dc7ea",
+        "#d2a4b4",
+        "#75a1a0",
+        "#909090"
+      ],
+      "foreground": "#707070",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "m83",
+      "name": "Mostly Bright (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2e3436",
+        "#a31604",
+        "#447241",
+        "#c1951a",
+        "#425387",
+        "#965d98",
+        "#06989a",
+        "#d3d7cf"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#555753",
+        "#c60001",
+        "#27a343",
+        "#d5a30e",
+        "#4a5a8d",
+        "#893c8c",
+        "#12bccb",
+        "#eeeeec"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Muse (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#383838",
         "#a95551",
         "#666666",
@@ -8300,6 +11600,105 @@
     "metadata": {
       "name": "N0tch2k",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1d1e",
+        "#f92672",
+        "#82b414",
+        "#fd971f",
+        "#4e82aa",
+        "#8c54fe",
+        "#465457",
+        "#ccccc6"
+      ],
+      "background": "#010101",
+      "brights": [
+        "#505354",
+        "#ff5995",
+        "#b6e354",
+        "#feed6c",
+        "#0c73c2",
+        "#9e6ffe",
+        "#899ca1",
+        "#f8f8f2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Nancy (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#392925",
+        "#98724c",
+        "#908f32",
+        "#aa964c",
+        "#7b854e",
+        "#6b5644",
+        "#5c5142",
+        "#c8b55b"
+      ],
+      "background": "#170f0d",
+      "brights": [
+        "#544b2e",
+        "#af652f",
+        "#c3c13d",
+        "#c8b55b",
+        "#70a16c",
+        "#98724c",
+        "#778725",
+        "#e4dc8c"
+      ],
+      "foreground": "#746c48",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Gslob",
+      "name": "Nature Suede (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#032c36",
+        "#c2454e",
+        "#7cbf9e",
+        "#8a7a63",
+        "#2e3340",
+        "#ff5879",
+        "#44b5b1",
+        "#f2f1b9"
+      ],
+      "background": "#021b21",
+      "brights": [
+        "#065f73",
+        "#ef5847",
+        "#a2d9b1",
+        "#beb090",
+        "#61778d",
+        "#ff99a1",
+        "#9ed9d8",
+        "#f6f6c9"
+      ],
+      "foreground": "#e8dfd6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "hal",
+      "name": "Navy and Ivory (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "n"
     }
   },
@@ -8411,6 +11810,39 @@
     "metadata": {
       "name": "Neon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#171717",
+        "#d81765",
+        "#97d01a",
+        "#ffa800",
+        "#16b1fb",
+        "#ff2491",
+        "#0fdcb6",
+        "#ebebeb"
+      ],
+      "background": "#171717",
+      "brights": [
+        "#38252c",
+        "#ff0000",
+        "#76b639",
+        "#e1a126",
+        "#289cd5",
+        "#ff2491",
+        "#0a9b81",
+        "#f8f8f8"
+      ],
+      "foreground": "#f8f8f8",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Neon (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "n"
     }
   },
@@ -8925,6 +12357,105 @@
   {
     "colors": {
       "ansi": [
+        "#393939",
+        "#ff9f95",
+        "#e2ffc7",
+        "#ffffb9",
+        "#a8ceea",
+        "#e2b5cc",
+        "#c2efff",
+        "#dddddd"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#474747",
+        "#ff8d80",
+        "#dbffb3",
+        "#ffbe64",
+        "#7eb6ff",
+        "#e296ff",
+        "#9ce9ff",
+        "#dddddd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Nucolors (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#658280",
+        "#822f5d",
+        "#184a31",
+        "#9d4500",
+        "#304465",
+        "#330801",
+        "#175552",
+        "#110005"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#8ca8a6",
+        "#a24b76",
+        "#28634d",
+        "#9d5823",
+        "#415c77",
+        "#532706",
+        "#3a6868",
+        "#330801"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Nudge (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#555555",
+        "#9c3528",
+        "#61bc3b",
+        "#f3b43a",
+        "#0d68a8",
+        "#744560",
+        "#288e9c",
+        "#a2a2a2"
+      ],
+      "background": "#282828",
+      "brights": [
+        "#888888",
+        "#d64937",
+        "#86df5d",
+        "#fdd75a",
+        "#0f75bd",
+        "#9e5e83",
+        "#37c3d6",
+        "#f9f9f9"
+      ],
+      "foreground": "#a2a2a2",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Numix Darkest (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#a60001",
         "#00bb00",
@@ -8993,6 +12524,72 @@
     "metadata": {
       "name": "Ocean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2b303b",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#8fa1b3",
+        "#b48ead",
+        "#96b5b4",
+        "#c0c5ce"
+      ],
+      "background": "#2b303b",
+      "brights": [
+        "#65737e",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#8fa1b3",
+        "#b48ead",
+        "#96b5b4",
+        "#eff1f5"
+      ],
+      "foreground": "#c0c5ce",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Ocean (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2b303b",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#8fa1b3",
+        "#b48ead",
+        "#96b5b4",
+        "#c0c5ce"
+      ],
+      "background": "#eff1f5",
+      "brights": [
+        "#65737e",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#8fa1b3",
+        "#b48ead",
+        "#96b5b4",
+        "#eff1f5"
+      ],
+      "foreground": "#4f5b66",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Ocean (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "o"
     }
   },
@@ -9396,6 +12993,39 @@
   {
     "colors": {
       "ansi": [
+        "#251f1f",
+        "#eb4509",
+        "#94e76b",
+        "#ffac18",
+        "#46aede",
+        "#e32c57",
+        "#d6dbac",
+        "#efefef"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#5e5e5e",
+        "#eb4509",
+        "#95e76b",
+        "#ffac18",
+        "#46aede",
+        "#e32c57",
+        "#d6dbac",
+        "#efefef"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Orangish (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#0a1222",
         "#ffa7c4",
         "#85cc95",
@@ -9612,6 +13242,39 @@
   {
     "colors": {
       "ansi": [
+        "#191927",
+        "#282f5e",
+        "#2b4593",
+        "#344276",
+        "#4e3a4f",
+        "#61372f",
+        "#6b484c",
+        "#744537"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#905749",
+        "#94431c",
+        "#9f582a",
+        "#a38687",
+        "#e1750f",
+        "#eaaf25",
+        "#fa8e08",
+        "#fca806"
+      ],
+      "foreground": "#d3d3d3",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Panels (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1c1c1c",
         "#af005f",
         "#5faf00",
@@ -9691,6 +13354,39 @@
         "#5bc4bf",
         "#a39e9b"
       ],
+      "background": "#e7e9db",
+      "brights": [
+        "#776e71",
+        "#ef6155",
+        "#48b685",
+        "#fec418",
+        "#06b6ef",
+        "#815ba4",
+        "#5bc4bf",
+        "#e7e9db"
+      ],
+      "foreground": "#4f424c",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Paraiso (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2f1e2e",
+        "#ef6155",
+        "#48b685",
+        "#fec418",
+        "#06b6ef",
+        "#815ba4",
+        "#5bc4bf",
+        "#a39e9b"
+      ],
       "background": "#2f1e2e",
       "brights": [
         "#776e71",
@@ -9713,6 +13409,72 @@
     "metadata": {
       "name": "Paraiso Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#322a2c",
+        "#79220e",
+        "#344b1b",
+        "#b45b00",
+        "#434045",
+        "#5c1e25",
+        "#394745",
+        "#ae8842"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#46423b",
+        "#aa261f",
+        "#76550f",
+        "#b57f02",
+        "#908862",
+        "#624a35",
+        "#393e38",
+        "#a59058"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Parker Brothers (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#646e5b",
+        "#db7464",
+        "#a7e160",
+        "#dbd560",
+        "#69b2d6",
+        "#a073d6",
+        "#69e1d3",
+        "#9ea894"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#88927e",
+        "#dba08f",
+        "#bde18b",
+        "#dbda8b",
+        "#95a9d6",
+        "#b59fd6",
+        "#95e1d2",
+        "#c9d0c2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Muzieca",
+      "name": "Pastel White (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "p"
     }
   },
@@ -9937,6 +13699,39 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#a80000",
+        "#00a800",
+        "#a85400",
+        "#0000a8",
+        "#a800a8",
+        "#00a8a8",
+        "#a8a8a8"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#545054",
+        "#f85450",
+        "#50fc50",
+        "#f8fc50",
+        "#5054f8",
+        "#f854f8",
+        "#50fcf8",
+        "#f8fcf8"
+      ],
+      "foreground": "#a8a8a8",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Phrak1 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#414141",
         "#b23771",
         "#66781e",
@@ -10118,6 +13913,39 @@
   {
     "colors": {
       "ansi": [
+        "#292929",
+        "#cf6a4c",
+        "#19cb00",
+        "#fad07a",
+        "#8197bf",
+        "#8787af",
+        "#668799",
+        "#888888"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#525252",
+        "#ff9d80",
+        "#23fd00",
+        "#ffefbf",
+        "#accaff",
+        "#c4c4ff",
+        "#80bfaf",
+        "#e8e8d3"
+      ],
+      "foreground": "#888888",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "IWAFU",
+      "name": "Pretty and Pastel (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#db4437",
         "#0f9d58",
@@ -10223,6 +14051,39 @@
     "metadata": {
       "name": "Pro Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#86817e",
+        "#d75756",
+        "#688c7d",
+        "#ffb365",
+        "#68778c",
+        "#fdb3b2",
+        "#86abd9",
+        "#f7f8f2"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#86817e",
+        "#a63a3a",
+        "#688c7d",
+        "#ffb365",
+        "#68778c",
+        "#8c686a",
+        "#86abd9",
+        "#f7f8f2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Pulp (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "p"
     }
   },
@@ -10338,6 +14199,72 @@
   {
     "colors": {
       "ansi": [
+        "#2b2b2b",
+        "#da4939",
+        "#a5c261",
+        "#ffc66d",
+        "#6d9cbe",
+        "#b6b3eb",
+        "#519f50",
+        "#e6e1dc"
+      ],
+      "background": "#2b2b2b",
+      "brights": [
+        "#5a647e",
+        "#da4939",
+        "#a5c261",
+        "#ffc66d",
+        "#6d9cbe",
+        "#b6b3eb",
+        "#519f50",
+        "#f9f7f3"
+      ],
+      "foreground": "#e6e1dc",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Railscasts (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2b2b2b",
+        "#da4939",
+        "#a5c261",
+        "#ffc66d",
+        "#6d9cbe",
+        "#b6b3eb",
+        "#519f50",
+        "#e6e1dc"
+      ],
+      "background": "#f9f7f3",
+      "brights": [
+        "#5a647e",
+        "#da4939",
+        "#a5c261",
+        "#ffc66d",
+        "#6d9cbe",
+        "#b6b3eb",
+        "#519f50",
+        "#f9f7f3"
+      ],
+      "foreground": "#3a4055",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Railscasts (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#fc644d",
         "#7afde1",
@@ -10369,6 +14296,39 @@
     "metadata": {
       "name": "Rapture",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1d1e",
+        "#f92672",
+        "#82b414",
+        "#fd971f",
+        "#4e82aa",
+        "#8c54fe",
+        "#465457",
+        "#ccccc6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#505354",
+        "#ff5995",
+        "#b6e354",
+        "#feed6c",
+        "#0c73c2",
+        "#9e6ffe",
+        "#899ca1",
+        "#f8f8f2"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Rasi (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "r"
     }
   },
@@ -10523,6 +14483,39 @@
   {
     "colors": {
       "ansi": [
+        "#131313",
+        "#2d2d2d",
+        "#4c3a3d",
+        "#4e4e4e",
+        "#6f6f6f",
+        "#909090",
+        "#aaa998",
+        "#b1b1b1"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#d1d1d1",
+        "#d2c3ad",
+        "#df9767",
+        "#e1e1e1",
+        "#ededed",
+        "#ed4b19",
+        "#f2361e",
+        "#fa390f"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Red Phoenix (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#202020",
         "#8c3432",
         "#728271",
@@ -10671,6 +14664,39 @@
   {
     "colors": {
       "ansi": [
+        "#191919",
+        "#803232",
+        "#5b762f",
+        "#aa9943",
+        "#324c80",
+        "#706c9a",
+        "#92b19e",
+        "#ffffff"
+      ],
+      "background": "#222222",
+      "brights": [
+        "#252525",
+        "#982b2b",
+        "#89b83f",
+        "#efef60",
+        "#2b4f98",
+        "#826ab1",
+        "#a1cdcd",
+        "#dddddd"
+      ],
+      "foreground": "#dddddd",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Rezza (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#cdaf95",
         "#a8ff60",
@@ -10782,6 +14808,39 @@
   {
     "colors": {
       "ansi": [
+        "#303430",
+        "#bf7979",
+        "#97b26b",
+        "#cdcdc1",
+        "#86a2be",
+        "#d9b798",
+        "#a1b5cd",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#cdb5cd",
+        "#f4a45f",
+        "#c5f779",
+        "#ffffed",
+        "#98afd9",
+        "#d7d998",
+        "#a1b5cd",
+        "#dedede"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Rydgel (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2c3941",
         "#865f5b",
         "#66907d",
@@ -10814,6 +14873,39 @@
       "name": "Ryuuko",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4a3637",
+        "#d17b49",
+        "#7b8748",
+        "#af865a",
+        "#535c5c",
+        "#775759",
+        "#6d715e",
+        "#c0b18b"
+      ],
+      "background": "#1f1f1f",
+      "brights": [
+        "#4a3637",
+        "#d17b49",
+        "#7b8748",
+        "#af865a",
+        "#535c5c",
+        "#775759",
+        "#6d715e",
+        "#c0b18b"
+      ],
+      "foreground": "#c0b18b",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "earsplit",
+      "name": "s3r0 modified (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
     }
   },
   {
@@ -11113,6 +15205,39 @@
   {
     "colors": {
       "ansi": [
+        "#252525",
+        "#ff9f95",
+        "#a6e22e",
+        "#fd971f",
+        "#435e87",
+        "#789ec6",
+        "#5e7175",
+        "#dbdcdc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#454545",
+        "#ff8d80",
+        "#b6e354",
+        "#fd971f",
+        "#587aa4",
+        "#46a4ff",
+        "#a3babf",
+        "#fdfdfd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Sex Colors (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#d90429",
         "#3ad900",
@@ -11187,6 +15312,72 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#ababab"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#343434",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#f9f9f9"
+      ],
+      "foreground": "#ababab",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Shapeshifter (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#ababab"
+      ],
+      "background": "#f9f9f9",
+      "brights": [
+        "#343434",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#f9f9f9"
+      ],
+      "foreground": "#102015",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Shapeshifter (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2c2423",
         "#ab2463",
         "#6ca323",
@@ -11216,6 +15407,72 @@
     "metadata": {
       "name": "Shel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#494949",
+        "#b9716e",
+        "#588f7a",
+        "#aaa857",
+        "#a0c3c0",
+        "#735e74",
+        "#695935",
+        "#b1b1b1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#484848",
+        "#8f5a58",
+        "#326f58",
+        "#c7c575",
+        "#507f7c",
+        "#a387a6",
+        "#927c4b",
+        "#c7c7c7"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Shic (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#666666",
+        "#ff8278",
+        "#bde077",
+        "#eadc84",
+        "#77bee0",
+        "#dd91f3",
+        "#ffc178",
+        "#dddddd"
+      ],
+      "background": "#575757",
+      "brights": [
+        "#888888",
+        "#ff8278",
+        "#bde077",
+        "#eadc84",
+        "#77bee0",
+        "#dd91f3",
+        "#ffc178",
+        "#cccccc"
+      ],
+      "foreground": "#dcdccc",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Simple Rainbow (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "s"
     }
   },
@@ -11477,6 +15734,72 @@
   {
     "colors": {
       "ansi": [
+        "#002b36",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#93a1a1"
+      ],
+      "background": "#002b36",
+      "brights": [
+        "#657b83",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#fdf6e3"
+      ],
+      "foreground": "#93a1a1",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Solarized (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#002b36",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#93a1a1"
+      ],
+      "background": "#fdf6e3",
+      "brights": [
+        "#657b83",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#fdf6e3"
+      ],
+      "foreground": "#586e75",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Solarized (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#25292a",
         "#f24840",
         "#629655",
@@ -11652,6 +15975,39 @@
     "metadata": {
       "name": "Sonokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#373b43",
+        "#fdcd39",
+        "#fbfd59",
+        "#deac40",
+        "#afb171",
+        "#b387e7",
+        "#63e860",
+        "#efdecb"
+      ],
+      "background": "#373b43",
+      "brights": [
+        "#373b43",
+        "#fdcd39",
+        "#fbfd59",
+        "#deac40",
+        "#afb171",
+        "#b387e7",
+        "#63e860",
+        "#efdecb"
+      ],
+      "foreground": "#78796f",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Rooster",
+      "name": "SOS (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "s"
     }
   },
@@ -11837,6 +16193,39 @@
     "metadata": {
       "name": "Spiderman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4a4b4a",
+        "#d7699a",
+        "#80d468",
+        "#d7a169",
+        "#6985d7",
+        "#c86ad4",
+        "#6fccd1",
+        "#dbdcdc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#696969",
+        "#f5a2b5",
+        "#a3f2a0",
+        "#f5cda2",
+        "#a2c1f5",
+        "#d2a2f5",
+        "#a0e9f2",
+        "#fdfdfd"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Splurge (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "s"
     }
   },
@@ -12168,6 +16557,72 @@
   {
     "colors": {
       "ansi": [
+        "#1c1709",
+        "#8e4317",
+        "#787200",
+        "#945c00",
+        "#315094",
+        "#5c2e40",
+        "#00617d",
+        "#c2b9a1"
+      ],
+      "background": "#1c1709",
+      "brights": [
+        "#4f4939",
+        "#f07935",
+        "#d9d138",
+        "#ffab26",
+        "#8aa9ed",
+        "#ff8cb8",
+        "#43bfe0",
+        "#f2e8c9"
+      ],
+      "foreground": "#c2b9a1",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Swayr (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4a3637",
+        "#d17b49",
+        "#7b8748",
+        "#af865a",
+        "#535c5c",
+        "#775759",
+        "#6d715e",
+        "#c0b18b"
+      ],
+      "background": "#1f1f1f",
+      "brights": [
+        "#402e2e",
+        "#ac5d2f",
+        "#647035",
+        "#8f6840",
+        "#444b4b",
+        "#614445",
+        "#585c49",
+        "#978965"
+      ],
+      "foreground": "#c0b18b",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Boroshlawa",
+      "name": "Sweet Love (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#282c34",
         "#ed254e",
         "#71f79f",
@@ -12384,6 +16839,39 @@
   {
     "colors": {
       "ansi": [
+        "#2e3436",
+        "#cc0000",
+        "#4e9a06",
+        "#c4a000",
+        "#3465a4",
+        "#75507b",
+        "#06989a",
+        "#d3d7cf"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#555753",
+        "#ef2929",
+        "#8ae234",
+        "#fce94f",
+        "#729fcf",
+        "#ad7fa8",
+        "#34e2e2",
+        "#eeeeec"
+      ],
+      "foreground": "#babdb6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Tango (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#ff0000",
         "#59d600",
@@ -12452,6 +16940,72 @@
     "metadata": {
       "name": "Tango Half Adapted",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202020",
+        "#ff6565",
+        "#93d44f",
+        "#eab93d",
+        "#204a87",
+        "#ce5c00",
+        "#89b6e2",
+        "#cccccc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#606060",
+        "#ff8d8d",
+        "#c8e7a8",
+        "#ffc123",
+        "#3465a4",
+        "#f57900",
+        "#46a4ff",
+        "#ffffff"
+      ],
+      "foreground": "#aaaaaa",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Tangoesque (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2e3436",
+        "#cc0000",
+        "#4e9a06",
+        "#c4a000",
+        "#3465a4",
+        "#75507b",
+        "#06989a",
+        "#d3d7cf"
+      ],
+      "background": "#2b2b2b",
+      "brights": [
+        "#555753",
+        "#ef2929",
+        "#8ae234",
+        "#fce94f",
+        "#729fcf",
+        "#ad7fa8",
+        "#34e2e2",
+        "#eeeeec"
+      ],
+      "foreground": "#dedede",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "Tartan (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t"
     }
   },
@@ -12602,6 +17156,39 @@
   {
     "colors": {
       "ansi": [
+        "#191f31",
+        "#282e39",
+        "#303844",
+        "#3b444a",
+        "#3c4435",
+        "#4e534f",
+        "#5d5d35",
+        "#66695d"
+      ],
+      "background": "#170f0d",
+      "brights": [
+        "#706d56",
+        "#8b7852",
+        "#909581",
+        "#91703a",
+        "#948658",
+        "#a19662",
+        "#ad9152",
+        "#c6a13f"
+      ],
+      "foreground": "#746c48",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Teva (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1b1d1e",
         "#f92672",
         "#4df840",
@@ -12670,6 +17257,72 @@
     "metadata": {
       "name": "The Hulk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#191919",
+        "#eb3d51",
+        "#66b61a",
+        "#d98e1d",
+        "#23ffa8",
+        "#ff00da",
+        "#68a783",
+        "#eaeaea"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#484848",
+        "#be6262",
+        "#4b8a10",
+        "#e5d95e",
+        "#23aaff",
+        "#ab005b",
+        "#bbcd81",
+        "#bbbbbb"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "theme2 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202020",
+        "#a07070",
+        "#70a070",
+        "#a0a070",
+        "#7070a0",
+        "#a070a0",
+        "#70a0a0",
+        "#a0a0a0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#505050",
+        "#d07070",
+        "#70d070",
+        "#d0d070",
+        "#7070d0",
+        "#d070d0",
+        "#70d0d0",
+        "#f0f0f0"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "thwump (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t"
     }
   },
@@ -12779,6 +17432,39 @@
     "metadata": {
       "name": "Tinacious Design (Light)",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c1c1c",
+        "#d81860",
+        "#60ff60",
+        "#f9fd75",
+        "#4695c8",
+        "#a78edb",
+        "#43afce",
+        "#f3ebe2"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#4d4d4d",
+        "#f00060",
+        "#70ff70",
+        "#f9fd80",
+        "#5a9dc8",
+        "#b29fdb",
+        "#69b8ce",
+        "#eeeeee"
+      ],
+      "foreground": "#66ff66",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "tlh (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t"
     }
   },
@@ -13038,6 +17724,39 @@
   {
     "colors": {
       "ansi": [
+        "#1d1f21",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b294bb",
+        "#8abeb7",
+        "#c5c8c6"
+      ],
+      "background": "#1d1f21",
+      "brights": [
+        "#969896",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b294bb",
+        "#8abeb7",
+        "#ffffff"
+      ],
+      "foreground": "#c5c8c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Tomorrow (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#c82828",
         "#718c00",
@@ -13067,6 +17786,39 @@
     "metadata": {
       "name": "Tomorrow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d1f21",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b294bb",
+        "#8abeb7",
+        "#c5c8c6"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#969896",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b294bb",
+        "#8abeb7",
+        "#ffffff"
+      ],
+      "foreground": "#373b41",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Tomorrow (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t"
     }
   },
@@ -13472,6 +18224,39 @@
   {
     "colors": {
       "ansi": [
+        "#0f0e0d",
+        "#845336",
+        "#57553c",
+        "#a17e3e",
+        "#43454f",
+        "#604848",
+        "#5c6652",
+        "#a18b62"
+      ],
+      "background": "#191716",
+      "brights": [
+        "#383332",
+        "#8c4f4a",
+        "#898471",
+        "#c8b491",
+        "#65788f",
+        "#755e4a",
+        "#718062",
+        "#bc9d66"
+      ],
+      "foreground": "#daba8b",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "franksn",
+      "name": "Trim Yer Beard (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#141414",
         "#c06d44",
         "#afb97a",
@@ -13503,6 +18288,72 @@
     "metadata": {
       "name": "Twilight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#cf6a4c",
+        "#8f9d6a",
+        "#f9ee98",
+        "#7587a6",
+        "#9b859d",
+        "#afc4db",
+        "#a7a7a7"
+      ],
+      "background": "#1e1e1e",
+      "brights": [
+        "#5f5a60",
+        "#cf6a4c",
+        "#8f9d6a",
+        "#f9ee98",
+        "#7587a6",
+        "#9b859d",
+        "#afc4db",
+        "#ffffff"
+      ],
+      "foreground": "#a7a7a7",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Twilight (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#cf6a4c",
+        "#8f9d6a",
+        "#f9ee98",
+        "#7587a6",
+        "#9b859d",
+        "#afc4db",
+        "#a7a7a7"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#5f5a60",
+        "#cf6a4c",
+        "#8f9d6a",
+        "#f9ee98",
+        "#7587a6",
+        "#9b859d",
+        "#afc4db",
+        "#ffffff"
+      ],
+      "foreground": "#464b50",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Chris Kempson",
+      "name": "Twilight (light) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t"
     }
   },
@@ -13694,6 +18545,39 @@
   {
     "colors": {
       "ansi": [
+        "#382c2f",
+        "#48393a",
+        "#65534d",
+        "#79665a",
+        "#836e5e",
+        "#8e7766",
+        "#917781",
+        "#9a846d"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#ac9377",
+        "#baa17e",
+        "#bca282",
+        "#c1a67e",
+        "#cfb48e",
+        "#d1baa3",
+        "#dfc39b",
+        "#eed8c4"
+      ],
+      "foreground": "#d3d3d3",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "Unsifted Wheat (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "u"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#c21b6f",
         "#6fc21b",
@@ -13761,6 +18645,39 @@
       "name": "Urple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202020",
+        "#b91e2e",
+        "#81957c",
+        "#f9bb80",
+        "#356579",
+        "#2d2031",
+        "#0b3452",
+        "#909090"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#606060",
+        "#d14548",
+        "#a7b79a",
+        "#fae3a0",
+        "#7491a1",
+        "#87314e",
+        "#0f829d",
+        "#fff0f0"
+      ],
+      "foreground": "#d2c5bc",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "hal",
+      "name": "Vacuous 2 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "v"
     }
   },
   {
@@ -13986,6 +18903,105 @@
   {
     "colors": {
       "ansi": [
+        "#333366",
+        "#6666cc",
+        "#0099cc",
+        "#3366cc",
+        "#006699",
+        "#0066ff",
+        "#669999",
+        "#99cccc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333399",
+        "#9999ff",
+        "#00ccff",
+        "#6699ff",
+        "#0099cc",
+        "#0099ff",
+        "#66cccc",
+        "#ccffff"
+      ],
+      "foreground": "#666699",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "VisiBlue (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#666666",
+        "#cc6666",
+        "#66cc99",
+        "#cc9966",
+        "#6699cc",
+        "#cc6699",
+        "#66cccc",
+        "#cccccc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#999999",
+        "#ff9999",
+        "#99ffcc",
+        "#ffcc99",
+        "#99ccff",
+        "#ff99cc",
+        "#99ffff",
+        "#ffffff"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "VisiBone (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#666666",
+        "#cc6699",
+        "#99cc66",
+        "#cc9966",
+        "#6699cc",
+        "#9966cc",
+        "#66cc99",
+        "#cccccc"
+      ],
+      "background": "#333333",
+      "brights": [
+        "#999999",
+        "#ff99cc",
+        "#ccff99",
+        "#ffcc99",
+        "#99ccff",
+        "#cc99ff",
+        "#99ffcc",
+        "#ffffff"
+      ],
+      "foreground": "#cccccc",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Gutterslob",
+      "name": "Visibone Alt. 2 (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#6a787a",
         "#e9653b",
         "#39e9a8",
@@ -14050,6 +19066,39 @@
     "metadata": {
       "name": "VSCodeLight+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#261e26",
+        "#312c38",
+        "#4d353b",
+        "#503b43",
+        "#57403e",
+        "#665453",
+        "#6e5450",
+        "#8e7266"
+      ],
+      "background": "#170f0d",
+      "brights": [
+        "#906756",
+        "#927e7e",
+        "#ad6042",
+        "#b48b6f",
+        "#c4ab98",
+        "#d9c9b6",
+        "#e7ddd1",
+        "#faf7f2"
+      ],
+      "foreground": "#746c48",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "dkeg",
+      "name": "VWbug (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "v"
     }
   },
@@ -14313,6 +19362,39 @@
   {
     "colors": {
       "ansi": [
+        "#666661",
+        "#992e2e",
+        "#4c3226",
+        "#a67c53",
+        "#4c7399",
+        "#bf9986",
+        "#d97742",
+        "#34302d"
+      ],
+      "background": "#f5e7de",
+      "brights": [
+        "#7f7f7a",
+        "#b23636",
+        "#664233",
+        "#bf8f60",
+        "#5986b2",
+        "#d9ae98",
+        "#f2854a",
+        "#4c4742"
+      ],
+      "foreground": "#34302d",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "Kori",
+      "name": "Yousai (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "y"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#f0edec",
         "#a8334c",
         "#4f6c31",
@@ -14455,6 +19537,39 @@
     "metadata": {
       "name": "Zenburn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "z"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e2320",
+        "#705050",
+        "#60b48a",
+        "#dfaf8f",
+        "#506070",
+        "#dc8cc3",
+        "#8cd0d3",
+        "#dcdccc"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#709080",
+        "#dca3a3",
+        "#c3bf9f",
+        "#f0dfaf",
+        "#94bff3",
+        "#ec93d3",
+        "#93e0e3",
+        "#ffffff"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "",
+      "name": "zenburn (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "z"
     }
   },

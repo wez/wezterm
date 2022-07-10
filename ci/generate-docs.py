@@ -70,7 +70,6 @@ def load_scheme(scheme):
         "ident": ident,
         "fg": scheme["colors"]["foreground"],
         "bg": scheme["colors"]["background"],
-        "cursor": scheme["colors"]["cursor_border"],
         "metadata": scheme["metadata"],
     }
 
@@ -89,7 +88,12 @@ def load_scheme(scheme):
 .asciinema-theme-{ident} .bg-fg {{
     background-color: {data["fg"]};
 }}
+"""
 
+    if "cursor_border" in scheme["colors"]:
+        data["cursor"] = scheme["colors"]["cursor_border"]
+
+        css += f"""
 .asciinema-theme-{ident} .cursor-b {{
     background-color: {data["cursor"]} !important;
 }}
