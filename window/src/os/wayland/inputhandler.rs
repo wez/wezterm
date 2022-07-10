@@ -44,16 +44,18 @@ impl Inner {
                 }));
             }
             Event::CommitString { text } => {
-                conn.dispatch_to_focused_window(match text {
-                    Some(text) => WindowEvent::KeyEvent(KeyEvent {
+                if let Some(text) = text {
+                    conn.dispatch_to_focused_window(WindowEvent::KeyEvent(KeyEvent {
                         key: KeyCode::composed(&text),
                         modifiers: Modifiers::NONE,
                         repeat_count: 1,
                         key_is_down: true,
                         raw: None,
-                    }),
-                    None => WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None),
-                });
+                    }));
+                }
+                conn.dispatch_to_focused_window(WindowEvent::AdviseDeadKeyStatus(
+                    DeadKeyStatus::None,
+                ));
             }
             Event::Done { serial: _ } => {}
             _ => {}
