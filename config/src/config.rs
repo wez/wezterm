@@ -539,7 +539,7 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub automatically_reload_config: bool,
 
-    #[dynamic(default = "default_true")]
+    #[dynamic(default = "default_check_for_updates")]
     pub check_for_updates: bool,
     #[dynamic(default)]
     pub show_update_window: bool,
@@ -1186,6 +1186,10 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_check_for_updates() -> bool {
+    cfg!(not(feature = "distro-defaults"))
 }
 
 fn default_pane_select_fg_color() -> RgbaColor {

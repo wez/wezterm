@@ -13,6 +13,9 @@ env_logger = "0.9"
 [build-dependencies]
 git2 = { version = "0.14", default-features = false }
 
+[features]
+distro-defaults = []
+
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.3"

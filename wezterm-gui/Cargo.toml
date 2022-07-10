@@ -11,6 +11,7 @@ resolver = "2"
 [features]
 default = ["wayland"]
 wayland = ["window/wayland"]
+distro-defaults = ["config/distro-defaults"]
 
 [build-dependencies]
 anyhow = "1.0"
