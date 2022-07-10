@@ -240,7 +240,7 @@ return {{
         index_page.render(output, depth)
 
         with open(f"{self.dirname}/index.md", "w") as idx:
-            idx.write("Color schemes listed by first letter\n\n")
+            idx.write(f"{len(schemes)} Color schemes listed by first letter\n\n")
             for page in children:
                 upper = page.title.upper()
                 idx.write(f"  - [{upper}]({page.title}/index.md)\n")
