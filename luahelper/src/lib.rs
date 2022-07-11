@@ -110,13 +110,45 @@ fn lua_value_to_dynamic_impl(
         LuaValue::Number(i) => DynValue::F64(i.into()),
         // Handle our special Null userdata case and map it to Null
         LuaValue::LightUserData(ud) if ud.0.is_null() => DynValue::Null,
-        LuaValue::LightUserData(_) | LuaValue::UserData(_) => {
+        LuaValue::LightUserData(_) => {
             return Err(mlua::Error::FromLuaConversionError {
                 from: "userdata",
                 to: "wezterm_dynamic::Value",
                 message: None,
             })
         }
+        LuaValue::UserData(ud) => match ud.get_metatable() {
+            Ok(mt) => {
+                match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
+                    Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
+                        Ok(value) => {
+                            return lua_value_to_dynamic_impl(value, visited);
+                        }
+                        Err(err) => {
+                            return Err(mlua::Error::FromLuaConversionError {
+                                from: "userdata",
+                                to: "wezterm_dynamic::Value",
+                                message: Some(format!("error calling tostring: {err:#}")),
+                            })
+                        }
+                    },
+                    Err(err) => {
+                        return Err(mlua::Error::FromLuaConversionError {
+                            from: "userdata",
+                            to: "wezterm_dynamic::Value",
+                            message: Some(format!("error getting tostring: {err:#}")),
+                        })
+                    }
+                }
+            }
+            Err(err) => {
+                return Err(mlua::Error::FromLuaConversionError {
+                    from: "userdata",
+                    to: "wezterm_dynamic::Value",
+                    message: Some(format!("error getting metatable: {err:#}")),
+                })
+            }
+        },
         LuaValue::Function(_) => {
             return Err(mlua::Error::FromLuaConversionError {
                 from: "function",
@@ -323,7 +355,29 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                     fmt.debug_map().entries(&map).finish()
                 }
             }
-            LuaValue::UserData(_) | LuaValue::LightUserData(_) => fmt.write_str("userdata"),
+            LuaValue::UserData(ud) => match ud.get_metatable() {
+                Ok(mt) => {
+                    match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
+                        Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
+                            Ok(value) => Self {
+                                visited: Rc::clone(&self.visited),
+                                value,
+                            }
+                            .fmt(fmt),
+                            Err(err) => {
+                                write!(fmt, "Error calling tostring: {err:#}")
+                            }
+                        },
+                        Err(err) => {
+                            write!(fmt, "Error getting tostring: {err:#}")
+                        }
+                    }
+                }
+                Err(err) => {
+                    write!(fmt, "Error getting metatable: {err:#}")
+                }
+            },
+            LuaValue::LightUserData(_) => fmt.write_str("userdata"),
             LuaValue::Thread(_) => fmt.write_str("thread"),
             LuaValue::Function(_) => fmt.write_str("function"),
             LuaValue::Error(e) => fmt.write_fmt(format_args!("error {}", e)),
