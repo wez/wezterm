@@ -142,3 +142,63 @@ matches how artists think of mixing colors, by the specified number of degrees.
 180 degrees gives the complementary color.
 Three colors separated by 120 degrees form the triad.
 Four colors separated by 90 degrees form the square.
+
+## `color:hsla()`
+
+*Since: nightly builds only*
+
+Converts the color to the HSL colorspace and returns those values + alpha:
+
+```lua
+local h, s, l, a = color:hsla()
+```
+
+### `color:laba()`
+
+*Since: nightly builds only*
+
+Converts the color to the LAB colorspace and returns those values + alpha:
+
+```lua
+local l, a, b, alpha = color:laba()
+```
+
+### `color:contrast_ratio(color)`
+
+*Since: nightly builds only*
+
+Computes the contrast ratio between the two colors.
+
+```lua
+> wezterm.color.parse("red"):contrast_ratio(wezterm.color.parse("yellow"))
+1
+> wezterm.color.parse("red"):contrast_ratio(wezterm.color.parse("navy"))
+1.8273614734023298
+```
+
+The contrast ratio is computed by first converting to HSL, taking the L
+components, and diving the lighter one by the darker one.
+
+A contrast ratio of 1 means no contrast.
+
+The maximum possible contrast ratio is 21:
+
+```lua
+> wezterm.color.parse("black"):contrast_ratio(wezterm.color.parse("white"))
+21
+```
+
+### `color:delta_e(color)`
+
+*Since: nightly builds only*
+
+Computes the CIEDE2000 DeltaE value for the two colors.
+A value:
+
+* <= 1.0: Not perceptible by the human eye
+* 1-2: Perceptible through close observation
+* 2-10: Perceptible at a glance
+* 11-49: Colors are more similar than the opposite
+* 100: Colors are exactly the opposite
+
+

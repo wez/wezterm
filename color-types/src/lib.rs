@@ -221,6 +221,17 @@ impl From<(f32, f32, f32, f32)> for SrgbaTuple {
     }
 }
 
+impl From<(u8, u8, u8, u8)> for SrgbaTuple {
+    fn from((r, g, b, a): (u8, u8, u8, u8)) -> SrgbaTuple {
+        SrgbaTuple(
+            r as f32 / 255.,
+            g as f32 / 255.,
+            b as f32 / 255.,
+            a as f32 / 255.,
+        )
+    }
+}
+
 impl From<SrgbaTuple> for (f32, f32, f32, f32) {
     fn from(t: SrgbaTuple) -> (f32, f32, f32, f32) {
         (t.0, t.1, t.2, t.3)
@@ -334,6 +345,11 @@ impl SrgbaTuple {
         )
     }
 
+    pub fn to_laba(self) -> (f64, f64, f64, f64) {
+        csscolorparser::Color::from_rgba(self.0.into(), self.1.into(), self.2.into(), self.3.into())
+            .to_lab()
+    }
+
     pub fn to_hsla(self) -> (f64, f64, f64, f64) {
         csscolorparser::Color::from_rgba(self.0.into(), self.1.into(), self.2.into(), self.3.into())
             .to_hsla()
@@ -407,6 +423,33 @@ impl SrgbaTuple {
         let h = normalize_angle(h + amount);
         let h = ryb_huge_to_rgb_hue(h);
         Self::from_hsla(h, s, l, a)
+    }
+
+    fn lab_value(&self) -> deltae::LabValue {
+        let (l, a, b, _alpha) = self.to_laba();
+        deltae::LabValue {
+            l: l as f32,
+            a: a as f32,
+            b: b as f32,
+        }
+    }
+
+    pub fn delta_e(&self, other: &Self) -> f32 {
+        let a = self.lab_value();
+        let b = other.lab_value();
+        *deltae::DeltaE::new(a, b, deltae::DEMethod::DE2000).value()
+    }
+
+    pub fn contrast_ratio(&self, other: &Self) -> f64 {
+        let (_, _, l_a, _) = self.to_hsla();
+        let (_, _, l_b, _) = other.to_hsla();
+        let a = l_a + 0.05;
+        let b = l_b + 0.05;
+        if a > b {
+            a / b
+        } else {
+            b / a
+        }
     }
 }
 

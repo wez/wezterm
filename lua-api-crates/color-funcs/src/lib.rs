@@ -1,9 +1,11 @@
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
-use config::RgbaColor;
+use config::{RgbaColor, SrgbaTuple};
+
+mod image_colors;
 
 #[derive(Clone)]
-struct ColorWrap(RgbaColor);
+pub struct ColorWrap(RgbaColor);
 
 impl ColorWrap {
     pub fn complement(&self) -> Self {
@@ -83,12 +85,30 @@ impl UserData for ColorWrap {
         methods.add_method("adjust_hue_fixed_ryb", |_, this, amount: f64| {
             Ok(this.adjust_hue_fixed_ryb(amount))
         });
+        methods.add_method("hsla", |_, this, _: ()| Ok(this.0.to_hsla()));
+        methods.add_method("laba", |_, this, _: ()| Ok(this.0.to_laba()));
+        methods.add_method("contrast_ratio", |_, this, other: ColorWrap| {
+            Ok(this.0.contrast_ratio(&other.0))
+        });
+        methods.add_method("delta_e", |_, this, other: ColorWrap| {
+            Ok(this.0.delta_e(&other.0))
+        });
     }
 }
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let color = get_or_create_sub_module(lua, "color")?;
     color.set("parse", lua.create_function(parse_color)?)?;
+    color.set(
+        "from_hsla",
+        lua.create_function(|_, (h, s, l, a): (f64, f64, f64, f64)| {
+            Ok(ColorWrap(SrgbaTuple::from_hsla(h, s, l, a).into()))
+        })?,
+    )?;
+    color.set(
+        "extract_colors_from_image",
+        lua.create_function(image_colors::extract_colors_from_image)?,
+    )?;
     Ok(())
 }
 
