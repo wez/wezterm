@@ -36,6 +36,18 @@ Returns the complement of the color. The complement is computed
 by converting to HSL, rotating by 180 degrees and converting back
 to RGBA.
 
+## `color:complement_ryb()`
+
+*Since: nightly builds only*
+
+Returns the complement of the color using the [RYB color
+model](https://en.wikipedia.org/wiki/RYB_color_model), which more closely
+matches how artists think of mixing colors.
+
+The complement is computed by converting to HSL, converting the
+hue angle to the equivalent RYB angle, rotating by 180 degrees and
+and then converting back to RGBA.
+
 ## `color:triad()`
 
 *Since: nightly builds only*
@@ -55,7 +67,7 @@ Returns the other three colors that form a square. The other colors
 are 90 degrees apart on the HSL color wheel.
 
 ```lua
-local a, b,  = wezterm:color.parse("yellow"):square()
+local a, b, c = wezterm:color.parse("yellow"):square()
 ```
 
 ## `color:saturate(factor)`
@@ -115,3 +127,18 @@ Decrease the lightness by amount, a value ranging from `0.0` to `1.0`.
 *Since: nightly builds only*
 
 Adjust the hue angle by the specified number of degrees.
+
+180 degrees gives the complementary color.
+Three colors separated by 120 degrees form the triad.
+Four colors separated by 90 degrees form the square.
+
+## `color:adjust_hue_fixed_ryb(degrees)`
+
+*Since: nightly builds only*
+
+Adjust the hue angle using the [RYB color model](https://en.wikipedia.org/wiki/RYB_color_model), which more closely
+matches how artists think of mixing colors, by the specified number of degrees.
+
+180 degrees gives the complementary color.
+Three colors separated by 120 degrees form the triad.
+Four colors separated by 90 degrees form the square.

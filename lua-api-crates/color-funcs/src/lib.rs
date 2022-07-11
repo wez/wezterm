@@ -9,6 +9,9 @@ impl ColorWrap {
     pub fn complement(&self) -> Self {
         Self(self.0.complement().into())
     }
+    pub fn complement_ryb(&self) -> Self {
+        Self(self.0.complement_ryb().into())
+    }
     pub fn triad(&self) -> (Self, Self) {
         let (a, b) = self.0.triad();
         (Self(a.into()), Self(b.into()))
@@ -32,6 +35,9 @@ impl ColorWrap {
     pub fn adjust_hue_fixed(&self, amount: f64) -> Self {
         Self(self.0.adjust_hue_fixed(amount).into())
     }
+    pub fn adjust_hue_fixed_ryb(&self, amount: f64) -> Self {
+        Self(self.0.adjust_hue_fixed_ryb(amount).into())
+    }
 }
 
 impl UserData for ColorWrap {
@@ -44,6 +50,7 @@ impl UserData for ColorWrap {
             Ok(this.0 == other.0)
         });
         methods.add_method("complement", |_, this, _: ()| Ok(this.complement()));
+        methods.add_method("complement_ryb", |_, this, _: ()| Ok(this.complement_ryb()));
         methods.add_method("triad", |_, this, _: ()| Ok(this.triad()));
         methods.add_method("square", |_, this, _: ()| Ok(this.square()));
         methods.add_method("saturate", |_, this, factor: f64| Ok(this.saturate(factor)));
@@ -72,6 +79,9 @@ impl UserData for ColorWrap {
 
         methods.add_method("adjust_hue_fixed", |_, this, amount: f64| {
             Ok(this.adjust_hue_fixed(amount))
+        });
+        methods.add_method("adjust_hue_fixed_ryb", |_, this, amount: f64| {
+            Ok(this.adjust_hue_fixed_ryb(amount))
         });
     }
 }

@@ -372,7 +372,7 @@ impl SrgbaTuple {
         Self::from_hsla(h, s, l, a)
     }
 
-    /// Find the complementary color: the one opposite it on the color wheel
+    /// Rotate the hue angle by the specified number of degrees
     pub fn adjust_hue_fixed(&self, amount: f64) -> Self {
         let (h, s, l, a) = self.to_hsla();
         let h = normalize_angle(h + amount);
@@ -381,6 +381,10 @@ impl SrgbaTuple {
 
     pub fn complement(&self) -> Self {
         self.adjust_hue_fixed(180.)
+    }
+
+    pub fn complement_ryb(&self) -> Self {
+        self.adjust_hue_fixed_ryb(180.)
     }
 
     pub fn triad(&self) -> (Self, Self) {
@@ -394,50 +398,61 @@ impl SrgbaTuple {
             self.adjust_hue_fixed(180.),
         )
     }
+
+    /// Rotate the hue angle by the specified number of degrees, using
+    /// the RYB color wheel
+    pub fn adjust_hue_fixed_ryb(&self, amount: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let h = rgb_hue_to_ryb_hue(h);
+        let h = normalize_angle(h + amount);
+        let h = ryb_huge_to_rgb_hue(h);
+        Self::from_hsla(h, s, l, a)
+    }
 }
 
-/// From "Paint Inspired Color Compositing" by Gosset and Chen
-/// <https://stackoverflow.com/a/14116553/149111 >has a python
-/// implementation
-/// <https://bahamas10.github.io/ryb/> has a copy of the paper
-/// itself at <https://bahamas10.github.io/ryb/assets/ryb.pdf>
-pub fn ryb_to_rgb(r: f32, y: f32, b: f32) -> (f32, f32, f32) {
-    fn cubic(t: f32, a: f32, b: f32) -> f32 {
-        let weight = t * t * (3. - 2. * t);
-        a + weight * (b - a)
+/// Convert an RGB color space hue angle to an RYB colorspace hue angle
+/// <https://github.com/TNMEM/Material-Design-Color-Picker/blob/1afe330c67d9db4deef7031d601324b538b43b09/rybcolor.js#L33>
+fn rgb_hue_to_ryb_hue(hue: f64) -> f64 {
+    if hue < 35. {
+        map_range(hue, 0., 35., 0., 60.)
+    } else if hue < 60. {
+        map_range(hue, 35., 60., 60., 122.)
+    } else if hue < 120. {
+        map_range(hue, 60., 120., 122., 165.)
+    } else if hue < 180. {
+        map_range(hue, 120., 180., 165., 218.)
+    } else if hue < 240. {
+        map_range(hue, 180., 240., 218., 275.)
+    } else if hue < 300. {
+        map_range(hue, 240., 300., 275., 330.)
+    } else {
+        map_range(hue, 300., 360., 330., 360.)
     }
+}
 
-    let red = {
-        let x0 = cubic(b, 1.0, 0.163);
-        let x1 = cubic(b, 1.0, 0.0);
-        let x2 = cubic(b, 1.0, 0.5);
-        let x3 = cubic(b, 1.0, 0.2);
-        let y0 = cubic(y, x0, x1);
-        let y1 = cubic(y, x2, x3);
-        cubic(r, y0, y1)
-    };
+/// Convert an RYB color space hue angle to an RGB colorspace hue angle
+fn ryb_huge_to_rgb_hue(hue: f64) -> f64 {
+    if hue < 60. {
+        map_range(hue, 0., 60., 0., 35.)
+    } else if hue < 122. {
+        map_range(hue, 60., 122., 35., 60.)
+    } else if hue < 165. {
+        map_range(hue, 122., 165., 60., 120.)
+    } else if hue < 218. {
+        map_range(hue, 165., 218., 120., 180.)
+    } else if hue < 275. {
+        map_range(hue, 218., 275., 180., 240.)
+    } else if hue < 330. {
+        map_range(hue, 275., 330., 240., 300.)
+    } else {
+        map_range(hue, 330., 360., 300., 360.)
+    }
+}
 
-    let green = {
-        let x0 = cubic(b, 1.0, 0.373);
-        let x1 = cubic(b, 1.0, 0.66);
-        let x2 = cubic(b, 0.0, 0.0);
-        let x3 = cubic(b, 0.5, 0.094);
-        let y0 = cubic(y, x0, x1);
-        let y1 = cubic(y, x2, x3);
-        cubic(r, y0, y1)
-    };
-
-    let blue = {
-        let x0 = cubic(b, 1.0, 0.6);
-        let x1 = cubic(b, 0.0, 0.2);
-        let x2 = cubic(b, 0.0, 0.5);
-        let x3 = cubic(b, 0.0, 0.0);
-        let y0 = cubic(y, x0, x1);
-        let y1 = cubic(y, x2, x3);
-        cubic(r, y0, y1)
-    };
-
-    (red, green, blue)
+fn map_range(x: f64, x1: f64, x2: f64, y1: f64, y2: f64) -> f64 {
+    let a_slope = (y2 - y1) / (x2 - x1);
+    let a_slope_intercept = y1 - (a_slope * x1);
+    x * a_slope + a_slope_intercept
 }
 
 fn normalize_angle(t: f64) -> f64 {
