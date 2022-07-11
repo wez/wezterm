@@ -333,6 +333,129 @@ impl SrgbaTuple {
             (self.2 * 65535.) as u16
         )
     }
+
+    pub fn to_hsla(self) -> (f64, f64, f64, f64) {
+        csscolorparser::Color::from_rgba(self.0.into(), self.1.into(), self.2.into(), self.3.into())
+            .to_hsla()
+    }
+
+    pub fn from_hsla(h: f64, s: f64, l: f64, a: f64) -> Self {
+        let (r, g, b, a) = csscolorparser::Color::from_hsla(h, s, l, a).rgba();
+        Self(r as f32, g as f32, b as f32, a as f32)
+    }
+
+    /// Scale the color towards the maximum saturation by factor, a value ranging from 0.0 to 1.0.
+    pub fn saturate(&self, factor: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let s = apply_scale(s, factor);
+        Self::from_hsla(h, s, l, a)
+    }
+
+    /// Increase the saturation by amount, a value ranging from 0.0 to 1.0.
+    pub fn saturate_fixed(&self, amount: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let s = apply_fixed(s, amount);
+        Self::from_hsla(h, s, l, a)
+    }
+
+    /// Scale the color towards the maximum lightness by factor, a value ranging from 0.0 to 1.0
+    pub fn lighten(&self, factor: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let l = apply_scale(l, factor);
+        Self::from_hsla(h, s, l, a)
+    }
+
+    /// Lighten the color by amount, a value ranging from 0.0 to 1.0
+    pub fn lighten_fixed(&self, amount: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let l = apply_fixed(l, amount);
+        Self::from_hsla(h, s, l, a)
+    }
+
+    /// Find the complementary color: the one opposite it on the color wheel
+    pub fn adjust_hue_fixed(&self, amount: f64) -> Self {
+        let (h, s, l, a) = self.to_hsla();
+        let h = normalize_angle(h + amount);
+        Self::from_hsla(h, s, l, a)
+    }
+
+    pub fn complement(&self) -> Self {
+        self.adjust_hue_fixed(180.)
+    }
+
+    pub fn triad(&self) -> (Self, Self) {
+        (self.adjust_hue_fixed(120.), self.adjust_hue_fixed(-120.))
+    }
+
+    pub fn square(&self) -> (Self, Self, Self) {
+        (
+            self.adjust_hue_fixed(90.),
+            self.adjust_hue_fixed(270.),
+            self.adjust_hue_fixed(180.),
+        )
+    }
+}
+
+/// From "Paint Inspired Color Compositing" by Gosset and Chen
+/// <https://stackoverflow.com/a/14116553/149111 >has a python
+/// implementation
+/// <https://bahamas10.github.io/ryb/> has a copy of the paper
+/// itself at <https://bahamas10.github.io/ryb/assets/ryb.pdf>
+pub fn ryb_to_rgb(r: f32, y: f32, b: f32) -> (f32, f32, f32) {
+    fn cubic(t: f32, a: f32, b: f32) -> f32 {
+        let weight = t * t * (3. - 2. * t);
+        a + weight * (b - a)
+    }
+
+    let red = {
+        let x0 = cubic(b, 1.0, 0.163);
+        let x1 = cubic(b, 1.0, 0.0);
+        let x2 = cubic(b, 1.0, 0.5);
+        let x3 = cubic(b, 1.0, 0.2);
+        let y0 = cubic(y, x0, x1);
+        let y1 = cubic(y, x2, x3);
+        cubic(r, y0, y1)
+    };
+
+    let green = {
+        let x0 = cubic(b, 1.0, 0.373);
+        let x1 = cubic(b, 1.0, 0.66);
+        let x2 = cubic(b, 0.0, 0.0);
+        let x3 = cubic(b, 0.5, 0.094);
+        let y0 = cubic(y, x0, x1);
+        let y1 = cubic(y, x2, x3);
+        cubic(r, y0, y1)
+    };
+
+    let blue = {
+        let x0 = cubic(b, 1.0, 0.6);
+        let x1 = cubic(b, 0.0, 0.2);
+        let x2 = cubic(b, 0.0, 0.5);
+        let x3 = cubic(b, 0.0, 0.0);
+        let y0 = cubic(y, x0, x1);
+        let y1 = cubic(y, x2, x3);
+        cubic(r, y0, y1)
+    };
+
+    (red, green, blue)
+}
+
+fn normalize_angle(t: f64) -> f64 {
+    let mut t = t % 360.0;
+    if t < 0.0 {
+        t += 360.0;
+    }
+    t
+}
+
+fn apply_scale(current: f64, factor: f64) -> f64 {
+    let difference = if factor >= 0. { 1.0 - current } else { current };
+    let delta = difference.max(0.) * factor;
+    (current + delta).max(0.)
+}
+
+fn apply_fixed(current: f64, amount: f64) -> f64 {
+    (current + amount).max(0.)
 }
 
 impl Hash for SrgbaTuple {

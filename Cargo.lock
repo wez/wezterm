@@ -608,6 +608,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "color-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "csscolorparser",
+ "luahelper",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -851,6 +861,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841475b11553e394b89eebb5cdfe8ca0b960005ad464bca369ade02a62da053e"
 dependencies = [
+ "lab",
  "phf 0.10.1",
 ]
 
@@ -1092,6 +1103,7 @@ dependencies = [
  "battery",
  "chrono",
  "cocoa",
+ "color-funcs",
  "config",
  "dirs-next",
  "env_logger",
@@ -1897,6 +1909,12 @@ checksum = "0de8b303297635ad57c9f5059fd9cee7a47f8e8daa09df0fcd07dd39fb22977f"
 dependencies = [
  "log",
 ]
+
+[[package]]
+name = "lab"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf36173d4167ed999940f804952e6b08197cae5ad5d572eb4db150ce8ad5d58f"
 
 [[package]]
 name = "lazy_static"

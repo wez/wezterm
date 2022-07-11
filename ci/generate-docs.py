@@ -317,6 +317,10 @@ TOC = [
                         "config/lua/wezterm",
                     ),
                     Gen(
+                        "module: wezterm.color",
+                        "config/lua/wezterm.color",
+                    ),
+                    Gen(
                         "module: wezterm.gui",
                         "config/lua/wezterm.gui",
                     ),

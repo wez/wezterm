@@ -17,6 +17,7 @@ log = "0.4"
 env_logger = "0.9"
 termwiz = { path = "../termwiz" }
 battery = { path = "../lua-api-crates/battery" }
+color-funcs = { path = "../lua-api-crates/color-funcs" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 logging = { path = "../lua-api-crates/logging" }
 mux-lua = { path = "../lua-api-crates/mux" }
