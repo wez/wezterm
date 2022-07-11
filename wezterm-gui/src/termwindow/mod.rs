@@ -2519,10 +2519,12 @@ impl TermWindow {
                     None => true,
                 };
                 if default_click {
-                    log::info!("clicking {}", link);
-                    if let Err(err) = open::that(&link) {
-                        log::error!("Error opening {}: {:#}", link, err);
-                    }
+                    std::thread::spawn(move || {
+                        log::info!("clicking {}", link);
+                        if let Err(err) = open::that(&link) {
+                            log::error!("Error opening {}: {:#}", link, err);
+                        }
+                    });
                 }
                 Ok(())
             }
