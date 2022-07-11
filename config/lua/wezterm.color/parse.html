@@ -166,6 +166,14 @@ return {
 <p>Returns the complement of the color. The complement is computed
 by converting to HSL, rotating by 180 degrees and converting back
 to RGBA.</p>
+<h2 id="colorcomplement_ryb"><a class="header" href="#colorcomplement_ryb"><code>color:complement_ryb()</code></a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Returns the complement of the color using the <a href="https://en.wikipedia.org/wiki/RYB_color_model">RYB color
+model</a>, which more closely
+matches how artists think of mixing colors.</p>
+<p>The complement is computed by converting to HSL, converting the
+hue angle to the equivalent RYB angle, rotating by 180 degrees and
+and then converting back to RGBA.</p>
 <h2 id="colortriad"><a class="header" href="#colortriad"><code>color:triad()</code></a></h2>
 <p><em>Since: nightly builds only</em></p>
 <p>Returns the other two colors that form a triad. The other colors
@@ -176,7 +184,7 @@ are at +/- 120 degrees in the HSL color wheel.</p>
 <p><em>Since: nightly builds only</em></p>
 <p>Returns the other three colors that form a square. The other colors
 are 90 degrees apart on the HSL color wheel.</p>
-<pre><code class="language-lua">local a, b,  = wezterm:color.parse(&quot;yellow&quot;):square()
+<pre><code class="language-lua">local a, b, c = wezterm:color.parse(&quot;yellow&quot;):square()
 </code></pre>
 <h2 id="colorsaturatefactor"><a class="header" href="#colorsaturatefactor"><code>color:saturate(factor)</code></a></h2>
 <p><em>Since: nightly builds only</em></p>
@@ -209,6 +217,16 @@ should be in the range <code>0.0</code> through <code>1.0</code>.</p>
 <h2 id="coloradjust_hue_fixeddegrees"><a class="header" href="#coloradjust_hue_fixeddegrees"><code>color:adjust_hue_fixed(degrees)</code></a></h2>
 <p><em>Since: nightly builds only</em></p>
 <p>Adjust the hue angle by the specified number of degrees.</p>
+<p>180 degrees gives the complementary color.
+Three colors separated by 120 degrees form the triad.
+Four colors separated by 90 degrees form the square.</p>
+<h2 id="coloradjust_hue_fixed_rybdegrees"><a class="header" href="#coloradjust_hue_fixed_rybdegrees"><code>color:adjust_hue_fixed_ryb(degrees)</code></a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>Adjust the hue angle using the <a href="https://en.wikipedia.org/wiki/RYB_color_model">RYB color model</a>, which more closely
+matches how artists think of mixing colors, by the specified number of degrees.</p>
+<p>180 degrees gives the complementary color.
+Three colors separated by 120 degrees form the triad.
+Four colors separated by 90 degrees form the square.</p>
 
                     </main>
 
