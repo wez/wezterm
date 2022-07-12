@@ -229,7 +229,15 @@ window.addEventListener('load', function () {{
 """
                     )
 
-                    idx.write("To use this scheme, add this to your config:\n")
+                    author = scheme["metadata"].get("author", None)
+                    if author:
+                        idx.write(f"Author: `{author}`<br/>\n")
+                    origin_url = scheme["metadata"].get("origin_url", None)
+                    if origin_url:
+                        idx.write(f"Source: <{origin_url}><br/>\n")
+
+
+                    idx.write("\nTo use this scheme, add this to your config:\n")
                     idx.write(
                         f"""
 ```lua

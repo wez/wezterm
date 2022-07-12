@@ -8,6 +8,7 @@ use std::path::Path;
 use std::time::Duration;
 use wezterm_dynamic::{ToDynamic, Value};
 
+mod base16;
 mod gogh;
 mod iterm2;
 mod scheme;
@@ -41,7 +42,14 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
         return Ok(item.data);
     }
 
-    let response = reqwest::get(url)
+    println!("Going to request {url}");
+    let client = reqwest::Client::builder()
+        .user_agent("wezterm-sync-color-schemes/1.0")
+        .build()?;
+
+    let response = client
+        .get(url)
+        .send()
         .await
         .with_context(|| format!("fetching {url}"))?;
     let mut ttl = Duration::from_secs(86400);
@@ -55,7 +63,15 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
             }
         }
     }
+
+    let status = response.status();
+
     let data = response.bytes().await?.to_vec();
+
+    if status != reqwest::StatusCode::OK {
+        anyhow::bail!("{}", String::from_utf8_lossy(&data));
+    }
+
     updater.write(&data, ttl).context("assigning to cache")?;
     Ok(data)
 }
@@ -163,6 +179,7 @@ fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
 async fn main() -> anyhow::Result<()> {
     // They color us! my precious!
     let mut schemeses = iterm2::sync_iterm2()?;
+    accumulate(&mut schemeses, base16::sync().await?);
     accumulate(&mut schemeses, gogh::sync_gogh().await?);
     accumulate(&mut schemeses, sexy::sync_sexy()?);
     bake_for_config(schemeses)?;
