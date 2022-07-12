@@ -48,8 +48,9 @@ impl GuiFrontEnd {
             if let Some(fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowWorkspaceChanged(_)
-                    | MuxNotification::ActiveWorkspaceChanged(_) => {}
-                    MuxNotification::WindowCreated(_) | MuxNotification::WindowRemoved(_) => {
+                    | MuxNotification::ActiveWorkspaceChanged(_)
+                    | MuxNotification::WindowCreated(_)
+                    | MuxNotification::WindowRemoved(_) => {
                         promise::spawn::spawn(async move {
                             let fe = crate::frontend::front_end();
                             if !fe.is_switching_workspace() {

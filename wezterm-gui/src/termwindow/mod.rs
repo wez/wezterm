@@ -1022,8 +1022,8 @@ impl TermWindow {
             TermWindowNotif::SwitchToMuxWindow(mux_window_id) => {
                 self.mux_window_id = mux_window_id;
                 *self.mux_window_id_for_subscriptions.lock().unwrap() = mux_window_id;
-                self.pane_state.borrow_mut().clear();
-                self.tab_state.borrow_mut().clear();
+
+                self.clear_all_overlays();
                 self.current_highlight.take();
                 self.invalidate_fancy_tab_bar();
                 self.invalidate_modal();
@@ -1040,6 +1040,36 @@ impl TermWindow {
         }
 
         Ok(())
+    }
+
+    /// Take care to remove our panes from the mux, otherwise
+    /// we can leave the mux with no windows but some panes
+    /// and it won't believe that we are empty.
+    fn clear_all_overlays(&mut self) {
+        let overlay_panes_to_cancel = self
+            .pane_state
+            .borrow()
+            .iter()
+            .filter_map(|(_, state)| state.overlay.as_ref().map(|overlay| overlay.pane.pane_id()))
+            .collect::<Vec<_>>();
+
+        for pane_id in overlay_panes_to_cancel {
+            self.cancel_overlay_for_pane(pane_id);
+        }
+
+        let tab_overlays_to_cancel = self
+            .tab_state
+            .borrow()
+            .iter()
+            .filter_map(|(tab_id, state)| state.overlay.as_ref().map(|_| *tab_id))
+            .collect::<Vec<_>>();
+
+        for tab_id in tab_overlays_to_cancel {
+            self.cancel_overlay_for_tab(tab_id, None);
+        }
+
+        self.pane_state.borrow_mut().clear();
+        self.tab_state.borrow_mut().clear();
     }
 
     fn apply_icon(window: &Window) -> anyhow::Result<()> {
@@ -2920,6 +2950,7 @@ impl TermWindow {
 
 impl Drop for TermWindow {
     fn drop(&mut self) {
+        self.clear_all_overlays();
         if let Some(window) = self.window.take() {
             if let Some(fe) = try_front_end() {
                 fe.forget_known_window(&window);
