@@ -2,6 +2,7 @@
 
 *Since: nightly builds only*
 
-Constructs a new color object from values in the HSL colorspace, plus alpha.
+Constructs a new [color object](../color/index.md) from values in the HSL
+colorspace, plus alpha.
 
 See also [wezterm.color.parse()](parse.md)
