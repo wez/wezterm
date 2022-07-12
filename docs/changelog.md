@@ -44,6 +44,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Padding could show window background rather than pane background around split panes at certain window sizes [#2210](https://github.com/wez/wezterm/issues/2210)
 * Loading dynamic escape sequence scripts from the [iTerm2-Color-Scheme dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors) would only apply the first 7 colors
 * Unix: Clicking a URL when no browser is open could cause wezterm to hang until the newly opened browser is closed. [#2245](https://github.com/wez/wezterm/issues/2245)
+* Quickselect: now selects the bottom-most match rather than the top-most match. [#2250](https://github.com/wez/wezterm/issues/2250)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1

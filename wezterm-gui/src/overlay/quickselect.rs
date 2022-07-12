@@ -604,7 +604,7 @@ impl QuickSelectRenderable {
                 }
             };
 
-            self.by_label.insert(label.clone(), result_index);
+            self.by_label.entry(label.clone()).or_insert(result_index);
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {
                     // Range on same line
