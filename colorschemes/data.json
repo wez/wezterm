@@ -22,13 +22,18 @@
         "#b5e4f4",
         "#f7f7f7"
       ],
+      "cursor_bg": "#a5a2a2",
+      "cursor_border": "#a5a2a2",
+      "cursor_fg": "#a5a2a2",
       "foreground": "#a5a2a2",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#a5a2a2",
+      "selection_fg": "#090300"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "3024 (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jan T. Sott (http://github.com/idleberg)",
+      "name": "3024 (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "3"
     }
   },
@@ -539,6 +544,82 @@
   {
     "colors": {
       "ansi": [
+        "#031a16",
+        "#3e9688",
+        "#883e96",
+        "#3e4c96",
+        "#96883e",
+        "#4c963e",
+        "#963e4c",
+        "#81b5ac"
+      ],
+      "background": "#031a16",
+      "brights": [
+        "#2b685e",
+        "#3e9688",
+        "#883e96",
+        "#3e4c96",
+        "#96883e",
+        "#4c963e",
+        "#963e4c",
+        "#d2e7e4"
+      ],
+      "cursor_bg": "#81b5ac",
+      "cursor_border": "#81b5ac",
+      "cursor_fg": "#81b5ac",
+      "foreground": "#81b5ac",
+      "indexed": {},
+      "selection_bg": "#81b5ac",
+      "selection_fg": "#031a16"
+    },
+    "metadata": {
+      "author": "Jannik Siebert (https://github.com/janniks)",
+      "name": "Apathy (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#262626",
+        "#5f8787",
+        "#87af87",
+        "#5f8787",
+        "#ffffaf",
+        "#87afd7",
+        "#5f875f",
+        "#bcbcbc"
+      ],
+      "background": "#262626",
+      "brights": [
+        "#6c6c6c",
+        "#5f8787",
+        "#87af87",
+        "#5f8787",
+        "#ffffaf",
+        "#87afd7",
+        "#5f875f",
+        "#ffffff"
+      ],
+      "cursor_bg": "#bcbcbc",
+      "cursor_border": "#bcbcbc",
+      "cursor_fg": "#bcbcbc",
+      "foreground": "#bcbcbc",
+      "indexed": {},
+      "selection_bg": "#bcbcbc",
+      "selection_fg": "#262626"
+    },
+    "metadata": {
+      "author": "romainl",
+      "name": "Apprentice (base16)",
+      "origin_url": "https://github.com/casonadams/base16-apprentice-scheme",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#333333",
         "#da2700",
         "#12c258",
@@ -670,13 +751,18 @@
         "#95aec7",
         "#f3f4f5"
       ],
+      "cursor_bg": "#c7ccd1",
+      "cursor_border": "#c7ccd1",
+      "cursor_fg": "#c7ccd1",
       "foreground": "#c7ccd1",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#c7ccd1",
+      "selection_fg": "#1c2023"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Ashes (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jannik Siebert (https://github.com/janniks)",
+      "name": "Ashes (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "a"
     }
   },
@@ -743,6 +829,766 @@
       "author": "",
       "name": "astromouse (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#19171c",
+        "#be4678",
+        "#2a9292",
+        "#a06e3b",
+        "#576ddb",
+        "#955ae7",
+        "#398bc6",
+        "#8b8792"
+      ],
+      "background": "#19171c",
+      "brights": [
+        "#655f6d",
+        "#be4678",
+        "#2a9292",
+        "#a06e3b",
+        "#576ddb",
+        "#955ae7",
+        "#398bc6",
+        "#efecf4"
+      ],
+      "cursor_bg": "#8b8792",
+      "cursor_border": "#8b8792",
+      "cursor_fg": "#8b8792",
+      "foreground": "#8b8792",
+      "indexed": {},
+      "selection_bg": "#8b8792",
+      "selection_fg": "#19171c"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Cave (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#efecf4",
+        "#be4678",
+        "#2a9292",
+        "#a06e3b",
+        "#576ddb",
+        "#955ae7",
+        "#398bc6",
+        "#585260"
+      ],
+      "background": "#efecf4",
+      "brights": [
+        "#7e7887",
+        "#be4678",
+        "#2a9292",
+        "#a06e3b",
+        "#576ddb",
+        "#955ae7",
+        "#398bc6",
+        "#19171c"
+      ],
+      "cursor_bg": "#585260",
+      "cursor_border": "#585260",
+      "cursor_fg": "#585260",
+      "foreground": "#585260",
+      "indexed": {},
+      "selection_bg": "#585260",
+      "selection_fg": "#efecf4"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Cave Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#20201d",
+        "#d73737",
+        "#60ac39",
+        "#ae9513",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#a6a28c"
+      ],
+      "background": "#20201d",
+      "brights": [
+        "#7d7a68",
+        "#d73737",
+        "#60ac39",
+        "#ae9513",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#fefbec"
+      ],
+      "cursor_bg": "#a6a28c",
+      "cursor_border": "#a6a28c",
+      "cursor_fg": "#a6a28c",
+      "foreground": "#a6a28c",
+      "indexed": {},
+      "selection_bg": "#a6a28c",
+      "selection_fg": "#20201d"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Dune (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fefbec",
+        "#d73737",
+        "#60ac39",
+        "#ae9513",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#6e6b5e"
+      ],
+      "background": "#fefbec",
+      "brights": [
+        "#999580",
+        "#d73737",
+        "#60ac39",
+        "#ae9513",
+        "#6684e1",
+        "#b854d4",
+        "#1fad83",
+        "#20201d"
+      ],
+      "cursor_bg": "#6e6b5e",
+      "cursor_border": "#6e6b5e",
+      "cursor_fg": "#6e6b5e",
+      "foreground": "#6e6b5e",
+      "indexed": {},
+      "selection_bg": "#6e6b5e",
+      "selection_fg": "#fefbec"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Dune Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#22221b",
+        "#ba6236",
+        "#7d9726",
+        "#a5980d",
+        "#36a166",
+        "#5f9182",
+        "#5b9d48",
+        "#929181"
+      ],
+      "background": "#22221b",
+      "brights": [
+        "#6c6b5a",
+        "#ba6236",
+        "#7d9726",
+        "#a5980d",
+        "#36a166",
+        "#5f9182",
+        "#5b9d48",
+        "#f4f3ec"
+      ],
+      "cursor_bg": "#929181",
+      "cursor_border": "#929181",
+      "cursor_fg": "#929181",
+      "foreground": "#929181",
+      "indexed": {},
+      "selection_bg": "#929181",
+      "selection_fg": "#22221b"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Estuary (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f4f3ec",
+        "#ba6236",
+        "#7d9726",
+        "#a5980d",
+        "#36a166",
+        "#5f9182",
+        "#5b9d48",
+        "#5f5e4e"
+      ],
+      "background": "#f4f3ec",
+      "brights": [
+        "#878573",
+        "#ba6236",
+        "#7d9726",
+        "#a5980d",
+        "#36a166",
+        "#5f9182",
+        "#5b9d48",
+        "#22221b"
+      ],
+      "cursor_bg": "#5f5e4e",
+      "cursor_border": "#5f5e4e",
+      "cursor_fg": "#5f5e4e",
+      "foreground": "#5f5e4e",
+      "indexed": {},
+      "selection_bg": "#5f5e4e",
+      "selection_fg": "#f4f3ec"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Estuary Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1918",
+        "#f22c40",
+        "#7b9726",
+        "#c38418",
+        "#407ee7",
+        "#6666ea",
+        "#3d97b8",
+        "#a8a19f"
+      ],
+      "background": "#1b1918",
+      "brights": [
+        "#766e6b",
+        "#f22c40",
+        "#7b9726",
+        "#c38418",
+        "#407ee7",
+        "#6666ea",
+        "#3d97b8",
+        "#f1efee"
+      ],
+      "cursor_bg": "#a8a19f",
+      "cursor_border": "#a8a19f",
+      "cursor_fg": "#a8a19f",
+      "foreground": "#a8a19f",
+      "indexed": {},
+      "selection_bg": "#a8a19f",
+      "selection_fg": "#1b1918"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Forest (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f1efee",
+        "#f22c40",
+        "#7b9726",
+        "#c38418",
+        "#407ee7",
+        "#6666ea",
+        "#3d97b8",
+        "#68615e"
+      ],
+      "background": "#f1efee",
+      "brights": [
+        "#9c9491",
+        "#f22c40",
+        "#7b9726",
+        "#c38418",
+        "#407ee7",
+        "#6666ea",
+        "#3d97b8",
+        "#1b1918"
+      ],
+      "cursor_bg": "#68615e",
+      "cursor_border": "#68615e",
+      "cursor_fg": "#68615e",
+      "foreground": "#68615e",
+      "indexed": {},
+      "selection_bg": "#68615e",
+      "selection_fg": "#f1efee"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Forest Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b181b",
+        "#ca402b",
+        "#918b3b",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#ab9bab"
+      ],
+      "background": "#1b181b",
+      "brights": [
+        "#776977",
+        "#ca402b",
+        "#918b3b",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#f7f3f7"
+      ],
+      "cursor_bg": "#ab9bab",
+      "cursor_border": "#ab9bab",
+      "cursor_fg": "#ab9bab",
+      "foreground": "#ab9bab",
+      "indexed": {},
+      "selection_bg": "#ab9bab",
+      "selection_fg": "#1b181b"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Heath (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f7f3f7",
+        "#ca402b",
+        "#918b3b",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#695d69"
+      ],
+      "background": "#f7f3f7",
+      "brights": [
+        "#9e8f9e",
+        "#ca402b",
+        "#918b3b",
+        "#bb8a35",
+        "#516aec",
+        "#7b59c0",
+        "#159393",
+        "#1b181b"
+      ],
+      "cursor_bg": "#695d69",
+      "cursor_border": "#695d69",
+      "cursor_fg": "#695d69",
+      "foreground": "#695d69",
+      "indexed": {},
+      "selection_bg": "#695d69",
+      "selection_fg": "#f7f3f7"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Heath Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#161b1d",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#6b6bb8",
+        "#2d8f6f",
+        "#7ea2b4"
+      ],
+      "background": "#161b1d",
+      "brights": [
+        "#5a7b8c",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#6b6bb8",
+        "#2d8f6f",
+        "#ebf8ff"
+      ],
+      "cursor_bg": "#7ea2b4",
+      "cursor_border": "#7ea2b4",
+      "cursor_fg": "#7ea2b4",
+      "foreground": "#7ea2b4",
+      "indexed": {},
+      "selection_bg": "#7ea2b4",
+      "selection_fg": "#161b1d"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Lakeside (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ebf8ff",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#6b6bb8",
+        "#2d8f6f",
+        "#516d7b"
+      ],
+      "background": "#ebf8ff",
+      "brights": [
+        "#7195a8",
+        "#d22d72",
+        "#568c3b",
+        "#8a8a0f",
+        "#257fad",
+        "#6b6bb8",
+        "#2d8f6f",
+        "#161b1d"
+      ],
+      "cursor_bg": "#516d7b",
+      "cursor_border": "#516d7b",
+      "cursor_fg": "#516d7b",
+      "foreground": "#516d7b",
+      "indexed": {},
+      "selection_bg": "#516d7b",
+      "selection_fg": "#ebf8ff"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Lakeside Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1818",
+        "#ca4949",
+        "#4b8b8b",
+        "#a06e3b",
+        "#7272ca",
+        "#8464c4",
+        "#5485b6",
+        "#8a8585"
+      ],
+      "background": "#1b1818",
+      "brights": [
+        "#655d5d",
+        "#ca4949",
+        "#4b8b8b",
+        "#a06e3b",
+        "#7272ca",
+        "#8464c4",
+        "#5485b6",
+        "#f4ecec"
+      ],
+      "cursor_bg": "#8a8585",
+      "cursor_border": "#8a8585",
+      "cursor_fg": "#8a8585",
+      "foreground": "#8a8585",
+      "indexed": {},
+      "selection_bg": "#8a8585",
+      "selection_fg": "#1b1818"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Plateau (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f4ecec",
+        "#ca4949",
+        "#4b8b8b",
+        "#a06e3b",
+        "#7272ca",
+        "#8464c4",
+        "#5485b6",
+        "#585050"
+      ],
+      "background": "#f4ecec",
+      "brights": [
+        "#7e7777",
+        "#ca4949",
+        "#4b8b8b",
+        "#a06e3b",
+        "#7272ca",
+        "#8464c4",
+        "#5485b6",
+        "#1b1818"
+      ],
+      "cursor_bg": "#585050",
+      "cursor_border": "#585050",
+      "cursor_fg": "#585050",
+      "foreground": "#585050",
+      "indexed": {},
+      "selection_bg": "#585050",
+      "selection_fg": "#f4ecec"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Plateau Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#171c19",
+        "#b16139",
+        "#489963",
+        "#a07e3b",
+        "#478c90",
+        "#55859b",
+        "#1c9aa0",
+        "#87928a"
+      ],
+      "background": "#171c19",
+      "brights": [
+        "#5f6d64",
+        "#b16139",
+        "#489963",
+        "#a07e3b",
+        "#478c90",
+        "#55859b",
+        "#1c9aa0",
+        "#ecf4ee"
+      ],
+      "cursor_bg": "#87928a",
+      "cursor_border": "#87928a",
+      "cursor_fg": "#87928a",
+      "foreground": "#87928a",
+      "indexed": {},
+      "selection_bg": "#87928a",
+      "selection_fg": "#171c19"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Savanna (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ecf4ee",
+        "#b16139",
+        "#489963",
+        "#a07e3b",
+        "#478c90",
+        "#55859b",
+        "#1c9aa0",
+        "#526057"
+      ],
+      "background": "#ecf4ee",
+      "brights": [
+        "#78877d",
+        "#b16139",
+        "#489963",
+        "#a07e3b",
+        "#478c90",
+        "#55859b",
+        "#1c9aa0",
+        "#171c19"
+      ],
+      "cursor_bg": "#526057",
+      "cursor_border": "#526057",
+      "cursor_fg": "#526057",
+      "foreground": "#526057",
+      "indexed": {},
+      "selection_bg": "#526057",
+      "selection_fg": "#ecf4ee"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Savanna Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#131513",
+        "#e6193c",
+        "#29a329",
+        "#98981b",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#8ca68c"
+      ],
+      "background": "#131513",
+      "brights": [
+        "#687d68",
+        "#e6193c",
+        "#29a329",
+        "#98981b",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#f4fbf4"
+      ],
+      "cursor_bg": "#8ca68c",
+      "cursor_border": "#8ca68c",
+      "cursor_fg": "#8ca68c",
+      "foreground": "#8ca68c",
+      "indexed": {},
+      "selection_bg": "#8ca68c",
+      "selection_fg": "#131513"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Seaside (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f4fbf4",
+        "#e6193c",
+        "#29a329",
+        "#98981b",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#5e6e5e"
+      ],
+      "background": "#f4fbf4",
+      "brights": [
+        "#809980",
+        "#e6193c",
+        "#29a329",
+        "#98981b",
+        "#3d62f5",
+        "#ad2bee",
+        "#1999b3",
+        "#131513"
+      ],
+      "cursor_bg": "#5e6e5e",
+      "cursor_border": "#5e6e5e",
+      "cursor_fg": "#5e6e5e",
+      "foreground": "#5e6e5e",
+      "indexed": {},
+      "selection_bg": "#5e6e5e",
+      "selection_fg": "#f4fbf4"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Seaside Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202746",
+        "#c94922",
+        "#ac9739",
+        "#c08b30",
+        "#3d8fd1",
+        "#6679cc",
+        "#22a2c9",
+        "#979db4"
+      ],
+      "background": "#202746",
+      "brights": [
+        "#6b7394",
+        "#c94922",
+        "#ac9739",
+        "#c08b30",
+        "#3d8fd1",
+        "#6679cc",
+        "#22a2c9",
+        "#f5f7ff"
+      ],
+      "cursor_bg": "#979db4",
+      "cursor_border": "#979db4",
+      "cursor_fg": "#979db4",
+      "foreground": "#979db4",
+      "indexed": {},
+      "selection_bg": "#979db4",
+      "selection_fg": "#202746"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Sulphurpool (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f5f7ff",
+        "#c94922",
+        "#ac9739",
+        "#c08b30",
+        "#3d8fd1",
+        "#6679cc",
+        "#22a2c9",
+        "#5e6687"
+      ],
+      "background": "#f5f7ff",
+      "brights": [
+        "#898ea4",
+        "#c94922",
+        "#ac9739",
+        "#c08b30",
+        "#3d8fd1",
+        "#6679cc",
+        "#22a2c9",
+        "#202746"
+      ],
+      "cursor_bg": "#5e6687",
+      "cursor_border": "#5e6687",
+      "cursor_fg": "#5e6687",
+      "foreground": "#5e6687",
+      "indexed": {},
+      "selection_bg": "#5e6687",
+      "selection_fg": "#f5f7ff"
+    },
+    "metadata": {
+      "author": "Bram de Haan (http://atelierbramdehaan.nl)",
+      "name": "Atelier Sulphurpool Light (base16)",
+      "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
       "prefix": "a"
     }
   },
@@ -1110,6 +1956,44 @@
     "metadata": {
       "name": "AtelierSulphurpool",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "a"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#002635",
+        "#ff5a67",
+        "#7fc06e",
+        "#ffcc1b",
+        "#5dd7b9",
+        "#9a70a4",
+        "#14747e",
+        "#a1a19a"
+      ],
+      "background": "#002635",
+      "brights": [
+        "#6c8b91",
+        "#ff5a67",
+        "#7fc06e",
+        "#ffcc1b",
+        "#5dd7b9",
+        "#9a70a4",
+        "#14747e",
+        "#fafaf8"
+      ],
+      "cursor_bg": "#a1a19a",
+      "cursor_border": "#a1a19a",
+      "cursor_fg": "#a1a19a",
+      "foreground": "#a1a19a",
+      "indexed": {},
+      "selection_bg": "#a1a19a",
+      "selection_fg": "#002635"
+    },
+    "metadata": {
+      "author": "Alex Lende (https://ajlende.com)",
+      "name": "Atlas (base16)",
+      "origin_url": "https://github.com/ajlende/base16-atlas-scheme",
       "prefix": "a"
     }
   },
@@ -1749,13 +2633,18 @@
         "#afc4db",
         "#baae9e"
       ],
+      "cursor_bg": "#8a8986",
+      "cursor_border": "#8a8986",
+      "cursor_fg": "#8a8986",
       "foreground": "#8a8986",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#8a8986",
+      "selection_fg": "#28211c"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Bespin (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jan T. Sott",
+      "name": "Bespin (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "b"
     }
   },
@@ -1894,6 +2783,424 @@
       "author": "",
       "name": "Bitmute (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#dd9999",
+        "#a06666",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#dd9999",
+        "#a06666",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#fbcb97",
+        "#e78a53",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#fbcb97",
+        "#e78a53",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Bathory) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#ddeecc",
+        "#99bbaa",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#ddeecc",
+        "#99bbaa",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Burzum) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#d0dfee",
+        "#5f81a5",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#d0dfee",
+        "#5f81a5",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Dark Funeral) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#9b8d7f",
+        "#8c7f70",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#9b8d7f",
+        "#8c7f70",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Gorgoroth) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#7799bb",
+        "#556677",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#7799bb",
+        "#556677",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Immortal) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#eceee3",
+        "#974b46",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#eceee3",
+        "#974b46",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Khold) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#a5aaa7",
+        "#626b67",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#a5aaa7",
+        "#626b67",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Marduk) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#f3ecd4",
+        "#eecc6c",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#f3ecd4",
+        "#eecc6c",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Mayhem) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#aa9988",
+        "#777755",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#aa9988",
+        "#777755",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Nile) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#5f8787",
+        "#f8f7f2",
+        "#79241f",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#333333",
+        "#5f8787",
+        "#f8f7f2",
+        "#79241f",
+        "#888888",
+        "#999999",
+        "#aaaaaa",
+        "#c1c1c1"
+      ],
+      "cursor_bg": "#c1c1c1",
+      "cursor_border": "#c1c1c1",
+      "cursor_fg": "#c1c1c1",
+      "foreground": "#c1c1c1",
+      "indexed": {},
+      "selection_bg": "#c1c1c1",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "metalelf0 (https://github.com/metalelf0)",
+      "name": "Black Metal (Venom) (base16)",
+      "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
       "prefix": "b"
     }
   },
@@ -2319,13 +3626,18 @@
         "#80b1d3",
         "#fcfdfe"
       ],
+      "cursor_bg": "#b7b8b9",
+      "cursor_border": "#b7b8b9",
+      "cursor_fg": "#b7b8b9",
       "foreground": "#b7b8b9",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#b7b8b9",
+      "selection_fg": "#0c0d0e"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Brewer (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Timothée Poisot (http://github.com/tpoisot)",
+      "name": "Brewer (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "b"
     }
   },
@@ -2359,6 +3671,44 @@
       "author": "Chris Kempson",
       "name": "Brewer (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#fb0120",
+        "#a1c659",
+        "#fda331",
+        "#6fb3d2",
+        "#d381c3",
+        "#76c7b7",
+        "#e0e0e0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#b0b0b0",
+        "#fb0120",
+        "#a1c659",
+        "#fda331",
+        "#6fb3d2",
+        "#d381c3",
+        "#76c7b7",
+        "#ffffff"
+      ],
+      "cursor_bg": "#e0e0e0",
+      "cursor_border": "#e0e0e0",
+      "cursor_fg": "#e0e0e0",
+      "foreground": "#e0e0e0",
+      "indexed": {},
+      "selection_bg": "#e0e0e0",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Bright (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "b"
     }
   },
@@ -2470,6 +3820,120 @@
     "metadata": {
       "name": "Brogrammer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1f1f1f",
+        "#d6dbe5",
+        "#f3bd09",
+        "#1dd361",
+        "#5350b9",
+        "#0f7ddb",
+        "#1081d6",
+        "#4e5ab7"
+      ],
+      "background": "#1f1f1f",
+      "brights": [
+        "#ecba0f",
+        "#d6dbe5",
+        "#f3bd09",
+        "#1dd361",
+        "#5350b9",
+        "#0f7ddb",
+        "#1081d6",
+        "#d6dbe5"
+      ],
+      "cursor_bg": "#4e5ab7",
+      "cursor_border": "#4e5ab7",
+      "cursor_fg": "#4e5ab7",
+      "foreground": "#4e5ab7",
+      "indexed": {},
+      "selection_bg": "#4e5ab7",
+      "selection_fg": "#1f1f1f"
+    },
+    "metadata": {
+      "author": "Vik Ramanujam (http://github.com/piggyslasher)",
+      "name": "Brogrammer (base16)",
+      "origin_url": "https://github.com/piggyslasher/base16-brogrammer-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e3efef",
+        "#b38686",
+        "#87b386",
+        "#aab386",
+        "#868cb3",
+        "#b386b2",
+        "#86b3b3",
+        "#6d828e"
+      ],
+      "background": "#e3efef",
+      "brights": [
+        "#98afb5",
+        "#b38686",
+        "#87b386",
+        "#aab386",
+        "#868cb3",
+        "#b386b2",
+        "#86b3b3",
+        "#485867"
+      ],
+      "cursor_bg": "#6d828e",
+      "cursor_border": "#6d828e",
+      "cursor_fg": "#6d828e",
+      "foreground": "#6d828e",
+      "indexed": {},
+      "selection_bg": "#6d828e",
+      "selection_fg": "#e3efef"
+    },
+    "metadata": {
+      "author": "Abraham White <abelincoln.white@gmail.com>",
+      "name": "Brush Trees (base16)",
+      "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
+      "prefix": "b"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#485867",
+        "#b38686",
+        "#87b386",
+        "#aab386",
+        "#868cb3",
+        "#b386b2",
+        "#86b3b3",
+        "#b0c5c8"
+      ],
+      "background": "#485867",
+      "brights": [
+        "#8299a1",
+        "#b38686",
+        "#87b386",
+        "#aab386",
+        "#868cb3",
+        "#b386b2",
+        "#86b3b3",
+        "#e3efef"
+      ],
+      "cursor_bg": "#b0c5c8",
+      "cursor_border": "#b0c5c8",
+      "cursor_fg": "#b0c5c8",
+      "foreground": "#b0c5c8",
+      "indexed": {},
+      "selection_bg": "#b0c5c8",
+      "selection_fg": "#485867"
+    },
+    "metadata": {
+      "author": "Abraham White <abelincoln.white@gmail.com>",
+      "name": "Brush Trees Dark (base16)",
+      "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
       "prefix": "b"
     }
   },
@@ -3004,13 +4468,18 @@
         "#12cfc0",
         "#f5f5f5"
       ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
       "foreground": "#d0d0d0",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#151515"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Chalk (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Chalk (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "c"
     }
   },
@@ -3268,6 +4737,44 @@
   {
     "colors": {
       "ansi": [
+        "#191919",
+        "#dc657d",
+        "#84b97c",
+        "#c3ba63",
+        "#639ee4",
+        "#b888e2",
+        "#4bb1a7",
+        "#a7a7a7"
+      ],
+      "background": "#191919",
+      "brights": [
+        "#5f5a60",
+        "#dc657d",
+        "#84b97c",
+        "#c3ba63",
+        "#639ee4",
+        "#b888e2",
+        "#4bb1a7",
+        "#ffffff"
+      ],
+      "cursor_bg": "#a7a7a7",
+      "cursor_border": "#a7a7a7",
+      "cursor_fg": "#a7a7a7",
+      "foreground": "#a7a7a7",
+      "indexed": {},
+      "selection_bg": "#a7a7a7",
+      "selection_fg": "#191919"
+    },
+    "metadata": {
+      "author": "Stephan Boyer (https://github.com/stepchowfun) and Esther Wang (https://github.com/ewang12)",
+      "name": "Circus (base16)",
+      "origin_url": "https://github.com/stepchowfun/base16-circus-scheme",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#201e24",
         "#2d2b30",
         "#3f3d40",
@@ -3295,6 +4802,82 @@
       "author": "dkeg",
       "name": "City Streets (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#d0d0d0"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#505050",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#f5f5f5"
+      ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#151515"
+    },
+    "metadata": {
+      "author": "Jason Heeris (http://heeris.id.au)",
+      "name": "Classic Dark (base16)",
+      "origin_url": "https://github.com/detly/base16-classic-scheme",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f5f5f5",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#303030"
+      ],
+      "background": "#f5f5f5",
+      "brights": [
+        "#b0b0b0",
+        "#ac4142",
+        "#90a959",
+        "#f4bf75",
+        "#6a9fb5",
+        "#aa759f",
+        "#75b5aa",
+        "#151515"
+      ],
+      "cursor_bg": "#303030",
+      "cursor_border": "#303030",
+      "cursor_fg": "#303030",
+      "foreground": "#303030",
+      "indexed": {},
+      "selection_bg": "#303030",
+      "selection_fg": "#f5f5f5"
+    },
+    "metadata": {
+      "author": "Jason Heeris (http://heeris.id.au)",
+      "name": "Classic Light (base16)",
+      "origin_url": "https://github.com/detly/base16-classic-scheme",
       "prefix": "c"
     }
   },
@@ -3500,13 +5083,18 @@
         "#b02f30",
         "#b5d8f6"
       ],
+      "cursor_bg": "#9ea7a6",
+      "cursor_border": "#9ea7a6",
+      "cursor_fg": "#9ea7a6",
       "foreground": "#9ea7a6",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#9ea7a6",
+      "selection_fg": "#232c31"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Codeschool (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "blockloop",
+      "name": "Codeschool (base16)",
+      "origin_url": "https://github.com/blockloop/base16-codeschool-scheme",
       "prefix": "c"
     }
   },
@@ -3684,6 +5272,44 @@
   {
     "colors": {
       "ansi": [
+        "#111111",
+        "#ff4136",
+        "#2ecc40",
+        "#ffdc00",
+        "#0074d9",
+        "#b10dc9",
+        "#7fdbff",
+        "#bbbbbb"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#777777",
+        "#ff4136",
+        "#2ecc40",
+        "#ffdc00",
+        "#0074d9",
+        "#b10dc9",
+        "#7fdbff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#bbbbbb",
+      "cursor_border": "#bbbbbb",
+      "cursor_fg": "#bbbbbb",
+      "foreground": "#bbbbbb",
+      "indexed": {},
+      "selection_bg": "#bbbbbb",
+      "selection_fg": "#111111"
+    },
+    "metadata": {
+      "author": "mrmrs (http://clrs.cc)",
+      "name": "Colors (base16)",
+      "origin_url": "https://github.com/hakatashi/base16-colors-scheme",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#303030",
         "#c10023",
         "#a83334",
@@ -3748,6 +5374,82 @@
     "metadata": {
       "name": "CrayonPonyFish",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fbf1f2",
+        "#d57e85",
+        "#a3b367",
+        "#dcb16c",
+        "#7297b9",
+        "#bb99b4",
+        "#69a9a7",
+        "#8b8198"
+      ],
+      "background": "#fbf1f2",
+      "brights": [
+        "#bfb9c6",
+        "#d57e85",
+        "#a3b367",
+        "#dcb16c",
+        "#7297b9",
+        "#bb99b4",
+        "#69a9a7",
+        "#585062"
+      ],
+      "cursor_bg": "#8b8198",
+      "cursor_border": "#8b8198",
+      "cursor_fg": "#8b8198",
+      "foreground": "#8b8198",
+      "indexed": {},
+      "selection_bg": "#8b8198",
+      "selection_fg": "#fbf1f2"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Cupcake (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
+      "prefix": "c"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#c41a15",
+        "#007400",
+        "#826b28",
+        "#0000ff",
+        "#a90d91",
+        "#318495",
+        "#404040"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#808080",
+        "#c41a15",
+        "#007400",
+        "#826b28",
+        "#0000ff",
+        "#a90d91",
+        "#318495",
+        "#5e5e5e"
+      ],
+      "cursor_bg": "#404040",
+      "cursor_border": "#404040",
+      "cursor_fg": "#404040",
+      "foreground": "#404040",
+      "indexed": {},
+      "selection_bg": "#404040",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Defman21",
+      "name": "Cupertino (base16)",
+      "origin_url": "https://github.com/Defman21/base16-cupertino",
       "prefix": "c"
     }
   },
@@ -3861,6 +5563,82 @@
   {
     "colors": {
       "ansi": [
+        "#2d302f",
+        "#f9906f",
+        "#8ab361",
+        "#f0c239",
+        "#b0a4e3",
+        "#cca4e3",
+        "#30dff3",
+        "#e0f0ef"
+      ],
+      "background": "#2d302f",
+      "brights": [
+        "#9da8a3",
+        "#f9906f",
+        "#8ab361",
+        "#f0c239",
+        "#b0a4e3",
+        "#cca4e3",
+        "#30dff3",
+        "#fcfefd"
+      ],
+      "cursor_bg": "#e0f0ef",
+      "cursor_border": "#e0f0ef",
+      "cursor_fg": "#e0f0ef",
+      "foreground": "#e0f0ef",
+      "indexed": {},
+      "selection_bg": "#e0f0ef",
+      "selection_fg": "#2d302f"
+    },
+    "metadata": {
+      "author": "Wenhan Zhu (Cosmos) (zhuwenhan950913@gmail.com)",
+      "name": "DanQing (base16)",
+      "origin_url": "https://github.com/CosmosAtlas/base16-danqing-scheme",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2b2b2b",
+        "#4eade5",
+        "#6a8759",
+        "#bbb529",
+        "#9876aa",
+        "#cc7832",
+        "#629755",
+        "#a9b7c6"
+      ],
+      "background": "#2b2b2b",
+      "brights": [
+        "#606366",
+        "#4eade5",
+        "#6a8759",
+        "#bbb529",
+        "#9876aa",
+        "#cc7832",
+        "#629755",
+        "#ffffff"
+      ],
+      "cursor_bg": "#a9b7c6",
+      "cursor_border": "#a9b7c6",
+      "cursor_fg": "#a9b7c6",
+      "foreground": "#a9b7c6",
+      "indexed": {},
+      "selection_bg": "#a9b7c6",
+      "selection_fg": "#2b2b2b"
+    },
+    "metadata": {
+      "author": "jetbrains",
+      "name": "Darcula (base16)",
+      "origin_url": "https://github.com/casonadams/base16-darcula-scheme",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#571dc2",
         "#14db49",
@@ -3925,6 +5703,44 @@
     "metadata": {
       "name": "Dark Pastel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#a82ee6",
+        "#4595e6",
+        "#f29df2",
+        "#4136d9",
+        "#7e5ce6",
+        "#40dfff",
+        "#b08ae6"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#593380",
+        "#a82ee6",
+        "#4595e6",
+        "#f29df2",
+        "#4136d9",
+        "#7e5ce6",
+        "#40dfff",
+        "#a366ff"
+      ],
+      "cursor_bg": "#b08ae6",
+      "cursor_border": "#b08ae6",
+      "cursor_fg": "#b08ae6",
+      "foreground": "#b08ae6",
+      "indexed": {},
+      "selection_bg": "#b08ae6",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "ruler501 (https://github.com/ruler501/base16-darkviolet)",
+      "name": "Dark Violet (base16)",
+      "origin_url": "https://github.com/ruler501/base16-darkviolet-scheme",
       "prefix": "d"
     }
   },
@@ -4042,6 +5858,44 @@
   {
     "colors": {
       "ansi": [
+        "#171e1f",
+        "#ff4658",
+        "#499180",
+        "#fdb11f",
+        "#498091",
+        "#9bc0c8",
+        "#66d9ef",
+        "#c7c7a5"
+      ],
+      "background": "#171e1f",
+      "brights": [
+        "#555e5f",
+        "#ff4658",
+        "#499180",
+        "#fdb11f",
+        "#498091",
+        "#9bc0c8",
+        "#66d9ef",
+        "#e1eaef"
+      ],
+      "cursor_bg": "#c7c7a5",
+      "cursor_border": "#c7c7a5",
+      "cursor_fg": "#c7c7a5",
+      "foreground": "#c7c7a5",
+      "indexed": {},
+      "selection_bg": "#c7c7a5",
+      "selection_fg": "#171e1f"
+    },
+    "metadata": {
+      "author": "Gabriel Avanzi (https://github.com/avanzzzi)",
+      "name": "darkmoss (base16)",
+      "origin_url": "https://github.com/avanzzzi/base16-darkmoss-scheme",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#e8341c",
         "#68c256",
@@ -4073,6 +5927,44 @@
     "metadata": {
       "name": "Darkside",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2021",
+        "#fb543f",
+        "#95c085",
+        "#fac03b",
+        "#0d6678",
+        "#8f4673",
+        "#8ba59b",
+        "#a89984"
+      ],
+      "background": "#1d2021",
+      "brights": [
+        "#665c54",
+        "#fb543f",
+        "#95c085",
+        "#fac03b",
+        "#0d6678",
+        "#8f4673",
+        "#8ba59b",
+        "#fdf4c1"
+      ],
+      "cursor_bg": "#a89984",
+      "cursor_border": "#a89984",
+      "cursor_fg": "#a89984",
+      "foreground": "#a89984",
+      "indexed": {},
+      "selection_bg": "#a89984",
+      "selection_fg": "#1d2021"
+    },
+    "metadata": {
+      "author": "Jason Milkins (https://github.com/jasonm23)",
+      "name": "Darktooth (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "d"
     }
   },
@@ -4145,6 +6037,44 @@
   {
     "colors": {
       "ansi": [
+        "#2d2d2d",
+        "#ff7f7b",
+        "#beda78",
+        "#ffd67c",
+        "#90bee1",
+        "#efb3f7",
+        "#bed6ff",
+        "#cccccc"
+      ],
+      "background": "#2d2d2d",
+      "brights": [
+        "#777777",
+        "#ff7f7b",
+        "#beda78",
+        "#ffd67c",
+        "#90bee1",
+        "#efb3f7",
+        "#bed6ff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#cccccc",
+      "cursor_border": "#cccccc",
+      "cursor_fg": "#cccccc",
+      "foreground": "#cccccc",
+      "indexed": {},
+      "selection_bg": "#cccccc",
+      "selection_fg": "#2d2d2d"
+    },
+    "metadata": {
+      "author": "Alex Mirrington (https://github.com/alexmirrington)",
+      "name": "Decaf (base16)",
+      "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#d70005",
         "#1cd915",
@@ -4191,39 +6121,6 @@
         "#75b5aa",
         "#d0d0d0"
       ],
-      "background": "#151515",
-      "brights": [
-        "#505050",
-        "#ac4142",
-        "#90a959",
-        "#f4bf75",
-        "#6a9fb5",
-        "#aa759f",
-        "#75b5aa",
-        "#f5f5f5"
-      ],
-      "foreground": "#d0d0d0",
-      "indexed": {}
-    },
-    "metadata": {
-      "author": "Chris Kempson",
-      "name": "Default (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#151515",
-        "#ac4142",
-        "#90a959",
-        "#f4bf75",
-        "#6a9fb5",
-        "#aa759f",
-        "#75b5aa",
-        "#d0d0d0"
-      ],
       "background": "#f5f5f5",
       "brights": [
         "#505050",
@@ -4242,6 +6139,82 @@
       "author": "Chris Kempson",
       "name": "Default (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#181818",
+        "#ab4642",
+        "#a1b56c",
+        "#f7ca88",
+        "#7cafc2",
+        "#ba8baf",
+        "#86c1b9",
+        "#d8d8d8"
+      ],
+      "background": "#181818",
+      "brights": [
+        "#585858",
+        "#ab4642",
+        "#a1b56c",
+        "#f7ca88",
+        "#7cafc2",
+        "#ba8baf",
+        "#86c1b9",
+        "#f8f8f8"
+      ],
+      "cursor_bg": "#d8d8d8",
+      "cursor_border": "#d8d8d8",
+      "cursor_fg": "#d8d8d8",
+      "foreground": "#d8d8d8",
+      "indexed": {},
+      "selection_bg": "#d8d8d8",
+      "selection_fg": "#181818"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Default Dark (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f8f8f8",
+        "#ab4642",
+        "#a1b56c",
+        "#f7ca88",
+        "#7cafc2",
+        "#ba8baf",
+        "#86c1b9",
+        "#383838"
+      ],
+      "background": "#f8f8f8",
+      "brights": [
+        "#b8b8b8",
+        "#ab4642",
+        "#a1b56c",
+        "#f7ca88",
+        "#7cafc2",
+        "#ba8baf",
+        "#86c1b9",
+        "#181818"
+      ],
+      "cursor_bg": "#383838",
+      "cursor_border": "#383838",
+      "cursor_fg": "#383838",
+      "foreground": "#383838",
+      "indexed": {},
+      "selection_bg": "#383838",
+      "selection_fg": "#f8f8f8"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Default Light (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
       "prefix": "d"
     }
   },
@@ -4417,6 +6390,44 @@
     "metadata": {
       "name": "DimmedMonokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e0e0e0",
+        "#840000",
+        "#730073",
+        "#755b00",
+        "#007300",
+        "#000090",
+        "#755b00",
+        "#000000"
+      ],
+      "background": "#e0e0e0",
+      "brights": [
+        "#707070",
+        "#840000",
+        "#730073",
+        "#755b00",
+        "#007300",
+        "#000090",
+        "#755b00",
+        "#c4d9c4"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#000000",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#000000",
+      "selection_fg": "#e0e0e0"
+    },
+    "metadata": {
+      "author": "Kahlil (Kal) Hodgson",
+      "name": "dirtysea (base16)",
+      "origin_url": "https://github.com/tartansandal/base16-dirtysea-scheme",
       "prefix": "d"
     }
   },
@@ -4750,6 +6761,44 @@
   {
     "colors": {
       "ansi": [
+        "#282936",
+        "#ea51b2",
+        "#ebff87",
+        "#00f769",
+        "#62d6e8",
+        "#b45bcf",
+        "#a1efe4",
+        "#e9e9f4"
+      ],
+      "background": "#282936",
+      "brights": [
+        "#626483",
+        "#ea51b2",
+        "#ebff87",
+        "#00f769",
+        "#62d6e8",
+        "#b45bcf",
+        "#a1efe4",
+        "#f7f7fb"
+      ],
+      "cursor_bg": "#e9e9f4",
+      "cursor_border": "#e9e9f4",
+      "cursor_fg": "#e9e9f4",
+      "foreground": "#e9e9f4",
+      "indexed": {},
+      "selection_bg": "#e9e9f4",
+      "selection_fg": "#282936"
+    },
+    "metadata": {
+      "author": "Mike Barkmin (http://github.com/mikebarkmin) based on Dracula Theme (http://github.com/dracula)",
+      "name": "Dracula (base16)",
+      "origin_url": "https://github.com/dracula/base16-dracula-scheme",
+      "prefix": "d"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#44475a",
         "#ff5555",
         "#50fa7b",
@@ -4999,6 +7048,82 @@
   {
     "colors": {
       "ansi": [
+        "#262729",
+        "#e77171",
+        "#a1bf78",
+        "#dbb774",
+        "#73b3e7",
+        "#d390e7",
+        "#5ebaa5",
+        "#b7bec9"
+      ],
+      "background": "#262729",
+      "brights": [
+        "#3e4249",
+        "#e77171",
+        "#a1bf78",
+        "#dbb774",
+        "#73b3e7",
+        "#d390e7",
+        "#5ebaa5",
+        "#3e4249"
+      ],
+      "cursor_bg": "#b7bec9",
+      "cursor_border": "#b7bec9",
+      "cursor_fg": "#b7bec9",
+      "foreground": "#b7bec9",
+      "indexed": {},
+      "selection_bg": "#b7bec9",
+      "selection_fg": "#262729"
+    },
+    "metadata": {
+      "author": "cjayross (https://github.com/cjayross)",
+      "name": "Edge Dark (base16)",
+      "origin_url": "https://github.com/cjayross/base16-edge-schemes",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fafafa",
+        "#db7070",
+        "#7c9f4b",
+        "#d69822",
+        "#6587bf",
+        "#b870ce",
+        "#509c93",
+        "#5e646f"
+      ],
+      "background": "#fafafa",
+      "brights": [
+        "#5e646f",
+        "#db7070",
+        "#7c9f4b",
+        "#d69822",
+        "#6587bf",
+        "#b870ce",
+        "#509c93",
+        "#5e646f"
+      ],
+      "cursor_bg": "#5e646f",
+      "cursor_border": "#5e646f",
+      "cursor_fg": "#5e646f",
+      "foreground": "#5e646f",
+      "indexed": {},
+      "selection_bg": "#5e646f",
+      "selection_fg": "#fafafa"
+    },
+    "metadata": {
+      "author": "cjayross (https://github.com/cjayross)",
+      "name": "Edge Light (base16)",
+      "origin_url": "https://github.com/cjayross/base16-edge-schemes",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2d2d2d",
         "#f2777a",
         "#99cc99",
@@ -5019,13 +7144,18 @@
         "#66cccc",
         "#f2f0ec"
       ],
+      "cursor_bg": "#d3d0c8",
+      "cursor_border": "#d3d0c8",
+      "cursor_fg": "#d3d0c8",
       "foreground": "#d3d0c8",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#d3d0c8",
+      "selection_fg": "#2d2d2d"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Eighties (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Eighties (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
       "prefix": "e"
     }
   },
@@ -5297,13 +7427,18 @@
         "#576d82",
         "#dbd6d1"
       ],
+      "cursor_bg": "#a39a90",
+      "cursor_border": "#a39a90",
+      "cursor_fg": "#a39a90",
       "foreground": "#a39a90",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#a39a90",
+      "selection_fg": "#16130f"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Embers (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jannik Siebert (https://github.com/janniks)",
+      "name": "Embers (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "e"
     }
   },
@@ -5446,6 +7581,158 @@
   {
     "colors": {
       "ansi": [
+        "#0c1118",
+        "#f04339",
+        "#7f8b00",
+        "#bb8801",
+        "#008dd1",
+        "#6a7fd2",
+        "#00948b",
+        "#afaba2"
+      ],
+      "background": "#0c1118",
+      "brights": [
+        "#7b776e",
+        "#f04339",
+        "#7f8b00",
+        "#bb8801",
+        "#008dd1",
+        "#6a7fd2",
+        "#00948b",
+        "#e7e2d9"
+      ],
+      "cursor_bg": "#afaba2",
+      "cursor_border": "#afaba2",
+      "cursor_fg": "#afaba2",
+      "foreground": "#afaba2",
+      "indexed": {},
+      "selection_bg": "#afaba2",
+      "selection_fg": "#0c1118"
+    },
+    "metadata": {
+      "author": "Carlo Abelli",
+      "name": "Equilibrium Dark (base16)",
+      "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#111111",
+        "#f04339",
+        "#7f8b00",
+        "#bb8801",
+        "#008dd1",
+        "#6a7fd2",
+        "#00948b",
+        "#ababab"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#777777",
+        "#f04339",
+        "#7f8b00",
+        "#bb8801",
+        "#008dd1",
+        "#6a7fd2",
+        "#00948b",
+        "#e2e2e2"
+      ],
+      "cursor_bg": "#ababab",
+      "cursor_border": "#ababab",
+      "cursor_fg": "#ababab",
+      "foreground": "#ababab",
+      "indexed": {},
+      "selection_bg": "#ababab",
+      "selection_fg": "#111111"
+    },
+    "metadata": {
+      "author": "Carlo Abelli",
+      "name": "Equilibrium Gray Dark (base16)",
+      "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f1f1f1",
+        "#d02023",
+        "#637200",
+        "#9d6f00",
+        "#0073b5",
+        "#4e66b6",
+        "#007a72",
+        "#474747"
+      ],
+      "background": "#f1f1f1",
+      "brights": [
+        "#777777",
+        "#d02023",
+        "#637200",
+        "#9d6f00",
+        "#0073b5",
+        "#4e66b6",
+        "#007a72",
+        "#1b1b1b"
+      ],
+      "cursor_bg": "#474747",
+      "cursor_border": "#474747",
+      "cursor_fg": "#474747",
+      "foreground": "#474747",
+      "indexed": {},
+      "selection_bg": "#474747",
+      "selection_fg": "#f1f1f1"
+    },
+    "metadata": {
+      "author": "Carlo Abelli",
+      "name": "Equilibrium Gray Light (base16)",
+      "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f5f0e7",
+        "#d02023",
+        "#637200",
+        "#9d6f00",
+        "#0073b5",
+        "#4e66b6",
+        "#007a72",
+        "#43474e"
+      ],
+      "background": "#f5f0e7",
+      "brights": [
+        "#73777f",
+        "#d02023",
+        "#637200",
+        "#9d6f00",
+        "#0073b5",
+        "#4e66b6",
+        "#007a72",
+        "#181c22"
+      ],
+      "cursor_bg": "#43474e",
+      "cursor_border": "#43474e",
+      "cursor_fg": "#43474e",
+      "foreground": "#43474e",
+      "indexed": {},
+      "selection_bg": "#43474e",
+      "selection_fg": "#f5f0e7"
+    },
+    "metadata": {
+      "author": "Carlo Abelli",
+      "name": "Equilibrium Light (base16)",
+      "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#757575",
         "#ff5f5f",
         "#de8a36",
@@ -5516,6 +7803,44 @@
   {
     "colors": {
       "ansi": [
+        "#2d2d2d",
+        "#d25252",
+        "#a5c261",
+        "#ffc66d",
+        "#6c99bb",
+        "#d197d9",
+        "#bed6ff",
+        "#cccccc"
+      ],
+      "background": "#2d2d2d",
+      "brights": [
+        "#777777",
+        "#d25252",
+        "#a5c261",
+        "#ffc66d",
+        "#6c99bb",
+        "#d197d9",
+        "#bed6ff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#cccccc",
+      "cursor_border": "#cccccc",
+      "cursor_fg": "#cccccc",
+      "foreground": "#cccccc",
+      "indexed": {},
+      "selection_bg": "#cccccc",
+      "selection_fg": "#2d2d2d"
+    },
+    "metadata": {
+      "author": "Unknown. Maintained by Alex Mirrington (https://github.com/alexmirrington)",
+      "name": "Espresso (base16)",
+      "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#cc0000",
         "#1a921c",
@@ -5580,6 +7905,82 @@
       "author": "",
       "name": "Euphrasia (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2a3b4d",
+        "#c4676c",
+        "#66ff66",
+        "#ffff66",
+        "#15f4ee",
+        "#9c6cd3",
+        "#4b8f77",
+        "#9fa2a6"
+      ],
+      "background": "#2a3b4d",
+      "brights": [
+        "#55799c",
+        "#c4676c",
+        "#66ff66",
+        "#ffff66",
+        "#15f4ee",
+        "#9c6cd3",
+        "#4b8f77",
+        "#ffffff"
+      ],
+      "cursor_bg": "#9fa2a6",
+      "cursor_border": "#9fa2a6",
+      "cursor_fg": "#9fa2a6",
+      "foreground": "#9fa2a6",
+      "indexed": {},
+      "selection_bg": "#9fa2a6",
+      "selection_fg": "#2a3b4d"
+    },
+    "metadata": {
+      "author": "kjakapat (https://github.com/kjakapat)",
+      "name": "Eva (base16)",
+      "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
+      "prefix": "e"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2a3b4d",
+        "#c4676c",
+        "#5de561",
+        "#cfd05d",
+        "#1ae1dc",
+        "#9c6cd3",
+        "#4b8f77",
+        "#9fa2a6"
+      ],
+      "background": "#2a3b4d",
+      "brights": [
+        "#55799c",
+        "#c4676c",
+        "#5de561",
+        "#cfd05d",
+        "#1ae1dc",
+        "#9c6cd3",
+        "#4b8f77",
+        "#ffffff"
+      ],
+      "cursor_bg": "#9fa2a6",
+      "cursor_border": "#9fa2a6",
+      "cursor_fg": "#9fa2a6",
+      "foreground": "#9fa2a6",
+      "indexed": {},
+      "selection_bg": "#9fa2a6",
+      "selection_fg": "#2a3b4d"
+    },
+    "metadata": {
+      "author": "kjakapat (https://github.com/kjakapat)",
+      "name": "Eva Dim (base16)",
+      "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
       "prefix": "e"
     }
   },
@@ -5982,6 +8383,44 @@
     "colors": {
       "ansi": [
         "#2c3e50",
+        "#e74c3c",
+        "#2ecc71",
+        "#f1c40f",
+        "#3498db",
+        "#9b59b6",
+        "#1abc9c",
+        "#e0e0e0"
+      ],
+      "background": "#2c3e50",
+      "brights": [
+        "#95a5a6",
+        "#e74c3c",
+        "#2ecc71",
+        "#f1c40f",
+        "#3498db",
+        "#9b59b6",
+        "#1abc9c",
+        "#ecf0f1"
+      ],
+      "cursor_bg": "#e0e0e0",
+      "cursor_border": "#e0e0e0",
+      "cursor_fg": "#e0e0e0",
+      "foreground": "#e0e0e0",
+      "indexed": {},
+      "selection_bg": "#e0e0e0",
+      "selection_fg": "#2c3e50"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Flat (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "f"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2c3e50",
         "#c0392b",
         "#27ae60",
         "#f39c12",
@@ -6234,6 +8673,44 @@
   {
     "colors": {
       "ansi": [
+        "#181818",
+        "#fd886b",
+        "#32ccdc",
+        "#fecb6e",
+        "#20bcfc",
+        "#ba8cfc",
+        "#acddfd",
+        "#d0d0d0"
+      ],
+      "background": "#181818",
+      "brights": [
+        "#747474",
+        "#fd886b",
+        "#32ccdc",
+        "#fecb6e",
+        "#20bcfc",
+        "#ba8cfc",
+        "#acddfd",
+        "#eeeeee"
+      ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#181818"
+    },
+    "metadata": {
+      "author": "Framer (Maintained by Jesse Hoyos)",
+      "name": "Framer (base16)",
+      "origin_url": "https://github.com/jssee/base16-framer-scheme",
+      "prefix": "f"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#073642",
         "#dc322f",
         "#859900",
@@ -6300,6 +8777,44 @@
     "metadata": {
       "name": "FrontEndDelight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f1ecf1",
+        "#fe3e31",
+        "#47f74c",
+        "#f7e203",
+        "#2931df",
+        "#611fce",
+        "#0f9cfd",
+        "#515151"
+      ],
+      "background": "#f1ecf1",
+      "brights": [
+        "#b5b4b6",
+        "#fe3e31",
+        "#47f74c",
+        "#f7e203",
+        "#2931df",
+        "#611fce",
+        "#0f9cfd",
+        "#2d2c2c"
+      ],
+      "cursor_bg": "#515151",
+      "cursor_border": "#515151",
+      "cursor_fg": "#515151",
+      "foreground": "#515151",
+      "indexed": {},
+      "selection_bg": "#515151",
+      "selection_fg": "#f1ecf1"
+    },
+    "metadata": {
+      "author": "jozip",
+      "name": "Fruit Soda (base16)",
+      "origin_url": "https://github.com/jozip/base16-fruit-soda-scheme",
       "prefix": "f"
     }
   },
@@ -6452,6 +8967,44 @@
   {
     "colors": {
       "ansi": [
+        "#202126",
+        "#ff661a",
+        "#f2e6a9",
+        "#ffdc2d",
+        "#40bfff",
+        "#ae94f9",
+        "#fb6acb",
+        "#e9e7e1"
+      ],
+      "background": "#202126",
+      "brights": [
+        "#a1d2e6",
+        "#ff661a",
+        "#f2e6a9",
+        "#ffdc2d",
+        "#40bfff",
+        "#ae94f9",
+        "#fb6acb",
+        "#f2fbff"
+      ],
+      "cursor_bg": "#e9e7e1",
+      "cursor_border": "#e9e7e1",
+      "cursor_fg": "#e9e7e1",
+      "foreground": "#e9e7e1",
+      "indexed": {},
+      "selection_bg": "#e9e7e1",
+      "selection_fg": "#202126"
+    },
+    "metadata": {
+      "author": "Aidan Swope (http://github.com/Whillikers)",
+      "name": "Gigavolt (base16)",
+      "origin_url": "https://github.com/Whillikers/base16-gigavolt-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#3e3e3e",
         "#970b16",
         "#07962a",
@@ -6483,6 +9036,44 @@
     "metadata": {
       "name": "Github",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#ed6a43",
+        "#183691",
+        "#795da3",
+        "#795da3",
+        "#a71d5d",
+        "#183691",
+        "#333333"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#969896",
+        "#ed6a43",
+        "#183691",
+        "#795da3",
+        "#795da3",
+        "#a71d5d",
+        "#183691",
+        "#ffffff"
+      ],
+      "cursor_bg": "#333333",
+      "cursor_border": "#333333",
+      "cursor_fg": "#333333",
+      "foreground": "#333333",
+      "indexed": {},
+      "selection_bg": "#333333",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Defman21",
+      "name": "Github (base16)",
+      "origin_url": "https://github.com/Defman21/base16-github-scheme",
       "prefix": "g"
     }
   },
@@ -6675,39 +9266,6 @@
         "#3971ed",
         "#c5c8c6"
       ],
-      "background": "#1d1f21",
-      "brights": [
-        "#969896",
-        "#cc342b",
-        "#198844",
-        "#fba922",
-        "#3971ed",
-        "#a36ac7",
-        "#3971ed",
-        "#ffffff"
-      ],
-      "foreground": "#c5c8c6",
-      "indexed": {}
-    },
-    "metadata": {
-      "author": "Chris Kempson",
-      "name": "Google (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1d1f21",
-        "#cc342b",
-        "#198844",
-        "#fba922",
-        "#3971ed",
-        "#a36ac7",
-        "#3971ed",
-        "#c5c8c6"
-      ],
       "background": "#ffffff",
       "brights": [
         "#969896",
@@ -6726,6 +9284,82 @@
       "author": "Chris Kempson",
       "name": "Google (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d1f21",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#c5c8c6"
+      ],
+      "background": "#1d1f21",
+      "brights": [
+        "#969896",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c5c8c6",
+      "cursor_border": "#c5c8c6",
+      "cursor_fg": "#c5c8c6",
+      "foreground": "#c5c8c6",
+      "indexed": {},
+      "selection_bg": "#c5c8c6",
+      "selection_fg": "#1d1f21"
+    },
+    "metadata": {
+      "author": "Seth Wright (http://sethawright.com)",
+      "name": "Google Dark (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#373b41"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#b4b7b4",
+        "#cc342b",
+        "#198844",
+        "#fba922",
+        "#3971ed",
+        "#a36ac7",
+        "#3971ed",
+        "#1d1f21"
+      ],
+      "cursor_bg": "#373b41",
+      "cursor_border": "#373b41",
+      "cursor_fg": "#373b41",
+      "foreground": "#373b41",
+      "indexed": {},
+      "selection_bg": "#373b41",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Seth Wright (http://sethawright.com)",
+      "name": "Google Light (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "g"
     }
   },
@@ -6953,39 +9587,6 @@
         "#868686",
         "#b9b9b9"
       ],
-      "background": "#101010",
-      "brights": [
-        "#525252",
-        "#7c7c7c",
-        "#8e8e8e",
-        "#a0a0a0",
-        "#686868",
-        "#747474",
-        "#868686",
-        "#f7f7f7"
-      ],
-      "foreground": "#b9b9b9",
-      "indexed": {}
-    },
-    "metadata": {
-      "author": "Chris Kempson",
-      "name": "Grayscale (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#101010",
-        "#7c7c7c",
-        "#8e8e8e",
-        "#a0a0a0",
-        "#686868",
-        "#747474",
-        "#868686",
-        "#b9b9b9"
-      ],
       "background": "#f7f7f7",
       "brights": [
         "#525252",
@@ -7004,6 +9605,82 @@
       "author": "Chris Kempson",
       "name": "Grayscale (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#b9b9b9"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#525252",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#f7f7f7"
+      ],
+      "cursor_bg": "#b9b9b9",
+      "cursor_border": "#b9b9b9",
+      "cursor_fg": "#b9b9b9",
+      "foreground": "#b9b9b9",
+      "indexed": {},
+      "selection_bg": "#b9b9b9",
+      "selection_fg": "#101010"
+    },
+    "metadata": {
+      "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
+      "name": "Grayscale Dark (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f7f7f7",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#464646"
+      ],
+      "background": "#f7f7f7",
+      "brights": [
+        "#ababab",
+        "#7c7c7c",
+        "#8e8e8e",
+        "#a0a0a0",
+        "#686868",
+        "#747474",
+        "#868686",
+        "#101010"
+      ],
+      "cursor_bg": "#464646",
+      "cursor_border": "#464646",
+      "cursor_fg": "#464646",
+      "foreground": "#464646",
+      "indexed": {},
+      "selection_bg": "#464646",
+      "selection_fg": "#f7f7f7"
+    },
+    "metadata": {
+      "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
+      "name": "Grayscale Light (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "g"
     }
   },
@@ -7030,13 +9707,18 @@
         "#005500",
         "#00ff00"
       ],
+      "cursor_bg": "#00bb00",
+      "cursor_border": "#00bb00",
+      "cursor_fg": "#00bb00",
       "foreground": "#00bb00",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#00bb00",
+      "selection_fg": "#001100"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Greenscreen (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Green Screen (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "g"
     }
   },
@@ -7107,6 +9789,44 @@
     "metadata": {
       "name": "Grey-green",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#181818",
+        "#f43841",
+        "#73c936",
+        "#ffdd33",
+        "#96a6c8",
+        "#9e95c7",
+        "#95a99f",
+        "#f4f4ff"
+      ],
+      "background": "#181818",
+      "brights": [
+        "#52494e",
+        "#f43841",
+        "#73c936",
+        "#ffdd33",
+        "#96a6c8",
+        "#9e95c7",
+        "#95a99f",
+        "#e4e4ef"
+      ],
+      "cursor_bg": "#f4f4ff",
+      "cursor_border": "#f4f4ff",
+      "cursor_fg": "#f4f4ff",
+      "foreground": "#f4f4ff",
+      "indexed": {},
+      "selection_bg": "#f4f4ff",
+      "selection_fg": "#181818"
+    },
+    "metadata": {
+      "author": "Patel, Nimai <nimai.m.patel@gmail.com>, colors from www.github.com/rexim/gruber-darker-theme",
+      "name": "Gruber (base16)",
+      "origin_url": "https://github.com/nimaipatel/base16-gruber",
       "prefix": "g"
     }
   },
@@ -7185,6 +9905,158 @@
   {
     "colors": {
       "ansi": [
+        "#1d2021",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#d5c4a1"
+      ],
+      "background": "#1d2021",
+      "brights": [
+        "#665c54",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#fbf1c7"
+      ],
+      "cursor_bg": "#d5c4a1",
+      "cursor_border": "#d5c4a1",
+      "cursor_fg": "#d5c4a1",
+      "foreground": "#d5c4a1",
+      "indexed": {},
+      "selection_bg": "#d5c4a1",
+      "selection_fg": "#1d2021"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox dark, hard (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282828",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#d5c4a1"
+      ],
+      "background": "#282828",
+      "brights": [
+        "#665c54",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#fbf1c7"
+      ],
+      "cursor_bg": "#d5c4a1",
+      "cursor_border": "#d5c4a1",
+      "cursor_fg": "#d5c4a1",
+      "foreground": "#d5c4a1",
+      "indexed": {},
+      "selection_bg": "#d5c4a1",
+      "selection_fg": "#282828"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox dark, medium (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#262626",
+        "#d75f5f",
+        "#afaf00",
+        "#ffaf00",
+        "#83adad",
+        "#d485ad",
+        "#85ad85",
+        "#dab997"
+      ],
+      "background": "#262626",
+      "brights": [
+        "#8a8a8a",
+        "#d75f5f",
+        "#afaf00",
+        "#ffaf00",
+        "#83adad",
+        "#d485ad",
+        "#85ad85",
+        "#ebdbb2"
+      ],
+      "cursor_bg": "#dab997",
+      "cursor_border": "#dab997",
+      "cursor_fg": "#dab997",
+      "foreground": "#dab997",
+      "indexed": {},
+      "selection_bg": "#dab997",
+      "selection_fg": "#262626"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox dark, pale (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#32302f",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#d5c4a1"
+      ],
+      "background": "#32302f",
+      "brights": [
+        "#665c54",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#fbf1c7"
+      ],
+      "cursor_bg": "#d5c4a1",
+      "cursor_border": "#d5c4a1",
+      "cursor_fg": "#d5c4a1",
+      "foreground": "#d5c4a1",
+      "indexed": {},
+      "selection_bg": "#d5c4a1",
+      "selection_fg": "#32302f"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox dark, soft (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#fbf1c7",
         "#9d0006",
         "#79740e",
@@ -7216,6 +10088,120 @@
     "metadata": {
       "name": "Gruvbox Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f9f5d7",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#504945"
+      ],
+      "background": "#f9f5d7",
+      "brights": [
+        "#bdae93",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#282828"
+      ],
+      "cursor_bg": "#504945",
+      "cursor_border": "#504945",
+      "cursor_fg": "#504945",
+      "foreground": "#504945",
+      "indexed": {},
+      "selection_bg": "#504945",
+      "selection_fg": "#f9f5d7"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox light, hard (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fbf1c7",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#504945"
+      ],
+      "background": "#fbf1c7",
+      "brights": [
+        "#bdae93",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#282828"
+      ],
+      "cursor_bg": "#504945",
+      "cursor_border": "#504945",
+      "cursor_fg": "#504945",
+      "foreground": "#504945",
+      "indexed": {},
+      "selection_bg": "#504945",
+      "selection_fg": "#fbf1c7"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox light, medium (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
+      "prefix": "g"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f2e5bc",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#504945"
+      ],
+      "background": "#f2e5bc",
+      "brights": [
+        "#bdae93",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#282828"
+      ],
+      "cursor_bg": "#504945",
+      "cursor_border": "#504945",
+      "cursor_fg": "#504945",
+      "foreground": "#504945",
+      "indexed": {},
+      "selection_bg": "#504945",
+      "selection_fg": "#f2e5bc"
+    },
+    "metadata": {
+      "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
+      "name": "Gruvbox light, soft (base16)",
+      "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
       "prefix": "g"
     }
   },
@@ -7368,6 +10354,120 @@
   {
     "colors": {
       "ansi": [
+        "#212121",
+        "#f92672",
+        "#a6e22e",
+        "#e6db74",
+        "#66d9ef",
+        "#9e6ffe",
+        "#708387",
+        "#cdcdcd"
+      ],
+      "background": "#212121",
+      "brights": [
+        "#4a4a4a",
+        "#f92672",
+        "#a6e22e",
+        "#e6db74",
+        "#66d9ef",
+        "#9e6ffe",
+        "#708387",
+        "#ffffff"
+      ],
+      "cursor_bg": "#cdcdcd",
+      "cursor_border": "#cdcdcd",
+      "cursor_fg": "#cdcdcd",
+      "foreground": "#cdcdcd",
+      "indexed": {},
+      "selection_bg": "#cdcdcd",
+      "selection_fg": "#212121"
+    },
+    "metadata": {
+      "author": "Chris Caller",
+      "name": "Hardcore (base16)",
+      "origin_url": "https://github.com/callerc1/base16-hardcore-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0b1c2c",
+        "#bf8b56",
+        "#56bf8b",
+        "#8bbf56",
+        "#8b56bf",
+        "#bf568b",
+        "#568bbf",
+        "#cbd6e2"
+      ],
+      "background": "#0b1c2c",
+      "brights": [
+        "#627e99",
+        "#bf8b56",
+        "#56bf8b",
+        "#8bbf56",
+        "#8b56bf",
+        "#bf568b",
+        "#568bbf",
+        "#f7f9fb"
+      ],
+      "cursor_bg": "#cbd6e2",
+      "cursor_border": "#cbd6e2",
+      "cursor_fg": "#cbd6e2",
+      "foreground": "#cbd6e2",
+      "indexed": {},
+      "selection_bg": "#cbd6e2",
+      "selection_fg": "#0b1c2c"
+    },
+    "metadata": {
+      "author": "Jannik Siebert (https://github.com/janniks)",
+      "name": "Harmonic16 Dark (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f7f9fb",
+        "#bf8b56",
+        "#56bf8b",
+        "#8bbf56",
+        "#8b56bf",
+        "#bf568b",
+        "#568bbf",
+        "#405c79"
+      ],
+      "background": "#f7f9fb",
+      "brights": [
+        "#aabcce",
+        "#bf8b56",
+        "#56bf8b",
+        "#8bbf56",
+        "#8b56bf",
+        "#bf568b",
+        "#568bbf",
+        "#0b1c2c"
+      ],
+      "cursor_bg": "#405c79",
+      "cursor_border": "#405c79",
+      "cursor_fg": "#405c79",
+      "foreground": "#405c79",
+      "indexed": {},
+      "selection_bg": "#405c79",
+      "selection_fg": "#f7f9fb"
+    },
+    "metadata": {
+      "author": "Jannik Siebert (https://github.com/janniks)",
+      "name": "Harmonic16 Light (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#010101",
         "#f8b63f",
         "#7fb5e1",
@@ -7510,6 +10610,120 @@
     "metadata": {
       "name": "HaX0R_R3D",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#190134",
+        "#27d9d5",
+        "#c33678",
+        "#8f6c97",
+        "#bd0152",
+        "#82034c",
+        "#f80059",
+        "#bdb6c5"
+      ],
+      "background": "#190134",
+      "brights": [
+        "#7b6d8b",
+        "#27d9d5",
+        "#c33678",
+        "#8f6c97",
+        "#bd0152",
+        "#82034c",
+        "#f80059",
+        "#feffff"
+      ],
+      "cursor_bg": "#bdb6c5",
+      "cursor_border": "#bdb6c5",
+      "cursor_fg": "#bdb6c5",
+      "foreground": "#bdb6c5",
+      "indexed": {},
+      "selection_bg": "#bdb6c5",
+      "selection_fg": "#190134"
+    },
+    "metadata": {
+      "author": "Geoffrey Teale (tealeg@gmail.com)",
+      "name": "Heetch Dark (base16)",
+      "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#feffff",
+        "#27d9d5",
+        "#f80059",
+        "#5ba2b6",
+        "#47f9f5",
+        "#bd0152",
+        "#c33678",
+        "#5a496e"
+      ],
+      "background": "#feffff",
+      "brights": [
+        "#9c92a8",
+        "#27d9d5",
+        "#f80059",
+        "#5ba2b6",
+        "#47f9f5",
+        "#bd0152",
+        "#c33678",
+        "#190134"
+      ],
+      "cursor_bg": "#5a496e",
+      "cursor_border": "#5a496e",
+      "cursor_fg": "#5a496e",
+      "foreground": "#5a496e",
+      "indexed": {},
+      "selection_bg": "#5a496e",
+      "selection_fg": "#feffff"
+    },
+    "metadata": {
+      "author": "Geoffrey Teale (tealeg@gmail.com)",
+      "name": "Heetch Light (base16)",
+      "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2021",
+        "#d72638",
+        "#88b92d",
+        "#f19d1a",
+        "#1e8bac",
+        "#be4264",
+        "#1ba595",
+        "#d5d5d5"
+      ],
+      "background": "#1d2021",
+      "brights": [
+        "#6f7579",
+        "#d72638",
+        "#88b92d",
+        "#f19d1a",
+        "#1e8bac",
+        "#be4264",
+        "#1ba595",
+        "#e5e5e5"
+      ],
+      "cursor_bg": "#d5d5d5",
+      "cursor_border": "#d5d5d5",
+      "cursor_fg": "#d5d5d5",
+      "foreground": "#d5d5d5",
+      "indexed": {},
+      "selection_bg": "#d5d5d5",
+      "selection_fg": "#1d2021"
+    },
+    "metadata": {
+      "author": "Alex Meyer (https://github.com/reyemxela)",
+      "name": "Helios (base16)",
+      "origin_url": "https://github.com/reyemxela/base16-helios-scheme",
       "prefix": "h"
     }
   },
@@ -7808,6 +11022,158 @@
   {
     "colors": {
       "ansi": [
+        "#1c1e26",
+        "#e93c58",
+        "#efaf8e",
+        "#efb993",
+        "#df5273",
+        "#b072d1",
+        "#24a8b4",
+        "#cbced0"
+      ],
+      "background": "#1c1e26",
+      "brights": [
+        "#6f6f70",
+        "#e93c58",
+        "#efaf8e",
+        "#efb993",
+        "#df5273",
+        "#b072d1",
+        "#24a8b4",
+        "#e3e6ee"
+      ],
+      "cursor_bg": "#cbced0",
+      "cursor_border": "#cbced0",
+      "cursor_fg": "#cbced0",
+      "foreground": "#cbced0",
+      "indexed": {},
+      "selection_bg": "#cbced0",
+      "selection_fg": "#1c1e26"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Horizon Dark (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c1e26",
+        "#e95678",
+        "#29d398",
+        "#fac29a",
+        "#26bbd9",
+        "#ee64ac",
+        "#59e1e3",
+        "#cbced0"
+      ],
+      "background": "#1c1e26",
+      "brights": [
+        "#6f6f70",
+        "#e95678",
+        "#29d398",
+        "#fac29a",
+        "#26bbd9",
+        "#ee64ac",
+        "#59e1e3",
+        "#e3e6ee"
+      ],
+      "cursor_bg": "#cbced0",
+      "cursor_border": "#cbced0",
+      "cursor_fg": "#cbced0",
+      "foreground": "#cbced0",
+      "indexed": {},
+      "selection_bg": "#cbced0",
+      "selection_fg": "#1c1e26"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Horizon Dark (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fdf0ed",
+        "#f7939b",
+        "#94e1b0",
+        "#fbe0d9",
+        "#da103f",
+        "#1d8991",
+        "#dc3318",
+        "#403c3d"
+      ],
+      "background": "#fdf0ed",
+      "brights": [
+        "#bdb3b1",
+        "#f7939b",
+        "#94e1b0",
+        "#fbe0d9",
+        "#da103f",
+        "#1d8991",
+        "#dc3318",
+        "#201c1d"
+      ],
+      "cursor_bg": "#403c3d",
+      "cursor_border": "#403c3d",
+      "cursor_fg": "#403c3d",
+      "foreground": "#403c3d",
+      "indexed": {},
+      "selection_bg": "#403c3d",
+      "selection_fg": "#fdf0ed"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Horizon Light (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fdf0ed",
+        "#e95678",
+        "#29d398",
+        "#fadad1",
+        "#26bbd9",
+        "#ee64ac",
+        "#59e1e3",
+        "#403c3d"
+      ],
+      "background": "#fdf0ed",
+      "brights": [
+        "#bdb3b1",
+        "#e95678",
+        "#29d398",
+        "#fadad1",
+        "#26bbd9",
+        "#ee64ac",
+        "#59e1e3",
+        "#201c1d"
+      ],
+      "cursor_bg": "#403c3d",
+      "cursor_border": "#403c3d",
+      "cursor_fg": "#403c3d",
+      "foreground": "#403c3d",
+      "indexed": {},
+      "selection_bg": "#403c3d",
+      "selection_fg": "#fdf0ed"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Horizon Light (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#16161c",
         "#da103f",
         "#1eb980",
@@ -7872,6 +11238,82 @@
     "metadata": {
       "name": "HorizonDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#232629",
+        "#f11235",
+        "#02d849",
+        "#ffb627",
+        "#00a6fb",
+        "#f15ee3",
+        "#0dd9d6",
+        "#f8f8f2"
+      ],
+      "background": "#232629",
+      "brights": [
+        "#60615d",
+        "#f11235",
+        "#02d849",
+        "#ffb627",
+        "#00a6fb",
+        "#f15ee3",
+        "#0dd9d6",
+        "#fcfcfc"
+      ],
+      "cursor_bg": "#f8f8f2",
+      "cursor_border": "#f8f8f2",
+      "cursor_fg": "#f8f8f2",
+      "foreground": "#f8f8f2",
+      "indexed": {},
+      "selection_bg": "#f8f8f2",
+      "selection_fg": "#232629"
+    },
+    "metadata": {
+      "author": "Thomas (tasmo) Friese",
+      "name": "Humanoid dark (base16)",
+      "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
+      "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f8f8f2",
+        "#b0151a",
+        "#388e3c",
+        "#ffb627",
+        "#0082c9",
+        "#700f98",
+        "#008e8e",
+        "#232629"
+      ],
+      "background": "#f8f8f2",
+      "brights": [
+        "#c0c0bd",
+        "#b0151a",
+        "#388e3c",
+        "#ffb627",
+        "#0082c9",
+        "#700f98",
+        "#008e8e",
+        "#070708"
+      ],
+      "cursor_bg": "#232629",
+      "cursor_border": "#232629",
+      "cursor_fg": "#232629",
+      "foreground": "#232629",
+      "indexed": {},
+      "selection_bg": "#232629",
+      "selection_fg": "#f8f8f2"
+    },
+    "metadata": {
+      "author": "Thomas (tasmo) Friese",
+      "name": "Humanoid light (base16)",
+      "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
       "prefix": "h"
     }
   },
@@ -8081,6 +11523,82 @@
       "name": "Hybrid (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "h"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1a1a1a",
+        "#d88568",
+        "#83a471",
+        "#b99353",
+        "#8eccdd",
+        "#b98eb2",
+        "#7c9cae",
+        "#cccccc"
+      ],
+      "background": "#1a1a1a",
+      "brights": [
+        "#767676",
+        "#d88568",
+        "#83a471",
+        "#b99353",
+        "#8eccdd",
+        "#b98eb2",
+        "#7c9cae",
+        "#f8f8f8"
+      ],
+      "cursor_bg": "#cccccc",
+      "cursor_border": "#cccccc",
+      "cursor_fg": "#cccccc",
+      "foreground": "#cccccc",
+      "indexed": {},
+      "selection_bg": "#cccccc",
+      "selection_fg": "#1a1a1a"
+    },
+    "metadata": {
+      "author": "iA Inc. (modified by aramisgithub)",
+      "name": "iA Dark (base16)",
+      "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f6f6f6",
+        "#9c5a02",
+        "#38781c",
+        "#c48218",
+        "#48bac2",
+        "#a94598",
+        "#2d6bb1",
+        "#181818"
+      ],
+      "background": "#f6f6f6",
+      "brights": [
+        "#898989",
+        "#9c5a02",
+        "#38781c",
+        "#c48218",
+        "#48bac2",
+        "#a94598",
+        "#2d6bb1",
+        "#f8f8f8"
+      ],
+      "cursor_bg": "#181818",
+      "cursor_border": "#181818",
+      "cursor_fg": "#181818",
+      "foreground": "#181818",
+      "indexed": {},
+      "selection_bg": "#181818",
+      "selection_fg": "#f6f6f6"
+    },
+    "metadata": {
+      "author": "iA Inc. (modified by aramisgithub)",
+      "name": "iA Light (base16)",
+      "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
+      "prefix": "i"
     }
   },
   {
@@ -8339,6 +11857,44 @@
   {
     "colors": {
       "ansi": [
+        "#021012",
+        "#16c1d9",
+        "#4dd0e1",
+        "#80deea",
+        "#00bcd4",
+        "#00acc1",
+        "#26c6da",
+        "#095b67"
+      ],
+      "background": "#021012",
+      "brights": [
+        "#052e34",
+        "#16c1d9",
+        "#4dd0e1",
+        "#80deea",
+        "#00bcd4",
+        "#00acc1",
+        "#26c6da",
+        "#109cb0"
+      ],
+      "cursor_bg": "#095b67",
+      "cursor_border": "#095b67",
+      "cursor_fg": "#095b67",
+      "foreground": "#095b67",
+      "indexed": {},
+      "selection_bg": "#095b67",
+      "selection_fg": "#021012"
+    },
+    "metadata": {
+      "author": "icyphox (https://icyphox.ga)",
+      "name": "Icy Dark (base16)",
+      "origin_url": "https://github.com/icyphox/base16-icy-scheme",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#adadad",
         "#fc5256",
         "#98b61c",
@@ -8512,6 +12068,44 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#ff6c60",
+        "#a8ff60",
+        "#ffffb6",
+        "#96cbfe",
+        "#ff73fd",
+        "#c6c5fe",
+        "#b5b3aa"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#6c6c66",
+        "#ff6c60",
+        "#a8ff60",
+        "#ffffb6",
+        "#96cbfe",
+        "#ff73fd",
+        "#c6c5fe",
+        "#fdfbee"
+      ],
+      "cursor_bg": "#b5b3aa",
+      "cursor_border": "#b5b3aa",
+      "cursor_fg": "#b5b3aa",
+      "foreground": "#b5b3aa",
+      "indexed": {},
+      "selection_bg": "#b5b3aa",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Timothée Poisot (http://timotheepoisot.fr)",
+      "name": "IR Black (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "i"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4f4f4f",
         "#fa6c60",
         "#a8ff60",
@@ -8604,13 +12198,18 @@
         "#00ffff",
         "#ffffff"
       ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
       "foreground": "#d0d0d0",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#000000"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Isotope (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jan T. Sott",
+      "name": "Isotope (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "i"
     }
   },
@@ -9142,6 +12741,44 @@
   {
     "colors": {
       "ansi": [
+        "#222222",
+        "#c88c8c",
+        "#99c899",
+        "#d8b56d",
+        "#537c9c",
+        "#86cacd",
+        "#78b4b4",
+        "#dedee7"
+      ],
+      "background": "#222222",
+      "brights": [
+        "#644646",
+        "#c88c8c",
+        "#99c899",
+        "#d8b56d",
+        "#537c9c",
+        "#86cacd",
+        "#78b4b4",
+        "#ffffe6"
+      ],
+      "cursor_bg": "#dedee7",
+      "cursor_border": "#dedee7",
+      "cursor_fg": "#dedee7",
+      "foreground": "#dedee7",
+      "indexed": {},
+      "selection_bg": "#dedee7",
+      "selection_fg": "#222222"
+    },
+    "metadata": {
+      "author": "Mishka Nguyen (https://github.com/akhsiM)",
+      "name": "Kimber (base16)",
+      "origin_url": "https://github.com/akhsiM/base16-kimber-scheme",
+      "prefix": "k"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2e8744",
         "#d84e4c",
         "#95da5a",
@@ -9598,13 +13235,18 @@
         "#85cebc",
         "#ffffff"
       ],
+      "cursor_bg": "#d9d8d8",
+      "cursor_border": "#d9d8d8",
+      "cursor_fg": "#d9d8d8",
       "foreground": "#d9d8d8",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#d9d8d8",
+      "selection_fg": "#231f20"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Londontube (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Jan T. Sott",
+      "name": "London Tube (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "l"
     }
   },
@@ -9885,6 +13527,44 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#dd0907",
+        "#1fb714",
+        "#fbf305",
+        "#0000d3",
+        "#4700a5",
+        "#02abea",
+        "#c0c0c0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#808080",
+        "#dd0907",
+        "#1fb714",
+        "#fbf305",
+        "#0000d3",
+        "#4700a5",
+        "#02abea",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c0c0c0",
+      "cursor_border": "#c0c0c0",
+      "cursor_fg": "#c0c0c0",
+      "foreground": "#c0c0c0",
+      "indexed": {},
+      "selection_bg": "#c0c0c0",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Rebecca Bettencourt (http://www.kreativekorp.com)",
+      "name": "Macintosh (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#232423",
         "#ba2922",
         "#7e807e",
@@ -10049,13 +13729,18 @@
         "#75a738",
         "#faf0a5"
       ],
+      "cursor_bg": "#948e48",
+      "cursor_border": "#948e48",
+      "cursor_fg": "#948e48",
       "foreground": "#948e48",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#948e48",
+      "selection_fg": "#201602"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Marrakesh (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Alexandre Gavioli (http://github.com/Alexx2/)",
+      "name": "Marrakesh (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "m"
     }
   },
@@ -10128,6 +13813,44 @@
   {
     "colors": {
       "ansi": [
+        "#263238",
+        "#ec5f67",
+        "#8bd649",
+        "#ffcc00",
+        "#89ddff",
+        "#82aaff",
+        "#80cbc4",
+        "#cdd3de"
+      ],
+      "background": "#263238",
+      "brights": [
+        "#707880",
+        "#ec5f67",
+        "#8bd649",
+        "#ffcc00",
+        "#89ddff",
+        "#82aaff",
+        "#80cbc4",
+        "#ffffff"
+      ],
+      "cursor_bg": "#cdd3de",
+      "cursor_border": "#cdd3de",
+      "cursor_fg": "#cdd3de",
+      "foreground": "#cdd3de",
+      "indexed": {},
+      "selection_bg": "#cdd3de",
+      "selection_fg": "#263238"
+    },
+    "metadata": {
+      "author": "Defman21",
+      "name": "Materia (base16)",
+      "origin_url": "https://github.com/Defman21/base16-materia",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#212121",
         "#b7141f",
         "#457b24",
@@ -10159,6 +13882,44 @@
     "metadata": {
       "name": "Material",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#263238",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#eeffff"
+      ],
+      "background": "#263238",
+      "brights": [
+        "#546e7a",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#eeffff",
+      "cursor_border": "#eeffff",
+      "cursor_fg": "#eeffff",
+      "foreground": "#eeffff",
+      "indexed": {},
+      "selection_bg": "#eeffff",
+      "selection_fg": "#263238"
+    },
+    "metadata": {
+      "author": "Nate Peterson",
+      "name": "Material (base16)",
+      "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
       "prefix": "m"
     }
   },
@@ -10227,6 +13988,158 @@
       "author": "",
       "name": "Material (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#212121",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#eeffff"
+      ],
+      "background": "#212121",
+      "brights": [
+        "#4a4a4a",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#eeffff",
+      "cursor_border": "#eeffff",
+      "cursor_fg": "#eeffff",
+      "foreground": "#eeffff",
+      "indexed": {},
+      "selection_bg": "#eeffff",
+      "selection_fg": "#212121"
+    },
+    "metadata": {
+      "author": "Nate Peterson",
+      "name": "Material Darker (base16)",
+      "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fafafa",
+        "#ff5370",
+        "#91b859",
+        "#ffb62c",
+        "#6182b8",
+        "#7c4dff",
+        "#39adb5",
+        "#80cbc4"
+      ],
+      "background": "#fafafa",
+      "brights": [
+        "#ccd7da",
+        "#ff5370",
+        "#91b859",
+        "#ffb62c",
+        "#6182b8",
+        "#7c4dff",
+        "#39adb5",
+        "#ffffff"
+      ],
+      "cursor_bg": "#80cbc4",
+      "cursor_border": "#80cbc4",
+      "cursor_fg": "#80cbc4",
+      "foreground": "#80cbc4",
+      "indexed": {},
+      "selection_bg": "#80cbc4",
+      "selection_fg": "#fafafa"
+    },
+    "metadata": {
+      "author": "Nate Peterson",
+      "name": "Material Lighter (base16)",
+      "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#292d3e",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#959dcb"
+      ],
+      "background": "#292d3e",
+      "brights": [
+        "#676e95",
+        "#f07178",
+        "#c3e88d",
+        "#ffcb6b",
+        "#82aaff",
+        "#c792ea",
+        "#89ddff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#959dcb",
+      "cursor_border": "#959dcb",
+      "cursor_fg": "#959dcb",
+      "foreground": "#959dcb",
+      "indexed": {},
+      "selection_bg": "#959dcb",
+      "selection_fg": "#292d3e"
+    },
+    "metadata": {
+      "author": "Nate Peterson",
+      "name": "Material Palenight (base16)",
+      "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202124",
+        "#f44336",
+        "#00e676",
+        "#ffeb3b",
+        "#2196f3",
+        "#673ab7",
+        "#00bcd4",
+        "#80868b"
+      ],
+      "background": "#202124",
+      "brights": [
+        "#44464d",
+        "#f44336",
+        "#00e676",
+        "#ffeb3b",
+        "#2196f3",
+        "#673ab7",
+        "#00bcd4",
+        "#ffffff"
+      ],
+      "cursor_bg": "#80868b",
+      "cursor_border": "#80868b",
+      "cursor_fg": "#80868b",
+      "foreground": "#80868b",
+      "indexed": {},
+      "selection_bg": "#80868b",
+      "selection_fg": "#202124"
+    },
+    "metadata": {
+      "author": "joshyrobot",
+      "name": "Material Vivid (base16)",
+      "origin_url": "https://github.com/joshyrobot/base16-material-vivid-scheme",
       "prefix": "m"
     }
   },
@@ -10525,6 +14438,82 @@
   {
     "colors": {
       "ansi": [
+        "#1e0528",
+        "#00d9e9",
+        "#05cb0d",
+        "#955ae7",
+        "#550068",
+        "#8991bb",
+        "#b900b1",
+        "#ffeeff"
+      ],
+      "background": "#1e0528",
+      "brights": [
+        "#320f55",
+        "#00d9e9",
+        "#05cb0d",
+        "#955ae7",
+        "#550068",
+        "#8991bb",
+        "#b900b1",
+        "#f8c0ff"
+      ],
+      "cursor_bg": "#ffeeff",
+      "cursor_border": "#ffeeff",
+      "cursor_fg": "#ffeeff",
+      "foreground": "#ffeeff",
+      "indexed": {},
+      "selection_bg": "#ffeeff",
+      "selection_fg": "#1e0528"
+    },
+    "metadata": {
+      "author": "gidsi",
+      "name": "Mellow Purple (base16)",
+      "origin_url": "https://github.com/gidsi/base16-mellow-scheme",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f8f8f8",
+        "#ab4642",
+        "#538947",
+        "#f79a0e",
+        "#7cafc2",
+        "#96609e",
+        "#4b8093",
+        "#383838"
+      ],
+      "background": "#f8f8f8",
+      "brights": [
+        "#b8b8b8",
+        "#ab4642",
+        "#538947",
+        "#f79a0e",
+        "#7cafc2",
+        "#96609e",
+        "#4b8093",
+        "#181818"
+      ],
+      "cursor_bg": "#383838",
+      "cursor_border": "#383838",
+      "cursor_fg": "#383838",
+      "foreground": "#383838",
+      "indexed": {},
+      "selection_bg": "#383838",
+      "selection_fg": "#f8f8f8"
+    },
+    "metadata": {
+      "author": "Sheldon Johnson",
+      "name": "Mexico Light (base16)",
+      "origin_url": "https://github.com/drzel/base16-mexico-light-scheme",
+      "prefix": "m"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1e1e1e",
         "#ff453a",
         "#32d74b",
@@ -10722,13 +14711,18 @@
         "#7bbda4",
         "#f5eeeb"
       ],
+      "cursor_bg": "#d0c8c6",
+      "cursor_border": "#d0c8c6",
+      "cursor_fg": "#d0c8c6",
       "foreground": "#d0c8c6",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#d0c8c6",
+      "selection_fg": "#3b3228"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Mocha (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Mocha (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
       "prefix": "m"
     }
   },
@@ -11173,13 +15167,18 @@
         "#a1efe4",
         "#f9f8f5"
       ],
+      "cursor_bg": "#f8f8f2",
+      "cursor_border": "#f8f8f2",
+      "cursor_fg": "#f8f8f2",
       "foreground": "#f8f8f2",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#f8f8f2",
+      "selection_fg": "#272822"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Monokai (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Wimer Hazenberg (http://www.monokai.nl)",
+      "name": "Monokai (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "m"
     }
   },
@@ -11699,6 +15698,44 @@
       "author": "hal",
       "name": "Navy and Ivory (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#22273b",
+        "#777abc",
+        "#6562a8",
+        "#4f9062",
+        "#4d6bb6",
+        "#716cae",
+        "#226f68",
+        "#a4a6a9"
+      ],
+      "background": "#22273b",
+      "brights": [
+        "#6e6f72",
+        "#777abc",
+        "#6562a8",
+        "#4f9062",
+        "#4d6bb6",
+        "#716cae",
+        "#226f68",
+        "#8dbdaa"
+      ],
+      "cursor_bg": "#a4a6a9",
+      "cursor_border": "#a4a6a9",
+      "cursor_fg": "#a4a6a9",
+      "foreground": "#a4a6a9",
+      "indexed": {},
+      "selection_bg": "#a4a6a9",
+      "selection_fg": "#22273b"
+    },
+    "metadata": {
+      "author": "Gabriel Fontes (https://github.com/Misterio77)",
+      "name": "Nebula (base16)",
+      "origin_url": "https://github.com/Misterio77/base16-nebula-scheme",
       "prefix": "n"
     }
   },
@@ -12248,6 +16285,44 @@
   {
     "colors": {
       "ansi": [
+        "#2e3440",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#81a1c1",
+        "#b48ead",
+        "#88c0d0",
+        "#e5e9f0"
+      ],
+      "background": "#2e3440",
+      "brights": [
+        "#4c566a",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#81a1c1",
+        "#b48ead",
+        "#88c0d0",
+        "#8fbcbb"
+      ],
+      "cursor_bg": "#e5e9f0",
+      "cursor_border": "#e5e9f0",
+      "cursor_fg": "#e5e9f0",
+      "foreground": "#e5e9f0",
+      "indexed": {},
+      "selection_bg": "#e5e9f0",
+      "selection_fg": "#2e3440"
+    },
+    "metadata": {
+      "author": "arcticicestudio",
+      "name": "Nord (base16)",
+      "origin_url": "https://github.com/spejamchr/base16-nord-scheme",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#3b4252",
         "#bf616a",
         "#a3be8c",
@@ -12314,6 +16389,44 @@
     "metadata": {
       "name": "NordLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "n"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3c4c55",
+        "#83afe5",
+        "#7fc1ca",
+        "#a8ce93",
+        "#83afe5",
+        "#9a93e1",
+        "#f2c38f",
+        "#c5d4dd"
+      ],
+      "background": "#3c4c55",
+      "brights": [
+        "#899ba6",
+        "#83afe5",
+        "#7fc1ca",
+        "#a8ce93",
+        "#83afe5",
+        "#9a93e1",
+        "#f2c38f",
+        "#556873"
+      ],
+      "cursor_bg": "#c5d4dd",
+      "cursor_border": "#c5d4dd",
+      "cursor_fg": "#c5d4dd",
+      "foreground": "#c5d4dd",
+      "indexed": {},
+      "selection_bg": "#c5d4dd",
+      "selection_fg": "#3c4c55"
+    },
+    "metadata": {
+      "author": "George Essig (https://github.com/gessig), Trevor D. Miller (https://trevordmiller.com)",
+      "name": "Nova (base16)",
+      "origin_url": "https://github.com/gessig/base16-nova-scheme",
       "prefix": "n"
     }
   },
@@ -12550,13 +16663,18 @@
         "#96b5b4",
         "#eff1f5"
       ],
+      "cursor_bg": "#c0c5ce",
+      "cursor_border": "#c0c5ce",
+      "cursor_fg": "#c0c5ce",
       "foreground": "#c0c5ce",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#c0c5ce",
+      "selection_fg": "#2b303b"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Ocean (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Ocean (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-default-schemes",
       "prefix": "o"
     }
   },
@@ -12705,6 +16823,44 @@
   {
     "colors": {
       "ansi": [
+        "#1b2b34",
+        "#ec5f67",
+        "#99c794",
+        "#fac863",
+        "#6699cc",
+        "#c594c5",
+        "#5fb3b3",
+        "#c0c5ce"
+      ],
+      "background": "#1b2b34",
+      "brights": [
+        "#65737e",
+        "#ec5f67",
+        "#99c794",
+        "#fac863",
+        "#6699cc",
+        "#c594c5",
+        "#5fb3b3",
+        "#d8dee9"
+      ],
+      "cursor_bg": "#c0c5ce",
+      "cursor_border": "#c0c5ce",
+      "cursor_fg": "#c0c5ce",
+      "foreground": "#c0c5ce",
+      "indexed": {},
+      "selection_bg": "#c0c5ce",
+      "selection_fg": "#1b2b34"
+    },
+    "metadata": {
+      "author": "https://github.com/voronianski/oceanic-next-color-scheme",
+      "name": "OceanicNext (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#ac2e31",
         "#31ac61",
@@ -12771,6 +16927,82 @@
     "metadata": {
       "name": "Omni (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fafafa",
+        "#ca1243",
+        "#50a14f",
+        "#c18401",
+        "#4078f2",
+        "#a626a4",
+        "#0184bc",
+        "#383a42"
+      ],
+      "background": "#fafafa",
+      "brights": [
+        "#a0a1a7",
+        "#ca1243",
+        "#50a14f",
+        "#c18401",
+        "#4078f2",
+        "#a626a4",
+        "#0184bc",
+        "#090a0b"
+      ],
+      "cursor_bg": "#383a42",
+      "cursor_border": "#383a42",
+      "cursor_fg": "#383a42",
+      "foreground": "#383a42",
+      "indexed": {},
+      "selection_bg": "#383a42",
+      "selection_fg": "#fafafa"
+    },
+    "metadata": {
+      "author": "Daniel Pfeifer (http://github.com/purpleKarrot)",
+      "name": "One Light (base16)",
+      "origin_url": "https://github.com/purpleKarrot/base16-one-light-scheme",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282c34",
+        "#e06c75",
+        "#98c379",
+        "#e5c07b",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#abb2bf"
+      ],
+      "background": "#282c34",
+      "brights": [
+        "#545862",
+        "#e06c75",
+        "#98c379",
+        "#e5c07b",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#c8ccd4"
+      ],
+      "cursor_bg": "#abb2bf",
+      "cursor_border": "#abb2bf",
+      "cursor_fg": "#abb2bf",
+      "foreground": "#abb2bf",
+      "indexed": {},
+      "selection_bg": "#abb2bf",
+      "selection_fg": "#282c34"
+    },
+    "metadata": {
+      "author": "Lalit Magant (http://github.com/tilal6991)",
+      "name": "OneDark (base16)",
+      "origin_url": "https://github.com/tilal6991/base16-onedark-scheme",
       "prefix": "o"
     }
   },
@@ -13020,6 +17252,44 @@
       "author": "",
       "name": "Orangish (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "o"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#00002a",
+        "#ff4242",
+        "#59f176",
+        "#f3e877",
+        "#66b0ff",
+        "#f10596",
+        "#0ef0f0",
+        "#d0d0fa"
+      ],
+      "background": "#00002a",
+      "brights": [
+        "#50507a",
+        "#ff4242",
+        "#59f176",
+        "#f3e877",
+        "#66b0ff",
+        "#f10596",
+        "#0ef0f0",
+        "#f5f5ff"
+      ],
+      "cursor_bg": "#d0d0fa",
+      "cursor_border": "#d0d0fa",
+      "cursor_fg": "#d0d0fa",
+      "foreground": "#d0d0fa",
+      "indexed": {},
+      "selection_bg": "#d0d0fa",
+      "selection_fg": "#00002a"
+    },
+    "metadata": {
+      "author": "Hugo Delahousse (http://github.com/hugodelahousse/)",
+      "name": "Outrun Dark (base16)",
+      "origin_url": "https://github.com/hugodelahousse/base16-outrun-schemes",
       "prefix": "o"
     }
   },
@@ -13276,6 +17546,82 @@
     "colors": {
       "ansi": [
         "#1c1c1c",
+        "#585858",
+        "#af87d7",
+        "#afd700",
+        "#ff5faf",
+        "#00afaf",
+        "#ffaf00",
+        "#808080"
+      ],
+      "background": "#1c1c1c",
+      "brights": [
+        "#d7af5f",
+        "#585858",
+        "#af87d7",
+        "#afd700",
+        "#ff5faf",
+        "#00afaf",
+        "#ffaf00",
+        "#d0d0d0"
+      ],
+      "cursor_bg": "#808080",
+      "cursor_border": "#808080",
+      "cursor_fg": "#808080",
+      "foreground": "#808080",
+      "indexed": {},
+      "selection_bg": "#808080",
+      "selection_fg": "#1c1c1c"
+    },
+    "metadata": {
+      "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
+      "name": "PaperColor Dark (base16)",
+      "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#eeeeee",
+        "#bcbcbc",
+        "#8700af",
+        "#d70087",
+        "#d75f00",
+        "#005faf",
+        "#d75f00",
+        "#444444"
+      ],
+      "background": "#eeeeee",
+      "brights": [
+        "#5f8700",
+        "#bcbcbc",
+        "#8700af",
+        "#d70087",
+        "#d75f00",
+        "#005faf",
+        "#d75f00",
+        "#878787"
+      ],
+      "cursor_bg": "#444444",
+      "cursor_border": "#444444",
+      "cursor_fg": "#444444",
+      "foreground": "#444444",
+      "indexed": {},
+      "selection_bg": "#444444",
+      "selection_fg": "#eeeeee"
+    },
+    "metadata": {
+      "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
+      "name": "PaperColor Light (base16)",
+      "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1c1c1c",
         "#af005f",
         "#5faf00",
         "#d7af5f",
@@ -13442,6 +17788,44 @@
       "author": "",
       "name": "Parker Brothers (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#271c3a",
+        "#a92258",
+        "#c6914b",
+        "#804ead",
+        "#8e7dc6",
+        "#953b9d",
+        "#7263aa",
+        "#dedcdf"
+      ],
+      "background": "#271c3a",
+      "brights": [
+        "#5d5766",
+        "#a92258",
+        "#c6914b",
+        "#804ead",
+        "#8e7dc6",
+        "#953b9d",
+        "#7263aa",
+        "#bbaadd"
+      ],
+      "cursor_bg": "#dedcdf",
+      "cursor_border": "#dedcdf",
+      "cursor_fg": "#dedcdf",
+      "foreground": "#dedcdf",
+      "indexed": {},
+      "selection_bg": "#dedcdf",
+      "selection_fg": "#271c3a"
+    },
+    "metadata": {
+      "author": "Gabriel Fontes (https://github.com/Misterio77)",
+      "name": "Pasque (base16)",
+      "origin_url": "https://github.com/Misterio77/base16-pasque-scheme",
       "prefix": "p"
     }
   },
@@ -13699,6 +18083,44 @@
   {
     "colors": {
       "ansi": [
+        "#061229",
+        "#d07346",
+        "#99bf52",
+        "#fbd461",
+        "#5299bf",
+        "#9989cc",
+        "#72b9bf",
+        "#b8bbc2"
+      ],
+      "background": "#061229",
+      "brights": [
+        "#717885",
+        "#d07346",
+        "#99bf52",
+        "#fbd461",
+        "#5299bf",
+        "#9989cc",
+        "#72b9bf",
+        "#ffffff"
+      ],
+      "cursor_bg": "#b8bbc2",
+      "cursor_border": "#b8bbc2",
+      "cursor_fg": "#b8bbc2",
+      "foreground": "#b8bbc2",
+      "indexed": {},
+      "selection_bg": "#b8bbc2",
+      "selection_fg": "#061229"
+    },
+    "metadata": {
+      "author": "Hennig Hasemann (http://leetless.de/vim.html)",
+      "name": "PhD (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#a80000",
         "#00a800",
@@ -13763,6 +18185,82 @@
     "metadata": {
       "name": "Piatto Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#ff004d",
+        "#00e756",
+        "#fff024",
+        "#83769c",
+        "#ff77a8",
+        "#29adff",
+        "#5f574f"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#008751",
+        "#ff004d",
+        "#00e756",
+        "#fff024",
+        "#83769c",
+        "#ff77a8",
+        "#29adff",
+        "#fff1e8"
+      ],
+      "cursor_bg": "#5f574f",
+      "cursor_border": "#5f574f",
+      "cursor_fg": "#5f574f",
+      "foreground": "#5f574f",
+      "indexed": {},
+      "selection_bg": "#5f574f",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "PICO-8 (http://www.lexaloffle.com/pico-8.php)",
+      "name": "Pico (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#171517",
+        "#ffa600",
+        "#ff0066",
+        "#20df6c",
+        "#00ffff",
+        "#007fff",
+        "#6600ff",
+        "#f5f5f5"
+      ],
+      "background": "#171517",
+      "brights": [
+        "#383338",
+        "#ffa600",
+        "#ff0066",
+        "#20df6c",
+        "#00ffff",
+        "#007fff",
+        "#6600ff",
+        "#f7f3f7"
+      ],
+      "cursor_bg": "#f5f5f5",
+      "cursor_border": "#f5f5f5",
+      "cursor_fg": "#f5f5f5",
+      "foreground": "#f5f5f5",
+      "indexed": {},
+      "selection_bg": "#f5f5f5",
+      "selection_fg": "#171517"
+    },
+    "metadata": {
+      "author": "Benjamin (https://github.com/b3nj5m1n)",
+      "name": "pinky (base16)",
+      "origin_url": "https://github.com/b3nj5m1n/base16-pinky-scheme",
       "prefix": "p"
     }
   },
@@ -13841,6 +18339,44 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#eb008a",
+        "#37b349",
+        "#f8ca12",
+        "#0e5a94",
+        "#b31e8d",
+        "#00aabb",
+        "#d0d0d0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#505050",
+        "#eb008a",
+        "#37b349",
+        "#f8ca12",
+        "#0e5a94",
+        "#b31e8d",
+        "#00aabb",
+        "#ffffff"
+      ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Chris Kempson (http://chriskempson.com)",
+      "name": "Pop (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1d2021",
         "#cc241d",
         "#98971a",
@@ -13872,6 +18408,44 @@
     "metadata": {
       "name": "Popping and Locking",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#292c36",
+        "#f84547",
+        "#95c76f",
+        "#efa16b",
+        "#8485ce",
+        "#b74989",
+        "#64878f",
+        "#d8d8d8"
+      ],
+      "background": "#292c36",
+      "brights": [
+        "#65568a",
+        "#f84547",
+        "#95c76f",
+        "#efa16b",
+        "#8485ce",
+        "#b74989",
+        "#64878f",
+        "#f8f8f8"
+      ],
+      "cursor_bg": "#d8d8d8",
+      "cursor_border": "#d8d8d8",
+      "cursor_fg": "#d8d8d8",
+      "foreground": "#d8d8d8",
+      "indexed": {},
+      "selection_bg": "#d8d8d8",
+      "selection_fg": "#292c36"
+    },
+    "metadata": {
+      "author": "Niek den Breeje (https://github.com/AuditeMarlow)",
+      "name": "Porple (base16)",
+      "origin_url": "https://github.com/AuditeMarlow/base16-porple-scheme",
       "prefix": "p"
     }
   },
@@ -14199,6 +18773,44 @@
   {
     "colors": {
       "ansi": [
+        "#101010",
+        "#efa6a2",
+        "#80c990",
+        "#e6a3dc",
+        "#50cacd",
+        "#e0af85",
+        "#c8c874",
+        "#c0c0c0"
+      ],
+      "background": "#101010",
+      "brights": [
+        "#454545",
+        "#efa6a2",
+        "#80c990",
+        "#e6a3dc",
+        "#50cacd",
+        "#e0af85",
+        "#c8c874",
+        "#454545"
+      ],
+      "cursor_bg": "#c0c0c0",
+      "cursor_border": "#c0c0c0",
+      "cursor_fg": "#c0c0c0",
+      "foreground": "#c0c0c0",
+      "indexed": {},
+      "selection_bg": "#c0c0c0",
+      "selection_fg": "#101010"
+    },
+    "metadata": {
+      "author": "isaacwhanson",
+      "name": "Qualia (base16)",
+      "origin_url": "https://github.com/isaacwhanson/base16-qualia-scheme",
+      "prefix": "q"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2b2b2b",
         "#da4939",
         "#a5c261",
@@ -14219,13 +18831,18 @@
         "#519f50",
         "#f9f7f3"
       ],
+      "cursor_bg": "#e6e1dc",
+      "cursor_border": "#e6e1dc",
+      "cursor_fg": "#e6e1dc",
       "foreground": "#e6e1dc",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#e6e1dc",
+      "selection_fg": "#2b2b2b"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Railscasts (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Ryan Bates (http://railscasts.com)",
+      "name": "Railscasts (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "r"
     }
   },
@@ -14440,6 +19057,44 @@
     "metadata": {
       "name": "rebecca",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#292a44",
+        "#a0a0c5",
+        "#6dfedf",
+        "#ae81ff",
+        "#2de0a7",
+        "#7aa5ff",
+        "#8eaee0",
+        "#f1eff8"
+      ],
+      "background": "#292a44",
+      "brights": [
+        "#666699",
+        "#a0a0c5",
+        "#6dfedf",
+        "#ae81ff",
+        "#2de0a7",
+        "#7aa5ff",
+        "#8eaee0",
+        "#53495d"
+      ],
+      "cursor_bg": "#f1eff8",
+      "cursor_border": "#f1eff8",
+      "cursor_fg": "#f1eff8",
+      "foreground": "#f1eff8",
+      "indexed": {},
+      "selection_bg": "#f1eff8",
+      "selection_fg": "#292a44"
+    },
+    "metadata": {
+      "author": "Victor Borja (http://github.com/vic) based on Rebecca Theme (http://github.com/vic/rebecca-theme)",
+      "name": "Rebecca (base16)",
+      "origin_url": "https://github.com/vic/base16-rebecca",
       "prefix": "r"
     }
   },
@@ -14734,6 +19389,120 @@
   {
     "colors": {
       "ansi": [
+        "#191724",
+        "#e2e1e7",
+        "#ebbcba",
+        "#f6c177",
+        "#9ccfd8",
+        "#c4a7e7",
+        "#31748f",
+        "#e0def4"
+      ],
+      "background": "#191724",
+      "brights": [
+        "#555169",
+        "#e2e1e7",
+        "#ebbcba",
+        "#f6c177",
+        "#9ccfd8",
+        "#c4a7e7",
+        "#31748f",
+        "#c5c3ce"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#e0def4",
+      "foreground": "#e0def4",
+      "indexed": {},
+      "selection_bg": "#e0def4",
+      "selection_fg": "#191724"
+    },
+    "metadata": {
+      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
+      "name": "Rosé Pine (base16)",
+      "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#faf4ed",
+        "#1f1d2e",
+        "#d7827e",
+        "#ea9d34",
+        "#56949f",
+        "#907aa9",
+        "#286983",
+        "#575279"
+      ],
+      "background": "#faf4ed",
+      "brights": [
+        "#9893a5",
+        "#1f1d2e",
+        "#d7827e",
+        "#ea9d34",
+        "#56949f",
+        "#907aa9",
+        "#286983",
+        "#26233a"
+      ],
+      "cursor_bg": "#575279",
+      "cursor_border": "#575279",
+      "cursor_fg": "#575279",
+      "foreground": "#575279",
+      "indexed": {},
+      "selection_bg": "#575279",
+      "selection_fg": "#faf4ed"
+    },
+    "metadata": {
+      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
+      "name": "Rosé Pine Dawn (base16)",
+      "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#232136",
+        "#ecebf0",
+        "#ea9a97",
+        "#f6c177",
+        "#9ccfd8",
+        "#c4a7e7",
+        "#3e8fb0",
+        "#e0def4"
+      ],
+      "background": "#232136",
+      "brights": [
+        "#59546d",
+        "#ecebf0",
+        "#ea9a97",
+        "#f6c177",
+        "#9ccfd8",
+        "#c4a7e7",
+        "#3e8fb0",
+        "#d9d7e1"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#e0def4",
+      "foreground": "#e0def4",
+      "indexed": {},
+      "selection_bg": "#e0def4",
+      "selection_fg": "#232136"
+    },
+    "metadata": {
+      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
+      "name": "Rosé Pine Moon (base16)",
+      "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
+      "prefix": "r"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#5d5d6b",
         "#c6797e",
         "#969e92",
@@ -14911,6 +19680,44 @@
   {
     "colors": {
       "ansi": [
+        "#f8f8f8",
+        "#fa8480",
+        "#a0d2c8",
+        "#ffdc61",
+        "#a0a7d2",
+        "#c8a0d2",
+        "#a2d6f5",
+        "#383838"
+      ],
+      "background": "#f8f8f8",
+      "brights": [
+        "#b8b8b8",
+        "#fa8480",
+        "#a0d2c8",
+        "#ffdc61",
+        "#a0a7d2",
+        "#c8a0d2",
+        "#a2d6f5",
+        "#181818"
+      ],
+      "cursor_bg": "#383838",
+      "cursor_border": "#383838",
+      "cursor_fg": "#383838",
+      "foreground": "#383838",
+      "indexed": {},
+      "selection_bg": "#383838",
+      "selection_fg": "#f8f8f8"
+    },
+    "metadata": {
+      "author": "Carter Veldhuizen",
+      "name": "Sagelight (base16)",
+      "origin_url": "https://github.com/cveldy/base16-sagelight-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#d52370",
         "#41af1a",
@@ -14942,6 +19749,82 @@
     "metadata": {
       "name": "Sakura",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#feedf3",
+        "#df2d52",
+        "#2e916d",
+        "#c29461",
+        "#006e93",
+        "#5e2180",
+        "#1d8991",
+        "#564448"
+      ],
+      "background": "#feedf3",
+      "brights": [
+        "#755f64",
+        "#df2d52",
+        "#2e916d",
+        "#c29461",
+        "#006e93",
+        "#5e2180",
+        "#1d8991",
+        "#33292b"
+      ],
+      "cursor_bg": "#564448",
+      "cursor_border": "#564448",
+      "cursor_fg": "#564448",
+      "foreground": "#564448",
+      "indexed": {},
+      "selection_bg": "#564448",
+      "selection_fg": "#feedf3"
+    },
+    "metadata": {
+      "author": "Misterio77 (http://github.com/Misterio77)",
+      "name": "Sakura (base16)",
+      "origin_url": "https://github.com/Misterio77/base16-sakura-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282c34",
+        "#83a598",
+        "#528b8b",
+        "#a07e3b",
+        "#83a598",
+        "#d75f5f",
+        "#83a598",
+        "#a89984"
+      ],
+      "background": "#282c34",
+      "brights": [
+        "#665c54",
+        "#83a598",
+        "#528b8b",
+        "#a07e3b",
+        "#83a598",
+        "#d75f5f",
+        "#83a598",
+        "#fdf4c1"
+      ],
+      "cursor_bg": "#a89984",
+      "cursor_border": "#a89984",
+      "cursor_fg": "#a89984",
+      "foreground": "#a89984",
+      "indexed": {},
+      "selection_bg": "#a89984",
+      "selection_fg": "#282c34"
+    },
+    "metadata": {
+      "author": "George Essig (https://github.com/gessig)",
+      "name": "Sandcastle (base16)",
+      "origin_url": "https://github.com/gessig/base16-sandcastle-scheme",
       "prefix": "s"
     }
   },
@@ -15205,6 +20088,44 @@
   {
     "colors": {
       "ansi": [
+        "#151718",
+        "#cd3f45",
+        "#9fca56",
+        "#e6cd69",
+        "#55b5db",
+        "#a074c4",
+        "#55dbbe",
+        "#d6d6d6"
+      ],
+      "background": "#151718",
+      "brights": [
+        "#41535b",
+        "#cd3f45",
+        "#9fca56",
+        "#e6cd69",
+        "#55b5db",
+        "#a074c4",
+        "#55dbbe",
+        "#ffffff"
+      ],
+      "cursor_bg": "#d6d6d6",
+      "cursor_border": "#d6d6d6",
+      "cursor_fg": "#d6d6d6",
+      "foreground": "#d6d6d6",
+      "indexed": {},
+      "selection_bg": "#d6d6d6",
+      "selection_fg": "#151718"
+    },
+    "metadata": {
+      "author": "",
+      "name": "Seti UI (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#252525",
         "#ff9f95",
         "#a6e22e",
@@ -15232,6 +20153,44 @@
       "author": "",
       "name": "Sex Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e3f",
+        "#d90429",
+        "#3ad900",
+        "#ffe700",
+        "#6943ff",
+        "#ff2c70",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#1e1e3f",
+      "brights": [
+        "#808080",
+        "#d90429",
+        "#3ad900",
+        "#ffe700",
+        "#6943ff",
+        "#ff2c70",
+        "#00c5c7",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c7c7c7",
+      "cursor_border": "#c7c7c7",
+      "cursor_fg": "#c7c7c7",
+      "foreground": "#c7c7c7",
+      "indexed": {},
+      "selection_bg": "#c7c7c7",
+      "selection_fg": "#1e1e3f"
+    },
+    "metadata": {
+      "author": "Iolar Demartini Junior (http://github.com/demartini) based on Shades of Purple Theme (https://github.com/ahmadawais/shades-of-purple-vscode).",
+      "name": "Shades of Purple (base16)",
+      "origin_url": "https://github.com/ahmadawais/base16-shades-of-purple",
       "prefix": "s"
     }
   },
@@ -15306,6 +20265,44 @@
     "metadata": {
       "name": "Shaman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f9f9f9",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#102015"
+      ],
+      "background": "#f9f9f9",
+      "brights": [
+        "#555555",
+        "#e92f2f",
+        "#0ed839",
+        "#dddd13",
+        "#3b48e3",
+        "#f996e2",
+        "#23edda",
+        "#000000"
+      ],
+      "cursor_bg": "#102015",
+      "cursor_border": "#102015",
+      "cursor_fg": "#102015",
+      "foreground": "#102015",
+      "indexed": {},
+      "selection_bg": "#102015",
+      "selection_fg": "#f9f9f9"
+    },
+    "metadata": {
+      "author": "Tyler Benziger (http://tybenz.com)",
+      "name": "Shapeshifter (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "s"
     }
   },
@@ -15440,6 +20437,82 @@
       "author": "",
       "name": "Shic (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0e3c46",
+        "#fb6953",
+        "#73d8ad",
+        "#fce380",
+        "#46bddd",
+        "#756b8a",
+        "#3fb2b9",
+        "#c7dbdd"
+      ],
+      "background": "#0e3c46",
+      "brights": [
+        "#587073",
+        "#fb6953",
+        "#73d8ad",
+        "#fce380",
+        "#46bddd",
+        "#756b8a",
+        "#3fb2b9",
+        "#d2faff"
+      ],
+      "cursor_bg": "#c7dbdd",
+      "cursor_border": "#c7dbdd",
+      "cursor_fg": "#c7dbdd",
+      "foreground": "#c7dbdd",
+      "indexed": {},
+      "selection_bg": "#c7dbdd",
+      "selection_fg": "#0e3c46"
+    },
+    "metadata": {
+      "author": "Gabriel Fontes (https://github.com/Misterio77)",
+      "name": "Silk Dark (base16)",
+      "origin_url": "https://github.com/misterio77/base16-silk-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e9f1ef",
+        "#cf432e",
+        "#6ca38c",
+        "#cfad25",
+        "#39aac9",
+        "#6e6582",
+        "#329ca2",
+        "#385156"
+      ],
+      "background": "#e9f1ef",
+      "brights": [
+        "#5c787b",
+        "#cf432e",
+        "#6ca38c",
+        "#cfad25",
+        "#39aac9",
+        "#6e6582",
+        "#329ca2",
+        "#d2faff"
+      ],
+      "cursor_bg": "#385156",
+      "cursor_border": "#385156",
+      "cursor_fg": "#385156",
+      "foreground": "#385156",
+      "indexed": {},
+      "selection_bg": "#385156",
+      "selection_fg": "#e9f1ef"
+    },
+    "metadata": {
+      "author": "Gabriel Fontes (https://github.com/Misterio77)",
+      "name": "Silk Light (base16)",
+      "origin_url": "https://github.com/misterio77/base16-silk-scheme",
       "prefix": "s"
     }
   },
@@ -15669,6 +20742,44 @@
         "#57c7ff",
         "#ff6ac1",
         "#9aedfe",
+        "#e2e4e5"
+      ],
+      "background": "#282a36",
+      "brights": [
+        "#78787e",
+        "#ff5c57",
+        "#5af78e",
+        "#f3f99d",
+        "#57c7ff",
+        "#ff6ac1",
+        "#9aedfe",
+        "#f1f1f0"
+      ],
+      "cursor_bg": "#e2e4e5",
+      "cursor_border": "#e2e4e5",
+      "cursor_fg": "#e2e4e5",
+      "foreground": "#e2e4e5",
+      "indexed": {},
+      "selection_bg": "#e2e4e5",
+      "selection_fg": "#282a36"
+    },
+    "metadata": {
+      "author": "Chawye Hsu (https://github.com/chawyehsu) based on Hyper Snazzy Theme (https://github.com/sindresorhus/hyper-snazzy)",
+      "name": "Snazzy (base16)",
+      "origin_url": "https://github.com/h404bi/base16-snazzy-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282a36",
+        "#ff5c57",
+        "#5af78e",
+        "#f3f99d",
+        "#57c7ff",
+        "#ff6ac1",
+        "#9aedfe",
         "#f1f1f0"
       ],
       "background": "#282a36",
@@ -15734,33 +20845,76 @@
   {
     "colors": {
       "ansi": [
-        "#002b36",
-        "#dc322f",
-        "#859900",
-        "#b58900",
-        "#268bd2",
-        "#6c71c4",
-        "#2aa198",
-        "#93a1a1"
+        "#18262f",
+        "#ef5253",
+        "#7cc844",
+        "#e4b51c",
+        "#33b5e1",
+        "#a363d5",
+        "#52cbb0",
+        "#a6afb8"
       ],
-      "background": "#002b36",
+      "background": "#18262f",
       "brights": [
-        "#657b83",
-        "#dc322f",
-        "#859900",
-        "#b58900",
-        "#268bd2",
-        "#6c71c4",
-        "#2aa198",
-        "#fdf6e3"
+        "#667581",
+        "#ef5253",
+        "#7cc844",
+        "#e4b51c",
+        "#33b5e1",
+        "#a363d5",
+        "#52cbb0",
+        "#f5f7fa"
       ],
-      "foreground": "#93a1a1",
-      "indexed": {}
+      "cursor_bg": "#a6afb8",
+      "cursor_border": "#a6afb8",
+      "cursor_fg": "#a6afb8",
+      "foreground": "#a6afb8",
+      "indexed": {},
+      "selection_bg": "#a6afb8",
+      "selection_fg": "#18262f"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Solarized (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "Chuck Harmston (https://chuck.harmston.ch)",
+      "name": "Solar Flare (base16)",
+      "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f5f7fa",
+        "#ef5253",
+        "#7cc844",
+        "#e4b51c",
+        "#33b5e1",
+        "#a363d5",
+        "#52cbb0",
+        "#586875"
+      ],
+      "background": "#f5f7fa",
+      "brights": [
+        "#85939e",
+        "#ef5253",
+        "#7cc844",
+        "#e4b51c",
+        "#33b5e1",
+        "#a363d5",
+        "#52cbb0",
+        "#18262f"
+      ],
+      "cursor_bg": "#586875",
+      "cursor_border": "#586875",
+      "cursor_fg": "#586875",
+      "foreground": "#586875",
+      "indexed": {},
+      "selection_bg": "#586875",
+      "selection_fg": "#f5f7fa"
+    },
+    "metadata": {
+      "author": "Chuck Harmston (https://chuck.harmston.ch)",
+      "name": "Solar Flare Light (base16)",
+      "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
       "prefix": "s"
     }
   },
@@ -15837,6 +20991,44 @@
   {
     "colors": {
       "ansi": [
+        "#002b36",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#93a1a1"
+      ],
+      "background": "#002b36",
+      "brights": [
+        "#657b83",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#fdf6e3"
+      ],
+      "cursor_bg": "#93a1a1",
+      "cursor_border": "#93a1a1",
+      "cursor_fg": "#93a1a1",
+      "foreground": "#93a1a1",
+      "indexed": {},
+      "selection_bg": "#93a1a1",
+      "selection_fg": "#002b36"
+    },
+    "metadata": {
+      "author": "Ethan Schoonover (modified by aramisgithub)",
+      "name": "Solarized Dark (base16)",
+      "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#002831",
         "#d11c24",
         "#738a05",
@@ -15905,6 +21097,44 @@
     "metadata": {
       "name": "Solarized Dark Higher Contrast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fdf6e3",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#586e75"
+      ],
+      "background": "#fdf6e3",
+      "brights": [
+        "#839496",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#002b36"
+      ],
+      "cursor_bg": "#586e75",
+      "cursor_border": "#586e75",
+      "cursor_fg": "#586e75",
+      "foreground": "#586e75",
+      "indexed": {},
+      "selection_bg": "#586e75",
+      "selection_fg": "#fdf6e3"
+    },
+    "metadata": {
+      "author": "Ethan Schoonover (modified by aramisgithub)",
+      "name": "Solarized Light (base16)",
+      "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
       "prefix": "s"
     }
   },
@@ -16156,6 +21386,44 @@
     "metadata": {
       "name": "SpaceGray Eighties Dull",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1f2022",
+        "#f2241f",
+        "#67b11d",
+        "#b1951d",
+        "#4f97d7",
+        "#a31db1",
+        "#2d9574",
+        "#a3a3a3"
+      ],
+      "background": "#1f2022",
+      "brights": [
+        "#585858",
+        "#f2241f",
+        "#67b11d",
+        "#b1951d",
+        "#4f97d7",
+        "#a31db1",
+        "#2d9574",
+        "#f8f8f8"
+      ],
+      "cursor_bg": "#a3a3a3",
+      "cursor_border": "#a3a3a3",
+      "cursor_fg": "#a3a3a3",
+      "foreground": "#a3a3a3",
+      "indexed": {},
+      "selection_bg": "#a3a3a3",
+      "selection_fg": "#1f2022"
+    },
+    "metadata": {
+      "author": "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)",
+      "name": "Spacemacs (base16)",
+      "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "s"
     }
   },
@@ -16520,6 +21788,120 @@
   {
     "colors": {
       "ansi": [
+        "#1c1810",
+        "#e35142",
+        "#5ceb5a",
+        "#f2ff27",
+        "#489bf0",
+        "#ff8080",
+        "#5aebbc",
+        "#736e55"
+      ],
+      "background": "#1c1810",
+      "brights": [
+        "#504b38",
+        "#e35142",
+        "#5ceb5a",
+        "#f2ff27",
+        "#489bf0",
+        "#ff8080",
+        "#5aebbc",
+        "#f8f5de"
+      ],
+      "cursor_bg": "#736e55",
+      "cursor_border": "#736e55",
+      "cursor_fg": "#736e55",
+      "foreground": "#736e55",
+      "indexed": {},
+      "selection_bg": "#736e55",
+      "selection_fg": "#1c1810"
+    },
+    "metadata": {
+      "author": "zoe firi (zoefiri.github.io)",
+      "name": "summercamp (base16)",
+      "origin_url": "https://github.com/zoefiri/base16-summercamp",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#151515",
+        "#ff0086",
+        "#00c918",
+        "#aba800",
+        "#3777e6",
+        "#ad00a1",
+        "#1faaaa",
+        "#d0d0d0"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#505050",
+        "#ff0086",
+        "#00c918",
+        "#aba800",
+        "#3777e6",
+        "#ad00a1",
+        "#1faaaa",
+        "#ffffff"
+      ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#d0d0d0",
+      "selection_fg": "#151515"
+    },
+    "metadata": {
+      "author": "Christopher Corley (http://christop.club/)",
+      "name": "Summerfruit Dark (base16)",
+      "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#ff0086",
+        "#00c918",
+        "#aba800",
+        "#3777e6",
+        "#ad00a1",
+        "#1faaaa",
+        "#101010"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#b0b0b0",
+        "#ff0086",
+        "#00c918",
+        "#aba800",
+        "#3777e6",
+        "#ad00a1",
+        "#1faaaa",
+        "#202020"
+      ],
+      "cursor_bg": "#101010",
+      "cursor_border": "#101010",
+      "cursor_fg": "#101010",
+      "foreground": "#101010",
+      "indexed": {},
+      "selection_bg": "#101010",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Christopher Corley (http://christop.club/)",
+      "name": "Summerfruit Light (base16)",
+      "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#302b2a",
         "#a7463d",
         "#587744",
@@ -16730,6 +22112,82 @@
   {
     "colors": {
       "ansi": [
+        "#050608",
+        "#b53b50",
+        "#06ea61",
+        "#c9d364",
+        "#03aeff",
+        "#ea5ce2",
+        "#42fff9",
+        "#c1c3c4"
+      ],
+      "background": "#050608",
+      "brights": [
+        "#474849",
+        "#b53b50",
+        "#06ea61",
+        "#c9d364",
+        "#03aeff",
+        "#ea5ce2",
+        "#42fff9",
+        "#dddfe0"
+      ],
+      "cursor_bg": "#c1c3c4",
+      "cursor_border": "#c1c3c4",
+      "cursor_fg": "#c1c3c4",
+      "foreground": "#c1c3c4",
+      "indexed": {},
+      "selection_bg": "#c1c3c4",
+      "selection_fg": "#050608"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Synth Midnight Terminal Dark (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#dddfe0",
+        "#b53b50",
+        "#06ea61",
+        "#c9d364",
+        "#03aeff",
+        "#ea5ce2",
+        "#42fff9",
+        "#28292a"
+      ],
+      "background": "#dddfe0",
+      "brights": [
+        "#a3a5a6",
+        "#b53b50",
+        "#06ea61",
+        "#c9d364",
+        "#03aeff",
+        "#ea5ce2",
+        "#42fff9",
+        "#050608"
+      ],
+      "cursor_bg": "#28292a",
+      "cursor_border": "#28292a",
+      "cursor_fg": "#28292a",
+      "foreground": "#28292a",
+      "indexed": {},
+      "selection_bg": "#28292a",
+      "selection_fg": "#dddfe0"
+    },
+    "metadata": {
+      "author": "Michaël Ball (http://github.com/michael-ball/)",
+      "name": "Synth Midnight Terminal Light (base16)",
+      "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
+      "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#f6188f",
         "#1ebb2b",
@@ -16834,6 +22292,44 @@
       "name": "synthwave-everything",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2e3436",
+        "#cc0000",
+        "#4e9a06",
+        "#c4a000",
+        "#3465a4",
+        "#75507b",
+        "#06989a",
+        "#d3d7cf"
+      ],
+      "background": "#2e3436",
+      "brights": [
+        "#555753",
+        "#cc0000",
+        "#4e9a06",
+        "#c4a000",
+        "#3465a4",
+        "#75507b",
+        "#06989a",
+        "#eeeeec"
+      ],
+      "cursor_bg": "#d3d7cf",
+      "cursor_border": "#d3d7cf",
+      "cursor_fg": "#d3d7cf",
+      "foreground": "#d3d7cf",
+      "indexed": {},
+      "selection_bg": "#d3d7cf",
+      "selection_fg": "#2e3436"
+    },
+    "metadata": {
+      "author": "@Schnouki, based on the Tango Desktop Project",
+      "name": "Tango (base16)",
+      "origin_url": "https://github.com/Schnouki/base16-tango-scheme",
+      "prefix": "t"
     }
   },
   {
@@ -17043,6 +22539,44 @@
     "metadata": {
       "name": "Teerb",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "t"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282828",
+        "#f43753",
+        "#c9d05c",
+        "#ffc24b",
+        "#b3deef",
+        "#d3b987",
+        "#73cef4",
+        "#eeeeee"
+      ],
+      "background": "#282828",
+      "brights": [
+        "#4c4c4c",
+        "#f43753",
+        "#c9d05c",
+        "#ffc24b",
+        "#b3deef",
+        "#d3b987",
+        "#73cef4",
+        "#feffff"
+      ],
+      "cursor_bg": "#eeeeee",
+      "cursor_border": "#eeeeee",
+      "cursor_fg": "#eeeeee",
+      "foreground": "#eeeeee",
+      "indexed": {},
+      "selection_bg": "#eeeeee",
+      "selection_fg": "#282828"
+    },
+    "metadata": {
+      "author": "Jacobo Tabernero (https://github/com/jacoborus/tender.vim)",
+      "name": "tender (base16)",
+      "origin_url": "https://github.com/DanManN/base16-tender-scheme",
       "prefix": "t"
     }
   },
@@ -18314,13 +23848,18 @@
         "#afc4db",
         "#ffffff"
       ],
+      "cursor_bg": "#a7a7a7",
+      "cursor_border": "#a7a7a7",
+      "cursor_fg": "#a7a7a7",
       "foreground": "#a7a7a7",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#a7a7a7",
+      "selection_fg": "#1e1e1e"
     },
     "metadata": {
-      "author": "Chris Kempson",
-      "name": "Twilight (dark) (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "author": "David Hart (https://github.com/hartbit)",
+      "name": "Twilight (base16)",
+      "origin_url": "https://github.com/hartbit/base16-twilight-scheme",
       "prefix": "t"
     }
   },
@@ -18792,6 +24331,82 @@
   {
     "colors": {
       "ansi": [
+        "#1b1d24",
+        "#ff3d81",
+        "#44ffdd",
+        "#ffff73",
+        "#2fb1d4",
+        "#8265ff",
+        "#00caff",
+        "#555e70"
+      ],
+      "background": "#1b1d24",
+      "brights": [
+        "#323643",
+        "#ff3d81",
+        "#44ffdd",
+        "#ffff73",
+        "#2fb1d4",
+        "#8265ff",
+        "#00caff",
+        "#f4f4f7"
+      ],
+      "cursor_bg": "#555e70",
+      "cursor_border": "#555e70",
+      "cursor_fg": "#555e70",
+      "foreground": "#555e70",
+      "indexed": {},
+      "selection_bg": "#555e70",
+      "selection_fg": "#1b1d24"
+    },
+    "metadata": {
+      "author": "Thomas Leon Highbaugh",
+      "name": "Vice Alt (base16)",
+      "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#17191e",
+        "#ff29a8",
+        "#0badff",
+        "#f0ffaa",
+        "#00eaff",
+        "#00f6d9",
+        "#8265ff",
+        "#8b9cbe"
+      ],
+      "background": "#17191e",
+      "brights": [
+        "#383a47",
+        "#ff29a8",
+        "#0badff",
+        "#f0ffaa",
+        "#00eaff",
+        "#00f6d9",
+        "#8265ff",
+        "#f4f4f7"
+      ],
+      "cursor_bg": "#8b9cbe",
+      "cursor_border": "#8b9cbe",
+      "cursor_fg": "#8b9cbe",
+      "foreground": "#8b9cbe",
+      "indexed": {},
+      "selection_bg": "#8b9cbe",
+      "selection_fg": "#17191e"
+    },
+    "metadata": {
+      "author": "Thomas Leon Highbaugh",
+      "name": "Vice Dark (base16)",
+      "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#f0f0ca",
         "#a8334c",
         "#4f6c31",
@@ -19072,6 +24687,44 @@
   {
     "colors": {
       "ansi": [
+        "#041523",
+        "#818591",
+        "#977d7c",
+        "#adb4b9",
+        "#977d7c",
+        "#9198a3",
+        "#977d7c",
+        "#5b778c"
+      ],
+      "background": "#041523",
+      "brights": [
+        "#7a5759",
+        "#818591",
+        "#977d7c",
+        "#adb4b9",
+        "#977d7c",
+        "#9198a3",
+        "#977d7c",
+        "#214d68"
+      ],
+      "cursor_bg": "#5b778c",
+      "cursor_border": "#5b778c",
+      "cursor_fg": "#5b778c",
+      "foreground": "#5b778c",
+      "indexed": {},
+      "selection_bg": "#5b778c",
+      "selection_fg": "#041523"
+    },
+    "metadata": {
+      "author": "Andrey Varfolomeev",
+      "name": "vulcan (base16)",
+      "origin_url": "https://github.com/andreyvpng/base16-vulcan-scheme",
+      "prefix": "v"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#261e26",
         "#312c38",
         "#4d353b",
@@ -19253,6 +24906,310 @@
   {
     "colors": {
       "ansi": [
+        "#0c0c0c",
+        "#e74856",
+        "#16c60c",
+        "#f9f1a5",
+        "#3b78ff",
+        "#b4009e",
+        "#61d6d6",
+        "#cccccc"
+      ],
+      "background": "#0c0c0c",
+      "brights": [
+        "#767676",
+        "#e74856",
+        "#16c60c",
+        "#f9f1a5",
+        "#3b78ff",
+        "#b4009e",
+        "#61d6d6",
+        "#f2f2f2"
+      ],
+      "cursor_bg": "#cccccc",
+      "cursor_border": "#cccccc",
+      "cursor_fg": "#cccccc",
+      "foreground": "#cccccc",
+      "indexed": {},
+      "selection_bg": "#cccccc",
+      "selection_fg": "#0c0c0c"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows 10 (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f2f2f2",
+        "#c50f1f",
+        "#13a10e",
+        "#c19c00",
+        "#0037da",
+        "#881798",
+        "#3a96dd",
+        "#767676"
+      ],
+      "background": "#f2f2f2",
+      "brights": [
+        "#cccccc",
+        "#c50f1f",
+        "#13a10e",
+        "#c19c00",
+        "#0037da",
+        "#881798",
+        "#3a96dd",
+        "#0c0c0c"
+      ],
+      "cursor_bg": "#767676",
+      "cursor_border": "#767676",
+      "cursor_fg": "#767676",
+      "foreground": "#767676",
+      "indexed": {},
+      "selection_bg": "#767676",
+      "selection_fg": "#f2f2f2"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows 10 Light (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#fc5454",
+        "#54fc54",
+        "#fcfc54",
+        "#5454fc",
+        "#fc54fc",
+        "#54fcfc",
+        "#a8a8a8"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#545454",
+        "#fc5454",
+        "#54fc54",
+        "#fcfc54",
+        "#5454fc",
+        "#fc54fc",
+        "#54fcfc",
+        "#fcfcfc"
+      ],
+      "cursor_bg": "#a8a8a8",
+      "cursor_border": "#a8a8a8",
+      "cursor_fg": "#a8a8a8",
+      "foreground": "#a8a8a8",
+      "indexed": {},
+      "selection_bg": "#a8a8a8",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows 95 (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fcfcfc",
+        "#a80000",
+        "#00a800",
+        "#a85400",
+        "#0000a8",
+        "#a800a8",
+        "#00a8a8",
+        "#545454"
+      ],
+      "background": "#fcfcfc",
+      "brights": [
+        "#a8a8a8",
+        "#a80000",
+        "#00a800",
+        "#a85400",
+        "#0000a8",
+        "#a800a8",
+        "#00a8a8",
+        "#000000"
+      ],
+      "cursor_bg": "#545454",
+      "cursor_border": "#545454",
+      "cursor_fg": "#545454",
+      "foreground": "#545454",
+      "indexed": {},
+      "selection_bg": "#545454",
+      "selection_fg": "#fcfcfc"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows 95 Light (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#fc5454",
+        "#54fc54",
+        "#fcfc54",
+        "#5454fc",
+        "#fc54fc",
+        "#54fcfc",
+        "#c0c0c0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#545454",
+        "#fc5454",
+        "#54fc54",
+        "#fcfc54",
+        "#5454fc",
+        "#fc54fc",
+        "#54fcfc",
+        "#fcfcfc"
+      ],
+      "cursor_bg": "#c0c0c0",
+      "cursor_border": "#c0c0c0",
+      "cursor_fg": "#c0c0c0",
+      "foreground": "#c0c0c0",
+      "indexed": {},
+      "selection_bg": "#c0c0c0",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows High Contrast (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fcfcfc",
+        "#800000",
+        "#008000",
+        "#808000",
+        "#000080",
+        "#800080",
+        "#008080",
+        "#545454"
+      ],
+      "background": "#fcfcfc",
+      "brights": [
+        "#c0c0c0",
+        "#800000",
+        "#008000",
+        "#808000",
+        "#000080",
+        "#800080",
+        "#008080",
+        "#000000"
+      ],
+      "cursor_bg": "#545454",
+      "cursor_border": "#545454",
+      "cursor_fg": "#545454",
+      "foreground": "#545454",
+      "indexed": {},
+      "selection_bg": "#545454",
+      "selection_fg": "#fcfcfc"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows High Contrast Light (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#ff0000",
+        "#00ff00",
+        "#ffff00",
+        "#0000ff",
+        "#ff00ff",
+        "#00ffff",
+        "#c0c0c0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#808080",
+        "#ff0000",
+        "#00ff00",
+        "#ffff00",
+        "#0000ff",
+        "#ff00ff",
+        "#00ffff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c0c0c0",
+      "cursor_border": "#c0c0c0",
+      "cursor_fg": "#c0c0c0",
+      "foreground": "#c0c0c0",
+      "indexed": {},
+      "selection_bg": "#c0c0c0",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows NT (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#800000",
+        "#008000",
+        "#808000",
+        "#000080",
+        "#800080",
+        "#008080",
+        "#808080"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#c0c0c0",
+        "#800000",
+        "#008000",
+        "#808000",
+        "#000080",
+        "#800080",
+        "#008080",
+        "#000000"
+      ],
+      "cursor_bg": "#808080",
+      "cursor_border": "#808080",
+      "cursor_fg": "#808080",
+      "foreground": "#808080",
+      "indexed": {},
+      "selection_bg": "#808080",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Fergus Collins (https://github.com/C-Fergus)",
+      "name": "Windows NT Light (base16)",
+      "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#ff615a",
         "#b1e969",
@@ -19284,6 +25241,44 @@
     "metadata": {
       "name": "Wombat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#231e18",
+        "#d35c5c",
+        "#b7ba53",
+        "#e0ac16",
+        "#88a4d3",
+        "#bb90e2",
+        "#6eb958",
+        "#cabcb1"
+      ],
+      "background": "#231e18",
+      "brights": [
+        "#9d8b70",
+        "#d35c5c",
+        "#b7ba53",
+        "#e0ac16",
+        "#88a4d3",
+        "#bb90e2",
+        "#6eb958",
+        "#e4d4c8"
+      ],
+      "cursor_bg": "#cabcb1",
+      "cursor_border": "#cabcb1",
+      "cursor_fg": "#cabcb1",
+      "foreground": "#cabcb1",
+      "indexed": {},
+      "selection_bg": "#cabcb1",
+      "selection_fg": "#231e18"
+    },
+    "metadata": {
+      "author": "Jay Cornwall (https://jcornwall.com)",
+      "name": "Woodland (base16)",
+      "origin_url": "https://github.com/jcornwall/base16-woodland-scheme",
       "prefix": "w"
     }
   },
@@ -19357,6 +25352,44 @@
       "name": "Wzoreck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282b35",
+        "#b21889",
+        "#df0002",
+        "#438288",
+        "#790ead",
+        "#b21889",
+        "#00a0be",
+        "#939599"
+      ],
+      "background": "#282b35",
+      "brights": [
+        "#686a71",
+        "#b21889",
+        "#df0002",
+        "#438288",
+        "#790ead",
+        "#b21889",
+        "#00a0be",
+        "#bebfc2"
+      ],
+      "cursor_bg": "#939599",
+      "cursor_border": "#939599",
+      "cursor_fg": "#939599",
+      "foreground": "#939599",
+      "indexed": {},
+      "selection_bg": "#939599",
+      "selection_fg": "#282b35"
+    },
+    "metadata": {
+      "author": "Elsa Gonsiorowski (https://github.com/gonsie)",
+      "name": "XCode Dusk (base16)",
+      "origin_url": "https://github.com/gonsie/base16-xcode-dusk-scheme",
+      "prefix": "x"
     }
   },
   {
@@ -19537,6 +25570,44 @@
     "metadata": {
       "name": "Zenburn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "z"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#383838",
+        "#dca3a3",
+        "#5f7f5f",
+        "#e0cf9f",
+        "#7cb8bb",
+        "#dc8cc3",
+        "#93e0e3",
+        "#dcdccc"
+      ],
+      "background": "#383838",
+      "brights": [
+        "#6f6f6f",
+        "#dca3a3",
+        "#5f7f5f",
+        "#e0cf9f",
+        "#7cb8bb",
+        "#dc8cc3",
+        "#93e0e3",
+        "#ffffff"
+      ],
+      "cursor_bg": "#dcdccc",
+      "cursor_border": "#dcdccc",
+      "cursor_fg": "#dcdccc",
+      "foreground": "#dcdccc",
+      "indexed": {},
+      "selection_bg": "#dcdccc",
+      "selection_fg": "#383838"
+    },
+    "metadata": {
+      "author": "elnawe",
+      "name": "Zenburn (base16)",
+      "origin_url": "https://github.com/elnawe/base16-zenburn-scheme",
       "prefix": "z"
     }
   },
