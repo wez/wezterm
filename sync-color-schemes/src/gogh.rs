@@ -25,32 +25,9 @@ struct GoghTheme {
     cursorColor: String,
 }
 
-fn fetch_gogh_json() -> anyhow::Result<Vec<GoghTheme>> {
-    let cache = "/tmp/wezterm-gogh.json";
-    let need_fetch = match std::fs::metadata(cache) {
-        Ok(m) => match m.modified() {
-            Ok(t) => match t.elapsed() {
-                Ok(d) => d > Duration::from_secs(86400),
-                Err(_) => false,
-            },
-            Err(_) => true,
-        },
-        Err(_) => true,
-    };
-
-    let mut latest = Vec::new();
-    if need_fetch {
-        eprintln!("Updating gogh cache");
-        let uri = Uri::try_from(
-            "https://raw.githubusercontent.com/Gogh-Co/Gogh/master/data/themes.json",
-        )?;
-        Request::new(&uri)
-            .version(HttpVersion::Http10)
-            .send(&mut latest)?;
-        std::fs::write(cache, &latest)?;
-    } else {
-        latest = std::fs::read(cache)?;
-    }
+async fn fetch_gogh_json() -> anyhow::Result<Vec<GoghTheme>> {
+    let latest =
+        fetch_url("https://raw.githubusercontent.com/Gogh-Co/Gogh/master/data/themes.json").await?;
 
     #[derive(Deserialize, Debug)]
     struct Themes {
@@ -62,9 +39,9 @@ fn fetch_gogh_json() -> anyhow::Result<Vec<GoghTheme>> {
     Ok(data.themes)
 }
 
-pub fn load_gogh() -> anyhow::Result<Vec<Scheme>> {
+pub async fn load_gogh() -> anyhow::Result<Vec<Scheme>> {
     let mut schemes = vec![];
-    for s in fetch_gogh_json()? {
+    for s in fetch_gogh_json().await? {
         let cursor = RgbaColor::try_from(s.cursorColor)?;
         let name = format!("{} (Gogh)", s.name);
 
@@ -111,13 +88,13 @@ pub fn load_gogh() -> anyhow::Result<Vec<Scheme>> {
     Ok(schemes)
 }
 
-pub fn sync_gogh() -> anyhow::Result<Vec<Scheme>> {
+pub async fn sync_gogh() -> anyhow::Result<Vec<Scheme>> {
     let built_in = scheme::load_schemes("assets/colors/gogh")?;
     let mut scheme_map: BTreeMap<_, _> = built_in
         .iter()
         .map(|scheme| (&scheme.name, scheme))
         .collect();
-    let gogh = load_gogh()?;
+    let gogh = load_gogh().await?;
 
     for scheme in &gogh {
         let toml = scheme.to_toml()?;

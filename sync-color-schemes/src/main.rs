@@ -1,9 +1,8 @@
 use crate::scheme::Scheme;
 use anyhow::Context;
 use config::{ColorSchemeFile, ColorSchemeMetaData, Palette, RgbaColor};
-use http_req::request::{HttpVersion, Request};
-use http_req::uri::Uri;
 use serde::Deserialize;
+use sqlite_cache::Cache;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
@@ -13,6 +12,53 @@ mod gogh;
 mod iterm2;
 mod scheme;
 mod sexy;
+
+lazy_static::lazy_static! {
+    static ref CACHE: Cache = make_cache();
+}
+
+fn make_cache() -> Cache {
+    let file_name = "/tmp/wezterm-sync-color-schemes.sqlite";
+    let connection = sqlite_cache::rusqlite::Connection::open(&file_name).unwrap();
+    Cache::new(sqlite_cache::CacheConfig::default(), connection).unwrap()
+}
+
+pub async fn fetch_url_as_str(url: &str) -> anyhow::Result<String> {
+    let data = fetch_url(url)
+        .await
+        .with_context(|| format!("fetching {url}"))?;
+    String::from_utf8(data).with_context(|| format!("converting data from {url} to string"))
+}
+
+pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
+    let topic = CACHE.topic("data-by-url").context("creating cache topic")?;
+
+    let (updater, item) = topic
+        .get_for_update(url)
+        .await
+        .context("lookup url in cache")?;
+    if let Some(item) = item {
+        return Ok(item.data);
+    }
+
+    let response = reqwest::get(url)
+        .await
+        .with_context(|| format!("fetching {url}"))?;
+    let mut ttl = Duration::from_secs(86400);
+    if let Some(value) = response.headers().get(reqwest::header::CACHE_CONTROL) {
+        if let Ok(value) = value.to_str() {
+            let fields = value.splitn(2, "=").collect::<Vec<_>>();
+            if fields.len() == 2 && fields[0] == "max-age" {
+                if let Ok(secs) = fields[1].parse::<u64>() {
+                    ttl = Duration::from_secs(secs);
+                }
+            }
+        }
+    }
+    let data = response.bytes().await?.to_vec();
+    updater.write(&data, ttl).context("assigning to cache")?;
+    Ok(data)
+}
 
 fn make_prefix(s: &str) -> (char, String) {
     let fields: Vec<_> = s.splitn(2, ':').collect();
@@ -113,10 +159,11 @@ fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     // They color us! my precious!
     let mut schemeses = iterm2::sync_iterm2()?;
-    accumulate(&mut schemeses, gogh::sync_gogh()?);
+    accumulate(&mut schemeses, gogh::sync_gogh().await?);
     accumulate(&mut schemeses, sexy::sync_sexy()?);
     bake_for_config(schemeses)?;
 
