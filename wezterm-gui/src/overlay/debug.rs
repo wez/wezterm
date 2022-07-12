@@ -213,7 +213,9 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
 
             host.replace(host_res);
 
-            term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
+            if text != "nil" {
+                term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
+            }
         } else {
             return Ok(());
         }
