@@ -238,6 +238,13 @@ impl From<SrgbaTuple> for (f32, f32, f32, f32) {
     }
 }
 
+impl From<csscolorparser::Color> for SrgbaTuple {
+    fn from(color: csscolorparser::Color) -> Self {
+        let (r, g, b, a) = color.rgba();
+        Self(r as f32, g as f32, b as f32, a as f32)
+    }
+}
+
 lazy_static::lazy_static! {
     static ref NAMED_COLORS: HashMap<String, SrgbaTuple> = build_colors();
 }
@@ -315,6 +322,14 @@ impl SrgbaTuple {
         )
     }
 
+    pub fn to_string(self) -> String {
+        if self.3 == 1.0 {
+            self.to_rgb_string()
+        } else {
+            self.to_rgba_string()
+        }
+    }
+
     /// Returns a string of the form `#RRGGBB`
     pub fn to_rgb_string(self) -> String {
         format!(
@@ -327,11 +342,11 @@ impl SrgbaTuple {
 
     pub fn to_rgba_string(self) -> String {
         format!(
-            "rgba:{} {} {} {}%",
-            (self.0 * 255.) as u8,
-            (self.1 * 255.) as u8,
-            (self.2 * 255.) as u8,
-            (self.3 * 100.) as u8
+            "rgba({}% {}% {}% {}%)",
+            (self.0 * 100.),
+            (self.1 * 100.),
+            (self.2 * 100.),
+            (self.3 * 100.)
         )
     }
 
@@ -782,13 +797,13 @@ mod tests {
     fn from_rgba() {
         assert_eq!(
             SrgbaTuple::from_str("clear").unwrap().to_rgba_string(),
-            "rgba:0 0 0 0%"
+            "rgba(0% 0% 0% 0%)"
         );
         assert_eq!(
             SrgbaTuple::from_str("rgba:100% 0 0 50%")
                 .unwrap()
                 .to_rgba_string(),
-            "rgba:255 0 0 50%"
+            "rgba(100% 0% 0% 50%)"
         );
     }
 
@@ -800,12 +815,11 @@ mod tests {
                 .to_rgb_string(),
             "#ff0000"
         );
-        assert_eq!(
-            SrgbaTuple::from_str("rgba(255,0,0,1)")
-                .unwrap()
-                .to_rgba_string(),
-            "rgba:255 0 0 100%"
-        );
+
+        let rgba = SrgbaTuple::from_str("rgba(255,0,0,1)").unwrap();
+        let round_trip = SrgbaTuple::from_str(&rgba.to_rgba_string()).unwrap();
+        assert_eq!(rgba, round_trip);
+        assert_eq!(rgba.to_rgba_string(), "rgba(100% 0% 0% 100%)");
     }
 
     #[test]

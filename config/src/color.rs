@@ -56,13 +56,13 @@ impl std::ops::Deref for RgbaColor {
 
 impl Into<String> for &RgbaColor {
     fn into(self) -> String {
-        self.color.to_rgb_string()
+        self.color.to_string()
     }
 }
 
 impl Into<String> for RgbaColor {
     fn into(self) -> String {
-        self.color.to_rgb_string()
+        self.color.to_string()
     }
 }
 

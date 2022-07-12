@@ -1,8 +1,7 @@
 use crate::exec_domain::{ExecDomain, ValueOrFunc};
 use crate::keyassignment::KeyAssignment;
 use crate::{
-    FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, Gradient, RgbaColor,
-    TextStyle,
+    FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, RgbaColor, TextStyle,
 };
 use anyhow::anyhow;
 use luahelper::{from_lua_value_dynamic, lua_value_to_dynamic};
@@ -205,7 +204,6 @@ end
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
         wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;
-        wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
         wezterm_mod.set("shell_join_args", lua.create_function(shell_join_args)?)?;
         wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
         wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
@@ -670,17 +668,6 @@ fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String>
         unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u16, bytes.len() / 2) };
 
     String::from_utf16(wide).map_err(|e| mlua::Error::external(e))
-}
-
-fn gradient_colors<'lua>(
-    _lua: &'lua Lua,
-    (gradient, num_colors): (Gradient, usize),
-) -> mlua::Result<Vec<String>> {
-    let g = gradient.build().map_err(|e| mlua::Error::external(e))?;
-    Ok(g.colors(num_colors)
-        .into_iter()
-        .map(|c| c.to_hex_string())
-        .collect())
 }
 
 pub fn add_to_config_reload_watch_list<'lua>(

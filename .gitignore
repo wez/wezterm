@@ -14,6 +14,7 @@
 /docs/install/*.md
 /docs/cli/cli/index.md
 /docs/colorschemes/**/index.md
+/docs/config/lua/color/index.md
 /docs/config/lua/config/index.md
 /docs/config/lua/gui-events/index.md
 /docs/config/lua/keyassignment/index.md

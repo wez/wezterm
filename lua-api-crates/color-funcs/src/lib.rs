@@ -1,6 +1,6 @@
-use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
-use config::{RgbaColor, SrgbaTuple};
+use config::lua::{get_or_create_module, get_or_create_sub_module};
+use config::{Gradient, RgbaColor, SrgbaTuple};
 
 mod image_colors;
 
@@ -85,6 +85,11 @@ impl UserData for ColorWrap {
         methods.add_method("adjust_hue_fixed_ryb", |_, this, amount: f64| {
             Ok(this.adjust_hue_fixed_ryb(amount))
         });
+        methods.add_method("srgba_u8", |_, this, _: ()| Ok(this.0.to_srgb_u8()));
+        methods.add_method("linear_rgba", |_, this, _: ()| {
+            let rgba = this.0.to_linear();
+            Ok((rgba.0, rgba.1, rgba.2, rgba.3))
+        });
         methods.add_method("hsla", |_, this, _: ()| Ok(this.0.to_hsla()));
         methods.add_method("laba", |_, this, _: ()| Ok(this.0.to_laba()));
         methods.add_method("contrast_ratio", |_, this, other: ColorWrap| {
@@ -109,6 +114,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         "extract_colors_from_image",
         lua.create_function(image_colors::extract_colors_from_image)?,
     )?;
+
+    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
+    color.set("gradient", lua.create_function(gradient_colors)?)?;
     Ok(())
 }
 
@@ -116,4 +125,18 @@ fn parse_color<'lua>(_: &'lua Lua, spec: String) -> mlua::Result<ColorWrap> {
     let color =
         RgbaColor::try_from(spec).map_err(|err| mlua::Error::external(format!("{err:#}")))?;
     Ok(ColorWrap(color))
+}
+
+fn gradient_colors<'lua>(
+    _lua: &'lua Lua,
+    (gradient, num_colors): (Gradient, usize),
+) -> mlua::Result<Vec<ColorWrap>> {
+    let g = gradient.build().map_err(|e| mlua::Error::external(e))?;
+    Ok(g.colors(num_colors)
+        .into_iter()
+        .map(|c| {
+            let tuple = SrgbaTuple::from(c);
+            ColorWrap(tuple.into())
+        })
+        .collect())
 }

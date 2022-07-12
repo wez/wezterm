@@ -336,6 +336,7 @@ TOC = [
                         "enum: KeyAssignment",
                         "config/lua/keyassignment",
                     ),
+                    Gen("object: Color", "config/lua/color"),
                     Page("object: ExecDomain", "config/lua/ExecDomain.md"),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
                     Gen("object: MuxWindow", "config/lua/mux-window"),
