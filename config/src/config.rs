@@ -48,7 +48,10 @@ pub struct Config {
     #[dynamic(default = "default_font_size")]
     pub font_size: f64,
 
-    #[dynamic(default = "default_one_point_oh_f64")]
+    #[dynamic(
+        default = "default_one_point_oh_f64",
+        validate = "validate_line_height"
+    )]
     pub line_height: f64,
 
     #[dynamic(default = "default_one_point_oh_f64")]
@@ -1567,5 +1570,15 @@ pub enum ImePreeditRendering {
 impl Default for ImePreeditRendering {
     fn default() -> Self {
         ImePreeditRendering::Builtin
+    }
+}
+
+fn validate_line_height(value: f64) -> Result<(), String> {
+    if value <= 0.0 {
+        Err(format!(
+            "Illegal value {value} for line_height; it must be positive and greater than zero!"
+        ))
+    } else {
+        Ok(())
     }
 }

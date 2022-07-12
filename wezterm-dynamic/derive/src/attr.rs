@@ -73,6 +73,7 @@ pub struct FieldInfo<'a> {
     pub into: Option<Path>,
     pub try_from: Option<Path>,
     pub deprecated: Option<String>,
+    pub validate: Option<Path>,
 }
 
 impl<'a> FieldInfo<'a> {
@@ -109,6 +110,19 @@ impl<'a> FieldInfo<'a> {
         } else {
             quote!()
         };
+        let validate_value = if let Some(validator) = &self.validate {
+            quote!(
+                #validator(value).map_err(|msg| {
+                    wezterm_dynamic::Error::ErrorInField{
+                        type_name: #struct_name,
+                        field_name: #name,
+                        error: msg,
+                    }
+                })?;
+            )
+        } else {
+            quote!()
+        };
 
         if self.skip {
             quote!()
@@ -135,12 +149,14 @@ impl<'a> FieldInfo<'a> {
                                         #name,
                                         obj,
                                     ))?;
-                                <#ty>::try_from(target)
+                                let value = <#ty>::try_from(target)
                                     .map_err(|source| wezterm_dynamic::Error::ErrorInField{
                                         type_name:#struct_name,
                                         field_name:#name,
                                         error: format!("{:#}", source)
-                                    })?
+                                    })?;
+                                #validate_value
+                                value
                             }
                             None => {
                                 <#ty>::default()
@@ -160,12 +176,14 @@ impl<'a> FieldInfo<'a> {
                                         #name,
                                         obj,
                                     ))?;
-                                <#ty>::try_from(target)
+                                let value = <#ty>::try_from(target)
                                     .map_err(|source| wezterm_dynamic::Error::ErrorInField{
                                         type_name:#struct_name,
                                         field_name:#name,
                                         error: format!("{:#}", source),
-                                    })?
+                                    })?;
+                                #validate_value
+                                value
                             }
                             None => {
                                 #default()
@@ -186,12 +204,14 @@ impl<'a> FieldInfo<'a> {
                                         #name,
                                         obj,
                                     ))?;
-                            <#ty>::try_from(target)
+                            let value = <#ty>::try_from(target)
                                     .map_err(|source| wezterm_dynamic::Error::ErrorInField{
                                         type_name:#struct_name,
                                         field_name:#name,
                                         error: format!("{:#}", source),
-                                    })?
+                                    })?;
+                            #validate_value
+                            value
                         },
                     )
                 }
@@ -203,12 +223,14 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
                                 #check_deprecated
-                                <#ty>::from_dynamic(v, options)
+                                let value = <#ty>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
                                         #name,
                                         obj,
-                                    ))?
+                                    ))?;
+                                #validate_value
+                                value
                             }
                             None => {
                                 <#ty>::default()
@@ -221,12 +243,14 @@ impl<'a> FieldInfo<'a> {
                         #ident: match obj.get_by_str(#name) {
                             Some(v) => {
                                 #check_deprecated
-                                <#ty>::from_dynamic(v, options)
+                                let value = <#ty>::from_dynamic(v, options)
                                     .map_err(|source| source.field_context(
                                         #struct_name,
                                         #name,
                                         obj,
-                                    ))?
+                                    ))?;
+                                #validate_value
+                                value
                             }
                             None => {
                                 #default()
@@ -236,8 +260,8 @@ impl<'a> FieldInfo<'a> {
                 }
                 DefValue::None => {
                     quote!(
-                        #ident:
-                            <#ty>::from_dynamic(
+                        #ident: {
+                            let value = <#ty>::from_dynamic(
                                     obj.get_by_str(#name).map(|v| {
                                         #check_deprecated
                                         v
@@ -245,7 +269,10 @@ impl<'a> FieldInfo<'a> {
                                     unwrap_or(&Value::Null),
                                     options
                                 )
-                                .map_err(|source| source.field_context(#struct_name, #name, obj))?,
+                                .map_err(|source| source.field_context(#struct_name, #name, obj))?;
+                            #validate_value
+                            value
+                        },
                     )
                 }
             }
@@ -259,6 +286,7 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
     let mut flatten = false;
     let mut allow_default = DefValue::None;
     let mut try_from = None;
+    let mut validate = None;
     let mut into = None;
     let mut deprecated = None;
 
@@ -305,6 +333,12 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
                             continue;
                         }
                     }
+                    if value.path.is_ident("validate") {
+                        if let Lit::Str(s) = &value.lit {
+                            validate = Some(s.parse()?);
+                            continue;
+                        }
+                    }
                 }
                 NestedMeta::Meta(Meta::Path(path)) => {
                     if path.is_ident("skip") {
@@ -335,5 +369,6 @@ pub fn field_info(field: &Field) -> Result<FieldInfo> {
         try_from,
         into,
         deprecated,
+        validate,
     })
 }
