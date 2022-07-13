@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New [wezterm.json_parse()](config/lua/wezterm/json_parse.md) and [wezterm.json_encode()](config/lua/wezterm/json_encode.md) functions for working with JSON.
 * Hundreds of new color schemes have been imported from [base16](https://github.com/chriskempson/base16-schemes-source), [Gogh](https://gogh-co.github.io/Gogh/) and [terminal.sexy](https://terminal.sexy/). [Browse the schemes](colorschemes/index.md) and look for themes with `(base16)`, `(Gogh)` and `(terminal.sexy)` in the name to discover them!
 * [pane:is_alt_screen_active()](config/lua/pane/is_alt_screen_active.md) for testing whether the alt screen is active. Thanks to [@Funami580](https://github.com/Funami580)! [#2234](https://github.com/wez/wezterm/issues/2234)
+* X11/Wayland: XDG desktop portal is now used to determine whether dark mode is in use [#2258](https://github.com/wez/wezterm/issues/2258)
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)

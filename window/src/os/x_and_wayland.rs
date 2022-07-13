@@ -132,6 +132,21 @@ impl ConnectionOps for Connection {
     }
 
     fn get_appearance(&self) -> Appearance {
+        match promise::spawn::block_on(crate::os::xdg_desktop_portal::read_setting(
+            "org.freedesktop.appearance",
+            "color-scheme",
+        )) {
+            Ok(value) => match value.downcast_ref::<u32>() {
+                Some(1) => return Appearance::Dark,
+                Some(_) => return Appearance::Light,
+                None => {
+                    log::debug!("Unable to resolve appearance using xdg-desktop-portal: expected a u32 value but got {value:#?}");
+                }
+            },
+            Err(err) => {
+                log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
+            }
+        }
         match self {
             Self::X11(x) => x.get_appearance(),
             #[cfg(feature = "wayland")]

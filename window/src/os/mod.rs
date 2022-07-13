@@ -7,6 +7,7 @@ pub use self::windows::*;
 pub mod wayland;
 pub mod x11;
 pub mod x_and_wayland;
+pub mod xdg_desktop_portal;
 pub mod xkeysyms;
 
 #[cfg(all(unix, not(target_os = "macos")))]

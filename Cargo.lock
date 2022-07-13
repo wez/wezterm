@@ -5435,6 +5435,7 @@ dependencies = [
  "dirs-next",
  "euclid",
  "filedescriptor",
+ "futures-util",
  "gl_generator",
  "glium",
  "guillotiere",
@@ -5470,6 +5471,8 @@ dependencies = [
  "xcb",
  "xcb-imdkit",
  "xkbcommon",
+ "zbus",
+ "zvariant",
 ]
 
 [[package]]
