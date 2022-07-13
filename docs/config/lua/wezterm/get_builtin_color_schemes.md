@@ -59,3 +59,48 @@ return {
 }
 ```
 
+This example shows how to analyze the colors in the builtin schemes and
+use that to select just the dark schemes and then randomly pick one
+of those for each new window:
+
+```lua
+local wezterm = require 'wezterm'
+
+local function dark_schemes()
+  local schemes = wezterm.get_builtin_color_schemes()
+  local dark = {}
+  for name, scheme in pairs(schemes) do
+    -- parse into a color object
+    local bg = wezterm.color.parse(scheme.background)
+    -- and extract HSLA information
+    local h, s, l, a = bg:hsla()
+
+    -- `l` is the "lightness" of the color where 0 is darkest
+    -- and 1 is lightest.
+    if l < 0.4 then
+      table.insert(dark, name)
+    end
+  end
+
+  table.sort(dark)
+  return dark
+end
+
+local dark = dark_schemes()
+
+wezterm.on("window-config-reloaded", function(window, pane)
+  -- If there are no overrides, this is our first time seeing
+  -- this window, so we can pick a random scheme.
+  if not window:get_config_overrides() then
+    -- Pick a random scheme name
+
+    local scheme = dark[math.random(#dark)]
+    window:set_config_overrides({
+      color_scheme = scheme
+    })
+  end
+end)
+
+return {
+}
+```
