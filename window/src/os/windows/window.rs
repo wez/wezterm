@@ -271,24 +271,12 @@ impl WindowInner {
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
-                window_state: self.get_window_state(),
+                window_state: get_window_state(self.hwnd.0),
                 live_resizing: self.in_size_move,
             });
         }
 
         !same
-    }
-
-    fn get_window_state(&self) -> WindowState {
-        if self.saved_placement.is_some() {
-            WindowState::FULL_SCREEN
-        } else {
-            match get_window_state(self.hwnd.0) {
-                SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
-                SW_SHOWMINIMIZED => WindowState::HIDDEN,
-                _ => WindowState::default(),
-            }
-        }
     }
 
     fn apply_decoration(&mut self) {
@@ -768,15 +756,16 @@ impl WindowOps for Window {
 
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.0, move |inner| {
-            log::trace!("set_inner_size called with {width}x{height}");
-            let (width, height) = adjust_client_to_window_dimensions(
-                decorations_to_style(inner.config.window_decorations),
-                width,
-                height,
-            );
             let hwnd = inner.hwnd;
-            Connection::with_window_inner(hwnd, move |inner| {
-                let window_state = inner.get_window_state();
+            let decorations = inner.config.window_decorations;
+            promise::spawn::spawn(async move {
+                log::trace!("set_inner_size called with {width}x{height}");
+                let (width, height) = adjust_client_to_window_dimensions(
+                    decorations_to_style(decorations),
+                    width,
+                    height,
+                );
+                let window_state = get_window_state(hwnd.0);
                 if window_state.can_resize() {
                     log::trace!("set_inner_size now calling SetWindowPos with {width}x{height}");
                     unsafe {
@@ -797,8 +786,8 @@ impl WindowOps for Window {
                                 because window_state is {window_state:?}"
                     );
                 }
-                Ok(())
-            });
+            })
+            .detach();
             Ok(())
         });
     }
@@ -996,7 +985,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
         requested_client_rect.right -= frame_x + padding;
         requested_client_rect.left += frame_x + padding;
 
-        let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
+        let is_maximized = get_window_state(hwnd) == WindowState::MAXIMIZED;
 
         // Handle bugged top window border on Windows 10
         if *IS_WIN10 {
@@ -1055,7 +1044,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let coords = mouse_coords(lparam);
     let screen_point = ScreenPoint::new(coords.x, coords.y);
     let cursor_point = screen_to_client(hwnd, screen_point);
-    let is_maximized = get_window_state(hwnd) == SW_SHOWMAXIMIZED;
+    let is_maximized = get_window_state(hwnd) == WindowState::MAXIMIZED;
 
     // check if mouse is in any of the resize areas (HTTOP, HTBOTTOM, etc)
 
@@ -1098,16 +1087,40 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     Some(HTCLIENT)
 }
 
-fn get_window_state(hwnd: HWND) -> i32 {
+fn get_window_state(hwnd: HWND) -> WindowState {
     let mut placement = WINDOWPLACEMENT {
         length: std::mem::size_of::<WINDOWPLACEMENT>() as _,
         ..Default::default()
     };
 
-    if unsafe { GetWindowPlacement(hwnd, &mut placement) } == winapi::shared::minwindef::TRUE {
-        placement.showCmd as i32
-    } else {
-        0
+    let placement =
+        if unsafe { GetWindowPlacement(hwnd, &mut placement) } == winapi::shared::minwindef::TRUE {
+            placement.showCmd as i32
+        } else {
+            0
+        };
+
+    match placement {
+        SW_SHOWMAXIMIZED => WindowState::MAXIMIZED,
+        SW_SHOWMINIMIZED => WindowState::HIDDEN,
+        _ => unsafe {
+            let mut rect = std::mem::zeroed();
+            GetWindowRect(hwnd, &mut rect);
+
+            let mut mi: MONITORINFO = std::mem::zeroed();
+            mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+            GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mut mi);
+
+            if mi.rcMonitor.left == rect.left
+                && mi.rcMonitor.top == rect.top
+                && mi.rcMonitor.right == rect.right
+                && mi.rcMonitor.bottom == rect.bottom
+            {
+                WindowState::FULL_SCREEN
+            } else {
+                WindowState::default()
+            }
+        },
     }
 }
 
