@@ -142,7 +142,10 @@
                         <h1 id="weztermcolorextract_colors_from_imagefilename-params"><a class="header" href="#weztermcolorextract_colors_from_imagefilename-params"><code>wezterm.color.extract_colors_from_image(filename [,params])</code></a></h1>
 <p><em>Since: nightly builds only</em></p>
 <p>This function loads an image from the specified filename and analyzes it to
-determine a set of distinct colors present in the image.</p>
+determine a set of distinct colors present in the image, ordered by how often a
+given color is found in the image, descending.  So if an image is predominantly
+black with a bit of white, then black will be listed first in the returned
+array.</p>
 <p>This is potentially useful if you wish to generate a color scheme to match
 an image, for example.</p>
 <p>The default is to extract 16 colors from an image:</p>
