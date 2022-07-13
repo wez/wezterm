@@ -3,7 +3,10 @@
 *Since: nightly builds only*
 
 This function loads an image from the specified filename and analyzes it to
-determine a set of distinct colors present in the image.
+determine a set of distinct colors present in the image, ordered by how often a
+given color is found in the image, descending.  So if an image is predominantly
+black with a bit of white, then black will be listed first in the returned
+array.
 
 This is potentially useful if you wish to generate a color scheme to match
 an image, for example.
@@ -98,7 +101,6 @@ falls below the human perceptible range. If after that fewer than the requested
 When `min_contrast` is in use and fewer than `num_colors` matching colors are
 found, `min_contrast` is *not* automatically relaxed when retrying with a lower
 `threshold`.
-
 
 This example computes a color palette for the terminal based on some other image file:
 
