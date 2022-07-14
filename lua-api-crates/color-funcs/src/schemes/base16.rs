@@ -73,6 +73,7 @@ impl Base16Scheme {
                 name: Some(scheme.scheme),
                 author: Some(scheme.author.clone()),
                 origin_url: None,
+                wezterm_version: None,
             },
         })
     }

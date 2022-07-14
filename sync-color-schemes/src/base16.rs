@@ -82,6 +82,7 @@ async fn extract_scheme_yamls(url: &str, tar_data: &[u8]) -> anyhow::Result<Vec<
                 let name = format!("{} (base16)", scheme.metadata.name.unwrap());
                 scheme.metadata.name = Some(name.clone());
                 scheme.metadata.origin_url = Some(url.to_string());
+                apply_nightly_version(&mut scheme.metadata);
 
                 schemes.push(Scheme {
                     name: name,

@@ -46,40 +46,6 @@ impl Scheme {
     }
 }
 
-pub fn load_schemes<P: AsRef<Path>>(scheme_dir: P) -> anyhow::Result<Vec<Scheme>> {
-    let scheme_dir_path = scheme_dir.as_ref();
-    let dir = std::fs::read_dir(scheme_dir_path)
-        .with_context(|| format!("load_schemes from dir {scheme_dir_path:?}"))?;
-
-    let mut schemes = vec![];
-
-    for entry in dir {
-        let entry = entry?;
-        let name = entry.file_name();
-        let name = name.to_str().unwrap();
-
-        if name.ends_with(".toml") {
-            let len = name.len();
-            let scheme_name = &name[..len - 5];
-            let data = std::fs::read_to_string(entry.path())?;
-            let scheme = ColorSchemeFile::from_toml_str(&data)?;
-            let name = match &scheme.metadata.name {
-                Some(n) => n.to_string(),
-                None => scheme_name.to_string(),
-            };
-            schemes.push(Scheme {
-                name: name.clone(),
-                file_name: Some(format!("{}/{name}", scheme_dir_path.display())),
-                data: scheme,
-            });
-        }
-    }
-
-    schemes.sort_by_key(|scheme| scheme.name.clone());
-
-    Ok(schemes)
-}
-
 fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
     Ok(match value {
         Value::Null => anyhow::bail!("cannot map Null to toml"),

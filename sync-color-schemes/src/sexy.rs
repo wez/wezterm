@@ -13,6 +13,7 @@ where
         .metadata
         .origin_url
         .replace("https://github.com/stayradiated/terminal.sexy".to_string());
+    apply_nightly_version(&mut scheme.metadata);
 
     Ok(Scheme {
         name: name.clone(),

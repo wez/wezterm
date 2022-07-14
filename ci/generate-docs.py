@@ -235,7 +235,9 @@ window.addEventListener('load', function () {{
                     origin_url = scheme["metadata"].get("origin_url", None)
                     if origin_url:
                         idx.write(f"Source: <{origin_url}><br/>\n")
-
+                    version = scheme["metadata"].get("wezterm_version", None)
+                    if version and version != "Always":
+                        idx.write(f"Since: *{version}*<br/>\n")
 
                     idx.write("\nTo use this scheme, add this to your config:\n")
                     idx.write(

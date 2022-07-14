@@ -1,6 +1,7 @@
 use crate::scheme::Scheme;
 use anyhow::Context;
-use config::ColorSchemeFile;
+use config::{ColorSchemeFile, ColorSchemeMetaData};
+use serde::Deserialize;
 use sqlite_cache::Cache;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -15,6 +16,12 @@ mod sexy;
 
 lazy_static::lazy_static! {
     static ref CACHE: Cache = make_cache();
+}
+
+fn apply_nightly_version(metadata: &mut ColorSchemeMetaData) {
+    metadata
+        .wezterm_version
+        .replace("nightly builds only".to_string());
 }
 
 fn make_cache() -> Cache {
@@ -86,20 +93,53 @@ fn make_prefix(key: &str) -> (char, String) {
     panic!("no good prefix");
 }
 
-fn safe_file_name(s: &str) -> String {
-    s.chars()
-        .map(|c| match c {
-            c @ 'a'..='z' => c,
-            c @ 'A'..='Z' => c,
-            c @ '0'..='9' => c,
-            c @ '('..=')' => c,
-            ' ' => ' ',
-            _ => '-',
-        })
-        .collect()
-}
+fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
+    let json_file_name = "docs/colorschemes/data.json";
 
-fn bake_for_config(schemeses: Vec<Scheme>) -> anyhow::Result<()> {
+    let mut version_by_name = BTreeMap::new();
+    if let Ok(data) = std::fs::read_to_string(&json_file_name) {
+        #[derive(Deserialize)]
+        struct MetaOnly {
+            metadata: MetaData,
+        }
+        #[derive(Deserialize)]
+        struct MetaData {
+            name: String,
+            wezterm_version: Option<String>,
+        }
+
+        let existing: Vec<MetaOnly> = serde_json::from_str(&data)?;
+        for item in &existing {
+            if let Some(version) = &item.metadata.wezterm_version {
+                version_by_name.insert(&item.metadata.name, version.as_str());
+            }
+        }
+
+        if version_by_name.is_empty() {
+            // We're bootstrapping the version info
+            for item in &existing {
+                let name = &item.metadata.name;
+                if name.ends_with("(base16)")
+                    || name.ends_with("(terminal.sexy)")
+                    || name.ends_with("(Gogh)")
+                {
+                    continue;
+                }
+                version_by_name.insert(name, "Always");
+            }
+        }
+
+        for scheme in &mut schemeses {
+            if let Some(version) = version_by_name.get(&scheme.name) {
+                scheme
+                    .data
+                    .metadata
+                    .wezterm_version
+                    .replace(version.to_string());
+            }
+        }
+    }
+
     let mut all = vec![];
 
     let count = schemeses.len();
@@ -123,15 +163,17 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
     }
     code.push_str("];\n");
 
-    let file_name = "config/src/scheme_data.rs";
-    let update = match std::fs::read_to_string(file_name) {
-        Ok(existing) => existing != code,
-        Err(_) => true,
-    };
+    {
+        let file_name = "config/src/scheme_data.rs";
+        let update = match std::fs::read_to_string(file_name) {
+            Ok(existing) => existing != code,
+            Err(_) => true,
+        };
 
-    if update {
-        eprintln!("Updating {file_name}");
-        std::fs::write(file_name, code)?;
+        if update {
+            eprintln!("Updating {file_name}");
+            std::fs::write(file_name, code)?;
+        }
     }
 
     // And the data for the docs
@@ -141,16 +183,16 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
         doc_data.push(s.to_json_value()?);
     }
 
-    let file_name = "docs/colorschemes/data.json";
+    let json_file_name = "docs/colorschemes/data.json";
     let json = serde_json::to_string_pretty(&doc_data)?;
-    let update = match std::fs::read_to_string(file_name) {
+    let update = match std::fs::read_to_string(json_file_name) {
         Ok(existing) => existing != json,
         Err(_) => true,
     };
 
     if update {
-        eprintln!("Updating {file_name}");
-        std::fs::write(file_name, json)?;
+        eprintln!("Updating {json_file_name}");
+        std::fs::write(json_file_name, json)?;
     }
 
     Ok(())

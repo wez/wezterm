@@ -51,6 +51,7 @@ pub async fn sync_iterm2() -> anyhow::Result<Vec<Scheme>> {
                     .unwrap()
                     .to_string();
                 scheme.metadata.name.replace(name.clone());
+                apply_nightly_version(&mut scheme.metadata);
 
                 if scheme.metadata.origin_url.is_none() {
                     scheme

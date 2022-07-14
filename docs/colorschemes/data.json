@@ -34,7 +34,8 @@
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "3"
+      "prefix": "3",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -67,7 +68,8 @@
       "author": "Chris Kempson",
       "name": "3024 (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "3"
+      "prefix": "3",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -105,7 +107,8 @@
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "3"
+      "prefix": "3",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -143,7 +146,8 @@
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Night",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "3"
+      "prefix": "3",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -180,7 +184,8 @@
     "metadata": {
       "name": "Abernathy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -215,7 +220,8 @@
     "metadata": {
       "name": "Aci (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -250,7 +256,8 @@
     "metadata": {
       "name": "Aco (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -287,7 +294,8 @@
     "metadata": {
       "name": "Adventure",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -324,7 +332,8 @@
     "metadata": {
       "name": "AdventureTime",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -361,7 +370,8 @@
     "metadata": {
       "name": "Afterglow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -396,7 +406,8 @@
     "metadata": {
       "name": "Afterglow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -429,7 +440,8 @@
       "author": "Gutterslob",
       "name": "aikofog (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -466,7 +478,8 @@
     "metadata": {
       "name": "Alabaster",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -503,7 +516,8 @@
     "metadata": {
       "name": "AlienBlood",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -540,7 +554,8 @@
     "metadata": {
       "name": "Andromeda",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -578,7 +593,8 @@
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Apathy (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -616,7 +632,8 @@
       "author": "romainl",
       "name": "Apprentice (base16)",
       "origin_url": "https://github.com/casonadams/base16-apprentice-scheme",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -653,7 +670,8 @@
     "metadata": {
       "name": "arcoiris",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -690,7 +708,8 @@
     "metadata": {
       "name": "Argonaut",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -727,7 +746,8 @@
     "metadata": {
       "name": "Arthur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -765,7 +785,8 @@
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Ashes (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -798,7 +819,8 @@
       "author": "Chris Kempson",
       "name": "Ashes (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -831,7 +853,8 @@
       "author": "",
       "name": "astromouse (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -869,7 +892,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Cave (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -907,7 +931,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Cave Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -945,7 +970,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Dune (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -983,7 +1009,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Dune Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1021,7 +1048,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Estuary (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1059,7 +1087,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Estuary Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1097,7 +1126,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Forest (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1135,7 +1165,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Forest Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1173,7 +1204,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Heath (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1211,7 +1243,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Heath Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1249,7 +1282,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Lakeside (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1287,7 +1321,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Lakeside Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1325,7 +1360,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Plateau (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1363,7 +1399,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Plateau Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1401,7 +1438,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Savanna (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1439,7 +1477,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Savanna Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1477,7 +1516,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Seaside (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1515,7 +1555,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Seaside Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1553,7 +1594,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Sulphurpool (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1591,7 +1633,8 @@
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Sulphurpool Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1624,7 +1667,8 @@
       "author": "Chris Kempson",
       "name": "Atelierdune (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1657,7 +1701,8 @@
       "author": "Chris Kempson",
       "name": "Atelierdune (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1690,7 +1735,8 @@
       "author": "Chris Kempson",
       "name": "Atelierforest (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1723,7 +1769,8 @@
       "author": "Chris Kempson",
       "name": "Atelierforest (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1756,7 +1803,8 @@
       "author": "Chris Kempson",
       "name": "Atelierheath (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1789,7 +1837,8 @@
       "author": "Chris Kempson",
       "name": "Atelierheath (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1822,7 +1871,8 @@
       "author": "Chris Kempson",
       "name": "Atelierlakeside (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1855,7 +1905,8 @@
       "author": "Chris Kempson",
       "name": "Atelierlakeside (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1888,7 +1939,8 @@
       "author": "Chris Kempson",
       "name": "Atelierseaside (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1921,7 +1973,8 @@
       "author": "Chris Kempson",
       "name": "Atelierseaside (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -1958,7 +2011,8 @@
     "metadata": {
       "name": "AtelierSulphurpool",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -1996,7 +2050,8 @@
       "author": "Alex Lende (https://ajlende.com)",
       "name": "Atlas (base16)",
       "origin_url": "https://github.com/ajlende/base16-atlas-scheme",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2033,7 +2088,8 @@
     "metadata": {
       "name": "Atom",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2070,7 +2126,8 @@
     "metadata": {
       "name": "AtomOneLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2105,7 +2162,8 @@
     "metadata": {
       "name": "Aura (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2142,7 +2200,8 @@
     "metadata": {
       "name": "Aurora",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2179,7 +2238,8 @@
     "metadata": {
       "name": "ayu",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2216,7 +2276,8 @@
     "metadata": {
       "name": "Ayu Mirage",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2253,7 +2314,8 @@
     "metadata": {
       "name": "ayu_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2288,7 +2350,8 @@
     "metadata": {
       "name": "AyuDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2323,7 +2386,8 @@
     "metadata": {
       "name": "AyuLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2358,7 +2422,8 @@
     "metadata": {
       "name": "AyuMirage (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2393,7 +2458,8 @@
     "metadata": {
       "name": "Azu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a"
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2428,7 +2494,8 @@
     "metadata": {
       "name": "_bash (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2465,7 +2532,8 @@
     "metadata": {
       "name": "Banana Blueberry",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2502,7 +2570,8 @@
     "metadata": {
       "name": "Batman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2540,7 +2609,8 @@
       "author": "Jan T. Sott",
       "name": "Belafonte Day",
       "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2578,7 +2648,8 @@
       "author": "Jan T. Sott",
       "name": "Belafonte Night",
       "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2611,7 +2682,8 @@
       "author": "",
       "name": "Belge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2649,7 +2721,8 @@
       "author": "Jan T. Sott",
       "name": "Bespin (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2682,7 +2755,8 @@
       "author": "Chris Kempson",
       "name": "Bespin (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2717,7 +2791,8 @@
     "metadata": {
       "name": "Bim (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2754,7 +2829,8 @@
     "metadata": {
       "name": "BirdsOfParadise",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -2787,7 +2863,8 @@
       "author": "",
       "name": "Bitmute (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2825,7 +2902,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2863,7 +2941,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Bathory) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2901,7 +2980,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Burzum) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2939,7 +3019,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Dark Funeral) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2977,7 +3058,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Gorgoroth) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3015,7 +3097,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Immortal) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3053,7 +3136,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Khold) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3091,7 +3175,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Marduk) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3129,7 +3214,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Mayhem) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3167,7 +3253,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Nile) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3205,7 +3292,8 @@
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Venom) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3242,7 +3330,8 @@
     "metadata": {
       "name": "Blazer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3275,7 +3364,8 @@
       "author": "",
       "name": "Bleh-1 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3312,7 +3402,8 @@
     "metadata": {
       "name": "Blue Matrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3349,7 +3440,8 @@
     "metadata": {
       "name": "BlueBerryPie",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3386,7 +3478,8 @@
     "metadata": {
       "name": "BlueDolphin",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3423,7 +3516,8 @@
     "metadata": {
       "name": "BlulocoDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3460,7 +3554,8 @@
     "metadata": {
       "name": "BlulocoLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3495,7 +3590,8 @@
     "metadata": {
       "name": "BlulocoLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3530,7 +3626,8 @@
     "metadata": {
       "name": "BlulocoZshLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3567,7 +3664,8 @@
     "metadata": {
       "name": "Borland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3604,7 +3702,8 @@
     "metadata": {
       "name": "Breeze",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3642,7 +3741,8 @@
       "author": "Timothée Poisot (http://github.com/tpoisot)",
       "name": "Brewer (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3675,7 +3775,8 @@
       "author": "Chris Kempson",
       "name": "Brewer (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3713,7 +3814,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Bright (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3750,7 +3852,8 @@
     "metadata": {
       "name": "Bright Lights",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3787,7 +3890,8 @@
     "metadata": {
       "name": "Broadcast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3824,7 +3928,8 @@
     "metadata": {
       "name": "Brogrammer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -3862,7 +3967,8 @@
       "author": "Vik Ramanujam (http://github.com/piggyslasher)",
       "name": "Brogrammer (base16)",
       "origin_url": "https://github.com/piggyslasher/base16-brogrammer-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3900,7 +4006,8 @@
       "author": "Abraham White <abelincoln.white@gmail.com>",
       "name": "Brush Trees (base16)",
       "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3938,7 +4045,8 @@
       "author": "Abraham White <abelincoln.white@gmail.com>",
       "name": "Brush Trees Dark (base16)",
       "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -3975,7 +4083,8 @@
     "metadata": {
       "name": "Builtin Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4012,7 +4121,8 @@
     "metadata": {
       "name": "Builtin Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4049,7 +4159,8 @@
     "metadata": {
       "name": "Builtin Pastel Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4086,7 +4197,8 @@
     "metadata": {
       "name": "Builtin Solarized Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4123,7 +4235,8 @@
     "metadata": {
       "name": "Builtin Solarized Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4160,7 +4273,8 @@
     "metadata": {
       "name": "Builtin Tango Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4197,7 +4311,8 @@
     "metadata": {
       "name": "Builtin Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "b"
+      "prefix": "b",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4235,7 +4350,8 @@
       "author": "Jan T. Sott",
       "name": "C64",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4270,7 +4386,8 @@
     "metadata": {
       "name": "Cai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4307,7 +4424,8 @@
     "metadata": {
       "name": "Calamity",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4340,7 +4458,8 @@
       "author": "dkeg",
       "name": "Canvased Pastel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4373,7 +4492,8 @@
       "author": "dkeg",
       "name": "Catch Me If You Can (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4410,7 +4530,8 @@
     "metadata": {
       "name": "CGA",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4447,7 +4568,8 @@
     "metadata": {
       "name": "Chalk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4485,7 +4607,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Chalk (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4520,7 +4643,8 @@
     "metadata": {
       "name": "Chalk (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4553,7 +4677,8 @@
       "author": "Chris Kempson",
       "name": "Chalk (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4590,7 +4715,8 @@
     "metadata": {
       "name": "Chalkboard",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4627,7 +4753,8 @@
     "metadata": {
       "name": "ChallengerDeep",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4662,7 +4789,8 @@
     "metadata": {
       "name": "Chameleon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4699,7 +4827,8 @@
     "metadata": {
       "name": "Chester",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4736,7 +4865,8 @@
     "metadata": {
       "name": "Ciapre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -4774,7 +4904,8 @@
       "author": "Stephan Boyer (https://github.com/stepchowfun) and Esther Wang (https://github.com/ewang12)",
       "name": "Circus (base16)",
       "origin_url": "https://github.com/stepchowfun/base16-circus-scheme",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4807,7 +4938,8 @@
       "author": "dkeg",
       "name": "City Streets (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4845,7 +4977,8 @@
       "author": "Jason Heeris (http://heeris.id.au)",
       "name": "Classic Dark (base16)",
       "origin_url": "https://github.com/detly/base16-classic-scheme",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4883,7 +5016,8 @@
       "author": "Jason Heeris (http://heeris.id.au)",
       "name": "Classic Light (base16)",
       "origin_url": "https://github.com/detly/base16-classic-scheme",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4918,7 +5052,8 @@
     "metadata": {
       "name": "CloneofUbuntu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4951,7 +5086,8 @@
       "author": "",
       "name": "Cloud (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -4988,7 +5124,8 @@
     "metadata": {
       "name": "CLRS",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5025,7 +5162,8 @@
     "metadata": {
       "name": "Cobalt Neon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5062,7 +5200,8 @@
     "metadata": {
       "name": "Cobalt2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5100,7 +5239,8 @@
       "author": "blockloop",
       "name": "Codeschool (base16)",
       "origin_url": "https://github.com/blockloop/base16-codeschool-scheme",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5133,7 +5273,8 @@
       "author": "Chris Kempson",
       "name": "Codeschool (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5170,7 +5311,8 @@
     "metadata": {
       "name": "coffee_theme",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5203,7 +5345,8 @@
       "author": "dkeg",
       "name": "Color Star (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5238,7 +5381,8 @@
     "metadata": {
       "name": "Colorcli (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5271,7 +5415,8 @@
       "author": "",
       "name": "Colorful Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5309,7 +5454,8 @@
       "author": "mrmrs (http://clrs.cc)",
       "name": "Colors (base16)",
       "origin_url": "https://github.com/hakatashi/base16-colors-scheme",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5342,7 +5488,8 @@
       "author": "Baskerville",
       "name": "Count Von Count (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5379,7 +5526,8 @@
     "metadata": {
       "name": "CrayonPonyFish",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5417,7 +5565,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Cupcake (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5455,7 +5604,8 @@
       "author": "Defman21",
       "name": "Cupertino (base16)",
       "origin_url": "https://github.com/Defman21/base16-cupertino",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5492,7 +5642,8 @@
     "metadata": {
       "name": "Cyberdyne",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5529,7 +5680,8 @@
     "metadata": {
       "name": "cyberpunk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "c"
+      "prefix": "c",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5567,7 +5719,8 @@
       "author": "Wenhan Zhu (Cosmos) (zhuwenhan950913@gmail.com)",
       "name": "DanQing (base16)",
       "origin_url": "https://github.com/CosmosAtlas/base16-danqing-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5605,7 +5758,8 @@
       "author": "jetbrains",
       "name": "Darcula (base16)",
       "origin_url": "https://github.com/casonadams/base16-darcula-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5638,7 +5792,8 @@
       "author": "DOOMICIDE",
       "name": "Dark Ocean (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5675,7 +5830,8 @@
     "metadata": {
       "name": "Dark Pastel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5713,7 +5869,8 @@
       "author": "ruler501 (https://github.com/ruler501/base16-darkviolet)",
       "name": "Dark Violet (base16)",
       "origin_url": "https://github.com/ruler501/base16-darkviolet-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5750,7 +5907,8 @@
     "metadata": {
       "name": "Dark+",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5787,7 +5945,8 @@
     "metadata": {
       "name": "darkermatrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5824,7 +5983,8 @@
     "metadata": {
       "name": "darkmatrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5862,7 +6022,8 @@
       "author": "Gabriel Avanzi (https://github.com/avanzzzi)",
       "name": "darkmoss (base16)",
       "origin_url": "https://github.com/avanzzzi/base16-darkmoss-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5899,7 +6060,8 @@
     "metadata": {
       "name": "Darkside",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -5937,7 +6099,8 @@
       "author": "Jason Milkins (https://github.com/jasonm23)",
       "name": "Darktooth (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5970,7 +6133,8 @@
       "author": "Escapist",
       "name": "Dawn (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6003,7 +6167,8 @@
       "author": "",
       "name": "Deafened (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6041,7 +6206,8 @@
       "author": "Alex Mirrington (https://github.com/alexmirrington)",
       "name": "Decaf (base16)",
       "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6078,7 +6244,8 @@
     "metadata": {
       "name": "deep",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6111,7 +6278,8 @@
       "author": "Chris Kempson",
       "name": "Default (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6149,7 +6317,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Default Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6187,7 +6356,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Default Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6222,7 +6392,8 @@
     "metadata": {
       "name": "DeHydration (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6255,7 +6426,8 @@
       "author": "",
       "name": "Derp (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6292,7 +6464,8 @@
     "metadata": {
       "name": "Desert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6325,7 +6498,8 @@
       "author": "",
       "name": "Digerati (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6362,7 +6536,8 @@
     "metadata": {
       "name": "DimmedMonokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6400,7 +6575,8 @@
       "author": "Kahlil (Kal) Hodgson",
       "name": "dirtysea (base16)",
       "origin_url": "https://github.com/tartansandal/base16-dirtysea-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6435,7 +6611,8 @@
     "metadata": {
       "name": "Dissonance (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6472,7 +6649,8 @@
     "metadata": {
       "name": "Django",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6509,7 +6687,8 @@
     "metadata": {
       "name": "DjangoRebornAgain",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6546,7 +6725,8 @@
     "metadata": {
       "name": "DjangoSmooth",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6583,7 +6763,8 @@
     "metadata": {
       "name": "Doom Peacock",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6620,7 +6801,8 @@
     "metadata": {
       "name": "DoomOne",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6657,7 +6839,8 @@
     "metadata": {
       "name": "DotGov",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6690,7 +6873,8 @@
       "author": "",
       "name": "Dotshare (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6727,7 +6911,8 @@
     "metadata": {
       "name": "Dracula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6765,7 +6950,8 @@
       "author": "Mike Barkmin (http://github.com/mikebarkmin) based on Dracula Theme (http://github.com/dracula)",
       "name": "Dracula (base16)",
       "origin_url": "https://github.com/dracula/base16-dracula-scheme",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6800,7 +6986,8 @@
     "metadata": {
       "name": "Dracula (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6837,7 +7024,8 @@
     "metadata": {
       "name": "Dracula+",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6874,7 +7062,8 @@
     "metadata": {
       "name": "duckbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6911,7 +7100,8 @@
     "metadata": {
       "name": "Duotone Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -6944,7 +7134,8 @@
       "author": "",
       "name": "DWM rob (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -6981,7 +7172,8 @@
     "metadata": {
       "name": "Earthsong",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7019,7 +7211,8 @@
       "author": "cjayross (https://github.com/cjayross)",
       "name": "Edge Dark (base16)",
       "origin_url": "https://github.com/cjayross/base16-edge-schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7057,7 +7250,8 @@
       "author": "cjayross (https://github.com/cjayross)",
       "name": "Edge Light (base16)",
       "origin_url": "https://github.com/cjayross/base16-edge-schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7095,7 +7289,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Eighties (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7128,7 +7323,8 @@
       "author": "Chris Kempson",
       "name": "Eighties (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7161,7 +7357,8 @@
       "author": "Baskerville",
       "name": "Eldorado dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7198,7 +7395,8 @@
     "metadata": {
       "name": "Elemental",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7235,7 +7433,8 @@
     "metadata": {
       "name": "Elementary",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7270,7 +7469,8 @@
     "metadata": {
       "name": "Elementary (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7305,7 +7505,8 @@
     "metadata": {
       "name": "Elic (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7340,7 +7541,8 @@
     "metadata": {
       "name": "Elio (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7378,7 +7580,8 @@
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Embers (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7411,7 +7614,8 @@
       "author": "Chris Kempson",
       "name": "Embers (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7448,7 +7652,8 @@
     "metadata": {
       "name": "ENCOM",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7481,7 +7686,8 @@
       "author": "",
       "name": "Epiphany (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7514,7 +7720,8 @@
       "author": "",
       "name": "Eqie6 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7552,7 +7759,8 @@
       "author": "Carlo Abelli",
       "name": "Equilibrium Dark (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7590,7 +7798,8 @@
       "author": "Carlo Abelli",
       "name": "Equilibrium Gray Dark (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7628,7 +7837,8 @@
       "author": "Carlo Abelli",
       "name": "Equilibrium Gray Light (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7666,7 +7876,8 @@
       "author": "Carlo Abelli",
       "name": "Equilibrium Light (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7699,7 +7910,8 @@
       "author": "",
       "name": "Erebus (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7736,7 +7948,8 @@
     "metadata": {
       "name": "Espresso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7774,7 +7987,8 @@
       "author": "Unknown. Maintained by Alex Mirrington (https://github.com/alexmirrington)",
       "name": "Espresso (base16)",
       "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7811,7 +8025,8 @@
     "metadata": {
       "name": "Espresso Libre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7844,7 +8059,8 @@
       "author": "",
       "name": "Euphrasia (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7882,7 +8098,8 @@
       "author": "kjakapat (https://github.com/kjakapat)",
       "name": "Eva (base16)",
       "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7920,7 +8137,8 @@
       "author": "kjakapat (https://github.com/kjakapat)",
       "name": "Eva Dim (base16)",
       "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
-      "prefix": "e"
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -7957,7 +8175,8 @@
     "metadata": {
       "name": "Fahrenheit",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -7994,7 +8213,8 @@
     "metadata": {
       "name": "Fairyfloss",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8029,7 +8249,8 @@
     "metadata": {
       "name": "FairyFloss (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8064,7 +8285,8 @@
     "metadata": {
       "name": "FairyFlossDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8097,7 +8319,8 @@
       "author": "Baskerville",
       "name": "FarSide (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8134,7 +8357,8 @@
     "metadata": {
       "name": "Fideloper",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8171,7 +8395,8 @@
     "metadata": {
       "name": "FirefoxDev",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8208,7 +8433,8 @@
     "metadata": {
       "name": "Firewatch",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8241,7 +8467,8 @@
       "author": "",
       "name": "Fishbone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8278,7 +8505,8 @@
     "metadata": {
       "name": "FishTank",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8315,7 +8543,8 @@
     "metadata": {
       "name": "Flat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8353,7 +8582,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Flat (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8388,7 +8618,8 @@
     "metadata": {
       "name": "Flat (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8425,7 +8656,8 @@
     "metadata": {
       "name": "Flatland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8460,7 +8692,8 @@
     "metadata": {
       "name": "FlatRemix (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8497,7 +8730,8 @@
     "metadata": {
       "name": "Floraverse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8534,7 +8768,8 @@
     "metadata": {
       "name": "ForestBlue",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8569,7 +8804,8 @@
     "metadata": {
       "name": "Foxnightly (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8606,7 +8842,8 @@
     "metadata": {
       "name": "Framer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8644,7 +8881,8 @@
       "author": "Framer (Maintained by Jesse Hoyos)",
       "name": "Framer (base16)",
       "origin_url": "https://github.com/jssee/base16-framer-scheme",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8679,7 +8917,8 @@
     "metadata": {
       "name": "Freya (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8716,7 +8955,8 @@
     "metadata": {
       "name": "FrontEndDelight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8754,7 +8994,8 @@
       "author": "jozip",
       "name": "Fruit Soda (base16)",
       "origin_url": "https://github.com/jozip/base16-fruit-soda-scheme",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8791,7 +9032,8 @@
     "metadata": {
       "name": "FunForrest",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f"
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8828,7 +9070,8 @@
     "metadata": {
       "name": "Galaxy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8866,7 +9109,8 @@
       "author": "Raziel Anarki (http://github.com/razielanarki)",
       "name": "Galizur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -8901,7 +9145,8 @@
     "metadata": {
       "name": "GeoHot (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8939,7 +9184,8 @@
       "author": "Aidan Swope (http://github.com/Whillikers)",
       "name": "Gigavolt (base16)",
       "origin_url": "https://github.com/Whillikers/base16-gigavolt-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -8976,7 +9222,8 @@
     "metadata": {
       "name": "Github",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9014,7 +9261,8 @@
       "author": "Defman21",
       "name": "Github (base16)",
       "origin_url": "https://github.com/Defman21/base16-github-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9051,7 +9299,8 @@
     "metadata": {
       "name": "GitHub Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9084,7 +9333,8 @@
       "author": "",
       "name": "GJM (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9121,7 +9371,8 @@
     "metadata": {
       "name": "Glacier",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9156,7 +9407,8 @@
     "metadata": {
       "name": "Gogh (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9191,7 +9443,8 @@
     "metadata": {
       "name": "gooey (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9224,7 +9477,8 @@
       "author": "Chris Kempson",
       "name": "Google (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9262,7 +9516,8 @@
       "author": "Seth Wright (http://sethawright.com)",
       "name": "Google Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9300,7 +9555,8 @@
       "author": "Seth Wright (http://sethawright.com)",
       "name": "Google Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9335,7 +9591,8 @@
     "metadata": {
       "name": "GoogleDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9370,7 +9627,8 @@
     "metadata": {
       "name": "GoogleLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9405,7 +9663,8 @@
     "metadata": {
       "name": "gotham (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9438,7 +9697,8 @@
       "author": "",
       "name": "Grandshell (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9475,7 +9735,8 @@
     "metadata": {
       "name": "Grape",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9512,7 +9773,8 @@
     "metadata": {
       "name": "Grass",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9545,7 +9807,8 @@
       "author": "Chris Kempson",
       "name": "Grayscale (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9583,7 +9846,8 @@
       "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
       "name": "Grayscale Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9621,7 +9885,8 @@
       "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
       "name": "Grayscale Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9659,7 +9924,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Green Screen (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9692,7 +9958,8 @@
       "author": "Chris Kempson",
       "name": "Greenscreen (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9729,7 +9996,8 @@
     "metadata": {
       "name": "Grey-green",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9767,7 +10035,8 @@
       "author": "Patel, Nimai <nimai.m.patel@gmail.com>, colors from www.github.com/rexim/gruber-darker-theme",
       "name": "Gruber (base16)",
       "origin_url": "https://github.com/nimaipatel/base16-gruber",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9802,7 +10071,8 @@
     "metadata": {
       "name": "Gruvbox (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9839,7 +10109,8 @@
     "metadata": {
       "name": "Gruvbox Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -9877,7 +10148,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, hard (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9915,7 +10187,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, medium (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9953,7 +10226,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, pale (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -9991,7 +10265,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, soft (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10028,7 +10303,8 @@
     "metadata": {
       "name": "Gruvbox Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10066,7 +10342,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, hard (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10104,7 +10381,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, medium (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10142,7 +10420,8 @@
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, soft (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10177,7 +10456,8 @@
     "metadata": {
       "name": "GruvboxDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10214,7 +10494,8 @@
     "metadata": {
       "name": "Guezwhoz",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g"
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10251,7 +10532,8 @@
     "metadata": {
       "name": "Hacktober",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10288,7 +10570,8 @@
     "metadata": {
       "name": "Hardcore",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10326,7 +10609,8 @@
       "author": "Chris Caller",
       "name": "Hardcore (base16)",
       "origin_url": "https://github.com/callerc1/base16-hardcore-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10364,7 +10648,8 @@
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Harmonic16 Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10402,7 +10687,8 @@
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Harmonic16 Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10440,7 +10726,8 @@
       "author": "Jan T. Sott",
       "name": "Harper",
       "origin_url": "https://github.com/idleberg/Harper-iTerm2",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10477,7 +10764,8 @@
     "metadata": {
       "name": "HaX0R_BLUE",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10514,7 +10802,8 @@
     "metadata": {
       "name": "HaX0R_GR33N",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10551,7 +10840,8 @@
     "metadata": {
       "name": "HaX0R_R3D",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10589,7 +10879,8 @@
       "author": "Geoffrey Teale (tealeg@gmail.com)",
       "name": "Heetch Dark (base16)",
       "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10627,7 +10918,8 @@
       "author": "Geoffrey Teale (tealeg@gmail.com)",
       "name": "Heetch Light (base16)",
       "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10665,7 +10957,8 @@
       "author": "Alex Meyer (https://github.com/reyemxela)",
       "name": "Helios (base16)",
       "origin_url": "https://github.com/reyemxela/base16-helios-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10700,7 +10993,8 @@
     "metadata": {
       "name": "HemisuDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10735,7 +11029,8 @@
     "metadata": {
       "name": "HemisuLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -10772,7 +11067,8 @@
     "metadata": {
       "name": "Highway",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10809,7 +11105,8 @@
     "metadata": {
       "name": "Hipster Green",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10846,7 +11143,8 @@
     "metadata": {
       "name": "Hivacruz",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10883,7 +11181,8 @@
     "metadata": {
       "name": "Homebrew",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10920,7 +11219,8 @@
     "metadata": {
       "name": "Hopscotch",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10957,7 +11257,8 @@
     "metadata": {
       "name": "Hopscotch.256",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10995,7 +11296,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11033,7 +11335,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11071,7 +11374,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11109,7 +11413,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11144,7 +11449,8 @@
     "metadata": {
       "name": "HorizonBright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11179,7 +11485,8 @@
     "metadata": {
       "name": "HorizonDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11217,7 +11524,8 @@
       "author": "Thomas (tasmo) Friese",
       "name": "Humanoid dark (base16)",
       "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11255,7 +11563,8 @@
       "author": "Thomas (tasmo) Friese",
       "name": "Humanoid light (base16)",
       "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11288,7 +11597,8 @@
       "author": "hund",
       "name": "hund (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11325,7 +11635,8 @@
     "metadata": {
       "name": "Hurtado",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11362,7 +11673,8 @@
     "metadata": {
       "name": "Hybrid",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11397,7 +11709,8 @@
     "metadata": {
       "name": "Hybrid (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11430,7 +11743,8 @@
       "author": "w0ng",
       "name": "Hybrid (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11463,7 +11777,8 @@
       "author": "",
       "name": "Hybrid (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "h"
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11501,7 +11816,8 @@
       "author": "iA Inc. (modified by aramisgithub)",
       "name": "iA Dark (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11539,7 +11855,8 @@
       "author": "iA Inc. (modified by aramisgithub)",
       "name": "iA Light (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11574,7 +11891,8 @@
     "metadata": {
       "name": "ibm3270 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11609,7 +11927,8 @@
     "metadata": {
       "name": "IBM3270(HighContrast) (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11646,7 +11965,8 @@
     "metadata": {
       "name": "IC_Green_PPL",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11683,7 +12003,8 @@
     "metadata": {
       "name": "IC_Orange_PPL",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11720,7 +12041,8 @@
     "metadata": {
       "name": "iceberg-dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11757,7 +12079,8 @@
     "metadata": {
       "name": "iceberg-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11792,7 +12115,8 @@
     "metadata": {
       "name": "ICGreenPPL (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11830,7 +12154,8 @@
       "author": "icyphox (https://icyphox.ga)",
       "name": "Icy Dark (base16)",
       "origin_url": "https://github.com/icyphox/base16-icy-scheme",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11867,7 +12192,8 @@
     "metadata": {
       "name": "idea",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11904,7 +12230,8 @@
     "metadata": {
       "name": "idleToes",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -11937,7 +12264,8 @@
       "author": "iiamblack",
       "name": "Iiamblack (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11970,7 +12298,8 @@
       "author": "",
       "name": "Insignificato (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12003,7 +12332,8 @@
       "author": "Baskerville",
       "name": "Invisibone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12041,7 +12371,8 @@
       "author": "Timothée Poisot (http://timotheepoisot.fr)",
       "name": "IR Black (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12078,7 +12409,8 @@
     "metadata": {
       "name": "IR_Black",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12113,7 +12445,8 @@
     "metadata": {
       "name": "IrBlack (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12151,7 +12484,8 @@
       "author": "Jan T. Sott",
       "name": "Isotope (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12184,7 +12518,8 @@
       "author": "Chris Kempson",
       "name": "Isotope (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12217,7 +12552,8 @@
       "author": "Baskerville",
       "name": "Ivory Dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12250,7 +12586,8 @@
       "author": "Baskerville",
       "name": "Ivory Light (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "i"
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12287,7 +12624,8 @@
     "metadata": {
       "name": "Jackie Brown",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12324,7 +12662,8 @@
     "metadata": {
       "name": "Japanesque",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12357,7 +12696,8 @@
       "author": "",
       "name": "Jason Wryan (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12394,7 +12734,8 @@
     "metadata": {
       "name": "Jellybeans",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12431,7 +12772,8 @@
     "metadata": {
       "name": "JetBrains Darcula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12464,7 +12806,8 @@
       "author": "jmbi",
       "name": "jmbi (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12501,7 +12844,8 @@
     "metadata": {
       "name": "jubi",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12536,7 +12880,8 @@
     "metadata": {
       "name": "Jup (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12569,7 +12914,8 @@
       "author": "",
       "name": "JWR dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "j"
+      "prefix": "j",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12606,7 +12952,8 @@
     "metadata": {
       "name": "kanagawabones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12639,7 +12986,8 @@
       "author": "Kori Ayakashi",
       "name": "Kasugano (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12676,7 +13024,8 @@
     "metadata": {
       "name": "Kibble",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12714,7 +13063,8 @@
       "author": "Mishka Nguyen (https://github.com/akhsiM)",
       "name": "Kimber (base16)",
       "origin_url": "https://github.com/akhsiM/base16-kimber-scheme",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12749,7 +13099,8 @@
     "metadata": {
       "name": "kokuban (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12786,7 +13137,8 @@
     "metadata": {
       "name": "Kolorit",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12823,7 +13175,8 @@
     "metadata": {
       "name": "Konsolas",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "k"
+      "prefix": "k",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12860,7 +13213,8 @@
     "metadata": {
       "name": "Lab Fox",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12897,7 +13251,8 @@
     "metadata": {
       "name": "Laser",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -12932,7 +13287,8 @@
     "metadata": {
       "name": "laserwave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -12969,7 +13325,8 @@
     "metadata": {
       "name": "Later This Evening",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13006,7 +13363,8 @@
     "metadata": {
       "name": "Lavandula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13039,7 +13397,8 @@
       "author": "Gutterslob",
       "name": "Light White (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13076,7 +13435,8 @@
     "metadata": {
       "name": "LiquidCarbon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13113,7 +13473,8 @@
     "metadata": {
       "name": "LiquidCarbonTransparent",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13150,7 +13511,8 @@
     "metadata": {
       "name": "LiquidCarbonTransparentInverse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13188,7 +13550,8 @@
       "author": "Jan T. Sott",
       "name": "London Tube (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13221,7 +13584,8 @@
       "author": "Chris Kempson",
       "name": "Londontube (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13254,7 +13618,8 @@
       "author": "Baskerville",
       "name": "Lost Woods (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13291,7 +13656,8 @@
     "metadata": {
       "name": "lovelace",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13324,7 +13690,8 @@
       "author": "Muzieca",
       "name": "Low Contrast (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13357,7 +13724,8 @@
       "author": "Gutterslob",
       "name": "Lumifoo (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13392,7 +13760,8 @@
     "metadata": {
       "name": "LunariaDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13427,7 +13796,8 @@
     "metadata": {
       "name": "LunariaEclipse (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13462,7 +13832,8 @@
     "metadata": {
       "name": "LunariaLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "l"
+      "prefix": "l",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13500,7 +13871,8 @@
       "author": "Rebecca Bettencourt (http://www.kreativekorp.com)",
       "name": "Macintosh (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13535,7 +13907,8 @@
     "metadata": {
       "name": "Maia (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13572,7 +13945,8 @@
     "metadata": {
       "name": "Man Page",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13607,7 +13981,8 @@
     "metadata": {
       "name": "Mar (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13644,7 +14019,8 @@
     "metadata": {
       "name": "Mariana",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13682,7 +14058,8 @@
       "author": "Alexandre Gavioli (http://github.com/Alexx2/)",
       "name": "Marrakesh (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13715,7 +14092,8 @@
       "author": "Chris Kempson",
       "name": "Marrakesh (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13748,7 +14126,8 @@
       "author": "user 77",
       "name": "Mashup Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13786,7 +14165,8 @@
       "author": "Defman21",
       "name": "Materia (base16)",
       "origin_url": "https://github.com/Defman21/base16-materia",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13823,7 +14203,8 @@
     "metadata": {
       "name": "Material",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -13861,7 +14242,8 @@
       "author": "Nate Peterson",
       "name": "Material (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13896,7 +14278,8 @@
     "metadata": {
       "name": "Material (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13929,7 +14312,8 @@
       "author": "",
       "name": "Material (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -13967,7 +14351,8 @@
       "author": "Nate Peterson",
       "name": "Material Darker (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14005,7 +14390,8 @@
       "author": "Nate Peterson",
       "name": "Material Lighter (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14043,7 +14429,8 @@
       "author": "Nate Peterson",
       "name": "Material Palenight (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14081,7 +14468,8 @@
       "author": "joshyrobot",
       "name": "Material Vivid (base16)",
       "origin_url": "https://github.com/joshyrobot/base16-material-vivid-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14118,7 +14506,8 @@
     "metadata": {
       "name": "MaterialDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14155,7 +14544,8 @@
     "metadata": {
       "name": "MaterialDarker",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14192,7 +14582,8 @@
     "metadata": {
       "name": "MaterialDesignColors",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14229,7 +14620,8 @@
     "metadata": {
       "name": "MaterialOcean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14266,7 +14658,8 @@
     "metadata": {
       "name": "Mathias",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14303,7 +14696,8 @@
     "metadata": {
       "name": "matrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14336,7 +14730,8 @@
       "author": "OK100",
       "name": "Matrix (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14373,7 +14768,8 @@
     "metadata": {
       "name": "Medallion",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14411,7 +14807,8 @@
       "author": "gidsi",
       "name": "Mellow Purple (base16)",
       "origin_url": "https://github.com/gidsi/base16-mellow-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14449,7 +14846,8 @@
       "author": "Sheldon Johnson",
       "name": "Mexico Light (base16)",
       "origin_url": "https://github.com/drzel/base16-mexico-light-scheme",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14486,7 +14884,8 @@
     "metadata": {
       "name": "midnight-in-mojave",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14519,7 +14918,8 @@
       "author": "",
       "name": "Mikado (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14552,7 +14952,8 @@
       "author": "",
       "name": "Mikazuki (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14589,7 +14990,8 @@
     "metadata": {
       "name": "Mirage",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14626,7 +15028,8 @@
     "metadata": {
       "name": "Misterioso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14664,7 +15067,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Mocha (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14697,7 +15101,8 @@
       "author": "Chris Kempson",
       "name": "Mocha (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14734,7 +15139,8 @@
     "metadata": {
       "name": "Molokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14769,7 +15175,8 @@
     "metadata": {
       "name": "Molokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14806,7 +15213,8 @@
     "metadata": {
       "name": "MonaLisa",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -14839,7 +15247,8 @@
       "author": "Muzieca",
       "name": "Mono (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14872,7 +15281,8 @@
       "author": "",
       "name": "Mono Theme (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14907,7 +15317,8 @@
     "metadata": {
       "name": "mono-amber (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14942,7 +15353,8 @@
     "metadata": {
       "name": "mono-cyan (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14977,7 +15389,8 @@
     "metadata": {
       "name": "mono-green (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15012,7 +15425,8 @@
     "metadata": {
       "name": "mono-red (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15047,7 +15461,8 @@
     "metadata": {
       "name": "mono-white (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15082,7 +15497,8 @@
     "metadata": {
       "name": "mono-yellow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15120,7 +15536,8 @@
       "author": "Wimer Hazenberg (http://www.monokai.nl)",
       "name": "Monokai (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15153,7 +15570,8 @@
       "author": "Chris Kempson",
       "name": "Monokai (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15186,7 +15604,8 @@
       "author": "Cacodaimon",
       "name": "Monokai (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15223,7 +15642,8 @@
     "metadata": {
       "name": "Monokai Remastered",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15260,7 +15680,8 @@
     "metadata": {
       "name": "Monokai Soda",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15297,7 +15718,8 @@
     "metadata": {
       "name": "Monokai Vivid",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15332,7 +15754,8 @@
     "metadata": {
       "name": "MonokaiDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15367,7 +15790,8 @@
     "metadata": {
       "name": "MonokaiPro (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15402,7 +15826,8 @@
     "metadata": {
       "name": "MonokaiProRistretto (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15437,7 +15862,8 @@
     "metadata": {
       "name": "Morada (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15470,7 +15896,8 @@
       "author": "m83",
       "name": "Mostly Bright (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15503,7 +15930,8 @@
       "author": "",
       "name": "Muse (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m"
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15540,7 +15968,8 @@
     "metadata": {
       "name": "N0tch2k",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15573,7 +16002,8 @@
       "author": "",
       "name": "Nancy (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15606,7 +16036,8 @@
       "author": "Gslob",
       "name": "Nature Suede (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15639,7 +16070,8 @@
       "author": "hal",
       "name": "Navy and Ivory (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15677,7 +16109,8 @@
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Nebula (base16)",
       "origin_url": "https://github.com/Misterio77/base16-nebula-scheme",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15714,7 +16147,8 @@
     "metadata": {
       "name": "neobones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15751,7 +16185,8 @@
     "metadata": {
       "name": "neobones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15788,7 +16223,8 @@
     "metadata": {
       "name": "Neon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15821,7 +16257,8 @@
       "author": "",
       "name": "Neon (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15856,7 +16293,8 @@
     "metadata": {
       "name": "neon-night (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15893,7 +16331,8 @@
     "metadata": {
       "name": "Neopolitan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -15928,7 +16367,8 @@
     "metadata": {
       "name": "Nep (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -15965,7 +16405,8 @@
     "metadata": {
       "name": "Neutron",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16002,7 +16443,8 @@
     "metadata": {
       "name": "Night Owlish Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16039,7 +16481,8 @@
     "metadata": {
       "name": "NightLion v1",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16076,7 +16519,8 @@
     "metadata": {
       "name": "NightLion v2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16111,7 +16555,8 @@
     "metadata": {
       "name": "NightOwl (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16146,7 +16591,8 @@
     "metadata": {
       "name": "nighty (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16183,7 +16629,8 @@
     "metadata": {
       "name": "Nocturnal Winter",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16220,7 +16667,8 @@
     "metadata": {
       "name": "nord",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16258,7 +16706,8 @@
       "author": "arcticicestudio",
       "name": "Nord (base16)",
       "origin_url": "https://github.com/spejamchr/base16-nord-scheme",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16295,7 +16744,8 @@
     "metadata": {
       "name": "nord-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16330,7 +16780,8 @@
     "metadata": {
       "name": "NordLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16368,7 +16819,8 @@
       "author": "George Essig (https://github.com/gessig), Trevor D. Miller (https://trevordmiller.com)",
       "name": "Nova (base16)",
       "origin_url": "https://github.com/gessig/base16-nova-scheme",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16405,7 +16857,8 @@
     "metadata": {
       "name": "Novel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16438,7 +16891,8 @@
       "author": "",
       "name": "Nucolors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16471,7 +16925,8 @@
       "author": "",
       "name": "Nudge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16504,7 +16959,8 @@
       "author": "",
       "name": "Numix Darkest (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "n"
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16541,7 +16997,8 @@
     "metadata": {
       "name": "Obsidian",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16578,7 +17035,8 @@
     "metadata": {
       "name": "Ocean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16616,7 +17074,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Ocean (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16649,7 +17108,8 @@
       "author": "Chris Kempson",
       "name": "Ocean (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16684,7 +17144,8 @@
     "metadata": {
       "name": "OceanDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16721,7 +17182,8 @@
     "metadata": {
       "name": "Oceanic-Next",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16758,7 +17220,8 @@
     "metadata": {
       "name": "OceanicMaterial",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16796,7 +17259,8 @@
       "author": "https://github.com/voronianski/oceanic-next-color-scheme",
       "name": "OceanicNext (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16833,7 +17297,8 @@
     "metadata": {
       "name": "Ollie",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -16868,7 +17333,8 @@
     "metadata": {
       "name": "Omni (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16906,7 +17372,8 @@
       "author": "Daniel Pfeifer (http://github.com/purpleKarrot)",
       "name": "One Light (base16)",
       "origin_url": "https://github.com/purpleKarrot/base16-one-light-scheme",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16944,7 +17411,8 @@
       "author": "Lalit Magant (http://github.com/tilal6991)",
       "name": "OneDark (base16)",
       "origin_url": "https://github.com/tilal6991/base16-onedark-scheme",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16979,7 +17447,8 @@
     "metadata": {
       "name": "OneDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17014,7 +17483,8 @@
     "metadata": {
       "name": "OneHalfBlack (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17052,7 +17522,8 @@
       "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfDark",
       "origin_url": "https://github.com/sonph/onehalf",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17090,7 +17561,8 @@
       "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfLight",
       "origin_url": "https://github.com/sonph/onehalf",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17125,7 +17597,8 @@
     "metadata": {
       "name": "OneLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17162,7 +17635,8 @@
     "metadata": {
       "name": "Operator Mono Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17195,7 +17669,8 @@
       "author": "",
       "name": "Orangish (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17233,7 +17708,8 @@
       "author": "Hugo Delahousse (http://github.com/hugodelahousse/)",
       "name": "Outrun Dark (base16)",
       "origin_url": "https://github.com/hugodelahousse/base16-outrun-schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17270,7 +17746,8 @@
     "metadata": {
       "name": "Overnight Slumber",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "o"
+      "prefix": "o",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17305,7 +17782,8 @@
     "metadata": {
       "name": "palenight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17342,7 +17820,8 @@
     "metadata": {
       "name": "PaleNightHC",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17377,7 +17856,8 @@
     "metadata": {
       "name": "Pali (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17412,7 +17892,8 @@
     "metadata": {
       "name": "Panda (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17449,7 +17930,8 @@
     "metadata": {
       "name": "Pandora",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17482,7 +17964,8 @@
       "author": "dkeg",
       "name": "Panels (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17520,7 +18003,8 @@
       "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
       "name": "PaperColor Dark (base16)",
       "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17558,7 +18042,8 @@
       "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
       "name": "PaperColor Light (base16)",
       "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17593,7 +18078,8 @@
     "metadata": {
       "name": "PaperColorDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17628,7 +18114,8 @@
     "metadata": {
       "name": "PaperColorLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17661,7 +18148,8 @@
       "author": "Chris Kempson",
       "name": "Paraiso (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17699,7 +18187,8 @@
       "author": "Jan T. Sott",
       "name": "Paraiso Dark",
       "origin_url": "https://github.com/idleberg/Paraiso-iTerm2",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17732,7 +18221,8 @@
       "author": "",
       "name": "Parker Brothers (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17770,7 +18260,8 @@
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Pasque (base16)",
       "origin_url": "https://github.com/Misterio77/base16-pasque-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17803,7 +18294,8 @@
       "author": "Muzieca",
       "name": "Pastel White (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17840,7 +18332,8 @@
     "metadata": {
       "name": "PaulMillr",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17875,7 +18368,8 @@
     "metadata": {
       "name": "PaulMillr (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17912,7 +18406,8 @@
     "metadata": {
       "name": "PencilDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17949,7 +18444,8 @@
     "metadata": {
       "name": "PencilLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17986,7 +18482,8 @@
     "metadata": {
       "name": "Peppermint",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18021,7 +18518,8 @@
     "metadata": {
       "name": "Peppermint (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18059,7 +18557,8 @@
       "author": "Hennig Hasemann (http://leetless.de/vim.html)",
       "name": "PhD (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18092,7 +18591,8 @@
       "author": "",
       "name": "Phrak1 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18129,7 +18629,8 @@
     "metadata": {
       "name": "Piatto Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18167,7 +18668,8 @@
       "author": "PICO-8 (http://www.lexaloffle.com/pico-8.php)",
       "name": "Pico (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18205,7 +18707,8 @@
       "author": "Benjamin (https://github.com/b3nj5m1n)",
       "name": "pinky (base16)",
       "origin_url": "https://github.com/b3nj5m1n/base16-pinky-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18240,7 +18743,8 @@
     "metadata": {
       "name": "Pixiefloss (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18277,7 +18781,8 @@
     "metadata": {
       "name": "Pnevma",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18315,7 +18820,8 @@
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Pop (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18352,7 +18858,8 @@
     "metadata": {
       "name": "Popping and Locking",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18390,7 +18897,8 @@
       "author": "Niek den Breeje (https://github.com/AuditeMarlow)",
       "name": "Porple (base16)",
       "origin_url": "https://github.com/AuditeMarlow/base16-porple-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18425,7 +18933,8 @@
     "metadata": {
       "name": "PowerShell (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18458,7 +18967,8 @@
       "author": "IWAFU",
       "name": "Pretty and Pastel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18495,7 +19005,8 @@
     "metadata": {
       "name": "primary",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18532,7 +19043,8 @@
     "metadata": {
       "name": "Pro",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18569,7 +19081,8 @@
     "metadata": {
       "name": "Pro Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18602,7 +19115,8 @@
       "author": "",
       "name": "Pulp (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18639,7 +19153,8 @@
     "metadata": {
       "name": "Purple Rain",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18677,7 +19192,8 @@
       "author": "malet",
       "name": "Purpledream (base16)",
       "origin_url": "https://github.com/archmalet/base16-purpledream-scheme",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18712,7 +19228,8 @@
     "metadata": {
       "name": "PurplePeopleEater (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18749,7 +19266,8 @@
     "metadata": {
       "name": "purplepeter",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "p"
+      "prefix": "p",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18787,7 +19305,8 @@
       "author": "isaacwhanson",
       "name": "Qualia (base16)",
       "origin_url": "https://github.com/isaacwhanson/base16-qualia-scheme",
-      "prefix": "q"
+      "prefix": "q",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18825,7 +19344,8 @@
       "author": "Ryan Bates (http://railscasts.com)",
       "name": "Railscasts (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18858,7 +19378,8 @@
       "author": "Chris Kempson",
       "name": "Railscasts (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18895,7 +19416,8 @@
     "metadata": {
       "name": "Rapture",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -18928,7 +19450,8 @@
       "author": "",
       "name": "Rasi (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18965,7 +19488,8 @@
     "metadata": {
       "name": "Raycast_Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19002,7 +19526,8 @@
     "metadata": {
       "name": "Raycast_Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19039,7 +19564,8 @@
     "metadata": {
       "name": "rebecca",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19077,7 +19603,8 @@
       "author": "Victor Borja (http://github.com/vic) based on Rebecca Theme (http://github.com/vic/rebecca-theme)",
       "name": "Rebecca (base16)",
       "origin_url": "https://github.com/vic/base16-rebecca",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19114,7 +19641,8 @@
     "metadata": {
       "name": "Red Alert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19147,7 +19675,8 @@
       "author": "dkeg",
       "name": "Red Phoenix (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19184,7 +19713,8 @@
     "metadata": {
       "name": "Red Planet",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19221,7 +19751,8 @@
     "metadata": {
       "name": "Red Sands",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19258,7 +19789,8 @@
     "metadata": {
       "name": "Relaxed",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19295,7 +19827,8 @@
     "metadata": {
       "name": "Retro",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19328,7 +19861,8 @@
       "author": "",
       "name": "Rezza (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19365,7 +19899,8 @@
     "metadata": {
       "name": "Rippedcasts",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19403,7 +19938,8 @@
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19441,7 +19977,8 @@
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine Dawn (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19479,7 +20016,8 @@
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine Moon (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19516,7 +20054,8 @@
     "metadata": {
       "name": "Rouge 2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19553,7 +20092,8 @@
     "metadata": {
       "name": "Royal",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19586,7 +20126,8 @@
       "author": "",
       "name": "Rydgel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19623,7 +20164,8 @@
     "metadata": {
       "name": "Ryuuko",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "r"
+      "prefix": "r",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19656,7 +20198,8 @@
       "author": "earsplit",
       "name": "s3r0 modified (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19694,7 +20237,8 @@
       "author": "Carter Veldhuizen",
       "name": "Sagelight (base16)",
       "origin_url": "https://github.com/cveldy/base16-sagelight-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19731,7 +20275,8 @@
     "metadata": {
       "name": "Sakura",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19769,7 +20314,8 @@
       "author": "Misterio77 (http://github.com/Misterio77)",
       "name": "Sakura (base16)",
       "origin_url": "https://github.com/Misterio77/base16-sakura-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19807,7 +20353,8 @@
       "author": "George Essig (https://github.com/gessig)",
       "name": "Sandcastle (base16)",
       "origin_url": "https://github.com/gessig/base16-sandcastle-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19842,7 +20389,8 @@
     "metadata": {
       "name": "Sat (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -19879,7 +20427,8 @@
     "metadata": {
       "name": "Scarlet Protocol",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19916,7 +20465,8 @@
     "metadata": {
       "name": "Seafoam Pastel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19953,7 +20503,8 @@
     "metadata": {
       "name": "SeaShells",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -19990,7 +20541,8 @@
     "metadata": {
       "name": "seoulbones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20027,7 +20579,8 @@
     "metadata": {
       "name": "seoulbones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20064,7 +20617,8 @@
     "metadata": {
       "name": "Seti",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20102,7 +20656,8 @@
       "author": "",
       "name": "Seti UI (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20135,7 +20690,8 @@
       "author": "",
       "name": "Sex Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20173,7 +20729,8 @@
       "author": "Iolar Demartini Junior (http://github.com/demartini) based on Shades of Purple Theme (https://github.com/ahmadawais/shades-of-purple-vscode).",
       "name": "Shades of Purple (base16)",
       "origin_url": "https://github.com/ahmadawais/base16-shades-of-purple",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20210,7 +20767,8 @@
     "metadata": {
       "name": "shades-of-purple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20247,7 +20805,8 @@
     "metadata": {
       "name": "Shaman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20285,7 +20844,8 @@
       "author": "Tyler Benziger (http://tybenz.com)",
       "name": "Shapeshifter (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20318,7 +20878,8 @@
       "author": "Chris Kempson",
       "name": "Shapeshifter (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20351,7 +20912,8 @@
       "author": "Chris Kempson",
       "name": "Shapeshifter (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20386,7 +20948,8 @@
     "metadata": {
       "name": "Shel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20419,7 +20982,8 @@
       "author": "",
       "name": "Shic (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20457,7 +21021,8 @@
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Silk Dark (base16)",
       "origin_url": "https://github.com/misterio77/base16-silk-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20495,7 +21060,8 @@
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Silk Light (base16)",
       "origin_url": "https://github.com/misterio77/base16-silk-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20528,7 +21094,8 @@
       "author": "",
       "name": "Simple Rainbow (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20565,7 +21132,8 @@
     "metadata": {
       "name": "Slate",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20602,7 +21170,8 @@
     "metadata": {
       "name": "SleepyHollow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20639,7 +21208,8 @@
     "metadata": {
       "name": "Smyck",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20674,7 +21244,8 @@
     "metadata": {
       "name": "Smyck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20711,7 +21282,8 @@
     "metadata": {
       "name": "Snazzy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20749,7 +21321,8 @@
       "author": "Chawye Hsu (https://github.com/chawyehsu) based on Hyper Snazzy Theme (https://github.com/sindresorhus/hyper-snazzy)",
       "name": "Snazzy (base16)",
       "origin_url": "https://github.com/h404bi/base16-snazzy-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20784,7 +21357,8 @@
     "metadata": {
       "name": "Snazzy (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20821,7 +21395,8 @@
     "metadata": {
       "name": "SoftServer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -20859,7 +21434,8 @@
       "author": "Chuck Harmston (https://chuck.harmston.ch)",
       "name": "Solar Flare (base16)",
       "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20897,7 +21473,8 @@
       "author": "Chuck Harmston (https://chuck.harmston.ch)",
       "name": "Solar Flare Light (base16)",
       "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20930,7 +21507,8 @@
       "author": "Chris Kempson",
       "name": "Solarized (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -20967,7 +21545,8 @@
     "metadata": {
       "name": "Solarized Darcula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21005,7 +21584,8 @@
       "author": "Ethan Schoonover (modified by aramisgithub)",
       "name": "Solarized Dark (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21042,7 +21622,8 @@
     "metadata": {
       "name": "Solarized Dark - Patched",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21079,7 +21660,8 @@
     "metadata": {
       "name": "Solarized Dark Higher Contrast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21117,7 +21699,8 @@
       "author": "Ethan Schoonover (modified by aramisgithub)",
       "name": "Solarized Light (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21152,7 +21735,8 @@
     "metadata": {
       "name": "SolarizedDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21187,7 +21771,8 @@
     "metadata": {
       "name": "Sonokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21220,7 +21805,8 @@
       "author": "Rooster",
       "name": "SOS (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21257,7 +21843,8 @@
     "metadata": {
       "name": "Spacedust",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21294,7 +21881,8 @@
     "metadata": {
       "name": "SpaceGray",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21331,7 +21919,8 @@
     "metadata": {
       "name": "SpaceGray Eighties",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21368,7 +21957,8 @@
     "metadata": {
       "name": "SpaceGray Eighties Dull",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21406,7 +21996,8 @@
       "author": "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)",
       "name": "Spacemacs (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21443,7 +22034,8 @@
     "metadata": {
       "name": "Spiderman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21476,7 +22068,8 @@
       "author": "",
       "name": "Splurge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21513,7 +22106,8 @@
     "metadata": {
       "name": "Spring",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21548,7 +22142,8 @@
     "metadata": {
       "name": "Spring (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21585,7 +22180,8 @@
     "metadata": {
       "name": "Square",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21620,7 +22216,8 @@
     "metadata": {
       "name": "Square (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21655,7 +22252,8 @@
     "metadata": {
       "name": "Srcery (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21692,7 +22290,8 @@
     "metadata": {
       "name": "Sublette",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21729,7 +22328,8 @@
     "metadata": {
       "name": "Subliminal",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21764,7 +22364,8 @@
     "metadata": {
       "name": "summer-pop (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21802,7 +22403,8 @@
       "author": "zoe firi (zoefiri.github.io)",
       "name": "summercamp (base16)",
       "origin_url": "https://github.com/zoefiri/base16-summercamp",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21840,7 +22442,8 @@
       "author": "Christopher Corley (http://christop.club/)",
       "name": "Summerfruit Dark (base16)",
       "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21878,7 +22481,8 @@
       "author": "Christopher Corley (http://christop.club/)",
       "name": "Summerfruit Light (base16)",
       "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21915,7 +22519,8 @@
     "metadata": {
       "name": "Sundried",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -21948,7 +22553,8 @@
       "author": "",
       "name": "Swayr (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -21981,7 +22587,8 @@
       "author": "Boroshlawa",
       "name": "Sweet Love (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22016,7 +22623,8 @@
     "metadata": {
       "name": "sweet-eliverlara (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22051,7 +22659,8 @@
     "metadata": {
       "name": "SweetTerminal (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22088,7 +22697,8 @@
     "metadata": {
       "name": "Symfonic",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22126,7 +22736,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Synth Midnight Terminal Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22164,7 +22775,8 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Synth Midnight Terminal Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22201,7 +22813,8 @@
     "metadata": {
       "name": "synthwave",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22236,7 +22849,8 @@
     "metadata": {
       "name": "SynthWave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22273,7 +22887,8 @@
     "metadata": {
       "name": "synthwave-everything",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s"
+      "prefix": "s",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22311,7 +22926,8 @@
       "author": "@Schnouki, based on the Tango Desktop Project",
       "name": "Tango (base16)",
       "origin_url": "https://github.com/Schnouki/base16-tango-scheme",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22344,7 +22960,8 @@
       "author": "",
       "name": "Tango (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22381,7 +22998,8 @@
     "metadata": {
       "name": "Tango Adapted",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22418,7 +23036,8 @@
     "metadata": {
       "name": "Tango Half Adapted",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22451,7 +23070,8 @@
       "author": "",
       "name": "Tangoesque (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22484,7 +23104,8 @@
       "author": "",
       "name": "Tartan (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22521,7 +23142,8 @@
     "metadata": {
       "name": "Teerb",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22559,7 +23181,8 @@
       "author": "Jacobo Tabernero (https://github/com/jacoborus/tender.vim)",
       "name": "tender (base16)",
       "origin_url": "https://github.com/DanManN/base16-tender-scheme",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22594,7 +23217,8 @@
     "metadata": {
       "name": "Tender (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22631,7 +23255,8 @@
     "metadata": {
       "name": "Terminal Basic",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22666,7 +23291,8 @@
     "metadata": {
       "name": "TerminixDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22699,7 +23325,8 @@
       "author": "dkeg",
       "name": "Teva (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22736,7 +23363,8 @@
     "metadata": {
       "name": "Thayer Bright",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22773,7 +23401,8 @@
     "metadata": {
       "name": "The Hulk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22806,7 +23435,8 @@
       "author": "",
       "name": "theme2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22839,7 +23469,8 @@
       "author": "",
       "name": "thwump (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22874,7 +23505,8 @@
     "metadata": {
       "name": "Tin (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22911,7 +23543,8 @@
     "metadata": {
       "name": "Tinacious Design (Dark)",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22948,7 +23581,8 @@
     "metadata": {
       "name": "Tinacious Design (Light)",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -22981,7 +23615,8 @@
       "author": "",
       "name": "tlh (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23018,7 +23653,8 @@
     "metadata": {
       "name": "tokyonight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23053,7 +23689,8 @@
     "metadata": {
       "name": "TokyoNight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23090,7 +23727,8 @@
     "metadata": {
       "name": "tokyonight-day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23127,7 +23765,8 @@
     "metadata": {
       "name": "tokyonight-storm",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23162,7 +23801,8 @@
     "metadata": {
       "name": "TokyoNightLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23197,7 +23837,8 @@
     "metadata": {
       "name": "TokyoNightStorm (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23234,7 +23875,8 @@
     "metadata": {
       "name": "Tomorrow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23267,7 +23909,8 @@
       "author": "Chris Kempson",
       "name": "Tomorrow (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23302,7 +23945,8 @@
     "metadata": {
       "name": "Tomorrow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23335,7 +23979,8 @@
       "author": "Chris Kempson",
       "name": "Tomorrow (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23372,7 +24017,8 @@
     "metadata": {
       "name": "Tomorrow Night",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23409,7 +24055,8 @@
     "metadata": {
       "name": "Tomorrow Night Blue",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23446,7 +24093,8 @@
     "metadata": {
       "name": "Tomorrow Night Bright",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23483,7 +24131,8 @@
     "metadata": {
       "name": "Tomorrow Night Burns",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23520,7 +24169,8 @@
     "metadata": {
       "name": "Tomorrow Night Eighties",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23555,7 +24205,8 @@
     "metadata": {
       "name": "TomorrowNight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23590,7 +24241,8 @@
     "metadata": {
       "name": "TomorrowNightBlue (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23625,7 +24277,8 @@
     "metadata": {
       "name": "TomorrowNightBright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23660,7 +24313,8 @@
     "metadata": {
       "name": "TomorrowNightEighties (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23697,7 +24351,8 @@
     "metadata": {
       "name": "ToyChest",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23734,7 +24389,8 @@
     "metadata": {
       "name": "Treehouse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23767,7 +24423,8 @@
       "author": "franksn",
       "name": "Trim Yer Beard (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23804,7 +24461,8 @@
     "metadata": {
       "name": "Twilight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23842,7 +24500,8 @@
       "author": "David Hart (https://github.com/hartbit)",
       "name": "Twilight (base16)",
       "origin_url": "https://github.com/hartbit/base16-twilight-scheme",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23875,7 +24534,8 @@
       "author": "Chris Kempson",
       "name": "Twilight (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "t"
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23912,7 +24572,8 @@
     "metadata": {
       "name": "Ubuntu",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23949,7 +24610,8 @@
     "metadata": {
       "name": "UltraDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -23986,7 +24648,8 @@
     "metadata": {
       "name": "UltraViolent",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24023,7 +24686,8 @@
     "metadata": {
       "name": "UnderTheSea",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24060,7 +24724,8 @@
     "metadata": {
       "name": "Unikitty",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24098,7 +24763,8 @@
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Dark (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24136,7 +24802,8 @@
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Light (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24174,7 +24841,8 @@
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Reversible (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24207,7 +24875,8 @@
       "author": "dkeg",
       "name": "Unsifted Wheat (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24242,7 +24911,8 @@
     "metadata": {
       "name": "Ura (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24279,7 +24949,8 @@
     "metadata": {
       "name": "Urple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "u"
+      "prefix": "u",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24312,7 +24983,8 @@
       "author": "hal",
       "name": "Vacuous 2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24347,7 +25019,8 @@
     "metadata": {
       "name": "Vag (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24384,7 +25057,8 @@
     "metadata": {
       "name": "Vaughn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24421,7 +25095,8 @@
     "metadata": {
       "name": "VibrantInk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24459,7 +25134,8 @@
       "author": "Thomas Leon Highbaugh",
       "name": "Vice Alt (base16)",
       "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24497,7 +25173,8 @@
       "author": "Thomas Leon Highbaugh",
       "name": "Vice Dark (base16)",
       "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24534,7 +25211,8 @@
     "metadata": {
       "name": "vimbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24571,7 +25249,8 @@
     "metadata": {
       "name": "Violet Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24608,7 +25287,8 @@
     "metadata": {
       "name": "Violet Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24641,7 +25321,8 @@
       "author": "",
       "name": "VisiBlue (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24674,7 +25355,8 @@
       "author": "",
       "name": "VisiBone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24707,7 +25389,8 @@
       "author": "Gutterslob",
       "name": "Visibone Alt. 2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24742,7 +25425,8 @@
     "metadata": {
       "name": "VSCodeDark+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24777,7 +25461,8 @@
     "metadata": {
       "name": "VSCodeLight+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24815,7 +25500,8 @@
       "author": "Andrey Varfolomeev",
       "name": "vulcan (base16)",
       "origin_url": "https://github.com/andreyvpng/base16-vulcan-scheme",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24848,7 +25534,8 @@
       "author": "dkeg",
       "name": "VWbug (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "v"
+      "prefix": "v",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -24885,7 +25572,8 @@
     "metadata": {
       "name": "WarmNeon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24922,7 +25610,8 @@
     "metadata": {
       "name": "Wez",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24959,7 +25648,8 @@
     "metadata": {
       "name": "Whimsy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -24996,7 +25686,8 @@
     "metadata": {
       "name": "WildCherry",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25034,7 +25725,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 10 (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25072,7 +25764,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 10 Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25110,7 +25803,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 95 (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25148,7 +25842,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 95 Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25186,7 +25881,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows High Contrast (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25224,7 +25920,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows High Contrast Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25262,7 +25959,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows NT (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25300,7 +25998,8 @@
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows NT Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25337,7 +26036,8 @@
     "metadata": {
       "name": "Wombat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25375,7 +26075,8 @@
       "author": "Jay Cornwall (https://jcornwall.com)",
       "name": "Woodland (base16)",
       "origin_url": "https://github.com/jcornwall/base16-woodland-scheme",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25412,7 +26113,8 @@
     "metadata": {
       "name": "Wryan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25447,7 +26149,8 @@
     "metadata": {
       "name": "Wzoreck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "w"
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25480,7 +26183,8 @@
       "author": "crshd",
       "name": "X::DotShare (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "x"
+      "prefix": "x",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25513,7 +26217,8 @@
       "author": "earsplit",
       "name": "X::Erosion (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "x"
+      "prefix": "x",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25551,7 +26256,8 @@
       "author": "Elsa Gonsiorowski (https://github.com/gonsie)",
       "name": "XCode Dusk (base16)",
       "origin_url": "https://github.com/gonsie/base16-xcode-dusk-scheme",
-      "prefix": "x"
+      "prefix": "x",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25584,7 +26290,8 @@
       "author": "Kori",
       "name": "Yousai (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "y"
+      "prefix": "y",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25621,7 +26328,8 @@
     "metadata": {
       "name": "zenbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25658,7 +26366,8 @@
     "metadata": {
       "name": "zenbones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25695,7 +26404,8 @@
     "metadata": {
       "name": "zenbones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25732,7 +26442,8 @@
     "metadata": {
       "name": "Zenburn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25770,7 +26481,8 @@
       "author": "elnawe",
       "name": "Zenburn (base16)",
       "origin_url": "https://github.com/elnawe/base16-zenburn-scheme",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25803,7 +26515,8 @@
       "author": "",
       "name": "zenburn (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25840,7 +26553,8 @@
     "metadata": {
       "name": "zenburned",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25877,7 +26591,8 @@
     "metadata": {
       "name": "zenwritten_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -25914,7 +26629,8 @@
     "metadata": {
       "name": "zenwritten_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z"
+      "prefix": "z",
+      "wezterm_version": "Always"
     }
   }
 ]
