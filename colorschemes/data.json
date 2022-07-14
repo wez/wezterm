@@ -5535,39 +5535,6 @@
   {
     "colors": {
       "ansi": [
-        "#101010",
-        "#e84f4f",
-        "#b8d68c",
-        "#e1aa5d",
-        "#7dc1cf",
-        "#9b64fb",
-        "#6d878d",
-        "#dddddd"
-      ],
-      "background": "#151515",
-      "brights": [
-        "#404040",
-        "#d23d3d",
-        "#a0cf5d",
-        "#f39d21",
-        "#4e9fb1",
-        "#8542ff",
-        "#42717b",
-        "#dddddd"
-      ],
-      "foreground": "#d7d0c7",
-      "indexed": {}
-    },
-    "metadata": {
-      "author": "crshd",
-      "name": "X::DotShare (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "d"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#2d302f",
         "#f9906f",
         "#8ab361",
@@ -6978,39 +6945,6 @@
       "name": "DWM rob (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "d"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#332d29",
-        "#8c644c",
-        "#746c48",
-        "#908a66",
-        "#646a6d",
-        "#605655",
-        "#4b5c5e",
-        "#504339"
-      ],
-      "background": "#181512",
-      "brights": [
-        "#817267",
-        "#9f7155",
-        "#857b52",
-        "#9c956e",
-        "#71777a",
-        "#656565",
-        "#556d70",
-        "#9a875f"
-      ],
-      "foreground": "#bea492",
-      "indexed": {}
-    },
-    "metadata": {
-      "author": "earsplit",
-      "name": "X::Erosion (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "e"
     }
   },
   {
@@ -25514,6 +25448,72 @@
       "name": "Wzoreck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#101010",
+        "#e84f4f",
+        "#b8d68c",
+        "#e1aa5d",
+        "#7dc1cf",
+        "#9b64fb",
+        "#6d878d",
+        "#dddddd"
+      ],
+      "background": "#151515",
+      "brights": [
+        "#404040",
+        "#d23d3d",
+        "#a0cf5d",
+        "#f39d21",
+        "#4e9fb1",
+        "#8542ff",
+        "#42717b",
+        "#dddddd"
+      ],
+      "foreground": "#d7d0c7",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "crshd",
+      "name": "X::DotShare (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "x"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#332d29",
+        "#8c644c",
+        "#746c48",
+        "#908a66",
+        "#646a6d",
+        "#605655",
+        "#4b5c5e",
+        "#504339"
+      ],
+      "background": "#181512",
+      "brights": [
+        "#817267",
+        "#9f7155",
+        "#857b52",
+        "#9c956e",
+        "#71777a",
+        "#656565",
+        "#556d70",
+        "#9a875f"
+      ],
+      "foreground": "#bea492",
+      "indexed": {}
+    },
+    "metadata": {
+      "author": "earsplit",
+      "name": "X::Erosion (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "x"
     }
   },
   {
