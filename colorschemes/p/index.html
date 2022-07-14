@@ -1978,7 +1978,8 @@ window.addEventListener('load', function () {
 });
 
 </script>
-<p>Source: <a href="https://github.com/mbadolato/iTerm2-Color-Schemes">https://github.com/mbadolato/iTerm2-Color-Schemes</a><br/></p>
+<p>Author: <code>Jan T. Sott</code><br/>
+Source: <a href="https://github.com/idleberg/Paraiso-iTerm2">https://github.com/idleberg/Paraiso-iTerm2</a><br/></p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Paraiso Dark&quot;,
@@ -6007,6 +6008,164 @@ window.addEventListener('load', function () {
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Purple Rain&quot;,
+}
+</code></pre>
+<h1 id="purpledream-base16"><a class="header" href="#purpledream-base16">Purpledream (base16)</a></h1>
+<div id="purpledream__base16_-player"></div>
+<style>
+
+.asciinema-theme-purpledream__base16_ .asciinema-terminal {
+    color: #ddd0dd;
+    background-color: #100510;
+    border-color: #100510;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-bg {
+    color: #100510;
+}
+
+.asciinema-theme-purpledream__base16_ .bg-fg {
+    background-color: #ddd0dd;
+}
+
+.asciinema-theme-purpledream__base16_ .cursor-b {
+    background-color: #ddd0dd !important;
+}
+
+.asciinema-theme-purpledream__base16_ .asciinema-terminal ::selection {
+    color: #100510;
+    background-color: #ddd0dd;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-0 {
+    color: #100510;
+}
+.asciinema-theme-purpledream__base16_ .bg-0 {
+    background-color: #100510;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-1 {
+    color: #ff1d0d;
+}
+.asciinema-theme-purpledream__base16_ .bg-1 {
+    background-color: #ff1d0d;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-2 {
+    color: #14cc64;
+}
+.asciinema-theme-purpledream__base16_ .bg-2 {
+    background-color: #14cc64;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-3 {
+    color: #f000a0;
+}
+.asciinema-theme-purpledream__base16_ .bg-3 {
+    background-color: #f000a0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-4 {
+    color: #00a0f0;
+}
+.asciinema-theme-purpledream__base16_ .bg-4 {
+    background-color: #00a0f0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-5 {
+    color: #b000d0;
+}
+.asciinema-theme-purpledream__base16_ .bg-5 {
+    background-color: #b000d0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-6 {
+    color: #0075b0;
+}
+.asciinema-theme-purpledream__base16_ .bg-6 {
+    background-color: #0075b0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-7 {
+    color: #ddd0dd;
+}
+.asciinema-theme-purpledream__base16_ .bg-7 {
+    background-color: #ddd0dd;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-8 {
+    color: #605060;
+}
+.asciinema-theme-purpledream__base16_ .bg-8 {
+    background-color: #605060;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-9 {
+    color: #ff1d0d;
+}
+.asciinema-theme-purpledream__base16_ .bg-9 {
+    background-color: #ff1d0d;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-10 {
+    color: #14cc64;
+}
+.asciinema-theme-purpledream__base16_ .bg-10 {
+    background-color: #14cc64;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-11 {
+    color: #f000a0;
+}
+.asciinema-theme-purpledream__base16_ .bg-11 {
+    background-color: #f000a0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-12 {
+    color: #00a0f0;
+}
+.asciinema-theme-purpledream__base16_ .bg-12 {
+    background-color: #00a0f0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-13 {
+    color: #b000d0;
+}
+.asciinema-theme-purpledream__base16_ .bg-13 {
+    background-color: #b000d0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-14 {
+    color: #0075b0;
+}
+.asciinema-theme-purpledream__base16_ .bg-14 {
+    background-color: #0075b0;
+}
+
+.asciinema-theme-purpledream__base16_ .fg-15 {
+    color: #fff0ff;
+}
+.asciinema-theme-purpledream__base16_ .bg-15 {
+    background-color: #fff0ff;
+}
+
+</style>
+<script>
+window.addEventListener('load', function () {
+    AsciinemaPlayer.create(
+        'data:text/plain;base64,eyJoZWlnaHQiOiAyNCwgInRpdGxlIjogIlB1cnBsZWRyZWFtIChiYXNlMTYpIiwgInZlcnNpb24iOiAyLCAid2lkdGgiOiA4MH0KWzAuMCwgIm8iLCAiUHVycGxlZHJlYW0gKGJhc2UxNilcclxuXHJcbiAgICAgICAgIGRlZiAgICAgNDBtICAgICA0MW0gICAgIDQybSAgICAgNDNtICAgICA0NG0gICAgIDQ1bSAgICAgNDZtICAgICA0N21cclxuICAgICBtIFx1MDAxYlttICBnWXcgICBcdTAwMWJbbVx1MDAxYls0MG0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlttXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiW21cdTAwMWJbNDJtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbbVx1MDAxYls0M20gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlttXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiW21cdTAwMWJbNDVtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbbVx1MDAxYls0Nm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlttXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgIDFtIFx1MDAxYlsxbSAgZ1l3ICAgXHUwMDFiWzFtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzFtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzBtIFx1MDAxYlszMG0gIGdZdyAgIFx1MDAxYlszMG1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzBtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMwbVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMG1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzBtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMwbVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMG1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzBtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzBtIFx1MDAxYlsxOzMwbSAgZ1l3ICAgXHUwMDFiWzE7MzBtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzBtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzFtIFx1MDAxYlszMW0gIGdZdyAgIFx1MDAxYlszMW1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzFtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMxbVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMW1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzFtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMxbVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMW1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzFtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzFtIFx1MDAxYlsxOzMxbSAgZ1l3ICAgXHUwMDFiWzE7MzFtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzFtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzJtIFx1MDAxYlszMm0gIGdZdyAgIFx1MDAxYlszMm1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzJtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMybVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMm1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzJtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMybVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszMm1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzJtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzJtIFx1MDAxYlsxOzMybSAgZ1l3ICAgXHUwMDFiWzE7MzJtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzJtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzNtIFx1MDAxYlszM20gIGdZdyAgIFx1MDAxYlszM21cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzNtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMzbVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszM21cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzNtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzMzbVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszM21cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzNtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzNtIFx1MDAxYlsxOzMzbSAgZ1l3ICAgXHUwMDFiWzE7MzNtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzNtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzRtIFx1MDAxYlszNG0gIGdZdyAgIFx1MDAxYlszNG1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzRtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM0bVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNG1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzRtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM0bVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNG1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzRtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzRtIFx1MDAxYlsxOzM0bSAgZ1l3ICAgXHUwMDFiWzE7MzRtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzRtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzVtIFx1MDAxYlszNW0gIGdZdyAgIFx1MDAxYlszNW1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzVtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM1bVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNW1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzVtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM1bVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNW1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzVtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzVtIFx1MDAxYlsxOzM1bSAgZ1l3ICAgXHUwMDFiWzE7MzVtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzVtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzZtIFx1MDAxYlszNm0gIGdZdyAgIFx1MDAxYlszNm1cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzZtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM2bVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNm1cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzZtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM2bVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszNm1cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzZtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzZtIFx1MDAxYlsxOzM2bSAgZ1l3ICAgXHUwMDFiWzE7MzZtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzZtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuICAgMzdtIFx1MDAxYlszN20gIGdZdyAgIFx1MDAxYlszN21cdTAwMWJbNDBtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzdtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM3bVx1MDAxYls0Mm0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszN21cdTAwMWJbNDNtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzdtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzM3bVx1MDAxYls0NW0gIGdZdyAgXHUwMDFiWzBtIFx1MDAxYlszN21cdTAwMWJbNDZtICBnWXcgIFx1MDAxYlswbSBcdTAwMWJbMzdtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuIDE7MzdtIFx1MDAxYlsxOzM3bSAgZ1l3ICAgXHUwMDFiWzE7MzdtXHUwMDFiWzQwbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQxbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQybSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQzbSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQ0bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQ1bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQ2bSAgZ1l3ICBcdTAwMWJbMG0gXHUwMDFiWzE7MzdtXHUwMDFiWzQ3bSAgZ1l3ICBcdTAwMWJbMG1cclxuXHJcbiJdCg==',
+        document.getElementById('purpledream__base16_-player'), {
+        theme: "purpledream__base16_",
+        autoPlay: true,
+    });
+});
+
+</script>
+<p>Author: <code>malet</code><br/>
+Source: <a href="https://github.com/archmalet/base16-purpledream-scheme">https://github.com/archmalet/base16-purpledream-scheme</a><br/></p>
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Purpledream (base16)&quot;,
 }
 </code></pre>
 <h1 id="purplepeopleeater-gogh"><a class="header" href="#purplepeopleeater-gogh">PurplePeopleEater (Gogh)</a></h1>

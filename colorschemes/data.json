@@ -102,6 +102,7 @@
       "selection_fg": "#4a4543"
     },
     "metadata": {
+      "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "3"
@@ -139,6 +140,7 @@
       "selection_fg": "#a5a2a2"
     },
     "metadata": {
+      "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Night",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "3"
@@ -2535,8 +2537,9 @@
       "selection_fg": "#45373c"
     },
     "metadata": {
+      "author": "Jan T. Sott",
       "name": "Belafonte Day",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
       "prefix": "b"
     }
   },
@@ -2572,8 +2575,9 @@
       "selection_fg": "#968c83"
     },
     "metadata": {
+      "author": "Jan T. Sott",
       "name": "Belafonte Night",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
       "prefix": "b"
     }
   },
@@ -4228,6 +4232,7 @@
       "selection_fg": "#40318d"
     },
     "metadata": {
+      "author": "Jan T. Sott",
       "name": "C64",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c"
@@ -5516,7 +5521,7 @@
       "cursor_bg": "#21f6bc",
       "cursor_border": "#21f6bc",
       "cursor_fg": "#ffffff",
-      "foreground": "#e5e5e5",
+      "foreground": "#e6e6e6",
       "indexed": {},
       "selection_bg": "#c1deff",
       "selection_fg": "#000000"
@@ -8924,6 +8929,7 @@
       "selection_fg": "#ddeeff"
     },
     "metadata": {
+      "author": "Raziel Anarki (http://github.com/razielanarki)",
       "name": "Galizur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g"
@@ -10497,8 +10503,9 @@
       "selection_fg": "#a8a49d"
     },
     "metadata": {
+      "author": "Jan T. Sott",
       "name": "Harper",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/idleberg/Harper-iTerm2",
       "prefix": "h"
     }
   },
@@ -17108,8 +17115,9 @@
       "selection_fg": "#dcdfe4"
     },
     "metadata": {
+      "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfDark",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/sonph/onehalf",
       "prefix": "o"
     }
   },
@@ -17145,8 +17153,9 @@
       "selection_fg": "#383a42"
     },
     "metadata": {
+      "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfLight",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/sonph/onehalf",
       "prefix": "o"
     }
   },
@@ -17753,8 +17762,9 @@
       "selection_fg": "#a39e9b"
     },
     "metadata": {
+      "author": "Jan T. Sott",
       "name": "Paraiso Dark",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "origin_url": "https://github.com/idleberg/Paraiso-iTerm2",
       "prefix": "p"
     }
   },
@@ -18701,6 +18711,44 @@
   {
     "colors": {
       "ansi": [
+        "#100510",
+        "#ff1d0d",
+        "#14cc64",
+        "#f000a0",
+        "#00a0f0",
+        "#b000d0",
+        "#0075b0",
+        "#ddd0dd"
+      ],
+      "background": "#100510",
+      "brights": [
+        "#605060",
+        "#ff1d0d",
+        "#14cc64",
+        "#f000a0",
+        "#00a0f0",
+        "#b000d0",
+        "#0075b0",
+        "#fff0ff"
+      ],
+      "cursor_bg": "#ddd0dd",
+      "cursor_border": "#ddd0dd",
+      "cursor_fg": "#ddd0dd",
+      "foreground": "#ddd0dd",
+      "indexed": {},
+      "selection_bg": "#ddd0dd",
+      "selection_fg": "#100510"
+    },
+    "metadata": {
+      "author": "malet",
+      "name": "Purpledream (base16)",
+      "origin_url": "https://github.com/archmalet/base16-purpledream-scheme",
+      "prefix": "p"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#0d1117",
         "#e34c26",
         "#238636",
@@ -19014,7 +19062,7 @@
       "cursor_fg": "#000000",
       "foreground": "#000000",
       "indexed": {},
-      "selection_bg": "#e5e5e5",
+      "selection_bg": "#e6e6e6",
       "selection_fg": "#000000"
     },
     "metadata": {
@@ -24078,6 +24126,120 @@
     "metadata": {
       "name": "Unikitty",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "u"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2e2a31",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#796af5",
+        "#bb60ea",
+        "#149bda",
+        "#bcbabe"
+      ],
+      "background": "#2e2a31",
+      "brights": [
+        "#838085",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#796af5",
+        "#bb60ea",
+        "#149bda",
+        "#f5f4f7"
+      ],
+      "cursor_bg": "#bcbabe",
+      "cursor_border": "#bcbabe",
+      "cursor_fg": "#bcbabe",
+      "foreground": "#bcbabe",
+      "indexed": {},
+      "selection_bg": "#bcbabe",
+      "selection_fg": "#2e2a31"
+    },
+    "metadata": {
+      "author": "Josh W Lewis (@joshwlewis)",
+      "name": "Unikitty Dark (base16)",
+      "origin_url": "https://github.com/joshwlewis/base16-unikitty",
+      "prefix": "u"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#ffffff",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#775dff",
+        "#aa17e6",
+        "#149bda",
+        "#6c696e"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#a7a5a8",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#775dff",
+        "#aa17e6",
+        "#149bda",
+        "#322d34"
+      ],
+      "cursor_bg": "#6c696e",
+      "cursor_border": "#6c696e",
+      "cursor_fg": "#6c696e",
+      "foreground": "#6c696e",
+      "indexed": {},
+      "selection_bg": "#6c696e",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "author": "Josh W Lewis (@joshwlewis)",
+      "name": "Unikitty Light (base16)",
+      "origin_url": "https://github.com/joshwlewis/base16-unikitty",
+      "prefix": "u"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2e2a31",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#7864fa",
+        "#b33ce8",
+        "#149bda",
+        "#c3c2c4"
+      ],
+      "background": "#2e2a31",
+      "brights": [
+        "#878589",
+        "#d8137f",
+        "#17ad98",
+        "#dc8a0e",
+        "#7864fa",
+        "#b33ce8",
+        "#149bda",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c3c2c4",
+      "cursor_border": "#c3c2c4",
+      "cursor_fg": "#c3c2c4",
+      "foreground": "#c3c2c4",
+      "indexed": {},
+      "selection_bg": "#c3c2c4",
+      "selection_fg": "#2e2a31"
+    },
+    "metadata": {
+      "author": "Josh W Lewis (@joshwlewis)",
+      "name": "Unikitty Reversible (base16)",
+      "origin_url": "https://github.com/joshwlewis/base16-unikitty",
       "prefix": "u"
     }
   },
