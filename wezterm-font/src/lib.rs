@@ -396,12 +396,13 @@ impl FallbackResolveInfo {
                 .map(|c| std::char::from_u32(c).unwrap_or(' '))
                 .collect::<String>();
 
+            let current_gen = self.config.generation();
             let show_warning = self.config.warn_about_missing_glyphs
                 && LAST_WARNING
                     .lock()
                     .unwrap()
                     .map(|(instant, generation)| {
-                        generation != self.config.generation()
+                        generation != current_gen
                             || instant.elapsed() > Duration::from_secs(60 * 60)
                     })
                     .unwrap_or(true);
