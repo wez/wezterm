@@ -75,9 +75,7 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
     Ok(data)
 }
 
-fn make_prefix(s: &str) -> (char, String) {
-    let fields: Vec<_> = s.splitn(2, ':').collect();
-    let key = fields.last().unwrap();
+fn make_prefix(key: &str) -> (char, String) {
     for c in key.chars() {
         match c {
             '0'..='9' | 'a'..='z' => return (c, key.to_ascii_lowercase()),
@@ -113,12 +111,15 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
 ",
     ));
     for s in &schemeses {
+        all.push(s);
+    }
+    all.sort_by_key(|s| make_prefix(&s.name));
+
+    for s in &all {
         let name = s.name.escape_default();
         let toml = s.to_toml()?;
         let toml = toml.escape_default();
         code.push_str(&format!("(\"{name}\", \"{toml}\"),\n",));
-
-        all.push(s);
     }
     code.push_str("];\n");
 
@@ -135,7 +136,6 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
 
     // And the data for the docs
 
-    all.sort_by_key(|s| make_prefix(&s.name));
     let mut doc_data = vec![];
     for s in all {
         doc_data.push(s.to_json_value()?);
