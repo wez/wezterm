@@ -49,7 +49,7 @@ pub fn alloc_font_id() -> LoadedFontId {
 }
 
 lazy_static::lazy_static! {
-    static ref LAST_WARNING: Mutex<Option<Instant>> = Mutex::new(None);
+    static ref LAST_WARNING: Mutex<Option<(Instant, usize)>> = Mutex::new(None);
 }
 
 pub struct LoadedFont {
@@ -400,11 +400,17 @@ impl FallbackResolveInfo {
                 && LAST_WARNING
                     .lock()
                     .unwrap()
-                    .map(|instant| instant.elapsed() > Duration::from_secs(60 * 60))
+                    .map(|(instant, generation)| {
+                        generation != self.config.generation()
+                            || instant.elapsed() > Duration::from_secs(60 * 60)
+                    })
                     .unwrap_or(true);
 
             if show_warning {
-                LAST_WARNING.lock().unwrap().replace(Instant::now());
+                LAST_WARNING
+                    .lock()
+                    .unwrap()
+                    .replace((Instant::now(), self.config.generation()));
                 let url = "https://wezfurlong.org/wezterm/config/fonts.html";
                 log::warn!(
                     "No fonts contain glyphs for these codepoints: {}.\n\
