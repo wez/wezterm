@@ -1,7 +1,6 @@
 use crate::scheme::Scheme;
 use anyhow::Context;
-use config::{ColorSchemeFile, ColorSchemeMetaData, Palette, RgbaColor};
-use serde::Deserialize;
+use config::ColorSchemeFile;
 use sqlite_cache::Cache;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -178,10 +177,13 @@ fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // They color us! my precious!
-    let mut schemeses = iterm2::sync_iterm2()?;
-    accumulate(&mut schemeses, base16::sync().await?);
-    accumulate(&mut schemeses, gogh::sync_gogh().await?);
-    accumulate(&mut schemeses, sexy::sync_sexy()?);
+    let mut schemeses = iterm2::sync_iterm2().context("sync iterm2")?;
+    accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
+    accumulate(
+        &mut schemeses,
+        gogh::sync_gogh().await.context("sync gogh")?,
+    );
+    accumulate(&mut schemeses, sexy::sync_sexy().context("sync sexy")?);
     bake_for_config(schemeses)?;
 
     Ok(())

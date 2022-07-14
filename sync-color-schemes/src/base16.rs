@@ -67,56 +67,18 @@ async fn extract_scheme_yamls(url: &str, tar_data: &[u8]) -> anyhow::Result<Vec<
         if entry.path()?.extension() == Some(std::ffi::OsStr::new("yaml")) {
             let dest_file = NamedTempFile::new()?;
             entry.unpack(dest_file.path())?;
-            let data = std::fs::read_to_string(dest_file.path())?;
-            println!("Got {} of data for {:?}", data.len(), entry.path()?);
-            let scheme: Base16Scheme = serde_yaml::from_str(&data)?;
-            println!("{scheme:?}");
 
-            let name = format!("{} (base16)", scheme.scheme);
+            let mut scheme =
+                color_funcs::schemes::base16::Base16Scheme::load_file(dest_file.path())?;
 
-            let base_0 = RgbaColor::try_from(scheme.base00)?;
-            // let base_1 = RgbaColor::try_from(scheme.base01)?;
-            // let base_2 = RgbaColor::try_from(scheme.base02)?;
-            let base_3 = RgbaColor::try_from(scheme.base03)?;
-            // let base_4 = RgbaColor::try_from(scheme.base04)?;
-            let base_5 = RgbaColor::try_from(scheme.base05)?;
-            // let base_6 = RgbaColor::try_from(scheme.base06)?;
-            let base_7 = RgbaColor::try_from(scheme.base07)?;
-            let base_8 = RgbaColor::try_from(scheme.base08)?;
-            // let base_9 = RgbaColor::try_from(scheme.base09)?;
-            let base_a = RgbaColor::try_from(scheme.base0A)?;
-            let base_b = RgbaColor::try_from(scheme.base0B)?;
-            let base_c = RgbaColor::try_from(scheme.base0C)?;
-            let base_d = RgbaColor::try_from(scheme.base0D)?;
-            let base_e = RgbaColor::try_from(scheme.base0E)?;
-            // let base_f = RgbaColor::try_from(scheme.base0F)?;
+            let name = format!("{} (base16)", scheme.metadata.name.unwrap());
+            scheme.metadata.name = Some(name.clone());
+            scheme.metadata.origin_url = Some(url.to_string());
 
             schemes.push(Scheme {
-                name: name.clone(),
+                name: name,
                 file_name: None,
-                data: ColorSchemeFile {
-                    colors: Palette {
-                        foreground: Some(base_5),
-                        background: Some(base_0),
-                        cursor_fg: Some(base_5),
-                        cursor_bg: Some(base_5),
-                        cursor_border: Some(base_5),
-                        selection_bg: Some(base_5),
-                        selection_fg: Some(base_0),
-                        ansi: Some([
-                            base_0, base_8, base_b, base_a, base_d, base_e, base_c, base_5,
-                        ]),
-                        brights: Some([
-                            base_3, base_8, base_b, base_a, base_d, base_e, base_c, base_7,
-                        ]),
-                        ..Default::default()
-                    },
-                    metadata: ColorSchemeMetaData {
-                        name: Some(name.clone()),
-                        author: Some(scheme.author.clone()),
-                        origin_url: Some(url.to_string()),
-                    },
-                },
+                data: scheme,
             });
         }
     }

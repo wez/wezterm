@@ -620,6 +620,9 @@ dependencies = [
  "log",
  "lru",
  "luahelper",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "wezterm-dynamic",
 ]
 
@@ -4213,6 +4216,7 @@ name = "sync-color-schemes"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "color-funcs",
  "config",
  "futures",
  "lazy_static",

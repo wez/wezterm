@@ -3,6 +3,7 @@ use config::lua::{get_or_create_module, get_or_create_sub_module};
 use config::{Gradient, RgbaColor, SrgbaTuple};
 
 mod image_colors;
+pub mod schemes;
 
 #[derive(Clone)]
 pub struct ColorWrap(RgbaColor);

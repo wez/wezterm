@@ -48,7 +48,8 @@ impl Scheme {
 
 pub fn load_schemes<P: AsRef<Path>>(scheme_dir: P) -> anyhow::Result<Vec<Scheme>> {
     let scheme_dir_path = scheme_dir.as_ref();
-    let dir = std::fs::read_dir(scheme_dir_path)?;
+    let dir = std::fs::read_dir(scheme_dir_path)
+        .with_context(|| format!("load_schemes from dir {scheme_dir_path:?}"))?;
 
     let mut schemes = vec![];
 

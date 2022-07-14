@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+color-funcs = { path = "../lua-api-crates/color-funcs" }
 config = { path = "../config" }
 futures = "0.3"
 lazy_static = "1.4"

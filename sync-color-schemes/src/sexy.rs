@@ -4,55 +4,18 @@ fn load_sexy_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Scheme>
 where
     P: std::fmt::Debug,
 {
-    #[derive(Deserialize, Debug)]
-    struct Sexy {
-        name: String,
-        author: String,
-        color: [String; 16],
-        foreground: String,
-        background: String,
-    }
-
-    let data = std::fs::read(&path).context(format!("read file {path:?}"))?;
-    let sexy: Sexy = serde_json::from_slice(&data)?;
-
-    let name = format!("{} (terminal.sexy)", sexy.name);
+    let mut scheme = color_funcs::schemes::sexy::Sexy::load_file(&path)?;
+    let name = format!("{} (terminal.sexy)", scheme.metadata.name.unwrap());
+    scheme.metadata.name = Some(name.clone());
+    scheme
+        .metadata
+        .origin_url
+        .replace("https://github.com/stayradiated/terminal.sexy".to_string());
 
     Ok(Scheme {
         name: name.clone(),
         file_name: None,
-        data: ColorSchemeFile {
-            colors: Palette {
-                foreground: Some(RgbaColor::try_from(sexy.foreground)?),
-                background: Some(RgbaColor::try_from(sexy.background)?),
-                ansi: Some([
-                    RgbaColor::try_from(sexy.color[0].clone())?,
-                    RgbaColor::try_from(sexy.color[1].clone())?,
-                    RgbaColor::try_from(sexy.color[2].clone())?,
-                    RgbaColor::try_from(sexy.color[3].clone())?,
-                    RgbaColor::try_from(sexy.color[4].clone())?,
-                    RgbaColor::try_from(sexy.color[5].clone())?,
-                    RgbaColor::try_from(sexy.color[6].clone())?,
-                    RgbaColor::try_from(sexy.color[7].clone())?,
-                ]),
-                brights: Some([
-                    RgbaColor::try_from(sexy.color[8].clone())?,
-                    RgbaColor::try_from(sexy.color[9].clone())?,
-                    RgbaColor::try_from(sexy.color[10].clone())?,
-                    RgbaColor::try_from(sexy.color[11].clone())?,
-                    RgbaColor::try_from(sexy.color[12].clone())?,
-                    RgbaColor::try_from(sexy.color[13].clone())?,
-                    RgbaColor::try_from(sexy.color[14].clone())?,
-                    RgbaColor::try_from(sexy.color[15].clone())?,
-                ]),
-                ..Default::default()
-            },
-            metadata: ColorSchemeMetaData {
-                name: Some(name.clone()),
-                author: Some(sexy.author.clone()),
-                origin_url: Some("https://github.com/stayradiated/terminal.sexy".to_string()),
-            },
-        },
+        data: scheme,
     })
 }
 
