@@ -161,7 +161,7 @@ of that triple click, so for a triple click both
 <code>SelectTextAtMouseCursor=&quot;Line&quot;</code> and <code>CompleteSelection</code> will be triggered in
 that order.</p>
 <p>NOTE: In the action column, <code>act</code> is an alias to <code>wezterm.action</code> (to avoid repetition).</p>
-<table><thead><tr><th>Event</th><th>Modifiers</th><th>Action</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Event</th><th>Modifiers</th><th>Action</th></tr></thead><tbody>
 <tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Line&quot;)</code></td></tr>
 <tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Word&quot;)</code></td></tr>
 <tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>act.SelectTextAtMouseCursor(&quot;Cell&quot;)</code></td></tr>
@@ -182,6 +182,7 @@ that order.</p>
 <tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
 <tr><td>Single Left Drag</td><td><code>CTRL+SHIFT</code></td><td><code>act.StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
 </tbody></table>
+</div>
 <p>If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
 you must explicitly register every binding.</p>
@@ -239,11 +240,12 @@ with <code>streak=2</code> is generated.  When the mouse button is released an <
 with <code>streak=2</code> is generated.</p>
 <p>The mouse event recognizer supports an arbitrary click streak, so if
 you wanted quadruple-click bindings you can specify <code>streak=4</code>.</p>
-<table><thead><tr><th>Event</th><th>Lua Representation</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Event</th><th>Lua Representation</th></tr></thead><tbody>
 <tr><td>Triple Left Down</td><td><code>event={Down={streak=3, button=&quot;Left&quot;}}</code></td></tr>
 <tr><td>Double Left Up</td><td><code>event={Up={streak=2, button=&quot;Left&quot;}}</code></td></tr>
 <tr><td>Single Left Drag</td><td><code>event={Drag={streak=1, button=&quot;Left&quot;}}</code></td></tr>
 </tbody></table>
+</div>
 <h1 id="gotcha-on-binding-an-up-event-only"><a class="header" href="#gotcha-on-binding-an-up-event-only">Gotcha on binding an 'Up' event only</a></h1>
 <p>If you only have a mouse bind on the 'Up' event and not on the 'Down' event,
 the 'Down' event will still be sent to the running program.

@@ -152,11 +152,12 @@ then wezterm will:</p>
 </ul>
 <p>With the process identified, wezterm will then try to determine the current
 working directory using operating system dependent code:</p>
-<table><thead><tr><th>OS</th><th>Supported?</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>OS</th><th>Supported?</th></tr></thead><tbody>
 <tr><td>macOS</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
 <tr><td>Linux</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
 <tr><td>Windows</td><td>Yes, <em>Since: 20220101-133340-7edc5b5a</em></td></tr>
 </tbody></table>
+</div>
 <p>If the current working directory is not known then this method returns <code>nil</code>.
 Otherwise, it returns the current working directory as a URI string.</p>
 

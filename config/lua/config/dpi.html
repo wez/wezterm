@@ -145,7 +145,7 @@
 either blurry or too small (especially if you are using a 4K display on X11 or
 Wayland).</p>
 <p>The default value is system specific:</p>
-<table><thead><tr><th>OS</th><th>Standard Density</th><th>High Density</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>OS</th><th>Standard Density</th><th>High Density</th></tr></thead><tbody>
 <tr><td>macOS</td><td>72.0</td><td>144.0</td></tr>
 <tr><td>Windows</td><td>Probed from the display</td><td>Probed from the display</td></tr>
 <tr><td>X11</td><td>96.0</td><td>96.0</td></tr>
@@ -153,6 +153,7 @@ Wayland).</p>
 <tr><td>X11 (<em>version 20210814-124438-54e29167 and later</em>)</td><td>Reads <code>Xft/DPI</code> via xsettings, fallback to <code>Xft.dpi</code>, then fallback to 96.0</td><td>same as standard density</td></tr>
 <tr><td>Wayland</td><td>96.0</td><td>192.0</td></tr>
 </tbody></table>
+</div>
 <p>In macOS and Wayland environments there isn't strictly a system DPI value that
 can be queried; instead standard density has a fixed value and the system will
 inform WezTerm when the display is high density by communicating a scaling

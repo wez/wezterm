@@ -144,12 +144,13 @@
 ways to access the GPU.</p>
 <p>This option controls whether wezterm should attempt to use
 <a href="https://en.wikipedia.org/wiki/EGL_%28API%29">EGL</a> to configure the GPU.</p>
-<table><thead><tr><th>Environment</th><th>prefer_egl=true</th><th>prefer_egl=false</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Environment</th><th>prefer_egl=true</th><th>prefer_egl=false</th></tr></thead><tbody>
 <tr><td>Wayland</td><td>use wayland-egl</td><td>No effect: EGL is the only way to use the GPU</td></tr>
 <tr><td>X11</td><td>Use libEGL.so</td><td>No effect: EGL is the only way to use the GPU</td></tr>
 <tr><td>macOS</td><td>Use <a href="https://github.com/kakashidinho/metalangle">MetalANGLE</a> libEGL.dylib if installed alongside the <code>wezterm-gui</code> executable.  Some versions of wezterm shipped with this configuration which translated OpenGL calls to <a href="https://en.wikipedia.org/wiki/Metal_%28API%29">Metal</a></td><td>Use Core OpenGL API (CGL).  Since BigSur, CGL uses Metal APIs.</td></tr>
 <tr><td>Windows</td><td>Use <a href="https://chromium.googlesource.com/angle/angle">ANGLE</a> to translate OpenGL calls to Direct3D, which makes wezterm more robust if you upgrade your graphics card drivers.</td><td>Use the OpenGL implementation provided by your graphics card vendor</td></tr>
 </tbody></table>
+</div>
 <p>The default is <code>true</code>.</p>
 
                     </main>

@@ -161,11 +161,12 @@ or text in shells or text editors.</p>
 widely used version (from the perspective of width) at the time of writing,
 which means that the default experience has the lowest chance of mismatched
 expectations.</p>
-<table><thead><tr><th>Unicode Version</th><th>Impact</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Unicode Version</th><th>Impact</th></tr></thead><tbody>
 <tr><td>8 (or lower)</td><td>Some characters will be narrower than later versions</td></tr>
 <tr><td>9-13</td><td>Some characters will be wider than in Unicode 8</td></tr>
 <tr><td>14 (or higher)</td><td>Explicit Emoji or Text presentation selectors will be respected and make some characters wider or narrower than earlier versions, depending on the context</td></tr>
 </tbody></table>
+</div>
 <p>If you aggressively maintain all of your software to the latest possible
 versions then you may wish to set <code>unicode_version = 14</code> to match the current
 (at the time of writing) version of Unicode.  This will enable Emoji
