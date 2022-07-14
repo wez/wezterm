@@ -15,7 +15,7 @@ use std::ops::Range;
 use std::rc::{Rc, Weak};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use termwiz::cell::Presentation;
 use thiserror::Error;
 use wezterm_bidi::Direction;
@@ -46,6 +46,10 @@ static FONT_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUs
 pub type LoadedFontId = usize;
 pub fn alloc_font_id() -> LoadedFontId {
     FONT_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+}
+
+lazy_static::lazy_static! {
+    static ref LAST_WARNING: Mutex<Option<Instant>> = Mutex::new(None);
 }
 
 pub struct LoadedFont {
@@ -392,7 +396,15 @@ impl FallbackResolveInfo {
                 .map(|c| std::char::from_u32(c).unwrap_or(' '))
                 .collect::<String>();
 
-            if self.config.warn_about_missing_glyphs {
+            let show_warning = self.config.warn_about_missing_glyphs
+                && LAST_WARNING
+                    .lock()
+                    .unwrap()
+                    .map(|instant| instant.elapsed() > Duration::from_secs(60 * 60))
+                    .unwrap_or(true);
+
+            if show_warning {
+                LAST_WARNING.lock().unwrap().replace(Instant::now());
                 let url = "https://wezfurlong.org/wezterm/config/fonts.html";
                 log::warn!(
                     "No fonts contain glyphs for these codepoints: {}.\n\
