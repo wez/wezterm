@@ -146,15 +146,12 @@ can be one of the following 4 values:</p>
 <ul>
 <li><code>&quot;Light&quot;</code> - the normal appearance, with dark text on a light background</li>
 <li><code>&quot;Dark&quot;</code> - &quot;dark mode&quot;, with predominantly dark colors and probably a lighter, lower contrasting, text color on a dark background</li>
-<li><code>&quot;LightHighContrast&quot;</code> - light mode but with high contrast colors</li>
-<li><code>&quot;DarkHighContrast&quot;</code> - dark mode but with high contrast colors</li>
+<li><code>&quot;LightHighContrast&quot;</code> - light mode but with high contrast colors (not reported on all systems)</li>
+<li><code>&quot;DarkHighContrast&quot;</code> - dark mode but with high contrast colors (not reported on all systems)</li>
 </ul>
-<p>wezterm currently doesn't know how to interrogate the appearance on Wayland
-systems, and will always report <code>&quot;Light&quot;</code>.</p>
-<p>On macOS, X11 and Windows systems, wezterm is able to detect when the
-appearance has changed and will generate a
-<a href="../window-events/window-config-reloaded.html">window-config-reloaded</a> event for each
-window.</p>
+<p>wezterm is able to detect when the appearance has changed and will generate a
+<a href="../window-events/window-config-reloaded.html">window-config-reloaded</a> event for
+each window.</p>
 <p>This example configuration shows how you can have your color scheme
 automatically adjust to the current appearance:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
@@ -181,6 +178,13 @@ return {
 }
 </code></pre>
 <h3 id="wayland-gnome-appearance"><a class="header" href="#wayland-gnome-appearance">Wayland GNOME Appearance</a></h3>
+<p><em>Since: nightly builds only</em></p>
+<p>wezterm uses <a href="https://flatpak.github.io/xdg-desktop-portal/">XDG Desktop
+Portal</a> to determine the
+appearance.</p>
+<p>In earlier versions you may wish to use an alternative method to determine the
+appearance, as wezterm didn't know how to interrogate the appearance on Wayland
+systems, and would always report <code>&quot;Light&quot;</code>.</p>
 <p>The GNOME desktop environment provides the <code>gsettings</code> tool that can
 inform us of the selected appearance even in a Wayland session. We can
 substitute the call to <code>window:get_appearance</code> above with a call to the
@@ -207,10 +211,10 @@ following function, which takes advantage of this:</p>
   return &quot;Light&quot;
 end
 </code></pre>
-<p>Since WezTerm will not fire a <code>window-config-reloaded</code>
-event on Wayland, you will instead need to listen on the
-<a href="../window-events/update-right-status.html">update-right-status</a> event,
-which will essentially poll for the appearance periodically:</p>
+<p>Since WezTerm will not fire a <code>window-config-reloaded</code> event on Wayland for
+older versions of wezterm, you will instead need to listen on the
+<a href="../window-events/update-right-status.html">update-right-status</a> event, which
+will essentially poll for the appearance periodically:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
 
 function scheme_for_appearance(appearance)
