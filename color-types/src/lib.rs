@@ -118,16 +118,14 @@ fn generate_linear_f32_to_srgb8_table() -> [u32; 104] {
     */
 }
 
-/*
 /// Convert from linear rgb in floating point form (0-1.0) to srgb in floating point (0-255.0)
 fn linear_f32_to_srgbf32(f: f32) -> f32 {
-    if f <= 0.0031308 {
+    if f <= 0.04045 {
         f * 12.92
     } else {
         f.powf(1.0 / 2.4) * 1.055 - 0.055
     }
 }
-*/
 
 pub fn linear_u8_to_srgb8(f: u8) -> u8 {
     unsafe { *RGB_TO_SRGB_TABLE.get_unchecked(f as usize) }
@@ -775,6 +773,16 @@ impl LinearRgba {
     /// Returns the individual RGBA channels as f32 components 0.0-1.0
     pub fn tuple(self) -> (f32, f32, f32, f32) {
         (self.0, self.1, self.2, self.3)
+    }
+
+    pub fn to_srgb(self) -> SrgbaTuple {
+        // Note that alpha is always linear
+        SrgbaTuple(
+            linear_f32_to_srgbf32(self.0),
+            linear_f32_to_srgbf32(self.1),
+            linear_f32_to_srgbf32(self.2),
+            self.3,
+        )
     }
 }
 

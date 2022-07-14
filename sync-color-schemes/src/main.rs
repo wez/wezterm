@@ -177,13 +177,16 @@ fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // They color us! my precious!
-    let mut schemeses = iterm2::sync_iterm2().context("sync iterm2")?;
+    let mut schemeses = iterm2::sync_iterm2().await.context("sync iterm2")?;
     accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
     accumulate(
         &mut schemeses,
         gogh::sync_gogh().await.context("sync gogh")?,
     );
-    accumulate(&mut schemeses, sexy::sync_sexy().context("sync sexy")?);
+    accumulate(
+        &mut schemeses,
+        sexy::sync_sexy().await.context("sync sexy")?,
+    );
     bake_for_config(schemeses)?;
 
     Ok(())

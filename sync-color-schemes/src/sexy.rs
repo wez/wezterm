@@ -1,4 +1,6 @@
 use super::*;
+use tar::Archive;
+use tempfile::NamedTempFile;
 
 fn load_sexy_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Scheme>
 where
@@ -19,34 +21,26 @@ where
     })
 }
 
-fn sync_sexy_dir<P: AsRef<Path>>(path: P, schemes: &mut Vec<Scheme>) -> anyhow::Result<()>
-where
-    P: std::fmt::Debug,
-{
-    let dir = std::fs::read_dir(&path).context(format!("reading dir {path:?}"))?;
+pub async fn sync_sexy() -> anyhow::Result<Vec<Scheme>> {
+    let tar_data =
+        fetch_url("https://github.com/stayradiated/terminal.sexy/tarball/master").await?;
 
-    for entry in dir {
-        let entry = entry?;
-        let name = entry.file_name();
-        let name = name.to_str().unwrap();
+    let decoder = libflate::gzip::Decoder::new(tar_data.as_slice())?;
+    let mut tar = Archive::new(decoder);
 
-        if name.ends_with(".json") {
-            schemes.push(load_sexy_file(path.as_ref().join(name))?);
+    let mut schemes = vec![];
+
+    for entry in tar.entries()? {
+        let mut entry = entry?;
+        if entry.path()?.extension() == Some(std::ffi::OsStr::new("json")) {
+            let dest_file = NamedTempFile::new()?;
+            entry.unpack(dest_file.path())?;
+
+            if let Ok(scheme) = load_sexy_file(dest_file.path()) {
+                schemes.push(scheme);
+            }
         }
     }
 
-    Ok(())
-}
-
-pub fn sync_sexy() -> anyhow::Result<Vec<Scheme>> {
-    let mut schemes = vec![];
-
-    for path in [
-        "../github/terminal.sexy/dist/schemes/base16",
-        "../github/terminal.sexy/dist/schemes/collection",
-        "../github/terminal.sexy/dist/schemes/xcolors.net",
-    ] {
-        sync_sexy_dir(path, &mut schemes)?;
-    }
     Ok(schemes)
 }
