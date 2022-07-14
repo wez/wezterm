@@ -7,12 +7,17 @@ use mlua::Value;
 use mux::termwiztermtab::TermWizTerminal;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use termwiz::cell::{AttributeChange, CellAttributes, Intensity};
 use termwiz::color::AnsiColor;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent};
 use termwiz::lineedit::*;
 use termwiz::surface::Change;
 use termwiz::terminal::Terminal;
+
+lazy_static::lazy_static! {
+    static ref LATEST_LOG_ENTRY: Mutex<Option<DateTime<Local>>> = Mutex::new(None);
+}
 
 struct LuaReplHost {
     history: BasicHistory,
@@ -127,7 +132,11 @@ impl LineEditorHost for LuaReplHost {
     }
 }
 
-pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow::Result<()> {
+pub fn show_debug_overlay(
+    mut term: TermWizTerminal,
+    gui_win: GuiWin,
+    opengl_info: String,
+) -> anyhow::Result<()> {
     term.no_grab_mouse_in_raw_mode();
 
     let config::LoadedConfig { lua, .. } = config::Config::load();
@@ -144,25 +153,21 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
     lua.load("wezterm = require 'wezterm'").exec()?;
     lua.globals().set("window", gui_win)?;
 
-    let mut latest_log_entry = None;
     let mut host = Some(LuaReplHost::new(lua));
 
     term.render(&[Change::Title("Debug".to_string())])?;
 
-    fn print_new_log_entries(
-        term: &mut TermWizTerminal,
-        latest: &mut Option<DateTime<Local>>,
-    ) -> termwiz::Result<()> {
+    fn print_new_log_entries(term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let entries = env_bootstrap::ringlog::get_entries();
         let mut changes = vec![];
         for entry in entries {
-            if let Some(latest) = latest {
+            if let Some(latest) = LATEST_LOG_ENTRY.lock().unwrap().as_ref() {
                 if entry.then <= *latest {
                     // already seen this one
                     continue;
                 }
             }
-            latest.replace(entry.then);
+            LATEST_LOG_ENTRY.lock().unwrap().replace(entry.then);
 
             changes.push(Change::AllAttributes(CellAttributes::default()));
             changes.push(Change::Text(entry.then.format("%H:%M:%S%.3f ").to_string()));
@@ -190,8 +195,17 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
         term.render(&changes)
     }
 
+    term.render(&[Change::Text(format!(
+        "Debug Overlay\r\n\
+         wezterm version: {}\r\n\
+         OpenGL version: {opengl_info}\r\n\
+         Enter lua statements or expressions and hit Enter.\r\n\
+         Press ESC or CTRL-D to exit\r\n",
+        config::wezterm_version()
+    ))])?;
+
     loop {
-        print_new_log_entries(&mut term, &mut latest_log_entry)?;
+        print_new_log_entries(&mut term)?;
         let mut editor = LineEditor::new(&mut term);
         editor.set_prompt("> ");
         if let Some(line) = editor.read_line(host.as_mut().unwrap())? {

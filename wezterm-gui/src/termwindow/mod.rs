@@ -384,6 +384,8 @@ pub struct TermWindow {
     current_mouse_buttons: Vec<MousePress>,
     current_mouse_capture: Option<MouseCapture>,
 
+    opengl_info: Option<String>,
+
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
 
@@ -509,11 +511,15 @@ impl TermWindow {
 
         match RenderState::new(ctx, &self.fonts, &self.render_metrics, ATLAS_SIZE) {
             Ok(gl) => {
-                log::info!(
-                    "OpenGL initialized! {} {} is_context_loss_possible={} wezterm version: {}",
+                self.opengl_info.replace(format!(
+                    "{} {}",
+                    gl.context.get_opengl_renderer_string(),
+                    gl.context.get_opengl_version_string()
+                ));
+                log::debug!(
+                    "OpenGL initialized! {} {} wezterm version: {}",
                     gl.context.get_opengl_renderer_string(),
                     gl.context.get_opengl_version_string(),
-                    gl.context.is_context_loss_possible(),
                     config::wezterm_version(),
                 );
                 self.render_state.replace(gl);
@@ -699,6 +705,7 @@ impl TermWindow {
             is_click_to_focus_window: false,
             key_table_state: KeyTableState::default(),
             modal: RefCell::new(None),
+            opengl_info: None,
         };
 
         let tw = Rc::new(RefCell::new(myself));
@@ -1809,8 +1816,10 @@ impl TermWindow {
 
         let gui_win = GuiWin::new(self);
 
+        let opengl_info = self.opengl_info.as_deref().unwrap_or("Unknown").to_string();
+
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
-            crate::overlay::show_debug_overlay(term, gui_win)
+            crate::overlay::show_debug_overlay(term, gui_win, opengl_info)
         });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future).detach();
