@@ -1,5 +1,7 @@
 # window:get_appearance()
 
+**NOTE: You probably want to use [wezterm.gui.get_appearance()](../wezterm.gui/get_appearance.md) instead, as it is easier to use!**
+
 *Since: 20210814-124438-54e29167*
 
 This method returns the appearance of the window environment.  The appearance

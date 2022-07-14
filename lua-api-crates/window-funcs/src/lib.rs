@@ -4,7 +4,7 @@ use luahelper::impl_lua_conversion_dynamic;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use window::{Connection, ConnectionOps};
+use window::{Appearance, Connection, ConnectionOps};
 
 fn get_conn() -> mlua::Result<Rc<Connection>> {
     Connection::get().ok_or_else(|| {
@@ -82,6 +82,19 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
                 .map_err(|err| mlua::Error::external(format!("{err:#}")))?
                 .into();
             Ok(screens)
+        })?,
+    )?;
+
+    window_mod.set(
+        "get_appearance",
+        lua.create_function(|_, _: ()| {
+            Ok(match Connection::get() {
+                Some(conn) => conn.get_appearance().to_string(),
+                None => {
+                    // Gui hasn't started yet, assume light
+                    Appearance::Light.to_string()
+                }
+            })
         })?,
     )?;
 
