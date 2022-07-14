@@ -523,11 +523,7 @@ impl XWindowInner {
                     conn.update_xrm();
                     self.check_dpi_and_synthesize_resize();
                     let appearance = conn.get_appearance();
-                    if appearance != self.appearance {
-                        self.appearance = appearance;
-                        self.events
-                            .dispatch(WindowEvent::AppearanceChanged(appearance));
-                    }
+                    self.appearance_changed(appearance);
                 }
 
                 if msg.atom() == conn.atom_net_wm_state {
@@ -553,6 +549,14 @@ impl XWindowInner {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn appearance_changed(&mut self, appearance: Appearance) {
+        if appearance != self.appearance {
+            self.appearance = appearance;
+            self.events
+                .dispatch(WindowEvent::AppearanceChanged(appearance));
+        }
     }
 
     fn focus_changed(&mut self, focused: bool) {

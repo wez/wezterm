@@ -313,6 +313,12 @@ impl XConnection {
         *self.default_dpi.borrow_mut() = dpi;
     }
 
+    pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {
+        for win in self.windows.borrow().values() {
+            win.lock().unwrap().appearance_changed(appearance);
+        }
+    }
+
     fn process_queued_xcb(&self) -> anyhow::Result<()> {
         if let Some(event) = self
             .conn

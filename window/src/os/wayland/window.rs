@@ -6,9 +6,9 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::wl_id;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, Rect, RequestedWindowGeometry,
-    ResolvedGeometry, ScreenPoint, Window, WindowEvent, WindowEventSender, WindowKeyEvent,
-    WindowOps, WindowState,
+    Appearance, Clipboard, Connection, Dimensions, MouseCursor, Point, Rect,
+    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Window, WindowEvent, WindowEventSender,
+    WindowKeyEvent, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
@@ -146,6 +146,7 @@ pub struct WaylandWindowInner {
     invalidated: bool,
     font_config: Rc<FontConfiguration>,
     text_cursor: Option<Rect>,
+    appearance: Appearance,
     config: Option<ConfigHandle>,
     // cache the title for comparison to avoid spamming
     // the compositor with updates that don't actually change it
@@ -372,6 +373,7 @@ impl WaylandWindow {
             gl_state: None,
             wegl_surface: None,
             text_cursor: None,
+            appearance: Appearance::Light,
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
@@ -401,6 +403,14 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
 }
 
 impl WaylandWindowInner {
+    pub(crate) fn appearance_changed(&mut self, appearance: Appearance) {
+        if appearance != self.appearance {
+            self.appearance = appearance;
+            self.events
+                .dispatch(WindowEvent::AppearanceChanged(appearance));
+        }
+    }
+
     pub(crate) fn keyboard_event(&mut self, event: WlKeyboardEvent) {
         let conn = WaylandConnection::get().unwrap().wayland();
         let mut mapper = conn.keyboard_mapper.borrow_mut();

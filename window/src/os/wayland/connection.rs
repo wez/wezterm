@@ -412,6 +412,12 @@ impl WaylandConnection {
         }
         Ok(())
     }
+
+    pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {
+        for win in self.windows.borrow().values() {
+            win.borrow_mut().appearance_changed(appearance);
+        }
+    }
 }
 
 impl ConnectionOps for WaylandConnection {

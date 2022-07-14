@@ -104,6 +104,15 @@ impl Connection {
             _ => panic!("attempted to get wayland reference on non-wayland connection"),
         }
     }
+
+    pub(crate) fn advise_of_appearance_change(&self, appearance: Appearance) {
+        log::trace!("Appearance changed to {appearance:?}");
+        match self {
+            Self::X11(x) => x.advise_of_appearance_change(appearance),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.advise_of_appearance_change(appearance),
+        }
+    }
 }
 
 impl ConnectionOps for Connection {
@@ -124,6 +133,7 @@ impl ConnectionOps for Connection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
+        crate::os::xdg_desktop_portal::subscribe();
         match self {
             Self::X11(x) => x.run_message_loop(),
             #[cfg(feature = "wayland")]
@@ -132,17 +142,8 @@ impl ConnectionOps for Connection {
     }
 
     fn get_appearance(&self) -> Appearance {
-        match promise::spawn::block_on(crate::os::xdg_desktop_portal::read_setting(
-            "org.freedesktop.appearance",
-            "color-scheme",
-        )) {
-            Ok(value) => match value.downcast_ref::<u32>() {
-                Some(1) => return Appearance::Dark,
-                Some(_) => return Appearance::Light,
-                None => {
-                    log::debug!("Unable to resolve appearance using xdg-desktop-portal: expected a u32 value but got {value:#?}");
-                }
-            },
+        match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
+            Ok(appearance) => return appearance,
             Err(err) => {
                 log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
             }
