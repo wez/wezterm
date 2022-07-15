@@ -14,7 +14,7 @@ other is one of the many built-in schemes:
 ```lua
 local wezterm = require 'wezterm'
 
-local gruvbox = wezterm.get_builtin_color_schemes()["Gruvbox Light"]
+local gruvbox = wezterm.color.get_builtin_schemes()["Gruvbox Light"]
 gruvbox.background = "red"
 
 local my_default = wezterm.color.get_default_colors()

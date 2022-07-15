@@ -180,11 +180,6 @@ end
             lua.create_function(|_, ()| Ok(crate::WslDomain::default_domains()))?,
         )?;
 
-        wezterm_mod.set(
-            "get_builtin_color_schemes",
-            lua.create_function(|_, ()| Ok(crate::COLOR_SCHEMES.clone()))?,
-        )?;
-
         wezterm_mod.set("font", lua.create_function(font)?)?;
         wezterm_mod.set(
             "font_with_fallback",

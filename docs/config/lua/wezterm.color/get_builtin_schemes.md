@@ -1,6 +1,8 @@
-# `wezterm.get_builtin_color_schemes()`
+# `wezterm.color.get_builtin_schemes()`
 
-*Since: 20220101-133340-7edc5b5a*
+*Since: nightly builds only*
+
+(In earlier releases, you can use [wezterm.get_builtin_color_schemes()](../wezterm/get_builtin_color_schemes.md))
 
 Returns a lua table keyed by color scheme name and whose values are
 the color scheme definition of the builtin color schemes.
@@ -17,7 +19,7 @@ local wezterm = require 'wezterm'
 
 -- The set of schemes that we like and want to put in our rotation
 local schemes = {}
-for name, scheme in pairs(wezterm.get_builtin_color_schemes()) do
+for name, scheme in pairs(wezterm.color.get_builtin_schemes()) do
   table.insert(schemes, name)
 end
 
@@ -43,7 +45,7 @@ then use that new scheme to override the default:
 ```lua
 local wezterm = require 'wezterm'
 
-local scheme = wezterm.get_builtin_color_schemes()["Gruvbox Light"]
+local scheme = wezterm.color.get_builtin_schemes()["Gruvbox Light"]
 scheme.background = "red"
 
 return {
@@ -67,7 +69,7 @@ of those for each new window:
 local wezterm = require 'wezterm'
 
 local function dark_schemes()
-  local schemes = wezterm.get_builtin_color_schemes()
+  local schemes = wezterm.color.get_builtin_schemes()
   local dark = {}
   for name, scheme in pairs(schemes) do
     -- parse into a color object
@@ -104,10 +106,3 @@ end)
 return {
 }
 ```
-
-*Since: nightly builds only*
-
-This function moved to
-[wezterm.color.get_builtin_schemes()](../wezterm.color/get_builtin_schemes.md)
-but can still be called as `wezterm.get_builtin_color_schemes()`. See that page
-for more examples.
