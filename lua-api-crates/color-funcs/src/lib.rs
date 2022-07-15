@@ -2,7 +2,7 @@ use crate::schemes::base16::Base16Scheme;
 use crate::schemes::sexy::Sexy;
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
 use config::lua::{get_or_create_module, get_or_create_sub_module};
-use config::{ColorSchemeFile, Gradient, Palette, RgbaColor, SrgbaTuple};
+use config::{ColorSchemeFile, ColorSchemeMetaData, Gradient, Palette, RgbaColor, SrgbaTuple};
 
 mod image_colors;
 pub mod schemes;
@@ -135,6 +135,19 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
             Ok((scheme.colors, scheme.metadata))
         })?,
     )?;
+
+    color.set(
+        "save_scheme",
+        lua.create_function(
+            |_, (colors, metadata, file_name): (Palette, ColorSchemeMetaData, String)| {
+                let scheme = ColorSchemeFile { colors, metadata };
+                scheme
+                    .save_to_file(file_name)
+                    .map_err(|err| mlua::Error::external(format!("{err:#}")))
+            },
+        )?,
+    )?;
+
     color.set(
         "load_terminal_sexy_scheme",
         lua.create_function(|_, file_name: String| {

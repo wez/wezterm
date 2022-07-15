@@ -9,8 +9,7 @@ pub struct Scheme {
 
 impl Scheme {
     pub fn to_toml_value(&self) -> anyhow::Result<toml::Value> {
-        let value = self.data.to_dynamic();
-        Ok(dynamic_to_toml(value)?)
+        self.data.to_toml_value()
     }
 
     pub fn to_toml(&self) -> anyhow::Result<String> {
@@ -44,37 +43,4 @@ impl Scheme {
         let json = self.to_json()?;
         Ok(serde_json::from_str(&json)?)
     }
-}
-
-fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
-    Ok(match value {
-        Value::Null => anyhow::bail!("cannot map Null to toml"),
-        Value::Bool(b) => toml::Value::Boolean(b),
-        Value::String(s) => toml::Value::String(s),
-        Value::Array(a) => {
-            let mut arr = vec![];
-            for v in a {
-                arr.push(dynamic_to_toml(v)?);
-            }
-            toml::Value::Array(arr)
-        }
-        Value::Object(o) => {
-            let mut map = toml::value::Map::new();
-            for (k, v) in o {
-                let k = match k {
-                    Value::String(s) => s,
-                    _ => anyhow::bail!("toml keys must be strings {k:?}"),
-                };
-                let v = match v {
-                    Value::Null => continue,
-                    other => dynamic_to_toml(other)?,
-                };
-                map.insert(k, v);
-            }
-            toml::Value::Table(map)
-        }
-        Value::U64(i) => toml::Value::Integer(i.try_into()?),
-        Value::I64(i) => toml::Value::Integer(i.try_into()?),
-        Value::F64(f) => toml::Value::Float(*f),
-    })
 }

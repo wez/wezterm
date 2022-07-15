@@ -6,7 +6,6 @@ use sqlite_cache::Cache;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
-use wezterm_dynamic::{ToDynamic, Value};
 
 mod base16;
 mod gogh;

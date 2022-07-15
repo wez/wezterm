@@ -1,6 +1,6 @@
 use crate::*;
 use luahelper::impl_lua_conversion_dynamic;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use termwiz::cell::CellAttributes;
 pub use termwiz::color::{ColorSpec, RgbColor, SrgbaTuple};
@@ -451,6 +451,39 @@ pub struct ColorSchemeFile {
 }
 impl_lua_conversion_dynamic!(ColorSchemeFile);
 
+fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
+    Ok(match value {
+        Value::Null => anyhow::bail!("cannot map Null to toml"),
+        Value::Bool(b) => toml::Value::Boolean(b),
+        Value::String(s) => toml::Value::String(s),
+        Value::Array(a) => {
+            let mut arr = vec![];
+            for v in a {
+                arr.push(dynamic_to_toml(v)?);
+            }
+            toml::Value::Array(arr)
+        }
+        Value::Object(o) => {
+            let mut map = toml::value::Map::new();
+            for (k, v) in o {
+                let k = match k {
+                    Value::String(s) => s,
+                    _ => anyhow::bail!("toml keys must be strings {k:?}"),
+                };
+                let v = match v {
+                    Value::Null => continue,
+                    other => dynamic_to_toml(other)?,
+                };
+                map.insert(k, v);
+            }
+            toml::Value::Table(map)
+        }
+        Value::U64(i) => toml::Value::Integer(i.try_into()?),
+        Value::I64(i) => toml::Value::Integer(i.try_into()?),
+        Value::F64(f) => toml::Value::Float(*f),
+    })
+}
+
 impl ColorSchemeFile {
     pub fn from_toml_value(value: &toml::Value) -> anyhow::Result<Self> {
         Self::from_dynamic(&crate::toml_to_dynamic(value), Default::default())
@@ -471,6 +504,18 @@ impl ColorSchemeFile {
             }
         }
         Ok(scheme)
+    }
+
+    pub fn to_toml_value(&self) -> anyhow::Result<toml::Value> {
+        let value = self.to_dynamic();
+        Ok(dynamic_to_toml(value)?)
+    }
+
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+        let value = self.to_toml_value()?;
+        let text = toml::to_string_pretty(&value)?;
+        std::fs::write(&path, text)
+            .with_context(|| format!("writing toml to {}", path.as_ref().display()))
     }
 }
 
