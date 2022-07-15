@@ -260,6 +260,7 @@ impl super::TermWindow {
                 tab.resize(size);
             }
         };
+        self.resize_overlays();
         self.invalidate_fancy_tab_bar();
         self.update_title();
 

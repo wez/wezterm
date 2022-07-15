@@ -2672,6 +2672,35 @@ impl TermWindow {
         })
     }
 
+    /// Resize overlays to match their corresponding tab/pane dimensions
+    pub fn resize_overlays(&self) {
+        let mux = Mux::get().unwrap();
+        for (_, state) in self.tab_state.borrow().iter() {
+            if let Some(overlay) = state.overlay.as_ref().map(|o| &o.pane) {
+                overlay.resize(self.terminal_size).ok();
+            }
+        }
+        for (pane_id, state) in self.pane_state.borrow().iter() {
+            if let Some(overlay) = state.overlay.as_ref().map(|o| &o.pane) {
+                if let Some(pane) = mux.get_pane(*pane_id) {
+                    let dims = pane.get_dimensions();
+                    overlay
+                        .resize(TerminalSize {
+                            cols: dims.cols,
+                            rows: dims.viewport_rows,
+                            dpi: self.terminal_size.dpi,
+                            pixel_height: (self.terminal_size.pixel_height
+                                / self.terminal_size.rows)
+                                * dims.viewport_rows,
+                            pixel_width: (self.terminal_size.pixel_width / self.terminal_size.cols)
+                                * dims.cols,
+                        })
+                        .ok();
+                }
+            }
+        }
+    }
+
     pub fn get_viewport(&self, pane_id: PaneId) -> Option<StableRowIndex> {
         self.pane_state(pane_id).viewport
     }
