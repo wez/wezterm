@@ -18,7 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:set_position](config/lua/window/set_position.md) method for controlling window position.
 * [window:maximize](config/lua/window/maximize.md) and [window:restore](config/lua/window/restore.md) methods for controlling window maximization state.
 * [window:get_selection_escapes_for_pane](config/lua/window/get_selection_escapes_for_pane.md) method for getting the current selection including escape sequences. [#2223](https://github.com/wez/wezterm/issues/2223)
-* New [wezterm.color](config/lua/wezterm.color/index.md) module for working with colors.
+* New [wezterm.color](config/lua/wezterm.color/index.md) module for working with colors and importing color schemes.
 * New [wezterm.gui](config/lua/wezterm.gui/index.md) module and [mux_window:gui_window](config/lua/mux-window/gui_window.md) method.
 * New [wezterm.gui.screens()](config/lua/wezterm.gui/screens.md) function for getting information about the available screens/monitors/displays
 * New [wezterm.gui.get_appearance()](config/lua/wezterm.gui/get_appearance.md) function for a simpler way to get system dark mode state

@@ -1,6 +1,8 @@
+use crate::schemes::base16::Base16Scheme;
+use crate::schemes::sexy::Sexy;
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
 use config::lua::{get_or_create_module, get_or_create_sub_module};
-use config::{Gradient, Palette, RgbaColor, SrgbaTuple};
+use config::{ColorSchemeFile, Gradient, Palette, RgbaColor, SrgbaTuple};
 
 mod image_colors;
 pub mod schemes;
@@ -120,6 +122,33 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         lua.create_function(|_, _: ()| {
             let palette: Palette = wezterm_term::color::ColorPalette::default().into();
             Ok(palette)
+        })?,
+    )?;
+
+    color.set(
+        "load_scheme",
+        lua.create_function(|_, file_name: String| {
+            let data = std::fs::read_to_string(file_name)
+                .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+            let scheme = ColorSchemeFile::from_toml_str(&data)
+                .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+            Ok((scheme.colors, scheme.metadata))
+        })?,
+    )?;
+    color.set(
+        "load_terminal_sexy_scheme",
+        lua.create_function(|_, file_name: String| {
+            let scheme = Sexy::load_file(file_name)
+                .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+            Ok((scheme.colors, scheme.metadata))
+        })?,
+    )?;
+    color.set(
+        "load_base16_scheme",
+        lua.create_function(|_, file_name: String| {
+            let scheme = Base16Scheme::load_file(file_name)
+                .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
+            Ok((scheme.colors, scheme.metadata))
         })?,
     )?;
 

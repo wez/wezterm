@@ -439,6 +439,7 @@ pub struct ColorSchemeMetaData {
     pub origin_url: Option<String>,
     pub wezterm_version: Option<String>,
 }
+impl_lua_conversion_dynamic!(ColorSchemeMetaData);
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct ColorSchemeFile {
@@ -448,6 +449,7 @@ pub struct ColorSchemeFile {
     #[dynamic(default)]
     pub metadata: ColorSchemeMetaData,
 }
+impl_lua_conversion_dynamic!(ColorSchemeFile);
 
 impl ColorSchemeFile {
     pub fn from_toml_value(value: &toml::Value) -> anyhow::Result<Self> {
