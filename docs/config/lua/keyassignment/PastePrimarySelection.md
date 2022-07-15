@@ -12,7 +12,7 @@ a future release; please use [PasteFrom](PasteFrom.md) instead.
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   keys = {

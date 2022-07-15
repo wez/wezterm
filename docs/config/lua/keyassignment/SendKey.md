@@ -19,7 +19,7 @@ The following configuration achieves that same effect:
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   keys = {

@@ -5,7 +5,7 @@ Negative values scroll upwards, while positive values scroll downwards.
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   keys = {

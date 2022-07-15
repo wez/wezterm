@@ -4,7 +4,7 @@ Create a new tab in the current window.  The argument defines to which *domain* 
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   keys = {

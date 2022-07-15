@@ -6,7 +6,7 @@ the tab to the right.
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   keys = {
