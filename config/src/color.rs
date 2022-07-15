@@ -5,6 +5,7 @@ use std::str::FromStr;
 use termwiz::cell::CellAttributes;
 pub use termwiz::color::{ColorSpec, RgbColor, SrgbaTuple};
 use wezterm_dynamic::{FromDynamic, ToDynamic};
+use wezterm_term::color::ColorPalette;
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic)]
 pub struct HsbTransform {
@@ -119,9 +120,47 @@ pub struct Palette {
 }
 impl_lua_conversion_dynamic!(Palette);
 
-impl From<Palette> for wezterm_term::color::ColorPalette {
-    fn from(cfg: Palette) -> wezterm_term::color::ColorPalette {
-        let mut p = wezterm_term::color::ColorPalette::default();
+impl From<ColorPalette> for Palette {
+    fn from(cp: ColorPalette) -> Palette {
+        let mut p = Palette::default();
+        macro_rules! apply_color {
+            ($name:ident) => {
+                p.$name = Some(cp.$name.into());
+            };
+        }
+        apply_color!(foreground);
+        apply_color!(background);
+        apply_color!(cursor_fg);
+        apply_color!(cursor_bg);
+        apply_color!(cursor_border);
+        apply_color!(selection_fg);
+        apply_color!(selection_bg);
+        apply_color!(scrollbar_thumb);
+        apply_color!(split);
+
+        let mut ansi = [RgbaColor::default(); 8];
+        for (idx, col) in cp.colors.0[0..8].iter().enumerate() {
+            ansi[idx] = (*col).into();
+        }
+        p.ansi = Some(ansi);
+
+        let mut brights = [RgbaColor::default(); 8];
+        for (idx, col) in cp.colors.0[8..16].iter().enumerate() {
+            brights[idx] = (*col).into();
+        }
+        p.brights = Some(brights);
+
+        for (idx, col) in cp.colors.0.iter().enumerate().skip(16) {
+            p.indexed.insert(idx as u8, (*col).into());
+        }
+
+        p
+    }
+}
+
+impl From<Palette> for ColorPalette {
+    fn from(cfg: Palette) -> ColorPalette {
+        let mut p = ColorPalette::default();
         macro_rules! apply_color {
             ($name:ident) => {
                 if let Some($name) = cfg.$name {

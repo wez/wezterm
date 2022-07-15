@@ -20,3 +20,4 @@ serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
 serde_yaml = "0.8"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
+wezterm-term = { path = "../../term", features=["use_serde"] }

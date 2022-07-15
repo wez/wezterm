@@ -1,6 +1,6 @@
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
 use config::lua::{get_or_create_module, get_or_create_sub_module};
-use config::{Gradient, RgbaColor, SrgbaTuple};
+use config::{Gradient, Palette, RgbaColor, SrgbaTuple};
 
 mod image_colors;
 pub mod schemes;
@@ -114,6 +114,13 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     color.set(
         "extract_colors_from_image",
         lua.create_function(image_colors::extract_colors_from_image)?,
+    )?;
+    color.set(
+        "get_default_colors",
+        lua.create_function(|_, _: ()| {
+            let palette: Palette = wezterm_term::color::ColorPalette::default().into();
+            Ok(palette)
+        })?,
     )?;
 
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;

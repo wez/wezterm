@@ -625,6 +625,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "wezterm-dynamic",
+ "wezterm-term",
 ]
 
 [[package]]
