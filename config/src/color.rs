@@ -468,6 +468,9 @@ fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
             for (k, v) in o {
                 let k = match k {
                     Value::String(s) => s,
+                    Value::U64(u) => u.to_string(),
+                    Value::I64(u) => u.to_string(),
+                    Value::F64(u) => u.to_string(),
                     _ => anyhow::bail!("toml keys must be strings {k:?}"),
                 };
                 let v = match v {
