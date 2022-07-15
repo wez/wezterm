@@ -7,7 +7,7 @@ use crate::os::wayland::output::OutputHandler;
 use crate::os::x11::keyboard::Keyboard;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Connection, ScreenRect, WindowEvent};
+use crate::{Appearance, Connection, ScreenRect, WindowEvent};
 use anyhow::{bail, Context};
 use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Token};
@@ -423,6 +423,17 @@ impl WaylandConnection {
 impl ConnectionOps for WaylandConnection {
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
+            Ok(appearance) => return appearance,
+            Err(err) => {
+                log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
+            }
+        }
+        // fallback
+        Appearance::Light
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
