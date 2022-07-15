@@ -142,12 +142,6 @@ impl ConnectionOps for Connection {
     }
 
     fn get_appearance(&self) -> Appearance {
-        match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
-            Ok(appearance) => return appearance,
-            Err(err) => {
-                log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
-            }
-        }
         match self {
             Self::X11(x) => x.get_appearance(),
             #[cfg(feature = "wayland")]

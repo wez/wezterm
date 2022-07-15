@@ -125,6 +125,12 @@ impl ConnectionOps for XConnection {
     }
 
     fn get_appearance(&self) -> Appearance {
+        match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
+            Ok(appearance) => return appearance,
+            Err(err) => {
+                log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
+            }
+        }
         if let Some(XSetting::String(name)) = self.xsettings.borrow().get("Net/ThemeName") {
             let lower = name.to_ascii_lowercase();
             match lower.as_str() {
