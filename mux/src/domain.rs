@@ -353,6 +353,7 @@ impl LocalDomain {
         &self,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
+        pane_id: PaneId,
     ) -> anyhow::Result<CommandBuilder> {
         let config = configuration();
         let mut cmd = match command {
@@ -376,6 +377,7 @@ impl LocalDomain {
         if let Some(dir) = command_dir {
             cmd.cwd(dir);
         }
+        cmd.env("WEZTERM_PANE", pane_id.to_string());
         self.fixup_command(&mut cmd).await?;
         Ok(cmd)
     }
@@ -389,12 +391,11 @@ impl Domain for LocalDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>> {
-        let mut cmd = self.build_command(command, command_dir).await?;
+        let pane_id = alloc_pane_id();
+        let cmd = self.build_command(command, command_dir, pane_id).await?;
         let pair = self
             .pty_system
             .openpty(crate::terminal_size_to_pty_size(size)?)?;
-        let pane_id = alloc_pane_id();
-        cmd.env("WEZTERM_PANE", pane_id.to_string());
 
         let command_line = cmd
             .as_unix_command_line()
