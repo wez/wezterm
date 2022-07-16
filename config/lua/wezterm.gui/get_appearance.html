@@ -149,9 +149,8 @@ can be one of the following 4 values:</p>
 <li><code>&quot;LightHighContrast&quot;</code> - light mode but with high contrast colors (not reported on all systems)</li>
 <li><code>&quot;DarkHighContrast&quot;</code> - dark mode but with high contrast colors (not reported on all systems)</li>
 </ul>
-<p>wezterm is able to detect when the appearance has changed and will generate a
-<a href="../window-events/window-config-reloaded.html">window-config-reloaded</a> event for
-each window.</p>
+<p>wezterm is able to detect when the appearance has changed and will reload the
+configuration when that happens.</p>
 <p>This example configuration shows how you can have your color scheme
 automatically adjust to the current appearance:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
