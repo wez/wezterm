@@ -1965,6 +1965,10 @@ impl super::TermWindow {
             quad.set_hsv(hsv);
         }
 
+        // Assume that we are drawing retro tab bar if there is no
+        // stable_line_idx set.
+        let is_tab_bar = params.stable_line_idx.is_none();
+
         // Make a pass to compute background colors.
         // Need to consider:
         // * background when it is not the default color
@@ -1998,21 +2002,27 @@ impl super::TermWindow {
             };
 
             if !bg_is_default {
-                let rect = euclid::rect(
-                    params.left_pixel_x
-                        + if params.use_pixel_positioning {
-                            item.x_pos
-                        } else {
-                            phys(cluster.first_cell_idx, num_cols, direction) as f32 * cell_width
-                        },
-                    params.top_pixel_y,
-                    if params.use_pixel_positioning {
-                        item.pixel_width
+                let x = params.left_pixel_x
+                    + if params.use_pixel_positioning {
+                        item.x_pos
                     } else {
-                        cluster_width as f32 * cell_width
-                    },
-                    cell_height,
-                );
+                        phys(cluster.first_cell_idx, num_cols, direction) as f32 * cell_width
+                    };
+
+                let mut width = if params.use_pixel_positioning {
+                    item.pixel_width
+                } else {
+                    cluster_width as f32 * cell_width
+                };
+
+                // If the tab bar is falling just short of the full width of the
+                // window, extend it to fit.
+                // <https://github.com/wez/wezterm/issues/2210>
+                if is_tab_bar && (x + width + cell_width) > params.pixel_width {
+                    width += cell_width;
+                }
+
+                let rect = euclid::rect(x, params.top_pixel_y, width, cell_height);
                 if let Some(rect) = rect.intersection(&bounding_rect) {
                     let mut quad = self.filled_rectangle(&mut layers[0], rect, bg_color)?;
                     quad.set_hsv(hsv);
