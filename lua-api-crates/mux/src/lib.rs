@@ -333,6 +333,13 @@ impl_lua_conversion_dynamic!(MuxTabInfo);
 
 impl UserData for MuxWindow {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(mlua::MetaMethod::ToString, |_, this, _: ()| {
+            Ok(format!(
+                "MuxWindow(mux_window_id:{}, pid:{})",
+                this.0,
+                unsafe { libc::getpid() }
+            ))
+        });
         methods.add_method("window_id", |_, this, _: ()| Ok(this.0));
         methods.add_async_method("gui_window", |lua, this, _: ()| async move {
             // Weakly bound to the gui module; mux cannot hard-depend
@@ -407,6 +414,11 @@ impl MuxPane {
 
 impl UserData for MuxPane {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(mlua::MetaMethod::ToString, |_, this, _: ()| {
+            Ok(format!("MuxPane(pane_id:{}, pid:{})", this.0, unsafe {
+                libc::getpid()
+            }))
+        });
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.0));
         methods.add_async_method("split", |_, this, args: Option<SplitPane>| async move {
             let args = args.unwrap_or_default();
@@ -474,6 +486,11 @@ impl_lua_conversion_dynamic!(MuxPaneInfo);
 
 impl UserData for MuxTab {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(mlua::MetaMethod::ToString, |_, this, _: ()| {
+            Ok(format!("MuxTab(tab_id:{}, pid:{})", this.0, unsafe {
+                libc::getpid()
+            }))
+        });
         methods.add_method("tab_id", |_, this, _: ()| Ok(this.0));
         methods.add_method("window", |_, this, _: ()| {
             let mux = get_mux()?;
