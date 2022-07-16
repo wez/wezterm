@@ -21,6 +21,7 @@ color-funcs = { path = "../lua-api-crates/color-funcs" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 logging = { path = "../lua-api-crates/logging" }
 mux-lua = { path = "../lua-api-crates/mux" }
+procinfo-funcs = { path = "../lua-api-crates/procinfo-funcs" }
 filesystem = { path = "../lua-api-crates/filesystem" }
 json = { path = "../lua-api-crates/json" }
 share-data = { path = "../lua-api-crates/share-data" }

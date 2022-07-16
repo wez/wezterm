@@ -165,6 +165,7 @@ fn register_lua_modules() {
         termwiz_funcs::register,
         logging::register,
         mux_lua::register,
+        procinfo_funcs::register,
         filesystem::register,
         json::register,
         ssh_funcs::register,

@@ -1138,6 +1138,7 @@ dependencies = [
  "logging",
  "mux-lua",
  "objc",
+ "procinfo-funcs",
  "share-data",
  "spawn-funcs",
  "ssh-funcs",
@@ -3303,6 +3304,18 @@ dependencies = [
  "ntapi",
  "wezterm-dynamic",
  "winapi",
+]
+
+[[package]]
+name = "procinfo-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "libc",
+ "luahelper",
+ "procinfo",
+ "wezterm-dynamic",
 ]
 
 [[package]]
