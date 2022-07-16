@@ -76,7 +76,8 @@ case $OSTYPE in
       echo "Grant apple tools access to build.keychain"
       security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PW" build.keychain
       echo "Codesign"
-      /usr/bin/codesign --keychain build.keychain --force --options runtime --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
+      /usr/bin/codesign --keychain build.keychain --force --options runtime \
+        --entitlements ci/macos-entitlement.plist --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
       echo "Restore default keychain"
       security default-keychain -d user -s $def_keychain
       echo "Remove build.keychain"
