@@ -10,9 +10,8 @@ can be one of the following 4 values:
 * `"LightHighContrast"` - light mode but with high contrast colors (not reported on all systems)
 * `"DarkHighContrast"` - dark mode but with high contrast colors (not reported on all systems)
 
-wezterm is able to detect when the appearance has changed and will generate a
-[window-config-reloaded](../window-events/window-config-reloaded.md) event for
-each window.
+wezterm is able to detect when the appearance has changed and will reload the
+configuration when that happens.
 
 This example configuration shows how you can have your color scheme
 automatically adjust to the current appearance:
