@@ -1056,13 +1056,16 @@ impl Config {
                                 let path = entry.path();
                                 match load_scheme(&path) {
                                     Ok(scheme) => {
+                                        let name = scheme
+                                            .metadata
+                                            .name
+                                            .unwrap_or_else(|| scheme_name.to_string());
                                         log::trace!(
                                             "Loaded color scheme `{}` from {}",
-                                            scheme_name,
+                                            name,
                                             path.display()
                                         );
-                                        self.color_schemes
-                                            .insert(scheme_name.to_string(), scheme.colors);
+                                        self.color_schemes.insert(name, scheme.colors);
                                     }
                                     Err(err) => {
                                         log::error!(
