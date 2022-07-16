@@ -6,6 +6,8 @@ use sqlite_cache::Cache;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
+use tar::Archive;
+use tempfile::NamedTempFile;
 
 mod base16;
 mod gogh;
@@ -197,28 +199,103 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
     Ok(())
 }
 
+fn scheme_exists<'a>(schemeses: &'a [Scheme], candidate: &Scheme) -> Option<&'a str> {
+    for existing in schemeses {
+        if candidate.data.colors.ansi == existing.data.colors.ansi
+            && candidate.data.colors.brights == existing.data.colors.brights
+            && candidate.data.colors.foreground == existing.data.colors.foreground
+            && candidate.data.colors.background == existing.data.colors.background
+        {
+            return Some(&existing.name);
+        }
+    }
+    None
+}
+
 fn accumulate(schemeses: &mut Vec<Scheme>, to_add: Vec<Scheme>) {
     // Only accumulate if the scheme looks different enough
-    'skip_candidate: for candidate in to_add {
-        for existing in schemeses.iter() {
-            if candidate.data.colors.ansi == existing.data.colors.ansi
-                && candidate.data.colors.brights == existing.data.colors.brights
-                && candidate.data.colors.foreground == existing.data.colors.foreground
-                && candidate.data.colors.background == existing.data.colors.background
-            {
-                println!("{} is same as {}", candidate.name, existing.name);
-                continue 'skip_candidate;
-            }
+    for candidate in to_add {
+        if let Some(existing) = scheme_exists(schemeses, &candidate) {
+            println!("{} is same as {}", candidate.name, existing);
+            continue;
         }
-
         schemeses.push(candidate);
     }
+}
+
+async fn sync_toml(
+    repo_url: &str,
+    branch: &str,
+    suffix: &str,
+    schemeses: &mut Vec<Scheme>,
+) -> anyhow::Result<()> {
+    let tarball_url = format!("{repo_url}/tarball/{branch}");
+    let tar_data = fetch_url(&tarball_url).await?;
+    let decoder = libflate::gzip::Decoder::new(tar_data.as_slice())?;
+    let mut tar = Archive::new(decoder);
+    for entry in tar.entries()? {
+        let mut entry = entry?;
+
+        if entry
+            .path()?
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s == "toml")
+            .unwrap_or(false)
+        {
+            let dest_file = NamedTempFile::new()?;
+            entry.unpack(dest_file.path())?;
+
+            let data = std::fs::read_to_string(dest_file.path())?;
+
+            if let Ok(mut scheme) = ColorSchemeFile::from_toml_str(&data) {
+                let name = match scheme.metadata.name {
+                    Some(name) => name,
+                    None => entry
+                        .path()?
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                };
+                let name = format!("{name}{suffix}");
+                scheme.metadata.name = Some(name.clone());
+                scheme.metadata.origin_url = Some(repo_url.to_string());
+                apply_nightly_version(&mut scheme.metadata);
+
+                let scheme = Scheme {
+                    name: name.clone(),
+                    file_name: None,
+                    data: scheme,
+                };
+
+                if !suffix.is_empty() {
+                    // A pre-existing entry is considered canonical
+                    if let Some(existing) = scheme_exists(schemeses, &scheme) {
+                        println!("{} is same as {}", name, existing);
+                        continue;
+                    }
+                }
+
+                schemeses.push(scheme);
+            }
+        }
+    }
+    Ok(())
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // They color us! my precious!
     let mut schemeses = iterm2::sync_iterm2().await.context("sync iterm2")?;
+    sync_toml(
+        "https://github.com/catppuccin/wezterm",
+        "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
     accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
     accumulate(
         &mut schemeses,

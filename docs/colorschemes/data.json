@@ -4499,6 +4499,370 @@
   {
     "colors": {
       "ansi": [
+        "#51576d",
+        "#e78284",
+        "#a6d189",
+        "#e5c890",
+        "#8caaee",
+        "#f4b8e4",
+        "#81c8be",
+        "#b5bfe2"
+      ],
+      "background": "#303446",
+      "brights": [
+        "#626880",
+        "#e78284",
+        "#a6d189",
+        "#e5c890",
+        "#8caaee",
+        "#f4b8e4",
+        "#81c8be",
+        "#a5adce"
+      ],
+      "compose_cursor": "#eebebe",
+      "cursor_bg": "#f2d5cf",
+      "cursor_border": "#f2d5cf",
+      "cursor_fg": "#232634",
+      "foreground": "#c6d0f5",
+      "indexed": {
+        "16": "#ef9f76",
+        "17": "#f2d5cf"
+      },
+      "scrollbar_thumb": "#626880",
+      "selection_bg": "#626880",
+      "selection_fg": "#c6d0f5",
+      "split": "#737994",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#626880",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#232634",
+        "inactive_tab": {
+          "bg_color": "#292c3c",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#575757",
+        "inactive_tab_edge_hover": "#363636",
+        "inactive_tab_hover": {
+          "bg_color": "#292c3c",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#303446",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#292c3c",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#414559"
+    },
+    "metadata": {
+      "author": "Catppuccin Org",
+      "name": "Catppuccin Frappe",
+      "origin_url": "https://github.com/catppuccin/wezterm",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5c5f77",
+        "#d20f39",
+        "#40a02b",
+        "#df8e1d",
+        "#1e66f5",
+        "#ea76cb",
+        "#179299",
+        "#acb0be"
+      ],
+      "background": "#eff1f5",
+      "brights": [
+        "#6c6f85",
+        "#d20f39",
+        "#40a02b",
+        "#df8e1d",
+        "#1e66f5",
+        "#ea76cb",
+        "#179299",
+        "#bcc0cc"
+      ],
+      "compose_cursor": "#dd7878",
+      "cursor_bg": "#dc8a78",
+      "cursor_border": "#dc8a78",
+      "cursor_fg": "#eff1f5",
+      "foreground": "#4c4f69",
+      "indexed": {
+        "16": "#fe640b",
+        "17": "#dc8a78"
+      },
+      "scrollbar_thumb": "#acb0be",
+      "selection_bg": "#acb0be",
+      "selection_fg": "#4c4f69",
+      "split": "#9ca0b0",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#acb0be",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#dce0e8",
+        "inactive_tab": {
+          "bg_color": "#e6e9ef",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#575757",
+        "inactive_tab_edge_hover": "#363636",
+        "inactive_tab_hover": {
+          "bg_color": "#e6e9ef",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#eff1f5",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#e6e9ef",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#ccd0da"
+    },
+    "metadata": {
+      "author": "Catppuccin Org",
+      "name": "Catppuccin Latte",
+      "origin_url": "https://github.com/catppuccin/wezterm",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#494d64",
+        "#ed8796",
+        "#a6da95",
+        "#eed49f",
+        "#8aadf4",
+        "#f5bde6",
+        "#8bd5ca",
+        "#b8c0e0"
+      ],
+      "background": "#24273a",
+      "brights": [
+        "#5b6078",
+        "#ed8796",
+        "#a6da95",
+        "#eed49f",
+        "#8aadf4",
+        "#f5bde6",
+        "#8bd5ca",
+        "#a5adcb"
+      ],
+      "compose_cursor": "#f0c6c6",
+      "cursor_bg": "#f4dbd6",
+      "cursor_border": "#f4dbd6",
+      "cursor_fg": "#181926",
+      "foreground": "#cad3f5",
+      "indexed": {
+        "16": "#f5a97f",
+        "17": "#f4dbd6"
+      },
+      "scrollbar_thumb": "#5b6078",
+      "selection_bg": "#5b6078",
+      "selection_fg": "#cad3f5",
+      "split": "#6e738d",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#5b6078",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#181926",
+        "inactive_tab": {
+          "bg_color": "#1e2030",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#575757",
+        "inactive_tab_edge_hover": "#363636",
+        "inactive_tab_hover": {
+          "bg_color": "#1e2030",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#24273a",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#1e2030",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#363a4f"
+    },
+    "metadata": {
+      "author": "Catppuccin Org",
+      "name": "Catppuccin Macchiato",
+      "origin_url": "https://github.com/catppuccin/wezterm",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#45475a",
+        "#f38ba8",
+        "#a6e3a1",
+        "#f9e2af",
+        "#89b4fa",
+        "#f5c2e7",
+        "#94e2d5",
+        "#bac2de"
+      ],
+      "background": "#1e1e2e",
+      "brights": [
+        "#585b70",
+        "#f38ba8",
+        "#a6e3a1",
+        "#f9e2af",
+        "#89b4fa",
+        "#f5c2e7",
+        "#94e2d5",
+        "#a6adc8"
+      ],
+      "compose_cursor": "#f2cdcd",
+      "cursor_bg": "#f5e0dc",
+      "cursor_border": "#f5e0dc",
+      "cursor_fg": "#11111b",
+      "foreground": "#cdd6f4",
+      "indexed": {
+        "16": "#fab387",
+        "17": "#f5e0dc"
+      },
+      "scrollbar_thumb": "#585b70",
+      "selection_bg": "#585b70",
+      "selection_fg": "#cdd6f4",
+      "split": "#6c7086",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#585b70",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#11111b",
+        "inactive_tab": {
+          "bg_color": "#181825",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#575757",
+        "inactive_tab_edge_hover": "#363636",
+        "inactive_tab_hover": {
+          "bg_color": "#181825",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#1e1e2e",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#181825",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#313244"
+    },
+    "metadata": {
+      "author": "Catppuccin Org",
+      "name": "Catppuccin Mocha",
+      "origin_url": "https://github.com/catppuccin/wezterm",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#aa0000",
         "#00aa00",
