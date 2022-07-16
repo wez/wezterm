@@ -1576,7 +1576,7 @@ impl TermWindow {
             },
             &tabs,
             &panes,
-            self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
+            self.config.resolved_palette.tab_bar.as_ref(),
             &self.config,
             &self.right_status,
         );
