@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Mux: `wezterm.mux.set_active_workspace` didn't update the current window to match the newly activated workspace. [#2248](https://github.com/wez/wezterm/issues/2248)
 * Overlays such as debug and launcher menu now handle resize better
 * Shift-F1 through F4 generated different encoding than xterm [#2263](https://github.com/wez/wezterm/issues/2263)
+* X11/Wayland: apps that extract the `Exec` field from wezterm.desktop (such as thunar, Dolphin and others) can now simply concatenate the command line they want to invoke, and it will spawn in the their current working directory. Thanks to [@Anomalocaridid](https://github.com/Anomalocaridid)! [#2271](https://github.com/wez/wezterm/pull/2271) [#2103](https://github.com/wez/wezterm/issues/2103) 
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
