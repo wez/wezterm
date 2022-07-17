@@ -661,9 +661,18 @@ impl KeyCode {
                             _ => unreachable!("wat?"),
                         }
                     )?;
+                } else if n < 5 {
+                    // Special case for F1-F4 with modifiers
+                    let code = match n {
+                        1 => 'P',
+                        2 => 'Q',
+                        3 => 'R',
+                        4 => 'S',
+                        _ => unreachable!("wat?"),
+                    };
+                    write!(buf, "\x1b[1;{}{code}", 1 + encode_modifiers(mods))?;
                 } else {
-                    // Higher numbered F-keys plus modified F-keys are encoded
-                    // using CSI instead of SS3.
+                    // Higher numbered F-keys using CSI instead of SS3.
                     let intro = match n {
                         1 => "\x1b[11",
                         2 => "\x1b[12",

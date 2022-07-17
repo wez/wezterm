@@ -51,6 +51,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Quickselect: now selects the bottom-most match rather than the top-most match. [#2250](https://github.com/wez/wezterm/issues/2250)
 * Mux: `wezterm.mux.set_active_workspace` didn't update the current window to match the newly activated workspace. [#2248](https://github.com/wez/wezterm/issues/2248)
 * Overlays such as debug and launcher menu now handle resize better
+* Shift-F1 through F4 generated different encoding than xterm [#2263](https://github.com/wez/wezterm/issues/2263)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
