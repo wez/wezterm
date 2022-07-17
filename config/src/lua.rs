@@ -197,8 +197,6 @@ end
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
-        wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
-        wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;
         wezterm_mod.set("shell_join_args", lua.create_function(shell_join_args)?)?;
         wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
         wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
@@ -225,18 +223,6 @@ fn shell_join_args<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<String
 
 fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
     Ok(shlex::quote(&arg).into_owned().to_string())
-}
-
-fn strftime_utc<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
-    use chrono::prelude::*;
-    let local: DateTime<Utc> = Utc::now();
-    Ok(local.format(&format).to_string())
-}
-
-fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
-    use chrono::prelude::*;
-    let local: DateTime<Local> = Local::now();
-    Ok(local.format(&format).to_string())
 }
 
 async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {

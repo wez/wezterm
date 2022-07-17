@@ -669,7 +669,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
- "chrono",
  "colorgrad",
  "dirs-next",
  "enum-display-derive",
@@ -1144,6 +1143,7 @@ dependencies = [
  "ssh-funcs",
  "termwiz",
  "termwiz-funcs",
+ "time-funcs",
  "winapi",
 ]
 
@@ -4139,6 +4139,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spa"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "188e0376df998cb9f953a6d4ceb8556fe9223d1f3386e5c0cdb69aab31d62f1b"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "spawn-funcs"
 version = "0.1.0"
 dependencies = [
@@ -4511,6 +4520,18 @@ dependencies = [
  "itoa",
  "libc",
  "num_threads",
+]
+
+[[package]]
+name = "time-funcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "config",
+ "luahelper",
+ "spa",
+ "wezterm-dynamic",
 ]
 
 [[package]]

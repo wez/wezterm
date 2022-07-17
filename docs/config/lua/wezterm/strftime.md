@@ -12,4 +12,5 @@ local date_and_time = wezterm.strftime("%Y-%m-%d %H:%M:%S");
 wezterm.log_info(date_and_time);
 ```
 
-See also [strftime_utc](strftime_utc.md).
+See also [strftime_utc](strftime_utc.md) and [wezterm.time](../wezterm.time/index.md).
+

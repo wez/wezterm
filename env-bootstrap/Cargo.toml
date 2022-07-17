@@ -27,6 +27,7 @@ json = { path = "../lua-api-crates/json" }
 share-data = { path = "../lua-api-crates/share-data" }
 ssh-funcs = { path = "../lua-api-crates/ssh-funcs" }
 spawn-funcs = { path = "../lua-api-crates/spawn-funcs" }
+time-funcs = { path = "../lua-api-crates/time-funcs" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.3"

@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.gui.screens()](config/lua/wezterm.gui/screens.md) function for getting information about the available screens/monitors/displays
 * [wezterm.gui.get_appearance()](config/lua/wezterm.gui/get_appearance.md) function for a simpler way to get system dark mode state
 * [wezterm.procinfo](config/lua/wezterm.procinfo/index.md) module for querying local process information.
+* [wezterm.time](config/lua/wezterm.time/index.md) module for working with time, including methods for determining sun rise/set.
 * You may now use [wezterm.format](config/lua/wezterm/format.md) (or otherwise use strings with escape sequences) in the labels of the [Launcher Menu](config/launch.md#the-launcher-menu).
 * You may now specify `assume_emoji_presentation = true` (or `false`) in [wezterm.font()](config/lua/wezterm/font.md) and [wezterm.font_with_fallback()](config/lua/wezterm/font_with_fallback.md)
 * Wayland: `zwp_text_input_v3` is now supported, which enables IME to work in wezterm if your compositor also implements this protocol.
