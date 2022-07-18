@@ -232,7 +232,7 @@ pub fn extract_colors_from_image<'lua>(
     let mut all_colors = vec![];
     for (pixel, _) in ordered_pixels {
         let channels = pixel.channels();
-        let color = csscolorparser::Color::from_rgb_u8(channels[0], channels[1], channels[2]);
+        let color = csscolorparser::Color::from_rgba8(channels[0], channels[1], channels[2], 255);
         let (l, a, b, _alpha) = color.to_lab();
         all_colors.push(LabValue {
             l: l as f32,
@@ -288,8 +288,7 @@ pub fn extract_colors_from_image<'lua>(
                 color.b.into(),
                 1.0,
             );
-            let (r, g, b, a) = color.rgba();
-            let tuple = SrgbaTuple(r as f32, g as f32, b as f32, a as f32);
+            let tuple = SrgbaTuple(color.r as f32, color.g as f32, color.b as f32, color.a as f32);
             ColorWrap(tuple.into())
         })
         .collect();

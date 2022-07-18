@@ -89,12 +89,13 @@ impl TerminalState {
                     // https://github.com/wez/wezterm/issues/775
                     let angle = (*hue_angle as f64) - 120.0;
                     let angle = if angle < 0. { 360.0 + angle } else { angle };
-                    let c = csscolorparser::Color::from_hsl(
+                    let c = csscolorparser::Color::from_hsla(
                         angle,
                         *saturation as f64 / 100.,
                         *lightness as f64 / 100.,
+                        1.,
                     );
-                    let (r, g, b, _) = c.rgba_u8();
+                    let [r, g, b, _] = c.to_rgba8();
                     color_map.insert(*color_number, RgbColor::new_8bpc(r, g, b));
                 }
 

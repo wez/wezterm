@@ -38,8 +38,7 @@ impl CachedGradient {
         let fh = height as f64;
 
         fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
-            let (r, g, b, a) = c.rgba_u8();
-            image::Rgba([r, g, b, a])
+            image::Rgba(c.to_rgba8())
         }
 
         // Map t which is in range [a, b] to range [c, d]
