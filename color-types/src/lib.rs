@@ -1,7 +1,7 @@
+use csscolorparser::Color;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use csscolorparser::Color;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
@@ -239,7 +239,12 @@ impl From<SrgbaTuple> for (f32, f32, f32, f32) {
 
 impl From<Color> for SrgbaTuple {
     fn from(color: Color) -> Self {
-        Self(color.r as f32, color.g as f32, color.b as f32, color.a as f32)
+        Self(
+            color.r as f32,
+            color.g as f32,
+            color.b as f32,
+            color.a as f32,
+        )
     }
 }
 
@@ -359,17 +364,15 @@ impl SrgbaTuple {
     }
 
     pub fn to_laba(self) -> (f64, f64, f64, f64) {
-        Color::new(self.0.into(), self.1.into(), self.2.into(), self.3.into())
-            .to_lab()
+        Color::new(self.0.into(), self.1.into(), self.2.into(), self.3.into()).to_lab()
     }
 
     pub fn to_hsla(self) -> (f64, f64, f64, f64) {
-        Color::new(self.0.into(), self.1.into(), self.2.into(), self.3.into())
-            .to_hsla()
+        Color::new(self.0.into(), self.1.into(), self.2.into(), self.3.into()).to_hsla()
     }
 
     pub fn from_hsla(h: f64, s: f64, l: f64, a: f64) -> Self {
-        let Color{r, g, b, a} = Color::from_hsla(h, s, l, a);
+        let Color { r, g, b, a } = Color::from_hsla(h, s, l, a);
         Self(r as f32, g as f32, b as f32, a as f32)
     }
 

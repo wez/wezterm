@@ -288,7 +288,12 @@ pub fn extract_colors_from_image<'lua>(
                 color.b.into(),
                 1.0,
             );
-            let tuple = SrgbaTuple(color.r as f32, color.g as f32, color.b as f32, color.a as f32);
+            let tuple = SrgbaTuple(
+                color.r as f32,
+                color.g as f32,
+                color.b as f32,
+                color.a as f32,
+            );
             ColorWrap(tuple.into())
         })
         .collect();
