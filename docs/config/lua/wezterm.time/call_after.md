@@ -18,7 +18,7 @@ it to the range 0-255 and using that to assign a background color:
 local wezterm = require 'wezterm'
 
 -- Reload the configuration every minute
-wezterm.time.call_after(60, function(window, pane)
+wezterm.time.call_after(60, function()
   wezterm.reload_configuration()
 end)
 
