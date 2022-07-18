@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use async_executor::Executor;
 use flume::{bounded, unbounded, Receiver, TryRecvError};
 use std::future::Future;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 
@@ -19,6 +20,8 @@ lazy_static::lazy_static! {
     static ref SCOPED_EXECUTOR: Mutex<Option<Arc<Executor<'static>>>> = Mutex::new(None);
 }
 
+static SCHEDULER_CONFIGURED: AtomicBool = AtomicBool::new(false);
+
 fn schedule_runnable(runnable: Runnable, high_pri: bool) {
     let func = if high_pri {
         ON_MAIN_THREAD.lock()
@@ -27,6 +30,10 @@ fn schedule_runnable(runnable: Runnable, high_pri: bool) {
     }
     .unwrap();
     func(runnable);
+}
+
+pub fn is_scheduler_configured() -> bool {
+    SCHEDULER_CONFIGURED.load(Ordering::Relaxed)
 }
 
 /// Set callbacks for scheduling normal and low priority futures.
@@ -39,6 +46,7 @@ fn schedule_runnable(runnable: Runnable, high_pri: bool) {
 pub fn set_schedulers(main: ScheduleFunc, low_pri: ScheduleFunc) {
     *ON_MAIN_THREAD.lock().unwrap() = Box::new(main);
     *ON_MAIN_THREAD_LOW_PRI.lock().unwrap() = Box::new(low_pri);
+    SCHEDULER_CONFIGURED.store(true, Ordering::Relaxed);
 }
 
 /// Spawn a new thread to execute the provided function.

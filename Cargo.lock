@@ -4529,7 +4529,10 @@ dependencies = [
  "anyhow",
  "chrono",
  "config",
+ "lazy_static",
  "luahelper",
+ "promise",
+ "smol",
  "spa",
  "wezterm-dynamic",
 ]

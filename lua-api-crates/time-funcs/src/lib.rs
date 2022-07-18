@@ -1,8 +1,121 @@
 use chrono::prelude::*;
 use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
-use config::lua::{get_or_create_module, get_or_create_sub_module};
+use config::lua::{emit_event, get_or_create_module, get_or_create_sub_module, wrap_callback};
+use config::ConfigSubscription;
+use std::rc::Rc;
+use std::sync::Mutex;
+
+lazy_static::lazy_static! {
+    static ref CONFIG_SUBSCRIPTION: Mutex<Option<ConfigSubscription>> = Mutex::new(None);
+}
+
+/// We contrive to call this from the main thread in response to the
+/// config being reloaded.
+/// It spawns a task for each of the timers that have been configured
+/// by the user via `wezterm.time.call_after`.
+fn schedule_all(lua: Option<Rc<mlua::Lua>>) -> mlua::Result<()> {
+    if let Some(lua) = lua {
+        let scheduled_events: Vec<ScheduledEvent> = lua.named_registry_value(SCHEDULED_EVENTS)?;
+        let generation = config::configuration().generation();
+        for event in scheduled_events {
+            event.schedule(generation);
+        }
+    }
+    Ok(())
+}
+
+/// Helper to schedule !Send futures to run with access to the lua
+/// config on the main thread
+fn schedule_trampoline() {
+    promise::spawn::spawn(async move {
+        config::with_lua_config_on_main_thread(|lua| async move {
+            schedule_all(lua)?;
+            Ok(())
+        })
+        .await
+    })
+    .detach();
+}
+
+/// Called by the config subsystem when the config is reloaded.
+/// We use it to schedule our setup function that will schedule
+/// the call_after functions from the main thread.
+pub fn config_was_reloaded() -> bool {
+    if promise::spawn::is_scheduler_configured() {
+        promise::spawn::spawn_into_main_thread(async move {
+            schedule_trampoline();
+        })
+        .detach();
+    }
+
+    true
+}
+
+/// Keeps track of `call_after` state
+#[derive(Debug, Clone)]
+struct ScheduledEvent {
+    /// The name of the registry entry that will resolve to
+    /// their callback function
+    user_event_id: String,
+    /// The delay after which to run their callback
+    interval_seconds: u64,
+}
+
+impl ScheduledEvent {
+    /// Schedule a task with the scheduler runtime.
+    /// Note that this will extend the lifetime of the lua context
+    /// until their timeout completes and their function is called.
+    /// That can lead to exponential growth in callbacks on each
+    /// config reload, which is undesirable!
+    /// To address that, we pass in the current configuration generation
+    /// at the time that we called schedule.
+    /// Later, after our interval has elapsed, if the generation
+    /// doesn't match the then-current generation we skip performing
+    /// the actual callback.
+    /// That means that for large intervals we may keep more memory
+    /// occupied, but we won't run the callback twice for the first
+    /// reload, or 4 times for the second and so on.
+    fn schedule(self, generation: usize) {
+        let event = self;
+        promise::spawn::spawn(async move {
+            config::with_lua_config_on_main_thread(move |lua| async move {
+                if let Some(lua) = lua {
+                    event.run(&lua, generation).await?;
+                }
+                Ok(())
+            })
+            .await
+        })
+        .detach();
+    }
+
+    async fn run(self, lua: &Lua, generation: usize) -> mlua::Result<()> {
+        let duration = std::time::Duration::from_secs(self.interval_seconds);
+        smol::Timer::after(duration).await;
+        // Skip doing anything of consequence if the generation has
+        // changed.
+        if config::configuration().generation() == generation {
+            let args = lua.pack_multi(())?;
+            emit_event(&lua, (self.user_event_id, args)).await?;
+        }
+        Ok(())
+    }
+}
+
+impl UserData for ScheduledEvent {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(_methods: &mut M) {}
+}
+
+const SCHEDULED_EVENTS: &str = "wezterm-scheduled-events";
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
+    {
+        let mut sub = CONFIG_SUBSCRIPTION.lock().unwrap();
+        if sub.is_none() {
+            sub.replace(config::subscribe_to_config_reload(config_was_reloaded));
+        }
+    }
+    lua.set_named_registry_value(SCHEDULED_EVENTS, Vec::<ScheduledEvent>::new())?;
     let time_mod = get_or_create_sub_module(lua, "time")?;
 
     time_mod.set(
@@ -30,8 +143,24 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
+    time_mod.set(
+        "call_after",
+        lua.create_function(|lua, (interval_seconds, func): (u64, mlua::Function)| {
+            let user_event_id = wrap_callback(lua, func)?;
+            let mut scheduled_events: Vec<ScheduledEvent> =
+                lua.named_registry_value(SCHEDULED_EVENTS)?;
+            scheduled_events.push(ScheduledEvent {
+                user_event_id,
+                interval_seconds,
+            });
+            lua.set_named_registry_value(SCHEDULED_EVENTS, scheduled_events)?;
+            Ok(())
+        })?,
+    )?;
+
     // For backwards compatibility
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
     wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
     wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;
     Ok(())
@@ -45,6 +174,12 @@ fn strftime_utc<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
 fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
     let local: DateTime<Local> = Local::now();
     Ok(local.format(&format).to_string())
+}
+
+async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
+    let duration = std::time::Duration::from_millis(milliseconds);
+    smol::Timer::after(duration).await;
+    Ok(())
 }
 
 #[derive(Clone, Debug)]

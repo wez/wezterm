@@ -153,6 +153,13 @@ end
         .set_name("=searcher")?
         .eval()?;
 
+        wezterm_mod.set(
+            "reload_configuration",
+            lua.create_function(|_, _: ()| {
+                crate::reload();
+                Ok(())
+            })?,
+        )?;
         wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",
@@ -196,7 +203,6 @@ end
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
-        wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
         wezterm_mod.set("shell_join_args", lua.create_function(shell_join_args)?)?;
         wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
         wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
@@ -223,12 +229,6 @@ fn shell_join_args<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<String
 
 fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
     Ok(shlex::quote(&arg).into_owned().to_string())
-}
-
-async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
-    let duration = std::time::Duration::from_millis(milliseconds);
-    smol::Timer::after(duration).await;
-    Ok(())
 }
 
 /// Returns the system hostname.
@@ -454,11 +454,16 @@ fn font_with_fallback<'lua>(
     Ok(text_style)
 }
 
-fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {
+pub fn wrap_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<String> {
     let callback_count: i32 = lua.named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT)?;
     let user_event_id = format!("user-defined-{}", callback_count);
     lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, callback_count + 1)?;
     register_event(lua, (user_event_id.clone(), callback))?;
+    Ok(user_event_id)
+}
+
+fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {
+    let user_event_id = wrap_callback(lua, callback)?;
     Ok(KeyAssignment::EmitEvent(user_event_id))
 }
 
@@ -528,7 +533,7 @@ fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<Strin
 ///
 /// wezterm.emit("event-name", "foo", "bar");
 /// ```
-fn register_event<'lua>(
+pub fn register_event<'lua>(
     lua: &'lua Lua,
     (name, func): (String, mlua::Function),
 ) -> mlua::Result<()> {
