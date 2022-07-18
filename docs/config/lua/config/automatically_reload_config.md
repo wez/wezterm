@@ -11,6 +11,6 @@ For example, to disable auto config reload:
 
 ```lua
 return {
-  automatically_reload_config = false
+  automatically_reload_config = false,
 }
 ```

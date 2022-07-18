@@ -14,8 +14,8 @@ subpixel-antialiased glyph bitmaps:
 
 ```lua
 return {
-  freetype_load_target = "Light",
-  freetype_render_target = "HorizontalLcd",
+  freetype_load_target = 'Light',
+  freetype_render_target = 'HorizontalLcd',
 }
 ```
 

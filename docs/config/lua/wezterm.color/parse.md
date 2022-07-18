@@ -19,14 +19,14 @@ darkens it to use it as a background color:
 ```lua
 local wezterm = require 'wezterm'
 
-local fg = wezterm.color.parse("yellow")
+local fg = wezterm.color.parse 'yellow'
 local bg = fg:complement_ryb():darken(0.2)
 
 return {
   colors = {
     foreground = fg,
     background = bg,
-  }
+  },
 }
 ```
 

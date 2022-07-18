@@ -15,15 +15,27 @@ local act = wezterm.action
 
 return {
   keys = {
-    { key = "LeftArrow", mods="CTRL|SHIFT",
-      action=act.ActivatePaneDirection("Left")},
-    { key = "RightArrow", mods="CTRL|SHIFT",
-      action=act.ActivatePaneDirection("Right")},
-    { key = "UpArrow", mods="CTRL|SHIFT",
-      action=act.ActivatePaneDirection("Up")},
-    { key = "DownArrow", mods="CTRL|SHIFT",
-      action=act.ActivatePaneDirection("Down")},
-  }
+    {
+      key = 'LeftArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.ActivatePaneDirection 'Left',
+    },
+    {
+      key = 'RightArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.ActivatePaneDirection 'Right',
+    },
+    {
+      key = 'UpArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.ActivatePaneDirection 'Up',
+    },
+    {
+      key = 'DownArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.ActivatePaneDirection 'Down',
+    },
+  },
 }
 ```
 

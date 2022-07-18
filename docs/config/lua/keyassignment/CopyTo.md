@@ -13,8 +13,12 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="C", mods="CTRL", action=wezterm.action.CopyTo("ClipboardAndPrimarySelection")},
-  }
+    {
+      key = 'C',
+      mods = 'CTRL',
+      action = wezterm.action.CopyTo 'ClipboardAndPrimarySelection',
+    },
+  },
 }
 ```
 

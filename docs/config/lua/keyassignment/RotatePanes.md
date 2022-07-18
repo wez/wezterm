@@ -43,8 +43,12 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="b", mods="CTRL", action=act.RotatePanes("CounterClockwise")},
-    {key="n", mods="CTRL", action=act.RotatePanes("Clockwise")},
+    {
+      key = 'b',
+      mods = 'CTRL',
+      action = act.RotatePanes 'CounterClockwise',
+    },
+    { key = 'n', mods = 'CTRL', action = act.RotatePanes 'Clockwise' },
   },
 }
 ```

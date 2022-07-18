@@ -9,7 +9,7 @@ windows every time.
 
 ```lua
 return {
-  window_close_confirmation = "AlwaysPrompt",
+  window_close_confirmation = 'AlwaysPrompt',
 }
 ```
 

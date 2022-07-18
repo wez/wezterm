@@ -16,6 +16,6 @@ printf "\033]1337;SetUserVar=%s=%s\007" foo `echo -n bar | base64`
 you're then able to access this in your wezterm config:
 
 ```lua
-wezterm.log_info("foo var is " .. pane:get_user_vars().foo)
+wezterm.log_info('foo var is ' .. pane:get_user_vars().foo)
 ```
 

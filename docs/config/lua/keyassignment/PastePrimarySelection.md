@@ -16,17 +16,17 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="v", mods="SHIFT|CTRL", action=act.PastePrimarySelection},
+    { key = 'v', mods = 'SHIFT|CTRL', action = act.PastePrimarySelection },
   },
 
   -- Middle mouse button pastes the primary selection.
   mouse_bindings = {
     {
-      event={Up={streak=1, button="Middle"}},
-      mods="NONE",
-      action=act.PastePrimarySelection,
+      event = { Up = { streak = 1, button = 'Middle' } },
+      mods = 'NONE',
+      action = act.PastePrimarySelection,
     },
-  }
+  },
 }
 ```
 

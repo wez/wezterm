@@ -4,10 +4,10 @@ This function constructs a lua table that corresponds to the internal `FontAttri
 struct that is used to select a single named font:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font("JetBrains Mono"),
+  font = wezterm.font 'JetBrains Mono',
 }
 ```
 
@@ -27,10 +27,10 @@ following keys are allowed:
 When attributes are specified, the font must match both the family name and attributes in order to be selected.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font("JetBrains Mono", {bold=true}),
+  font = wezterm.font('JetBrains Mono', { bold = true }),
 }
 ```
 
@@ -51,10 +51,13 @@ attributes, but allows for locating a close match within the specified font
 family.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"}),
+  font = wezterm.font(
+    'Iosevka Term',
+    { stretch = 'Expanded', weight = 'Regular' }
+  ),
 }
 ```
 
@@ -64,10 +67,14 @@ are combined in the same lua table.  This form is most useful when used together
 weights for the different fallback fonts:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font({family='Iosevka Term', stretch="Expanded", weight="Regular"}),
+  font = wezterm.font {
+    family = 'Iosevka Term',
+    stretch = 'Expanded',
+    weight = 'Regular',
+  },
 }
 ```
 
@@ -80,10 +87,10 @@ default ligature feature just for this particular font:
 ```lua
 local wezterm = require 'wezterm'
 return {
-  font = wezterm.font({
-    family="JetBrains Mono",
-    harfbuzz_features={"calt=0", "clig=0", "liga=0"},
-  })
+  font = wezterm.font {
+    family = 'JetBrains Mono',
+    harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
+  },
 }
 ```
 

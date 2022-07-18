@@ -8,8 +8,8 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="l", mods="ALT", action=wezterm.action.ShowLauncher},
-  }
+    { key = 'l', mods = 'ALT', action = wezterm.action.ShowLauncher },
+  },
 }
 ```
 

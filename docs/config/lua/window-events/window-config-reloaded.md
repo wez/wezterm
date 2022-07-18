@@ -26,10 +26,10 @@ The second event parameter is a [`pane` object](../pane/index.md) that
 represents the active pane in that window.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-wezterm.on("window-config-reloaded", function(window, pane)
-  wezterm.log_info("the config was reloaded for this window!");
+wezterm.on('window-config-reloaded', function(window, pane)
+  wezterm.log_info 'the config was reloaded for this window!'
 end)
 ```
 

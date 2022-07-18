@@ -7,9 +7,13 @@ Linux but there will be some slight differences in system behavior (such as
 filesystem capabilities) that you may wish to probe for in the configuration.
 
 ```lua
-local wezterm = require 'wezterm';
-wezterm.log_error("System " .. wezterm.target_triple .. " " ..
-  tostring(wezterm.running_under_wsl()))
+local wezterm = require 'wezterm'
+wezterm.log_error(
+  'System '
+    .. wezterm.target_triple
+    .. ' '
+    .. tostring(wezterm.running_under_wsl())
+)
 ```
 
 

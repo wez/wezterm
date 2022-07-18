@@ -16,7 +16,7 @@ to set this config to treat `130` as OK:
 
 ```lua
 return {
-  clean_exit_codes = {130},
+  clean_exit_codes = { 130 },
 }
 ```
 

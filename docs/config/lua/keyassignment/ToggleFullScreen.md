@@ -7,8 +7,12 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="n", mods="SHIFT|CTRL", action=wezterm.action.ToggleFullScreen},
-  }
+    {
+      key = 'n',
+      mods = 'SHIFT|CTRL',
+      action = wezterm.action.ToggleFullScreen,
+    },
+  },
 }
 ```
 

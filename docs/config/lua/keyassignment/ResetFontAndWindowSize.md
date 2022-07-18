@@ -10,8 +10,12 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="0", mods="CTRL", action=wezterm.action.ResetFontAndWindowSize},
-  }
+    {
+      key = '0',
+      mods = 'CTRL',
+      action = wezterm.action.ResetFontAndWindowSize,
+    },
+  },
 }
 ```
 

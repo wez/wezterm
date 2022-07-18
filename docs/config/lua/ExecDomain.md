@@ -83,7 +83,7 @@ local wezterm = require 'wezterm'
 -- Given "/foo/bar" returns "bar"
 -- Given "c:\\foo\\bar" returns "bar"
 local function basename(s)
-  return string.gsub(s, "(.*[/\\])(.*)", "%2")
+  return string.gsub(s, '(.*[/\\])(.*)', '%2')
 end
 
 return {
@@ -93,7 +93,7 @@ return {
     -- This defines a strong boundary for resource control and can
     -- help to avoid OOMs in one pane causing other panes to be
     -- killed.
-    wezterm.exec_domain("scoped", function(cmd)
+    wezterm.exec_domain('scoped', function(cmd)
       -- The "cmd" parameter is a SpawnCommand object.
       -- You can log it to see what's inside:
       wezterm.log_info(cmd)
@@ -104,7 +104,10 @@ return {
       -- WEZTERM_UNIX_SOCKET is associated with the wezterm
       -- process id.
       local env = cmd.set_environment_variables
-      local ident = "wezterm-pane-" .. env.WEZTERM_PANE .. "-on-" .. basename(env.WEZTERM_UNIX_SOCKET)
+      local ident = 'wezterm-pane-'
+        .. env.WEZTERM_PANE
+        .. '-on-'
+        .. basename(env.WEZTERM_UNIX_SOCKET)
 
       -- Generate a new argument array that will launch a
       -- program via systemd-run
@@ -122,7 +125,7 @@ return {
       -- Note that cmd.args may be nil; that indicates that the
       -- default program should be used. Here we're using the
       -- shell defined by the SHELL environment variable.
-      for _, arg in ipairs(cmd.args or {os.getenv("SHELL")}) do
+      for _, arg in ipairs(cmd.args or { os.getenv 'SHELL' }) do
         table.insert(wrapped, arg)
       end
 
@@ -136,7 +139,7 @@ return {
 
   -- Making the domain the default means that every pane/tab/window
   -- spawned by wezterm will have its own scope
-  default_domain = "scoped",
+  default_domain = 'scoped',
 }
 ```
 
@@ -156,11 +159,11 @@ end
 
 function make_docker_fixup_func(id)
   return function(cmd)
-    cmd.args = cmd.args or {"/bin/bash"}
+    cmd.args = cmd.args or { '/bin/bash' }
     local wrapped = {
-      "docker",
-      "exec",
-      "-it",
+      'docker',
+      'exec',
+      '-it',
       id,
     }
     for _, arg in ipairs(cmd.args) do
@@ -178,17 +181,19 @@ function make_docker_label_func(id)
     -- whether it is running or stopped.
     -- If it stopped, you may wish to change the color to red
     -- to make it stand out
-    return wezterm.format{
-      {Foreground={AnsiColor="Red"}},
-      {Text="docker container named " .. name}
+    return wezterm.format {
+      { Foreground = { AnsiColor = 'Red' } },
+      { Text = 'docker container named ' .. name },
     }
   end
 end
 
 local exec_domains = {}
 for id, name in pairs(docker_list()) do
-  table.insert(exec_domains,
-    wezterm.exec_domain("docker: " .. name,
+  table.insert(
+    exec_domains,
+    wezterm.exec_domain(
+      'docker: ' .. name,
       make_docker_fixup_func(id),
       make_docker_label_func(id)
     )
@@ -196,7 +201,7 @@ for id, name in pairs(docker_list()) do
 end
 
 return {
-  exec_domains = exec_domains
+  exec_domains = exec_domains,
 }
 ```
 

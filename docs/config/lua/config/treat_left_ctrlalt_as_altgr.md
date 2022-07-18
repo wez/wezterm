@@ -12,6 +12,6 @@ bindings using separate Ctrl and Alt won't be triggered anymore.
 
 ```lua
 return {
-  treat_left_ctrlalt_as_altgr = true
+  treat_left_ctrlalt_as_altgr = true,
 }
 ```

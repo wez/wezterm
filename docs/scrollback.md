@@ -103,18 +103,30 @@ local act = wezterm.action
 return {
   key_tables = {
     search_mode = {
-      {key="Escape", mods="NONE", action=act.CopyMode("Close")},
-      {key="UpArrow", mods="NONE", action=act.CopyMode("PriorMatch")},
-      {key="Enter", mods="NONE", action=act.CopyMode("PriorMatch")},
-      {key="p", mods="CTRL", action=act.CopyMode("PriorMatch")},
-      {key="PageUp", mods="NONE", action=act.CopyMode("PriorMatchPage")},
-      {key="PageDown", mods="NONE", action=act.CopyMode("NextMatchPage")},
-      {key="n", mods="CTRL", action=act.CopyMode("NextMatchPage")},
-      {key="DownArrow", mods="NONE", action=act.CopyMode("NextMatch")},
-      {key="r", mods="CTRL", action=act.CopyMode("CycleMatchType")},
-      {key="u", mods="CTRL", action=act.CopyMode("ClearPattern")},
-    }
-  }
+      { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
+      { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
+      { key = 'Enter', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
+      { key = 'p', mods = 'CTRL', action = act.CopyMode 'PriorMatch' },
+      {
+        key = 'PageUp',
+        mods = 'NONE',
+        action = act.CopyMode 'PriorMatchPage',
+      },
+      {
+        key = 'PageDown',
+        mods = 'NONE',
+        action = act.CopyMode 'NextMatchPage',
+      },
+      { key = 'n', mods = 'CTRL', action = act.CopyMode 'NextMatchPage' },
+      {
+        key = 'DownArrow',
+        mods = 'NONE',
+        action = act.CopyMode 'NextMatch',
+      },
+      { key = 'r', mods = 'CTRL', action = act.CopyMode 'CycleMatchType' },
+      { key = 'u', mods = 'CTRL', action = act.CopyMode 'ClearPattern' },
+    },
+  },
 }
 ```
 
@@ -132,11 +144,15 @@ for your mouse to copy and paste a relevant git commit hash then you might like
 this:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
   keys = {
     -- search for things that look like git hashes
-    {key="H", mods="SHIFT|CTRL", action=wezterm.action.Search{Regex="[a-f0-9]{6,}"}},
+    {
+      key = 'H',
+      mods = 'SHIFT|CTRL',
+      action = wezterm.action.Search { Regex = '[a-f0-9]{6,}' },
+    },
   },
 }
 ```

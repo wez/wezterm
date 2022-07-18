@@ -7,7 +7,7 @@ Spawns a program into a new tab within this window, returning the
 [MuxWindow](index.md) objects associated with it:
 
 ```lua
-local tab, pane, window = window:spawn_tab{}
+local tab, pane, window = window:spawn_tab {}
 ```
 
 When no arguments are passed, the default program is spawned.
@@ -20,7 +20,7 @@ Specifies the argument array for the command that should be spawned.
 If omitted the default program for the domain will be spawned.
 
 ```lua
-window:spawn_tab{args={"top"}}
+window:spawn_tab { args = { 'top' } }
 ```
 
 ### cwd
@@ -31,7 +31,7 @@ the program.
 If unspecified, follows the rules from [default_cwd](../config/default_cwd.md)
 
 ```lua
-window:spawn_tab{cwd="/tmp"}
+window:spawn_tab { cwd = '/tmp' }
 ```
 
 ### set_environment_variables
@@ -53,7 +53,7 @@ You may specify the name of one of the multiplexer domains
 defined in your configuration using the following:
 
 ```lua
-window:spawn_tab{domain={DomainName="my.name"}}
+window:spawn_tab { domain = { DomainName = 'my.name' } }
 ```
 
 

@@ -26,9 +26,9 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="UpArrow", mods="SHIFT", action=act.ScrollToPrompt(-1)},
-    {key="DownArrow", mods="SHIFT", action=act.ScrollToPrompt(1)},
-  }
+    { key = 'UpArrow', mods = 'SHIFT', action = act.ScrollToPrompt(-1) },
+    { key = 'DownArrow', mods = 'SHIFT', action = act.ScrollToPrompt(1) },
+  },
 }
 ```
 

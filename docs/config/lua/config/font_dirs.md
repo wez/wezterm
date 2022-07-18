@@ -11,7 +11,7 @@ return {
   -- `fonts` that is found alongside your `wezterm.lua` file.
   -- As this option is an array, you may list multiple locations if
   -- you wish.
-  font_dirs = {"fonts"},
+  font_dirs = { 'fonts' },
 }
 ```
 

@@ -16,15 +16,15 @@ the Material Design Icons glyph representing a clock, and use
 that together with the current date/time in the status area:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-wezterm.on("update-right-status", function(window, pane)
+wezterm.on('update-right-status', function(window, pane)
   -- "Wed Mar 3 08:14"
-  local date = wezterm.strftime("%a %b %-d %H:%M ");
+  local date = wezterm.strftime '%a %b %-d %H:%M '
 
-  window:set_right_status(wezterm.format({
-    {Text=wezterm.nerdfonts.mdi_clock .. " "..date},
-  }));
+  window:set_right_status(wezterm.format {
+    { Text = wezterm.nerdfonts.mdi_clock .. ' ' .. date },
+  })
 end)
 ```
 

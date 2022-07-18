@@ -10,8 +10,8 @@ than another; the first component is the date on which the release was made,
 the second component is the time and the final component is a git hash.
 
 ```lua
-local wezterm = require 'wezterm';
-wezterm.log_error("Version " .. wezterm.version)
+local wezterm = require 'wezterm'
+wezterm.log_error('Version ' .. wezterm.version)
 ```
 
 

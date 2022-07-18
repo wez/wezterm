@@ -78,8 +78,7 @@ degree of flexibility.   The script is expected to return a configuration
 table, so a basic empty configuration file will look like this:
 
 ```lua
-return {
-}
+return {}
 ```
 
 Throughout these docs you'll find configuration fragments that demonstrate
@@ -87,16 +86,16 @@ configuration and that look something like this:
 
 ```lua
 return {
-  color_scheme = "Batman",
+  color_scheme = 'Batman',
 }
 ```
 
 and perhaps another one like this:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
-  font = wezterm.font("JetBrains Mono"),
+  font = wezterm.font 'JetBrains Mono',
 }
 ```
 
@@ -104,10 +103,10 @@ If you wanted to use both of these in the same file, you would merge them togeth
 like this:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
-  font = wezterm.font("JetBrains Mono"),
-  color_scheme = "Batman",
+  font = wezterm.font 'JetBrains Mono',
+  color_scheme = 'Batman',
 }
 ```
 

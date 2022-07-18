@@ -93,14 +93,14 @@ You can resolve this by explicitly adding fallback font(s) the have the glyphs
 that you need in your `.wezterm.lua`:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font_with_fallback({
-    "My Preferred Font",
+  font = wezterm.font_with_fallback {
+    'My Preferred Font',
     -- This font has a broader selection of Chinese glyphs than my preferred font
-    "DengXian"
-  })
+    'DengXian',
+  },
 }
 ```
 

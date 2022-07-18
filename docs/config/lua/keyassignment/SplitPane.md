@@ -17,12 +17,16 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key="%", mods="CTRL|SHIFT|ALT", action=wezterm.action.SplitPane{
-      direction="Left",
-      command={args={"top"}},
-      size={Percent=50},
-    }},
-  }
+    {
+      key = '%',
+      mods = 'CTRL|SHIFT|ALT',
+      action = wezterm.action.SplitPane {
+        direction = 'Left',
+        command = { args = { 'top' } },
+        size = { Percent = 50 },
+      },
+    },
+  },
 }
 ```
 

@@ -23,19 +23,20 @@ local wezterm = require 'wezterm'
 -- Given "/foo/bar" returns "bar"
 -- Given "c:\\foo\\bar" returns "bar"
 function basename(s)
-  return string.gsub(s, "(.*[/\\])(.*)", "%2")
+  return string.gsub(s, '(.*[/\\])(.*)', '%2')
 end
 
-wezterm.on("update-right-status", function(window, pane)
+wezterm.on('update-right-status', function(window, pane)
   local info = pane:get_foreground_process_info()
   if info then
-    window:set_right_status(tostring(info.pid) .. " " .. basename(info.executable))
+    window:set_right_status(
+      tostring(info.pid) .. ' ' .. basename(info.executable)
+    )
   else
-    window:set_right_status("")
+    window:set_right_status ''
   end
 end)
 
-return {
-}
+return {}
 ```
 

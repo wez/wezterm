@@ -8,11 +8,11 @@ must be able to be represented as UTF-8 or this function will generate an
 error.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 -- logs the names of all of the entries under `/etc`
-for _, v in ipairs(wezterm.read_dir("/etc")) do
-  wezterm.log_error("entry: " .. v)
+for _, v in ipairs(wezterm.read_dir '/etc') do
+  wezterm.log_error('entry: ' .. v)
 end
 ```
 

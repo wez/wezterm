@@ -14,7 +14,7 @@ particular host, then you might consider using this configuration:
 
 ```lua
 return {
-  default_gui_startup_args = {"ssh", "some-host"},
+  default_gui_startup_args = { 'ssh', 'some-host' },
 }
 ```
 

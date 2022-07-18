@@ -24,7 +24,7 @@ Available flags are:
 return {
   -- You probably don't want to do this, but this demonstrates
   -- that the flags can be combined
-  freetype_load_flags = "NO_HINTING|MONOCHROME"
+  freetype_load_flags = 'NO_HINTING|MONOCHROME',
 }
 ```
 

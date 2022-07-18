@@ -9,16 +9,16 @@ the scope of the selection.
 The mode argument can also be `"Block"` to enable a rectangular block selection.
 
 ```lua
-local wezterm = require "wezterm"
+local wezterm = require 'wezterm'
 
 return {
   mouse_bindings = {
     {
-      event={Up={streak=1, button="Left"}},
-      mods="SHIFT",
-      action=wezterm.action.ExtendSelectionToMouseCursor("Word"),
+      event = { Up = { streak = 1, button = 'Left' } },
+      mods = 'SHIFT',
+      action = wezterm.action.ExtendSelectionToMouseCursor 'Word',
     },
-  }
+  },
 }
 ```
 

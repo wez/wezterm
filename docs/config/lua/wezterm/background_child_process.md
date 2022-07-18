@@ -18,15 +18,19 @@ the terminal background image in a separate image viewer process:
 local wezterm = require 'wezterm'
 
 return {
-  window_background_image = "/home/wez/Downloads/sunset-american-fork-canyon.jpg",
+  window_background_image = '/home/wez/Downloads/sunset-american-fork-canyon.jpg',
   keys = {
-    {mods="CTRL|SHIFT", key="m",
-      action=wezterm.action_callback(function(win, pane)
-        wezterm.background_child_process(
-            {"xdg-open", win:effective_config().window_background_image})
-      end)
-    }
-  }
+    {
+      mods = 'CTRL|SHIFT',
+      key = 'm',
+      action = wezterm.action_callback(function(win, pane)
+        wezterm.background_child_process {
+          'xdg-open',
+          win:effective_config().window_background_image,
+        }
+      end),
+    },
+  },
 }
 ```
 

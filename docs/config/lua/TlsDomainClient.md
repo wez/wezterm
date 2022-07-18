@@ -79,11 +79,11 @@ user. This option only applies when `multiplexing = "WezTerm"`.
 return {
   tls_domains = {
     {
-      name = "server,name",
-      bootstrap_via_ssh = "server.hostname",
-      remote_address = "server.hostname:8080",
+      name = 'server,name',
+      bootstrap_via_ssh = 'server.hostname',
+      remote_address = 'server.hostname:8080',
       local_echo_threshold_ms = 10,
-    }
+    },
   },
 }
 ```

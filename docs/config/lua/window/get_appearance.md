@@ -23,14 +23,14 @@ automatically adjust to the current appearance:
 local wezterm = require 'wezterm'
 
 function scheme_for_appearance(appearance)
-  if appearance:find("Dark") then
-    return "Builtin Solarized Dark"
+  if appearance:find 'Dark' then
+    return 'Builtin Solarized Dark'
   else
-    return "Builtin Solarized Light"
+    return 'Builtin Solarized Light'
   end
 end
 
-wezterm.on("window-config-reloaded", function(window, pane)
+wezterm.on('window-config-reloaded', function(window, pane)
   local overrides = window:get_config_overrides() or {}
   local appearance = window:get_appearance()
   local scheme = scheme_for_appearance(appearance)
@@ -40,8 +40,7 @@ wezterm.on("window-config-reloaded", function(window, pane)
   end
 end)
 
-return {
-}
+return {}
 ```
 
 ### Wayland GNOME Appearance
@@ -63,25 +62,28 @@ following function, which takes advantage of this:
 
 ```lua
 function query_appearance_gnome()
-  local success, stdout = wezterm.run_child_process(
-    {"gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"}
-  )
+  local success, stdout = wezterm.run_child_process {
+    'gsettings',
+    'get',
+    'org.gnome.desktop.interface',
+    'gtk-theme',
+  }
   -- lowercase and remove whitespace
-  stdout = stdout:lower():gsub("%s+", "")
+  stdout = stdout:lower():gsub('%s+', '')
   local mapping = {
-     highcontrast = "LightHighContrast",
-     highcontrastinverse = "DarkHighContrast",
-     adwaita = "Light",
-     ["adwaita-dark"] = "Dark"
+    highcontrast = 'LightHighContrast',
+    highcontrastinverse = 'DarkHighContrast',
+    adwaita = 'Light',
+    ['adwaita-dark'] = 'Dark',
   }
   local appearance = mapping[stdout]
   if appearance then
-     return appearance
+    return appearance
   end
-  if stdout:find("dark") then
-     return "Dark"
+  if stdout:find 'dark' then
+    return 'Dark'
   end
-  return "Light"
+  return 'Light'
 end
 ```
 
@@ -94,14 +96,14 @@ will essentially poll for the appearance periodically:
 local wezterm = require 'wezterm'
 
 function scheme_for_appearance(appearance)
-  if appearance:find("Dark") then
-    return "Builtin Solarized Dark"
+  if appearance:find 'Dark' then
+    return 'Builtin Solarized Dark'
   else
-    return "Builtin Solarized Light"
+    return 'Builtin Solarized Light'
   end
 end
 
-wezterm.on("update-right-status", function(window, pane)
+wezterm.on('update-right-status', function(window, pane)
   local overrides = window:get_config_overrides() or {}
   local appearance = query_appearance_gnome()
   local scheme = scheme_for_appearance(appearance)
@@ -111,6 +113,5 @@ wezterm.on("update-right-status", function(window, pane)
   end
 end)
 
-return {
-}
+return {}
 ```

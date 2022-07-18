@@ -21,20 +21,19 @@ for name, scheme in pairs(wezterm.get_builtin_color_schemes()) do
   table.insert(schemes, name)
 end
 
-wezterm.on("window-config-reloaded", function(window, pane)
+wezterm.on('window-config-reloaded', function(window, pane)
   -- If there are no overrides, this is our first time seeing
   -- this window, so we can pick a random scheme.
   if not window:get_config_overrides() then
     -- Pick a random scheme name
     local scheme = schemes[math.random(#schemes)]
-    window:set_config_overrides({
-      color_scheme = scheme
-    })
+    window:set_config_overrides {
+      color_scheme = scheme,
+    }
   end
 end)
 
-return {
-}
+return {}
 ```
 
 This example shows how to take an existing scheme, modify a color, and
@@ -43,19 +42,19 @@ then use that new scheme to override the default:
 ```lua
 local wezterm = require 'wezterm'
 
-local scheme = wezterm.get_builtin_color_schemes()["Gruvbox Light"]
-scheme.background = "red"
+local scheme = wezterm.get_builtin_color_schemes()['Gruvbox Light']
+scheme.background = 'red'
 
 return {
   color_schemes = {
     -- Override the builtin Gruvbox Light scheme with our modification.
-    ["Gruvbox Light"] = scheme,
+    ['Gruvbox Light'] = scheme,
 
     -- We can also give it a different name if we don't want to override
     -- the default
-    ["Gruvbox Red"] = scheme,
+    ['Gruvbox Red'] = scheme,
   },
-  color_scheme = "Gruvbox Light",
+  color_scheme = 'Gruvbox Light',
 }
 ```
 
@@ -88,21 +87,20 @@ end
 
 local dark = dark_schemes()
 
-wezterm.on("window-config-reloaded", function(window, pane)
+wezterm.on('window-config-reloaded', function(window, pane)
   -- If there are no overrides, this is our first time seeing
   -- this window, so we can pick a random scheme.
   if not window:get_config_overrides() then
     -- Pick a random scheme name
 
     local scheme = dark[math.random(#dark)]
-    window:set_config_overrides({
-      color_scheme = scheme
-    })
+    window:set_config_overrides {
+      color_scheme = scheme,
+    }
   end
 end)
 
-return {
-}
+return {}
 ```
 
 *Since: nightly builds only*

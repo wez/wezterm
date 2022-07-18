@@ -12,8 +12,8 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     -- Turn off any side effects from pressing CMD-m
-    {key="m", mods="CMD", action=wezterm.action.Nop},
-  }
+    { key = 'm', mods = 'CMD', action = wezterm.action.Nop },
+  },
 }
 ```
 

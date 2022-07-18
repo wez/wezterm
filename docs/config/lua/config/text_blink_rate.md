@@ -10,7 +10,7 @@ interval specified with some degree of slop.
 
 ```lua
 return {
-  text_blink_rate = 500
+  text_blink_rate = 500,
 }
 ```
 

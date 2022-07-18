@@ -13,12 +13,15 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="LeftArrow", action=act.Multiple{
-      act.SendKey{key="l"},
-      act.SendKey{key="e"},
-      act.SendKey{key="f"},
-      act.SendKey{key="t"}
-    }}
-  }
+    {
+      key = 'LeftArrow',
+      action = act.Multiple {
+        act.SendKey { key = 'l' },
+        act.SendKey { key = 'e' },
+        act.SendKey { key = 'f' },
+        act.SendKey { key = 't' },
+      },
+    },
+  },
 }
 ```

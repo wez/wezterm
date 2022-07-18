@@ -26,7 +26,7 @@ You can control IME preedit rendering in your configuraiton file:
 
 ```lua
 return {
-  ime_preedit_rendering = "System",
+  ime_preedit_rendering = 'System',
 }
 ```
 

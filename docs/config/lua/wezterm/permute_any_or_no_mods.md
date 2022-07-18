@@ -18,15 +18,15 @@ An array holding all of those combinations is returned.
 If this is your only binding, or it is the _last_ binding, the resulting array can be unpacked into a lua table initializer and used like this:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
   mouse_bindings = {
-    table.unpack(wezterm.permute_any_or_no_mods({
-      event={Down={streak=1, button="Middle"}},
-      action="PastePrimarySelection"
-    }))
-  }
+    table.unpack(wezterm.permute_any_or_no_mods {
+      event = { Down = { streak = 1, button = 'Middle' } },
+      action = 'PastePrimarySelection',
+    }),
+  },
 }
 ```
 (and if you have other bindings before and/or after, use a for loop to iterate and add each binding to your bindings table)
@@ -36,166 +36,166 @@ This is equivalent to writing this out, but is much less verbose:
 ```lua
 return {
   mouse_bindings = {
-        {
-            action= "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "NONE",
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SUPER",
+      },
+      mods = 'NONE',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "ALT",
+      },
+      mods = 'SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "ALT | SUPER",
+      },
+      mods = 'ALT',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT",
+      },
+      mods = 'ALT | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | SUPER",
+      },
+      mods = 'SHIFT',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | ALT",
+      },
+      mods = 'SHIFT | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | ALT | SUPER",
+      },
+      mods = 'SHIFT | ALT',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "CTRL",
+      },
+      mods = 'SHIFT | ALT | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "CTRL | SUPER",
+      },
+      mods = 'CTRL',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "ALT | CTRL",
+      },
+      mods = 'CTRL | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "ALT | CTRL | SUPER",
+      },
+      mods = 'ALT | CTRL',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | CTRL",
+      },
+      mods = 'ALT | CTRL | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | CTRL | SUPER",
+      },
+      mods = 'SHIFT | CTRL',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | ALT | CTRL",
+      },
+      mods = 'SHIFT | CTRL | SUPER',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-        {
-            action = "PastePrimarySelection",
-            event = {
-                Down = {
-                    button = "Middle",
-                    streak = 1,
-                },
-            },
-            mods = "SHIFT | ALT | CTRL | SUPER",
+      },
+      mods = 'SHIFT | ALT | CTRL',
+    },
+    {
+      action = 'PastePrimarySelection',
+      event = {
+        Down = {
+          button = 'Middle',
+          streak = 1,
         },
-  }
+      },
+      mods = 'SHIFT | ALT | CTRL | SUPER',
+    },
+  },
 }
 ```

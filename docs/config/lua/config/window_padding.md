@@ -17,7 +17,7 @@ return {
     right = 2,
     top = 0,
     bottom = 0,
-  }
+  },
 }
 ```
 
@@ -38,11 +38,11 @@ The default padding is shown below.  In earlier releases, the default padding wa
 ```lua
 return {
   window_padding = {
-    left = "1cell",
-    right = "1cell",
-    top = "0.5cell",
-    bottom = "0.5cell",
-  }
+    left = '1cell',
+    right = '1cell',
+    top = '0.5cell',
+    bottom = '0.5cell',
+  },
 }
 ```
 

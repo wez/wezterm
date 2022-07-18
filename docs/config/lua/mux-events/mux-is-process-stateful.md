@@ -29,16 +29,26 @@ Since it returns `nil`, it uses the default behavior.
 local wezterm = require 'wezterm'
 
 function log_proc(proc, indent)
-  indent = indent or ""
-  wezterm.log_info(indent .. "pid=" .. proc.pid .. ", name=" .. proc.name .. ", status=" .. proc.status)
-  wezterm.log_info(indent .. "argv=" .. table.concat(proc.argv, " "))
-  wezterm.log_info(indent .. "executable=" .. proc.executable .. ", cwd=" .. proc.cwd)
+  indent = indent or ''
+  wezterm.log_info(
+    indent
+      .. 'pid='
+      .. proc.pid
+      .. ', name='
+      .. proc.name
+      .. ', status='
+      .. proc.status
+  )
+  wezterm.log_info(indent .. 'argv=' .. table.concat(proc.argv, ' '))
+  wezterm.log_info(
+    indent .. 'executable=' .. proc.executable .. ', cwd=' .. proc.cwd
+  )
   for pid, child in pairs(proc.children) do
-    log_proc(child, indent .. "  ")
+    log_proc(child, indent .. '  ')
   end
 end
 
-wezterm.on("mux-is-process-stateful", function(proc)
+wezterm.on('mux-is-process-stateful', function(proc)
   log_proc(proc)
 
   -- Just use the default behavior

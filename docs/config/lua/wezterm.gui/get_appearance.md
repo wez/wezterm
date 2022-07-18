@@ -20,10 +20,10 @@ automatically adjust to the current appearance:
 local wezterm = require 'wezterm'
 
 function scheme_for_appearance(appearance)
-  if appearance:find("Dark") then
-    return "Builtin Solarized Dark"
+  if appearance:find 'Dark' then
+    return 'Builtin Solarized Dark'
   else
-    return "Builtin Solarized Light"
+    return 'Builtin Solarized Light'
   end
 end
 

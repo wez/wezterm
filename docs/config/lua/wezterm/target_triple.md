@@ -6,9 +6,9 @@ platform on which `wezterm` was built.  This can be useful when you wish to
 conditionally adjust your configuration based on the platform.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-if wezterm.target_triple == "x86_64-pc-windows-msvc" then
+if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   -- We are running on Windows; maybe we emit different
   -- key assignments here?
 end

@@ -18,6 +18,6 @@ assignments.
 ```lua
 return {
   -- Use ALT instead of SHIFT to bypass application mouse reporting
-  bypass_mouse_reporting_modifiers = "ALT"
+  bypass_mouse_reporting_modifiers = 'ALT',
 }
 ```

@@ -24,7 +24,7 @@ Returns the tab title as set by `tab:set_title()`.
 Sets the tab title to the provided string.
 
 ```lua
-tab:set_title("my title")
+tab:set_title 'my title'
 ```
 
 ## tab:window()

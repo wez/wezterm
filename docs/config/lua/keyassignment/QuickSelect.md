@@ -9,8 +9,8 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key=" ", mods="SHIFT|CTRL", action=wezterm.action.QuickSelect},
-  }
+    { key = ' ', mods = 'SHIFT|CTRL', action = wezterm.action.QuickSelect },
+  },
 }
 ```
 

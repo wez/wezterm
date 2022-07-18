@@ -7,7 +7,7 @@ Spawns a program into a new window, returning the [MuxTab](../MuxTab.md),
 associated with it:
 
 ```lua
-local tab, pane, window = wezterm.mux.spawn_window{}
+local tab, pane, window = wezterm.mux.spawn_window {}
 ```
 
 When no arguments are passed, the default program is spawned.
@@ -20,7 +20,7 @@ Specifies the argument array for the command that should be spawned.
 If omitted the default program for the domain will be spawned.
 
 ```lua
-wezterm.mux.spawn_window{args={"top"}}
+wezterm.mux.spawn_window { args = { 'top' } }
 ```
 
 ### cwd
@@ -31,7 +31,7 @@ the program.
 If unspecified, follows the rules from [default_cwd](../config/default_cwd.md)
 
 ```lua
-wezterm.mux.spawn_window{cwd="/tmp"}
+wezterm.mux.spawn_window { cwd = '/tmp' }
 ```
 
 ### set_environment_variables
@@ -53,7 +53,7 @@ You may specify the name of one of the multiplexer domains
 defined in your configuration using the following:
 
 ```lua
-wezterm.mux.spawn_window{domain={DomainName="my.name"}}
+wezterm.mux.spawn_window { domain = { DomainName = 'my.name' } }
 ```
 
 ### width and height
@@ -62,7 +62,7 @@ Only valid when width and height are used together, allows specifying
 the number of column and row cells that the window should have.
 
 ```lua
-wezterm.mux.spawn_window{width=60, height=30}
+wezterm.mux.spawn_window { width = 60, height = 30 }
 ```
 
 ### workspace
@@ -72,7 +72,7 @@ will be associated with.  If omitted, the currently active workspace
 name will be used.
 
 ```lua
-wezterm.mux.spawn_window{workspace={"coding"}}
+wezterm.mux.spawn_window { workspace = { 'coding' } }
 ```
 
 

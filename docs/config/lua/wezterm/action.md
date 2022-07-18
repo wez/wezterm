@@ -33,9 +33,13 @@ having to add any extra punctuation:
 ```lua
 local wezterm = require 'wezterm'
 return {
-   keys = {
-     {key=" ", mods="CTRL|SHIFT", action=wezterm.action.QuickSelectArgs},
-   }
+  keys = {
+    {
+      key = ' ',
+      mods = 'CTRL|SHIFT',
+      action = wezterm.action.QuickSelectArgs,
+    },
+  },
 }
 ```
 
@@ -45,11 +49,15 @@ them, like this:
 ```lua
 local wezterm = require 'wezterm'
 return {
-   keys = {
-     {key=" ", mods="CTRL|SHIFT", action=wezterm.action.QuickSelectArgs{
-      alphabet="abc"
-     }},
-   }
+  keys = {
+    {
+      key = ' ',
+      mods = 'CTRL|SHIFT',
+      action = wezterm.action.QuickSelectArgs {
+        alphabet = 'abc',
+      },
+    },
+  },
 }
 ```
 
@@ -63,22 +71,22 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 
 return {
-   keys = {
-     {key="F1", mods="ALT", action=act.ActivatePaneByIndex(0)},
-     {key="F2", mods="ALT", action=act.ActivatePaneByIndex(1)},
-     {key="F3", mods="ALT", action=act.ActivatePaneByIndex(2)},
-     {key="F4", mods="ALT", action=act.ActivatePaneByIndex(3)},
-     {key="F5", mods="ALT", action=act.ActivatePaneByIndex(4)},
-     {key="F6", mods="ALT", action=act.ActivatePaneByIndex(5)},
-     {key="F7", mods="ALT", action=act.ActivatePaneByIndex(6)},
-     {key="F8", mods="ALT", action=act.ActivatePaneByIndex(7)},
-     {key="F9", mods="ALT", action=act.ActivatePaneByIndex(8)},
-     {key="F10", mods="ALT", action=act.ActivatePaneByIndex(9)},
+  keys = {
+    { key = 'F1', mods = 'ALT', action = act.ActivatePaneByIndex(0) },
+    { key = 'F2', mods = 'ALT', action = act.ActivatePaneByIndex(1) },
+    { key = 'F3', mods = 'ALT', action = act.ActivatePaneByIndex(2) },
+    { key = 'F4', mods = 'ALT', action = act.ActivatePaneByIndex(3) },
+    { key = 'F5', mods = 'ALT', action = act.ActivatePaneByIndex(4) },
+    { key = 'F6', mods = 'ALT', action = act.ActivatePaneByIndex(5) },
+    { key = 'F7', mods = 'ALT', action = act.ActivatePaneByIndex(6) },
+    { key = 'F8', mods = 'ALT', action = act.ActivatePaneByIndex(7) },
+    { key = 'F9', mods = 'ALT', action = act.ActivatePaneByIndex(8) },
+    { key = 'F10', mods = 'ALT', action = act.ActivatePaneByIndex(9) },
 
-     -- Compare this with the older syntax shown in the section below
-     {key="{", mods="CTRL", action=act.ActivateTabRelative(-1)},
-     {key="}", mods="CTRL", action=act.ActivateTabRelative(1)},
-   }
+    -- Compare this with the older syntax shown in the section below
+    { key = '{', mods = 'CTRL', action = act.ActivateTabRelative(-1) },
+    { key = '}', mods = 'CTRL', action = act.ActivateTabRelative(1) },
+  },
 }
 ```
 
@@ -87,12 +95,20 @@ return {
 For versions before *20220624-141144-bd1b7c5d*, usage looks like this:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
-   keys = {
-     {key="{", mods="CTRL", action=wezterm.action{ActivateTabRelative=-1}},
-     {key="}", mods="CTRL", action=wezterm.action{ActivateTabRelative=1}},
-   }
+  keys = {
+    {
+      key = '{',
+      mods = 'CTRL',
+      action = wezterm.action { ActivateTabRelative = -1 },
+    },
+    {
+      key = '}',
+      mods = 'CTRL',
+      action = wezterm.action { ActivateTabRelative = 1 },
+    },
+  },
 }
 ```
 

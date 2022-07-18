@@ -21,7 +21,7 @@ use a setting like this:
 
 ```lua
 return {
-  harfbuzz_features = {"calt=0", "clig=0", "liga=0"},
+  harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
 }
 ```
 
@@ -36,7 +36,7 @@ and you can set them in wezterm:
 return {
   -- Use this for a zero with a dot rather than a line through it
   -- when using the Fira Code font
-  harfbuzz_features = {"zero"}
+  harfbuzz_features = { 'zero' },
 }
 ```
 
@@ -48,10 +48,10 @@ globally for all fonts:
 ```lua
 local wezterm = require 'wezterm'
 return {
-  font = wezterm.font({
-    family="JetBrains Mono",
-    harfbuzz_features={"calt=0", "clig=0", "liga=0"}
-  })
+  font = wezterm.font {
+    family = 'JetBrains Mono',
+    harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
+  },
 }
 ```
 
@@ -59,18 +59,18 @@ and this example disables ligatures for JetBrains Mono,
 but keeps the default for the other fonts in the fallback:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font_with_fallback({
+  font = wezterm.font_with_fallback {
     {
-       family="JetBrains Mono",
-       weight="Medium",
-       harfbuzz_features={"calt=0", "clig=0", "liga=0"}
+      family = 'JetBrains Mono',
+      weight = 'Medium',
+      harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
     },
-    {family="Terminus", weight="Bold"},
-    "Noto Color Emoji"
-  }),
+    { family = 'Terminus', weight = 'Bold' },
+    'Noto Color Emoji',
+  },
 }
 ```
 

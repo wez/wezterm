@@ -10,9 +10,9 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="{", mods="ALT", action=act.ActivateTabRelative(-1)},
-    {key="}", mods="ALT", action=act.ActivateTabRelative(1)},
-  }
+    { key = '{', mods = 'ALT', action = act.ActivateTabRelative(-1) },
+    { key = '}', mods = 'ALT', action = act.ActivateTabRelative(1) },
+  },
 }
 ```
 

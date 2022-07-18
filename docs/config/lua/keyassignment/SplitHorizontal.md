@@ -11,9 +11,12 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     -- This will create a new split and run your default program inside it
-    {key="%", mods="CTRL|SHIFT|ALT",
-      action=wezterm.action.SplitHorizontal{domain="CurrentPaneDomain"}},
-  }
+    {
+      key = '%',
+      mods = 'CTRL|SHIFT|ALT',
+      action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' },
+    },
+  },
 }
 ```
 
@@ -26,10 +29,14 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key="%", mods="CTRL|SHIFT|ALT", action=wezterm.action.SplitHorizontal{
-      args={"top"}
-    }},
-  }
+    {
+      key = '%',
+      mods = 'CTRL|SHIFT|ALT',
+      action = wezterm.action.SplitHorizontal {
+        args = { 'top' },
+      },
+    },
+  },
 }
 ```
 

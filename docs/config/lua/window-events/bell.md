@@ -17,10 +17,10 @@ represents the pane in which the bell was rung, which may not be active
 pane--it could be in an unfocused pane or tab..
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-wezterm.on("bell", function(window, pane)
-  wezterm.log_info("the bell was rung in pane " .. pane:pane_id() .. "!");
+wezterm.on('bell', function(window, pane)
+  wezterm.log_info('the bell was rung in pane ' .. pane:pane_id() .. '!')
 end)
 
 return {}

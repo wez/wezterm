@@ -16,8 +16,8 @@ transitions:
 ```lua
 return {
   animation_fps = 1,
-  cursor_blink_ease_in = "Constant",
-  cursor_blink_ease_out = "Constant",
+  cursor_blink_ease_in = 'Constant',
+  cursor_blink_ease_out = 'Constant',
 }
 ```
 

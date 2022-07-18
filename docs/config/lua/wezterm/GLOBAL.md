@@ -28,8 +28,8 @@ local wezterm = require 'wezterm'
 -- Count how many times the lua config has been loaded
 wezterm.GLOBAL.parse_count = (wezterm.GLOBAL.parse_count or 0) + 1
 
-wezterm.on("update-right-status", function(window, pane)
-  window:set_right_status("Reloads=" .. tostring(wezterm.GLOBAL.parse_count))
+wezterm.on('update-right-status', function(window, pane)
+  window:set_right_status('Reloads=' .. tostring(wezterm.GLOBAL.parse_count))
 end)
 
 return {}
