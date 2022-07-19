@@ -8,9 +8,10 @@ This function is overly specific and exists primarily to workaround
 It takes as input a string and attempts to convert it from utf16 to utf8.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-local success, wsl_list, wsl_err = wezterm.run_child_process({"wsl.exe", "-l"})
+local success, wsl_list, wsl_err =
+  wezterm.run_child_process { 'wsl.exe', '-l' }
 wsl_list = wezterm.utf16_to_utf8(wsl_list)
 ```
 

@@ -11,7 +11,7 @@ There are three possible values:
 
 ```lua
 return {
-  exit_behavior = "Hold",
+  exit_behavior = 'Hold',
 }
 ```
 

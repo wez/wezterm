@@ -7,7 +7,7 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="=", mods="CTRL", action=wezterm.action.IncreaseFontSize},
-  }
+    { key = '=', mods = 'CTRL', action = wezterm.action.IncreaseFontSize },
+  },
 }
 ```

@@ -8,7 +8,7 @@ you'd use this:
 
 ```lua
 return {
-  default_prog = {"top"}
+  default_prog = { 'top' },
 }
 ```
 

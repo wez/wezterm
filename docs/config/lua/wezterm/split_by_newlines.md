@@ -7,9 +7,9 @@ are recognized as newlines) and returns the result as an array of strings that
 have the newlines removed.
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-local example = "hello\nthere\n";
+local example = 'hello\nthere\n'
 
 for _, line in ipairs(wezterm.split_by_newlines(example)) do
   wezterm.log_error(line)

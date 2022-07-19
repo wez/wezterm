@@ -17,8 +17,12 @@ The default value for this setting is shown below:
 ```lua
 return {
   skip_close_confirmation_for_processes_named = {
-    "bash", "sh", "zsh", "fish", "tmux"
-  }
+    'bash',
+    'sh',
+    'zsh',
+    'fish',
+    'tmux',
+  },
 }
 ```
 
@@ -31,16 +35,16 @@ processes:
 ```lua
 return {
   skip_close_confirmation_for_processes_named = {
-        "bash",
-        "sh",
-        "zsh",
-        "fish",
-        "tmux",
-        "nu",
-        "cmd.exe",
-        "pwsh.exe",
-        "powershell.exe"
-  }
+    'bash',
+    'sh',
+    'zsh',
+    'fish',
+    'tmux',
+    'nu',
+    'cmd.exe',
+    'pwsh.exe',
+    'powershell.exe',
+  },
 }
 ```
 

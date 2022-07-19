@@ -8,20 +8,20 @@ This example shows `LEADER` in the right status area, and turns the cursor orang
 when the leader is active:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-wezterm.on("update-right-status", function(window, pane)
-  local leader = ""
+wezterm.on('update-right-status', function(window, pane)
+  local leader = ''
   if window:leader_is_active() then
-    leader = "LEADER"
+    leader = 'LEADER'
   end
   window:set_right_status(leader)
-end);
+end)
 
 return {
-  leader = { key="a", mods="CTRL" },
+  leader = { key = 'a', mods = 'CTRL' },
   colors = {
-    compose_cursor = "orange",
+    compose_cursor = 'orange',
   },
 }
 ```

@@ -34,13 +34,13 @@ The following configuration enables a low intensity visual bell that takes a tot
 ```lua
 return {
   visual_bell = {
-    fade_in_function = "EaseIn",
+    fade_in_function = 'EaseIn',
     fade_in_duration_ms = 150,
-    fade_out_function = "EaseOut",
+    fade_out_function = 'EaseOut',
     fade_out_duration_ms = 150,
   },
   colors = {
-    visual_bell = "#202020"
+    visual_bell = '#202020',
   },
 }
 ```
@@ -52,7 +52,7 @@ return {
   visual_bell = {
     fade_in_duration_ms = 75,
     fade_out_duration_ms = 75,
-    target = "CursorColor",
+    target = 'CursorColor',
   },
 }
 ```

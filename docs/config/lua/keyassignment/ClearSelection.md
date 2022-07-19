@@ -15,25 +15,25 @@ local act = wezterm.action
 return {
   keys = {
     {
-      key="c",
-      mods="CTRL",
+      key = 'c',
+      mods = 'CTRL',
       action = wezterm.action_callback(function(window, pane)
-        local has_selection = window:get_selection_text_for_pane(pane) ~= ""
+        local has_selection = window:get_selection_text_for_pane(pane) ~= ''
         if has_selection then
           window:perform_action(
-            act.CopyTo("ClipboardAndPrimarySelection"),
+            act.CopyTo 'ClipboardAndPrimarySelection',
             pane
           )
 
           window:perform_action(act.ClearSelection, pane)
         else
           window:perform_action(
-            act.SendKey{key="c", mods="CTRL"},
+            act.SendKey { key = 'c', mods = 'CTRL' },
             pane
           )
         end
-      end)
-    }
-  }
+      end),
+    },
+  },
 }
 ```

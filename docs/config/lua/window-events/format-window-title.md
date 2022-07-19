@@ -19,15 +19,15 @@ to the default processing--not very useful except as a starting point for
 making your own title text:
 
 ```lua
-wezterm.on("format-window-title", function(tab, pane, tabs, panes, config)
-  local zoomed = ""
+wezterm.on('format-window-title', function(tab, pane, tabs, panes, config)
+  local zoomed = ''
   if tab.active_pane.is_zoomed then
-    zoomed = "[Z] "
+    zoomed = '[Z] '
   end
 
-  local index = ""
+  local index = ''
   if #tabs > 1 then
-    index = string.format("[%d/%d] ", tab.tab_index + 1, #tabs)
+    index = string.format('[%d/%d] ', tab.tab_index + 1, #tabs)
   end
 
   return zoomed .. index .. tab.active_pane.title

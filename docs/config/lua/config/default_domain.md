@@ -28,7 +28,7 @@ and if I set my config like this:
 
 ```lua
 return {
-  default_domain = "WSL:Ubuntu-18.04",
+  default_domain = 'WSL:Ubuntu-18.04',
 }
 ```
 

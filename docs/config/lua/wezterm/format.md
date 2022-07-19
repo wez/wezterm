@@ -14,18 +14,18 @@ This example logs the text `Hello`, then the date/time, underlined, in purple
 text on a blue background to the stderr of the wezterm process:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
-local success, date, stderr = wezterm.run_child_process({"date"});
+local success, date, stderr = wezterm.run_child_process { 'date' }
 
-wezterm.log_info(wezterm.format({
-  {Attribute={Underline="Single"}},
-  {Foreground={AnsiColor="Fuchsia"}},
-  {Background={Color="blue"}},
-  {Text="Hello " .. date .. " "},
-  "ResetAttributes",
-  {Text="this text has default attributes"}
-}))
+wezterm.log_info(wezterm.format {
+  { Attribute = { Underline = 'Single' } },
+  { Foreground = { AnsiColor = 'Fuchsia' } },
+  { Background = { Color = 'blue' } },
+  { Text = 'Hello ' .. date .. ' ' },
+  'ResetAttributes',
+  { Text = 'this text has default attributes' },
+})
 ```
 
 Possible values for the `FormatItem` elements are:

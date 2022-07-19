@@ -9,8 +9,8 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="F9", mods="ALT", action=wezterm.action.ShowTabNavigator},
-  }
+    { key = 'F9', mods = 'ALT', action = wezterm.action.ShowTabNavigator },
+  },
 }
 ```
 

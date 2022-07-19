@@ -18,11 +18,15 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="E", mods="CTRL", action=wezterm.action_callback(function(window, pane)
-      local ansi = window:get_selection_escapes_for_pane(pane);
-      window:copy_to_clipboard(ansi)
-    end)}
-  }
+    {
+      key = 'E',
+      mods = 'CTRL',
+      action = wezterm.action_callback(function(window, pane)
+        local ansi = window:get_selection_escapes_for_pane(pane)
+        window:copy_to_clipboard(ansi)
+      end),
+    },
+  },
 }
 ```
 

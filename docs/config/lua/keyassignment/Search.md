@@ -18,11 +18,25 @@ local act = wezterm.action
 return {
   keys = {
     -- search for things that look like git hashes
-    {key="H", mods="SHIFT|CTRL", action=act.Search{Regex="[a-f0-9]{6,}"}},
+    {
+      key = 'H',
+      mods = 'SHIFT|CTRL',
+      action = act.Search {
+        Regex = '[a-f0-9]{6,}',
+      },
+    },
     -- search for the lowercase string "hash" matching the case exactly
-    {key="H", mods="SHIFT|CTRL", action=act.Search{CaseSensitiveString="hash"}},
+    {
+      key = 'H',
+      mods = 'SHIFT|CTRL',
+      action = act.Search { CaseSensitiveString = 'hash' },
+    },
     -- search for the string "hash" matching regardless of case
-    {key="H", mods="SHIFT|CTRL", action=act.Search{CaseInSensitiveString="hash"}},
+    {
+      key = 'H',
+      mods = 'SHIFT|CTRL',
+      action = act.Search { CaseInSensitiveString = 'hash' },
+    },
   },
 }
 ```

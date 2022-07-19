@@ -12,7 +12,7 @@ and `BlinkingBar`.
 
 ```lua
 return {
-  default_cursor_style = "SteadyBlock",
+  default_cursor_style = 'SteadyBlock',
 }
 ```
 

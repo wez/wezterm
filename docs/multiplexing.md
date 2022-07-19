@@ -39,14 +39,14 @@ return {
   ssh_domains = {
     {
       -- This name identifies the domain
-      name = "my.server",
+      name = 'my.server',
       -- The hostname or address to connect to. Will be used to match settings
       -- from your ssh config file
-      remote_address = "192.168.1.1",
+      remote_address = '192.168.1.1',
       -- The username to use on the remote host
-      username = "wez",
-    }
-  }
+      username = 'wez',
+    },
+  },
 }
 ```
 
@@ -81,15 +81,15 @@ when wezterm is launched:
 return {
   unix_domains = {
     {
-      name = "unix",
-    }
+      name = 'unix',
+    },
   },
 
   -- This causes `wezterm` to act as though it was started as
   -- `wezterm connect unix` by default, connecting to the unix
   -- domain on startup.
   -- If you prefer to connect manually, leave out this line.
-  default_gui_startup_args = {"connect", "unix"},
+  default_gui_startup_args = { 'connect', 'unix' },
 }
 ```
 
@@ -111,7 +111,7 @@ return {
   unix_domains = {
     {
       -- The name; must be unique amongst all domains
-      name = "unix",
+      name = 'unix',
 
       -- The path to the socket.  If unspecified, a resonable default
       -- value will be computed.
@@ -130,9 +130,8 @@ return {
       -- on the host NTFS volume.
 
       -- skip_permissions_check = false,
-
-    }
-  }
+    },
+  },
 }
 ```
 
@@ -151,10 +150,10 @@ to an appropriate invocation of netcat/socat on Windows:
 return {
   unix_domains = {
     {
-      name = "unix",
-      proxy_command = {"nc", "-U", "/Users/wez/.local/share/wezterm/sock"},
-    }
-  }
+      name = 'unix',
+      proxy_command = { 'nc', '-U', '/Users/wez/.local/share/wezterm/sock' },
+    },
+  },
 }
 ```
 
@@ -171,9 +170,9 @@ user. This option only applies when `multiplexing = "WezTerm"`.
 return {
   unix_domains = {
     {
-      name = "unix",
+      name = 'unix',
       local_echo_threshold_ms = 10,
-    }
+    },
   },
 }
 ```
@@ -188,15 +187,15 @@ Inside your WSL instance, configure `.wezterm.lua` with this snippet:
 return {
   unix_domains = {
     {
-      name = "wsl",
+      name = 'wsl',
       -- Override the default path to match the default on the host win32
       -- filesystem.  This will allow the host to connect into the WSL
       -- container.
-      socket_path = "/mnt/c/Users/USERNAME/.local/share/wezterm/sock",
+      socket_path = '/mnt/c/Users/USERNAME/.local/share/wezterm/sock',
       -- NTFS permissions will always be "wrong", so skip that check
       skip_permissions_check = true,
-    }
-  }
+    },
+  },
 }
 ```
 
@@ -206,11 +205,11 @@ In the host win32 configuration, use this snippet:
 return {
   unix_domains = {
     {
-      name = "wsl",
-      serve_command = {"wsl", "wezterm-mux-server", "--daemonize"},
-    }
+      name = 'wsl',
+      serve_command = { 'wsl', 'wezterm-mux-server', '--daemonize' },
+    },
   },
-  default_gui_startup_args = {"connect", "wsl"},
+  default_gui_startup_args = { 'connect', 'wsl' },
 }
 ```
 
@@ -245,14 +244,14 @@ return {
     {
       -- A handy alias for this session; you will use `wezterm connect server.name`
       -- to connect to it.
-      name = "server.name",
+      name = 'server.name',
       -- The host:port for the remote host
-      remote_address = "server.hostname:8080",
+      remote_address = 'server.hostname:8080',
       -- The value can be "user@host:port"; it accepts the same syntax as the
       -- `wezterm ssh` subcommand.
-      bootstrap_via_ssh = "server.hostname",
-    }
-  }
+      bootstrap_via_ssh = 'server.hostname',
+    },
+  },
 }
 ```
 
@@ -267,9 +266,9 @@ return {
     {
       -- The host:port combination on which the server will listen
       -- for connections
-      bind_address = "server.hostname:8080"
-    }
-  }
+      bind_address = 'server.hostname:8080',
+    },
+  },
 }
 ```
 

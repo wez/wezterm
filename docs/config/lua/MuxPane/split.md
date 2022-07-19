@@ -6,7 +6,7 @@ Splits `pane` and spawns a program into the split, returning the
 `MuxPane` object associated with it:
 
 ```lua
-local new_pane = pane:split{}
+local new_pane = pane:split {}
 ```
 
 When no arguments are passed, the pane is split in half left/right and the
@@ -20,7 +20,7 @@ Specifies the argument array for the command that should be spawned.
 If omitted the default program for the domain will be spawned.
 
 ```lua
-pane:split{args={"top"}}
+pane:split { args = { 'top' } }
 ```
 
 ### cwd
@@ -31,7 +31,7 @@ the program.
 If unspecified, follows the rules from [default_cwd](../config/default_cwd.md)
 
 ```lua
-pane:split{cwd="/tmp"}
+pane:split { cwd = '/tmp' }
 ```
 
 ### set_environment_variables
@@ -40,7 +40,7 @@ Sets additional environment variables in the environment for
 this command invocation.
 
 ```lua
-pane:split{set_environment_variables={FOO="BAR"}}
+pane:split { set_environment_variables = { FOO = 'BAR' } }
 ```
 
 ### domain
@@ -53,13 +53,13 @@ You may specify the name of one of the multiplexer domains
 defined in your configuration using the following:
 
 ```lua
-pane:split{domain={DomainName="my.name"}}
+pane:split { domain = { DomainName = 'my.name' } }
 ```
 
 Or you may use the default domain:
 
 ```lua
-pane:split{domain="DefaultDomain"}
+pane:split { domain = 'DefaultDomain' }
 ```
 
 ### direction
@@ -72,7 +72,7 @@ Specifies where the new pane should be placed.  Possible values are:
 * `"Bottom"` - splits the pane top/bottom and places the new pane on the bottom.
 
 ```lua
-pane:split{direction="Top"}
+pane:split { direction = 'Top' }
 ```
 
 ### top_level
@@ -81,7 +81,7 @@ If `true`, rather than splitting `pane` in half, the tab that contains it
 is split and the new pane runs the full extent of the tab dimensions.
 
 ```lua
-pane:split{direction="Bottom", top_level=true}
+pane:split { direction = 'Bottom', top_level = true }
 ```
 
 ### size
@@ -100,7 +100,7 @@ This creates two additional splits within `pane`, creating three
 total splits that each occupy 1/3 of the available space:
 
 ```lua
-pane:split{direction="Top", size=0.333}
-pane:split{direction="Top", size=0.5}
+pane:split { direction = 'Top', size = 0.333 }
+pane:split { direction = 'Top', size = 0.5 }
 ```
 

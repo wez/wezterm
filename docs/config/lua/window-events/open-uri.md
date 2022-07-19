@@ -10,15 +10,18 @@ For example, if you prefer to launch your preferred MUA in a new window
 in response to clicking on `mailto:` URLs, you could do something like:
 
 ```lua
-local wezterm = require "wezterm"
+local wezterm = require 'wezterm'
 
-wezterm.on("open-uri", function(window, pane, uri)
-  local start, match_end = uri:find("mailto:")
+wezterm.on('open-uri', function(window, pane, uri)
+  local start, match_end = uri:find 'mailto:'
   if start == 1 then
-    local recipient = uri:sub(match_end+1)
-    window:perform_action(wezterm.action.SpawnCommandInNewWindow{
-      args={"mutt", recipient}
-    }, pane)
+    local recipient = uri:sub(match_end + 1)
+    window:perform_action(
+      wezterm.action.SpawnCommandInNewWindow {
+        args = { 'mutt', recipient },
+      },
+      pane
+    )
     -- prevent the default action from opening in a browser
     return false
   end

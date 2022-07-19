@@ -17,19 +17,26 @@ local act = wezterm.action
 return {
   ssh_domains = {
     {
-      name = "devhost",
-      remote_address = "devhost.example.com",
-    }
+      name = 'devhost',
+      remote_address = 'devhost.example.com',
+    },
   },
   keys = {
-    {key="U", mods="CTRL|SHIFT", action=act.AttachDomain("devhost")},
+    { key = 'U', mods = 'CTRL|SHIFT', action = act.AttachDomain 'devhost' },
     -- Detaches the domain associated with the current pane
-    {key="D", mods="CTRL|SHIFT", action=act.DetachDomain("CurrentPaneDomain")},
+    {
+      key = 'D',
+      mods = 'CTRL|SHIFT',
+      action = act.DetachDomain 'CurrentPaneDomain',
+    },
     -- Detaches the "devhost" domain
-    {key="E", mods="CTRL|SHIFT", action=act.DetachDomain{DomainName="devhost"}},
+    {
+      key = 'E',
+      mods = 'CTRL|SHIFT',
+      action = act.DetachDomain { DomainName = 'devhost' },
+    },
   },
 }
-
 ```
 
 See also: [AttachDomain](AttachDomain.md)

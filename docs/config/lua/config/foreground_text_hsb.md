@@ -29,7 +29,7 @@ return {
     hue = 1.0,
     saturation = 1.5,
     brightness = 1.0,
-  }
+  },
 }
 ```
 

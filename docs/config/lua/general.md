@@ -5,9 +5,9 @@ the configuration file.  These are provided by the `wezterm` module that must
 be imported into your configuration file:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 return {
-  font = wezterm.font("JetBrains Mono"),
+  font = wezterm.font 'JetBrains Mono',
 }
 ```
 
@@ -29,7 +29,7 @@ you would place it in `~/.config/wezterm/helpers.lua` with contents like this:
 ```lua
 -- I am helpers.lua and I should live in ~/.config/wezterm/helpers.lua
 
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 -- This is the module table that we will export
 local module = {}
@@ -37,7 +37,7 @@ local module = {}
 -- This function is private to this module and is not visible
 -- outside.
 local function private_helper()
-  wezterm.log_error("hello!")
+  wezterm.log_error 'hello!'
 end
 
 -- define a function in the module table.
@@ -55,6 +55,6 @@ and then in your `wezterm.lua`
 you would use it like this:
 
 ```lua
-local helpers = require 'helpers';
+local helpers = require 'helpers'
 helpers.my_function()
 ```

@@ -22,12 +22,13 @@ wezterm.time.call_after(60, function()
   wezterm.reload_configuration()
 end)
 
-local amount = math.ceil((tonumber(wezterm.time.now():format("%M")) / 60) * 255)
+local amount =
+  math.ceil((tonumber(wezterm.time.now():format '%M') / 60) * 255)
 
 return {
   colors = {
-    background = "rgb(" .. amount .. "," .. amount .. "," .. amount .. ")",
-  }
+    background = 'rgb(' .. amount .. ',' .. amount .. ',' .. amount .. ')',
+  },
 }
 ```
 

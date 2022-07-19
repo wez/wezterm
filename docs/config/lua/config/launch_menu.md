@@ -14,15 +14,15 @@ Each entry in `launch_menu` is an instance of a
 return {
   launch_menu = {
     {
-      args = {"top"},
+      args = { 'top' },
     },
     {
       -- Optional label to show in the launcher. If omitted, a label
       -- is derived from the `args`
-      label = "Bash",
+      label = 'Bash',
       -- The argument array to spawn.  If omitted the default program
       -- will be used as described in the documentation above
-      args = {"bash", "-l"},
+      args = { 'bash', '-l' },
 
       -- You can specify an alternative current working directory;
       -- if you don't specify one then a default based on the OSC 7
@@ -35,7 +35,7 @@ return {
       -- set_environment_variables configuration option described above
       -- set_environment_variables = { FOO = "bar" },
     },
-  }
+  },
 }
 ```
 

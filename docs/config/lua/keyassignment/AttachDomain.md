@@ -24,12 +24,16 @@ local wezterm = require 'wezterm'
 return {
   ssh_domains = {
     {
-      name = "devhost",
-      remote_address = "devhost.example.com",
-    }
+      name = 'devhost',
+      remote_address = 'devhost.example.com',
+    },
   },
   keys = {
-    {key="U", mods="CTRL|SHIFT", action=wezterm.action.AttachDomain("devhost")},
+    {
+      key = 'U',
+      mods = 'CTRL|SHIFT',
+      action = wezterm.action.AttachDomain 'devhost',
+    },
   },
 }
 ```

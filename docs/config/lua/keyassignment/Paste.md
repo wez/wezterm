@@ -14,18 +14,18 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="v", mods="SHIFT|CTRL", action=wezterm.action.Paste},
+    { key = 'v', mods = 'SHIFT|CTRL', action = wezterm.action.Paste },
   },
 
   -- Middle mouse button pastes the clipboard.
   -- Note that this is the default so you needn't copy this.
   mouse_bindings = {
     {
-      event={Up={streak=1, button="Middle"}},
-      mods="NONE",
-      action=wezterm.action.Paste,
+      event = { Up = { streak = 1, button = 'Middle' } },
+      mods = 'NONE',
+      action = wezterm.action.Paste,
     },
-  }
+  },
 }
 ```
 

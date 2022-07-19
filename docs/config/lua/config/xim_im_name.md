@@ -14,7 +14,7 @@ update your config to specify it explicitly:
 
 ```lua
 return {
-  xim_im_name = "fcitx",
+  xim_im_name = 'fcitx',
 }
 ```
 

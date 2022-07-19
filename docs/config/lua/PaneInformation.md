@@ -39,24 +39,28 @@ local wezterm = require 'wezterm'
 -- Given "/foo/bar" returns "bar"
 -- Given "c:\\foo\\bar" returns "bar"
 function basename(s)
-  return string.gsub(s, "(.*[/\\])(.*)", "%2")
+  return string.gsub(s, '(.*[/\\])(.*)', '%2')
 end
 
-wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
-  local pane = tab.active_pane
-  local title = basename(pane.foreground_process_name) .. " " .. pane.pane_id
-  local color = "navy"
-  if tab.is_active then
-    color = "blue"
+wezterm.on(
+  'format-tab-title',
+  function(tab, tabs, panes, config, hover, max_width)
+    local pane = tab.active_pane
+    local title = basename(pane.foreground_process_name)
+      .. ' '
+      .. pane.pane_id
+    local color = 'navy'
+    if tab.is_active then
+      color = 'blue'
+    end
+    return {
+      { Background = { Color = color } },
+      { Text = ' ' .. title .. ' ' },
+    }
   end
-  return {
-    {Background={Color=color}},
-    {Text=" " .. title .. " "},
-  }
-end)
+)
 
-return {
-}
+return {}
 ```
 
 *Since: 20220319-142410-0fcdea07*
@@ -70,31 +74,33 @@ tab in the tab bar when there is unseen output.
 ```lua
 local wezterm = require 'wezterm'
 
-wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
-  if tab.is_active then
-    return {
-      {Background={Color="blue"}},
-      {Text=" " .. tab.active_pane.title .. " "},
-    }
-  end
-  local has_unseen_output = false
-  for _, pane in ipairs(tab.panes) do
-    if pane.has_unseen_output then
-      has_unseen_output = true
-      break;
+wezterm.on(
+  'format-tab-title',
+  function(tab, tabs, panes, config, hover, max_width)
+    if tab.is_active then
+      return {
+        { Background = { Color = 'blue' } },
+        { Text = ' ' .. tab.active_pane.title .. ' ' },
+      }
     end
+    local has_unseen_output = false
+    for _, pane in ipairs(tab.panes) do
+      if pane.has_unseen_output then
+        has_unseen_output = true
+        break
+      end
+    end
+    if has_unseen_output then
+      return {
+        { Background = { Color = 'Orange' } },
+        { Text = ' ' .. tab.active_pane.title .. ' ' },
+      }
+    end
+    return tab.active_pane.title
   end
-  if has_unseen_output then
-    return {
-      {Background={Color="Orange"}},
-      {Text=" " .. tab.active_pane.title .. " "},
-    }
-  end
-  return tab.active_pane.title
-end)
+)
 
-return {
-}
+return {}
 ```
 
 *Since: 20220624-141144-bd1b7c5d*
@@ -115,7 +121,6 @@ wezterm.on('format-tab-title', function(tab)
   return title
 end)
 
-return {
-}
+return {}
 ```
 

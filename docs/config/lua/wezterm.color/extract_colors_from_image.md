@@ -107,7 +107,7 @@ This example computes a color palette for the terminal based on some other image
 ```lua
 local wezterm = require 'wezterm'
 
-local colors = wezterm.color.extract_colors_from_image("/path/to/image/jpeg")
+local colors = wezterm.color.extract_colors_from_image '/path/to/image/jpeg'
 local ansi = {}
 local brights = {}
 
@@ -115,7 +115,7 @@ for idx, color in ipairs(colors) do
   if idx <= 8 then
     ansi[idx] = color
   else
-    brights[idx-8] = color
+    brights[idx - 8] = color
   end
 end
 
@@ -123,6 +123,6 @@ return {
   colors = {
     ansi = ansi,
     brights = brights,
-  }
+  },
 }
 ```

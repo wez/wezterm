@@ -7,10 +7,10 @@ checked and so on.
 The first parameter is a table listing the fonts in their preferred order:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font_with_fallback({"JetBrains Mono", "Noto Color Emoji"}),
+  font = wezterm.font_with_fallback { 'JetBrains Mono', 'Noto Color Emoji' },
 }
 ```
 
@@ -26,14 +26,14 @@ The attributes can now be specified per fallback font using this alternative
 form where the family and attributes are specified as part of the same lua table:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font_with_fallback({
-    {family="JetBrains Mono", weight="Medium"},
-    {family="Terminus", weight="Bold"},
-    "Noto Color Emoji",
-  }),
+  font = wezterm.font_with_fallback {
+    { family = 'JetBrains Mono', weight = 'Medium' },
+    { family = 'Terminus', weight = 'Bold' },
+    'Noto Color Emoji',
+  },
 }
 ```
 
@@ -45,17 +45,17 @@ default ligature feature just for JetBrains Mono, but leave it on for the
 other fonts in the fallback:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font_with_fallback({
+  font = wezterm.font_with_fallback {
     {
-      family="JetBrains Mono",
-      harfbuzz_features={"calt=0", "clig=0", "liga=0"},
+      family = 'JetBrains Mono',
+      harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
     },
-    {family="Terminus", weight="Bold"},
-    "Noto Color Emoji",
-  }),
+    { family = 'Terminus', weight = 'Bold' },
+    'Noto Color Emoji',
+  },
 }
 ```
 
@@ -101,9 +101,9 @@ local wezterm = require 'wezterm'
 
 return {
   line_height = 1.2,
-  font = wezterm.font_with_fallback({
-    "JetBrains Mono",
-    {family="Microsoft YaHei", scale=1.5},
-  }),
+  font = wezterm.font_with_fallback {
+    'JetBrains Mono',
+    { family = 'Microsoft YaHei', scale = 1.5 },
+  },
 }
 ```

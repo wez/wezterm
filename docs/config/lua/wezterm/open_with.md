@@ -8,9 +8,9 @@ in.
 
 ```lua
 -- Opens a URL in your default browser
-wezterm.open_with("http://example.com")
+wezterm.open_with 'http://example.com'
 
 -- Opens a URL specifically in firefox
-wezterm.open_with("http://example.com", "firefox")
+wezterm.open_with('http://example.com', 'firefox')
 ```
 

@@ -67,31 +67,31 @@ return {
 You can define mouse actions using the `mouse_bindings` configuration section:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 local act = wezterm.action
 
 return {
   mouse_bindings = {
     -- Right click sends "woot" to the terminal
     {
-      event={Down={streak=1, button="Right"}},
-      mods="NONE",
-      action=act.SendString("woot"),
+      event = { Down = { streak = 1, button = 'Right' } },
+      mods = 'NONE',
+      action = act.SendString 'woot',
     },
 
     -- Change the default click behavior so that it only selects
     -- text and doesn't open hyperlinks
     {
-      event={Up={streak=1, button="Left"}},
-      mods="NONE",
-      action=act.CompleteSelection("PrimarySelection"),
+      event = { Up = { streak = 1, button = 'Left' } },
+      mods = 'NONE',
+      action = act.CompleteSelection 'PrimarySelection',
     },
 
     -- and make CTRL-Click open hyperlinks
     {
-      event={Up={streak=1, button="Left"}},
-      mods="CTRL",
-      action=act.OpenLinkAtMouseCursor,
+      event = { Up = { streak = 1, button = 'Left' } },
+      mods = 'CTRL',
+      action = act.OpenLinkAtMouseCursor,
     },
     -- NOTE that binding only the 'Up' event can give unexpected behaviors.
     -- Read more below on the gotcha of binding an 'Up' event only.
@@ -136,22 +136,22 @@ event, but not the 'Up' event (which is bound to something in your config).
 To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
 be sent to the running program), for example:
 ```lua
-local wezterm = require "wezterm"
+local wezterm = require 'wezterm'
 local act = wezterm.action
 
 return {
   mouse_bindings = {
     -- Bind 'Up' event of CTRL-Click to open hyperlinks
     {
-      event={Up={streak=1, button="Left"}},
-      mods="CTRL",
-      action=act.OpenLinkAtMouseCursor,
+      event = { Up = { streak = 1, button = 'Left' } },
+      mods = 'CTRL',
+      action = act.OpenLinkAtMouseCursor,
     },
     -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
     {
-      event={Down={streak=1, button="Left"}},
-      mods="CTRL",
-      action=act.Nop,
+      event = { Down = { streak = 1, button = 'Left' } },
+      mods = 'CTRL',
+      action = act.Nop,
     },
   },
 }

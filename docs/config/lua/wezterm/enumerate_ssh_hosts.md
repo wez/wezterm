@@ -44,18 +44,16 @@ for host, config in pairs(wezterm.enumerate_ssh_hosts()) do
 
     -- multiplexing = "None",
 
-
     -- if you know that the remote host has a posix/unix environment,
     -- setting assume_shell = "Posix" will result in new panes respecting
     -- the remote current directory when multiplexing = "None".
-    assume_shell = "Posix",
+    assume_shell = 'Posix',
   })
 end
 
 return {
   ssh_domains = ssh_domains,
 }
-
 ```
 
 This shows the structure of the returned data, by evaluating the function in the [debug overlay](../keyassignment/ShowDebugOverlay.md) (`CTRL-SHIFT-L`):

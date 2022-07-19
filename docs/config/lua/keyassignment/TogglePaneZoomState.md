@@ -11,8 +11,12 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    { key = "Z", mods="CTRL", action=wezterm.action.TogglePaneZoomState },
-  }
+    {
+      key = 'Z',
+      mods = 'CTRL',
+      action = wezterm.action.TogglePaneZoomState,
+    },
+  },
 }
 ```
 

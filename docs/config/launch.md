@@ -37,7 +37,7 @@ portably:
 ```lua
 return {
   -- Spawn a fish shell in login mode
-  default_prog = {"/usr/local/bin/fish", "-l"},
+  default_prog = { '/usr/local/bin/fish', '-l' },
 }
 ```
 
@@ -110,7 +110,7 @@ return {
     -- This changes the default prompt for cmd.exe to report the
     -- current directory using OSC 7, show the current time and
     -- the current directory colored in the prompt.
-    prompt = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m "
+    prompt = '$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m ',
   },
 }
 ```
@@ -140,15 +140,15 @@ Each entry in `launch_menu` is an instance of a
 return {
   launch_menu = {
     {
-      args = {"top"},
+      args = { 'top' },
     },
     {
       -- Optional label to show in the launcher. If omitted, a label
       -- is derived from the `args`
-      label = "Bash",
+      label = 'Bash',
       -- The argument array to spawn.  If omitted the default program
       -- will be used as described in the documentation above
-      args = {"bash", "-l"},
+      args = { 'bash', '-l' },
 
       -- You can specify an alternative current working directory;
       -- if you don't specify one then a default based on the OSC 7
@@ -161,7 +161,7 @@ return {
       -- set_environment_variables configuration option described above
       -- set_environment_variables = { FOO = "bar" },
     },
-  }
+  },
 }
 ```
 
@@ -175,28 +175,39 @@ entries by default, unless disabled using `add_wsl_distributions_to_launch_menu 
 
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 local launch_menu = {}
 
-if wezterm.target_triple == "x86_64-pc-windows-msvc" then
+if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
   table.insert(launch_menu, {
-    label = "PowerShell",
-    args = {"powershell.exe", "-NoLogo"},
+    label = 'PowerShell',
+    args = { 'powershell.exe', '-NoLogo' },
   })
 
   -- Find installed visual studio version(s) and add their compilation
   -- environment command prompts to the menu
-  for _, vsvers in ipairs(wezterm.glob("Microsoft Visual Studio/20*", "C:/Program Files (x86)")) do
-    local year = vsvers:gsub("Microsoft Visual Studio/", "")
+  for _, vsvers in
+    ipairs(
+      wezterm.glob('Microsoft Visual Studio/20*', 'C:/Program Files (x86)')
+    )
+  do
+    local year = vsvers:gsub('Microsoft Visual Studio/', '')
     table.insert(launch_menu, {
-      label = "x64 Native Tools VS " .. year,
-      args = {"cmd.exe", "/k", "C:/Program Files (x86)/" .. vsvers .. "/BuildTools/VC/Auxiliary/Build/vcvars64.bat"},
+      label = 'x64 Native Tools VS ' .. year,
+      args = {
+        'cmd.exe',
+        '/k',
+        'C:/Program Files (x86)/'
+          .. vsvers
+          .. '/BuildTools/VC/Auxiliary/Build/vcvars64.bat',
+      },
     })
   end
 
   -- Enumerate any WSL distributions that are installed and add those to the menu
-  local success, wsl_list, wsl_err = wezterm.run_child_process({"wsl.exe", "-l"})
+  local success, wsl_list, wsl_err =
+    wezterm.run_child_process { 'wsl.exe', '-l' }
   -- `wsl.exe -l` has a bug where it always outputs utf16:
   -- https://github.com/microsoft/WSL/issues/4607
   -- So we get to convert it
@@ -207,20 +218,27 @@ if wezterm.target_triple == "x86_64-pc-windows-msvc" then
     if idx > 1 then
       -- Remove the "(Default)" marker from the default line to arrive
       -- at the distribution name on its own
-      local distro = line:gsub(" %(Default%)", "")
+      local distro = line:gsub(' %(Default%)', '')
 
       -- Add an entry that will spawn into the distro with the default shell
       table.insert(launch_menu, {
-        label = distro .. " (WSL default shell)",
-        args = {"wsl.exe", "--distribution", distro},
+        label = distro .. ' (WSL default shell)',
+        args = { 'wsl.exe', '--distribution', distro },
       })
 
       -- Here's how to jump directly into some other program; in this example
       -- its a shell that probably isn't the default, but it could also be
       -- any other program that you want to run in that environment
       table.insert(launch_menu, {
-        label = distro .. " (WSL zsh login shell)",
-        args = {"wsl.exe", "--distribution", distro, "--exec", "/bin/zsh", "-l"},
+        label = distro .. ' (WSL zsh login shell)',
+        args = {
+          'wsl.exe',
+          '--distribution',
+          distro,
+          '--exec',
+          '/bin/zsh',
+          '-l',
+        },
       })
     end
   end

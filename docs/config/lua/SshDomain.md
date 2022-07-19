@@ -8,34 +8,34 @@ It is a lua object with the following fields:
 ```lua
 return {
   ssh_domains = {
-  {
-    -- The name of this specific domain.  Must be unique amongst
-    -- all types of domain in the configuration file.
-    name = "my.server",
+    {
+      -- The name of this specific domain.  Must be unique amongst
+      -- all types of domain in the configuration file.
+      name = 'my.server',
 
-    -- identifies the host:port pair of the remote server
-    -- Can be a DNS name or an IP address with an optional
-    -- ":port" on the end.
-    remote_address = "192.168.1.1",
+      -- identifies the host:port pair of the remote server
+      -- Can be a DNS name or an IP address with an optional
+      -- ":port" on the end.
+      remote_address = '192.168.1.1',
 
-    -- Whether agent auth should be disabled.
-    -- Set to true to disable it.
-    -- no_agent_auth = false,
+      -- Whether agent auth should be disabled.
+      -- Set to true to disable it.
+      -- no_agent_auth = false,
 
-    -- The username to use for authenticating with the remote host
-    username = "yourusername",
+      -- The username to use for authenticating with the remote host
+      username = 'yourusername',
 
-    -- If true, connect to this domain automatically at startup
-    -- connect_automatically = true,
+      -- If true, connect to this domain automatically at startup
+      -- connect_automatically = true,
 
-    -- Specify an alternative read timeout
-    -- timeout = 60,
+      -- Specify an alternative read timeout
+      -- timeout = 60,
 
-    -- The path to the wezterm binary on the remote host.
-    -- Primarily useful if it isn't installed in the $PATH
-    -- that is configure for ssh.
-    -- remote_wezterm_path = "/home/yourusername/bin/wezterm"
-  },
+      -- The path to the wezterm binary on the remote host.
+      -- Primarily useful if it isn't installed in the $PATH
+      -- that is configure for ssh.
+      -- remote_wezterm_path = "/home/yourusername/bin/wezterm"
+    },
   },
 }
 ```
@@ -48,13 +48,13 @@ You may now specify a table with ssh config overrides:
 return {
   ssh_domains = {
     {
-      name = "my.server",
-      remote_address = "192.168.1.1",
+      name = 'my.server',
+      remote_address = '192.168.1.1',
       ssh_option = {
-        identityfile = "/path/to/id_rsa.pub",
-      }
-    }
-  }
+        identityfile = '/path/to/id_rsa.pub',
+      },
+    },
+  },
 }
 ```
 
@@ -88,27 +88,27 @@ panes and tabs.  The following values are recognized for `assume_shell`:
 return {
   ssh_domains = {
     {
-      name = "my.server",
-      remote_address = "192.168.1.1",
-      multiplexing = "None",
+      name = 'my.server',
+      remote_address = '192.168.1.1',
+      multiplexing = 'None',
 
       -- When multiplexing == "None", default_prog can be used
       -- to specify the default program to run in new tabs/panes.
       -- Due to the way that ssh works, you cannot specify default_cwd,
       -- but you could instead change your default_prog to put you
       -- in a specific directory.
-      default_prog = {"fish"},
+      default_prog = { 'fish' },
 
       -- assume that we can use syntax like:
       -- "env -C /some/where $SHELL"
       -- using whatever the default command shell is on this
       -- remote host, so that shell integration will respect
       -- the current directory on the remote host.
-      assume_shell = "Posix",
-    }
+      assume_shell = 'Posix',
+    },
   },
 
-  default_domain = "my.server",
+  default_domain = 'my.server',
 }
 ```
 
@@ -123,10 +123,10 @@ user. This option only applies when `multiplexing = "WezTerm"`.
 return {
   ssh_domains = {
     {
-      name = "my.server",
-      remote_address = "192.168.1.1",
+      name = 'my.server',
+      remote_address = '192.168.1.1',
       local_echo_threshold_ms = 10,
-    }
+    },
   },
 }
 ```

@@ -13,15 +13,15 @@ local wezterm = require 'wezterm'
 return {
   mouse_bindings = {
     {
-      event={Drag={streak=1, button="Left"}},
-      mods="SUPER",
-      action=wezterm.action.StartWindowDrag
+      event = { Drag = { streak = 1, button = 'Left' } },
+      mods = 'SUPER',
+      action = wezterm.action.StartWindowDrag,
     },
     {
-      event={Drag={streak=1, button="Left"}},
-      mods="CTRL|SHIFT",
-      action=wezterm.action.StartWindowDrag
+      event = { Drag = { streak = 1, button = 'Left' } },
+      mods = 'CTRL|SHIFT',
+      action = wezterm.action.StartWindowDrag,
     },
-  }
+  },
 }
 ```

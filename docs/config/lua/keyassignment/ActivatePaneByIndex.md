@@ -14,9 +14,9 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="a", mods="ALT", action=act.ActivatePaneByIndex(0)},
-    {key="b", mods="ALT", action=act.ActivatePaneByIndex(1)},
-    {key="c", mods="ALT", action=act.ActivatePaneByIndex(2)},
-  }
+    { key = 'a', mods = 'ALT', action = act.ActivatePaneByIndex(0) },
+    { key = 'b', mods = 'ALT', action = act.ActivatePaneByIndex(1) },
+    { key = 'c', mods = 'ALT', action = act.ActivatePaneByIndex(2) },
+  },
 }
 ```

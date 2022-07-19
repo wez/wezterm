@@ -11,6 +11,6 @@ Defaults to ``" \t\n{}[]()\"'`"``.
 For example, to always include spaces and newline when selecting a word, but stop on punctuations:
 ```lua
 return {
-  selection_word_boundary = "{}[]()\"'`.,;:"
+  selection_word_boundary = '{}[]()"\'`.,;:',
 }
 ```

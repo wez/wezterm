@@ -40,8 +40,8 @@ local wezterm = require 'wezterm'
 local wsl_domains = wezterm.default_wsl_domains()
 
 for idx, dom in ipairs(wsl_domains) do
-  if dom.name == "WSL:Ubuntu-18.04" then
-    dom.default_prog = {"fish"}
+  if dom.name == 'WSL:Ubuntu-18.04' then
+    dom.default_prog = { 'fish' }
   end
 end
 

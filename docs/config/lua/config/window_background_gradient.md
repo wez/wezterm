@@ -16,15 +16,15 @@ return {
     -- with the gradient going from left-to-right.
     -- Linear and Radial gradients are also supported; see the other
     -- examples below
-    orientation = "Vertical",
+    orientation = 'Vertical',
 
     -- Specifies the set of colors that are interpolated in the gradient.
     -- Accepts CSS style color specs, from named colors, through rgb
     -- strings and more
     colors = {
-      "#0f0c29",
-      "#302b63",
-      "#24243e"
+      '#0f0c29',
+      '#302b63',
+      '#24243e',
     },
 
     -- Instead of specifying `colors`, you can use one of a number of
@@ -35,12 +35,12 @@ return {
     -- Specifies the interpolation style to be used.
     -- "Linear", "Basis" and "CatmullRom" as supported.
     -- The default is "Linear".
-    interpolation = "Linear",
+    interpolation = 'Linear',
 
     -- How the colors are blended in the gradient.
     -- "Rgb", "LinearRgb", "Hsv" and "Oklab" are supported.
     -- The default is "Rgb".
-    blend = "Rgb",
+    blend = 'Rgb',
 
     -- To avoid vertical color banding for horizontal gradients, the
     -- gradient position is randomly shifted by up to the `noise` value
@@ -88,10 +88,10 @@ that is moving from the top left corner down to the bottom right corner.
 ```lua
 return {
   window_background_gradient = {
-    colors = { "#EEBD89", "#D13ABD" },
+    colors = { '#EEBD89', '#D13ABD' },
     -- Specifices a Linear gradient starting in the top left corner.
     orientation = { Linear = { angle = -45.0 } },
-  }
+  },
 }
 ```
 
@@ -104,30 +104,30 @@ subsequently stretched to fill the dimensions of the window.
 
 ```lua
 return {
-  color_scheme = "Github",
+  color_scheme = 'Github',
   window_background_gradient = {
-     colors = {"deeppink", "gold"},
-     orientation = {
-       Radial={
-         -- Specifies the x coordinate of the center of the circle,
-         -- in the range 0.0 through 1.0.  The default is 0.5 which
-         -- is centered in the X dimension.
-         cx = 0.75,
+    colors = { 'deeppink', 'gold' },
+    orientation = {
+      Radial = {
+        -- Specifies the x coordinate of the center of the circle,
+        -- in the range 0.0 through 1.0.  The default is 0.5 which
+        -- is centered in the X dimension.
+        cx = 0.75,
 
-         -- Specifies the y coordinate of the center of the circle,
-         -- in the range 0.0 through 1.0.  The default is 0.5 which
-         -- is centered in the Y dimension.
-         cy = 0.75,
+        -- Specifies the y coordinate of the center of the circle,
+        -- in the range 0.0 through 1.0.  The default is 0.5 which
+        -- is centered in the Y dimension.
+        cy = 0.75,
 
-         -- Specifies the radius of the notional circle.
-         -- The default is 0.5, which combined with the default cx
-         -- and cy values places the circle in the center of the
-         -- window, with the edges touching the window edges.
-         -- Values larger than 1 are possible.
-         radius = 1.25,
-       }
-     },
-  }
+        -- Specifies the radius of the notional circle.
+        -- The default is 0.5, which combined with the default cx
+        -- and cy values places the circle in the center of the
+        -- window, with the edges touching the window edges.
+        -- Values larger than 1 are possible.
+        radius = 1.25,
+      },
+    },
+  },
 }
 ```
 

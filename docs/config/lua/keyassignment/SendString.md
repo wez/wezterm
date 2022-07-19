@@ -8,8 +8,8 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="m", mods="CMD", action=wezterm.action.SendString("Hello")},
-  }
+    { key = 'm', mods = 'CMD', action = wezterm.action.SendString 'Hello' },
+  },
 }
 ```
 
@@ -26,10 +26,10 @@ local act = wezterm.action
 return {
   keys = {
     -- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
-    {key="LeftArrow", mods="OPT", action=act.SendString("\x1bb")},
+    { key = 'LeftArrow', mods = 'OPT', action = act.SendString '\x1bb' },
     -- Make Option-Right equivalent to Alt-f; forward-word
-    {key="RightArrow", mods="OPT", action=act.SendString("\x1bf")},
-  }
+    { key = 'RightArrow', mods = 'OPT', action = act.SendString '\x1bf' },
+  },
 }
 ```
 

@@ -17,9 +17,9 @@ local act = wezterm.action
 
 return {
   keys = {
-    {key="{", mods="ALT", action=act.ActivateTabRelativeNoWrap(-1)},
-    {key="}", mods="ALT", action=act.ActivateTabRelativeNoWrap(1)},
-  }
+    { key = '{', mods = 'ALT', action = act.ActivateTabRelativeNoWrap(-1) },
+    { key = '}', mods = 'ALT', action = act.ActivateTabRelativeNoWrap(1) },
+  },
 }
 ```
 

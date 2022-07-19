@@ -7,8 +7,8 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    {key="q", mods="CMD", action=wezterm.action.QuitApplication},
-  }
+    { key = 'q', mods = 'CMD', action = wezterm.action.QuitApplication },
+  },
 }
 ```
 
