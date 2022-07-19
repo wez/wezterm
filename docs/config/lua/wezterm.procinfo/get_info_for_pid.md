@@ -7,7 +7,7 @@ process id.
 
 This function may return `nil` if it was unable to return the info.
 
-```lua
+```
 > wezterm.procinfo.get_info_for_pid(wezterm.procinfo.pid())
 {
     "argv": [

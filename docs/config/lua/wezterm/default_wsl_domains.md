@@ -22,9 +22,10 @@ For example, if:
 
 then this function will return:
 
-```lua
+```
 {
-  { name: "WSL:Ubuntu-18.04",
+  {
+    name: "WSL:Ubuntu-18.04",
     distribution: "Ubuntu-18.04",
   },
 }

@@ -188,7 +188,7 @@ Inside your WSL instance, configure `.wezterm.lua` with this snippet:
 return {
   unix_domains = {
     {
-      name = "wsl"
+      name = "wsl",
       -- Override the default path to match the default on the host win32
       -- filesystem.  This will allow the host to connect into the WSL
       -- container.

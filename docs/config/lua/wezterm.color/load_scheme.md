@@ -5,7 +5,7 @@
 Loads a wezterm color scheme from a TOML file.  This function
 returns a tuple of the the color definitions and the metadata:
 
-```lua
+```
 > colors, metadata = wezterm.color.load_scheme("wezterm/assets/colors/Abernathy.toml")
 > print(metadata)
 22:37:06.041 INFO logging > lua: {

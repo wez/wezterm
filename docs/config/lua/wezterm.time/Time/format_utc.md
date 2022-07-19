@@ -6,7 +6,7 @@ Formats the time object as a string, using UTC date/time representation of the t
 
 The format string supports the [set of formatting placeholders described here](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
 
-```lua
+```
 > wezterm.time.now():format_utc("%Y-%m-%d %H:%M:%S")
 "2022-07-17 18:14:15"
 > wezterm.time.now():format("%Y-%m-%d %H:%M:%S")

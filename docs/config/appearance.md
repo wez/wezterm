@@ -148,7 +148,7 @@ return {
   color_schemes = {
     ["Red Scheme"] = {
       background = "red",
-    }
+    },
     ["Blue Scheme"] = {
       background = "blue",
     }

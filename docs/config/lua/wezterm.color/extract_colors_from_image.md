@@ -13,7 +13,7 @@ an image, for example.
 
 The default is to extract 16 colors from an image:
 
-```lua
+```
 > wezterm.color.extract_colors_from_image("/wallpapers/neon-nights.jpeg")
 [
     "#060a14",
@@ -43,7 +43,7 @@ time the configuration is re-evaluated.
 
 You can specify optional parameters in a parameter table:
 
-```lua
+```
 > wezterm.color.extract_colors_from_image("/wallpaper/neon-nights.jpeg", {
   num_colors=16,
   threshold=75

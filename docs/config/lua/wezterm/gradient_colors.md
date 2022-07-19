@@ -15,7 +15,7 @@ based on the time of the day.
 
 This example is what you'd see if you opened up the [debug overlay](../keyassignment/ShowDebugOverlay.md) to try this out in the repl:
 
-```lua
+```
 > wezterm.gradient_colors({preset="Rainbow"}, 4)
 ["#6e40aa", "#ff8c38", "#5dea8d", "#6e40aa"]
 ```

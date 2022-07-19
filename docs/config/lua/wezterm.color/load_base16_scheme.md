@@ -38,7 +38,7 @@ base0F: "BAA58C"
 
 Then:
 
-```lua
+```
 > colors, metadata = wezterm.color.load_base16_scheme("/tmp/cupcake.yaml")
 > print(colors)
 22:59:26.998 INFO logging > lua: {

@@ -37,7 +37,7 @@ base0F: "BAA58C"
 
 Then:
 
-```lua
+```
 > colors, metadata = wezterm.color.load_base16_scheme("/tmp/cupcake.yaml")
 > wezterm.color.save_scheme(colors, metadata, "/tmp/cupcacke.toml")
 ```

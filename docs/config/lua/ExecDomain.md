@@ -34,9 +34,9 @@ wezterm.exec_domain(NAME, FIXUP [, LABEL])
 The simplest fixup function looks like this:
 
 ```lua
-function(cmd)
+wezterm.exec_domain("myname", function (cmd)
   return cmd
-end
+end)
 ```
 
 The *cmd* parameter is a [SpawnCommand](SpawnCommand.md) that contains
@@ -58,9 +58,9 @@ behavior is equivalent to this callback function definition:
 ```lua
 -- domain_name is the same name you used as the first parameter to
 -- wezterm.exec_domain()
-function(domain_name)
+wezterm.exec_domains(domain_name, fixup_func, function (domain_name)
   return domain_name
-end
+end)
 ```
 
 Using a callback function allows you to produce an amended label
