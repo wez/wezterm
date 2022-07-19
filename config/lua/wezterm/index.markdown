@@ -6,7 +6,7 @@ and control to your config file.
 You will typically place:
 
 ```lua
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 ```
 
 at the top of your configuration file to enable it.
