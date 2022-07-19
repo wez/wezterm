@@ -1,16 +1,6 @@
-# MuxPane
+# `pane:split{}`
 
 *Since: 20220624-141144-bd1b7c5d*
-
-`MuxPane` represents a pane that is managed by the multiplexer.
-
-It has the following methods:
-
-## `pane:pane_id()`
-
-Returns the pane id
-
-## `pane:split{}`
 
 Splits `pane` and spawns a program into the split, returning the
 `MuxPane` object associated with it:
@@ -38,7 +28,7 @@ pane:split{args={"top"}}
 Specify the current working directory that should be used for
 the program.
 
-If unspecified, follows the rules from [default_cwd](config/default_cwd.md)
+If unspecified, follows the rules from [default_cwd](../config/default_cwd.md)
 
 ```lua
 pane:split{cwd="/tmp"}
@@ -114,25 +104,3 @@ pane:split{direction="Top", size=0.333}
 pane:split{direction="Top", size=0.5}
 ```
 
-## `pane:send_paste(text)`
-
-Sends text to the pane as though it was pasted. If bracketed paste mode is
-enabled then the text will be sent as a bracketed paste. Otherwise, it will
-be sent as-is.
-
-## `pane:send_text(text)`
-
-Sends text to the pane as-is.
-
-
-## `pane:window()`
-
-*Since: nightly builds only*
-
-Returns the [MuxWindow](mux-window/index.md) that contains the tab that contains this pane.
-
-## `pane:tab()`
-
-*Since: nightly builds only*
-
-Returns the [MuxTab](MuxTab/index.md) that contains this pane.

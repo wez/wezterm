@@ -2,5 +2,5 @@
 
 *Since: nightly builds only*
 
-Returns the [MuxPane](../MuxPane.md) representation of this pane.
+Returns the [MuxPane](../MuxPane/index.md) representation of this pane.
 
