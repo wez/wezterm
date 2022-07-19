@@ -6,7 +6,9 @@ The `SshDomain` struct specifies information about an individual
 It is a lua object with the following fields:
 
 ```lua
-{
+return {
+  ssh_domains = {
+  {
     -- The name of this specific domain.  Must be unique amongst
     -- all types of domain in the configuration file.
     name = "my.server",
@@ -33,6 +35,8 @@ It is a lua object with the following fields:
     -- Primarily useful if it isn't installed in the $PATH
     -- that is configure for ssh.
     -- remote_wezterm_path = "/home/yourusername/bin/wezterm"
+  },
+  },
 }
 ```
 

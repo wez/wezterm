@@ -40,7 +40,7 @@ Sets additional environment variables in the environment for
 this command invocation.
 
 ```lua
-wezterm.mux.spawn_window{set_environment_variables={"FOO"="BAR"}}
+wezterm.mux.spawn_window{set_environment_variables={FOO="BAR"}}
 ```
 
 ### domain

@@ -28,7 +28,7 @@ then you can set:
 
 ```lua
 return {
-  font_locator = "ConfigDirsOnly"`
+  font_locator = "ConfigDirsOnly",
 }
 ```
 

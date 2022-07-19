@@ -7,7 +7,7 @@ It is a lua object with the following fields; all of the fields
 have reasonable defaults and can be omitted.
 
 ```lua
-{
+wezterm.action.SpawnCommandInNewWindow{
   -- An optional label.
   -- The label is only used for SpawnCommands that are listed in
   -- the `launch_menu` configuration section.

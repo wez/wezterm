@@ -6,6 +6,8 @@ the server side of a [TLS Domain](../../multiplexing.md#tls-domains).
 It is a lua object with the following fields:
 
 ```lua
+return {
+  tls_servers = {
 {
     -- The address:port combination on which the server will listen
     -- for client connections
@@ -30,5 +32,7 @@ It is a lua object with the following fields:
     -- to the trust store.
     -- You can omit this if your tls_client is using bootstrap_via_ssh.
     -- pem_root_certs = { "/some/path/ca1.pem", "/some/path/ca2.pem" },
+},
+  },
 }
 ```

@@ -40,7 +40,7 @@ Sets additional environment variables in the environment for
 this command invocation.
 
 ```lua
-pane:split{set_environment_variables={"FOO"="BAR"}}
+pane:split{set_environment_variables={FOO="BAR"}}
 ```
 
 ### domain

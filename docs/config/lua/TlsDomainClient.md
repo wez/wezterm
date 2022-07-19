@@ -6,6 +6,8 @@ to a [TLS Domain](../../multiplexing.md#tls-domains).
 It is a lua object with the following fields:
 
 ```lua
+return {
+  tls_domains = {
 {
     -- The name of this specific domain.  Must be unique amongst
     -- all types of domain in the configuration file.
@@ -63,6 +65,8 @@ It is a lua object with the following fields:
 
     -- The path to the wezterm binary on the remote host
     -- remote_wezterm_path = "/home/myname/bin/wezterm"
+},
+  },
 }
 ```
 

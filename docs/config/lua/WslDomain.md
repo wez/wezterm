@@ -18,6 +18,8 @@ output from `wsl -l -v` and assigns that as the value of the
 A `WslDomain` is a lua object with the following fields:
 
 ```lua
+return {
+  wls_domains = {
 {
   -- The name of this specific domain.  Must be unique amonst all types
   -- of domain in the configuration file.
@@ -47,5 +49,7 @@ A `WslDomain` is a lua object with the following fields:
   -- specify it here
 
   -- default_prog = {"fish"}
+},
+  },
 }
 ```

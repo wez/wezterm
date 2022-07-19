@@ -18,7 +18,7 @@ Indexing `wezterm.action` with a valid
 [KeyAssignment](../keyassignment/index.md) name will act as a constructor for
 that key assignment type.  For example, the lua expression:
 
-```lua
+```
 wezterm.action.QuickSelectArgs
 ```
 
