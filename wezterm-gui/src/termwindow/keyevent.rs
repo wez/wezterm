@@ -16,6 +16,8 @@ pub struct KeyTableStateEntry {
     /// Whether this activation pops itself after recognizing a key press
     one_shot: bool,
     until_unknown: bool,
+    /// The timeout duration; used when updating the expiration
+    timeout_milliseconds: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +46,7 @@ impl KeyTableState {
                 .map(|ms| Instant::now() + Duration::from_millis(ms)),
             one_shot: args.one_shot,
             until_unknown: args.until_unknown,
+            timeout_milliseconds: args.timeout_milliseconds,
         });
     }
 
@@ -98,14 +101,19 @@ impl KeyTableState {
         let mut pop_count = 0;
         let mut result = None;
 
-        for entry in self.stack.iter().rev() {
-            let name = entry.name.as_str();
+        for stack_entry in self.stack.iter_mut().rev() {
+            let name = stack_entry.name.as_str();
             if let Some(entry) = input_map.lookup_key(key, mods, Some(name)) {
+                if let Some(timeout) = stack_entry.timeout_milliseconds {
+                    stack_entry
+                        .expiration
+                        .replace(Instant::now() + Duration::from_millis(timeout));
+                }
                 result = Some((entry, Some(name.to_string())));
                 break;
             }
 
-            if entry.until_unknown {
+            if stack_entry.until_unknown {
                 pop_count += 1;
             }
         }

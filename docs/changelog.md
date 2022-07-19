@@ -33,6 +33,12 @@ As features stabilize some brief notes about them will accumulate here.
 * X11/Wayland: [XDG desktop portal](https://flatpak.github.io/xdg-desktop-portal/) is now used to determine whether dark mode is in use [#2258](https://github.com/wez/wezterm/issues/2258)
 * [SetPaneZoomState](config/lua/keyassignment/SetPaneZoomState.md) key assignment and [MuxTab:set_zoomed()](config/lua/MuxTab/set_zoomed.md) for explicitly setting the zoom state of a pane. [#2284](https://github.com/wez/wezterm/discussions/2284)
 
+#### Changed
+* If `timeout_milliseconds` is specified in
+  [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md), then the
+  timeout duration is now reset each time a key press matches that key table
+  activation. [#1129](https://github.com/wez/wezterm/issues/1129)
+
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
 * `winget` causes toast notification spam [#2185](https://github.com/wez/wezterm/issues/2185)
