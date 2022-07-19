@@ -38,6 +38,12 @@ As features stabilize some brief notes about them will accumulate here.
   [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md), then the
   timeout duration is now reset each time a key press matches that key table
   activation. [#1129](https://github.com/wez/wezterm/issues/1129)
+* The lua examples in the docs are now syntax checked and formatted via
+  [Gelatyx](https://github.com/azzamsa/gelatyx) and
+  [StyLua](https://github.com/JohnnyMorganz/StyLua), thanks to
+  [@azzamsa](https://github.com/azzamsa)!
+  [#2273](https://github.com/wez/wezterm/issues/2273)
+  [#2253](https://github.com/wez/wezterm/issues/2253)
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
