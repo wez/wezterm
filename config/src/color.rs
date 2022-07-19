@@ -495,18 +495,7 @@ impl ColorSchemeFile {
 
     pub fn from_toml_str(s: &str) -> anyhow::Result<Self> {
         let scheme: toml::Value = toml::from_str(s)?;
-        let mut scheme = ColorSchemeFile::from_toml_value(&scheme)?;
-
-        // Little hack to extract comment style metadata from
-        // iTerm2-Color-Schemes generated toml files
-        if scheme.metadata.name.is_none() {
-            if let Some(first_line) = s.lines().next() {
-                if let Some(name) = first_line.strip_prefix("# ") {
-                    scheme.metadata.name.replace(name.to_string());
-                }
-            }
-        }
-        Ok(scheme)
+        Self::from_toml_value(&scheme)
     }
 
     pub fn to_toml_value(&self) -> anyhow::Result<toml::Value> {
