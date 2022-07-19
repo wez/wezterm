@@ -2,7 +2,7 @@
 
 *Since: 20220624-141144-bd1b7c5d*
 
-Spawns a program into a new window, returning the [MuxTab](../MuxTab.md),
+Spawns a program into a new window, returning the [MuxTab](../MuxTab/index.md),
 [MuxPane](../MuxPane.md) and [MuxWindow](../mux-window/index.md) objects
 associated with it:
 

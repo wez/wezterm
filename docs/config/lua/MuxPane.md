@@ -135,4 +135,4 @@ Returns the [MuxWindow](mux-window/index.md) that contains the tab that contains
 
 *Since: nightly builds only*
 
-Returns the [MuxTab](MuxTab.md) that contains this pane.
+Returns the [MuxTab](MuxTab/index.md) that contains this pane.

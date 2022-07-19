@@ -524,6 +524,14 @@ impl UserData for MuxTab {
                 .map(|info| MuxPane(info.pane.pane_id()))
                 .collect::<Vec<MuxPane>>())
         });
+
+        methods.add_method("set_zoomed", |_, this, zoomed: bool| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            let was_zoomed = tab.set_zoomed(zoomed);
+            Ok(was_zoomed)
+        });
+
         methods.add_method("panes_with_info", |lua, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;

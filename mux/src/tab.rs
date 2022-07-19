@@ -593,13 +593,15 @@ impl Tab {
         }
     }
 
-    pub fn set_zoomed(&self, zoomed: bool) {
+    /// Sets the zoom state, returns the prior state
+    pub fn set_zoomed(&self, zoomed: bool) -> bool {
         if self.zoomed.borrow().is_some() == zoomed {
             // Current zoom state matches intended zoom state,
             // so we have nothing to do.
-            return;
+            return zoomed;
         }
         self.toggle_zoom();
+        !zoomed
     }
 
     pub fn toggle_zoom(&self) {

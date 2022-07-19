@@ -358,7 +358,7 @@ TOC = [
                     Page("object: ExecDomain", "config/lua/ExecDomain.md"),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
                     Gen("object: MuxWindow", "config/lua/mux-window"),
-                    Page("object: MuxTab", "config/lua/MuxTab.md"),
+                    Gen("object: MuxTab", "config/lua/MuxTab"),
                     Page("object: MuxPane", "config/lua/MuxPane.md"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),
                     Page("object: TabInformation", "config/lua/TabInformation.md"),

@@ -2388,6 +2388,14 @@ impl TermWindow {
                 };
                 tab.toggle_zoom();
             }
+            SetPaneZoomState(zoomed) => {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
+                tab.set_zoomed(*zoomed);
+            }
             SwitchWorkspaceRelative(delta) => {
                 let mux = Mux::get().unwrap();
                 let workspace = mux.active_workspace();

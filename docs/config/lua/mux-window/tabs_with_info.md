@@ -9,5 +9,5 @@ Each element is a lua table with the following fields:
 
 * `index` - the 0-based tab index
 * `is_active` - a boolean indicating whether this is the active tab within the window
-* `tab` - the [MuxTab](../MuxTab.md) object
+* `tab` - the [MuxTab](../MuxTab/index.md) object
 

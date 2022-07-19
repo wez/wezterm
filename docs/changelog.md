@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Hundreds of new color schemes have been imported from [base16](https://github.com/chriskempson/base16-schemes-source), [Gogh](https://gogh-co.github.io/Gogh/) and [terminal.sexy](https://terminal.sexy/). [Browse the schemes](colorschemes/index.md) and look for themes with `(base16)`, `(Gogh)` and `(terminal.sexy)` in the name to discover them!
 * [pane:is_alt_screen_active()](config/lua/pane/is_alt_screen_active.md) for testing whether the alt screen is active. Thanks to [@Funami580](https://github.com/Funami580)! [#2234](https://github.com/wez/wezterm/issues/2234)
 * X11/Wayland: [XDG desktop portal](https://flatpak.github.io/xdg-desktop-portal/) is now used to determine whether dark mode is in use [#2258](https://github.com/wez/wezterm/issues/2258)
+* [SetPaneZoomState](config/lua/keyassignment/SetPaneZoomState.md) key assignment and [MuxTab:set_zoomed()](config/lua/MuxTab/set_zoomed.md) for explicitly setting the zoom state of a pane. [#2284](https://github.com/wez/wezterm/discussions/2284)
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
