@@ -4,6 +4,7 @@
 use ::window::*;
 use anyhow::{anyhow, Context};
 use clap::{Parser, ValueHint};
+use config::keyassignment::SpawnCommand;
 use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -414,16 +415,25 @@ async fn async_run_terminal_gui(
         connect_to_auto_connect_domains().await?;
     }
 
-    async fn trigger_gui_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
+    async fn trigger_gui_startup(
+        lua: Option<Rc<mlua::Lua>>,
+        spawn: Option<SpawnCommand>,
+    ) -> anyhow::Result<()> {
         if let Some(lua) = lua {
-            let args = lua.pack_multi(())?;
+            let args = lua.pack_multi(spawn)?;
             config::lua::emit_event(&lua, ("gui-startup".to_string(), args)).await?;
         }
         Ok(())
     }
 
+    let spawn_command = match &cmd {
+        Some(cmd) => Some(SpawnCommand::from_command_builder(cmd)?),
+        None => None,
+    };
+
     if let Err(err) =
-        config::with_lua_config_on_main_thread(move |lua| trigger_gui_startup(lua)).await
+        config::with_lua_config_on_main_thread(move |lua| trigger_gui_startup(lua, spawn_command))
+            .await
     {
         let message = format!("while processing gui-startup event: {:#}", err);
         log::error!("{}", message);

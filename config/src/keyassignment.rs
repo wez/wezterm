@@ -1,6 +1,7 @@
 use crate::keys::KeyNoAction;
 use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
+use portable_pty::CommandBuilder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -215,6 +216,34 @@ impl std::fmt::Display for SpawnCommand {
             write!(fmt, " {}={}", k, v)?;
         }
         Ok(())
+    }
+}
+
+impl SpawnCommand {
+    pub fn from_command_builder(cmd: &CommandBuilder) -> anyhow::Result<Self> {
+        let mut args = vec![];
+        let mut set_environment_variables = HashMap::new();
+        for arg in cmd.get_argv() {
+            args.push(
+                arg.to_str()
+                    .ok_or_else(|| anyhow::anyhow!("command argument is not utf8"))?
+                    .to_string(),
+            );
+        }
+        for (k, v) in cmd.iter_full_env_as_str() {
+            set_environment_variables.insert(k.to_string(), v.to_string());
+        }
+        let cwd = match cmd.get_cwd() {
+            Some(cwd) => Some(PathBuf::from(cwd)),
+            None => None,
+        };
+        Ok(Self {
+            label: None,
+            domain: SpawnTabDomain::DefaultDomain,
+            args: if args.is_empty() { None } else { Some(args) },
+            set_environment_variables,
+            cwd,
+        })
     }
 }
 
