@@ -2465,42 +2465,6 @@
   {
     "colors": {
       "ansi": [
-        "#393b44",
-        "#c94f6d",
-        "#81b29a",
-        "#dbc074",
-        "#719cd6",
-        "#9d79d6",
-        "#63cdcf",
-        "#dfdfe0"
-      ],
-      "background": "#192330",
-      "brights": [
-        "#575860",
-        "#d16983",
-        "#8ebaa4",
-        "#e0c989",
-        "#86abdc",
-        "#baa1e2",
-        "#7ad4d6",
-        "#e4e4e5"
-      ],
-      "cursor_bg": "#cdcecf",
-      "cursor_border": "#cdcecf",
-      "cursor_fg": "#cdcecf",
-      "foreground": "#cdcecf",
-      "indexed": {}
-    },
-    "metadata": {
-      "name": "_bash (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b",
-      "wezterm_version": "nightly builds only"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#17141f",
         "#ff6b7f",
         "#00bd9c",
@@ -6504,6 +6468,84 @@
   {
     "colors": {
       "ansi": [
+        "#575279",
+        "#b4637a",
+        "#618774",
+        "#ea9d34",
+        "#286983",
+        "#907aa9",
+        "#56949f",
+        "#e5e9f0"
+      ],
+      "background": "#faf4ed",
+      "brights": [
+        "#5f5695",
+        "#c26d85",
+        "#629f81",
+        "#eea846",
+        "#2d81a3",
+        "#9a80b9",
+        "#5ca7b4",
+        "#e6ebf3"
+      ],
+      "cursor_bg": "#575279",
+      "cursor_border": "#575279",
+      "cursor_fg": "#faf4ed",
+      "foreground": "#575279",
+      "indexed": {},
+      "selection_bg": "#d0d8d8",
+      "selection_fg": "#575279"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "dawnfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d344f",
+        "#b95d76",
+        "#618774",
+        "#ba793e",
+        "#4d688e",
+        "#8e6f98",
+        "#6ca7bd",
+        "#cdd1d5"
+      ],
+      "background": "#eaeaea",
+      "brights": [
+        "#24476f",
+        "#c76882",
+        "#629f81",
+        "#ca884a",
+        "#4e75aa",
+        "#9f75ac",
+        "#74b2c9",
+        "#cfd6dd"
+      ],
+      "cursor_bg": "#1d344f",
+      "cursor_border": "#1d344f",
+      "cursor_fg": "#eaeaea",
+      "foreground": "#1d344f",
+      "indexed": {},
+      "selection_bg": "#ced5de",
+      "selection_fg": "#1d344f"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "dayfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#3d3e3d",
         "#755a5b",
         "#68755a",
@@ -7466,6 +7508,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#393552",
+        "#eb6f92",
+        "#a3be8c",
+        "#f6c177",
+        "#569fba",
+        "#c4a7e7",
+        "#9ccfd8",
+        "#e0def4"
+      ],
+      "background": "#232136",
+      "brights": [
+        "#47407d",
+        "#f083a2",
+        "#b1d196",
+        "#f9cb8c",
+        "#65b1cd",
+        "#ccb1ed",
+        "#a6dae3",
+        "#e2e0f7"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#232136",
+      "foreground": "#e0def4",
+      "indexed": {},
+      "selection_bg": "#433c59",
+      "selection_fg": "#e0def4"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "duskfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -16814,6 +16895,45 @@
   {
     "colors": {
       "ansi": [
+        "#393b44",
+        "#c94f6d",
+        "#81b29a",
+        "#dbc074",
+        "#719cd6",
+        "#9d79d6",
+        "#63cdcf",
+        "#dfdfe0"
+      ],
+      "background": "#192330",
+      "brights": [
+        "#575860",
+        "#d16983",
+        "#8ebaa4",
+        "#e0c989",
+        "#86abdc",
+        "#baa1e2",
+        "#7ad4d6",
+        "#e4e4e5"
+      ],
+      "cursor_bg": "#cdcecf",
+      "cursor_border": "#cdcecf",
+      "cursor_fg": "#192330",
+      "foreground": "#cdcecf",
+      "indexed": {},
+      "selection_bg": "#2b3b51",
+      "selection_fg": "#cdcecf"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "nightfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4c4c4c",
         "#bb0000",
         "#5fde8f",
@@ -17110,6 +17230,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3b4252",
+        "#bf616a",
+        "#a3be8c",
+        "#ebcb8b",
+        "#81a1c1",
+        "#b48ead",
+        "#88c0d0",
+        "#e5e9f0"
+      ],
+      "background": "#2e3440",
+      "brights": [
+        "#465780",
+        "#d06f79",
+        "#b1d196",
+        "#f0d399",
+        "#8cafd2",
+        "#c895bf",
+        "#93ccdc",
+        "#e7ecf4"
+      ],
+      "cursor_bg": "#cdcecf",
+      "cursor_border": "#cdcecf",
+      "cursor_fg": "#2e3440",
+      "foreground": "#cdcecf",
+      "indexed": {},
+      "selection_bg": "#3e4a5b",
+      "selection_fg": "#cdcecf"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "nordfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "n",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -23588,6 +23747,45 @@
   {
     "colors": {
       "ansi": [
+        "#2f3239",
+        "#e85c51",
+        "#7aa4a1",
+        "#fda47f",
+        "#5a93aa",
+        "#ad5c7c",
+        "#a1cdd8",
+        "#ebebeb"
+      ],
+      "background": "#152528",
+      "brights": [
+        "#4e5157",
+        "#eb746b",
+        "#8eb2af",
+        "#fdb292",
+        "#73a3b7",
+        "#b97490",
+        "#afd4de",
+        "#eeeeee"
+      ],
+      "cursor_bg": "#e6eaea",
+      "cursor_border": "#e6eaea",
+      "cursor_fg": "#152528",
+      "foreground": "#e6eaea",
+      "indexed": {},
+      "selection_bg": "#293e40",
+      "selection_fg": "#e6eaea"
+    },
+    "metadata": {
+      "author": "EdenEast",
+      "name": "terafox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#990000",
         "#00a600",
@@ -26052,6 +26250,44 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#34373e",
+        "#e06383",
+        "#7ebebd",
+        "#dcc28c",
+        "#a6c1e0",
+        "#e1c1ee",
+        "#5b94ab",
+        "#d3d3d3"
+      ],
+      "background": "#282b33",
+      "brights": [
+        "#434750",
+        "#fa7193",
+        "#8fd7d6",
+        "#f5d79a",
+        "#b2cff0",
+        "#efccfd",
+        "#69abc5",
+        "#f7f7f7"
+      ],
+      "cursor_bg": "#7ebebd",
+      "cursor_border": "#7ebebd",
+      "cursor_fg": "#1f2024",
+      "foreground": "#e7e2e2",
+      "indexed": {},
+      "selection_bg": "#1f2024",
+      "selection_fg": "#c6c6c6"
+    },
+    "metadata": {
+      "name": "wilmersdorf",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "w",
+      "wezterm_version": "nightly builds only"
     }
   },
   {

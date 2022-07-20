@@ -296,6 +296,13 @@ async fn main() -> anyhow::Result<()> {
         &mut schemeses,
     )
     .await?;
+    sync_toml(
+        "https://github.com/EdenEast/nightfox.nvim",
+        "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
     accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
     accumulate(
         &mut schemeses,
