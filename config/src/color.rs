@@ -438,6 +438,8 @@ pub struct ColorSchemeMetaData {
     pub author: Option<String>,
     pub origin_url: Option<String>,
     pub wezterm_version: Option<String>,
+    #[dynamic(default)]
+    pub aliases: Vec<String>,
 }
 impl_lua_conversion_dynamic!(ColorSchemeMetaData);
 

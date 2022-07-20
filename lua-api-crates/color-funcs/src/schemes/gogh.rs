@@ -73,6 +73,7 @@ impl GoghTheme {
                     author: None,
                     origin_url: None,
                     wezterm_version: None,
+                    aliases: vec![],
                 },
             })
         }

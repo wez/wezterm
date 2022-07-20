@@ -31,6 +31,10 @@
       "selection_fg": "#090300"
     },
     "metadata": {
+      "aliases": [
+        "3024 (base16)",
+        "3024 (dark) (terminal.sexy)"
+      ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -65,6 +69,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "3024 (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -104,6 +109,10 @@
       "selection_fg": "#4a4543"
     },
     "metadata": {
+      "aliases": [
+        "3024 Day",
+        "3024Day (Gogh)"
+      ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -143,6 +152,10 @@
       "selection_fg": "#a5a2a2"
     },
     "metadata": {
+      "aliases": [
+        "3024 Night",
+        "3024Night (Gogh)"
+      ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
       "name": "3024 Night",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -182,6 +195,7 @@
       "selection_fg": "#333333"
     },
     "metadata": {
+      "aliases": [],
       "name": "Abernathy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -218,6 +232,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Aci (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -254,6 +269,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Aco (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -292,6 +308,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Adventure",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -330,6 +347,7 @@
       "selection_fg": "#f3d9c4"
     },
     "metadata": {
+      "aliases": [],
       "name": "AdventureTime",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -368,6 +386,7 @@
       "selection_fg": "#d0d0d0"
     },
     "metadata": {
+      "aliases": [],
       "name": "Afterglow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -404,6 +423,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Afterglow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -437,6 +457,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Gutterslob",
       "name": "aikofog (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -476,6 +497,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Alabaster",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -514,6 +536,7 @@
       "selection_fg": "#73fa91"
     },
     "metadata": {
+      "aliases": [],
       "name": "AlienBlood",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -552,6 +575,7 @@
       "selection_fg": "#ece7e7"
     },
     "metadata": {
+      "aliases": [],
       "name": "Andromeda",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -590,6 +614,7 @@
       "selection_fg": "#031a16"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Apathy (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -629,6 +654,7 @@
       "selection_fg": "#262626"
     },
     "metadata": {
+      "aliases": [],
       "author": "romainl",
       "name": "Apprentice (base16)",
       "origin_url": "https://github.com/casonadams/base16-apprentice-scheme",
@@ -668,6 +694,7 @@
       "selection_fg": "#f3fffd"
     },
     "metadata": {
+      "aliases": [],
       "name": "arcoiris",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -706,6 +733,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Argonaut",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -744,6 +772,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Arthur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -782,6 +811,10 @@
       "selection_fg": "#1c2023"
     },
     "metadata": {
+      "aliases": [
+        "Ashes (base16)",
+        "Ashes (dark) (terminal.sexy)"
+      ],
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Ashes (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -816,6 +849,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Ashes (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -850,6 +884,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "astromouse (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -889,6 +924,7 @@
       "selection_fg": "#19171c"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Cave (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -928,6 +964,7 @@
       "selection_fg": "#efecf4"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Cave Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -967,6 +1004,7 @@
       "selection_fg": "#20201d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Dune (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1006,6 +1044,7 @@
       "selection_fg": "#fefbec"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Dune Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1045,6 +1084,7 @@
       "selection_fg": "#22221b"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Estuary (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1084,6 +1124,7 @@
       "selection_fg": "#f4f3ec"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Estuary Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1123,6 +1164,7 @@
       "selection_fg": "#1b1918"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Forest (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1162,6 +1204,7 @@
       "selection_fg": "#f1efee"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Forest Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1201,6 +1244,7 @@
       "selection_fg": "#1b181b"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Heath (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1240,6 +1284,7 @@
       "selection_fg": "#f7f3f7"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Heath Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1279,6 +1324,7 @@
       "selection_fg": "#161b1d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Lakeside (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1318,6 +1364,7 @@
       "selection_fg": "#ebf8ff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Lakeside Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1357,6 +1404,7 @@
       "selection_fg": "#1b1818"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Plateau (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1396,6 +1444,7 @@
       "selection_fg": "#f4ecec"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Plateau Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1435,6 +1484,7 @@
       "selection_fg": "#171c19"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Savanna (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1474,6 +1524,7 @@
       "selection_fg": "#ecf4ee"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Savanna Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1513,6 +1564,7 @@
       "selection_fg": "#131513"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Seaside (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1552,6 +1604,7 @@
       "selection_fg": "#f4fbf4"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Seaside Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1591,6 +1644,7 @@
       "selection_fg": "#202746"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Sulphurpool (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1630,6 +1684,7 @@
       "selection_fg": "#f5f7ff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Bram de Haan (http://atelierbramdehaan.nl)",
       "name": "Atelier Sulphurpool Light (base16)",
       "origin_url": "https://github.com/atelierbram/base16-atelier-schemes",
@@ -1664,6 +1719,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierdune (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1698,6 +1754,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierdune (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1732,6 +1789,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierforest (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1766,6 +1824,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierforest (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1800,6 +1859,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierheath (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1834,6 +1894,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierheath (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1868,6 +1929,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierlakeside (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1902,6 +1964,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierlakeside (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1936,6 +1999,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierseaside (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -1970,6 +2034,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Atelierseaside (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -2009,6 +2074,7 @@
       "selection_fg": "#979db4"
     },
     "metadata": {
+      "aliases": [],
       "name": "AtelierSulphurpool",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2047,6 +2113,7 @@
       "selection_fg": "#002635"
     },
     "metadata": {
+      "aliases": [],
       "author": "Alex Lende (https://ajlende.com)",
       "name": "Atlas (base16)",
       "origin_url": "https://github.com/ajlende/base16-atlas-scheme",
@@ -2086,6 +2153,7 @@
       "selection_fg": "#c5c8c6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Atom",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2124,6 +2192,7 @@
       "selection_fg": "#2a2c33"
     },
     "metadata": {
+      "aliases": [],
       "name": "AtomOneLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2160,6 +2229,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Aura (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -2198,6 +2268,7 @@
       "selection_fg": "#00e8c6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Aurora",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2236,6 +2307,7 @@
       "selection_fg": "#e6e1cf"
     },
     "metadata": {
+      "aliases": [],
       "name": "ayu",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2274,6 +2346,7 @@
       "selection_fg": "#cbccc6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ayu Mirage",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2312,6 +2385,7 @@
       "selection_fg": "#5c6773"
     },
     "metadata": {
+      "aliases": [],
       "name": "ayu_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2348,6 +2422,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "AyuDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -2384,6 +2459,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "AyuLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -2420,6 +2496,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "AyuMirage (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -2456,6 +2533,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Azu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
@@ -2494,6 +2572,7 @@
       "selection_fg": "#f4f4f4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Banana Blueberry",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -2532,6 +2611,7 @@
       "selection_fg": "#f0e04a"
     },
     "metadata": {
+      "aliases": [],
       "name": "Batman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -2570,6 +2650,10 @@
       "selection_fg": "#45373c"
     },
     "metadata": {
+      "aliases": [
+        "Belafonte Day",
+        "BelafonteDay (Gogh)"
+      ],
       "author": "Jan T. Sott",
       "name": "Belafonte Day",
       "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
@@ -2609,6 +2693,10 @@
       "selection_fg": "#968c83"
     },
     "metadata": {
+      "aliases": [
+        "Belafonte Night",
+        "BelafonteNight (Gogh)"
+      ],
       "author": "Jan T. Sott",
       "name": "Belafonte Night",
       "origin_url": "https://github.com/idleberg/Zissou-iTerm2",
@@ -2643,6 +2731,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Belge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -2682,6 +2771,10 @@
       "selection_fg": "#28211c"
     },
     "metadata": {
+      "aliases": [
+        "Bespin (base16)",
+        "Bespin (dark) (terminal.sexy)"
+      ],
       "author": "Jan T. Sott",
       "name": "Bespin (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -2716,6 +2809,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Bespin (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -2753,6 +2847,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Bim (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
@@ -2791,6 +2886,7 @@
       "selection_fg": "#e0dbbb"
     },
     "metadata": {
+      "aliases": [],
       "name": "BirdsOfParadise",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -2824,6 +2920,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Bitmute (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -2863,6 +2960,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -2902,6 +3000,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Bathory) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -2941,6 +3040,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Burzum) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -2980,6 +3080,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Dark Funeral) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3019,6 +3120,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Gorgoroth) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3058,6 +3160,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Immortal) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3097,6 +3200,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Khold) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3136,6 +3240,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Marduk) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3175,6 +3280,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Mayhem) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3214,6 +3320,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Nile) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3253,6 +3360,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "metalelf0 (https://github.com/metalelf0)",
       "name": "Black Metal (Venom) (base16)",
       "origin_url": "https://github.com/metalelf0/base16-black-metal-scheme",
@@ -3292,6 +3400,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Blazer",
+        "Miu (Gogh)"
+      ],
       "name": "Blazer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3325,6 +3437,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Bleh-1 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -3364,6 +3477,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Blue Matrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3402,6 +3516,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "BlueBerryPie",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3440,6 +3555,7 @@
       "selection_fg": "#eceff1"
     },
     "metadata": {
+      "aliases": [],
       "name": "BlueDolphin",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3478,6 +3594,7 @@
       "selection_fg": "#272b33"
     },
     "metadata": {
+      "aliases": [],
       "name": "BlulocoDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3516,6 +3633,7 @@
       "selection_fg": "#373a41"
     },
     "metadata": {
+      "aliases": [],
       "name": "BlulocoLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3552,6 +3670,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "BlulocoLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
@@ -3588,6 +3707,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "BlulocoZshLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
@@ -3626,6 +3746,7 @@
       "selection_fg": "#0000a4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Borland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3664,6 +3785,7 @@
       "selection_fg": "#31363b"
     },
     "metadata": {
+      "aliases": [],
       "name": "Breeze",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3702,6 +3824,10 @@
       "selection_fg": "#0c0d0e"
     },
     "metadata": {
+      "aliases": [
+        "Brewer (base16)",
+        "Brewer (dark) (terminal.sexy)"
+      ],
       "author": "Timothée Poisot (http://github.com/tpoisot)",
       "name": "Brewer (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -3736,6 +3862,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Brewer (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -3775,6 +3902,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Bright (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -3814,6 +3942,7 @@
       "selection_fg": "#191919"
     },
     "metadata": {
+      "aliases": [],
       "name": "Bright Lights",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3852,6 +3981,7 @@
       "selection_fg": "#e6e1dc"
     },
     "metadata": {
+      "aliases": [],
       "name": "Broadcast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3890,6 +4020,7 @@
       "selection_fg": "#d6dbe5"
     },
     "metadata": {
+      "aliases": [],
       "name": "Brogrammer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3928,6 +4059,7 @@
       "selection_fg": "#1f1f1f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Vik Ramanujam (http://github.com/piggyslasher)",
       "name": "Brogrammer (base16)",
       "origin_url": "https://github.com/piggyslasher/base16-brogrammer-scheme",
@@ -3967,6 +4099,7 @@
       "selection_fg": "#e3efef"
     },
     "metadata": {
+      "aliases": [],
       "author": "Abraham White <abelincoln.white@gmail.com>",
       "name": "Brush Trees (base16)",
       "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
@@ -4006,6 +4139,7 @@
       "selection_fg": "#485867"
     },
     "metadata": {
+      "aliases": [],
       "author": "Abraham White <abelincoln.white@gmail.com>",
       "name": "Brush Trees Dark (base16)",
       "origin_url": "https://github.com/WhiteAbeLincoln/base16-brushtrees-scheme",
@@ -4045,6 +4179,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Builtin Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4083,6 +4218,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Builtin Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4121,6 +4257,7 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
+      "aliases": [],
       "name": "Builtin Pastel Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4159,6 +4296,7 @@
       "selection_fg": "#93a1a1"
     },
     "metadata": {
+      "aliases": [],
       "name": "Builtin Solarized Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4197,6 +4335,10 @@
       "selection_fg": "#586e75"
     },
     "metadata": {
+      "aliases": [
+        "Builtin Solarized Light",
+        "SolarizedLight (Gogh)"
+      ],
       "name": "Builtin Solarized Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4235,6 +4377,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Builtin Tango Dark",
+        "Gnometerm (terminal.sexy)"
+      ],
       "name": "Builtin Tango Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4273,6 +4419,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Builtin Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4311,6 +4458,7 @@
       "selection_fg": "#40318d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jan T. Sott",
       "name": "C64",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -4348,6 +4496,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Cai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
@@ -4386,6 +4535,7 @@
       "selection_fg": "#d5ced9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Calamity",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -4419,6 +4569,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Canvased Pastel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -4453,6 +4604,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Catch Me If You Can (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -4544,6 +4696,7 @@
       "visual_bell": "#414559"
     },
     "metadata": {
+      "aliases": [],
       "author": "Catppuccin Org",
       "name": "Catppuccin Frappe",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -4635,6 +4788,7 @@
       "visual_bell": "#ccd0da"
     },
     "metadata": {
+      "aliases": [],
       "author": "Catppuccin Org",
       "name": "Catppuccin Latte",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -4726,6 +4880,7 @@
       "visual_bell": "#363a4f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Catppuccin Org",
       "name": "Catppuccin Macchiato",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -4817,6 +4972,7 @@
       "visual_bell": "#313244"
     },
     "metadata": {
+      "aliases": [],
       "author": "Catppuccin Org",
       "name": "Catppuccin Mocha",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -4856,6 +5012,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "CGA",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -4894,6 +5051,7 @@
       "selection_fg": "#3f4041"
     },
     "metadata": {
+      "aliases": [],
       "name": "Chalk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -4932,6 +5090,10 @@
       "selection_fg": "#151515"
     },
     "metadata": {
+      "aliases": [
+        "Chalk (base16)",
+        "Chalk (dark) (terminal.sexy)"
+      ],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Chalk (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -4969,6 +5131,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Chalk (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
@@ -5002,6 +5165,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Chalk (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5041,6 +5205,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Chalkboard",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5079,6 +5244,7 @@
       "selection_fg": "#1e1c31"
     },
     "metadata": {
+      "aliases": [],
       "name": "ChallengerDeep",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5115,6 +5281,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Chameleon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
@@ -5153,6 +5320,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Chester",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5191,6 +5359,7 @@
       "selection_fg": "#aea47f"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ciapre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5229,6 +5398,7 @@
       "selection_fg": "#191919"
     },
     "metadata": {
+      "aliases": [],
       "author": "Stephan Boyer (https://github.com/stepchowfun) and Esther Wang (https://github.com/ewang12)",
       "name": "Circus (base16)",
       "origin_url": "https://github.com/stepchowfun/base16-circus-scheme",
@@ -5263,6 +5433,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "City Streets (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5302,6 +5473,10 @@
       "selection_fg": "#151515"
     },
     "metadata": {
+      "aliases": [
+        "Classic Dark (base16)",
+        "Default (dark) (terminal.sexy)"
+      ],
       "author": "Jason Heeris (http://heeris.id.au)",
       "name": "Classic Dark (base16)",
       "origin_url": "https://github.com/detly/base16-classic-scheme",
@@ -5341,6 +5516,7 @@
       "selection_fg": "#f5f5f5"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jason Heeris (http://heeris.id.au)",
       "name": "Classic Light (base16)",
       "origin_url": "https://github.com/detly/base16-classic-scheme",
@@ -5378,6 +5554,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "CloneofUbuntu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
@@ -5411,6 +5588,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Cloud (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5450,6 +5628,7 @@
       "selection_fg": "#041730"
     },
     "metadata": {
+      "aliases": [],
       "name": "CLRS",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5488,6 +5667,10 @@
       "selection_fg": "#8ff586"
     },
     "metadata": {
+      "aliases": [
+        "Cobalt Neon",
+        "CobaltNeon (Gogh)"
+      ],
       "name": "Cobalt Neon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5526,6 +5709,7 @@
       "selection_fg": "#b5b5b5"
     },
     "metadata": {
+      "aliases": [],
       "name": "Cobalt2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5564,6 +5748,10 @@
       "selection_fg": "#232c31"
     },
     "metadata": {
+      "aliases": [
+        "Codeschool (base16)",
+        "Codeschool (dark) (terminal.sexy)"
+      ],
       "author": "blockloop",
       "name": "Codeschool (base16)",
       "origin_url": "https://github.com/blockloop/base16-codeschool-scheme",
@@ -5598,6 +5786,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Codeschool (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5637,6 +5826,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "coffee_theme",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5670,6 +5860,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Color Star (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5707,6 +5898,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Colorcli (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
@@ -5740,6 +5932,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Colorful Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5779,6 +5972,7 @@
       "selection_fg": "#111111"
     },
     "metadata": {
+      "aliases": [],
       "author": "mrmrs (http://clrs.cc)",
       "name": "Colors (base16)",
       "origin_url": "https://github.com/hakatashi/base16-colors-scheme",
@@ -5813,6 +6007,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Count Von Count (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -5852,6 +6047,7 @@
       "selection_fg": "#69525a"
     },
     "metadata": {
+      "aliases": [],
       "name": "CrayonPonyFish",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5890,6 +6086,7 @@
       "selection_fg": "#fbf1f2"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Cupcake (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -5929,6 +6126,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Defman21",
       "name": "Cupertino (base16)",
       "origin_url": "https://github.com/Defman21/base16-cupertino",
@@ -5968,6 +6166,7 @@
       "selection_fg": "#f4f4f4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Cyberdyne",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -6006,6 +6205,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "cyberpunk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -6044,6 +6244,7 @@
       "selection_fg": "#2d302f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Wenhan Zhu (Cosmos) (zhuwenhan950913@gmail.com)",
       "name": "DanQing (base16)",
       "origin_url": "https://github.com/CosmosAtlas/base16-danqing-scheme",
@@ -6083,6 +6284,7 @@
       "selection_fg": "#2b2b2b"
     },
     "metadata": {
+      "aliases": [],
       "author": "jetbrains",
       "name": "Darcula (base16)",
       "origin_url": "https://github.com/casonadams/base16-darcula-scheme",
@@ -6117,6 +6319,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "DOOMICIDE",
       "name": "Dark Ocean (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6156,6 +6359,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Dark Pastel",
+        "DarkPastel (Gogh)"
+      ],
       "name": "Dark Pastel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6194,6 +6401,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "ruler501 (https://github.com/ruler501/base16-darkviolet)",
       "name": "Dark Violet (base16)",
       "origin_url": "https://github.com/ruler501/base16-darkviolet-scheme",
@@ -6233,6 +6441,7 @@
       "selection_fg": "#e0e0e0"
     },
     "metadata": {
+      "aliases": [],
       "name": "Dark+",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6271,6 +6480,7 @@
       "selection_fg": "#00ff87"
     },
     "metadata": {
+      "aliases": [],
       "name": "darkermatrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6309,6 +6519,7 @@
       "selection_fg": "#00ff87"
     },
     "metadata": {
+      "aliases": [],
       "name": "darkmatrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6347,6 +6558,7 @@
       "selection_fg": "#171e1f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Gabriel Avanzi (https://github.com/avanzzzi)",
       "name": "darkmoss (base16)",
       "origin_url": "https://github.com/avanzzzi/base16-darkmoss-scheme",
@@ -6386,6 +6598,7 @@
       "selection_fg": "#bababa"
     },
     "metadata": {
+      "aliases": [],
       "name": "Darkside",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6424,6 +6637,7 @@
       "selection_fg": "#1d2021"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jason Milkins (https://github.com/jasonm23)",
       "name": "Darktooth (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -6458,6 +6672,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Escapist",
       "name": "Dawn (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6497,6 +6712,7 @@
       "selection_fg": "#575279"
     },
     "metadata": {
+      "aliases": [],
       "author": "EdenEast",
       "name": "dawnfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -6536,6 +6752,7 @@
       "selection_fg": "#1d344f"
     },
     "metadata": {
+      "aliases": [],
       "author": "EdenEast",
       "name": "dayfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -6570,6 +6787,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Deafened (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6609,6 +6827,7 @@
       "selection_fg": "#2d2d2d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Alex Mirrington (https://github.com/alexmirrington)",
       "name": "Decaf (base16)",
       "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
@@ -6648,6 +6867,7 @@
       "selection_fg": "#ececec"
     },
     "metadata": {
+      "aliases": [],
       "name": "deep",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6681,6 +6901,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Default (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6720,6 +6941,7 @@
       "selection_fg": "#181818"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Default Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -6759,6 +6981,7 @@
       "selection_fg": "#f8f8f8"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Default Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -6796,6 +7019,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "DeHydration (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
@@ -6829,6 +7053,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Derp (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6868,6 +7093,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Desert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6901,6 +7127,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Digerati (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -6940,6 +7167,7 @@
       "selection_fg": "#b9bcba"
     },
     "metadata": {
+      "aliases": [],
       "name": "DimmedMonokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -6978,6 +7206,7 @@
       "selection_fg": "#e0e0e0"
     },
     "metadata": {
+      "aliases": [],
       "author": "Kahlil (Kal) Hodgson",
       "name": "dirtysea (base16)",
       "origin_url": "https://github.com/tartansandal/base16-dirtysea-scheme",
@@ -7015,6 +7244,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Dissonance (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
@@ -7053,6 +7283,7 @@
       "selection_fg": "#f8f8f8"
     },
     "metadata": {
+      "aliases": [],
       "name": "Django",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7091,6 +7322,7 @@
       "selection_fg": "#dadedc"
     },
     "metadata": {
+      "aliases": [],
       "name": "DjangoRebornAgain",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7129,6 +7361,7 @@
       "selection_fg": "#f8f8f8"
     },
     "metadata": {
+      "aliases": [],
       "name": "DjangoSmooth",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7167,6 +7400,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Doom Peacock",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7205,6 +7439,7 @@
       "selection_fg": "#bbc2cf"
     },
     "metadata": {
+      "aliases": [],
       "name": "DoomOne",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7243,6 +7478,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "DotGov",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7276,6 +7512,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Dotshare (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -7315,6 +7552,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Dracula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7353,6 +7591,7 @@
       "selection_fg": "#282936"
     },
     "metadata": {
+      "aliases": [],
       "author": "Mike Barkmin (http://github.com/mikebarkmin) based on Dracula Theme (http://github.com/dracula)",
       "name": "Dracula (base16)",
       "origin_url": "https://github.com/dracula/base16-dracula-scheme",
@@ -7390,6 +7629,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Dracula (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
@@ -7428,6 +7668,7 @@
       "selection_fg": "#545454"
     },
     "metadata": {
+      "aliases": [],
       "name": "Dracula+",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7466,6 +7707,7 @@
       "selection_fg": "#ebefc0"
     },
     "metadata": {
+      "aliases": [],
       "name": "duckbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7504,6 +7746,7 @@
       "selection_fg": "#b7a2ff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Duotone Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7542,6 +7785,7 @@
       "selection_fg": "#e0def4"
     },
     "metadata": {
+      "aliases": [],
       "author": "EdenEast",
       "name": "duskfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -7576,6 +7820,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "DWM rob (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -7615,6 +7860,7 @@
       "selection_fg": "#e5c7a9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Earthsong",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -7653,6 +7899,7 @@
       "selection_fg": "#262729"
     },
     "metadata": {
+      "aliases": [],
       "author": "cjayross (https://github.com/cjayross)",
       "name": "Edge Dark (base16)",
       "origin_url": "https://github.com/cjayross/base16-edge-schemes",
@@ -7692,6 +7939,7 @@
       "selection_fg": "#fafafa"
     },
     "metadata": {
+      "aliases": [],
       "author": "cjayross (https://github.com/cjayross)",
       "name": "Edge Light (base16)",
       "origin_url": "https://github.com/cjayross/base16-edge-schemes",
@@ -7731,6 +7979,10 @@
       "selection_fg": "#2d2d2d"
     },
     "metadata": {
+      "aliases": [
+        "Eighties (base16)",
+        "Eighties (dark) (terminal.sexy)"
+      ],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Eighties (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -7765,6 +8017,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Eighties (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -7799,6 +8052,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Eldorado dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -7838,6 +8092,7 @@
       "selection_fg": "#facd77"
     },
     "metadata": {
+      "aliases": [],
       "name": "Elemental",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -7876,6 +8131,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Elementary",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -7912,6 +8168,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Elementary (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
@@ -7948,6 +8205,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Elic (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
@@ -7984,6 +8242,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Elio (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
@@ -8022,6 +8281,10 @@
       "selection_fg": "#16130f"
     },
     "metadata": {
+      "aliases": [
+        "Embers (base16)",
+        "Embers (dark) (terminal.sexy)"
+      ],
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Embers (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -8056,6 +8319,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Embers (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8095,6 +8359,7 @@
       "selection_fg": "#3de1c9"
     },
     "metadata": {
+      "aliases": [],
       "name": "ENCOM",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -8128,6 +8393,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Epiphany (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8162,6 +8428,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Eqie6 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8201,6 +8468,7 @@
       "selection_fg": "#0c1118"
     },
     "metadata": {
+      "aliases": [],
       "author": "Carlo Abelli",
       "name": "Equilibrium Dark (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
@@ -8240,6 +8508,7 @@
       "selection_fg": "#111111"
     },
     "metadata": {
+      "aliases": [],
       "author": "Carlo Abelli",
       "name": "Equilibrium Gray Dark (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
@@ -8279,6 +8548,7 @@
       "selection_fg": "#f1f1f1"
     },
     "metadata": {
+      "aliases": [],
       "author": "Carlo Abelli",
       "name": "Equilibrium Gray Light (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
@@ -8318,6 +8588,7 @@
       "selection_fg": "#f5f0e7"
     },
     "metadata": {
+      "aliases": [],
       "author": "Carlo Abelli",
       "name": "Equilibrium Light (base16)",
       "origin_url": "https://github.com/carloabelli/base16-equilibrium-scheme",
@@ -8352,6 +8623,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Erebus (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8391,6 +8663,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Espresso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -8429,6 +8702,7 @@
       "selection_fg": "#2d2d2d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Unknown. Maintained by Alex Mirrington (https://github.com/alexmirrington)",
       "name": "Espresso (base16)",
       "origin_url": "https://github.com/alexmirrington/base16-espresso-scheme",
@@ -8468,6 +8742,10 @@
       "selection_fg": "#b8a898"
     },
     "metadata": {
+      "aliases": [
+        "Espresso Libre",
+        "EspressoLibre (Gogh)"
+      ],
       "name": "Espresso Libre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -8501,6 +8779,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Euphrasia (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8540,6 +8819,7 @@
       "selection_fg": "#2a3b4d"
     },
     "metadata": {
+      "aliases": [],
       "author": "kjakapat (https://github.com/kjakapat)",
       "name": "Eva (base16)",
       "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
@@ -8579,6 +8859,7 @@
       "selection_fg": "#2a3b4d"
     },
     "metadata": {
+      "aliases": [],
       "author": "kjakapat (https://github.com/kjakapat)",
       "name": "Eva Dim (base16)",
       "origin_url": "https://github.com/kjakapat/base16-eva-scheme",
@@ -8618,6 +8899,7 @@
       "selection_fg": "#ffffce"
     },
     "metadata": {
+      "aliases": [],
       "name": "Fahrenheit",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8656,6 +8938,7 @@
       "selection_fg": "#f6e1ce"
     },
     "metadata": {
+      "aliases": [],
       "name": "Fairyfloss",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8692,6 +8975,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "FairyFloss (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -8728,6 +9012,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "FairyFlossDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -8761,6 +9046,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "FarSide (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8800,6 +9086,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Fideloper",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8838,6 +9125,7 @@
       "selection_fg": "#f2f5f9"
     },
     "metadata": {
+      "aliases": [],
       "name": "FirefoxDev",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8876,6 +9164,7 @@
       "selection_fg": "#7d8fa4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Firewatch",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8909,6 +9198,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Fishbone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -8948,6 +9238,10 @@
       "selection_fg": "#232537"
     },
     "metadata": {
+      "aliases": [
+        "FishTank",
+        "Fishtank (Gogh)"
+      ],
       "name": "FishTank",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -8986,6 +9280,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Flat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9024,6 +9319,7 @@
       "selection_fg": "#2c3e50"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Flat (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -9061,6 +9357,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Flat (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -9099,6 +9396,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Flatland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9135,6 +9433,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "FlatRemix (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -9173,6 +9472,7 @@
       "selection_fg": "#08002e"
     },
     "metadata": {
+      "aliases": [],
       "name": "Floraverse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9211,6 +9511,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "ForestBlue",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9247,6 +9548,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Foxnightly (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -9285,6 +9587,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Framer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9323,6 +9626,7 @@
       "selection_fg": "#181818"
     },
     "metadata": {
+      "aliases": [],
       "author": "Framer (Maintained by Jesse Hoyos)",
       "name": "Framer (base16)",
       "origin_url": "https://github.com/jssee/base16-framer-scheme",
@@ -9360,6 +9664,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Freya (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
@@ -9398,6 +9703,10 @@
       "selection_fg": "#1b1c1d"
     },
     "metadata": {
+      "aliases": [
+        "FrontEndDelight",
+        "FrontendDelight (Gogh)"
+      ],
       "name": "FrontEndDelight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9436,6 +9745,7 @@
       "selection_fg": "#f1ecf1"
     },
     "metadata": {
+      "aliases": [],
       "author": "jozip",
       "name": "Fruit Soda (base16)",
       "origin_url": "https://github.com/jozip/base16-fruit-soda-scheme",
@@ -9475,6 +9785,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "FunForrest",
+        "FrontendFunForrest (Gogh)"
+      ],
       "name": "FunForrest",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
@@ -9513,6 +9827,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Galaxy",
+        "FrontendGalaxy (Gogh)"
+      ],
       "name": "Galaxy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -9551,6 +9869,7 @@
       "selection_fg": "#ddeeff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Raziel Anarki (http://github.com/razielanarki)",
       "name": "Galizur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -9588,6 +9907,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "GeoHot (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -9626,6 +9946,7 @@
       "selection_fg": "#202126"
     },
     "metadata": {
+      "aliases": [],
       "author": "Aidan Swope (http://github.com/Whillikers)",
       "name": "Gigavolt (base16)",
       "origin_url": "https://github.com/Whillikers/base16-gigavolt-scheme",
@@ -9665,6 +9986,7 @@
       "selection_fg": "#535353"
     },
     "metadata": {
+      "aliases": [],
       "name": "Github",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -9703,6 +10025,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Defman21",
       "name": "Github (base16)",
       "origin_url": "https://github.com/Defman21/base16-github-scheme",
@@ -9742,6 +10065,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "GitHub Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -9775,6 +10099,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "GJM (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -9814,6 +10139,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Glacier",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -9850,6 +10176,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Gogh (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -9886,6 +10213,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "gooey (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -9919,6 +10247,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Google (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -9958,6 +10287,10 @@
       "selection_fg": "#1d1f21"
     },
     "metadata": {
+      "aliases": [
+        "Google Dark (base16)",
+        "Google (dark) (terminal.sexy)"
+      ],
       "author": "Seth Wright (http://sethawright.com)",
       "name": "Google Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -9997,6 +10330,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Seth Wright (http://sethawright.com)",
       "name": "Google Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -10034,6 +10368,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "GoogleDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -10070,6 +10405,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "GoogleLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -10106,6 +10442,10 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [
+        "gotham (Gogh)",
+        "Gotham (terminal.sexy)"
+      ],
       "name": "gotham (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -10139,6 +10479,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Grandshell (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -10178,6 +10519,7 @@
       "selection_fg": "#171422"
     },
     "metadata": {
+      "aliases": [],
       "name": "Grape",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10216,6 +10558,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Grass",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10249,6 +10592,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Grayscale (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -10288,6 +10632,10 @@
       "selection_fg": "#101010"
     },
     "metadata": {
+      "aliases": [
+        "Grayscale Dark (base16)",
+        "Grayscale (dark) (terminal.sexy)"
+      ],
       "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
       "name": "Grayscale Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -10327,6 +10675,7 @@
       "selection_fg": "#f7f7f7"
     },
     "metadata": {
+      "aliases": [],
       "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
       "name": "Grayscale Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -10366,6 +10715,10 @@
       "selection_fg": "#001100"
     },
     "metadata": {
+      "aliases": [
+        "Green Screen (base16)",
+        "Greenscreen (dark) (terminal.sexy)"
+      ],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Green Screen (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -10400,6 +10753,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Greenscreen (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -10439,6 +10793,7 @@
       "selection_fg": "#e2e2e2"
     },
     "metadata": {
+      "aliases": [],
       "name": "Grey-green",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10477,6 +10832,7 @@
       "selection_fg": "#181818"
     },
     "metadata": {
+      "aliases": [],
       "author": "Patel, Nimai <nimai.m.patel@gmail.com>, colors from www.github.com/rexim/gruber-darker-theme",
       "name": "Gruber (base16)",
       "origin_url": "https://github.com/nimaipatel/base16-gruber",
@@ -10514,6 +10870,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Gruvbox (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -10552,6 +10909,7 @@
       "selection_fg": "#534a42"
     },
     "metadata": {
+      "aliases": [],
       "name": "Gruvbox Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10590,6 +10948,7 @@
       "selection_fg": "#1d2021"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, hard (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10629,6 +10988,7 @@
       "selection_fg": "#282828"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, medium (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10668,6 +11028,7 @@
       "selection_fg": "#262626"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, pale (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10707,6 +11068,7 @@
       "selection_fg": "#32302f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox dark, soft (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10746,6 +11108,7 @@
       "selection_fg": "#665c54"
     },
     "metadata": {
+      "aliases": [],
       "name": "Gruvbox Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10784,6 +11147,7 @@
       "selection_fg": "#f9f5d7"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, hard (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10823,6 +11187,7 @@
       "selection_fg": "#fbf1c7"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, medium (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10862,6 +11227,7 @@
       "selection_fg": "#f2e5bc"
     },
     "metadata": {
+      "aliases": [],
       "author": "Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)",
       "name": "Gruvbox light, soft (base16)",
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
@@ -10899,6 +11265,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "GruvboxDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
@@ -10937,6 +11304,7 @@
       "selection_fg": "#eeeeee"
     },
     "metadata": {
+      "aliases": [],
       "name": "Guezwhoz",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -10975,6 +11343,7 @@
       "selection_fg": "#c9c9c9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hacktober",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11013,6 +11382,7 @@
       "selection_fg": "#b6bbc0"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hardcore",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11051,6 +11421,7 @@
       "selection_fg": "#212121"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Caller",
       "name": "Hardcore (base16)",
       "origin_url": "https://github.com/callerc1/base16-hardcore-scheme",
@@ -11090,6 +11461,7 @@
       "selection_fg": "#0b1c2c"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Harmonic16 Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -11129,6 +11501,7 @@
       "selection_fg": "#f7f9fb"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jannik Siebert (https://github.com/janniks)",
       "name": "Harmonic16 Light (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -11168,6 +11541,7 @@
       "selection_fg": "#a8a49d"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jan T. Sott",
       "name": "Harper",
       "origin_url": "https://github.com/idleberg/Harper-iTerm2",
@@ -11207,6 +11581,7 @@
       "selection_fg": "#f6f6f6"
     },
     "metadata": {
+      "aliases": [],
       "name": "HaX0R_BLUE",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11245,6 +11620,7 @@
       "selection_fg": "#fdfdfd"
     },
     "metadata": {
+      "aliases": [],
       "name": "HaX0R_GR33N",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11283,6 +11659,7 @@
       "selection_fg": "#fdfdfd"
     },
     "metadata": {
+      "aliases": [],
       "name": "HaX0R_R3D",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11321,6 +11698,7 @@
       "selection_fg": "#190134"
     },
     "metadata": {
+      "aliases": [],
       "author": "Geoffrey Teale (tealeg@gmail.com)",
       "name": "Heetch Dark (base16)",
       "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
@@ -11360,6 +11738,7 @@
       "selection_fg": "#feffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Geoffrey Teale (tealeg@gmail.com)",
       "name": "Heetch Light (base16)",
       "origin_url": "https://github.com/tealeg/base16-heetch-scheme",
@@ -11399,6 +11778,7 @@
       "selection_fg": "#1d2021"
     },
     "metadata": {
+      "aliases": [],
       "author": "Alex Meyer (https://github.com/reyemxela)",
       "name": "Helios (base16)",
       "origin_url": "https://github.com/reyemxela/base16-helios-scheme",
@@ -11436,6 +11816,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "HemisuDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
@@ -11472,6 +11853,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "HemisuLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
@@ -11510,6 +11892,7 @@
       "selection_fg": "#ededed"
     },
     "metadata": {
+      "aliases": [],
       "name": "Highway",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11548,6 +11931,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "Hipster Green",
+        "HipsterGreen (Gogh)"
+      ],
       "name": "Hipster Green",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11586,6 +11973,7 @@
       "selection_fg": "#979db4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hivacruz",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11624,6 +12012,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Homebrew",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11662,6 +12051,7 @@
       "selection_fg": "#b9b5b8"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hopscotch",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11700,6 +12090,10 @@
       "selection_fg": "#b9b5b8"
     },
     "metadata": {
+      "aliases": [
+        "Hopscotch.256",
+        "Hopscotch (base16)"
+      ],
       "name": "Hopscotch.256",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -11738,6 +12132,7 @@
       "selection_fg": "#1c1e26"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
@@ -11777,6 +12172,7 @@
       "selection_fg": "#1c1e26"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
@@ -11816,6 +12212,7 @@
       "selection_fg": "#fdf0ed"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
@@ -11855,6 +12252,7 @@
       "selection_fg": "#fdf0ed"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
@@ -11892,6 +12290,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "HorizonBright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
@@ -11928,6 +12327,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "HorizonDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
@@ -11966,6 +12366,7 @@
       "selection_fg": "#232629"
     },
     "metadata": {
+      "aliases": [],
       "author": "Thomas (tasmo) Friese",
       "name": "Humanoid dark (base16)",
       "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
@@ -12005,6 +12406,7 @@
       "selection_fg": "#f8f8f2"
     },
     "metadata": {
+      "aliases": [],
       "author": "Thomas (tasmo) Friese",
       "name": "Humanoid light (base16)",
       "origin_url": "https://github.com/humanoid-colors/base16-humanoid-schemes",
@@ -12039,6 +12441,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "hund",
       "name": "hund (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12078,6 +12481,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hurtado",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -12116,6 +12520,7 @@
       "selection_fg": "#b7bcba"
     },
     "metadata": {
+      "aliases": [],
       "name": "Hybrid",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -12152,6 +12557,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Hybrid (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
@@ -12185,6 +12591,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "w0ng",
       "name": "Hybrid (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12219,6 +12626,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Hybrid (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12258,6 +12666,7 @@
       "selection_fg": "#1a1a1a"
     },
     "metadata": {
+      "aliases": [],
       "author": "iA Inc. (modified by aramisgithub)",
       "name": "iA Dark (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
@@ -12297,6 +12706,7 @@
       "selection_fg": "#f6f6f6"
     },
     "metadata": {
+      "aliases": [],
       "author": "iA Inc. (modified by aramisgithub)",
       "name": "iA Light (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
@@ -12334,6 +12744,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "ibm3270 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
@@ -12370,6 +12781,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "IBM3270(HighContrast) (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
@@ -12408,6 +12820,7 @@
       "selection_fg": "#e0f1dc"
     },
     "metadata": {
+      "aliases": [],
       "name": "IC_Green_PPL",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12446,6 +12859,10 @@
       "selection_fg": "#ffc88a"
     },
     "metadata": {
+      "aliases": [
+        "IC_Orange_PPL",
+        "ICOrangePPL (Gogh)"
+      ],
       "name": "IC_Orange_PPL",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12484,6 +12901,7 @@
       "selection_fg": "#161821"
     },
     "metadata": {
+      "aliases": [],
       "name": "iceberg-dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12522,6 +12940,7 @@
       "selection_fg": "#e8e9ec"
     },
     "metadata": {
+      "aliases": [],
       "name": "iceberg-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12558,6 +12977,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "ICGreenPPL (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
@@ -12596,6 +13016,7 @@
       "selection_fg": "#021012"
     },
     "metadata": {
+      "aliases": [],
       "author": "icyphox (https://icyphox.ga)",
       "name": "Icy Dark (base16)",
       "origin_url": "https://github.com/icyphox/base16-icy-scheme",
@@ -12635,6 +13056,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "idea",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12673,6 +13095,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "idleToes",
+        "IdleToes (Gogh)"
+      ],
       "name": "idleToes",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12706,6 +13132,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "iiamblack",
       "name": "Iiamblack (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12740,6 +13167,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Insignificato (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12774,6 +13202,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Invisibone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12813,6 +13242,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Timothée Poisot (http://timotheepoisot.fr)",
       "name": "IR Black (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -12852,6 +13282,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "IR_Black",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
@@ -12888,6 +13319,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "IrBlack (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
@@ -12926,6 +13358,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Isotope (base16)",
+        "Isotope (dark) (terminal.sexy)"
+      ],
       "author": "Jan T. Sott",
       "name": "Isotope (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -12960,6 +13396,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Isotope (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -12994,6 +13431,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Ivory Dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13028,6 +13466,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Ivory Light (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13067,6 +13506,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "Jackie Brown",
+        "JackieBrown (Gogh)"
+      ],
       "name": "Jackie Brown",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -13105,6 +13548,7 @@
       "selection_fg": "#f7f6ec"
     },
     "metadata": {
+      "aliases": [],
       "name": "Japanesque",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -13138,6 +13582,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Jason Wryan (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13177,6 +13622,7 @@
       "selection_fg": "#f4f4f4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Jellybeans",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -13215,6 +13661,7 @@
       "selection_fg": "#adadad"
     },
     "metadata": {
+      "aliases": [],
       "name": "JetBrains Darcula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -13248,6 +13695,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "jmbi",
       "name": "jmbi (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13287,6 +13735,7 @@
       "selection_fg": "#1e1b2e"
     },
     "metadata": {
+      "aliases": [],
       "name": "jubi",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -13323,6 +13772,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Jup (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "j",
@@ -13356,6 +13806,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "JWR dark (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13395,6 +13846,7 @@
       "selection_fg": "#ddd8bb"
     },
     "metadata": {
+      "aliases": [],
       "name": "kanagawabones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
@@ -13428,6 +13880,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Kori Ayakashi",
       "name": "Kasugano (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13467,6 +13920,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Kibble",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
@@ -13505,6 +13959,7 @@
       "selection_fg": "#222222"
     },
     "metadata": {
+      "aliases": [],
       "author": "Mishka Nguyen (https://github.com/akhsiM)",
       "name": "Kimber (base16)",
       "origin_url": "https://github.com/akhsiM/base16-kimber-scheme",
@@ -13542,6 +13997,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "kokuban (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "k",
@@ -13580,6 +14036,7 @@
       "selection_fg": "#1d1a1e"
     },
     "metadata": {
+      "aliases": [],
       "name": "Kolorit",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
@@ -13618,6 +14075,7 @@
       "selection_fg": "#c8c1c1"
     },
     "metadata": {
+      "aliases": [],
       "name": "Konsolas",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
@@ -13656,6 +14114,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Lab Fox",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13694,6 +14153,7 @@
       "selection_fg": "#f4f4f4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Laser",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13730,6 +14190,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "laserwave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
@@ -13768,6 +14229,10 @@
       "selection_fg": "#959595"
     },
     "metadata": {
+      "aliases": [
+        "Later This Evening",
+        "LaterThisEvening (Gogh)"
+      ],
       "name": "Later This Evening",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13806,6 +14271,7 @@
       "selection_fg": "#8c91fa"
     },
     "metadata": {
+      "aliases": [],
       "name": "Lavandula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13839,6 +14305,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Gutterslob",
       "name": "Light White (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -13878,6 +14345,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "LiquidCarbon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13916,6 +14384,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "LiquidCarbonTransparent",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13954,6 +14423,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "LiquidCarbonTransparentInverse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -13992,6 +14462,10 @@
       "selection_fg": "#231f20"
     },
     "metadata": {
+      "aliases": [
+        "London Tube (base16)",
+        "Londontube (dark) (terminal.sexy)"
+      ],
       "author": "Jan T. Sott",
       "name": "London Tube (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -14026,6 +14500,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Londontube (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14060,6 +14535,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Baskerville",
       "name": "Lost Woods (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14099,6 +14575,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "lovelace",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -14132,6 +14609,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Muzieca",
       "name": "Low Contrast (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14166,6 +14644,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Gutterslob",
       "name": "Lumifoo (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14203,6 +14682,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "LunariaDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
@@ -14239,6 +14719,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "LunariaEclipse (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
@@ -14275,6 +14756,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "LunariaLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
@@ -14313,6 +14795,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Rebecca Bettencourt (http://www.kreativekorp.com)",
       "name": "Macintosh (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -14350,6 +14833,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Maia (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -14388,6 +14872,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Man Page",
+        "ManPage (Gogh)"
+      ],
       "name": "Man Page",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -14424,6 +14912,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Mar (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -14462,6 +14951,7 @@
       "selection_fg": "#d8dee9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Mariana",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -14500,6 +14990,10 @@
       "selection_fg": "#201602"
     },
     "metadata": {
+      "aliases": [
+        "Marrakesh (base16)",
+        "Marrakesh (dark) (terminal.sexy)"
+      ],
       "author": "Alexandre Gavioli (http://github.com/Alexx2/)",
       "name": "Marrakesh (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -14534,6 +15028,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Marrakesh (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14568,6 +15063,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "user 77",
       "name": "Mashup Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14607,6 +15103,7 @@
       "selection_fg": "#263238"
     },
     "metadata": {
+      "aliases": [],
       "author": "Defman21",
       "name": "Materia (base16)",
       "origin_url": "https://github.com/Defman21/base16-materia",
@@ -14646,6 +15143,7 @@
       "selection_fg": "#4e4e4e"
     },
     "metadata": {
+      "aliases": [],
       "name": "Material",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -14684,6 +15182,7 @@
       "selection_fg": "#263238"
     },
     "metadata": {
+      "aliases": [],
       "author": "Nate Peterson",
       "name": "Material (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
@@ -14721,6 +15220,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Material (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -14754,6 +15254,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Material (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -14793,6 +15294,7 @@
       "selection_fg": "#212121"
     },
     "metadata": {
+      "aliases": [],
       "author": "Nate Peterson",
       "name": "Material Darker (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
@@ -14832,6 +15334,7 @@
       "selection_fg": "#fafafa"
     },
     "metadata": {
+      "aliases": [],
       "author": "Nate Peterson",
       "name": "Material Lighter (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
@@ -14871,6 +15374,7 @@
       "selection_fg": "#292d3e"
     },
     "metadata": {
+      "aliases": [],
       "author": "Nate Peterson",
       "name": "Material Palenight (base16)",
       "origin_url": "https://github.com/ntpeters/base16-materialtheme-scheme",
@@ -14910,6 +15414,7 @@
       "selection_fg": "#202124"
     },
     "metadata": {
+      "aliases": [],
       "author": "joshyrobot",
       "name": "Material Vivid (base16)",
       "origin_url": "https://github.com/joshyrobot/base16-material-vivid-scheme",
@@ -14949,6 +15454,7 @@
       "selection_fg": "#3d3d3d"
     },
     "metadata": {
+      "aliases": [],
       "name": "MaterialDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -14987,6 +15493,7 @@
       "selection_fg": "#545454"
     },
     "metadata": {
+      "aliases": [],
       "name": "MaterialDarker",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15025,6 +15532,7 @@
       "selection_fg": "#e7ebed"
     },
     "metadata": {
+      "aliases": [],
       "name": "MaterialDesignColors",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15063,6 +15571,7 @@
       "selection_fg": "#8f93a2"
     },
     "metadata": {
+      "aliases": [],
       "name": "MaterialOcean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15101,6 +15610,7 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
+      "aliases": [],
       "name": "Mathias",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15139,6 +15649,7 @@
       "selection_fg": "#00ff87"
     },
     "metadata": {
+      "aliases": [],
       "name": "matrix",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15172,6 +15683,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "OK100",
       "name": "Matrix (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15211,6 +15723,7 @@
       "selection_fg": "#cac29a"
     },
     "metadata": {
+      "aliases": [],
       "name": "Medallion",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15249,6 +15762,7 @@
       "selection_fg": "#1e0528"
     },
     "metadata": {
+      "aliases": [],
       "author": "gidsi",
       "name": "Mellow Purple (base16)",
       "origin_url": "https://github.com/gidsi/base16-mellow-scheme",
@@ -15288,6 +15802,7 @@
       "selection_fg": "#f8f8f8"
     },
     "metadata": {
+      "aliases": [],
       "author": "Sheldon Johnson",
       "name": "Mexico Light (base16)",
       "origin_url": "https://github.com/drzel/base16-mexico-light-scheme",
@@ -15327,6 +15842,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "midnight-in-mojave",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15360,6 +15876,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Mikado (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15394,6 +15911,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Mikazuki (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15433,6 +15951,7 @@
       "selection_fg": "#d3dbe5"
     },
     "metadata": {
+      "aliases": [],
       "name": "Mirage",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15471,6 +15990,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Misterioso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15509,6 +16029,10 @@
       "selection_fg": "#3b3228"
     },
     "metadata": {
+      "aliases": [
+        "Mocha (base16)",
+        "Mocha (dark) (terminal.sexy)"
+      ],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Mocha (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -15543,6 +16067,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Mocha (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15582,6 +16107,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Molokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15618,6 +16144,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Molokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15656,6 +16183,7 @@
       "selection_fg": "#120b0d"
     },
     "metadata": {
+      "aliases": [],
       "name": "MonaLisa",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -15689,6 +16217,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Muzieca",
       "name": "Mono (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15723,6 +16252,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Mono Theme (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -15760,6 +16290,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-amber (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15796,6 +16327,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-cyan (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15832,6 +16364,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-green (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15868,6 +16401,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-red (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15904,6 +16438,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-white (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15940,6 +16475,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "mono-yellow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -15978,6 +16514,10 @@
       "selection_fg": "#272822"
     },
     "metadata": {
+      "aliases": [
+        "Monokai (base16)",
+        "Monokai (dark) (terminal.sexy)"
+      ],
       "author": "Wimer Hazenberg (http://www.monokai.nl)",
       "name": "Monokai (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -16012,6 +16552,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Monokai (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16046,6 +16587,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Cacodaimon",
       "name": "Monokai (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16085,6 +16627,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Monokai Remastered",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -16123,6 +16666,10 @@
       "selection_fg": "#c4c5b5"
     },
     "metadata": {
+      "aliases": [
+        "Monokai Soda",
+        "MonokaiSoda (Gogh)"
+      ],
       "name": "Monokai Soda",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -16161,6 +16708,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Monokai Vivid",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -16197,6 +16745,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "MonokaiDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -16233,6 +16782,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "MonokaiPro (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -16269,6 +16819,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "MonokaiProRistretto (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -16305,6 +16856,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Morada (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
@@ -16338,6 +16890,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "m83",
       "name": "Mostly Bright (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16372,6 +16925,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Muse (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16411,6 +16965,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "N0tch2k",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16444,6 +16999,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Nancy (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16478,6 +17034,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Gslob",
       "name": "Nature Suede (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16512,6 +17069,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "hal",
       "name": "Navy and Ivory (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16551,6 +17109,7 @@
       "selection_fg": "#22273b"
     },
     "metadata": {
+      "aliases": [],
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Nebula (base16)",
       "origin_url": "https://github.com/Misterio77/base16-nebula-scheme",
@@ -16590,6 +17149,7 @@
       "selection_fg": "#c6d5cf"
     },
     "metadata": {
+      "aliases": [],
       "name": "neobones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16628,6 +17188,7 @@
       "selection_fg": "#202e18"
     },
     "metadata": {
+      "aliases": [],
       "name": "neobones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16666,6 +17227,7 @@
       "selection_fg": "#08d2cf"
     },
     "metadata": {
+      "aliases": [],
       "name": "Neon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16699,6 +17261,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Neon (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -16736,6 +17299,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "neon-night (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
@@ -16774,6 +17338,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Neopolitan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16810,6 +17375,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Nep (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
@@ -16848,6 +17414,7 @@
       "selection_fg": "#7d8fa4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Neutron",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16886,6 +17453,7 @@
       "selection_fg": "#403f53"
     },
     "metadata": {
+      "aliases": [],
       "name": "Night Owlish Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -16924,6 +17492,10 @@
       "selection_fg": "#cdcecf"
     },
     "metadata": {
+      "aliases": [
+        "nightfox",
+        "_bash (Gogh)"
+      ],
       "author": "EdenEast",
       "name": "nightfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -16963,6 +17535,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "NightLion v1",
+        "NightlionV1 (Gogh)"
+      ],
       "name": "NightLion v1",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17001,6 +17577,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "NightLion v2",
+        "NightlionV2 (Gogh)"
+      ],
       "name": "NightLion v2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17037,6 +17617,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "NightOwl (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
@@ -17073,6 +17654,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "nighty (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
@@ -17111,6 +17693,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Nocturnal Winter",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17149,6 +17732,10 @@
       "selection_fg": "#4c566a"
     },
     "metadata": {
+      "aliases": [
+        "nord",
+        "Nord (Gogh)"
+      ],
       "name": "nord",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17187,6 +17774,7 @@
       "selection_fg": "#2e3440"
     },
     "metadata": {
+      "aliases": [],
       "author": "arcticicestudio",
       "name": "Nord (base16)",
       "origin_url": "https://github.com/spejamchr/base16-nord-scheme",
@@ -17226,6 +17814,7 @@
       "selection_fg": "#4c556a"
     },
     "metadata": {
+      "aliases": [],
       "name": "nord-light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17264,6 +17853,7 @@
       "selection_fg": "#cdcecf"
     },
     "metadata": {
+      "aliases": [],
       "author": "EdenEast",
       "name": "nordfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -17301,6 +17891,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "NordLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
@@ -17339,6 +17930,7 @@
       "selection_fg": "#3c4c55"
     },
     "metadata": {
+      "aliases": [],
       "author": "George Essig (https://github.com/gessig), Trevor D. Miller (https://trevordmiller.com)",
       "name": "Nova (base16)",
       "origin_url": "https://github.com/gessig/base16-nova-scheme",
@@ -17378,6 +17970,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Novel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -17411,6 +18004,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Nucolors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -17445,6 +18039,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Nudge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -17479,6 +18074,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Numix Darkest (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -17518,6 +18114,7 @@
       "selection_fg": "#dfe1e2"
     },
     "metadata": {
+      "aliases": [],
       "name": "Obsidian",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -17556,6 +18153,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ocean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -17594,6 +18192,10 @@
       "selection_fg": "#2b303b"
     },
     "metadata": {
+      "aliases": [
+        "Ocean (base16)",
+        "Ocean (dark) (terminal.sexy)"
+      ],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Ocean (base16)",
       "origin_url": "https://github.com/chriskempson/base16-default-schemes",
@@ -17628,6 +18230,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Ocean (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -17665,6 +18268,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "OceanDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
@@ -17703,6 +18307,10 @@
       "selection_fg": "#b3b8c3"
     },
     "metadata": {
+      "aliases": [
+        "Oceanic-Next",
+        "OceanicNext (Gogh)"
+      ],
       "name": "Oceanic-Next",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -17741,6 +18349,7 @@
       "selection_fg": "#c2c8d7"
     },
     "metadata": {
+      "aliases": [],
       "name": "OceanicMaterial",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -17779,6 +18388,7 @@
       "selection_fg": "#1b2b34"
     },
     "metadata": {
+      "aliases": [],
       "author": "https://github.com/voronianski/oceanic-next-color-scheme",
       "name": "OceanicNext (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -17818,6 +18428,7 @@
       "selection_fg": "#8a8eac"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ollie",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -17854,6 +18465,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Omni (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
@@ -17892,6 +18504,7 @@
       "selection_fg": "#fafafa"
     },
     "metadata": {
+      "aliases": [],
       "author": "Daniel Pfeifer (http://github.com/purpleKarrot)",
       "name": "One Light (base16)",
       "origin_url": "https://github.com/purpleKarrot/base16-one-light-scheme",
@@ -17931,6 +18544,7 @@
       "selection_fg": "#282c34"
     },
     "metadata": {
+      "aliases": [],
       "author": "Lalit Magant (http://github.com/tilal6991)",
       "name": "OneDark (base16)",
       "origin_url": "https://github.com/tilal6991/base16-onedark-scheme",
@@ -17968,6 +18582,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "OneDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
@@ -18004,6 +18619,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "OneHalfBlack (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
@@ -18042,6 +18658,7 @@
       "selection_fg": "#dcdfe4"
     },
     "metadata": {
+      "aliases": [],
       "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfDark",
       "origin_url": "https://github.com/sonph/onehalf",
@@ -18081,6 +18698,7 @@
       "selection_fg": "#383a42"
     },
     "metadata": {
+      "aliases": [],
       "author": "Son A. Pham <sp@sonpham.me>",
       "name": "OneHalfLight",
       "origin_url": "https://github.com/sonph/onehalf",
@@ -18118,6 +18736,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "OneLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
@@ -18156,6 +18775,7 @@
       "selection_fg": "#dde5dc"
     },
     "metadata": {
+      "aliases": [],
       "name": "Operator Mono Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -18189,6 +18809,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Orangish (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -18228,6 +18849,7 @@
       "selection_fg": "#00002a"
     },
     "metadata": {
+      "aliases": [],
       "author": "Hugo Delahousse (http://github.com/hugodelahousse/)",
       "name": "Outrun Dark (base16)",
       "origin_url": "https://github.com/hugodelahousse/base16-outrun-schemes",
@@ -18267,6 +18889,7 @@
       "selection_fg": "#ced2d6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Overnight Slumber",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -18303,6 +18926,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "palenight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18341,6 +18965,7 @@
       "selection_fg": "#80cbc4"
     },
     "metadata": {
+      "aliases": [],
       "name": "PaleNightHC",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -18377,6 +19002,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Pali (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18413,6 +19039,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Panda (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18451,6 +19078,7 @@
       "selection_fg": "#82e0ff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Pandora",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -18484,6 +19112,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Panels (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -18523,6 +19152,7 @@
       "selection_fg": "#1c1c1c"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
       "name": "PaperColor Dark (base16)",
       "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
@@ -18562,6 +19192,7 @@
       "selection_fg": "#eeeeee"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jon Leopard (http://github.com/jonleopard) based on PaperColor Theme (https://github.com/NLKNguyen/papercolor-theme)",
       "name": "PaperColor Light (base16)",
       "origin_url": "https://github.com/jonleopard/base16-papercolor-scheme",
@@ -18599,6 +19230,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "PaperColorDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18635,6 +19267,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "PaperColorLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18668,6 +19301,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Paraiso (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -18707,6 +19341,12 @@
       "selection_fg": "#a39e9b"
     },
     "metadata": {
+      "aliases": [
+        "Paraiso Dark",
+        "Paraiso (base16)",
+        "ParaisoDark (Gogh)",
+        "Paraiso (dark) (terminal.sexy)"
+      ],
       "author": "Jan T. Sott",
       "name": "Paraiso Dark",
       "origin_url": "https://github.com/idleberg/Paraiso-iTerm2",
@@ -18741,6 +19381,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Parker Brothers (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -18780,6 +19421,7 @@
       "selection_fg": "#271c3a"
     },
     "metadata": {
+      "aliases": [],
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Pasque (base16)",
       "origin_url": "https://github.com/Misterio77/base16-pasque-scheme",
@@ -18814,6 +19456,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Muzieca",
       "name": "Pastel White (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -18853,6 +19496,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "PaulMillr",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -18889,6 +19533,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "PaulMillr (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -18927,6 +19572,7 @@
       "selection_fg": "#f1f1f1"
     },
     "metadata": {
+      "aliases": [],
       "name": "PencilDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -18965,6 +19611,7 @@
       "selection_fg": "#424242"
     },
     "metadata": {
+      "aliases": [],
       "name": "PencilLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19003,6 +19650,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Peppermint",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19039,6 +19687,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Peppermint (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -19077,6 +19726,7 @@
       "selection_fg": "#061229"
     },
     "metadata": {
+      "aliases": [],
       "author": "Hennig Hasemann (http://leetless.de/vim.html)",
       "name": "PhD (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -19111,6 +19761,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Phrak1 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -19150,6 +19801,7 @@
       "selection_fg": "#acbcdc"
     },
     "metadata": {
+      "aliases": [],
       "name": "Piatto Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19188,6 +19840,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "PICO-8 (http://www.lexaloffle.com/pico-8.php)",
       "name": "Pico (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -19227,6 +19880,7 @@
       "selection_fg": "#171517"
     },
     "metadata": {
+      "aliases": [],
       "author": "Benjamin (https://github.com/b3nj5m1n)",
       "name": "pinky (base16)",
       "origin_url": "https://github.com/b3nj5m1n/base16-pinky-scheme",
@@ -19264,6 +19918,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Pixiefloss (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -19302,6 +19957,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Pnevma",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19340,6 +19996,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson (http://chriskempson.com)",
       "name": "Pop (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -19379,6 +20036,7 @@
       "selection_fg": "#928374"
     },
     "metadata": {
+      "aliases": [],
       "name": "Popping and Locking",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19417,6 +20075,7 @@
       "selection_fg": "#292c36"
     },
     "metadata": {
+      "aliases": [],
       "author": "Niek den Breeje (https://github.com/AuditeMarlow)",
       "name": "Porple (base16)",
       "origin_url": "https://github.com/AuditeMarlow/base16-porple-scheme",
@@ -19454,6 +20113,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "PowerShell (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -19487,6 +20147,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "IWAFU",
       "name": "Pretty and Pastel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -19526,6 +20187,7 @@
       "selection_fg": "#eeeeee"
     },
     "metadata": {
+      "aliases": [],
       "name": "primary",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19564,6 +20226,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Pro",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19602,6 +20265,7 @@
       "selection_fg": "#191919"
     },
     "metadata": {
+      "aliases": [],
       "name": "Pro Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19635,6 +20299,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Pulp (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -19674,6 +20339,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Purple Rain",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19712,6 +20378,7 @@
       "selection_fg": "#100510"
     },
     "metadata": {
+      "aliases": [],
       "author": "malet",
       "name": "Purpledream (base16)",
       "origin_url": "https://github.com/archmalet/base16-purpledream-scheme",
@@ -19749,6 +20416,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "PurplePeopleEater (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
@@ -19787,6 +20455,7 @@
       "selection_fg": "#271c50"
     },
     "metadata": {
+      "aliases": [],
       "name": "purplepeter",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -19825,6 +20494,7 @@
       "selection_fg": "#101010"
     },
     "metadata": {
+      "aliases": [],
       "author": "isaacwhanson",
       "name": "Qualia (base16)",
       "origin_url": "https://github.com/isaacwhanson/base16-qualia-scheme",
@@ -19864,6 +20534,10 @@
       "selection_fg": "#2b2b2b"
     },
     "metadata": {
+      "aliases": [
+        "Railscasts (base16)",
+        "Railscasts (dark) (terminal.sexy)"
+      ],
       "author": "Ryan Bates (http://railscasts.com)",
       "name": "Railscasts (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -19898,6 +20572,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Railscasts (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -19937,6 +20612,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Rapture",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -19970,6 +20646,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Rasi (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -20009,6 +20686,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Raycast_Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20047,6 +20725,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Raycast_Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20085,6 +20764,7 @@
       "selection_fg": "#f4f2f9"
     },
     "metadata": {
+      "aliases": [],
       "name": "rebecca",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20123,6 +20803,7 @@
       "selection_fg": "#292a44"
     },
     "metadata": {
+      "aliases": [],
       "author": "Victor Borja (http://github.com/vic) based on Rebecca Theme (http://github.com/vic/rebecca-theme)",
       "name": "Rebecca (base16)",
       "origin_url": "https://github.com/vic/base16-rebecca",
@@ -20162,6 +20843,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "Red Alert",
+        "RedAlert (Gogh)"
+      ],
       "name": "Red Alert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20195,6 +20880,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Red Phoenix (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -20234,6 +20920,7 @@
       "selection_fg": "#bcb291"
     },
     "metadata": {
+      "aliases": [],
       "name": "Red Planet",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20272,6 +20959,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Red Sands",
+        "RedSands (Gogh)"
+      ],
       "name": "Red Sands",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20310,6 +21001,7 @@
       "selection_fg": "#d9d9d9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Relaxed",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20348,6 +21040,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Retro",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20381,6 +21074,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Rezza (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -20420,6 +21114,7 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
+      "aliases": [],
       "name": "Rippedcasts",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20458,6 +21153,7 @@
       "selection_fg": "#191724"
     },
     "metadata": {
+      "aliases": [],
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
@@ -20497,6 +21193,7 @@
       "selection_fg": "#faf4ed"
     },
     "metadata": {
+      "aliases": [],
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine Dawn (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
@@ -20536,6 +21233,7 @@
       "selection_fg": "#232136"
     },
     "metadata": {
+      "aliases": [],
       "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
       "name": "Rosé Pine Moon (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
@@ -20575,6 +21273,7 @@
       "selection_fg": "#dfe5ee"
     },
     "metadata": {
+      "aliases": [],
       "name": "Rouge 2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20613,6 +21312,7 @@
       "selection_fg": "#a593cd"
     },
     "metadata": {
+      "aliases": [],
       "name": "Royal",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20646,6 +21346,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Rydgel (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -20685,6 +21386,7 @@
       "selection_fg": "#819090"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ryuuko",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -20718,6 +21420,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "earsplit",
       "name": "s3r0 modified (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -20757,6 +21460,7 @@
       "selection_fg": "#f8f8f8"
     },
     "metadata": {
+      "aliases": [],
       "author": "Carter Veldhuizen",
       "name": "Sagelight (base16)",
       "origin_url": "https://github.com/cveldy/base16-sagelight-scheme",
@@ -20796,6 +21500,7 @@
       "selection_fg": "#24242e"
     },
     "metadata": {
+      "aliases": [],
       "name": "Sakura",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -20834,6 +21539,7 @@
       "selection_fg": "#feedf3"
     },
     "metadata": {
+      "aliases": [],
       "author": "Misterio77 (http://github.com/Misterio77)",
       "name": "Sakura (base16)",
       "origin_url": "https://github.com/Misterio77/base16-sakura-scheme",
@@ -20873,6 +21579,7 @@
       "selection_fg": "#282c34"
     },
     "metadata": {
+      "aliases": [],
       "author": "George Essig (https://github.com/gessig)",
       "name": "Sandcastle (base16)",
       "origin_url": "https://github.com/gessig/base16-sandcastle-scheme",
@@ -20910,6 +21617,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Sat (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -20948,6 +21656,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Scarlet Protocol",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -20986,6 +21695,10 @@
       "selection_fg": "#9e8b13"
     },
     "metadata": {
+      "aliases": [
+        "Seafoam Pastel",
+        "SeafoamPastel (Gogh)"
+      ],
       "name": "Seafoam Pastel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21024,6 +21737,7 @@
       "selection_fg": "#fee4ce"
     },
     "metadata": {
+      "aliases": [],
       "name": "SeaShells",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21062,6 +21776,7 @@
       "selection_fg": "#dddddd"
     },
     "metadata": {
+      "aliases": [],
       "name": "seoulbones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21100,6 +21815,7 @@
       "selection_fg": "#555555"
     },
     "metadata": {
+      "aliases": [],
       "name": "seoulbones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21138,6 +21854,7 @@
       "selection_fg": "#cacecd"
     },
     "metadata": {
+      "aliases": [],
       "name": "Seti",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21176,6 +21893,7 @@
       "selection_fg": "#151718"
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Seti UI (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -21210,6 +21928,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Sex Colors (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -21249,6 +21968,7 @@
       "selection_fg": "#1e1e3f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Iolar Demartini Junior (http://github.com/demartini) based on Shades of Purple Theme (https://github.com/ahmadawais/shades-of-purple-vscode).",
       "name": "Shades of Purple (base16)",
       "origin_url": "https://github.com/ahmadawais/base16-shades-of-purple",
@@ -21288,6 +22008,7 @@
       "selection_fg": "#c2c2c2"
     },
     "metadata": {
+      "aliases": [],
       "name": "shades-of-purple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21326,6 +22047,7 @@
       "selection_fg": "#5afad6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Shaman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21364,6 +22086,7 @@
       "selection_fg": "#f9f9f9"
     },
     "metadata": {
+      "aliases": [],
       "author": "Tyler Benziger (http://tybenz.com)",
       "name": "Shapeshifter (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -21398,6 +22121,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Shapeshifter (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -21432,6 +22156,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Shapeshifter (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -21469,6 +22194,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Shel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -21502,6 +22228,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Shic (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -21541,6 +22268,7 @@
       "selection_fg": "#0e3c46"
     },
     "metadata": {
+      "aliases": [],
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Silk Dark (base16)",
       "origin_url": "https://github.com/misterio77/base16-silk-scheme",
@@ -21580,6 +22308,7 @@
       "selection_fg": "#e9f1ef"
     },
     "metadata": {
+      "aliases": [],
       "author": "Gabriel Fontes (https://github.com/Misterio77)",
       "name": "Silk Light (base16)",
       "origin_url": "https://github.com/misterio77/base16-silk-scheme",
@@ -21614,6 +22343,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Simple Rainbow (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -21653,6 +22383,7 @@
       "selection_fg": "#2dffc0"
     },
     "metadata": {
+      "aliases": [],
       "name": "Slate",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21691,6 +22422,7 @@
       "selection_fg": "#d2c7a9"
     },
     "metadata": {
+      "aliases": [],
       "name": "SleepyHollow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21729,6 +22461,7 @@
       "selection_fg": "#f7f7f7"
     },
     "metadata": {
+      "aliases": [],
       "name": "Smyck",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21765,6 +22498,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Smyck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -21803,6 +22537,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Snazzy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21841,6 +22576,7 @@
       "selection_fg": "#282a36"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chawye Hsu (https://github.com/chawyehsu) based on Hyper Snazzy Theme (https://github.com/sindresorhus/hyper-snazzy)",
       "name": "Snazzy (base16)",
       "origin_url": "https://github.com/h404bi/base16-snazzy-scheme",
@@ -21878,6 +22614,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Snazzy (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -21916,6 +22653,7 @@
       "selection_fg": "#effffe"
     },
     "metadata": {
+      "aliases": [],
       "name": "SoftServer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -21954,6 +22692,7 @@
       "selection_fg": "#18262f"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chuck Harmston (https://chuck.harmston.ch)",
       "name": "Solar Flare (base16)",
       "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
@@ -21993,6 +22732,7 @@
       "selection_fg": "#f5f7fa"
     },
     "metadata": {
+      "aliases": [],
       "author": "Chuck Harmston (https://chuck.harmston.ch)",
       "name": "Solar Flare Light (base16)",
       "origin_url": "https://github.com/mnussbaum/base16-solarflare-scheme",
@@ -22027,6 +22767,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Solarized (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -22066,6 +22807,10 @@
       "selection_fg": "#d2d8d9"
     },
     "metadata": {
+      "aliases": [
+        "Solarized Darcula",
+        "SolarizedDarcula (Gogh)"
+      ],
       "name": "Solarized Darcula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22104,6 +22849,10 @@
       "selection_fg": "#002b36"
     },
     "metadata": {
+      "aliases": [
+        "Solarized Dark (base16)",
+        "Solarized (dark) (terminal.sexy)"
+      ],
       "author": "Ethan Schoonover (modified by aramisgithub)",
       "name": "Solarized Dark (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
@@ -22143,6 +22892,7 @@
       "selection_fg": "#819090"
     },
     "metadata": {
+      "aliases": [],
       "name": "Solarized Dark - Patched",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22181,6 +22931,10 @@
       "selection_fg": "#7a8f8e"
     },
     "metadata": {
+      "aliases": [
+        "Solarized Dark Higher Contrast",
+        "SolarizedDarkHigherContrast (Gogh)"
+      ],
       "name": "Solarized Dark Higher Contrast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22219,6 +22973,7 @@
       "selection_fg": "#fdf6e3"
     },
     "metadata": {
+      "aliases": [],
       "author": "Ethan Schoonover (modified by aramisgithub)",
       "name": "Solarized Light (base16)",
       "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
@@ -22256,6 +23011,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "SolarizedDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22292,6 +23048,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Sonokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22325,6 +23082,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Rooster",
       "name": "SOS (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -22364,6 +23122,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Spacedust",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22402,6 +23161,7 @@
       "selection_fg": "#b3b8c3"
     },
     "metadata": {
+      "aliases": [],
       "name": "SpaceGray",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22440,6 +23200,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "SpaceGray Eighties",
+        "SpaceGrayEighties (Gogh)"
+      ],
       "name": "SpaceGray Eighties",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22478,6 +23242,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "SpaceGray Eighties Dull",
+        "SpaceGrayEightiesDull (Gogh)"
+      ],
       "name": "SpaceGray Eighties Dull",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22516,6 +23284,7 @@
       "selection_fg": "#1f2022"
     },
     "metadata": {
+      "aliases": [],
       "author": "Nasser Alshammari (https://github.com/nashamri/spacemacs-theme)",
       "name": "Spacemacs (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
@@ -22555,6 +23324,7 @@
       "selection_fg": "#f0272d"
     },
     "metadata": {
+      "aliases": [],
       "name": "Spiderman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22588,6 +23358,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Splurge (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -22627,6 +23398,7 @@
       "selection_fg": "#4d4d4c"
     },
     "metadata": {
+      "aliases": [],
       "name": "Spring",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22663,6 +23435,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Spring (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22701,6 +23474,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Square",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22737,6 +23511,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Square (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22773,6 +23548,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Srcery (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22811,6 +23587,7 @@
       "selection_fg": "#202535"
     },
     "metadata": {
+      "aliases": [],
       "name": "Sublette",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22849,6 +23626,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Subliminal",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -22885,6 +23663,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "summer-pop (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -22923,6 +23702,7 @@
       "selection_fg": "#1c1810"
     },
     "metadata": {
+      "aliases": [],
       "author": "zoe firi (zoefiri.github.io)",
       "name": "summercamp (base16)",
       "origin_url": "https://github.com/zoefiri/base16-summercamp",
@@ -22962,6 +23742,7 @@
       "selection_fg": "#151515"
     },
     "metadata": {
+      "aliases": [],
       "author": "Christopher Corley (http://christop.club/)",
       "name": "Summerfruit Dark (base16)",
       "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
@@ -23001,6 +23782,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Christopher Corley (http://christop.club/)",
       "name": "Summerfruit Light (base16)",
       "origin_url": "https://github.com/cscorley/base16-summerfruit-scheme",
@@ -23040,6 +23822,7 @@
       "selection_fg": "#c9c9c9"
     },
     "metadata": {
+      "aliases": [],
       "name": "Sundried",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -23073,6 +23856,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Swayr (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23107,6 +23891,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Boroshlawa",
       "name": "Sweet Love (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23144,6 +23929,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "sweet-eliverlara (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -23180,6 +23966,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "SweetTerminal (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -23218,6 +24005,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "Symfonic",
+        "Symphonic (Gogh)"
+      ],
       "name": "Symfonic",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -23256,6 +24047,7 @@
       "selection_fg": "#050608"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Synth Midnight Terminal Dark (base16)",
       "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
@@ -23295,6 +24087,7 @@
       "selection_fg": "#dddfe0"
     },
     "metadata": {
+      "aliases": [],
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Synth Midnight Terminal Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-synth-midnight-scheme",
@@ -23334,6 +24127,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "synthwave",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -23370,6 +24164,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "SynthWave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
@@ -23408,6 +24203,7 @@
       "selection_fg": "#f0eff1"
     },
     "metadata": {
+      "aliases": [],
       "name": "synthwave-everything",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -23446,6 +24242,7 @@
       "selection_fg": "#2e3436"
     },
     "metadata": {
+      "aliases": [],
       "author": "@Schnouki, based on the Tango Desktop Project",
       "name": "Tango (base16)",
       "origin_url": "https://github.com/Schnouki/base16-tango-scheme",
@@ -23480,6 +24277,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Tango (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23519,6 +24317,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tango Adapted",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23557,6 +24356,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tango Half Adapted",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23590,6 +24390,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Tangoesque (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23624,6 +24425,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "Tartan (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23663,6 +24465,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Teerb",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23701,6 +24504,7 @@
       "selection_fg": "#282828"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jacobo Tabernero (https://github/com/jacoborus/tender.vim)",
       "name": "tender (base16)",
       "origin_url": "https://github.com/DanManN/base16-tender-scheme",
@@ -23738,6 +24542,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Tender (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -23776,6 +24581,7 @@
       "selection_fg": "#e6eaea"
     },
     "metadata": {
+      "aliases": [],
       "author": "EdenEast",
       "name": "terafox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -23815,6 +24621,10 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [
+        "Terminal Basic",
+        "TerminalBasic (Gogh)"
+      ],
       "name": "Terminal Basic",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23851,6 +24661,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TerminixDark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -23884,6 +24695,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Teva (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -23923,6 +24735,10 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [
+        "Thayer Bright",
+        "ThayerBright (Gogh)"
+      ],
       "name": "Thayer Bright",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23961,6 +24777,7 @@
       "selection_fg": "#0b6309"
     },
     "metadata": {
+      "aliases": [],
       "name": "The Hulk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -23994,6 +24811,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "theme2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -24028,6 +24846,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "thwump (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -24065,6 +24884,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Tin (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24103,6 +24923,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tinacious Design (Dark)",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24141,6 +24962,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tinacious Design (Light)",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24174,6 +24996,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "tlh (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -24213,6 +25036,7 @@
       "selection_fg": "#c0caf5"
     },
     "metadata": {
+      "aliases": [],
       "name": "tokyonight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24249,6 +25073,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TokyoNight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24287,6 +25112,7 @@
       "selection_fg": "#3760bf"
     },
     "metadata": {
+      "aliases": [],
       "name": "tokyonight-day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24325,6 +25151,7 @@
       "selection_fg": "#c0caf5"
     },
     "metadata": {
+      "aliases": [],
       "name": "tokyonight-storm",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24361,6 +25188,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TokyoNightLight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24397,6 +25225,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TokyoNightStorm (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24435,6 +25264,7 @@
       "selection_fg": "#4d4d4c"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24468,6 +25298,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Tomorrow (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -24505,6 +25336,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24538,6 +25370,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Tomorrow (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -24577,6 +25410,7 @@
       "selection_fg": "#c5c8c6"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow Night",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24615,6 +25449,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow Night Blue",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24653,6 +25488,7 @@
       "selection_fg": "#eaeaea"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow Night Bright",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24691,6 +25527,7 @@
       "selection_fg": "#2a2d32"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow Night Burns",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24729,6 +25566,7 @@
       "selection_fg": "#cccccc"
     },
     "metadata": {
+      "aliases": [],
       "name": "Tomorrow Night Eighties",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24765,6 +25603,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TomorrowNight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24801,6 +25640,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TomorrowNightBlue (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24837,6 +25677,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TomorrowNightBright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24873,6 +25714,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "TomorrowNightEighties (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
@@ -24911,6 +25753,7 @@
       "selection_fg": "#d5d5d5"
     },
     "metadata": {
+      "aliases": [],
       "name": "ToyChest",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24949,6 +25792,7 @@
       "selection_fg": "#fac800"
     },
     "metadata": {
+      "aliases": [],
       "name": "Treehouse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -24982,6 +25826,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "franksn",
       "name": "Trim Yer Beard (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25021,6 +25866,7 @@
       "selection_fg": "#ffffd4"
     },
     "metadata": {
+      "aliases": [],
       "name": "Twilight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -25059,6 +25905,10 @@
       "selection_fg": "#1e1e1e"
     },
     "metadata": {
+      "aliases": [
+        "Twilight (base16)",
+        "Twilight (dark) (terminal.sexy)"
+      ],
       "author": "David Hart (https://github.com/hartbit)",
       "name": "Twilight (base16)",
       "origin_url": "https://github.com/hartbit/base16-twilight-scheme",
@@ -25093,6 +25943,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Chris Kempson",
       "name": "Twilight (light) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25132,6 +25983,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Ubuntu",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25170,6 +26022,7 @@
       "selection_fg": "#cccccc"
     },
     "metadata": {
+      "aliases": [],
       "name": "UltraDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25208,6 +26061,7 @@
       "selection_fg": "#c3c7cb"
     },
     "metadata": {
+      "aliases": [],
       "name": "UltraViolent",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25246,6 +26100,7 @@
       "selection_fg": "#4dffda"
     },
     "metadata": {
+      "aliases": [],
       "name": "UnderTheSea",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25284,6 +26139,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Unikitty",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25322,6 +26178,7 @@
       "selection_fg": "#2e2a31"
     },
     "metadata": {
+      "aliases": [],
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Dark (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
@@ -25361,6 +26218,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Light (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
@@ -25400,6 +26258,7 @@
       "selection_fg": "#2e2a31"
     },
     "metadata": {
+      "aliases": [],
       "author": "Josh W Lewis (@joshwlewis)",
       "name": "Unikitty Reversible (base16)",
       "origin_url": "https://github.com/joshwlewis/base16-unikitty",
@@ -25434,6 +26293,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "Unsifted Wheat (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25471,6 +26331,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Ura (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "u",
@@ -25509,6 +26370,7 @@
       "selection_fg": "#1b1b22"
     },
     "metadata": {
+      "aliases": [],
       "name": "Urple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -25542,6 +26404,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "hal",
       "name": "Vacuous 2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25579,6 +26442,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Vag (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
@@ -25617,6 +26481,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Vaughn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -25655,6 +26520,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "VibrantInk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -25693,6 +26559,7 @@
       "selection_fg": "#1b1d24"
     },
     "metadata": {
+      "aliases": [],
       "author": "Thomas Leon Highbaugh",
       "name": "Vice Alt (base16)",
       "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
@@ -25732,6 +26599,7 @@
       "selection_fg": "#17191e"
     },
     "metadata": {
+      "aliases": [],
       "author": "Thomas Leon Highbaugh",
       "name": "Vice Dark (base16)",
       "origin_url": "https://github.com/Thomashighbaugh/base16-vice-scheme",
@@ -25771,6 +26639,7 @@
       "selection_fg": "#353535"
     },
     "metadata": {
+      "aliases": [],
       "name": "vimbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -25809,6 +26678,7 @@
       "selection_fg": "#1c1d1f"
     },
     "metadata": {
+      "aliases": [],
       "name": "Violet Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -25847,6 +26717,7 @@
       "selection_fg": "#fcf4dc"
     },
     "metadata": {
+      "aliases": [],
       "name": "Violet Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -25880,6 +26751,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "VisiBlue (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25914,6 +26786,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "VisiBone (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25948,6 +26821,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Gutterslob",
       "name": "Visibone Alt. 2 (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -25985,6 +26859,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "VSCodeDark+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
@@ -26021,6 +26896,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "VSCodeLight+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
@@ -26059,6 +26935,7 @@
       "selection_fg": "#041523"
     },
     "metadata": {
+      "aliases": [],
       "author": "Andrey Varfolomeev",
       "name": "vulcan (base16)",
       "origin_url": "https://github.com/andreyvpng/base16-vulcan-scheme",
@@ -26093,6 +26970,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "dkeg",
       "name": "VWbug (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -26132,6 +27010,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "WarmNeon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26170,6 +27049,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "name": "Wez",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26208,6 +27088,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Whimsy",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26246,6 +27127,7 @@
       "selection_fg": "#e4ffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "WildCherry",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26284,6 +27166,7 @@
       "selection_fg": "#c6c6c6"
     },
     "metadata": {
+      "aliases": [],
       "name": "wilmersdorf",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26322,6 +27205,7 @@
       "selection_fg": "#0c0c0c"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 10 (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26361,6 +27245,7 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 10 Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26400,6 +27285,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 95 (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26439,6 +27325,7 @@
       "selection_fg": "#fcfcfc"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows 95 Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26478,6 +27365,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows High Contrast (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26517,6 +27405,7 @@
       "selection_fg": "#fcfcfc"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows High Contrast Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26556,6 +27445,7 @@
       "selection_fg": "#000000"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows NT (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26595,6 +27485,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "author": "Fergus Collins (https://github.com/C-Fergus)",
       "name": "Windows NT Light (base16)",
       "origin_url": "https://github.com/C-Fergus/base16-windows-scheme",
@@ -26634,6 +27525,7 @@
       "selection_fg": "#b6bbc0"
     },
     "metadata": {
+      "aliases": [],
       "name": "Wombat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26672,6 +27564,7 @@
       "selection_fg": "#231e18"
     },
     "metadata": {
+      "aliases": [],
       "author": "Jay Cornwall (https://jcornwall.com)",
       "name": "Woodland (base16)",
       "origin_url": "https://github.com/jcornwall/base16-woodland-scheme",
@@ -26711,6 +27604,7 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
+      "aliases": [],
       "name": "Wryan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -26747,6 +27641,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "name": "Wzoreck (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
@@ -26780,6 +27675,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "crshd",
       "name": "X::DotShare (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -26814,6 +27710,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "earsplit",
       "name": "X::Erosion (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -26853,6 +27750,7 @@
       "selection_fg": "#282b35"
     },
     "metadata": {
+      "aliases": [],
       "author": "Elsa Gonsiorowski (https://github.com/gonsie)",
       "name": "XCode Dusk (base16)",
       "origin_url": "https://github.com/gonsie/base16-xcode-dusk-scheme",
@@ -26887,6 +27785,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "Kori",
       "name": "Yousai (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -26926,6 +27825,10 @@
       "selection_fg": "#2c363c"
     },
     "metadata": {
+      "aliases": [
+        "zenbones",
+        "zenbones_light"
+      ],
       "name": "zenbones",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -26964,6 +27867,7 @@
       "selection_fg": "#b4bdc3"
     },
     "metadata": {
+      "aliases": [],
       "name": "zenbones_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -27002,6 +27906,10 @@
       "selection_fg": "#2c363c"
     },
     "metadata": {
+      "aliases": [
+        "zenbones",
+        "zenbones_light"
+      ],
       "name": "zenbones_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -27040,6 +27948,7 @@
       "selection_fg": "#c2d87a"
     },
     "metadata": {
+      "aliases": [],
       "name": "Zenburn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -27078,6 +27987,7 @@
       "selection_fg": "#383838"
     },
     "metadata": {
+      "aliases": [],
       "author": "elnawe",
       "name": "Zenburn (base16)",
       "origin_url": "https://github.com/elnawe/base16-zenburn-scheme",
@@ -27112,6 +28022,7 @@
       "indexed": {}
     },
     "metadata": {
+      "aliases": [],
       "author": "",
       "name": "zenburn (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
@@ -27151,6 +28062,7 @@
       "selection_fg": "#f0e4cf"
     },
     "metadata": {
+      "aliases": [],
       "name": "zenburned",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -27189,6 +28101,7 @@
       "selection_fg": "#bbbbbb"
     },
     "metadata": {
+      "aliases": [],
       "name": "zenwritten_dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
@@ -27227,6 +28140,7 @@
       "selection_fg": "#353535"
     },
     "metadata": {
+      "aliases": [],
       "name": "zenwritten_light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",

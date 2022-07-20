@@ -74,6 +74,7 @@ impl Base16Scheme {
                 author: Some(scheme.author.clone()),
                 origin_url: None,
                 wezterm_version: None,
+                aliases: vec![],
             },
         })
     }
