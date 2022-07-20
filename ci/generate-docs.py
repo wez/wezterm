@@ -174,6 +174,17 @@ def screen_shot_table(scheme):
 
     return base64.b64encode(f"{header}\n{data}\n".encode("UTF-8")).decode("UTF-8")
 
+def prompt_preview(scheme, screen) -> str:
+    header = {
+        "version": 2,
+        "width": 80,
+        "height": 24,
+        "title": scheme["name"],
+    }
+    header = json.dumps(header, sort_keys=True)
+    data = json.dumps([0.0, "o", screen])
+
+    return base64.b64encode(f"{header}\n{data}\n".encode("UTF-8")).decode("UTF-8")
 
 class GenColorScheme(object):
     def __init__(self, title, dirname, index=None):
@@ -197,6 +208,9 @@ class GenColorScheme(object):
             scheme_filename = f"{self.dirname}/{scheme_prefix}/index.md"
             os.makedirs(os.path.dirname(scheme_filename), exist_ok=True)
             children.append(Page(scheme_prefix, scheme_filename))
+            ansifile = open(f"{self.dirname}/zsh-fsyh-base16.ansi", "r")
+            ansistr = ansifile.read()
+            ansistr = ansistr.replace("\n","\r\n")
 
             with open(scheme_filename, "w") as idx:
 
@@ -205,11 +219,13 @@ class GenColorScheme(object):
                     idx.write(f"# {title}\n")
 
                     data = screen_shot_table(scheme)
+                    prompt_data = prompt_preview(scheme, ansistr)
                     ident = scheme["ident"]
 
                     idx.write(
                         f"""
-<div id="{ident}-player"></div>
+<div id="{ident}-palette-player"></div>
+<div id="{ident}-prompt-player"></div>
 
 <style>
 {scheme["css"]}
@@ -219,7 +235,13 @@ class GenColorScheme(object):
 window.addEventListener('load', function () {{
     AsciinemaPlayer.create(
         'data:text/plain;base64,{data}',
-        document.getElementById('{ident}-player'), {{
+        document.getElementById('{ident}-palette-player'), {{
+        theme: "{ident}",
+        autoPlay: true,
+    }});
+    AsciinemaPlayer.create(
+        'data:text/plain;base64,{prompt_data}',
+        document.getElementById('{ident}-prompt-player'), {{
         theme: "{ident}",
         autoPlay: true,
     }});
