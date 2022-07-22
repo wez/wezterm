@@ -57,6 +57,9 @@ _wezterm() {
             shell-completion)
                 cmd+="__shell__completion"
                 ;;
+            show-keys)
+                cmd+="__show__keys"
+                ;;
             spawn)
                 cmd+="__spawn"
                 ;;
@@ -79,7 +82,7 @@ _wezterm() {
 
     case "${cmd}" in
         wezterm)
-            opts="-h -V -n --help --version --config-file --config start ssh serial connect ls-fonts cli imgcat set-working-directory record replay shell-completion help"
+            opts="-h -V -n --help --version --config-file --config start ssh serial connect ls-fonts show-keys cli imgcat set-working-directory record replay shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -467,6 +470,20 @@ _wezterm() {
                     COMPREPLY=($(compgen -W "bash elvish fish powershell zsh" -- "${cur}"))
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__show__keys)
+            opts="-h --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 *)
                     COMPREPLY=()
                     ;;

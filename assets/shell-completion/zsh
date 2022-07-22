@@ -86,6 +86,12 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help information]' \
 && ret=0
 ;;
+(show-keys)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
 (cli)
 _arguments "${_arguments_options[@]}" \
 '--class=[When connecting to a gui instance, if you started the gui with `--class SOMETHING`, you should also pass that same value here in order for the client to find the correct gui instance]:CLASS: ' \
@@ -246,6 +252,7 @@ _wezterm_commands() {
 'serial:Open a serial port' \
 'connect:Connect to wezterm multiplexer' \
 'ls-fonts:Display information about fonts' \
+'show-keys:Show key assignments' \
 'cli:Interact with experimental mux server' \
 'imgcat:Output an image to the terminal' \
 'set-working-directory:Advise the terminal of the current working directory by emitting an OSC 7 escape sequence' \
@@ -347,6 +354,11 @@ _wezterm__set-working-directory_commands() {
 _wezterm__shell-completion_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm shell-completion commands' commands "$@"
+}
+(( $+functions[_wezterm__show-keys_commands] )) ||
+_wezterm__show-keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm show-keys commands' commands "$@"
 }
 (( $+functions[_wezterm__cli__spawn_commands] )) ||
 _wezterm__cli__spawn_commands() {
