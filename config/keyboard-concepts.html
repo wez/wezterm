@@ -182,26 +182,30 @@ B --&gt;|No| F
 C1 --&gt;|Composed| D[Make RawKeyEvent from&lt;br/&gt; Composed text] --&gt; RAW1
 C1 --&gt;|Composing| E[Render composing status]
 C1 --&gt;|Continue| F[Make RawKeyEvent] --&gt; RAW1
-RAW3 --&gt;|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
-DEAD1 --&gt;|Yes| I[Make KeyEvent from&lt;br/&gt;expanded dead key] --&gt; KEY1
-DEAD1 --&gt;|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
-DEAD2 --&gt;|Yes| DEADCOMP[Render composing status]
-DEAD2 --&gt;|No| J[Make KeyEvent from RawKeyEvent] --&gt; KEY1
-KEY3 --&gt;|No| M[Send key to terminal]
 
 RAW1{{match a phys: mapping?}}
-RAW1 --&gt;|Yes| RAWDONE[Perform assignment action]
+RAW1 --&gt;|Yes| RAWDONE1(( ))
 RAW1 --&gt;|No| RAW2{{match a raw: mapping?}}
-RAW2 --&gt;|Yes| RAWDONE
+RAW2 --&gt;|Yes| RAWDONE1
 RAW2 --&gt;|No| RAW3{{match a mapped: mapping?}}
-RAW3 --&gt;|Yes| RAWDONE2[Perform assignment action]
+RAW3 --&gt;|Yes| RAWDONE1
+RAW3 --&gt;|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
+
+DEAD1 --&gt;|Yes| I[Make KeyEvent from&lt;br/&gt;expanded dead key] --&gt; KEY1
+DEAD1 --&gt;|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
+DEAD2 --&gt;|No| J[Make KeyEvent from&lt;br/&gt;RawKeyEvent] --&gt; KEY1
+DEAD2 --&gt;|Yes| DEADCOMP[Render composing status]
 
 KEY1{{match a phys: mapping?}}
-KEY1 --&gt;|Yes| KEYDONE[Perform assignment action]
+KEY1 --&gt;|Yes| RAWDONE2(( ))
 KEY1 --&gt;|No| KEY2{{match a raw: mapping?}}
-KEY2 --&gt;|Yes| KEYDONE
+KEY2 --&gt;|Yes| RAWDONE2
 KEY2 --&gt;|No| KEY3{{match a mapped: mapping?}}
-KEY3 --&gt;|Yes| KEYDONE2[Perform assignment action]
+KEY3 --&gt;|Yes| RAWDONE2
+KEY3 --&gt;|No| M[Send key to terminal]
+
+RAWDONE1 --&gt; RAWDONE3[Perform assignment action]
+RAWDONE2 --&gt; RAWDONE3
 
 </pre>
 <h2 id="alt--option-key-behavior--composed-keys"><a class="header" href="#alt--option-key-behavior--composed-keys">Alt / Option Key Behavior &amp; Composed Keys</a></h2>
