@@ -289,11 +289,12 @@ Outputs the pane-id for the newly created pane on success"
         /// Specify the window into which to spawn a tab.
         /// If omitted, the window associated with the current
         /// pane is used.
-        #[clap(long = "window-id")]
+        /// Cannot be used with `--workspace` or `--new-window`.
+        #[clap(long = "window-id", conflicts_with_all=&["workspace", "new-window"])]
         window_id: Option<WindowId>,
 
-        /// Spawn into a new window, rather than a new tab
-        #[clap(long = "new-window", conflicts_with = "window-id")]
+        /// Spawn into a new window, rather than a new tab.
+        #[clap(long = "new-window")]
         new_window: bool,
 
         /// Specify the current working directory for the initially
@@ -303,6 +304,7 @@ Outputs the pane-id for the newly created pane on success"
 
         /// When creating a new window, override the default workspace name
         /// with the provided name.  The default name is "default".
+        /// Requires `--new-window`.
         #[clap(long = "workspace", requires = "new-window")]
         workspace: Option<String>,
 
