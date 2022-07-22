@@ -2,4 +2,4 @@
 # This script is a helper that starts a new terminal window
 # in the cwd of the calling process, rather than using the
 # default cwd which is usually the home directory.
-wezterm start --cwd $PWD -- "$@"
+exec wezterm start --cwd "$PWD" -- "$@"
