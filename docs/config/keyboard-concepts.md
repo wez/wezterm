@@ -45,8 +45,8 @@ A[OS Generates a Key Event]
 A --> B{{Is IME enabled?}}
 B -->|Yes| C[Deliver event to IME] --> C1{{IME Response}}
 B -->|No| F
-C1 -->|Composed| D[Make RawKeyEvent from<br/> Composed text] --> RAW1
 C1 -->|Composing| E[Render composing status]
+C1 -->|Composed| D[Make RawKeyEvent from<br/> Composed text] --> RAW1
 C1 -->|Continue| F[Make RawKeyEvent] --> RAW1
 
 RAW1{{match a phys: mapping?}}
@@ -59,8 +59,8 @@ RAW3 -->|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
 
 DEAD1 -->|Yes| I[Make KeyEvent from<br/>expanded dead key] --> KEY1
 DEAD1 -->|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
-DEAD2 -->|Yes| DEADCOMP[Render composing status]
 DEAD2 -->|No| J[Make KeyEvent from RawKeyEvent] --> KEY1
+DEAD2 -->|Yes| DEADCOMP[Render composing status]
 
 KEY1{{match a phys: mapping?}}
 KEY1 -->|Yes| RAWDONE
