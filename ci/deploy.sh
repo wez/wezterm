@@ -159,7 +159,7 @@ echo "Doing the build bit here"
 set -x
 cd ${HERE}
 mkdir -p %{buildroot}/usr/bin %{buildroot}/etc/profile.d
-install -Dsm755 assets/open-wezterm-here -t %{buildroot}/usr/bin
+install -Dm755 assets/open-wezterm-here -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
@@ -228,7 +228,7 @@ EOF
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
-        install -Dsm755 -t pkg/debian/usr/bin assets/open-wezterm-here
+        install -Dm755 -t pkg/debian/usr/bin assets/open-wezterm-here
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
 
         deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
