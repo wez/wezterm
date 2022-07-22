@@ -48,24 +48,27 @@ B -->|No| F
 C1 -->|Composed| D[Make RawKeyEvent from<br/> Composed text] --> RAW1
 C1 -->|Composing| E[Render composing status]
 C1 -->|Continue| F[Make RawKeyEvent] --> RAW1
-RAW3 -->|Yes| RAWDONE
-RAW3 -->|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
-DEAD1 -->|Yes| I[Make KeyEvent from<br/>expanded dead key] --> KEY1
-DEAD1 -->|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
-DEAD2 -->|Yes| DEADCOMP[Render composing status]
-DEAD2 -->|No| J[Make KeyEvent from RawKeyEvent] --> KEY1
-KEY3 -->|Yes| RAWDONE
-KEY3 -->|No| M[Send key to terminal]
+
 RAW1{{match a phys: mapping?}}
 RAW1 -->|Yes| RAWDONE[Perform assignment action]
 RAW1 -->|No| RAW2{{match a raw: mapping?}}
 RAW2 -->|Yes| RAWDONE
 RAW2 -->|No| RAW3{{match a mapped: mapping?}}
+RAW3 -->|Yes| RAWDONE
+RAW3 -->|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
+
+DEAD1 -->|Yes| I[Make KeyEvent from<br/>expanded dead key] --> KEY1
+DEAD1 -->|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
+DEAD2 -->|Yes| DEADCOMP[Render composing status]
+DEAD2 -->|No| J[Make KeyEvent from RawKeyEvent] --> KEY1
+
 KEY1{{match a phys: mapping?}}
 KEY1 -->|Yes| RAWDONE
 KEY1 -->|No| KEY2{{match a raw: mapping?}}
 KEY2 -->|Yes| RAWDONE
 KEY2 -->|No| KEY3{{match a mapped: mapping?}}
+KEY3 -->|Yes| RAWDONE
+KEY3 -->|No| M[Send key to terminal]
 
 ```
 
