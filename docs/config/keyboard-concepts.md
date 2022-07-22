@@ -45,30 +45,33 @@ A[OS Generates a Key Event]
 A --> B{{Is IME enabled?}}
 B -->|Yes| C[Deliver event to IME] --> C1{{IME Response}}
 B -->|No| F
-C1 -->|Composing| E[Render composing status]
 C1 -->|Composed| D[Make RawKeyEvent from<br/> Composed text] --> RAW1
+C1 -->|Composing| E[Render composing status]
 C1 -->|Continue| F[Make RawKeyEvent] --> RAW1
 
 RAW1{{match a phys: mapping?}}
-RAW1 -->|Yes| RAWDONE[Perform assignment action]
+RAW1 -->|Yes| RAWDONE1(( ))
 RAW1 -->|No| RAW2{{match a raw: mapping?}}
-RAW2 -->|Yes| RAWDONE
+RAW2 -->|Yes| RAWDONE1
 RAW2 -->|No| RAW3{{match a mapped: mapping?}}
-RAW3 -->|Yes| RAWDONE
+RAW3 -->|Yes| RAWDONE1
 RAW3 -->|No| DEAD1{{Does RawKeyEvent complete a dead-key?}}
 
 DEAD1 -->|Yes| I[Make KeyEvent from<br/>expanded dead key] --> KEY1
 DEAD1 -->|No| DEAD2{{Does RawKeyEvent start a dead-key?}}
-DEAD2 -->|No| J[Make KeyEvent from RawKeyEvent] --> KEY1
+DEAD2 -->|No| J[Make KeyEvent from<br/>RawKeyEvent] --> KEY1
 DEAD2 -->|Yes| DEADCOMP[Render composing status]
 
 KEY1{{match a phys: mapping?}}
-KEY1 -->|Yes| RAWDONE
+KEY1 -->|Yes| RAWDONE2(( ))
 KEY1 -->|No| KEY2{{match a raw: mapping?}}
-KEY2 -->|Yes| RAWDONE
+KEY2 -->|Yes| RAWDONE2
 KEY2 -->|No| KEY3{{match a mapped: mapping?}}
-KEY3 -->|Yes| RAWDONE
+KEY3 -->|Yes| RAWDONE2
 KEY3 -->|No| M[Send key to terminal]
+
+RAWDONE1 --> RAWDONE3[Perform assignment action]
+RAWDONE2 --> RAWDONE3
 
 ```
 
