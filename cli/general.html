@@ -153,6 +153,11 @@ delegate to to <code>wezterm-gui</code> under the covers.</p>
 <p>If you are are setting up a launcher for wezterm to run in the Windows GUI
 environment then you will want to explicitly target <code>wezterm-gui</code> so that
 Windows itself doesn't pop up a console host for its logging output.</p>
+<p>Note that <code>wezterm-gui.exe --help</code> will not output anything to a console when
+run on Windows systems, because it runs in the Windows GUI subsystem and has no
+connection to the console.  You can use <code>wezterm.exe --help</code> to see information
+about the various commands; it will delegate to <code>wezterm-gui.exe</code> when
+appropriate.</p>
 
                     </main>
 
