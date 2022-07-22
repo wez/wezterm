@@ -17,6 +17,15 @@ body:
         - FreeBSD Wayland
     validations:
       required: true
+  - type: textarea
+    id: window_manager
+    attributes:
+      label: Which Wayland compositor or X11 Window manager(s) are you using?
+      description: |
+        If running on a unix system, please include the name and version of the compositor/WM.
+        Windows and macOS typically can leave this blank, but if you are using additional window
+        management software on top of the standard for those systems, please indicate that here.
+      placeholder: "ex: Sway, Mutter, wayfire, i3."
   - type: input
     id: version
     attributes:
@@ -70,8 +79,10 @@ body:
       label: Logs
       description: |
         If possible, activate the Debug Overlay by pressing CTRL-SHIFT-L and then copy
-        and paste the log lines in here.  Alternatively, if you launched wezterm from
+        and paste the log lines in here.  If you launched wezterm from
         the command line, copy and paste that output here.
+        You can also find log files in `$XDG_RUNTIME_DIR/wezterm` on unix systems,
+        or `$HOME/.local/share/wezterm` on macOS and Windows systems.
       placeholder: |
         09:27:26.703 INFO wezterm_gui::termwindow > OpenGL initialized! NVIDIA GeForce GT 1030/PCIe/SSE2 4.6.0 NVIDIA 470.57.02 is_context_loss_possible=false wezterm version: 20210816-085256-935c1f48
   - type: textarea
