@@ -159,6 +159,7 @@ echo "Doing the build bit here"
 set -x
 cd ${HERE}
 mkdir -p %{buildroot}/usr/bin %{buildroot}/etc/profile.d
+install -Dsm755 assets/open-wezterm-here -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
@@ -172,6 +173,7 @@ install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.we
 install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python/extensions/wezterm-nautilus.py
 
 %files
+/usr/bin/open-wezterm-here
 /usr/bin/wezterm
 /usr/bin/wezterm-gui
 /usr/bin/wezterm-mux-server
@@ -211,7 +213,7 @@ EOF
 #!/bin/sh
 set -e
 if [ "\$1" = "configure" ] ; then
-        update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/wezterm 20
+        update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/open-wezterm-here 20
 fi
 EOF
 
@@ -219,13 +221,14 @@ EOF
 #!/bin/sh
 set -e
 if [ "\$1" = "remove" ]; then
-	update-alternatives --remove x-terminal-emulator /usr/bin/wezterm
+	update-alternatives --remove x-terminal-emulator /usr/bin/open-wezterm-here
 fi
 EOF
 
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
+        install -Dsm755 -t pkg/debian/usr/bin assets/open-wezterm-here
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
 
         deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
@@ -283,6 +286,7 @@ source="
   target/release/wezterm
   target/release/wezterm-gui
   target/release/wezterm-mux-server
+  assets/open-wezterm-here
   assets/wezterm.desktop
   assets/wezterm.appdata.xml
   assets/icon/terminal.png
@@ -296,6 +300,7 @@ build() {
 }
 
 package() {
+  install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/open-wezterm-here
   install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm
   install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm-gui
   install -Dm755 -t "\$pkgdir"/usr/bin "\$srcdir"/wezterm-mux-server
