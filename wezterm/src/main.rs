@@ -303,7 +303,7 @@ Outputs the pane-id for the newly created pane on success"
 
         /// When creating a new window, override the default workspace name
         /// with the provided name.  The default name is "default".
-        #[clap(long = "workspace")]
+        #[clap(long = "workspace", requires="new-window")]
         workspace: Option<String>,
 
         /// Instead of executing your shell, run PROG.
