@@ -447,6 +447,7 @@ impl_downcast!(Pane);
 mod test {
     use super::*;
     use k9::snapshot;
+    use std::borrow::Cow;
     use termwiz::surface::SEQ_ZERO;
 
     struct FakePane {
@@ -577,7 +578,7 @@ mod test {
         let width = 20;
         let physical_lines = physical_lines_from_text(text, width);
 
-        fn text_from_lines(lines: &[Line]) -> Vec<String> {
+        fn text_from_lines(lines: &[Line]) -> Vec<Cow<str>> {
             lines.iter().map(|l| l.as_str()).collect::<Vec<_>>()
         }
 
@@ -603,7 +604,7 @@ mod test {
             lines: physical_lines,
         };
 
-        fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, String)> {
+        fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, Cow<str>)> {
             lines
                 .iter()
                 .map(|l| (l.first_row, l.logical.as_str()))

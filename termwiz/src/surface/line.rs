@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use fixedbitset::FixedBitSet;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -497,7 +498,7 @@ impl Line {
         // use this as an opportunity to rebuild HAS_HYPERLINK, skip matching
         // cells with existing non-implicit hyperlinks, and avoid matching
         // text with zero-width cells.
-        let line = self.as_str();
+        let line = self.as_str().into_owned();
         self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
 
@@ -541,12 +542,17 @@ impl Line {
     }
 
     /// Recompose line into the corresponding utf8 string.
-    pub fn as_str(&self) -> String {
-        let mut s = String::new();
-        for cell in self.visible_cells() {
-            s.push_str(cell.str());
+    pub fn as_str(&self) -> Cow<str> {
+        match &self.cells {
+            CellStorage::V(_) => {
+                let mut s = String::new();
+                for cell in self.visible_cells() {
+                    s.push_str(cell.str());
+                }
+                Cow::Owned(s)
+            }
+            CellStorage::C(cl) => Cow::Borrowed(&cl.text),
         }
-        s
     }
 
     pub fn split_off(&mut self, idx: usize, seqno: SequenceNo) -> Self {
