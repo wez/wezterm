@@ -663,7 +663,7 @@ impl super::TermWindow {
         );
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
-                if let Some(cell) = line.cells().get(column) {
+                if let Some(cell) = line.get_cell(column) {
                     cell.attrs().hyperlink().cloned()
                 } else {
                     None

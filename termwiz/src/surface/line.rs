@@ -74,10 +74,16 @@ pub struct ZoneRange {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line {
-    cells: Vec<Cell>,
+    cells: CellStorage,
     zones: Vec<ZoneRange>,
     seqno: SequenceNo,
     bits: LineBits,
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+enum CellStorage {
+    V(Vec<Cell>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -93,7 +99,7 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells,
+            cells: CellStorage::V(cells),
             seqno,
             zones: vec![],
         }
@@ -103,7 +109,7 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells,
+            cells: CellStorage::V(cells),
             seqno,
             zones: vec![],
         }
@@ -115,7 +121,7 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells,
+            cells: CellStorage::V(cells),
             seqno,
             zones: vec![],
         }
@@ -139,7 +145,7 @@ impl Line {
         }
 
         Line {
-            cells,
+            cells: CellStorage::V(cells),
             bits: LineBits::NONE,
             seqno,
             zones: vec![],
@@ -152,7 +158,7 @@ impl Line {
         seqno: SequenceNo,
     ) -> Line {
         let mut line = Self::from_text(s, attrs, seqno, None);
-        line.cells
+        line.cells_mut()
             .last_mut()
             .map(|cell| cell.attrs_mut().set_wrapped(true));
         line
@@ -164,19 +170,21 @@ impl Line {
         seqno: SequenceNo,
         blank_attr: CellAttributes,
     ) {
-        for c in &mut self.cells {
-            *c = Cell::blank_with_attrs(blank_attr.clone());
+        {
+            let cells = self.coerce_vec_storage();
+            for c in cells.iter_mut() {
+                *c = Cell::blank_with_attrs(blank_attr.clone());
+            }
+            cells.resize_with(width, || Cell::blank_with_attrs(blank_attr.clone()));
+            cells.shrink_to_fit();
         }
-        self.cells
-            .resize_with(width, || Cell::blank_with_attrs(blank_attr.clone()));
-        self.cells.shrink_to_fit();
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
         self.bits = LineBits::NONE;
     }
 
     pub fn resize(&mut self, width: usize, seqno: SequenceNo) {
-        self.cells.resize_with(width, Cell::blank);
+        self.coerce_vec_storage().resize_with(width, Cell::blank);
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
@@ -184,20 +192,21 @@ impl Line {
     /// Wrap the line so that it fits within the provided width.
     /// Returns the list of resultant line(s)
     pub fn wrap(mut self, width: usize, seqno: SequenceNo) -> Vec<Self> {
-        if let Some(end_idx) = self.cells.iter().rposition(|c| c.str() != " ") {
-            self.cells.resize_with(end_idx + 1, Cell::blank);
+        let cells = self.coerce_vec_storage();
+        if let Some(end_idx) = cells.iter().rposition(|c| c.str() != " ") {
+            cells.resize_with(end_idx + 1, Cell::blank);
 
-            let mut lines: Vec<_> = self
-                .cells
+            let mut lines: Vec<_> = cells
                 .chunks_mut(width)
                 .map(|chunk| {
+                    let chunk_len = chunk.len();
                     let mut line = Line {
-                        cells: chunk.to_vec(),
+                        cells: CellStorage::V(chunk.to_vec()),
                         bits: LineBits::NONE,
                         seqno: seqno,
                         zones: vec![],
                     };
-                    if line.cells.len() == width {
+                    if chunk_len == width {
                         // Ensure that we don't forget that we wrapped
                         line.set_last_cell_was_wrapped(true, seqno);
                     }
@@ -384,11 +393,12 @@ impl Line {
         // with other zones as a result of clear-to-eol and
         // clear-to-end-of-screen sequences.  We don't want
         // those to affect the zones that we compute here
-        let last_non_blank = self
-            .cells()
-            .iter()
-            .rposition(|cell| *cell != blank_cell)
-            .unwrap_or(self.cells().len());
+        let mut last_non_blank = self.len();
+        for cell in self.visible_cells() {
+            if cell.str() != blank_cell.str() || cell.attrs() != blank_cell.attrs() {
+                last_non_blank = cell.cell_index();
+            }
+        }
 
         for cell in self.visible_cells() {
             if cell.cell_index() > last_non_blank {
@@ -446,7 +456,8 @@ impl Line {
             return;
         }
 
-        for cell in &mut self.cells {
+        let cells = self.coerce_vec_storage();
+        for cell in cells {
             let replace = match cell.attrs().hyperlink() {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
                     cell.str(),
@@ -500,18 +511,23 @@ impl Line {
         // string.
         let mut cell_idx = 0;
         for (byte_idx, _grapheme) in line.grapheme_indices(true) {
-            let cell = &mut self.cells[cell_idx];
+            let cells = self.coerce_vec_storage();
+            let cell = &mut cells[cell_idx];
+            let mut matched = false;
             for m in &matches {
                 if m.range.contains(&byte_idx) {
                     let attrs = cell.attrs_mut();
                     // Don't replace existing links
                     if attrs.hyperlink().is_none() {
                         attrs.set_hyperlink(Some(Arc::clone(&m.link)));
-                        self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+                        matched = true;
                     }
                 }
             }
             cell_idx += cell.width();
+            if matched {
+                self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+            }
         }
     }
 
@@ -532,10 +548,11 @@ impl Line {
     }
 
     pub fn split_off(&mut self, idx: usize, seqno: SequenceNo) -> Self {
-        let cells = self.cells.split_off(idx);
+        let my_cells = self.coerce_vec_storage();
+        let cells = my_cells.split_off(idx);
         Self {
             bits: self.bits,
-            cells,
+            cells: CellStorage::V(cells),
             seqno,
             zones: vec![],
         }
@@ -546,7 +563,7 @@ impl Line {
         click_col: usize,
         is_word: F,
     ) -> DoubleClickRange {
-        let len = self.cells.len();
+        let len = self.len();
 
         if click_col >= len {
             return DoubleClickRange::Range(click_col..click_col);
@@ -557,23 +574,33 @@ impl Line {
 
         // TODO: look back and look ahead for cells that are hidden by
         // a preceding multi-wide cell
-        for (idx, cell) in self.cells.iter().enumerate().skip(click_col) {
-            if !is_word(cell.str()) {
-                break;
-            }
-            upper = idx + 1;
-        }
-        for (idx, cell) in self.cells.iter().enumerate().rev() {
-            if idx > click_col {
+        let cells = self.visible_cells().collect::<Vec<_>>();
+        for cell in &cells {
+            if cell.cell_index() < click_col {
                 continue;
             }
             if !is_word(cell.str()) {
                 break;
             }
-            lower = idx;
+            upper = cell.cell_index() + 1;
+        }
+        for cell in cells.iter().rev() {
+            if cell.cell_index() > click_col {
+                continue;
+            }
+            if !is_word(cell.str()) {
+                break;
+            }
+            lower = cell.cell_index();
         }
 
-        if upper > lower && self.cells[upper.min(len) - 1].attrs().wrapped() {
+        if upper > lower
+            && upper >= len
+            && cells
+                .last()
+                .map(|cell| cell.attrs().wrapped())
+                .unwrap_or(false)
+        {
             DoubleClickRange::RangeWithWrap(lower..upper)
         } else {
             DoubleClickRange::Range(lower..upper)
@@ -608,7 +635,7 @@ impl Line {
         }
         Self {
             bits: LineBits::NONE,
-            cells,
+            cells: CellStorage::V(cells),
             seqno: self.current_seqno(),
             zones: vec![],
         }
@@ -633,8 +660,9 @@ impl Line {
     }
 
     fn raw_set_cell(&mut self, idx: usize, mut cell: Cell, clear: bool) {
+        let cells = self.coerce_vec_storage();
         if !clear {
-            if let Some(images) = self.cells[idx].attrs().images() {
+            if let Some(images) = cells[idx].attrs().images() {
                 for image in images {
                     if image.has_placement_id() {
                         cell.attrs_mut().attach_image(Box::new(image));
@@ -642,7 +670,7 @@ impl Line {
                 }
             }
         }
-        self.cells[idx] = cell;
+        cells[idx] = cell;
     }
 
     fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool, seqno: SequenceNo) -> &Cell {
@@ -655,8 +683,11 @@ impl Line {
         let width = cell.width().max(1);
 
         // if the line isn't wide enough, pad it out with the default attributes.
-        if idx + width > self.cells.len() {
-            self.cells.resize_with(idx + width, Cell::blank);
+        {
+            let cells = self.coerce_vec_storage();
+            if idx + width > cells.len() {
+                cells.resize_with(idx + width, Cell::blank);
+            }
         }
 
         self.invalidate_implicit_hyperlinks(seqno);
@@ -674,7 +705,7 @@ impl Line {
         }
 
         self.raw_set_cell(idx, cell, clear);
-        &self.cells[idx]
+        &self.cells_mut()[idx]
     }
 
     /// Place text starting at the specified column index.
@@ -702,11 +733,12 @@ impl Line {
         // This constrains the amount of look-back that we need to do here.
         if idx > 0 {
             let prior = idx - 1;
-            let width = self.cells[prior].width();
+            let cells = self.coerce_vec_storage();
+            let width = cells[prior].width();
             if width > 1 {
-                let attrs = self.cells[prior].attrs().clone();
+                let attrs = cells[prior].attrs().clone();
                 for nerf in prior..prior + width {
-                    self.cells[nerf] = Cell::blank_with_attrs(attrs.clone());
+                    cells[nerf] = Cell::blank_with_attrs(attrs.clone());
                 }
             }
         }
@@ -715,48 +747,51 @@ impl Line {
     pub fn insert_cell(&mut self, x: usize, cell: Cell, right_margin: usize, seqno: SequenceNo) {
         self.invalidate_implicit_hyperlinks(seqno);
 
-        if right_margin <= self.cells.len() {
-            self.cells.remove(right_margin - 1);
+        let cells = self.coerce_vec_storage();
+        if right_margin <= cells.len() {
+            cells.remove(right_margin - 1);
         }
 
-        if x >= self.cells.len() {
-            self.cells.resize_with(x, Cell::blank);
+        if x >= cells.len() {
+            cells.resize_with(x, Cell::blank);
         }
 
         // If we're inserting a wide cell, we should also insert the overlapped cells.
         // We insert them first so that the grapheme winds up left-most.
         let width = cell.width();
         for _ in 1..=width.saturating_sub(1) {
-            self.cells
-                .insert(x, Cell::blank_with_attrs(cell.attrs().clone()));
+            cells.insert(x, Cell::blank_with_attrs(cell.attrs().clone()));
         }
 
-        self.cells.insert(x, cell);
+        cells.insert(x, cell);
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
 
     pub fn erase_cell(&mut self, x: usize, seqno: SequenceNo) {
-        if x >= self.cells.len() {
+        if x >= self.len() {
             // Already implicitly erased
             return;
         }
         self.invalidate_implicit_hyperlinks(seqno);
         self.invalidate_grapheme_at_or_before(x);
-        self.cells.remove(x);
-        self.cells.push(Cell::default());
+        {
+            let cells = self.coerce_vec_storage();
+            cells.remove(x);
+            cells.push(Cell::default());
+        }
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
 
     pub fn remove_cell(&mut self, x: usize, seqno: SequenceNo) {
-        if x >= self.cells.len() {
+        if x >= self.len() {
             // Already implicitly removed
             return;
         }
         self.invalidate_implicit_hyperlinks(seqno);
         self.invalidate_grapheme_at_or_before(x);
-        self.cells.remove(x);
+        self.coerce_vec_storage().remove(x);
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
@@ -769,14 +804,14 @@ impl Line {
         blank_attr: CellAttributes,
     ) {
         self.invalidate_implicit_hyperlinks(seqno);
-        if x < self.cells.len() {
+        if x < self.len() {
             self.invalidate_grapheme_at_or_before(x);
-            self.cells.remove(x);
+            self.coerce_vec_storage().remove(x);
         }
-        if right_margin <= self.cells.len() + 1
+        if right_margin <= self.len() + 1
         /* we just removed one */
         {
-            self.cells
+            self.coerce_vec_storage()
                 .insert(right_margin - 1, Cell::blank_with_attrs(blank_attr));
         }
         self.update_last_change_seqno(seqno);
@@ -785,12 +820,12 @@ impl Line {
 
     pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
         let def_attr = CellAttributes::blank();
-        if let Some(end_idx) = self
-            .cells
+        let cells = self.coerce_vec_storage();
+        if let Some(end_idx) = cells
             .iter()
             .rposition(|c| c.str() != " " || c.attrs() != &def_attr)
         {
-            self.cells.resize_with(end_idx + 1, Cell::blank);
+            cells.resize_with(end_idx + 1, Cell::blank);
             self.update_last_change_seqno(seqno);
             self.invalidate_zones();
         }
@@ -804,6 +839,12 @@ impl Line {
         self.prune_trailing_blanks(seqno);
     }
 
+    pub fn len(&self) -> usize {
+        match &self.cells {
+            CellStorage::V(cells) => cells.len(),
+        }
+    }
+
     /// Iterates the visible cells, respecting the width of the cell.
     /// For instance, a double-width cell overlaps the following (blank)
     /// cell, so that blank cell is omitted from the iterator results.
@@ -812,43 +853,54 @@ impl Line {
     /// the characters that follow wide characters, the column index may
     /// skip some positions.  It is returned as a convenience to the consumer
     /// as using .enumerate() on this iterator wouldn't be as useful.
-    pub fn visible_cells(&self) -> impl Iterator<Item = CellIter> {
+    pub fn visible_cells(&self) -> impl DoubleEndedIterator<Item = CellIter> {
         let mut skip_width = 0;
-        self.cells
-            .iter()
-            .enumerate()
-            .filter_map(move |(cell_index, cell)| {
-                if skip_width > 0 {
-                    skip_width -= 1;
-                    None
-                } else {
-                    skip_width = cell.width().saturating_sub(1);
-                    Some(CellIter::CellRef { cell_index, cell })
-                }
-            })
+        match &self.cells {
+            CellStorage::V(cells) => {
+                cells
+                    .iter()
+                    .enumerate()
+                    .filter_map(move |(cell_index, cell)| {
+                        if skip_width > 0 {
+                            skip_width -= 1;
+                            None
+                        } else {
+                            skip_width = cell.width().saturating_sub(1);
+                            Some(CellIter::CellRef { cell_index, cell })
+                        }
+                    })
+            }
+        }
+    }
+
+    pub fn get_cell(&self, cell_index: usize) -> Option<CellIter> {
+        self.visible_cells()
+            .find(|cell| cell.cell_index() == cell_index)
     }
 
     pub fn cluster(&self, bidi_hint: Option<ParagraphDirectionHint>) -> Vec<CellCluster> {
-        CellCluster::make_cluster(self.cells.len(), self.visible_cells(), bidi_hint)
+        CellCluster::make_cluster(self.len(), self.visible_cells(), bidi_hint)
     }
 
-    pub fn cells(&self) -> &[Cell] {
-        &self.cells
+    fn coerce_vec_storage(&mut self) -> &mut Vec<Cell> {
+        match &mut self.cells {
+            CellStorage::V(cells) => cells,
+        }
     }
 
     pub fn cells_mut(&mut self) -> &mut [Cell] {
-        &mut self.cells
+        self.coerce_vec_storage().as_mut_slice()
     }
 
     /// Return true if the line consists solely of whitespace cells
     pub fn is_whitespace(&self) -> bool {
-        self.cells.iter().all(|c| c.str() == " ")
+        self.visible_cells().all(|c| c.str() == " ")
     }
 
     /// Return true if the last cell in the line has the wrapped attribute,
     /// indicating that the following line is logically a part of this one.
     pub fn last_cell_was_wrapped(&self) -> bool {
-        self.cells
+        self.visible_cells()
             .last()
             .map(|c| c.attrs().wrapped())
             .unwrap_or(false)
@@ -857,7 +909,8 @@ impl Line {
     /// Adjust the value of the wrapped attribute on the last cell of this
     /// line.
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool, seqno: SequenceNo) {
-        if let Some(cell) = self.cells.last_mut() {
+        let cells = self.coerce_vec_storage();
+        if let Some(cell) = cells.last_mut() {
             cell.attrs_mut().set_wrapped(wrapped);
             self.update_last_change_seqno(seqno);
         }
@@ -868,7 +921,8 @@ impl Line {
     /// This function is used by rewrapping logic when joining wrapped
     /// lines back together.
     pub fn append_line(&mut self, mut other: Line, seqno: SequenceNo) {
-        self.cells.append(&mut other.cells);
+        self.coerce_vec_storage()
+            .append(&mut other.coerce_vec_storage());
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
@@ -878,7 +932,7 @@ impl Line {
     /// Use set_cell if you need to modify the textual content of the
     /// cell, so that important invariants are upheld.
     pub fn cells_mut_for_attr_changes_only(&mut self) -> &mut [Cell] {
-        &mut self.cells
+        self.coerce_vec_storage().as_mut_slice()
     }
 
     /// Given a starting attribute value, produce a series of Change
@@ -1026,7 +1080,7 @@ mod test {
         line.scan_and_create_hyperlinks(&rules);
         assert!(line.has_hyperlink());
         assert_eq!(
-            line.cells().to_vec(),
+            line.coerce_vec_storage().to_vec(),
             vec![
                 Cell::new_grapheme("❤", CellAttributes::default(), None),
                 Cell::new(' ', CellAttributes::default()), // double width spacer

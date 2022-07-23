@@ -496,16 +496,14 @@ impl super::TermWindow {
 
             let bg_color = item
                 .title
-                .cells()
-                .get(0)
+                .get_cell(0)
                 .and_then(|c| match c.attrs().background() {
                     ColorAttribute::Default => None,
                     col => Some(palette.resolve_bg(col)),
                 });
             let fg_color = item
                 .title
-                .cells()
-                .get(0)
+                .get_cell(0)
                 .and_then(|c| match c.attrs().foreground() {
                     ColorAttribute::Default => None,
                     col => Some(palette.resolve_fg(col)),
@@ -1927,8 +1925,7 @@ impl super::TermWindow {
                 ..params.cursor.x
                     + params
                         .line
-                        .cells()
-                        .get(params.cursor.x)
+                        .get_cell(params.cursor.x)
                         .map(|c| c.width())
                         .unwrap_or(1)
         } else {
@@ -2077,8 +2074,7 @@ impl super::TermWindow {
 
         // Consider cursor
         if !cursor_range.is_empty() {
-            let (fg_color, bg_color) = if let Some(c) = params.line.cells().get(cursor_range.start)
-            {
+            let (fg_color, bg_color) = if let Some(c) = params.line.get_cell(cursor_range.start) {
                 let attrs = c.attrs();
                 let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
@@ -2209,8 +2205,8 @@ impl super::TermWindow {
                             * height_scale;
 
                     if self.config.custom_block_glyphs {
-                        if let Some(cell) = params.line.cells().get(visual_cell_idx) {
-                            if let Some(block) = BlockKey::from_cell(cell) {
+                        if let Some(cell) = params.line.get_cell(visual_cell_idx) {
+                            if let Some(block) = BlockKey::from_cell_iter(cell) {
                                 texture.replace(
                                     gl_state
                                         .glyph_cache
@@ -2738,8 +2734,8 @@ impl super::TermWindow {
             let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
 
             if self.config.custom_block_glyphs {
-                if let Some(cell) = line.cells().get(cell_idx) {
-                    if BlockKey::from_cell(cell).is_some() {
+                if let Some(cell) = line.get_cell(cell_idx) {
+                    if BlockKey::from_cell_iter(cell).is_some() {
                         // Don't bother rendering the glyph from the font, as it can
                         // have incorrect advance metrics.
                         // Instead, just use our pixel-perfect cell metrics
@@ -2759,7 +2755,7 @@ impl super::TermWindow {
                 }
             }
 
-            let followed_by_space = match line.cells().get(cell_idx + 1) {
+            let followed_by_space = match line.get_cell(cell_idx + 1) {
                 Some(cell) => cell.str() == " ",
                 None => false,
             };

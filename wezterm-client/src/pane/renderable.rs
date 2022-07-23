@@ -251,15 +251,15 @@ impl RenderableInner {
         let text_line = Line::from_text(text, &attrs, SEQ_ZERO, None);
 
         if row == 0 {
-            for cell in text_line.cells() {
-                line.set_cell(self.cursor_position.x, cell.clone(), SEQ_ZERO);
+            for cell in text_line.visible_cells() {
+                line.set_cell(self.cursor_position.x, cell.as_cell(), SEQ_ZERO);
                 self.cursor_position.x += cell.width();
             }
         } else {
             // The pasted line replaces the data for the existing line
             line.resize_and_clear(0, SEQ_ZERO, CellAttributes::default());
             line.append_line(text_line, SEQ_ZERO);
-            self.cursor_position.x = line.cells().len();
+            self.cursor_position.x = line.len();
         }
     }
 

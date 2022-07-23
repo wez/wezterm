@@ -168,7 +168,7 @@ impl TerminalState {
                 );
                 remain_x = remain_x.saturating_sub(cell_pixel_width);
                 let mut cell = self
-                    .screen()
+                    .screen_mut()
                     .get_cell(cursor_x + x, cursor_y)
                     .cloned()
                     .unwrap_or_else(Cell::blank);

@@ -577,9 +577,9 @@ impl CopyRenderable {
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             self.cursor.x = 0;
-            for (x, cell) in line.cells().iter().enumerate().rev() {
+            for cell in line.visible_cells().rev() {
                 if cell.str() != " " {
-                    self.cursor.x = x;
+                    self.cursor.x = cell.cell_index();
                     break;
                 }
             }
@@ -593,9 +593,9 @@ impl CopyRenderable {
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             self.cursor.x = 0;
-            for (x, cell) in line.cells().iter().enumerate() {
+            for cell in line.visible_cells() {
                 if cell.str() != " " {
-                    self.cursor.x = x;
+                    self.cursor.x = cell.cell_index();
                     break;
                 }
             }
@@ -645,7 +645,7 @@ impl CopyRenderable {
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             if self.cursor.x == usize::max_value() {
-                self.cursor.x = line.cells().len().saturating_sub(1);
+                self.cursor.x = line.len().saturating_sub(1);
             }
             let s = line.columns_as_str(0..self.cursor.x.saturating_add(1));
 
@@ -693,7 +693,7 @@ impl CopyRenderable {
         let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
-            let width = line.cells().len();
+            let width = line.len();
             let s = line.columns_as_str(self.cursor.x..width + 1);
             let mut words = s.split_word_bounds();
 

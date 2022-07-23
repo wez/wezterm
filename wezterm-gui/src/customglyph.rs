@@ -3638,6 +3638,16 @@ impl BlockKey {
         })
     }
 
+    pub fn from_cell_iter(cell: termwiz::surface::line::CellIter) -> Option<Self> {
+        let mut chars = cell.str().chars();
+        let first_char = chars.next()?;
+        if chars.next().is_some() {
+            None
+        } else {
+            Self::from_char(first_char)
+        }
+    }
+
     pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
         let mut chars = cell.str().chars();
         let first_char = chars.next()?;

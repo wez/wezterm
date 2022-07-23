@@ -74,7 +74,7 @@ fn call_format_tab_title(
 
                     Ok(Some(TitleText {
                         items,
-                        len: line.cells().len(),
+                        len: line.len(),
                     }))
                 }
                 _ => {
@@ -242,7 +242,7 @@ impl TabBarState {
         let number_of_tabs = tab_titles.len();
 
         let available_cells =
-            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.cells().len());
+            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.len());
         let tab_width_max = if config.use_fancy_tab_bar || available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -294,11 +294,11 @@ impl TabBarState {
             );
 
             let title = tab_line.clone();
-            if tab_line.cells().len() > tab_width_max {
+            if tab_line.len() > tab_width_max {
                 tab_line.resize(tab_width_max, SEQ_ZERO);
             }
 
-            let width = tab_line.cells().len();
+            let width = tab_line.len();
 
             items.push(TabEntry {
                 item: TabBarItem::Tab { tab_idx, active },
@@ -313,12 +313,12 @@ impl TabBarState {
 
         // New tab button
         {
-            let hover = is_tab_hover(mouse_x, x, new_tab_hover.cells().len());
+            let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
 
             let new_tab_button = if hover { &new_tab_hover } else { &new_tab };
 
             let button_start = x;
-            let width = new_tab_button.cells().len();
+            let width = new_tab_button.len();
 
             line.append_line(new_tab_button.clone(), SEQ_ZERO);
 
@@ -347,12 +347,12 @@ impl TabBarState {
             width: status_space_available,
         });
 
-        while status_line.cells().len() > status_space_available {
+        while status_line.len() > status_space_available {
             status_line.remove_cell(0, SEQ_ZERO);
         }
 
         line.append_line(status_line, SEQ_ZERO);
-        while line.cells().len() < title_width {
+        while line.len() < title_width {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 

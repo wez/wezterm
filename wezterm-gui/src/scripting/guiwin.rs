@@ -270,8 +270,8 @@ fn lines_to_escapes(lines: Vec<Line>) -> anyhow::Result<String> {
     for line in lines {
         changes.append(&mut line.changes(&attr));
         changes.push(Change::Text("\r\n".to_string()));
-        if let Some(a) = line.cells().last().map(|cell| cell.attrs()) {
-            attr = a.clone();
+        if let Some(a) = line.visible_cells().last().map(|cell| cell.attrs().clone()) {
+            attr = a;
         }
     }
     changes.push(Change::AllAttributes(CellAttributes::blank()));

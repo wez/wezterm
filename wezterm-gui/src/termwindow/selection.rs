@@ -34,7 +34,7 @@ impl super::TermWindow {
                 for (idx, phys) in line.physical_lines.iter().enumerate() {
                     let this_row = line.first_row + idx as StableRowIndex;
                     if this_row >= first_row && this_row < last_row {
-                        let last_phys_idx = phys.cells().len().saturating_sub(1);
+                        let last_phys_idx = phys.len().saturating_sub(1);
                         let cols = sel.cols_for_row(this_row, rectangular);
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
                         let mut col_span = phys.columns_as_line(cols);
@@ -51,8 +51,7 @@ impl super::TermWindow {
 
                         last_was_wrapped = last_col_idx == last_phys_idx
                             && phys
-                                .cells()
-                                .get(last_col_idx)
+                                .get_cell(last_col_idx)
                                 .map(|c| c.attrs().wrapped())
                                 .unwrap_or(false);
                     }
@@ -85,7 +84,7 @@ impl super::TermWindow {
                 for (idx, phys) in line.physical_lines.iter().enumerate() {
                     let this_row = line.first_row + idx as StableRowIndex;
                     if this_row >= first_row && this_row < last_row {
-                        let last_phys_idx = phys.cells().len().saturating_sub(1);
+                        let last_phys_idx = phys.len().saturating_sub(1);
                         let cols = sel.cols_for_row(this_row, rectangular);
                         let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
                         let col_span = phys.columns_as_str(cols);
@@ -99,8 +98,7 @@ impl super::TermWindow {
 
                         last_was_wrapped = last_col_idx == last_phys_idx
                             && phys
-                                .cells()
-                                .get(last_col_idx)
+                                .get_cell(last_col_idx)
                                 .map(|c| c.attrs().wrapped())
                                 .unwrap_or(false);
                     }

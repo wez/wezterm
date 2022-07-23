@@ -149,7 +149,7 @@ impl LogicalLine {
             if phys_y == y {
                 return offset + x;
             }
-            offset += line.cells().len();
+            offset += line.len();
         }
         // Allow selecting off the end of the line
         offset + x
@@ -160,17 +160,14 @@ impl LogicalLine {
         let mut idx = 0;
         for line in &self.physical_lines {
             let x_off = x - idx;
-            let line_len = line.cells().len();
+            let line_len = line.len();
             if x_off < line_len {
                 return (y, x_off);
             }
             y += 1;
             idx += line_len;
         }
-        (
-            y - 1,
-            x - idx + self.physical_lines.last().unwrap().cells().len(),
-        )
+        (y - 1, x - idx + self.physical_lines.last().unwrap().len())
     }
 
     pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
@@ -185,7 +182,7 @@ impl LogicalLine {
         let mut line = self.logical.clone();
         let num_phys = self.physical_lines.len();
         for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
-            let len = phys.cells().len();
+            let len = phys.len();
             let seq = seq.max(phys.current_seqno());
             let remainder = line.split_off(len, seq);
             *phys = line;
@@ -251,10 +248,10 @@ pub trait Pane: Downcast {
             if !back[0].last_cell_was_wrapped() {
                 break;
             }
-            if back[0].cells().len() + back_len > MAX_LOGICAL_LINE_LEN {
+            if back[0].len() + back_len > MAX_LOGICAL_LINE_LEN {
                 break;
             }
-            back_len += back[0].cells().len();
+            back_len += back[0].len();
             first = prior;
             for (idx, line) in back.into_iter().enumerate() {
                 phys.insert(idx, line);
@@ -266,7 +263,7 @@ pub trait Pane: Downcast {
             if !last.last_cell_was_wrapped() {
                 break;
             }
-            if last.cells().len() > MAX_LOGICAL_LINE_LEN {
+            if last.len() > MAX_LOGICAL_LINE_LEN {
                 break;
             }
 
@@ -292,7 +289,7 @@ pub trait Pane: Downcast {
                 }
                 Some(prior) => {
                     if prior.logical.last_cell_was_wrapped()
-                        && prior.logical.cells().len() <= MAX_LOGICAL_LINE_LEN
+                        && prior.logical.len() <= MAX_LOGICAL_LINE_LEN
                     {
                         let seqno = prior.logical.current_seqno().max(line.current_seqno());
                         prior.logical.set_last_cell_was_wrapped(false, seqno);
@@ -794,7 +791,7 @@ mod test {
         );
 
         let line = &offset[0];
-        let coords = (0..line.logical.cells().len())
+        let coords = (0..line.logical.len())
             .map(|idx| line.logical_x_to_physical_coord(idx))
             .collect::<Vec<_>>();
         snapshot!(

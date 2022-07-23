@@ -174,7 +174,7 @@ mod test {
                 let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
                 let num_cells = cluster.byte_to_cell_width(info.cluster as usize);
 
-                let followed_by_space = match line.cells().get(cell_idx + 1) {
+                let followed_by_space = match line.get_cell(cell_idx + 1) {
                     Some(cell) => cell.str() == " ",
                     None => false,
                 };

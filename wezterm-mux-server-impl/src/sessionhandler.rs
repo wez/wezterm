@@ -621,7 +621,7 @@ impl SessionHandler {
 
                             let (_, lines) = pane.get_lines(line_idx..line_idx + 1);
                             'found_data: for line in lines {
-                                if let Some(cell) = line.cells().get(cell_idx) {
+                                if let Some(cell) = line.get_cell(cell_idx) {
                                     if let Some(images) = cell.attrs().images() {
                                         for im in images {
                                             if im.image_data().hash() == data_hash {

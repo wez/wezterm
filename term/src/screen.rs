@@ -124,7 +124,7 @@ impl Screen {
                 }
                 Some(mut prior) => {
                     if phys_idx == cursor_y {
-                        logical_cursor_x = Some(cursor_x + prior.cells().len());
+                        logical_cursor_x = Some(cursor_x + prior.len());
                     }
                     prior.append_line(line, seqno);
                     prior
@@ -142,7 +142,7 @@ impl Screen {
                 adjusted_cursor = (last_x, rewrapped.len() + num_lines);
             }
 
-            if line.cells().len() <= physical_cols {
+            if line.len() <= physical_cols {
                 rewrapped.push_back(line);
             } else {
                 for line in line.wrap(physical_cols, seqno) {
@@ -358,7 +358,7 @@ impl Screen {
         let line = self.line_mut(line_idx);
         line.update_last_change_seqno(seqno);
         line.insert_cell(x, Cell::default(), right_margin, seqno);
-        if line.cells().len() > phys_cols {
+        if line.len() > phys_cols {
             // Don't allow the line width to grow beyond
             // the physical width
             line.resize(phys_cols, seqno);
@@ -400,10 +400,10 @@ impl Screen {
         line.cells_mut().get_mut(x)
     }
 
-    pub fn get_cell(&self, x: usize, y: VisibleRowIndex) -> Option<&Cell> {
+    pub fn get_cell(&mut self, x: usize, y: VisibleRowIndex) -> Option<&Cell> {
         let line_idx = self.phys_row(y);
-        let line = self.lines.get(line_idx)?;
-        line.cells().get(x)
+        let line = self.lines.get_mut(line_idx)?;
+        line.cells_mut().get(x)
     }
 
     pub fn clear_line(
@@ -541,7 +541,7 @@ impl Screen {
                 // Copy the source cells first
                 let cells = {
                     self.lines[src_row]
-                        .cells()
+                        .cells_mut()
                         .iter()
                         .skip(left_and_right_margins.start)
                         .take(left_and_right_margins.end - left_and_right_margins.start)
@@ -554,7 +554,7 @@ impl Screen {
                 dest_row.update_last_change_seqno(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
-                if dest_row.cells().len() < dest_range.end {
+                if dest_row.len() < dest_range.end {
                     dest_row.resize(dest_range.end, seqno);
                 }
 
@@ -780,7 +780,7 @@ impl Screen {
                 // Copy the source cells first
                 let cells = {
                     self.lines[src_row]
-                        .cells()
+                        .cells_mut()
                         .iter()
                         .skip(left_and_right_margins.start)
                         .take(left_and_right_margins.end - left_and_right_margins.start)
@@ -793,7 +793,7 @@ impl Screen {
                 dest_row.update_last_change_seqno(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
-                if dest_row.cells().len() < dest_range.end {
+                if dest_row.len() < dest_range.end {
                     dest_row.resize(dest_range.end, seqno);
                 }
                 let tail_range = dest_range.end..left_and_right_margins.end;

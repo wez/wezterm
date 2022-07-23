@@ -383,7 +383,7 @@ impl LauncherState {
             }
 
             let mut line = crate::tabbar::parse_status_text(&entry.label, attr.clone());
-            if line.cells().len() > max_width {
+            if line.len() > max_width {
                 line.resize(max_width, termwiz::surface::SEQ_ZERO);
             }
             changes.append(&mut line.changes(&attr));

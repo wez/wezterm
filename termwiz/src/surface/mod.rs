@@ -521,10 +521,10 @@ impl Surface {
 
     /// Returns the cell data for the screen.
     /// This is intended to be used for testing purposes.
-    pub fn screen_cells(&self) -> Vec<&[Cell]> {
+    pub fn screen_cells(&mut self) -> Vec<&mut [Cell]> {
         let mut lines = Vec::new();
-        for line in &self.lines {
-            lines.push(line.cells());
+        for line in &mut self.lines {
+            lines.push(line.cells_mut());
         }
         lines
     }
@@ -692,7 +692,7 @@ impl Surface {
             }
 
             result.append(&mut changes);
-            if let Some(c) = line.cells().last() {
+            if let Some(c) = line.visible_cells().last() {
                 attr = c.attrs().clone();
             }
         }
