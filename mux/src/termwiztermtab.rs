@@ -29,7 +29,9 @@ use termwiz::terminal::{ScreenSize, TerminalWaker};
 use termwiz::Context;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex, TerminalSize};
+use wezterm_term::{
+    KeyCode, KeyModifiers, MouseEvent, StableRowIndex, TerminalConfiguration, TerminalSize,
+};
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -215,6 +217,14 @@ impl Pane for TermWizTerminalPane {
             return Err(e.into());
         }
         Ok(())
+    }
+
+    fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {
+        self.terminal.borrow_mut().set_config(config);
+    }
+
+    fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
+        Some(self.terminal.borrow().get_config())
     }
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {

@@ -792,6 +792,17 @@ impl TermWindow {
             }
             WindowEvent::AppearanceChanged(appearance) => {
                 log::debug!("Appearance is now {:?}", appearance);
+                // This is a bit fugly; we get per-window notifications
+                // for appearance changes which successfully updates the
+                // per-window config, but we need to explicitly tell the
+                // global config to reload, otherwise things that acces
+                // the config via config::configuration() will see the
+                // prior version of the config.
+                // What's fugly about this is that we'll reload the
+                // global config here once per window, which could
+                // be nasty for folks with a lot of windows.
+                // <https://github.com/wez/wezterm/issues/2295>
+                config::reload();
                 self.config_was_reloaded();
                 Ok(true)
             }
@@ -1454,7 +1465,17 @@ impl TermWindow {
                     pane.pane.set_config(Arc::clone(&term_config));
                 }
             }
-        };
+            for state in self.pane_state.borrow().values() {
+                if let Some(overlay) = &state.overlay {
+                    overlay.pane.set_config(Arc::clone(&term_config));
+                }
+            }
+            for state in self.tab_state.borrow().values() {
+                if let Some(overlay) = &state.overlay {
+                    overlay.pane.set_config(Arc::clone(&term_config));
+                }
+            }
+        }
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
             self.load_os_parameters();
