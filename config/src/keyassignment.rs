@@ -132,6 +132,7 @@ impl Default for Pattern {
 
 /// A mouse event that can trigger an action
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, FromDynamic, ToDynamic)]
+#[dynamic(try_from = "String")]
 pub enum MouseEventTrigger {
     /// Mouse button is pressed. streak is how many times in a row
     /// it was pressed.
@@ -142,6 +143,34 @@ pub enum MouseEventTrigger {
     /// Mouse button is being released. streak is how many times
     /// in a row it was pressed and released.
     Up { streak: usize, button: MouseButton },
+}
+
+impl MouseEventTrigger {
+    pub const fn default_wheel_up() -> MouseEventTrigger {
+        MouseEventTrigger::Down {
+            streak: 1,
+            button: MouseButton::WheelUp(1),
+        }
+    }
+
+    pub const fn default_wheel_down() -> MouseEventTrigger {
+        MouseEventTrigger::Down {
+            streak: 1,
+            button: MouseButton::WheelDown(1),
+        }
+    }
+}
+
+impl TryFrom<String> for MouseEventTrigger {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<MouseEventTrigger, String> {
+        match &*s {
+            "WheelUp" => Ok(Self::default_wheel_up()),
+            "WheelDown" => Ok(Self::default_wheel_down()),
+            _ => Err(format!("Could not parse '{}'", s)),
+        }
+    }
 }
 
 /// When spawning a tab, specify which domain should be used to

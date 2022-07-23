@@ -53,6 +53,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::SequenceNo;
+use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::GuiPosition;
 use wezterm_term::color::ColorPalette;
@@ -408,6 +409,7 @@ pub struct TermWindow {
     modal: RefCell<Option<Rc<dyn Modal>>>,
 
     event_states: HashMap<String, EventState>,
+    pub current_event: Option<Value>,
     has_animation: RefCell<Option<Instant>>,
     /// We use this to attempt to do something reasonable
     /// if we run out of texture space
@@ -695,6 +697,7 @@ impl TermWindow {
                 None,
             )),
             event_states: HashMap::new(),
+            current_event: None,
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),
             allow_images: true,

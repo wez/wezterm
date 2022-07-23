@@ -133,6 +133,15 @@ impl UserData for GuiWin {
                 Ok(text)
             },
         );
+        methods.add_async_method("current_event", |lua, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(term_window.current_event.to_dynamic()).ok();
+                })));
+            let result = rx.recv().await.map_err(mlua::Error::external)?;
+            luahelper::dynamic_to_lua_value(lua, result)
+        });
         methods.add_method(
             "perform_action",
             |_, this, (assignment, pane): (KeyAssignment, PaneObject)| {
