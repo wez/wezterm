@@ -4,8 +4,9 @@ use crate::emoji::Presentation;
 use crate::hyperlink::Rule;
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 use bitflags::bitflags;
+use fixedbitset::FixedBitSet;
 #[cfg(feature = "use_serde")]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -84,6 +85,7 @@ pub struct Line {
 #[derive(Debug, Clone, PartialEq)]
 enum CellStorage {
     V(Vec<Cell>),
+    C(ClusteredLine),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -385,7 +387,7 @@ impl Line {
 
     fn compute_zones(&mut self) {
         let blank_cell = Cell::blank();
-        let mut last_cell: Option<CellIter> = None;
+        let mut last_cell: Option<CellRef> = None;
         let mut current_zone: Option<ZoneRange> = None;
         let mut zones = vec![];
 
@@ -842,6 +844,7 @@ impl Line {
     pub fn len(&self) -> usize {
         match &self.cells {
             CellStorage::V(cells) => cells.len(),
+            CellStorage::C(cl) => cl.len(),
         }
     }
 
@@ -853,27 +856,18 @@ impl Line {
     /// the characters that follow wide characters, the column index may
     /// skip some positions.  It is returned as a convenience to the consumer
     /// as using .enumerate() on this iterator wouldn't be as useful.
-    pub fn visible_cells(&self) -> impl DoubleEndedIterator<Item = CellIter> {
-        let mut skip_width = 0;
+    pub fn visible_cells<'a>(&'a self) -> impl DoubleEndedIterator<Item = CellRef<'a>> {
         match &self.cells {
-            CellStorage::V(cells) => {
-                cells
-                    .iter()
-                    .enumerate()
-                    .filter_map(move |(cell_index, cell)| {
-                        if skip_width > 0 {
-                            skip_width -= 1;
-                            None
-                        } else {
-                            skip_width = cell.width().saturating_sub(1);
-                            Some(CellIter::CellRef { cell_index, cell })
-                        }
-                    })
-            }
+            CellStorage::V(cells) => VisibleCellIter::V(CellSliceIter {
+                cells: cells.iter(),
+                idx: 0,
+                skip_width: 0,
+            }),
+            CellStorage::C(cl) => VisibleCellIter::C(cl.iter()),
         }
     }
 
-    pub fn get_cell(&self, cell_index: usize) -> Option<CellIter> {
+    pub fn get_cell(&self, cell_index: usize) -> Option<CellRef> {
         self.visible_cells()
             .find(|cell| cell.cell_index() == cell_index)
     }
@@ -882,10 +876,33 @@ impl Line {
         CellCluster::make_cluster(self.len(), self.visible_cells(), bidi_hint)
     }
 
+    fn make_cells(&mut self) {
+        let cells = match &self.cells {
+            CellStorage::V(_) => return,
+            CellStorage::C(cl) => cl.to_cell_vec(),
+        };
+        self.cells = CellStorage::V(cells);
+    }
+
     fn coerce_vec_storage(&mut self) -> &mut Vec<Cell> {
+        self.make_cells();
+
         match &mut self.cells {
-            CellStorage::V(cells) => cells,
+            CellStorage::V(c) => return c,
+            CellStorage::C(_) => unreachable!(),
         }
+    }
+
+    /// Adjusts the internal storage so that it occupies less
+    /// space. Subsequent mutations will incur some overhead to
+    /// re-materialize the storage in a form that is suitable
+    /// for mutation.
+    pub fn compress_for_scrollback(&mut self) {
+        let cv = match &self.cells {
+            CellStorage::V(v) => ClusteredLine::from_cell_vec(v.len(), self.visible_cells()),
+            CellStorage::C(_) => return,
+        };
+        self.cells = CellStorage::C(cv);
     }
 
     pub fn cells_mut(&mut self) -> &mut [Cell] {
@@ -901,7 +918,8 @@ impl Line {
     /// indicating that the following line is logically a part of this one.
     pub fn last_cell_was_wrapped(&self) -> bool {
         self.visible_cells()
-            .last()
+            .rev()
+            .next()
             .map(|c| c.attrs().wrapped())
             .unwrap_or(false)
     }
@@ -1009,49 +1027,347 @@ impl<'a> From<&'a str> for Line {
     }
 }
 
-pub enum CellIter<'a> {
-    CellRef { cell_index: usize, cell: &'a Cell },
+/// Iterates over a slice of Cell, yielding only visible cells
+struct CellSliceIter<'a> {
+    cells: std::slice::Iter<'a, Cell>,
+    idx: usize,
+    skip_width: usize,
 }
 
-impl<'a> CellIter<'a> {
+impl<'a> CellSliceIter<'a> {
+    fn advance(&mut self, forwards: bool) -> Option<CellRef<'a>> {
+        while self.skip_width > 0 {
+            self.skip_width -= 1;
+            let _ = if forwards {
+                self.cells.next()
+            } else {
+                self.cells.next_back()
+            }?;
+            self.idx += 1;
+        }
+        let cell = if forwards {
+            self.cells.next()
+        } else {
+            self.cells.next_back()
+        }?;
+        let cell_index = self.idx;
+        self.idx += 1;
+        self.skip_width = cell.width().saturating_sub(1);
+        Some(CellRef::CellRef { cell_index, cell })
+    }
+}
+
+impl<'a> Iterator for CellSliceIter<'a> {
+    type Item = CellRef<'a>;
+
+    fn next(&mut self) -> Option<CellRef<'a>> {
+        self.advance(true)
+    }
+}
+
+impl<'a> DoubleEndedIterator for CellSliceIter<'a> {
+    fn next_back(&mut self) -> Option<CellRef<'a>> {
+        self.advance(false)
+    }
+}
+
+enum VisibleCellIter<'a> {
+    V(CellSliceIter<'a>),
+    C(ClusterLineCellIter<'a>),
+}
+
+impl<'a> Iterator for VisibleCellIter<'a> {
+    type Item = CellRef<'a>;
+
+    fn next(&mut self) -> Option<CellRef<'a>> {
+        match self {
+            Self::V(iter) => iter.next(),
+            Self::C(iter) => iter.next(),
+        }
+    }
+}
+
+impl<'a> DoubleEndedIterator for VisibleCellIter<'a> {
+    fn next_back(&mut self) -> Option<CellRef<'a>> {
+        match self {
+            Self::V(iter) => iter.next_back(),
+            Self::C(iter) => iter.next_back(),
+        }
+    }
+}
+
+pub enum CellRef<'a> {
+    CellRef {
+        cell_index: usize,
+        cell: &'a Cell,
+    },
+    ClusterRef {
+        cell_index: usize,
+        text: &'a str,
+        width: usize,
+        attrs: &'a CellAttributes,
+    },
+}
+
+impl<'a> CellRef<'a> {
     pub fn cell_index(&self) -> usize {
         match self {
-            Self::CellRef { cell_index, .. } => *cell_index,
+            Self::ClusterRef { cell_index, .. } | Self::CellRef { cell_index, .. } => *cell_index,
         }
     }
 
     pub fn str(&self) -> &str {
         match self {
             Self::CellRef { cell, .. } => cell.str(),
+            Self::ClusterRef { text, .. } => text,
         }
     }
 
     pub fn width(&self) -> usize {
         match self {
             Self::CellRef { cell, .. } => cell.width(),
+            Self::ClusterRef { width, .. } => *width,
         }
     }
 
     pub fn attrs(&self) -> &CellAttributes {
         match self {
             Self::CellRef { cell, .. } => cell.attrs(),
+            Self::ClusterRef { attrs, .. } => attrs,
         }
     }
 
     pub fn presentation(&self) -> Presentation {
         match self {
             Self::CellRef { cell, .. } => cell.presentation(),
+            Self::ClusterRef { text, .. } => match Presentation::for_grapheme(text) {
+                (_, Some(variation)) => variation,
+                (presentation, None) => presentation,
+            },
         }
     }
 
     pub fn as_cell(&self) -> Cell {
         match self {
             Self::CellRef { cell, .. } => (*cell).clone(),
+            Self::ClusterRef {
+                text, width, attrs, ..
+            } => Cell::new_grapheme_with_width(text, *width, (*attrs).clone()),
         }
     }
 
     pub fn same_contents(&self, other: &Self) -> bool {
         self.str() == other.str() && self.width() == other.width() && self.attrs() == other.attrs()
+    }
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+struct Cluster {
+    cell_width: usize,
+    attrs: CellAttributes,
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+struct ClusteredLine {
+    text: String,
+    #[cfg_attr(
+        feature = "use_serde",
+        serde(
+            deserialize_with = "deserialize_bitset",
+            serialize_with = "serialize_bitset"
+        )
+    )]
+    is_double_wide: Option<FixedBitSet>,
+    clusters: Vec<Cluster>,
+    len: usize,
+}
+
+#[cfg(feature = "use_serde")]
+fn deserialize_bitset<'de, D>(deserializer: D) -> Result<Option<FixedBitSet>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let wide_indices = <Vec<usize>>::deserialize(deserializer)?;
+    if wide_indices.is_empty() {
+        Ok(None)
+    } else {
+        let max_idx = wide_indices.iter().max().unwrap_or(&1);
+        let mut bitset = FixedBitSet::with_capacity(max_idx + 1);
+        for idx in wide_indices {
+            bitset.set(idx, true);
+        }
+        Ok(Some(bitset))
+    }
+}
+
+/// Serialize the bitset as a vector of the indices of just the 1 bits;
+/// the thesis is that most of the cells on a given line are single width.
+/// That may not be strictly true for users that heavily use asian scripts,
+/// but we'll start with this and see if we need to improve it.
+#[cfg(feature = "use_serde")]
+fn serialize_bitset<S>(value: &Option<FixedBitSet>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut wide_indices: Vec<usize> = vec![];
+    if let Some(bits) = value {
+        for idx in bits.ones() {
+            wide_indices.push(idx);
+        }
+    }
+    wide_indices.serialize(serializer)
+}
+
+impl ClusteredLine {
+    fn to_cell_vec(&self) -> Vec<Cell> {
+        let mut cells = vec![];
+
+        for c in self.iter() {
+            cells.push(c.as_cell());
+            for _ in 1..c.width() {
+                cells.push(Cell::blank_with_attrs(c.attrs().clone()));
+            }
+        }
+
+        cells
+    }
+
+    fn from_cell_vec<'a>(hint: usize, iter: impl Iterator<Item = CellRef<'a>>) -> Self {
+        let mut last_cluster: Option<Cluster> = None;
+        let mut is_double_wide = FixedBitSet::with_capacity(hint);
+        let mut text = String::new();
+        let mut clusters = vec![];
+        let mut any_double = false;
+        let mut len = 0;
+
+        for cell in iter {
+            len += cell.width();
+
+            if cell.width() > 1 {
+                any_double = true;
+                is_double_wide.set(cell.cell_index(), true);
+            }
+
+            text.push_str(cell.str());
+
+            last_cluster = match last_cluster.take() {
+                None => Some(Cluster {
+                    cell_width: cell.width(),
+                    attrs: cell.attrs().clone(),
+                }),
+                Some(cluster) if cluster.attrs != *cell.attrs() => {
+                    clusters.push(cluster);
+                    Some(Cluster {
+                        cell_width: cell.width(),
+                        attrs: cell.attrs().clone(),
+                    })
+                }
+                Some(mut cluster) => {
+                    cluster.cell_width += cell.width();
+                    Some(cluster)
+                }
+            };
+        }
+
+        if let Some(cluster) = last_cluster.take() {
+            clusters.push(cluster);
+        }
+
+        Self {
+            text,
+            is_double_wide: if any_double {
+                Some(is_double_wide)
+            } else {
+                None
+            },
+            clusters,
+            len,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn is_double_wide(&self, cell_index: usize) -> bool {
+        match &self.is_double_wide {
+            Some(bitset) => bitset.contains(cell_index),
+            None => false,
+        }
+    }
+
+    fn iter(&self) -> ClusterLineCellIter {
+        let mut clusters = self.clusters.iter();
+        let cluster = clusters.next();
+        ClusterLineCellIter {
+            graphemes: self.text.graphemes(true),
+            clusters,
+            cluster,
+            idx: 0,
+            cluster_total: 0,
+            line: self,
+        }
+    }
+}
+
+pub struct ClusterLineCellIter<'a> {
+    graphemes: unicode_segmentation::Graphemes<'a>,
+    clusters: std::slice::Iter<'a, Cluster>,
+    cluster: Option<&'a Cluster>,
+    idx: usize,
+    cluster_total: usize,
+    line: &'a ClusteredLine,
+}
+
+impl<'a> ClusterLineCellIter<'a> {
+    fn advance(&mut self, forwards: bool) -> Option<CellRef<'a>> {
+        let text = if forwards {
+            self.graphemes.next()?
+        } else {
+            self.graphemes.next_back()?
+        };
+
+        let cell_index = self.idx;
+        let width = if self.line.is_double_wide(cell_index) {
+            2
+        } else {
+            1
+        };
+        self.idx += width;
+        self.cluster_total += width;
+        let attrs = &self.cluster.as_ref()?.attrs;
+
+        if self.cluster_total >= self.cluster.as_ref()?.cell_width {
+            self.cluster = if forwards {
+                self.clusters.next()
+            } else {
+                self.clusters.next_back()
+            };
+            self.cluster_total = 0;
+        }
+
+        Some(CellRef::ClusterRef {
+            cell_index,
+            width,
+            text,
+            attrs,
+        })
+    }
+}
+
+impl<'a> Iterator for ClusterLineCellIter<'a> {
+    type Item = CellRef<'a>;
+
+    fn next(&mut self) -> Option<CellRef<'a>> {
+        self.advance(true)
+    }
+}
+
+impl<'a> DoubleEndedIterator for ClusterLineCellIter<'a> {
+    fn next_back(&mut self) -> Option<CellRef<'a>> {
+        self.advance(false)
     }
 }
 
@@ -1143,5 +1459,234 @@ mod test {
         let line: Line = "hello".into();
         let r = line.compute_double_click_range(200, |_| true);
         assert_eq!(r, DoubleClickRange::Range(200..200));
+    }
+
+    #[test]
+    fn cluster_representation_basic() {
+        let line: Line = "hello".into();
+        let mut compressed = line.clone();
+        compressed.compress_for_scrollback();
+        k9::snapshot!(
+            &compressed.cells,
+            r#"
+C(
+    ClusteredLine {
+        text: "hello",
+        is_double_wide: None,
+        clusters: [
+            Cluster {
+                cell_width: 5,
+                attrs: CellAttributes {
+                    attributes: 0,
+                    intensity: Normal,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+        ],
+        len: 5,
+    },
+)
+"#
+        );
+        compressed.coerce_vec_storage();
+        assert_eq!(line, compressed);
+    }
+
+    #[test]
+    fn cluster_representation_double_width() {
+        let line: Line = "❤ 😍🤢he❤ 😍🤢llo❤ 😍🤢".into();
+        let mut compressed = line.clone();
+        compressed.compress_for_scrollback();
+        k9::snapshot!(
+            &compressed.cells,
+            r#"
+C(
+    ClusteredLine {
+        text: "❤ 😍🤢he❤ 😍🤢llo❤ 😍🤢",
+        is_double_wide: Some(
+            FixedBitSet {
+                data: [
+                    2626580,
+                ],
+                length: 23,
+            },
+        ),
+        clusters: [
+            Cluster {
+                cell_width: 23,
+                attrs: CellAttributes {
+                    attributes: 0,
+                    intensity: Normal,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+        ],
+        len: 23,
+    },
+)
+"#
+        );
+        compressed.coerce_vec_storage();
+        assert_eq!(line, compressed);
+    }
+
+    #[test]
+    fn cluster_representation_empty() {
+        let line = Line::from_cells(vec![], SEQ_ZERO);
+
+        let mut compressed = line.clone();
+        compressed.compress_for_scrollback();
+        k9::snapshot!(
+            &compressed.cells,
+            r#"
+C(
+    ClusteredLine {
+        text: "",
+        is_double_wide: None,
+        clusters: [],
+        len: 0,
+    },
+)
+"#
+        );
+        compressed.coerce_vec_storage();
+        assert_eq!(line, compressed);
+    }
+
+    #[test]
+    fn cluster_representation_attributes() {
+        use crate::cell::Intensity;
+        let bold = {
+            let mut attr = CellAttributes::default();
+            attr.set_intensity(Intensity::Bold);
+            attr
+        };
+
+        let line = Line::from_cells(
+            vec![
+                Cell::new_grapheme("a", CellAttributes::default(), None),
+                Cell::new_grapheme("b", bold.clone(), None),
+                Cell::new_grapheme("c", CellAttributes::default(), None),
+                Cell::new_grapheme("d", bold.clone(), None),
+            ],
+            SEQ_ZERO,
+        );
+
+        let mut compressed = line.clone();
+        compressed.compress_for_scrollback();
+        k9::snapshot!(
+            &compressed.cells,
+            r#"
+C(
+    ClusteredLine {
+        text: "abcd",
+        is_double_wide: None,
+        clusters: [
+            Cluster {
+                cell_width: 1,
+                attrs: CellAttributes {
+                    attributes: 0,
+                    intensity: Normal,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+            Cluster {
+                cell_width: 1,
+                attrs: CellAttributes {
+                    attributes: 1,
+                    intensity: Bold,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+            Cluster {
+                cell_width: 1,
+                attrs: CellAttributes {
+                    attributes: 0,
+                    intensity: Normal,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+            Cluster {
+                cell_width: 1,
+                attrs: CellAttributes {
+                    attributes: 1,
+                    intensity: Bold,
+                    underline: None,
+                    blink: None,
+                    italic: false,
+                    reverse: false,
+                    strikethrough: false,
+                    invisible: false,
+                    wrapped: false,
+                    overline: false,
+                    semantic_type: Output,
+                    foreground: Default,
+                    background: Default,
+                    fat: None,
+                },
+            },
+        ],
+        len: 4,
+    },
+)
+"#
+        );
+        compressed.coerce_vec_storage();
+        assert_eq!(line, compressed);
     }
 }

@@ -1,6 +1,6 @@
 use crate::cell::CellAttributes;
 use crate::emoji::Presentation;
-use crate::surface::line::CellIter;
+use crate::surface::line::CellRef;
 use std::borrow::Cow;
 use wezterm_bidi::{BidiContext, Direction, ParagraphDirectionHint};
 
@@ -44,7 +44,7 @@ impl CellCluster {
     /// The input is typically the result of calling `Line::visible_cells()`.
     pub fn make_cluster<'a>(
         hint: usize,
-        iter: impl Iterator<Item = CellIter<'a>>,
+        iter: impl Iterator<Item = CellRef<'a>>,
         bidi_hint: Option<ParagraphDirectionHint>,
     ) -> Vec<CellCluster> {
         let mut last_cluster = None;

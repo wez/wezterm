@@ -1,7 +1,7 @@
 use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
-use crate::surface::line::CellIter;
+use crate::surface::line::CellRef;
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
@@ -133,7 +133,7 @@ struct DiffState {
 
 impl DiffState {
     #[inline]
-    fn diff_cells(&mut self, col_num: usize, row_num: usize, cell: CellIter, other_cell: CellIter) {
+    fn diff_cells(&mut self, col_num: usize, row_num: usize, cell: CellRef, other_cell: CellRef) {
         if cell.same_contents(&other_cell) {
             return;
         }
