@@ -1,5 +1,6 @@
 use crate::cell::{Cell, CellAttributes, SemanticType, UnicodeVersion};
 use crate::cellcluster::CellCluster;
+use crate::emoji::Presentation;
 use crate::hyperlink::Rule;
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 use bitflags::bitflags;
@@ -375,7 +376,7 @@ impl Line {
 
     fn compute_zones(&mut self) {
         let blank_cell = Cell::blank();
-        let mut last_cell: Option<&Cell> = None;
+        let mut last_cell: Option<CellIter> = None;
         let mut current_zone: Option<ZoneRange> = None;
         let mut zones = vec![];
 
@@ -389,15 +390,15 @@ impl Line {
             .rposition(|cell| *cell != blank_cell)
             .unwrap_or(self.cells().len());
 
-        for (grapheme_idx, cell) in self.visible_cells() {
-            if grapheme_idx > last_non_blank {
+        for cell in self.visible_cells() {
+            if cell.cell_index() > last_non_blank {
                 break;
             }
-            let grapheme_idx = grapheme_idx as u16;
+            let grapheme_idx = cell.cell_index() as u16;
             let semantic_type = cell.attrs().semantic_type();
             let new_zone = match last_cell {
                 None => true,
-                Some(c) => c.attrs().semantic_type() != semantic_type,
+                Some(ref c) => c.attrs().semantic_type() != semantic_type,
             };
 
             if new_zone {
@@ -524,7 +525,7 @@ impl Line {
     /// Recompose line into the corresponding utf8 string.
     pub fn as_str(&self) -> String {
         let mut s = String::new();
-        for (_, cell) in self.visible_cells() {
+        for cell in self.visible_cells() {
             s.push_str(cell.str());
         }
         s
@@ -582,11 +583,11 @@ impl Line {
     /// Returns a substring from the line.
     pub fn columns_as_str(&self, range: Range<usize>) -> String {
         let mut s = String::new();
-        for (n, c) in self.visible_cells() {
-            if n < range.start {
+        for c in self.visible_cells() {
+            if c.cell_index() < range.start {
                 continue;
             }
-            if n >= range.end {
+            if c.cell_index() >= range.end {
                 break;
             }
             s.push_str(c.str());
@@ -596,14 +597,14 @@ impl Line {
 
     pub fn columns_as_line(&self, range: Range<usize>) -> Self {
         let mut cells = vec![];
-        for (n, c) in self.visible_cells() {
-            if n < range.start {
+        for c in self.visible_cells() {
+            if c.cell_index() < range.start {
                 continue;
             }
-            if n >= range.end {
+            if c.cell_index() >= range.end {
                 break;
             }
-            cells.push(c.clone());
+            cells.push(c.as_cell());
         }
         Self {
             bits: LineBits::NONE,
@@ -811,17 +812,20 @@ impl Line {
     /// the characters that follow wide characters, the column index may
     /// skip some positions.  It is returned as a convenience to the consumer
     /// as using .enumerate() on this iterator wouldn't be as useful.
-    pub fn visible_cells(&self) -> impl Iterator<Item = (usize, &Cell)> {
+    pub fn visible_cells(&self) -> impl Iterator<Item = CellIter> {
         let mut skip_width = 0;
-        self.cells.iter().enumerate().filter(move |(_idx, cell)| {
-            if skip_width > 0 {
-                skip_width -= 1;
-                false
-            } else {
-                skip_width = cell.width().saturating_sub(1);
-                true
-            }
-        })
+        self.cells
+            .iter()
+            .enumerate()
+            .filter_map(move |(cell_index, cell)| {
+                if skip_width > 0 {
+                    skip_width -= 1;
+                    None
+                } else {
+                    skip_width = cell.width().saturating_sub(1);
+                    Some(CellIter::CellRef { cell_index, cell })
+                }
+            })
     }
 
     pub fn cluster(&self, bidi_hint: Option<ParagraphDirectionHint>) -> Vec<CellCluster> {
@@ -884,7 +888,7 @@ impl Line {
         let mut attr = start_attr.clone();
         let mut text_run = String::new();
 
-        for (_, cell) in self.visible_cells() {
+        for cell in self.visible_cells() {
             if *cell.attrs() == attr {
                 text_run.push_str(cell.str());
             } else {
@@ -948,6 +952,52 @@ impl Line {
 impl<'a> From<&'a str> for Line {
     fn from(s: &str) -> Line {
         Line::from_text(s, &CellAttributes::default(), SEQ_ZERO, None)
+    }
+}
+
+pub enum CellIter<'a> {
+    CellRef { cell_index: usize, cell: &'a Cell },
+}
+
+impl<'a> CellIter<'a> {
+    pub fn cell_index(&self) -> usize {
+        match self {
+            Self::CellRef { cell_index, .. } => *cell_index,
+        }
+    }
+
+    pub fn str(&self) -> &str {
+        match self {
+            Self::CellRef { cell, .. } => cell.str(),
+        }
+    }
+
+    pub fn width(&self) -> usize {
+        match self {
+            Self::CellRef { cell, .. } => cell.width(),
+        }
+    }
+
+    pub fn attrs(&self) -> &CellAttributes {
+        match self {
+            Self::CellRef { cell, .. } => cell.attrs(),
+        }
+    }
+
+    pub fn presentation(&self) -> Presentation {
+        match self {
+            Self::CellRef { cell, .. } => cell.presentation(),
+        }
+    }
+
+    pub fn as_cell(&self) -> Cell {
+        match self {
+            Self::CellRef { cell, .. } => (*cell).clone(),
+        }
+    }
+
+    pub fn same_contents(&self, other: &Self) -> bool {
+        self.str() == other.str() && self.width() == other.width() && self.attrs() == other.attrs()
     }
 }
 

@@ -584,10 +584,10 @@ impl Pane for LocalPane {
             let mut wrapped = false;
             let mut trailing_spaces = None;
 
-            for (grapheme_idx, cell) in line.visible_cells() {
+            for cell in line.visible_cells() {
                 coords.push(Coord {
                     byte_idx: haystack.len(),
-                    grapheme_idx,
+                    grapheme_idx: cell.cell_index(),
                     stable_row,
                 });
 

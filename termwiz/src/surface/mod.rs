@@ -1,6 +1,7 @@
 use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
+use crate::surface::line::CellIter;
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
@@ -132,8 +133,8 @@ struct DiffState {
 
 impl DiffState {
     #[inline]
-    fn diff_cells(&mut self, col_num: usize, row_num: usize, cell: &Cell, other_cell: &Cell) {
-        if cell == other_cell {
+    fn diff_cells(&mut self, col_num: usize, row_num: usize, cell: CellIter, other_cell: CellIter) {
+        if cell.same_contents(&other_cell) {
             return;
         }
         self.cursor = match self.cursor.take() {
@@ -509,7 +510,7 @@ impl Surface {
         let mut s = String::new();
 
         for line in &self.lines {
-            for (_, cell) in line.visible_cells() {
+            for cell in line.visible_cells() {
                 s.push_str(cell.str());
             }
             s.push('\n');
@@ -779,13 +780,13 @@ impl Surface {
             .take_while(|(row_num, _)| *row_num < y + height)
             .zip(other.lines.iter().skip(other_y))
         {
-            for ((col_num, cell), (_, other_cell)) in line
+            for (cell, other_cell) in line
                 .visible_cells()
                 .skip(x)
-                .take_while(|(col_num, _)| *col_num < x + width)
+                .take_while(|cell| cell.cell_index() < x + width)
                 .zip(other_line.visible_cells().skip(other_x))
             {
-                diff_state.diff_cells(col_num, row_num, cell, other_cell);
+                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
             }
         }
 
@@ -795,10 +796,8 @@ impl Surface {
     pub fn diff_lines(&self, other_lines: Vec<&Line>) -> Vec<Change> {
         let mut diff_state = DiffState::default();
         for ((row_num, line), other_line) in self.lines.iter().enumerate().zip(other_lines.iter()) {
-            for ((col_num, cell), (_, other_cell)) in
-                line.visible_cells().zip(other_line.visible_cells())
-            {
-                diff_state.diff_cells(col_num, row_num, cell, other_cell);
+            for (cell, other_cell) in line.visible_cells().zip(other_line.visible_cells()) {
+                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
             }
         }
         diff_state.changes
@@ -807,10 +806,8 @@ impl Surface {
     pub fn diff_against_numbered_line(&self, row_num: usize, other_line: &Line) -> Vec<Change> {
         let mut diff_state = DiffState::default();
         if let Some(line) = self.lines.get(row_num) {
-            for ((col_num, cell), (_, other_cell)) in
-                line.visible_cells().zip(other_line.visible_cells())
-            {
-                diff_state.diff_cells(col_num, row_num, cell, other_cell);
+            for (cell, other_cell) in line.visible_cells().zip(other_line.visible_cells()) {
+                diff_state.diff_cells(cell.cell_index(), row_num, cell, other_cell);
             }
         }
         diff_state.changes

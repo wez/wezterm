@@ -88,7 +88,7 @@ impl UserData for PaneObject {
             let (_first_row, lines) = pane.get_lines(top_row..bottom_row);
             let mut text = String::new();
             for line in lines {
-                for (_, cell) in line.visible_cells() {
+                for cell in line.visible_cells() {
                     text.push_str(cell.str());
                 }
                 let trimmed = text.trim_end().len();
@@ -111,7 +111,7 @@ impl UserData for PaneObject {
                 let lines = pane.get_logical_lines(top_row..bottom_row);
                 let mut text = String::new();
                 for line in lines {
-                    for (_, cell) in line.logical.visible_cells() {
+                    for cell in line.logical.visible_cells() {
                         text.push_str(cell.str());
                     }
                     let trimmed = text.trim_end().len();
