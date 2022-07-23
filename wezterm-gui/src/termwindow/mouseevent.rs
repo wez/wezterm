@@ -14,7 +14,8 @@ use std::ops::Sub;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
-use wezterm_term::input::MouseEventKind as TMEK;
+use wezterm_dynamic::ToDynamic;
+use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
 
 impl super::TermWindow {
@@ -754,7 +755,11 @@ impl super::TermWindow {
                     None
                 }
             }
-            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() && !pane.is_alt_screen_active() => {
+            WMEK::VertWheel(amount)
+                if !pane.is_mouse_grabbed()
+                    && !pane.is_alt_screen_active()
+                    && event.modifiers.is_empty() =>
+            {
                 // adjust viewport
                 let dims = pane.get_dimensions();
                 let position = self
@@ -765,7 +770,18 @@ impl super::TermWindow {
                 context.invalidate();
                 return;
             }
-            WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
+            WMEK::VertWheel(amount) => Some(match *amount {
+                0 => return,
+                1.. => MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::WheelUp(*amount as usize),
+                },
+                _ => MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::WheelDown(-amount as usize),
+                },
+            }),
+            WMEK::HorzWheel(_) => None,
         };
 
         if allow_action
@@ -774,7 +790,8 @@ impl super::TermWindow {
                     .modifiers
                     .contains(self.config.bypass_mouse_reporting_modifiers))
         {
-            if let Some(event_trigger_type) = event_trigger_type {
+            if let Some(mut event_trigger_type) = event_trigger_type {
+                self.current_event = Some(event_trigger_type.to_dynamic());
                 let mut modifiers = event.modifiers;
 
                 // Since we use shift to force assessing the mouse bindings, pretend
@@ -785,10 +802,31 @@ impl super::TermWindow {
                     }
                 }
 
-                if let Some(action) = self
-                    .input_map
-                    .lookup_mouse(event_trigger_type.clone(), modifiers)
-                {
+                // normalize delta and streak to make mouse assignment
+                // easier to wrangle
+                match event_trigger_type {
+                    MouseEventTrigger::Down {
+                        ref mut streak,
+                        button:
+                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                    }
+                    | MouseEventTrigger::Up {
+                        ref mut streak,
+                        button:
+                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                    }
+                    | MouseEventTrigger::Drag {
+                        ref mut streak,
+                        button:
+                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                    } => {
+                        *streak = 1;
+                        *delta = 1;
+                    }
+                    _ => {}
+                };
+
+                if let Some(action) = self.input_map.lookup_mouse(event_trigger_type, modifiers) {
                     self.perform_key_assignment(&pane, &action).ok();
                     return;
                 }
