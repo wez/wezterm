@@ -645,6 +645,12 @@ impl Screen {
             }
         };
 
+        if scroll_region.start == 0 {
+            for y in self.phys_range(&(0..num_rows as VisibleRowIndex)) {
+                self.line_mut(y).compress_for_scrollback();
+            }
+        }
+
         let remove_idx = if scroll_region.start == 0 {
             0
         } else {
