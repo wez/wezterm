@@ -44,6 +44,8 @@ As features stabilize some brief notes about them will accumulate here.
   [@azzamsa](https://github.com/azzamsa)!
   [#2273](https://github.com/wez/wezterm/issues/2273)
   [#2253](https://github.com/wez/wezterm/issues/2253)
+* Internal scrollback datastructure improvements reduce per-cell overhead by up to ~40x depending on the composition of the line (lines with lots of varied attributes or image attachments will have more overhead).
+* Improved search performance
 
 #### Fixed
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
