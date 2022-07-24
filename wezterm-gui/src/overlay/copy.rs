@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
 use termwiz::surface::{CursorVisibility, SequenceNo, SEQ_ZERO};
@@ -56,6 +57,8 @@ struct CopyRenderable {
     editing_search: bool,
     result_pos: Option<usize>,
     tab_id: TabId,
+    /// Used to debounce queries while the user is typing
+    typing_cookie: usize,
 }
 
 #[derive(Debug)]
@@ -120,6 +123,7 @@ impl CopyOverlay {
             editing_search: params.editing_search,
             result_pos: None,
             selection_mode: SelectionMode::Cell,
+            typing_cookie: 0,
         };
 
         let search_row = render.compute_search_row();
@@ -145,7 +149,7 @@ impl CopyOverlay {
         render.editing_search = params.editing_search;
         if render.pattern != params.pattern {
             render.pattern = params.pattern;
-            render.update_search();
+            render.schedule_update_search();
         }
         let search_row = render.compute_search_row();
         render.dirty_results.add(search_row);
@@ -217,6 +221,31 @@ impl CopyRenderable {
                 self.dirty_results.add(idx);
             }
         }
+    }
+
+    fn schedule_update_search(&mut self) {
+        self.typing_cookie += 1;
+        let cookie = self.typing_cookie;
+
+        let window = self.window.clone();
+        let pane_id = self.delegate.pane_id();
+
+        promise::spawn::spawn(async move {
+            smol::Timer::after(Duration::from_millis(350)).await;
+            window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                let state = term_window.pane_state(pane_id);
+                if let Some(overlay) = state.overlay.as_ref() {
+                    if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
+                        let mut r = copy_overlay.render.borrow_mut();
+                        if cookie == r.typing_cookie {
+                            r.update_search();
+                        }
+                    }
+                }
+            })));
+            anyhow::Result::<()>::Ok(())
+        })
+        .detach();
     }
 
     fn update_search(&mut self) {
@@ -513,7 +542,7 @@ impl CopyRenderable {
             Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
         };
         self.pattern = pattern;
-        self.update_search();
+        self.schedule_update_search();
     }
 
     fn move_to_viewport_middle(&mut self) {
@@ -760,7 +789,7 @@ impl Pane for CopyOverlay {
         // paste into the search bar
         let mut r = self.render.borrow_mut();
         r.pattern.push_str(text);
-        r.update_search();
+        r.schedule_update_search();
         Ok(())
     }
 
@@ -788,12 +817,12 @@ impl Pane for CopyOverlay {
                 | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                     // Type to add to the pattern
                     render.pattern.push(c);
-                    render.update_search();
+                    render.schedule_update_search();
                 }
                 (KeyCode::Backspace, KeyModifiers::NONE) => {
                     // Backspace to edit the pattern
                     render.pattern.pop();
-                    render.update_search();
+                    render.schedule_update_search();
                 }
                 _ => {}
             }
