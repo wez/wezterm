@@ -208,32 +208,35 @@ impl Line {
 
     /// Wrap the line so that it fits within the provided width.
     /// Returns the list of resultant line(s)
-    pub fn wrap(mut self, width: usize, seqno: SequenceNo) -> Vec<Self> {
-        let cells = self.coerce_vec_storage();
+    pub fn wrap(self, width: usize, seqno: SequenceNo) -> Vec<Self> {
+        let mut cells: Vec<CellRef> = self.visible_cells().collect();
         if let Some(end_idx) = cells.iter().rposition(|c| c.str() != " ") {
-            cells.resize_with(end_idx + 1, Cell::blank);
+            cells.truncate(end_idx + 1);
 
-            let mut lines: Vec<_> = cells
-                .chunks_mut(width)
-                .map(|chunk| {
-                    let chunk_len = chunk.len();
-                    let mut line = Line {
-                        cells: CellStorage::V(VecStorage::new(chunk.to_vec())),
-                        bits: LineBits::NONE,
-                        seqno: seqno,
-                        zones: vec![],
-                    };
-                    if chunk_len == width {
-                        // Ensure that we don't forget that we wrapped
-                        line.set_last_cell_was_wrapped(true, seqno);
-                    }
-                    line
-                })
-                .collect();
-            // The last of the chunks wasn't actually wrapped
-            if let Some(line) = lines.last_mut() {
-                line.set_last_cell_was_wrapped(false, seqno);
+            let mut lines: Vec<Self> = vec![];
+            let mut delta = 0;
+            for cell in cells {
+                let need_new_line = lines
+                    .last_mut()
+                    .map(|line| line.len() + cell.width() > width)
+                    .unwrap_or(true);
+                if need_new_line {
+                    lines
+                        .last_mut()
+                        .map(|line| line.set_last_cell_was_wrapped(true, seqno));
+                    lines.push(Line::new(seqno));
+                    delta = cell.cell_index();
+                }
+                let line = lines.last_mut().unwrap();
+                line.set_cell_grapheme(
+                    cell.cell_index() - delta,
+                    cell.str(),
+                    cell.width(),
+                    (*cell.attrs()).clone(),
+                    seqno,
+                );
             }
+
             lines
         } else {
             vec![self]
