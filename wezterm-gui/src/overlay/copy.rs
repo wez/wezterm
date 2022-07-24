@@ -189,6 +189,7 @@ impl CopyRenderable {
 
     fn recompute_results(&mut self) {
         log::debug!("there are {} results", self.results.len());
+        self.by_line.clear();
         for (result_index, res) in self.results.iter().enumerate() {
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {
