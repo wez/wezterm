@@ -3602,6 +3602,7 @@ dependencies = [
 name = "rangeset"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "num",
 ]
 

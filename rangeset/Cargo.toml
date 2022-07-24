@@ -6,3 +6,11 @@ edition = "2018"
 
 [dependencies]
 num = "0.3"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "rangeset"
+harness = false
+

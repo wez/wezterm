@@ -1,5 +1,5 @@
 use num::{Integer, ToPrimitive};
-use std::cmp::{max, min};
+use std::cmp::{max, min, Ordering};
 use std::fmt::Debug;
 use std::ops::Range;
 
@@ -9,6 +9,7 @@ use std::ops::Range;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RangeSet<T: Integer + Copy> {
     ranges: Vec<Range<T>>,
+    needs_sort: bool,
 }
 
 pub fn range_is_empty<T: Integer>(range: &Range<T>) -> bool {
@@ -92,7 +93,10 @@ impl<T: Integer + Copy + Debug + ToPrimitive> From<RangeSet<T>> for Vec<Range<T>
 impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
     /// Create a new set
     pub fn new() -> Self {
-        Self { ranges: vec![] }
+        Self {
+            ranges: vec![],
+            needs_sort: false,
+        }
     }
 
     /// Returns true if this set is empty
@@ -220,6 +224,8 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
             return;
         }
 
+        self.sort_if_needed();
+
         match self.intersection_helper(&range) {
             (Some(a), Some(b)) if b == a + 1 => {
                 // This range intersects with two or more adjacent ranges and will
@@ -243,6 +249,7 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
 
     pub fn add_range_unchecked(&mut self, range: Range<T>) {
         self.ranges.push(range);
+        self.needs_sort = true;
     }
 
     /// Add a set of ranges to this set
@@ -258,28 +265,61 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
     }
 
     fn intersection_helper(&self, range: &Range<T>) -> (Option<usize>, Option<usize>) {
-        let mut first = None;
+        if self.needs_sort {
+            panic!("rangeset needs sorting");
+        }
 
-        for (idx, r) in self.ranges.iter().enumerate() {
+        let idx = match self.binary_search_ranges(range) {
+            Ok(idx) => idx,
+            Err(idx) => idx.saturating_sub(1),
+        };
+
+        let mut first = None;
+        if let Some(r) = self.ranges.get(idx) {
             if intersects_range(r, range) || r.end == range.start {
-                if first.is_some() {
-                    return (first, Some(idx));
-                }
                 first = Some(idx);
             }
         }
-
+        if let Some(r) = self.ranges.get(idx + 1) {
+            if intersects_range(r, range) || r.end == range.start {
+                if first.is_some() {
+                    return (first, Some(idx + 1));
+                }
+            }
+        }
         (first, None)
     }
 
-    fn insertion_point(&self, range: &Range<T>) -> usize {
-        for (idx, r) in self.ranges.iter().enumerate() {
-            if range.end < r.start {
-                return idx;
+    pub fn sort_if_needed(&mut self) {
+        if self.needs_sort {
+            self.ranges.sort_by_key(|r| r.start);
+            self.needs_sort = false;
+        }
+    }
+
+    fn binary_search_ranges(&self, range: &Range<T>) -> Result<usize, usize> {
+        self.ranges.binary_search_by(|r| {
+            if range.start >= r.start && range.end <= r.end {
+                Ordering::Equal
+            } else if range.start < r.start {
+                Ordering::Greater
+            } else if range.end > r.end {
+                Ordering::Less
+            } else {
+                unreachable!()
             }
+        })
+    }
+
+    fn insertion_point(&self, range: &Range<T>) -> usize {
+        if self.needs_sort {
+            panic!("rangeset needs sorting");
         }
 
-        self.ranges.len()
+        match self.binary_search_ranges(range) {
+            Ok(idx) => idx,
+            Err(idx) => idx,
+        }
     }
 
     /// Returns an iterator over the ranges that comprise the set
