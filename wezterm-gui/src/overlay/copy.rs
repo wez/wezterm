@@ -577,10 +577,9 @@ impl CopyRenderable {
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             self.cursor.x = 0;
-            for cell in line.visible_cells().rev() {
+            for cell in line.visible_cells() {
                 if cell.str() != " " {
                     self.cursor.x = cell.cell_index();
-                    break;
                 }
             }
         }

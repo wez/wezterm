@@ -883,7 +883,7 @@ impl Line {
     /// the characters that follow wide characters, the column index may
     /// skip some positions.  It is returned as a convenience to the consumer
     /// as using .enumerate() on this iterator wouldn't be as useful.
-    pub fn visible_cells<'a>(&'a self) -> impl DoubleEndedIterator<Item = CellRef<'a>> {
+    pub fn visible_cells<'a>(&'a self) -> impl Iterator<Item = CellRef<'a>> {
         match &self.cells {
             CellStorage::V(cells) => VisibleCellIter::V(CellSliceIter {
                 cells: cells.iter(),
@@ -1151,40 +1151,20 @@ struct CellSliceIter<'a> {
     skip_width: usize,
 }
 
-impl<'a> CellSliceIter<'a> {
-    fn advance(&mut self, forwards: bool) -> Option<CellRef<'a>> {
-        while self.skip_width > 0 {
-            self.skip_width -= 1;
-            let _ = if forwards {
-                self.cells.next()
-            } else {
-                self.cells.next_back()
-            }?;
-            self.idx += 1;
-        }
-        let cell = if forwards {
-            self.cells.next()
-        } else {
-            self.cells.next_back()
-        }?;
-        let cell_index = self.idx;
-        self.idx += 1;
-        self.skip_width = cell.width().saturating_sub(1);
-        Some(CellRef::CellRef { cell_index, cell })
-    }
-}
-
 impl<'a> Iterator for CellSliceIter<'a> {
     type Item = CellRef<'a>;
 
     fn next(&mut self) -> Option<CellRef<'a>> {
-        self.advance(true)
-    }
-}
-
-impl<'a> DoubleEndedIterator for CellSliceIter<'a> {
-    fn next_back(&mut self) -> Option<CellRef<'a>> {
-        self.advance(false)
+        while self.skip_width > 0 {
+            self.skip_width -= 1;
+            let _ = self.cells.next()?;
+            self.idx += 1;
+        }
+        let cell = self.cells.next()?;
+        let cell_index = self.idx;
+        self.idx += 1;
+        self.skip_width = cell.width().saturating_sub(1);
+        Some(CellRef::CellRef { cell_index, cell })
     }
 }
 
@@ -1200,15 +1180,6 @@ impl<'a> Iterator for VisibleCellIter<'a> {
         match self {
             Self::V(iter) => iter.next(),
             Self::C(iter) => iter.next(),
-        }
-    }
-}
-
-impl<'a> DoubleEndedIterator for VisibleCellIter<'a> {
-    fn next_back(&mut self) -> Option<CellRef<'a>> {
-        match self {
-            Self::V(iter) => iter.next_back(),
-            Self::C(iter) => iter.next_back(),
         }
     }
 }
@@ -1529,13 +1500,11 @@ pub struct ClusterLineCellIter<'a> {
     line: &'a ClusteredLine,
 }
 
-impl<'a> ClusterLineCellIter<'a> {
-    fn advance(&mut self, forwards: bool) -> Option<CellRef<'a>> {
-        let text = if forwards {
-            self.graphemes.next()?
-        } else {
-            self.graphemes.next_back()?
-        };
+impl<'a> Iterator for ClusterLineCellIter<'a> {
+    type Item = CellRef<'a>;
+
+    fn next(&mut self) -> Option<CellRef<'a>> {
+        let text = self.graphemes.next()?;
 
         let cell_index = self.idx;
         let width = if self.line.is_double_wide(cell_index) {
@@ -1548,11 +1517,7 @@ impl<'a> ClusterLineCellIter<'a> {
         let attrs = &self.cluster.as_ref()?.attrs;
 
         if self.cluster_total >= self.cluster.as_ref()?.cell_width {
-            self.cluster = if forwards {
-                self.clusters.next()
-            } else {
-                self.clusters.next_back()
-            };
+            self.cluster = self.clusters.next();
             self.cluster_total = 0;
         }
 
@@ -1562,20 +1527,6 @@ impl<'a> ClusterLineCellIter<'a> {
             text,
             attrs,
         })
-    }
-}
-
-impl<'a> Iterator for ClusterLineCellIter<'a> {
-    type Item = CellRef<'a>;
-
-    fn next(&mut self) -> Option<CellRef<'a>> {
-        self.advance(true)
-    }
-}
-
-impl<'a> DoubleEndedIterator for ClusterLineCellIter<'a> {
-    fn next_back(&mut self) -> Option<CellRef<'a>> {
-        self.advance(false)
     }
 }
 
