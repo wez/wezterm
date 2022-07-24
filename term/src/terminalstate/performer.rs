@@ -152,8 +152,6 @@ impl<'a> Performer<'a> {
 
             let wrappable = x + print_width >= width;
 
-            let cell = Cell::new_grapheme_with_width(g, print_width, pen);
-
             if self.insert {
                 let margin = self.left_and_right_margins.end;
                 let screen = self.screen_mut();
@@ -164,14 +162,16 @@ impl<'a> Performer<'a> {
 
             // Assign the cell
             log::trace!(
-                "print x={} y={} print_width={} width={} cell={:?}",
+                "print x={} y={} print_width={} width={} cell={} {:?}",
                 x,
                 y,
                 print_width,
                 width,
-                cell
+                g,
+                self.pen
             );
-            self.screen_mut().set_cell(x, y, &cell, seqno);
+            self.screen_mut()
+                .set_cell_grapheme(x, y, g, print_width, pen, seqno);
 
             if !wrappable {
                 self.cursor.x += print_width;

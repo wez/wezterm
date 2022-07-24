@@ -461,6 +461,7 @@ impl Line {
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink
     /// from the cell attributes but leave the remainder of the attributes alone.
+    #[inline]
     pub fn invalidate_implicit_hyperlinks(&mut self, seqno: SequenceNo) {
         if (self.bits & (LineBits::SCANNED_IMPLICIT_HYPERLINKS | LineBits::HAS_IMPLICIT_HYPERLINKS))
             == LineBits::NONE
@@ -473,6 +474,10 @@ impl Line {
             return;
         }
 
+        self.invalidate_implicit_hyperlinks_impl(seqno);
+    }
+
+    fn invalidate_implicit_hyperlinks_impl(&mut self, seqno: SequenceNo) {
         let cells = self.coerce_vec_storage();
         for cell in cells.iter_mut() {
             let replace = match cell.attrs().hyperlink() {
@@ -652,6 +657,46 @@ impl Line {
         self.set_cell_impl(idx, cell, false, seqno);
     }
 
+    /// Assign a cell using grapheme text with a known width and attributes.
+    /// This is a micro-optimization over first constructing a Cell from
+    /// the grapheme info. If assigning this particular cell can be optimized
+    /// to an append to the interal clustered storage then the cost of
+    /// constructing and dropping the Cell can be avoided.
+    pub fn set_cell_grapheme(
+        &mut self,
+        idx: usize,
+        text: &str,
+        width: usize,
+        attr: CellAttributes,
+        seqno: SequenceNo,
+    ) {
+        if attr.hyperlink().is_some() {
+            self.bits |= LineBits::HAS_HYPERLINK;
+        }
+
+        if let CellStorage::C(cl) = &mut self.cells {
+            if idx >= cl.len && text == " " && attr == CellAttributes::blank() {
+                // Appending blank beyond end of line; is already
+                // implicitly blank
+                return;
+            }
+            while cl.len < idx {
+                // Fill out any implied blanks until we can append
+                // their intended cell content
+                cl.append_grapheme(" ", 1, CellAttributes::blank());
+            }
+            if idx == cl.len {
+                cl.append_grapheme(text, width, attr);
+                self.invalidate_implicit_hyperlinks(seqno);
+                self.invalidate_zones();
+                self.update_last_change_seqno(seqno);
+                return;
+            }
+        }
+
+        self.set_cell(idx, Cell::new_grapheme_with_width(text, width, attr), seqno);
+    }
+
     pub fn set_cell_clearing_image_placements(
         &mut self,
         idx: usize,
@@ -691,7 +736,7 @@ impl Line {
             while cl.len < idx {
                 // Fill out any implied blanks until we can append
                 // their intended cell content
-                cl.append(Cell::blank());
+                cl.append_grapheme(" ", 1, CellAttributes::blank());
             }
             if idx == cl.len {
                 cl.append(cell);
@@ -1416,6 +1461,38 @@ impl ClusteredLine {
             cluster_total: 0,
             line: self,
         }
+    }
+
+    fn append_grapheme(&mut self, text: &str, cell_width: usize, attrs: CellAttributes) {
+        let new_cluster = match self.clusters.last() {
+            Some(cluster) => cluster.attrs != attrs,
+            None => true,
+        };
+        let new_cell_index = self.len;
+        if new_cluster {
+            self.clusters.push(Cluster { attrs, cell_width });
+        } else if let Some(cluster) = self.clusters.last_mut() {
+            cluster.cell_width += cell_width;
+        }
+        self.text.push_str(text);
+
+        if cell_width > 1 {
+            let bitset = match self.is_double_wide.take() {
+                Some(mut bitset) => {
+                    bitset.grow(new_cell_index + 1);
+                    bitset.set(new_cell_index, true);
+                    bitset
+                }
+                None => {
+                    let mut bitset = FixedBitSet::with_capacity(new_cell_index + 1);
+                    bitset.set(new_cell_index, true);
+                    bitset
+                }
+            };
+            self.is_double_wide.replace(bitset);
+        }
+        self.last_cell_width = NonZeroU8::new(cell_width as u8);
+        self.len += cell_width;
     }
 
     fn append(&mut self, cell: Cell) {

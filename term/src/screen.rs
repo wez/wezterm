@@ -386,6 +386,20 @@ impl Screen {
         line.set_cell(x, cell.clone(), seqno);
     }
 
+    pub fn set_cell_grapheme(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        text: &str,
+        width: usize,
+        attr: CellAttributes,
+        seqno: SequenceNo,
+    ) {
+        let line_idx = self.phys_row(y);
+        let line = self.line_mut(line_idx);
+        line.set_cell_grapheme(x, text, width, attr, seqno);
+    }
+
     pub fn cell_mut(&mut self, x: usize, y: VisibleRowIndex) -> Option<&mut Cell> {
         let line_idx = self.phys_row(y);
         let line = self.lines.get_mut(line_idx)?;
