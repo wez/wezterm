@@ -22,7 +22,6 @@ use std::time::{Duration, Instant};
 use termwiz::escape::DeviceControlMode;
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
-use unicode_segmentation::UnicodeSegmentation;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -533,9 +532,8 @@ impl Pane for LocalPane {
                         found_match(
                             s,
                             idx,
-                            &haystack,
+                            lines,
                             stable_idx,
-                            screen.physical_cols,
                             &mut uniq_matches,
                             &mut coords,
                             &mut results,
@@ -553,9 +551,8 @@ impl Pane for LocalPane {
                                 found_match(
                                     m.as_str(),
                                     m.start(),
-                                    &haystack,
+                                    lines,
                                     stable_idx,
-                                    screen.physical_cols,
                                     &mut uniq_matches,
                                     &mut coords,
                                     &mut results,
@@ -578,15 +575,14 @@ impl Pane for LocalPane {
         fn found_match(
             text: &str,
             byte_idx: usize,
-            haystack: &str,
+            lines: &[&Line],
             stable_idx: StableRowIndex,
-            viewport_width: usize,
             uniq_matches: &mut HashMap<String, usize>,
             coords: &mut Option<Vec<Coord>>,
             results: &mut Vec<SearchResult>,
         ) {
             if coords.is_none() {
-                coords.replace(make_coords(haystack, stable_idx, viewport_width));
+                coords.replace(make_coords(lines, stable_idx));
             }
             let coords = coords.as_ref().unwrap();
 
@@ -609,27 +605,21 @@ impl Pane for LocalPane {
             });
         }
 
-        fn make_coords(
-            haystack: &str,
-            mut stable_row: StableRowIndex,
-            viewport_width: usize,
-        ) -> Vec<Coord> {
+        fn make_coords(lines: &[&Line], stable_row: StableRowIndex) -> Vec<Coord> {
             let mut byte_idx = 0;
             let mut coords = vec![];
-            let mut grapheme_idx = 0;
-            for g in haystack.graphemes(true) {
-                coords.push(Coord {
-                    byte_idx,
-                    grapheme_idx,
-                    stable_row,
-                });
-                byte_idx += g.len();
-                grapheme_idx += 1;
-                if grapheme_idx >= viewport_width {
-                    grapheme_idx = 0;
-                    stable_row += 1;
+
+            for (row_idx, line) in lines.iter().enumerate() {
+                for cell in line.visible_cells() {
+                    coords.push(Coord {
+                        byte_idx,
+                        grapheme_idx: cell.cell_index(),
+                        stable_row: stable_row + row_idx as StableRowIndex,
+                    });
+                    byte_idx += cell.str().len();
                 }
             }
+
             coords
         }
 
