@@ -100,17 +100,20 @@ impl PerPane {
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
-            .map(|(idx, line)| {
+            .map(|(idx, mut line)| {
                 let stable_row = first_line + idx as StableRowIndex;
                 all_dirty_lines.remove(stable_row);
+                line.compress_for_scrollback();
                 (stable_row, line)
             })
             .collect::<Vec<_>>();
 
         // Always send the cursor's row, as that tends to the busiest and we don't
         // have a sequencing concept for our idea of the remote state.
-        let (cursor_line, lines) = pane.get_lines(cursor_position.y..cursor_position.y + 1);
-        bonus_lines.push((cursor_line, lines[0].clone()));
+        let (cursor_line_idx, mut lines) = pane.get_lines(cursor_position.y..cursor_position.y + 1);
+        let mut cursor_line = lines.remove(0);
+        cursor_line.compress_for_scrollback();
+        bonus_lines.push((cursor_line_idx, cursor_line));
 
         self.cursor_position = cursor_position;
         self.title = title.clone();
@@ -587,8 +590,9 @@ impl SessionHandler {
 
                             for range in lines {
                                 let (first_row, lines) = pane.get_lines(range);
-                                for (idx, line) in lines.into_iter().enumerate() {
+                                for (idx, mut line) in lines.into_iter().enumerate() {
                                     let stable_row = first_row + idx as StableRowIndex;
+                                    line.compress_for_scrollback();
                                     lines_and_indices.push((stable_row, line));
                                 }
                             }
