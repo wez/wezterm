@@ -1,5 +1,5 @@
 use crate::domain::DomainId;
-use crate::pane::{CloseReason, Pane, PaneId, Pattern, SearchResult};
+use crate::pane::{CloseReason, LogicalLine, Pane, PaneId, Pattern, SearchResult};
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux, MuxNotification};
@@ -109,6 +109,10 @@ impl Pane for LocalPane {
         }
 
         (first, lines)
+    }
+
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        terminal_get_logical_lines(&mut self.terminal.borrow_mut(), lines)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {

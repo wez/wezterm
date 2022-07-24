@@ -1,8 +1,9 @@
+use crate::pane::LogicalLine;
 use luahelper::impl_lua_conversion_dynamic;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
-use termwiz::surface::{SequenceNo, SEQ_ZERO};
+use termwiz::surface::SequenceNo;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::{Line, StableRowIndex, Terminal};
 
@@ -69,6 +70,40 @@ pub fn terminal_get_dirty_lines(
     set
 }
 
+pub fn terminal_get_logical_lines(
+    term: &mut Terminal,
+    lines: Range<StableRowIndex>,
+) -> Vec<LogicalLine> {
+    let screen = term.screen();
+    let mut result = vec![];
+    let reverse = term.get_reverse_video();
+    screen.for_each_logical_line_in_stable_range(lines.clone(), |sr, lines| {
+        let mut physical_lines: Vec<Line> = lines
+            .iter()
+            .map(|line| {
+                let mut line = (*line).clone();
+                let seqno = line.current_seqno();
+                line.set_reverse(reverse, seqno);
+                line
+            })
+            .collect();
+
+        let mut logical = physical_lines[0].clone();
+        for line in &mut physical_lines[1..] {
+            let seqno = line.current_seqno();
+            logical.set_last_cell_was_wrapped(false, seqno);
+            logical.append_line((*line).clone(), seqno);
+        }
+
+        result.push(LogicalLine {
+            physical_lines,
+            logical,
+            first_row: sr.start,
+        });
+    });
+    result
+}
+
 /// Implements Pane::get_lines for Terminal
 pub fn terminal_get_lines(
     term: &mut Terminal,
@@ -81,7 +116,8 @@ pub fn terminal_get_lines(
     let first = screen.phys_to_stable_row_index(phys_range.start);
     let mut lines = screen.lines_in_phys_range(phys_range);
     for line in &mut lines {
-        line.set_reverse(reverse, SEQ_ZERO);
+        let seqno = line.current_seqno();
+        line.set_reverse(reverse, seqno);
     }
 
     (first, lines)

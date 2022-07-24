@@ -230,6 +230,9 @@ pub trait Pane: Downcast {
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        // NOTE: see terminal_get_logical_lines() for the implementation that is
+        // actually used by most panes; this particular method is the fallback
+        // implementation for other Panes.
         let (mut first, mut phys) = self.get_lines(lines);
 
         // Avoid pathological cases where we have eg: a really long logical line
@@ -573,6 +576,95 @@ mod test {
     }
 
     #[test]
+    fn logical_lines_terminal() {
+        use wezterm_term::{Terminal, TerminalConfiguration};
+
+        #[derive(Debug)]
+        struct TermConfig {}
+        impl TerminalConfiguration for TermConfig {
+            fn color_palette(&self) -> ColorPalette {
+                ColorPalette::default()
+            }
+        }
+
+        let mut terminal = Terminal::new(
+            TerminalSize {
+                rows: 24,
+                cols: 20,
+                pixel_width: 0,
+                pixel_height: 0,
+                dpi: 0,
+            },
+            Arc::new(TermConfig {}),
+            "WezTerm",
+            "o_O",
+            Box::new(Vec::new()),
+        );
+
+        let text = "Hello there this is a long line.\r\nlogical line two\r\nanother long line here\r\nlogical line four\r\nlogical line five\r\ncap it off with another long line";
+        terminal.advance_bytes(text.as_bytes());
+
+        let logical = terminal_get_logical_lines(&mut terminal, 0..9);
+
+        snapshot!(
+            summarize_logical_lines(&logical),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+    (
+        5,
+        "logical line four",
+    ),
+    (
+        6,
+        "logical line five",
+    ),
+    (
+        7,
+        "cap it off with another long line",
+    ),
+]
+"#
+        );
+
+        // Now try with offset bounds
+        let offset = terminal_get_logical_lines(&mut terminal, 1..3);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+]
+"#
+        );
+    }
+
+    fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, Cow<str>)> {
+        lines
+            .iter()
+            .map(|l| (l.first_row, l.logical.as_str()))
+            .collect::<Vec<_>>()
+    }
+
+    #[test]
     fn logical_lines() {
         let text = "Hello there this is a long line.\nlogical line two\nanother long line here\nlogical line four\nlogical line five\ncap it off with another long line";
         let width = 20;
@@ -603,13 +695,6 @@ mod test {
         let pane = FakePane {
             lines: physical_lines,
         };
-
-        fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, Cow<str>)> {
-            lines
-                .iter()
-                .map(|l| (l.first_row, l.logical.as_str()))
-                .collect::<Vec<_>>()
-        }
 
         let logical = pane.get_logical_lines(0..30);
         snapshot!(
@@ -932,6 +1017,14 @@ mod test {
         );
     }
 
+    fn is_double_click_word(s: &str) -> bool {
+        match s.chars().count() {
+            1 => !" \t\n{[}]()\"'`".contains(s),
+            0 => false,
+            _ => true,
+        }
+    }
+
     #[test]
     fn double_click() {
         let attr = Default::default();
@@ -949,13 +1042,6 @@ mod test {
 
         let start_idx = logical.xy_to_logical_x(2, 1);
 
-        fn is_double_click_word(s: &str) -> bool {
-            match s.chars().count() {
-                1 => !" \t\n{[}]()\"'`".contains(s),
-                0 => false,
-                _ => true,
-            }
-        }
         use termwiz::surface::line::DoubleClickRange;
 
         assert_eq!(start_idx, 7);

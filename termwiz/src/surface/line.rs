@@ -675,7 +675,7 @@ impl Line {
         }
 
         if let CellStorage::C(cl) = &mut self.cells {
-            if idx >= cl.len && text == " " && attr == CellAttributes::blank() {
+            if idx > cl.len && text == " " && attr == CellAttributes::blank() {
                 // Appending blank beyond end of line; is already
                 // implicitly blank
                 return;
@@ -728,7 +728,7 @@ impl Line {
         }
 
         if let CellStorage::C(cl) = &mut self.cells {
-            if idx >= cl.len && cell == Cell::blank() {
+            if idx > cl.len && cell == Cell::blank() {
                 // Appending blank beyond end of line; is already
                 // implicitly blank
                 return;
