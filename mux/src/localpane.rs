@@ -11,6 +11,7 @@ use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use procinfo::LocalProcessInfo;
 use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
+use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
@@ -21,6 +22,7 @@ use std::time::{Duration, Instant};
 use termwiz::escape::DeviceControlMode;
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
+use unicode_segmentation::UnicodeSegmentation;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -475,25 +477,160 @@ impl Pane for LocalPane {
         term.get_semantic_zones()
     }
 
-    async fn search(&self, mut pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+    async fn search(&self, pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
         let term = self.terminal.borrow();
         let screen = term.screen();
 
-        if let Pattern::CaseInSensitiveString(s) = &mut pattern {
-            // normalize the case so we match everything lowercase
-            *s = s.to_lowercase()
+        enum CompiledPattern {
+            CaseSensitiveString(String),
+            CaseInSensitiveString(String),
+            Regex(regex::Regex),
         }
 
+        let pattern = match pattern {
+            Pattern::CaseSensitiveString(s) => CompiledPattern::CaseSensitiveString(s),
+            Pattern::CaseInSensitiveString(s) => {
+                // normalize the case so we match everything lowercase
+                CompiledPattern::CaseInSensitiveString(s.to_lowercase())
+            }
+            Pattern::Regex(r) => CompiledPattern::Regex(regex::Regex::new(&r)?),
+        };
+
         let mut results = vec![];
-        let mut haystack = String::new();
-        let mut coords = vec![];
         let mut uniq_matches: HashMap<String, usize> = HashMap::new();
 
-        #[derive(Copy, Clone)]
+        let first_row = screen.phys_to_stable_row_index(0);
+        let all_stable = first_row..first_row + screen.scrollback_rows() as StableRowIndex;
+        screen.for_each_logical_line_in_stable_range(all_stable, |sr, lines| {
+            if lines.is_empty() {
+                return;
+            }
+            let haystack = if lines.len() == 1 {
+                lines[0].as_str()
+            } else {
+                let mut s = String::new();
+                for line in lines {
+                    s.push_str(&line.as_str());
+                }
+                Cow::Owned(s)
+            };
+            let stable_idx = sr.start;
+
+            if haystack.is_empty() {
+                return;
+            }
+
+            let haystack = match &pattern {
+                CompiledPattern::CaseInSensitiveString(_) => Cow::Owned(haystack.to_lowercase()),
+                _ => haystack,
+            };
+            let mut coords = None;
+
+            match &pattern {
+                CompiledPattern::CaseInSensitiveString(s)
+                | CompiledPattern::CaseSensitiveString(s) => {
+                    for (idx, s) in haystack.match_indices(s) {
+                        found_match(
+                            s,
+                            idx,
+                            &haystack,
+                            stable_idx,
+                            screen.physical_cols,
+                            &mut uniq_matches,
+                            &mut coords,
+                            &mut results,
+                        );
+                    }
+                }
+                CompiledPattern::Regex(re) => {
+                    // Allow for the regex to contain captures
+                    for c in re.captures_iter(&haystack) {
+                        // Look for the captures in reverse order, as index==0 is
+                        // the whole matched string.  We can't just call
+                        // `c.iter().rev()` as the capture iterator isn't double-ended.
+                        for idx in (0..c.len()).rev() {
+                            if let Some(m) = c.get(idx) {
+                                found_match(
+                                    m.as_str(),
+                                    m.start(),
+                                    &haystack,
+                                    stable_idx,
+                                    screen.physical_cols,
+                                    &mut uniq_matches,
+                                    &mut coords,
+                                    &mut results,
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        #[derive(Copy, Clone, Debug)]
         struct Coord {
             byte_idx: usize,
             grapheme_idx: usize,
             stable_row: StableRowIndex,
+        }
+
+        fn found_match(
+            text: &str,
+            byte_idx: usize,
+            haystack: &str,
+            stable_idx: StableRowIndex,
+            viewport_width: usize,
+            uniq_matches: &mut HashMap<String, usize>,
+            coords: &mut Option<Vec<Coord>>,
+            results: &mut Vec<SearchResult>,
+        ) {
+            if coords.is_none() {
+                coords.replace(make_coords(haystack, stable_idx, viewport_width));
+            }
+            let coords = coords.as_ref().unwrap();
+
+            let match_id = match uniq_matches.get(text).copied() {
+                Some(id) => id,
+                None => {
+                    let id = uniq_matches.len();
+                    uniq_matches.insert(text.to_owned(), id);
+                    id
+                }
+            };
+            let (start_x, start_y) = haystack_idx_to_coord(byte_idx, coords);
+            let (end_x, end_y) = haystack_idx_to_coord(byte_idx + text.len(), coords);
+            results.push(SearchResult {
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+                match_id,
+            });
+        }
+
+        fn make_coords(
+            haystack: &str,
+            mut stable_row: StableRowIndex,
+            viewport_width: usize,
+        ) -> Vec<Coord> {
+            let mut byte_idx = 0;
+            let mut coords = vec![];
+            let mut grapheme_idx = 0;
+            for g in haystack.graphemes(true) {
+                coords.push(Coord {
+                    byte_idx,
+                    grapheme_idx,
+                    stable_row,
+                });
+                byte_idx += g.len();
+                grapheme_idx += 1;
+                if grapheme_idx >= viewport_width {
+                    grapheme_idx = 0;
+                    stable_row += 1;
+                }
+            }
+            coords
         }
 
         fn haystack_idx_to_coord(idx: usize, coords: &[Coord]) -> (usize, StableRowIndex) {
@@ -505,158 +642,6 @@ impl Pane for LocalPane {
             (coord.grapheme_idx, coord.stable_row)
         }
 
-        fn collect_matches(
-            results: &mut Vec<SearchResult>,
-            pattern: &Pattern,
-            haystack: &str,
-            coords: &[Coord],
-            uniq_matches: &mut HashMap<String, usize>,
-        ) {
-            if haystack.is_empty() {
-                return;
-            }
-            match pattern {
-                // Rust only provides a case sensitive match_indices function, so
-                // we have to pre-arrange to lowercase both the pattern and the
-                // haystack strings
-                Pattern::CaseInSensitiveString(s) | Pattern::CaseSensitiveString(s) => {
-                    for (idx, s) in haystack.match_indices(s) {
-                        let match_id = match uniq_matches.get(s).copied() {
-                            Some(id) => id,
-                            None => {
-                                let id = uniq_matches.len();
-                                uniq_matches.insert(s.to_owned(), id);
-                                id
-                            }
-                        };
-                        let (start_x, start_y) = haystack_idx_to_coord(idx, coords);
-                        let (end_x, end_y) = haystack_idx_to_coord(idx + s.len(), coords);
-                        results.push(SearchResult {
-                            start_x,
-                            start_y,
-                            end_x,
-                            end_y,
-                            match_id,
-                        });
-                    }
-                }
-                Pattern::Regex(r) => {
-                    if let Ok(re) = regex::Regex::new(r) {
-                        // Allow for the regex to contain captures
-                        log::trace!("regex search for {:?} in `{:?}`", r, haystack);
-                        for c in re.captures_iter(haystack) {
-                            // Look for the captures in reverse order, as index==0 is
-                            // the whole matched string.  We can't just call
-                            // `c.iter().rev()` as the capture iterator isn't double-ended.
-                            for idx in (0..c.len()).rev() {
-                                if let Some(m) = c.get(idx) {
-                                    let s = m.as_str();
-                                    if s.is_empty() {
-                                        continue;
-                                    }
-                                    let match_id = match uniq_matches.get(s).copied() {
-                                        Some(id) => id,
-                                        None => {
-                                            let id = uniq_matches.len();
-                                            uniq_matches.insert(s.to_owned(), id);
-                                            id
-                                        }
-                                    };
-
-                                    let (start_x, start_y) =
-                                        haystack_idx_to_coord(m.start(), coords);
-                                    let (end_x, end_y) = haystack_idx_to_coord(m.end(), coords);
-                                    results.push(SearchResult {
-                                        start_x,
-                                        start_y,
-                                        end_x,
-                                        end_y,
-                                        match_id,
-                                    });
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        screen.for_each_phys_line(|idx, line| {
-            let stable_row = screen.phys_to_stable_row_index(idx);
-
-            let mut wrapped = false;
-            let mut trailing_spaces = None;
-
-            for cell in line.visible_cells() {
-                coords.push(Coord {
-                    byte_idx: haystack.len(),
-                    grapheme_idx: cell.cell_index(),
-                    stable_row,
-                });
-
-                let s = cell.str();
-                if s == " " {
-                    // Keep track of runs of trailing spaces; we'll prune
-                    // them out so that `$` in a regex works as expected.
-                    if trailing_spaces.is_none() {
-                        trailing_spaces.replace(haystack.len());
-                    }
-                } else {
-                    trailing_spaces.take();
-                }
-                if let Pattern::CaseInSensitiveString(_) = &pattern {
-                    // normalize the case so we match everything lowercase
-                    haystack.push_str(&s.to_lowercase());
-                } else {
-                    haystack.push_str(cell.str());
-                }
-                wrapped = cell.attrs().wrapped();
-            }
-
-            if let Some(trailing_spaces) = trailing_spaces {
-                // Remove trailing spaces from the haystack
-                haystack.truncate(trailing_spaces);
-                while coords
-                    .last()
-                    .map(|c| c.byte_idx >= trailing_spaces)
-                    .unwrap_or(false)
-                {
-                    coords.pop();
-                }
-            }
-
-            if !wrapped {
-                if let Pattern::Regex(_) = &pattern {
-                    if let Some(coord) = coords.last().copied() {
-                        coords.push(Coord {
-                            byte_idx: haystack.len(),
-                            grapheme_idx: coord.grapheme_idx + 1,
-                            ..coord
-                        });
-                        haystack.push('\n');
-                    }
-                } else {
-                    collect_matches(
-                        &mut results,
-                        &pattern,
-                        &haystack,
-                        &coords,
-                        &mut uniq_matches,
-                    );
-                    haystack.clear();
-                    coords.clear();
-                }
-            }
-        });
-
-        collect_matches(
-            &mut results,
-            &pattern,
-            &haystack,
-            &coords,
-            &mut uniq_matches,
-        );
         Ok(results)
     }
 }

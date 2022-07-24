@@ -188,6 +188,7 @@ impl CopyRenderable {
     }
 
     fn recompute_results(&mut self) {
+        log::debug!("there are {} results", self.results.len());
         for (result_index, res) in self.results.iter().enumerate() {
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {
@@ -243,8 +244,11 @@ impl CopyRenderable {
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             promise::spawn::spawn(async move {
+                log::debug!("Searching for {pattern:?}");
                 let mut results = pane.search(pattern).await?;
+                log::debug!("Sorting {} results", results.len());
                 results.sort();
+                log::debug!("Sorted");
 
                 let pane_id = pane.pane_id();
                 let mut results = Some(results);
