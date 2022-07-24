@@ -8,6 +8,7 @@ use fixedbitset::FixedBitSet;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
+use std::num::NonZeroU8;
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -1274,6 +1275,7 @@ struct ClusteredLine {
     is_double_wide: Option<FixedBitSet>,
     clusters: Vec<Cluster>,
     len: usize,
+    last_cell_width: Option<NonZeroU8>,
 }
 
 #[cfg(feature = "use_serde")]
@@ -1319,6 +1321,7 @@ impl ClusteredLine {
             is_double_wide: None,
             clusters: vec![],
             len: 0,
+            last_cell_width: None,
         }
     }
 
@@ -1342,9 +1345,11 @@ impl ClusteredLine {
         let mut clusters = vec![];
         let mut any_double = false;
         let mut len = 0;
+        let mut last_cell_width = None;
 
         for cell in iter {
             len += cell.width();
+            last_cell_width = NonZeroU8::new(1);
 
             if cell.width() > 1 {
                 any_double = true;
@@ -1385,6 +1390,7 @@ impl ClusteredLine {
             },
             clusters,
             len,
+            last_cell_width,
         }
     }
 
@@ -1444,7 +1450,7 @@ impl ClusteredLine {
             };
             self.is_double_wide.replace(bitset);
         }
-
+        self.last_cell_width = NonZeroU8::new(cell_width as u8);
         self.len += cell_width;
     }
 
@@ -1465,6 +1471,7 @@ impl ClusteredLine {
                 cluster.cell_width -= 1;
                 self.text.pop();
                 self.len -= 1;
+                self.last_cell_width.take();
                 pruned = true;
                 if cluster.cell_width == 0 {
                     need_pop = true;
@@ -1478,26 +1485,32 @@ impl ClusteredLine {
         pruned
     }
 
-    fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
-        if let Some(last_cell) = self.iter().last() {
-            if last_cell.attrs().wrapped() == wrapped {
-                // Nothing to change
-                //return;
+    fn compute_last_cell_width(&mut self) -> Option<NonZeroU8> {
+        if self.last_cell_width.is_none() {
+            if let Some(last_cell) = self.iter().last() {
+                self.last_cell_width = NonZeroU8::new(last_cell.width() as u8);
             }
-            let mut attrs = last_cell.attrs().clone();
-            attrs.set_wrapped(wrapped);
-            let width = last_cell.width();
+        }
+        self.last_cell_width
+    }
 
-            let last_cluster = self.clusters.last_mut().unwrap();
-            if last_cluster.cell_width == width {
-                // Re-purpose final cluster
-                last_cluster.attrs = attrs;
-            } else {
-                last_cluster.cell_width -= width;
-                self.clusters.push(Cluster {
-                    cell_width: width,
-                    attrs,
-                });
+    fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
+        if let Some(width) = self.compute_last_cell_width() {
+            let width = width.get() as usize;
+            if let Some(last_cluster) = self.clusters.last_mut() {
+                let mut attrs = last_cluster.attrs.clone();
+                attrs.set_wrapped(wrapped);
+
+                if last_cluster.cell_width == width {
+                    // Re-purpose final cluster
+                    last_cluster.attrs = attrs;
+                } else {
+                    last_cluster.cell_width -= width;
+                    self.clusters.push(Cluster {
+                        cell_width: width,
+                        attrs,
+                    });
+                }
             }
         }
     }
@@ -1666,6 +1679,9 @@ C(
             },
         ],
         len: 5,
+        last_cell_width: Some(
+            1,
+        ),
     },
 )
 "#
@@ -1715,6 +1731,9 @@ C(
             },
         ],
         len: 23,
+        last_cell_width: Some(
+            1,
+        ),
     },
 )
 "#
@@ -1738,6 +1757,7 @@ C(
         is_double_wide: None,
         clusters: [],
         len: 0,
+        last_cell_width: None,
     },
 )
 "#
@@ -1800,6 +1820,9 @@ Line {
                 },
             ],
             len: 5,
+            last_cell_width: Some(
+                1,
+            ),
         },
     ),
     zones: [],
@@ -1917,6 +1940,9 @@ C(
             },
         ],
         len: 4,
+        last_cell_width: Some(
+            1,
+        ),
     },
 )
 "#
@@ -1999,6 +2025,9 @@ ClusteredLine {
         },
     ],
     len: 5,
+    last_cell_width: Some(
+        1,
+    ),
 }
 "#
         );
@@ -2096,6 +2125,9 @@ Line {
                 },
             ],
             len: 5,
+            last_cell_width: Some(
+                1,
+            ),
         },
     ),
     zones: [],
