@@ -682,20 +682,18 @@ impl Line {
         }
 
         if let CellStorage::C(cl) = &mut self.cells {
-            if idx == cl.len {
-                cl.append(cell);
-                return;
-            }
-            if idx > cl.len
-                && cell.str() == " "
-                && cl
-                    .clusters
-                    .last()
-                    .map(|c| c.attrs == *cell.attrs())
-                    .unwrap_or_else(|| *cell.attrs() == CellAttributes::default())
-            {
+            if idx >= cl.len && cell == Cell::blank() {
                 // Appending blank beyond end of line; is already
                 // implicitly blank
+                return;
+            }
+            while cl.len < idx {
+                // Fill out any implied blanks until we can append
+                // their intended cell content
+                cl.append(Cell::blank());
+            }
+            if idx == cl.len {
+                cl.append(cell);
                 return;
             }
             /*
@@ -837,11 +835,12 @@ impl Line {
     }
 
     pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
-        if let CellStorage::C(cl) = &self.cells {
-            if !cl.text.ends_with(' ') {
-                // There are no trailing blanks
-                return;
+        if let CellStorage::C(cl) = &mut self.cells {
+            if cl.prune_trailing_blanks() {
+                self.update_last_change_seqno(seqno);
+                self.invalidate_zones();
             }
+            return;
         }
 
         let def_attr = CellAttributes::blank();
@@ -857,6 +856,11 @@ impl Line {
     }
 
     pub fn fill_range(&mut self, cols: Range<usize>, cell: &Cell, seqno: SequenceNo) {
+        if self.len() == 0 && *cell == Cell::blank() {
+            // We would be filling it with blanks only to prune
+            // them all away again before we return; NOP
+            return;
+        }
         for x in cols {
             // FIXME: we can skip the look-back for second and subsequent iterations
             self.set_cell_impl(x, cell.clone(), true, seqno);
@@ -904,6 +908,7 @@ impl Line {
             CellStorage::V(_) => return,
             CellStorage::C(cl) => cl.to_cell_vec(),
         };
+        // log::info!("make_cells\n{:?}", backtrace::Backtrace::new());
         self.cells = CellStorage::V(VecStorage::new(cells));
     }
 
@@ -967,9 +972,19 @@ impl Line {
     /// to this line.
     /// This function is used by rewrapping logic when joining wrapped
     /// lines back together.
-    pub fn append_line(&mut self, mut other: Line, seqno: SequenceNo) {
-        self.coerce_vec_storage()
-            .append(&mut other.coerce_vec_storage());
+    pub fn append_line(&mut self, other: Line, seqno: SequenceNo) {
+        match &mut self.cells {
+            CellStorage::V(cells) => {
+                for cell in other.visible_cells() {
+                    cells.push(cell.as_cell());
+                }
+            }
+            CellStorage::C(cl) => {
+                for cell in other.visible_cells() {
+                    cl.append(cell.as_cell());
+                }
+            }
+        }
         self.update_last_change_seqno(seqno);
         self.invalidate_zones();
     }
@@ -1448,6 +1463,36 @@ impl ClusteredLine {
         }
 
         self.len += cell_width;
+    }
+
+    fn prune_trailing_blanks(&mut self) -> bool {
+        let num_spaces = self.text.chars().rev().take_while(|&c| c == ' ').count();
+        if num_spaces == 0 {
+            return false;
+        }
+
+        let blank = CellAttributes::blank();
+        let mut pruned = false;
+        for _ in 0..num_spaces {
+            let mut need_pop = false;
+            if let Some(cluster) = self.clusters.last_mut() {
+                if cluster.attrs != blank {
+                    break;
+                }
+                cluster.cell_width -= 1;
+                self.text.pop();
+                self.len -= 1;
+                pruned = true;
+                if cluster.cell_width == 0 {
+                    need_pop = true;
+                }
+            }
+            if need_pop {
+                self.clusters.pop();
+            }
+        }
+
+        pruned
     }
 
     fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {

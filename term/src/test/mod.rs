@@ -509,39 +509,24 @@ fn basic_output() {
     term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
     term.cup(1, 1);
     term.print("hello, world!");
-    assert_visible_contents(
-        &term,
-        file!(),
-        line!(),
-        &["          ", " hello, wo", "rld!", "", ""],
-    );
+    assert_visible_contents(&term, file!(), line!(), &["", " hello, wo", "rld!", "", ""]);
 
     term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["          ", "          ", "     ", "", ""],
+        &["", "          ", "     ", "", ""],
     );
 
     term.cup(0, 2);
     term.print("woot");
     term.cup(2, 2);
     term.erase_in_line(EraseInLine::EraseToEndOfLine);
-    assert_visible_contents(
-        &term,
-        file!(),
-        line!(),
-        &["          ", "          ", "wo", "", ""],
-    );
+    assert_visible_contents(&term, file!(), line!(), &["", "          ", "wo", "", ""]);
 
     term.erase_in_line(EraseInLine::EraseToStartOfLine);
-    assert_visible_contents(
-        &term,
-        file!(),
-        line!(),
-        &["          ", "          ", "   ", "", ""],
-    );
+    assert_visible_contents(&term, file!(), line!(), &["", "          ", "   ", "", ""]);
 }
 
 /// Ensure that we dirty lines as the cursor is moved around, otherwise
