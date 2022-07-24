@@ -125,7 +125,7 @@ impl Line {
     pub fn new(seqno: SequenceNo) -> Self {
         Self {
             bits: LineBits::NONE,
-            cells: CellStorage::C(ClusteredLine::default()),
+            cells: CellStorage::C(ClusteredLine::new()),
             seqno,
             zones: vec![],
         }
@@ -956,10 +956,13 @@ impl Line {
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool, seqno: SequenceNo) {
         self.update_last_change_seqno(seqno);
         if let CellStorage::C(cl) = &mut self.cells {
-            if cl.len() > 0 {
-                cl.set_last_cell_was_wrapped(wrapped);
-                return;
+            if cl.len() == 0 {
+                // Need to mark that implicit space as wrapped, so
+                // explicitly add it
+                cl.append(Cell::blank());
             }
+            cl.set_last_cell_was_wrapped(wrapped);
+            return;
         }
 
         let cells = self.coerce_vec_storage();
@@ -1258,7 +1261,7 @@ struct Cluster {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct ClusteredLine {
     text: String,
     #[cfg_attr(
@@ -1310,6 +1313,15 @@ where
 }
 
 impl ClusteredLine {
+    pub fn new() -> Self {
+        Self {
+            text: String::with_capacity(80),
+            is_double_wide: None,
+            clusters: vec![],
+            len: 0,
+        }
+    }
+
     fn to_cell_vec(&self) -> Vec<Cell> {
         let mut cells = vec![];
 
@@ -1915,7 +1927,7 @@ C(
 
     #[test]
     fn cluster_append() {
-        let mut cl = ClusteredLine::default();
+        let mut cl = ClusteredLine::new();
         cl.append(Cell::new_grapheme("h", CellAttributes::default(), None));
         cl.append(Cell::new_grapheme("e", CellAttributes::default(), None));
         cl.append(Cell::new_grapheme("l", bold(), None));
