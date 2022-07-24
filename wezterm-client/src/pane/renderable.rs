@@ -193,9 +193,10 @@ impl RenderableInner {
                         .clone(),
                 );
 
-                let cell = line.set_cell(self.cursor_position.x, cell, SEQ_ZERO);
+                let width = cell.width();
+                line.set_cell(self.cursor_position.x, cell, SEQ_ZERO);
                 // Adjust the cursor to reflect the width of this new cell
-                self.cursor_position.x += cell.width();
+                self.cursor_position.x += width;
             }
             _ => {}
         }

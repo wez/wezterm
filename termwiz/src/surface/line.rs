@@ -85,7 +85,7 @@ pub struct Line {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 enum CellStorage {
-    V(Vec<Cell>),
+    V(VecStorage),
     C(ClusteredLine),
 }
 
@@ -102,7 +102,7 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
         }
@@ -112,7 +112,20 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
+            seqno,
+            zones: vec![],
+        }
+    }
+
+    /// Create a new line using cluster storage, optimized for appending
+    /// and lower memory utilization.
+    /// The line will automatically switch to cell storage when necessary
+    /// to apply edits.
+    pub fn new(seqno: SequenceNo) -> Self {
+        Self {
+            bits: LineBits::NONE,
+            cells: CellStorage::C(ClusteredLine::default()),
             seqno,
             zones: vec![],
         }
@@ -124,7 +137,7 @@ impl Line {
         let bits = LineBits::NONE;
         Self {
             bits,
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
         }
@@ -148,7 +161,7 @@ impl Line {
         }
 
         Line {
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
             bits: LineBits::NONE,
             seqno,
             zones: vec![],
@@ -204,7 +217,7 @@ impl Line {
                 .map(|chunk| {
                     let chunk_len = chunk.len();
                     let mut line = Line {
-                        cells: CellStorage::V(chunk.to_vec()),
+                        cells: CellStorage::V(VecStorage::new(chunk.to_vec())),
                         bits: LineBits::NONE,
                         seqno: seqno,
                         zones: vec![],
@@ -460,7 +473,7 @@ impl Line {
         }
 
         let cells = self.coerce_vec_storage();
-        for cell in cells {
+        for cell in cells.iter_mut() {
             let replace = match cell.attrs().hyperlink() {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
                     cell.str(),
@@ -498,39 +511,19 @@ impl Line {
         // use this as an opportunity to rebuild HAS_HYPERLINK, skip matching
         // cells with existing non-implicit hyperlinks, and avoid matching
         // text with zero-width cells.
-        let line = self.as_str().into_owned();
         self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
+        let line = self.as_str();
 
         let matches = Rule::match_hyperlinks(&line, rules);
         if matches.is_empty() {
             return;
         }
 
-        // The capture range is measured in bytes but we need to translate
-        // that to the index of the column.  This is complicated a bit further
-        // because double wide sequences have a blank column cell after them
-        // in the cells array, but the string we match against excludes that
-        // string.
-        let mut cell_idx = 0;
-        for (byte_idx, _grapheme) in line.grapheme_indices(true) {
-            let cells = self.coerce_vec_storage();
-            let cell = &mut cells[cell_idx];
-            let mut matched = false;
-            for m in &matches {
-                if m.range.contains(&byte_idx) {
-                    let attrs = cell.attrs_mut();
-                    // Don't replace existing links
-                    if attrs.hyperlink().is_none() {
-                        attrs.set_hyperlink(Some(Arc::clone(&m.link)));
-                        matched = true;
-                    }
-                }
-            }
-            cell_idx += cell.width();
-            if matched {
-                self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
-            }
+        let line = line.into_owned();
+        let cells = self.coerce_vec_storage();
+        if cells.scan_and_create_hyperlinks(&line, matches) {
+            self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
         }
     }
 
@@ -560,7 +553,7 @@ impl Line {
         let cells = my_cells.split_off(idx);
         Self {
             bits: self.bits,
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
         }
@@ -643,7 +636,7 @@ impl Line {
         }
         Self {
             bits: LineBits::NONE,
-            cells: CellStorage::V(cells),
+            cells: CellStorage::V(VecStorage::new(cells)),
             seqno: self.current_seqno(),
             zones: vec![],
         }
@@ -654,8 +647,8 @@ impl Line {
     /// of cells to avoid partial rendering concerns.
     /// Similarly, when we assign a cell, we need to blank out those
     /// occluded successor cells.
-    pub fn set_cell(&mut self, idx: usize, cell: Cell, seqno: SequenceNo) -> &Cell {
-        self.set_cell_impl(idx, cell, false, seqno)
+    pub fn set_cell(&mut self, idx: usize, cell: Cell, seqno: SequenceNo) {
+        self.set_cell_impl(idx, cell, false, seqno);
     }
 
     pub fn set_cell_clearing_image_placements(
@@ -663,25 +656,16 @@ impl Line {
         idx: usize,
         cell: Cell,
         seqno: SequenceNo,
-    ) -> &Cell {
+    ) {
         self.set_cell_impl(idx, cell, true, seqno)
     }
 
-    fn raw_set_cell(&mut self, idx: usize, mut cell: Cell, clear: bool) {
+    fn raw_set_cell(&mut self, idx: usize, cell: Cell, clear: bool) {
         let cells = self.coerce_vec_storage();
-        if !clear {
-            if let Some(images) = cells[idx].attrs().images() {
-                for image in images {
-                    if image.has_placement_id() {
-                        cell.attrs_mut().attach_image(Box::new(image));
-                    }
-                }
-            }
-        }
-        cells[idx] = cell;
+        cells.set_cell(idx, cell, clear);
     }
 
-    fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool, seqno: SequenceNo) -> &Cell {
+    fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool, seqno: SequenceNo) {
         // The .max(1) stuff is here in case we get called with a
         // zero-width cell.  That shouldn't happen: those sequences
         // should get filtered out in the terminal parsing layer,
@@ -689,6 +673,39 @@ impl Line {
         // we grow the cells array to hold this bogus entry.
         // https://github.com/wez/wezterm/issues/768
         let width = cell.width().max(1);
+
+        self.invalidate_implicit_hyperlinks(seqno);
+        self.invalidate_zones();
+        self.update_last_change_seqno(seqno);
+        if cell.attrs().hyperlink().is_some() {
+            self.bits |= LineBits::HAS_HYPERLINK;
+        }
+
+        if let CellStorage::C(cl) = &mut self.cells {
+            if idx == cl.len {
+                cl.append(cell);
+                return;
+            }
+            if idx > cl.len
+                && cell.str() == " "
+                && cl
+                    .clusters
+                    .last()
+                    .map(|c| c.attrs == *cell.attrs())
+                    .unwrap_or_else(|| *cell.attrs() == CellAttributes::default())
+            {
+                // Appending blank beyond end of line; is already
+                // implicitly blank
+                return;
+            }
+            /*
+            log::info!(
+                "cannot append {cell:?} to {:?} as idx={idx} and cl.len is {}",
+                cl,
+                cl.len
+            );
+            */
+        }
 
         // if the line isn't wide enough, pad it out with the default attributes.
         {
@@ -698,12 +715,6 @@ impl Line {
             }
         }
 
-        self.invalidate_implicit_hyperlinks(seqno);
-        self.invalidate_zones();
-        self.update_last_change_seqno(seqno);
-        if cell.attrs().hyperlink().is_some() {
-            self.bits |= LineBits::HAS_HYPERLINK;
-        }
         self.invalidate_grapheme_at_or_before(idx);
 
         // For double-wide or wider chars, ensure that the cells that
@@ -713,7 +724,6 @@ impl Line {
         }
 
         self.raw_set_cell(idx, cell, clear);
-        &self.cells_mut()[idx]
     }
 
     /// Place text starting at the specified column index.
@@ -827,6 +837,13 @@ impl Line {
     }
 
     pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
+        if let CellStorage::C(cl) = &self.cells {
+            if !cl.text.ends_with(' ') {
+                // There are no trailing blanks
+                return;
+            }
+        }
+
         let def_attr = CellAttributes::blank();
         let cells = self.coerce_vec_storage();
         if let Some(end_idx) = cells
@@ -887,10 +904,10 @@ impl Line {
             CellStorage::V(_) => return,
             CellStorage::C(cl) => cl.to_cell_vec(),
         };
-        self.cells = CellStorage::V(cells);
+        self.cells = CellStorage::V(VecStorage::new(cells));
     }
 
-    fn coerce_vec_storage(&mut self) -> &mut Vec<Cell> {
+    fn coerce_vec_storage(&mut self) -> &mut VecStorage {
         self.make_cells();
 
         match &mut self.cells {
@@ -924,8 +941,7 @@ impl Line {
     /// indicating that the following line is logically a part of this one.
     pub fn last_cell_was_wrapped(&self) -> bool {
         self.visible_cells()
-            .rev()
-            .next()
+            .last()
             .map(|c| c.attrs().wrapped())
             .unwrap_or(false)
     }
@@ -933,10 +949,17 @@ impl Line {
     /// Adjust the value of the wrapped attribute on the last cell of this
     /// line.
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool, seqno: SequenceNo) {
+        self.update_last_change_seqno(seqno);
+        if let CellStorage::C(cl) = &mut self.cells {
+            if cl.len() > 0 {
+                cl.set_last_cell_was_wrapped(wrapped);
+                return;
+            }
+        }
+
         let cells = self.coerce_vec_storage();
         if let Some(cell) = cells.last_mut() {
             cell.attrs_mut().set_wrapped(wrapped);
-            self.update_last_change_seqno(seqno);
         }
     }
 
@@ -1027,6 +1050,79 @@ impl Line {
     }
 }
 
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+struct VecStorage {
+    cells: Vec<Cell>,
+}
+
+impl VecStorage {
+    fn new(cells: Vec<Cell>) -> Self {
+        Self { cells }
+    }
+
+    fn set_cell(&mut self, idx: usize, mut cell: Cell, clear_image_placement: bool) {
+        if !clear_image_placement {
+            if let Some(images) = self.cells[idx].attrs().images() {
+                for image in images {
+                    if image.has_placement_id() {
+                        cell.attrs_mut().attach_image(Box::new(image));
+                    }
+                }
+            }
+        }
+        self.cells[idx] = cell;
+    }
+
+    fn scan_and_create_hyperlinks(
+        &mut self,
+        line: &str,
+        matches: Vec<crate::hyperlink::RuleMatch>,
+    ) -> bool {
+        // The capture range is measured in bytes but we need to translate
+        // that to the index of the column.  This is complicated a bit further
+        // because double wide sequences have a blank column cell after them
+        // in the cells array, but the string we match against excludes that
+        // string.
+        let mut cell_idx = 0;
+        let mut has_implicit_hyperlinks = false;
+        for (byte_idx, _grapheme) in line.grapheme_indices(true) {
+            let cell = &mut self.cells[cell_idx];
+            let mut matched = false;
+            for m in &matches {
+                if m.range.contains(&byte_idx) {
+                    let attrs = cell.attrs_mut();
+                    // Don't replace existing links
+                    if attrs.hyperlink().is_none() {
+                        attrs.set_hyperlink(Some(Arc::clone(&m.link)));
+                        matched = true;
+                    }
+                }
+            }
+            cell_idx += cell.width();
+            if matched {
+                has_implicit_hyperlinks = true;
+            }
+        }
+
+        has_implicit_hyperlinks
+    }
+}
+
+impl std::ops::Deref for VecStorage {
+    type Target = Vec<Cell>;
+
+    fn deref(&self) -> &Vec<Cell> {
+        &self.cells
+    }
+}
+
+impl std::ops::DerefMut for VecStorage {
+    fn deref_mut(&mut self) -> &mut Vec<Cell> {
+        &mut self.cells
+    }
+}
+
 impl<'a> From<&'a str> for Line {
     fn from(s: &str) -> Line {
         Line::from_text(s, &CellAttributes::default(), SEQ_ZERO, None)
@@ -1102,6 +1198,7 @@ impl<'a> DoubleEndedIterator for VisibleCellIter<'a> {
     }
 }
 
+#[derive(Debug)]
 pub enum CellRef<'a> {
     CellRef {
         cell_index: usize,
@@ -1175,7 +1272,7 @@ struct Cluster {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 struct ClusteredLine {
     text: String,
     #[cfg_attr(
@@ -1314,6 +1411,66 @@ impl ClusteredLine {
             idx: 0,
             cluster_total: 0,
             line: self,
+        }
+    }
+
+    fn append(&mut self, cell: Cell) {
+        let new_cluster = match self.clusters.last() {
+            Some(cluster) => cluster.attrs != *cell.attrs(),
+            None => true,
+        };
+        let new_cell_index = self.len;
+        let cell_width = cell.width();
+        if new_cluster {
+            self.clusters.push(Cluster {
+                attrs: (*cell.attrs()).clone(),
+                cell_width,
+            });
+        } else if let Some(cluster) = self.clusters.last_mut() {
+            cluster.cell_width += cell_width;
+        }
+        self.text.push_str(cell.str());
+
+        if cell_width > 1 {
+            let bitset = match self.is_double_wide.take() {
+                Some(mut bitset) => {
+                    bitset.grow(new_cell_index + 1);
+                    bitset.set(new_cell_index, true);
+                    bitset
+                }
+                None => {
+                    let mut bitset = FixedBitSet::with_capacity(new_cell_index + 1);
+                    bitset.set(new_cell_index, true);
+                    bitset
+                }
+            };
+            self.is_double_wide.replace(bitset);
+        }
+
+        self.len += cell_width;
+    }
+
+    fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
+        if let Some(last_cell) = self.iter().last() {
+            if last_cell.attrs().wrapped() == wrapped {
+                // Nothing to change
+                //return;
+            }
+            let mut attrs = last_cell.attrs().clone();
+            attrs.set_wrapped(wrapped);
+            let width = last_cell.width();
+
+            let last_cluster = self.clusters.last_mut().unwrap();
+            if last_cluster.cell_width == width {
+                // Re-purpose final cluster
+                last_cluster.attrs = attrs;
+            } else {
+                last_cluster.cell_width -= width;
+                self.clusters.push(Cluster {
+                    cell_width: width,
+                    attrs,
+                });
+            }
         }
     }
 }
@@ -1582,20 +1739,84 @@ C(
     }
 
     #[test]
-    fn cluster_representation_attributes() {
-        use crate::cell::Intensity;
-        let bold = {
-            let mut attr = CellAttributes::default();
-            attr.set_intensity(Intensity::Bold);
-            attr
-        };
+    fn cluster_wrap_last() {
+        let mut line: Line = "hello".into();
+        line.compress_for_scrollback();
+        line.set_last_cell_was_wrapped(true, 1);
+        k9::snapshot!(
+            line,
+            r#"
+Line {
+    cells: C(
+        ClusteredLine {
+            text: "hello",
+            is_double_wide: None,
+            clusters: [
+                Cluster {
+                    cell_width: 4,
+                    attrs: CellAttributes {
+                        attributes: 0,
+                        intensity: Normal,
+                        underline: None,
+                        blink: None,
+                        italic: false,
+                        reverse: false,
+                        strikethrough: false,
+                        invisible: false,
+                        wrapped: false,
+                        overline: false,
+                        semantic_type: Output,
+                        foreground: Default,
+                        background: Default,
+                        fat: None,
+                    },
+                },
+                Cluster {
+                    cell_width: 1,
+                    attrs: CellAttributes {
+                        attributes: 2048,
+                        intensity: Normal,
+                        underline: None,
+                        blink: None,
+                        italic: false,
+                        reverse: false,
+                        strikethrough: false,
+                        invisible: false,
+                        wrapped: true,
+                        overline: false,
+                        semantic_type: Output,
+                        foreground: Default,
+                        background: Default,
+                        fat: None,
+                    },
+                },
+            ],
+            len: 5,
+        },
+    ),
+    zones: [],
+    seqno: 1,
+    bits: NONE,
+}
+"#
+        );
+    }
 
+    fn bold() -> CellAttributes {
+        use crate::cell::Intensity;
+        let mut attr = CellAttributes::default();
+        attr.set_intensity(Intensity::Bold);
+        attr
+    }
+
+    #[test]
+    fn cluster_representation_attributes() {
         let line = Line::from_cells(
             vec![
                 Cell::new_grapheme("a", CellAttributes::default(), None),
-                Cell::new_grapheme("b", bold.clone(), None),
+                Cell::new_grapheme("b", bold(), None),
                 Cell::new_grapheme("c", CellAttributes::default(), None),
-                Cell::new_grapheme("d", bold.clone(), None),
+                Cell::new_grapheme("d", bold(), None),
             ],
             SEQ_ZERO,
         );
@@ -1694,5 +1915,186 @@ C(
         );
         compressed.coerce_vec_storage();
         assert_eq!(line, compressed);
+    }
+
+    #[test]
+    fn cluster_append() {
+        let mut cl = ClusteredLine::default();
+        cl.append(Cell::new_grapheme("h", CellAttributes::default(), None));
+        cl.append(Cell::new_grapheme("e", CellAttributes::default(), None));
+        cl.append(Cell::new_grapheme("l", bold(), None));
+        cl.append(Cell::new_grapheme("l", CellAttributes::default(), None));
+        cl.append(Cell::new_grapheme("o", CellAttributes::default(), None));
+        k9::snapshot!(
+            cl,
+            r#"
+ClusteredLine {
+    text: "hello",
+    is_double_wide: None,
+    clusters: [
+        Cluster {
+            cell_width: 2,
+            attrs: CellAttributes {
+                attributes: 0,
+                intensity: Normal,
+                underline: None,
+                blink: None,
+                italic: false,
+                reverse: false,
+                strikethrough: false,
+                invisible: false,
+                wrapped: false,
+                overline: false,
+                semantic_type: Output,
+                foreground: Default,
+                background: Default,
+                fat: None,
+            },
+        },
+        Cluster {
+            cell_width: 1,
+            attrs: CellAttributes {
+                attributes: 1,
+                intensity: Bold,
+                underline: None,
+                blink: None,
+                italic: false,
+                reverse: false,
+                strikethrough: false,
+                invisible: false,
+                wrapped: false,
+                overline: false,
+                semantic_type: Output,
+                foreground: Default,
+                background: Default,
+                fat: None,
+            },
+        },
+        Cluster {
+            cell_width: 2,
+            attrs: CellAttributes {
+                attributes: 0,
+                intensity: Normal,
+                underline: None,
+                blink: None,
+                italic: false,
+                reverse: false,
+                strikethrough: false,
+                invisible: false,
+                wrapped: false,
+                overline: false,
+                semantic_type: Output,
+                foreground: Default,
+                background: Default,
+                fat: None,
+            },
+        },
+    ],
+    len: 5,
+}
+"#
+        );
+    }
+
+    #[test]
+    fn cluster_line_new() {
+        let mut line = Line::new(1);
+        line.set_cell(
+            0,
+            Cell::new_grapheme("h", CellAttributes::default(), None),
+            1,
+        );
+        line.set_cell(
+            1,
+            Cell::new_grapheme("e", CellAttributes::default(), None),
+            2,
+        );
+        line.set_cell(2, Cell::new_grapheme("l", bold(), None), 3);
+        line.set_cell(
+            3,
+            Cell::new_grapheme("l", CellAttributes::default(), None),
+            4,
+        );
+        line.set_cell(
+            4,
+            Cell::new_grapheme("o", CellAttributes::default(), None),
+            5,
+        );
+        k9::snapshot!(
+            line,
+            r#"
+Line {
+    cells: C(
+        ClusteredLine {
+            text: "hello",
+            is_double_wide: None,
+            clusters: [
+                Cluster {
+                    cell_width: 2,
+                    attrs: CellAttributes {
+                        attributes: 0,
+                        intensity: Normal,
+                        underline: None,
+                        blink: None,
+                        italic: false,
+                        reverse: false,
+                        strikethrough: false,
+                        invisible: false,
+                        wrapped: false,
+                        overline: false,
+                        semantic_type: Output,
+                        foreground: Default,
+                        background: Default,
+                        fat: None,
+                    },
+                },
+                Cluster {
+                    cell_width: 1,
+                    attrs: CellAttributes {
+                        attributes: 1,
+                        intensity: Bold,
+                        underline: None,
+                        blink: None,
+                        italic: false,
+                        reverse: false,
+                        strikethrough: false,
+                        invisible: false,
+                        wrapped: false,
+                        overline: false,
+                        semantic_type: Output,
+                        foreground: Default,
+                        background: Default,
+                        fat: None,
+                    },
+                },
+                Cluster {
+                    cell_width: 2,
+                    attrs: CellAttributes {
+                        attributes: 0,
+                        intensity: Normal,
+                        underline: None,
+                        blink: None,
+                        italic: false,
+                        reverse: false,
+                        strikethrough: false,
+                        invisible: false,
+                        wrapped: false,
+                        overline: false,
+                        semantic_type: Output,
+                        foreground: Default,
+                        background: Default,
+                        fat: None,
+                    },
+                },
+            ],
+            len: 5,
+        },
+    ),
+    zones: [],
+    seqno: 5,
+    bits: NONE,
+}
+"#
+        );
     }
 }

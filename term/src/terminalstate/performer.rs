@@ -136,12 +136,10 @@ impl<'a> Performer<'a> {
                 // so that we can correctly reflow it if the window is
                 // resized.
                 {
-                    let x = self.cursor.x;
                     let y = self.cursor.y;
                     let screen = self.screen_mut();
-                    if let Some(cell) = screen.cell_mut(x, y) {
-                        cell.attrs_mut().set_wrapped(true);
-                    }
+                    let y = screen.phys_row(y);
+                    screen.line_mut(y).set_last_cell_was_wrapped(true, seqno);
                 }
                 self.new_line(true);
             }

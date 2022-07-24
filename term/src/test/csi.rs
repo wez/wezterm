@@ -1,5 +1,4 @@
 use super::*;
-use termwiz::color::AnsiColor;
 
 /// In this issue, the `CSI 2 P` sequence incorrectly removed two
 /// cells from the line, leaving them effectively blank, when those
@@ -10,21 +9,199 @@ fn test_789() {
     let mut term = TestTerm::new(1, 8, 0);
     term.print("\x1b[40m\x1b[Kfoo\x1b[2P");
 
-    let black = CellAttributes::default()
-        .set_background(AnsiColor::Black)
-        .clone();
-    let mut line = Line::from_text("foo", &black, SEQ_ZERO, None);
-    line.resize(8, 0);
-    for x in 3..8 {
-        line.set_cell(x, Cell::blank_with_attrs(black.clone()), 0);
-    }
-
-    assert_lines_equal(
-        file!(),
-        line!(),
-        &term.screen().visible_lines(),
-        &[line],
-        Compare::TEXT | Compare::ATTRS,
+    k9::snapshot!(
+        term.screen().visible_lines(),
+        r#"
+[
+    Line {
+        cells: V(
+            VecStorage {
+                cells: [
+                    Cell {
+                        text: "f",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: "o",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: "o",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: " ",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: " ",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: " ",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: " ",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                    Cell {
+                        text: " ",
+                        width: 1,
+                        attrs: CellAttributes {
+                            attributes: 0,
+                            intensity: Normal,
+                            underline: None,
+                            blink: None,
+                            italic: false,
+                            reverse: false,
+                            strikethrough: false,
+                            invisible: false,
+                            wrapped: false,
+                            overline: false,
+                            semantic_type: Output,
+                            foreground: Default,
+                            background: PaletteIndex(
+                                0,
+                            ),
+                            fat: None,
+                        },
+                    },
+                ],
+            },
+        ),
+        zones: [],
+        seqno: 5,
+        bits: NONE,
+    },
+]
+"#
     );
 }
 
@@ -53,7 +230,7 @@ fn test_rep() {
     term.print("h");
     term.cup(1, 0);
     term.print("\x1b[2ba");
-    assert_visible_contents(&term, file!(), line!(), &["hhha", "    ", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hhha", "", ""]);
 }
 
 #[test]
@@ -62,12 +239,7 @@ fn test_irm() {
     term.print("foo");
     term.cup(0, 0);
     term.print("\x1b[4hBAR");
-    assert_visible_contents(
-        &term,
-        file!(),
-        line!(),
-        &["BARfoo  ", "        ", "        "],
-    );
+    assert_visible_contents(&term, file!(), line!(), &["BARfoo", "", ""]);
 }
 
 #[test]
@@ -76,12 +248,12 @@ fn test_ich() {
     term.print("hey!wat?");
     term.cup(1, 0);
     term.print("\x1b[2@");
-    assert_visible_contents(&term, file!(), line!(), &["h  e", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h  e", "wat?", ""]);
     // check how we handle overflowing the width
     term.print("\x1b[12@");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
     term.print("\x1b[-12@");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
 }
 
 #[test]
@@ -90,12 +262,12 @@ fn test_ech() {
     term.print("hey!wat?");
     term.cup(1, 0);
     term.print("\x1b[2X");
-    assert_visible_contents(&term, file!(), line!(), &["h  !", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h  !", "wat?", ""]);
     // check how we handle overflowing the width
     term.print("\x1b[12X");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
     term.print("\x1b[-12X");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
 }
 
 #[test]
@@ -104,14 +276,14 @@ fn test_dch() {
     term.print("hello world");
     term.cup(1, 0);
     term.print("\x1b[P");
-    assert_visible_contents(&term, file!(), line!(), &["hllo world  "]);
+    assert_visible_contents(&term, file!(), line!(), &["hllo world"]);
 
     term.cup(4, 0);
     term.print("\x1b[2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld"]);
 
     term.print("\x1b[-2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld"]);
 }
 
 #[test]
@@ -151,11 +323,11 @@ fn test_dl() {
     term.cup(0, 1);
     let seqno = term.current_seqno();
     term.delete_lines(1);
-    assert_visible_contents(&term, file!(), line!(), &["a", "c", " "]);
+    assert_visible_contents(&term, file!(), line!(), &["a", "c", ""]);
     term.assert_cursor_pos(0, 1, None, Some(seqno));
     term.cup(0, 0);
     term.delete_lines(2);
-    assert_visible_contents(&term, file!(), line!(), &[" ", " ", " "]);
+    assert_visible_contents(&term, file!(), line!(), &["", "", ""]);
     term.print("1\r\n2\r\n3");
     term.cup(0, 1);
     term.delete_lines(-2);
@@ -218,7 +390,7 @@ fn test_ed() {
 fn test_ed_erase_scrollback() {
     let mut term = TestTerm::new(3, 3, 3);
     term.print("abc\r\ndef\r\nghi\r\n111\r\n222\r\na\x1b[3J");
-    assert_all_contents(&term, file!(), line!(), &["111", "222", "a  "]);
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "a"]);
     term.print("b");
-    assert_all_contents(&term, file!(), line!(), &["111", "222", "ab "]);
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "ab"]);
 }

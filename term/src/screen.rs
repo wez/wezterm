@@ -69,7 +69,7 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            let mut line = Line::with_width(physical_cols, seqno);
+            let mut line = Line::new(seqno);
             bidi_mode.apply_to_line(&mut line, seqno);
             lines.push_back(line);
         }
@@ -237,8 +237,7 @@ impl Screen {
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
             // FIXME: borrow bidi mode from line
-            self.lines
-                .push_back(Line::with_width(self.physical_cols, seqno));
+            self.lines.push_back(Line::new(seqno));
         }
 
         let new_cursor_y;
@@ -282,8 +281,7 @@ impl Screen {
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
                 // FIXME: borrow bidi mode from line
-                self.lines
-                    .push_back(Line::with_width(self.physical_cols, seqno));
+                self.lines.push_back(Line::new(seqno));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse
@@ -380,18 +378,12 @@ impl Screen {
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
-    pub fn set_cell(
-        &mut self,
-        x: usize,
-        y: VisibleRowIndex,
-        cell: &Cell,
-        seqno: SequenceNo,
-    ) -> &Cell {
+    pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, cell: &Cell, seqno: SequenceNo) {
         let line_idx = self.phys_row(y);
         //debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
 
         let line = self.line_mut(line_idx);
-        line.set_cell(x, cell.clone(), seqno)
+        line.set_cell(x, cell.clone(), seqno);
     }
 
     pub fn cell_mut(&mut self, x: usize, y: VisibleRowIndex) -> Option<&mut Cell> {
@@ -657,15 +649,21 @@ impl Screen {
             phys_scroll.start
         };
 
+        let default_blank = CellAttributes::blank();
         // To avoid thrashing the heap, prefer to move lines that were
         // scrolled off the top and re-use them at the bottom.
         let to_move = lines_removed.min(num_rows);
         let (to_remove, to_add) = {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
-                // Make the line like a new one of the appropriate width
-                line.resize_and_clear(self.physical_cols, seqno, blank_attr.clone());
-                line.update_last_change_seqno(seqno);
+                let line = if default_blank == blank_attr {
+                    Line::new(seqno)
+                } else {
+                    // Make the line like a new one of the appropriate width
+                    line.resize_and_clear(self.physical_cols, seqno, blank_attr.clone());
+                    line.update_last_change_seqno(seqno);
+                    line
+                };
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
                 } else {
@@ -689,11 +687,15 @@ impl Screen {
         // It's cheaper to push() than it is insert() at the end
         let push = scroll_region.end as usize == self.physical_rows;
         for _ in 0..to_add {
-            let mut line = Line::with_width_and_cell(
-                self.physical_cols,
-                Cell::blank_with_attrs(blank_attr.clone()),
-                seqno,
-            );
+            let mut line = if default_blank == blank_attr {
+                Line::new(seqno)
+            } else {
+                Line::with_width_and_cell(
+                    self.physical_cols,
+                    Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
+                )
+            };
             bidi_mode.apply_to_line(&mut line, seqno);
             if push {
                 self.lines.push_back(line);
@@ -747,12 +749,18 @@ impl Screen {
             self.lines.remove(middle);
         }
 
+        let default_blank = CellAttributes::blank();
+
         for _ in 0..num_rows {
-            let mut line = Line::with_width_and_cell(
-                self.physical_cols,
-                Cell::blank_with_attrs(blank_attr.clone()),
-                seqno,
-            );
+            let mut line = if blank_attr == default_blank {
+                Line::new(seqno)
+            } else {
+                Line::with_width_and_cell(
+                    self.physical_cols,
+                    Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
+                )
+            };
             bidi_mode.apply_to_line(&mut line, seqno);
             self.lines.insert(phys_scroll.start, line);
         }
