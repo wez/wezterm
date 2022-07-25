@@ -71,6 +71,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11/Wayland: apps that extract the `Exec` field from wezterm.desktop (such as thunar, Dolphin and others) can now simply concatenate the command line they want to invoke, and it will spawn in the their current working directory. Thanks to [@Anomalocaridid](https://github.com/Anomalocaridid)! [#2271](https://github.com/wez/wezterm/pull/2271) [#2103](https://github.com/wez/wezterm/issues/2103) 
 * [gui-startup](config/lua/gui-events/gui-startup.md) now passes a [SpawnCommand](config/lua/SpawnCommand.md) parameter representing the `wezterm start` command arguments.
 * Tab `x` button is no longer obscured by tab title text for long tab titles [#2269](https://github.com/wez/wezterm/issues/2269)
+* Cursor position could end up in the wrong place when rewrapping lines and the cursor was on the rewrap boundary [#2162](https://github.com/wez/wezterm/issues/2162)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
