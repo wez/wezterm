@@ -700,7 +700,9 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
         };
     }
     let lib = crate::ftwrap::Library::new()?;
-    for (data, name) in &[
+
+    #[cfg(any(test, feature = "vendored-fonts"))]
+    let fonts = &[
         font!("../../assets/fonts/JetBrainsMono-BoldItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Bold.ttf"),
         font!("../../assets/fonts/JetBrainsMono-ExtraBoldItalic.ttf"),
@@ -730,7 +732,13 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
         font!("../../assets/fonts/NotoColorEmoji.ttf"),
         font!("../../assets/fonts/Symbols-Nerd-Font-Mono.ttf"),
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
-    ] {
+    ];
+    #[cfg(not(any(test, feature = "vendored-fonts")))]
+    let fonts = &[
+        font!("../../assets/fonts/LastResortHE-Regular.ttf"),
+    ];
+
+    for (data, name) in fonts {
         let locator = FontDataHandle {
             source: FontDataSource::BuiltIn { data, name },
             index: 0,

@@ -9,9 +9,10 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["wayland"]
+default = ["vendored-fonts", "wayland"]
 wayland = ["window/wayland"]
 distro-defaults = ["config/distro-defaults"]
+vendored-fonts = ["wezterm-font/vendored-fonts"]
 
 [build-dependencies]
 anyhow = "1.0"
