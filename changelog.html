@@ -210,6 +210,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>X11/Wayland: apps that extract the <code>Exec</code> field from wezterm.desktop (such as thunar, Dolphin and others) can now simply concatenate the command line they want to invoke, and it will spawn in the their current working directory. Thanks to <a href="https://github.com/Anomalocaridid">@Anomalocaridid</a>! <a href="https://github.com/wez/wezterm/pull/2271">#2271</a> <a href="https://github.com/wez/wezterm/issues/2103">#2103</a> </li>
 <li><a href="config/lua/gui-events/gui-startup.html">gui-startup</a> now passes a <a href="config/lua/SpawnCommand.html">SpawnCommand</a> parameter representing the <code>wezterm start</code> command arguments.</li>
 <li>Tab <code>x</code> button is no longer obscured by tab title text for long tab titles <a href="https://github.com/wez/wezterm/issues/2269">#2269</a></li>
+<li>Cursor position could end up in the wrong place when rewrapping lines and the cursor was on the rewrap boundary <a href="https://github.com/wez/wezterm/issues/2162">#2162</a></li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
