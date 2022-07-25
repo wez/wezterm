@@ -106,8 +106,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "alpine3.14"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.apk ; do sha256sum $f > $f.sha256 ; done"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.apk"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.apk *.sha256"

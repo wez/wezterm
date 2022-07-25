@@ -119,8 +119,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "centos7"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"

@@ -85,6 +85,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "fedora35"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,4 +97,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm *.sha256"

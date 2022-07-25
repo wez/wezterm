@@ -499,6 +499,12 @@ cargo build --all --release""",
         steps = []
 
         patterns = self.asset_patterns()
+        checksum = RunStep(
+            "Checksum",
+            f"for f in {' '.join(patterns)} ; do sha256sum $f > $f.sha256 ; done",
+        )
+
+        patterns.append("*.sha256")
         glob = " ".join(patterns)
 
         return steps + [
@@ -507,6 +513,7 @@ cargo build --all --release""",
                 action="actions/download-artifact@v3",
                 params={"name": self.name},
             ),
+            checksum,
             RunStep(
                 "Upload to Nightly Release",
                 f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
@@ -518,6 +525,12 @@ cargo build --all --release""",
         steps = []
 
         patterns = self.asset_patterns()
+        checksum = RunStep(
+            "Checksum",
+            f"for f in {' '.join(patterns)} ; do sha256sum $f > $f.sha256 ; done",
+        )
+
+        patterns.append("*.sha256")
         glob = " ".join(patterns)
 
         return steps + [
@@ -526,6 +539,7 @@ cargo build --all --release""",
                 action="actions/download-artifact@v3",
                 params={"name": self.name},
             ),
+            checksum,
             RunStep(
                 "Create pre-release",
                 "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)",

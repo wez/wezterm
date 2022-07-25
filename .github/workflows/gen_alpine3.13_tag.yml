@@ -98,6 +98,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "alpine3.13"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in wezterm-*.apk *.pub ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,4 +110,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.apk *.pub"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.apk *.pub *.sha256"

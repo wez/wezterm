@@ -83,8 +83,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "macos"
+      - name: "Checksum"
+        shell: bash
+        run: "for f in WezTerm-*.zip ; do sha256sum $f > $f.sha256 ; done"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly WezTerm-*.zip"
+        run: "bash ci/retry.sh gh release upload --clobber nightly WezTerm-*.zip *.sha256"
