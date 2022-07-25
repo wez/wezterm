@@ -16,6 +16,7 @@ gl_generator = "0.14"
 
 [features]
 wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
+system-libs = ["xcb-imdkit/use-system-lib"]
 
 [dependencies]
 async-channel = "1.6"
