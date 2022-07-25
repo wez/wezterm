@@ -95,13 +95,15 @@ fn lua_value_to_dynamic_impl(
     value: LuaValue,
     visited: &mut HashSet<usize>,
 ) -> mlua::Result<DynValue> {
-    let ptr = value.to_pointer() as usize;
-    if visited.contains(&ptr) {
-        // Skip this one, as we've seen it before.
-        // Treat it as a Null value.
-        return Ok(DynValue::Null);
+    if let LuaValue::Table(_) = &value {
+        let ptr = value.to_pointer() as usize;
+        if visited.contains(&ptr) {
+            // Skip this one, as we've seen it before.
+            // Treat it as a Null value.
+            return Ok(DynValue::Null);
+        }
+        visited.insert(ptr);
     }
-    visited.insert(ptr);
     Ok(match value {
         LuaValue::Nil => DynValue::Null,
         LuaValue::String(s) => DynValue::String(s.to_str()?.to_string()),

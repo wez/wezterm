@@ -52,13 +52,15 @@ fn json_parse<'lua>(lua: &'lua Lua, text: String) -> mlua::Result<LuaValue> {
 }
 
 fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlua::Result<JValue> {
-    let ptr = value.to_pointer() as usize;
-    if visited.contains(&ptr) {
-        // Skip this one, as we've seen it before.
-        // Treat it as a Null value.
-        return Ok(JValue::Null);
+    if let LuaValue::Table(_) = &value {
+        let ptr = value.to_pointer() as usize;
+        if visited.contains(&ptr) {
+            // Skip this one, as we've seen it before.
+            // Treat it as a Null value.
+            return Ok(JValue::Null);
+        }
+        visited.insert(ptr);
     }
-    visited.insert(ptr);
     Ok(match value {
         LuaValue::Nil => JValue::Null,
         LuaValue::String(s) => JValue::String(s.to_str()?.to_string()),
