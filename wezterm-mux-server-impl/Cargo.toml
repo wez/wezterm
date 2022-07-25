@@ -6,6 +6,9 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+system-libs = ["codec/system-libs"]
+
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }

@@ -7,6 +7,9 @@ resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+system-libs = ["wezterm-mux-server-impl/system-libs"]
+
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }

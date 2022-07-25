@@ -12,7 +12,7 @@ resolver = "2"
 default = ["wayland"]
 wayland = ["window/wayland"]
 distro-defaults = ["config/distro-defaults"]
-system-libs = ["window/system-libs"]
+system-libs = ["codec/system-libs", "window/system-libs"]
 
 [build-dependencies]
 anyhow = "1.0"
