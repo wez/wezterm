@@ -105,7 +105,7 @@ impl Screen {
         let mut rewrapped = VecDeque::new();
         let mut logical_line: Option<Line> = None;
         let mut logical_cursor_x: Option<usize> = None;
-        let mut adjusted_cursor = (cursor_y, cursor_y);
+        let mut adjusted_cursor = (cursor_x, cursor_y);
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
             line.update_last_change_seqno(seqno);
@@ -140,6 +140,25 @@ impl Screen {
                 let num_lines = x / physical_cols;
                 let last_x = x - (num_lines * physical_cols);
                 adjusted_cursor = (last_x, rewrapped.len() + num_lines);
+
+                // Special case: if the cursor lands in column zero, we'll
+                // lose track of its logical association with the wrapped
+                // line and it won't resize with the line correctly.
+                // Put it back on the prior line. The cursor is now
+                // technically outside of the viewport width.
+                if adjusted_cursor.0 == 0 && adjusted_cursor.1 > 0 {
+                    if physical_cols < self.physical_cols {
+                        // getting smaller: preserve its original position
+                        // on the prior line
+                        adjusted_cursor.0 = cursor_x;
+                    } else {
+                        // getting larger; we were most likely in column 1
+                        // or somewhere close. Jump to the end of the
+                        // prior line.
+                        adjusted_cursor.0 = physical_cols;
+                    }
+                    adjusted_cursor.1 -= 1;
+                }
             }
 
             if line.len() <= physical_cols {

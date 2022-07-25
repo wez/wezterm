@@ -756,6 +756,162 @@ fn test_dec_double_width() {
     assert!(lines[3].is_single_width());
 }
 
+/// This test skips over an edge case with cursor positioning,
+/// while sizing down, but tries to trip over the same edge
+/// case while sizing back up again
+#[test]
+fn test_resize_2162_by_2_then_up_1() {
+    let num_lines = 4;
+    let num_cols = 20;
+
+    let mut term = TestTerm::new(num_lines, num_cols, 0);
+    term.print("some long long text");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    term.assert_cursor_pos(19, 0, None, Some(0));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols - 2,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long tex", "t", "", ""],
+    );
+    eprintln!("check cursor pos 2");
+    term.assert_cursor_pos(1, 1, None, Some(5));
+    term.resize(TerminalSize {
+        rows: num_lines - 1,
+        cols: num_cols,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(&term, file!(), line!(), &["some long long text", "", ""]);
+    eprintln!("check cursor pos 3");
+    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    eprintln!("check cursor pos 3");
+    term.assert_cursor_pos(19, 0, None, Some(5));
+}
+
+/// This test skips over an edge case with cursor positioning,
+/// so it passes even ahead of a fix for issue 2162.
+#[test]
+fn test_resize_2162_by_2() {
+    let num_lines = 4;
+    let num_cols = 20;
+
+    let mut term = TestTerm::new(num_lines, num_cols, 0);
+    term.print("some long long text");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    term.assert_cursor_pos(19, 0, None, Some(0));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols - 2,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long tex", "t", "", ""],
+    );
+    eprintln!("check cursor pos 2");
+    term.assert_cursor_pos(1, 1, None, Some(5));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    eprintln!("check cursor pos 3");
+    term.assert_cursor_pos(19, 0, None, Some(5));
+}
+
+/// This case tickles an edge case where the cursor ends
+/// up drifting away from where the line wraps and ends up
+/// in the wrong place
+#[test]
+fn test_resize_2162() {
+    let num_lines = 4;
+    let num_cols = 20;
+
+    let mut term = TestTerm::new(num_lines, num_cols, 0);
+    term.print("some long long text");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    term.assert_cursor_pos(19, 0, None, Some(0));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols - 1,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    eprintln!("check cursor pos 2");
+    term.assert_cursor_pos(19, 0, None, Some(5));
+    term.resize(TerminalSize {
+        rows: num_lines,
+        cols: num_cols,
+        pixel_width: 0,
+        pixel_height: 0,
+        dpi: 0,
+    });
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["some long long text", "", "", ""],
+    );
+    eprintln!("check cursor pos 3");
+    term.assert_cursor_pos(19, 0, None, Some(5));
+}
+
 /// Test the behavior of wrapped lines when we resize the terminal
 /// wider and then narrower.
 #[test]

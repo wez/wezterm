@@ -298,7 +298,7 @@ fn test_cup() {
     term.cup(-1, -1);
     term.assert_cursor_pos(0, 0, None, None);
     term.cup(500, 500);
-    term.assert_cursor_pos(3, 2, None, None);
+    term.assert_cursor_pos(4, 2, None, None);
 }
 
 #[test]
@@ -313,7 +313,7 @@ fn test_hvp() {
     term.hvp(-1, -1);
     term.assert_cursor_pos(0, 0, None, None);
     term.hvp(500, 500);
-    term.assert_cursor_pos(3, 2, None, None);
+    term.assert_cursor_pos(4, 2, None, None);
 }
 
 #[test]
@@ -354,7 +354,7 @@ fn test_cha() {
     term.assert_cursor_pos(0, 1, None, Some(seqno));
 
     term.print("\x1b[100G");
-    term.assert_cursor_pos(3, 1, None, None);
+    term.assert_cursor_pos(4, 1, None, None);
 }
 
 #[test]
