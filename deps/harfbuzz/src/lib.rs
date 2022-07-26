@@ -85,6 +85,9 @@ extern "C" {
 extern "C" {
     pub fn hb_language_get_default() -> hb_language_t;
 }
+extern "C" {
+    pub fn hb_language_matches(language: hb_language_t, specific: hb_language_t) -> hb_bool_t;
+}
 impl hb_script_t {
     pub const _HB_SCRIPT_MAX_VALUE_SIGNED: hb_script_t = hb_script_t::_HB_SCRIPT_MAX_VALUE;
 }

@@ -76,7 +76,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Two or more panes closing at the same time could result in their containing tab hanging and being stuck with "no pane" for a title [#2304](https://github.com/wez/wezterm/issues/2304)
 
 #### Updated
-* Bundled harfbuzz to 4.4.1
+* Bundled harfbuzz to 5.0.1
 
 ### 20220624-141144-bd1b7c5d
 
