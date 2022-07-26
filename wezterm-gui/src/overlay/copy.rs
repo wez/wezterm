@@ -274,8 +274,12 @@ impl CopyRenderable {
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             promise::spawn::spawn(async move {
-                log::debug!("Searching for {pattern:?}");
-                let mut results = pane.search(pattern).await?;
+                let dims = pane.get_dimensions();
+                let range = dims.scrollback_top
+                    ..dims.scrollback_top + dims.scrollback_rows as StableRowIndex;
+                let limit = None;
+                log::debug!("Searching for {pattern:?} in {range:?}");
+                let mut results = pane.search(pattern, range, limit).await?;
                 log::debug!("Sorting {} results", results.len());
                 results.sort();
                 log::debug!("Sorted");

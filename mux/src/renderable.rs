@@ -100,6 +100,8 @@ pub fn terminal_get_logical_lines(
             logical,
             first_row: sr.start,
         });
+
+        true
     });
     result
 }

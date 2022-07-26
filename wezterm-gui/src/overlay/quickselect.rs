@@ -651,8 +651,16 @@ impl QuickSelectRenderable {
             let pane: Rc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
+            let scope = self.args.scope_lines;
+            let viewport = self.viewport;
             promise::spawn::spawn(async move {
-                let mut results = pane.search(pattern).await?;
+                let dims = pane.get_dimensions();
+                let scope = scope.unwrap_or(1000).max(dims.viewport_rows);
+                let top = viewport.unwrap_or(dims.physical_top);
+                let range = top.saturating_sub(scope as StableRowIndex)
+                    ..top + (dims.viewport_rows + scope) as StableRowIndex;
+                let limit = None;
+                let mut results = pane.search(pattern, range, limit).await?;
                 results.sort();
 
                 let pane_id = pane.pane_id();

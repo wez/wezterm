@@ -927,7 +927,7 @@ impl Screen {
         stable_range: Range<StableRowIndex>,
         mut f: F,
     ) where
-        F: FnMut(Range<StableRowIndex>, &[&Line]),
+        F: FnMut(Range<StableRowIndex>, &[&Line]) -> bool,
     {
         let mut phys_range = self.stable_range(&stable_range);
 
@@ -990,7 +990,11 @@ impl Screen {
                 break;
             }
 
-            f(logical_stable_range, &line_vec);
+            let continue_iteration = f(logical_stable_range, &line_vec);
+
+            if !continue_iteration {
+                break;
+            }
         }
     }
 }

@@ -313,13 +313,20 @@ impl Pane for ClientPane {
         Ok(())
     }
 
-    async fn search(&self, pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+    async fn search(
+        &self,
+        pattern: Pattern,
+        range: Range<StableRowIndex>,
+        limit: Option<u32>,
+    ) -> anyhow::Result<Vec<SearchResult>> {
         match self
             .client
             .client
             .search_scrollback(SearchScrollbackRequest {
                 pane_id: self.remote_pane_id,
                 pattern,
+                range,
+                limit,
             })
             .await
         {

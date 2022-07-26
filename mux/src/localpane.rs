@@ -476,7 +476,12 @@ impl Pane for LocalPane {
         term.get_semantic_zones()
     }
 
-    async fn search(&self, pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+    async fn search(
+        &self,
+        pattern: Pattern,
+        range: Range<StableRowIndex>,
+        limit: Option<u32>,
+    ) -> anyhow::Result<Vec<SearchResult>> {
         let term = self.terminal.borrow();
         let screen = term.screen();
 
@@ -498,11 +503,17 @@ impl Pane for LocalPane {
         let mut results = vec![];
         let mut uniq_matches: HashMap<String, usize> = HashMap::new();
 
-        let first_row = screen.phys_to_stable_row_index(0);
-        let all_stable = first_row..first_row + screen.scrollback_rows() as StableRowIndex;
-        screen.for_each_logical_line_in_stable_range(all_stable, |sr, lines| {
+        screen.for_each_logical_line_in_stable_range(range, |sr, lines| {
+            if let Some(limit) = limit {
+                if results.len() == limit as usize {
+                    // We've reach the limit, stop iteration.
+                    return false;
+                }
+            }
+
             if lines.is_empty() {
-                return;
+                // Nothing to do on this iteration, carry on with the next.
+                return true;
             }
             let haystack = if lines.len() == 1 {
                 lines[0].as_str()
@@ -516,7 +527,7 @@ impl Pane for LocalPane {
             let stable_idx = sr.start;
 
             if haystack.is_empty() {
-                return;
+                return true;
             }
 
             let haystack = match &pattern {
@@ -563,6 +574,9 @@ impl Pane for LocalPane {
                     }
                 }
             }
+
+            // Keep iterating
+            true
         });
 
         #[derive(Copy, Clone, Debug)]

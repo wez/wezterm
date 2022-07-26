@@ -330,6 +330,9 @@ pub struct QuickSelectArguments {
     /// Label to use in place of "copy" when `action` is set
     #[dynamic(default)]
     pub label: String,
+    /// How man lines before and how many lines after the viewport to
+    /// search to produce the quickselect results
+    pub scope_lines: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]

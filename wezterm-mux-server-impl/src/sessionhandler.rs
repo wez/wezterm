@@ -401,23 +401,33 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::SearchScrollbackRequest(SearchScrollbackRequest { pane_id, pattern }) => {
+            Pdu::SearchScrollbackRequest(SearchScrollbackRequest {
+                pane_id,
+                pattern,
+                range,
+                limit,
+            }) => {
                 use mux::pane::Pattern;
 
-                async fn do_search(pane_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
+                async fn do_search(
+                    pane_id: TabId,
+                    pattern: Pattern,
+                    range: std::ops::Range<StableRowIndex>,
+                    limit: Option<u32>,
+                ) -> anyhow::Result<Pdu> {
                     let mux = Mux::get().unwrap();
                     let pane = mux
                         .get_pane(pane_id)
                         .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
 
-                    pane.search(pattern).await.map(|results| {
+                    pane.search(pattern, range, limit).await.map(|results| {
                         Pdu::SearchScrollbackResponse(SearchScrollbackResponse { results })
                     })
                 }
 
                 spawn_into_main_thread(async move {
                     promise::spawn::spawn(async move {
-                        let result = do_search(pane_id, pattern).await;
+                        let result = do_search(pane_id, pattern, range, limit).await;
                         send_response(result);
                     })
                     .detach();

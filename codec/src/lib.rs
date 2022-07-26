@@ -416,7 +416,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 26;
+pub const CODEC_VERSION: usize = 27;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -981,6 +981,8 @@ pub struct GetLinesResponse {
 pub struct SearchScrollbackRequest {
     pub pane_id: PaneId,
     pub pattern: mux::pane::Pattern,
+    pub range: Range<StableRowIndex>,
+    pub limit: Option<u32>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
