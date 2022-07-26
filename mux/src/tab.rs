@@ -1326,10 +1326,10 @@ impl Tab {
 
         {
             let root_size = *self.size.borrow();
-            let mut active_idx = *self.active.borrow();
             let mut root = self.pane.borrow_mut();
             let mut cursor = root.take().unwrap().cursor();
             let mut pane_index = 0;
+            let mut removed_indices = vec![];
             let cell_dims = self.cell_dimensions();
 
             loop {
@@ -1348,9 +1348,7 @@ impl Tab {
                 if cursor.is_leaf() {
                     let pane = Rc::clone(cursor.leaf_mut().unwrap());
                     if f(pane_index, &pane) {
-                        if pane_index == active_idx {
-                            active_idx = pane_index.saturating_sub(1);
-                        }
+                        removed_indices.push(pane_index);
                         if Some(pane.pane_id()) == zoomed_pane {
                             // If we removed the zoomed pane, un-zoom our state!
                             self.zoomed.borrow_mut().take();
@@ -1406,13 +1404,13 @@ impl Tab {
                     }
                 }
             }
-            // Even though we try to adjust active_idx for a removed pane,
-            // we may end up with a value that is out of range in the case
-            // where two panes close in the span of the same call.
-            // We account for that and fix things up by clamping the
-            // active index to pane_index (which after the loop above
-            // now is the count of panes in this tab).
-            *self.active.borrow_mut() = active_idx.min(pane_index.saturating_sub(1));
+
+            // Figure out which pane should now be active.
+            // If panes earlier than the active pane were closed, then we
+            // need to shift the active pane down
+            let active_idx = *self.active.borrow();
+            removed_indices.retain(|&idx| idx <= active_idx);
+            *self.active.borrow_mut() = active_idx.saturating_sub(removed_indices.len());
         }
 
         if !dead_panes.is_empty() && kill {
