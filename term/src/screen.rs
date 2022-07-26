@@ -447,12 +447,23 @@ impl Screen {
         line.fill_range(cols, &Cell::blank_with_attrs(attr.clone()), seqno);
     }
 
+    /// Ensure that row is within the range of the physical portion of
+    /// the screen; 0 .. physical_rows by clamping it to the nearest
+    /// boundary.
+    #[inline]
+    fn clamp_visible_row(&self, row: VisibleRowIndex) -> VisibleRowIndex {
+        (row.max(0) as usize).min(self.physical_rows) as VisibleRowIndex
+    }
+
     /// Translate a VisibleRowIndex into a PhysRowIndex.  The resultant index
     /// will be invalidated by inserting or removing rows!
     #[inline]
     pub fn phys_row(&self, row: VisibleRowIndex) -> PhysRowIndex {
-        assert!(row >= 0, "phys_row called with negative row {}", row);
-        (self.lines.len() - self.physical_rows) + row as usize
+        let row = self.clamp_visible_row(row);
+        self.lines
+            .len()
+            .saturating_sub(self.physical_rows)
+            .saturating_add(row as PhysRowIndex)
     }
 
     /// Given a possibly negative row number, return the corresponding physical
