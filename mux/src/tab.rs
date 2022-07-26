@@ -1406,7 +1406,13 @@ impl Tab {
                     }
                 }
             }
-            *self.active.borrow_mut() = active_idx;
+            // Even though we try to adjust active_idx for a removed pane,
+            // we may end up with a value that is out of range in the case
+            // where two panes close in the span of the same call.
+            // We account for that and fix things up by clamping the
+            // active index to pane_index (which after the loop above
+            // now is the count of panes in this tab).
+            *self.active.borrow_mut() = active_idx.min(pane_index.saturating_sub(1));
         }
 
         if !dead_panes.is_empty() && kill {

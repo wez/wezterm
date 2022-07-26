@@ -73,6 +73,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [gui-startup](config/lua/gui-events/gui-startup.md) now passes a [SpawnCommand](config/lua/SpawnCommand.md) parameter representing the `wezterm start` command arguments.
 * Tab `x` button is no longer obscured by tab title text for long tab titles [#2269](https://github.com/wez/wezterm/issues/2269)
 * Cursor position could end up in the wrong place when rewrapping lines and the cursor was on the rewrap boundary [#2162](https://github.com/wez/wezterm/issues/2162)
+* Two or more panes closing at the same time could result in their containing tab hanging and being stuck with "no pane" for a title [#2304](https://github.com/wez/wezterm/issues/2304)
 
 #### Updated
 * Bundled harfbuzz to 4.4.1
