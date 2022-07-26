@@ -169,6 +169,7 @@ return {
 <li><code>alphabet</code> - if present, this alphabet is used instead of <a href="../config/quick_select_alphabet.html">quick_select_alphabet</a></li>
 <li><code>action</code> - if present, this key assignment action is performed as if by <a href="../window/perform_action.html">window:perform_action</a> when an item is selected.  The normal clipboard action is NOT performed in this case.</li>
 <li><code>label</code> - if present, replaces the string <code>&quot;copy&quot;</code> that is shown at the bottom of the overlay; you can use this to indicate which action will happen if you are using <code>action</code>.</li>
+<li><code>scope_lines</code> - Specify the number of lines to search above and below the current viewport. The default is 1000 lines. The scope will be increased to the current viewport height if it is smaller than the viewport. (<em>Since: nightly builds only</em>. In earlier releases, the entire scrollback was always searched).</li>
 </ul>
 <p>Here's an example that shows how to trigger some lua code to operate on the
 quick-selected text, instead of copying it to the clipboard.  Here, we open
