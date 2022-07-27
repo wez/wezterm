@@ -1006,6 +1006,7 @@ fn run() -> anyhow::Result<()> {
     // headless mux server.
     config::lua::add_context_setup_func(window_funcs::register);
     config::lua::add_context_setup_func(crate::scripting::register);
+    config::lua::add_context_setup_func(crate::stats::register);
 
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();

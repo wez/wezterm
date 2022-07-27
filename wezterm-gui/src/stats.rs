@@ -1,4 +1,6 @@
 use config::configuration;
+use config::lua::get_or_create_sub_module;
+use config::lua::mlua::Lua;
 use hdrhistogram::Histogram;
 use metrics::{GaugeValue, Key, Recorder, Unit};
 use std::collections::HashMap;
@@ -8,6 +10,9 @@ use std::time::{Duration, Instant};
 use tabout::{tabulate_output, Alignment, Column};
 
 static ENABLE_STAT_PRINT: AtomicBool = AtomicBool::new(true);
+lazy_static::lazy_static! {
+    static ref INNER: Arc<Mutex<Inner>> = make_inner();
+}
 
 struct Throughput {
     hist: Histogram<u64>,
@@ -191,6 +196,14 @@ impl Inner {
     }
 }
 
+fn make_inner() -> Arc<Mutex<Inner>> {
+    Arc::new(Mutex::new(Inner {
+        histograms: HashMap::new(),
+        throughput: HashMap::new(),
+        counters: HashMap::new(),
+    }))
+}
+
 pub struct Stats {
     inner: Arc<Mutex<Inner>>,
 }
@@ -198,11 +211,7 @@ pub struct Stats {
 impl Stats {
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(Mutex::new(Inner {
-                histograms: HashMap::new(),
-                throughput: HashMap::new(),
-                counters: HashMap::new(),
-            })),
+            inner: Arc::clone(&INNER),
         }
     }
 
@@ -267,4 +276,93 @@ impl Recorder for Stats {
             histogram.record(value as u64).ok();
         }
     }
+}
+
+pub fn register(lua: &Lua) -> anyhow::Result<()> {
+    let metrics_mod = get_or_create_sub_module(lua, "metrics")?;
+    metrics_mod.set(
+        "get_counters",
+        lua.create_function(|_, _: ()| {
+            let inner = INNER.lock().unwrap();
+            let counters: HashMap<String, u64> = inner
+                .counters
+                .iter()
+                .map(|(k, &v)| (k.name().to_string(), v))
+                .collect();
+            Ok(counters)
+        })?,
+    )?;
+    metrics_mod.set(
+        "get_throughput",
+        lua.create_function(|_, _: ()| {
+            let mut inner = INNER.lock().unwrap();
+            let counters: HashMap<String, HashMap<String, u64>> = inner
+                .throughput
+                .iter_mut()
+                .map(|(k, tput)| {
+                    let mut res = HashMap::new();
+                    res.insert("current".to_string(), tput.current());
+                    res.insert("p50".to_string(), tput.hist.value_at_percentile(50.));
+                    res.insert("p75".to_string(), tput.hist.value_at_percentile(75.));
+                    res.insert("p95".to_string(), tput.hist.value_at_percentile(95.));
+                    (k.name().to_string(), res)
+                })
+                .collect();
+            Ok(counters)
+        })?,
+    )?;
+    metrics_mod.set(
+        "get_sizes",
+        lua.create_function(|_, _: ()| {
+            let mut inner = INNER.lock().unwrap();
+            let counters: HashMap<String, HashMap<String, u64>> = inner
+                .histograms
+                .iter_mut()
+                .filter_map(|(key, hist)| {
+                    if key.name().ends_with(".size") {
+                        let mut res = HashMap::new();
+                        res.insert("p50".to_string(), hist.value_at_percentile(50.));
+                        res.insert("p75".to_string(), hist.value_at_percentile(75.));
+                        res.insert("p95".to_string(), hist.value_at_percentile(95.));
+                        Some((key.name().to_string(), res))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Ok(counters)
+        })?,
+    )?;
+    metrics_mod.set(
+        "get_latency",
+        lua.create_function(|_, _: ()| {
+            let mut inner = INNER.lock().unwrap();
+            let counters: HashMap<String, HashMap<String, String>> = inner
+                .histograms
+                .iter_mut()
+                .filter_map(|(key, hist)| {
+                    if !key.name().ends_with(".size") {
+                        let mut res = HashMap::new();
+                        res.insert(
+                            "p50".to_string(),
+                            format!("{:?}", pctile_latency(hist, 50.)),
+                        );
+                        res.insert(
+                            "p75".to_string(),
+                            format!("{:?}", pctile_latency(hist, 75.)),
+                        );
+                        res.insert(
+                            "p95".to_string(),
+                            format!("{:?}", pctile_latency(hist, 95.)),
+                        );
+                        Some((key.name().to_string(), res))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Ok(counters)
+        })?,
+    )?;
+    Ok(())
 }
