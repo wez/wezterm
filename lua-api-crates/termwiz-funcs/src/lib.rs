@@ -1,9 +1,10 @@
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Lua, ToLua};
 use luahelper::impl_lua_conversion_dynamic;
+use std::str::FromStr;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::cell::{grapheme_column_width, unicode_column_width, AttributeChange, CellAttributes};
-use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
+use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, SrgbaTuple};
 use termwiz::input::Modifiers;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::change::Change;
@@ -84,9 +85,8 @@ impl Into<ColorSpec> for FormatColor {
         match self {
             FormatColor::AnsiColor(c) => c.into(),
             FormatColor::Color(s) => {
-                let rgb = RgbColor::from_named_or_rgb_string(&s)
-                    .unwrap_or(RgbColor::new_8bpc(0xff, 0xff, 0xff));
-                rgb.into()
+                let rgba = SrgbaTuple::from_str(&s).unwrap_or_else(|()| (0xff, 0xff, 0xff).into());
+                rgba.into()
             }
             FormatColor::Default => ColorSpec::Default,
         }
