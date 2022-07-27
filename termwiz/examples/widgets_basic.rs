@@ -3,7 +3,7 @@
 #![allow(unused)]
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
-use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
+use termwiz::color::{AnsiColor, ColorAttribute};
 use termwiz::input::*;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
@@ -52,14 +52,14 @@ impl<'a> Widget for MainScreen<'a> {
     fn render(&mut self, args: &mut RenderArgs) {
         args.surface.add_change(Change::ClearScreen(
             ColorAttribute::TrueColorWithPaletteFallback(
-                RgbColor::new_8bpc(0x31, 0x1B, 0x92),
+                (0x31, 0x1B, 0x92).into(),
                 AnsiColor::Black.into(),
             ),
         ));
         args.surface
             .add_change(Change::Attribute(AttributeChange::Foreground(
                 ColorAttribute::TrueColorWithPaletteFallback(
-                    RgbColor::new_8bpc(0xB3, 0x88, 0xFF),
+                    (0xB3, 0x88, 0xFF).into(),
                     AnsiColor::Purple.into(),
                 ),
             )));
