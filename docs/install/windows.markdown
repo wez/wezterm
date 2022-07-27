@@ -9,7 +9,7 @@ You can download a setup.exe style installer to guide the installation
 (requires admin privileges) or a simple zip file and manage the files for
 yourself (no special privileges required).
 
-<a href="{{ windows_exe_stable }}" class="btn">Windows (setup.exe)</a><a href="{{  }}">Setup checksum</a><br/>
+<a href="{{ windows_exe_stable }}" class="btn">Windows (setup.exe)</a><a href="{{ windows_exe_stable }}.sha256">Setup checksum</a><br/>
 <a href="{{ windows_exe_nightly }}" class="btn">Nightly Windows (setup.exe)</a><a href="{{  }}">Nightly setup checksum</a>
 
 WezTerm is available in a setup.exe style installer; the installer is produced
