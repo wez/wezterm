@@ -1,4 +1,4 @@
-use crate::color::{RgbColor, SrgbaTuple};
+use crate::color::SrgbaTuple;
 pub use crate::hyperlink::Hyperlink;
 use crate::{bail, ensure, Result};
 use bitflags::bitflags;
@@ -8,6 +8,7 @@ use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter, Result as FmtResult};
 use std::str;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColorOrQuery {
@@ -203,9 +204,8 @@ impl OperatingSystemCommand {
                 ColorOrQuery::Query
             } else {
                 ColorOrQuery::Color(
-                    RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| format!("invalid color spec {:?}", spec))?
-                        .into(),
+                    SrgbaTuple::from_str(spec)
+                        .map_err(|()| format!("invalid color spec {:?}", spec))?,
                 )
             };
 
@@ -235,9 +235,8 @@ impl OperatingSystemCommand {
             } else {
                 let spec = str::from_utf8(spec)?;
                 colors.push(ColorOrQuery::Color(
-                    RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| format!("invalid color spec {:?}", spec))?
-                        .into(),
+                    SrgbaTuple::from_str(spec)
+                        .map_err(|()| format!("invalid color spec {:?}", spec))?,
                 ));
             }
         }

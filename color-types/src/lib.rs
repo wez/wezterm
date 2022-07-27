@@ -543,6 +543,32 @@ impl Hash for SrgbaTuple {
 
 impl Eq for SrgbaTuple {}
 
+fn x_parse_color_component(value: &str) -> Result<f32, ()> {
+    let mut component = 0u16;
+    let mut num_digits = 0;
+
+    for c in value.chars() {
+        num_digits += 1;
+        component = component << 4;
+
+        let nybble = match c.to_digit(16) {
+            Some(v) => v as u16,
+            None => return Err(()),
+        };
+        component |= nybble;
+    }
+
+    // From XParseColor, the `rgb:` prefixed syntax scales the
+    // value into 16 bits from the number of bits specified
+    Ok((match num_digits {
+        1 => (component | component << 4) as f32,
+        2 => component as f32,
+        3 => (component >> 4) as f32,
+        4 => (component >> 8) as f32,
+        _ => return Err(()),
+    }) / 255.0)
+}
+
 impl FromStr for SrgbaTuple {
     type Err = ();
 
@@ -594,62 +620,26 @@ impl FromStr for SrgbaTuple {
                 }};
             }
             Ok(Self(digit!(), digit!(), digit!(), 1.0))
-        } else if s.starts_with("rgb:") && s.len() > 6 {
-            // The string includes two slashes: `rgb:r/g/b`
-            let digits = (s.len() - 3) / 3;
-            if 3 + (digits * 3) != s.len() {
+        } else if let Some(value) = s.strip_prefix("rgb:") {
+            let fields: Vec<&str> = value.split('/').collect();
+            if fields.len() != 3 {
                 return Err(());
             }
 
-            let digits = digits - 1;
-            if digits == 0 || digits > 4 {
-                // Max of 16 bits supported
-                return Err(());
-            }
-
-            let mut chars = s.chars().skip(4);
-
-            macro_rules! digit {
-                () => {{
-                    let mut component = 0u16;
-
-                    for _ in 0..digits {
-                        component = component << 4;
-
-                        let nybble = match chars.next().unwrap().to_digit(16) {
-                            Some(v) => v as u16,
-                            None => return Err(()),
-                        };
-                        component |= nybble;
-                    }
-
-                    // From XParseColor, the `rgb:` prefixed syntax scales the
-                    // value into 16 bits from the number of bits specified
-                    (match digits {
-                        1 => (component | component << 4) as f32,
-                        2 => component as f32,
-                        3 => (component >> 4) as f32,
-                        4 => (component >> 8) as f32,
-                        _ => return Err(()),
-                    }) / 255.0
-                }};
-            }
-            macro_rules! slash {
-                () => {{
-                    match chars.next() {
-                        Some('/') => {}
-                        _ => return Err(()),
-                    }
-                }};
-            }
-            let red = digit!();
-            slash!();
-            let green = digit!();
-            slash!();
-            let blue = digit!();
-
+            let red = x_parse_color_component(fields[0])?;
+            let green = x_parse_color_component(fields[1])?;
+            let blue = x_parse_color_component(fields[2])?;
             Ok(Self(red, green, blue, 1.0))
-        } else if s.starts_with("rgba:") {
+        } else if let Some(value) = s.strip_prefix("rgba:") {
+            let fields: Vec<&str> = value.split('/').collect();
+            if fields.len() == 4 {
+                let red = x_parse_color_component(fields[0])?;
+                let green = x_parse_color_component(fields[1])?;
+                let blue = x_parse_color_component(fields[2])?;
+                let alpha = x_parse_color_component(fields[3])?;
+                return Ok(Self(red, green, blue, alpha));
+            }
+
             let fields: Vec<_> = s[5..].split_ascii_whitespace().collect();
             if fields.len() == 4 {
                 fn field(s: &str) -> Result<f32, ()> {
