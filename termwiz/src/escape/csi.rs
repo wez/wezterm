@@ -1435,7 +1435,7 @@ impl Display for Sgr {
                 (White, ForegroundBrightWhite)
             ),
             Sgr::Foreground(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue) = c.to_tuple_rgb8();
+                let (red, green, blue, _alpha) = c.to_srgb_u8();
                 write!(
                     f,
                     "{}:2::{}:{}:{}m",
@@ -1469,7 +1469,7 @@ impl Display for Sgr {
                 (White, BackgroundBrightWhite)
             ),
             Sgr::Background(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue) = c.to_tuple_rgb8();
+                let (red, green, blue, _alpha) = c.to_srgb_u8();
                 write!(
                     f,
                     "{}:2::{}:{}:{}m",
@@ -1481,7 +1481,7 @@ impl Display for Sgr {
             }
             Sgr::UnderlineColor(ColorSpec::Default) => code!(ResetUnderlineColor),
             Sgr::UnderlineColor(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue) = c.to_tuple_rgb8();
+                let (red, green, blue, _alpha) = c.to_srgb_u8();
                 write!(
                     f,
                     "{}:2::{}:{}:{}m",
@@ -2720,7 +2720,7 @@ mod test {
         assert_eq!(
             parse('m', &[58, 2, 255, 255, 255], "\x1b[58:2::255:255:255m"),
             vec![CSI::Sgr(Sgr::UnderlineColor(ColorSpec::TrueColor(
-                RgbColor::new_8bpc(255, 255, 255),
+                (255, 255, 255).into(),
             )))]
         );
         assert_eq!(
@@ -2760,7 +2760,7 @@ mod test {
         assert_eq!(
             parse('m', &[38, 2, 255, 255, 255], "\x1b[38:2::255:255:255m"),
             vec![CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                RgbColor::new_8bpc(255, 255, 255),
+                (255, 255, 255).into(),
             )))]
         );
         assert_eq!(

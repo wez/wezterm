@@ -230,7 +230,7 @@ pub enum ColorSpec {
     Default,
     /// Use either a raw number, or use values from the `AnsiColor` enum
     PaletteIndex(PaletteIndex),
-    TrueColor(RgbColor),
+    TrueColor(SrgbaTuple),
 }
 
 impl Default for ColorSpec {
@@ -247,6 +247,12 @@ impl From<AnsiColor> for ColorSpec {
 
 impl From<RgbColor> for ColorSpec {
     fn from(col: RgbColor) -> Self {
+        ColorSpec::TrueColor(col.into())
+    }
+}
+
+impl From<SrgbaTuple> for ColorSpec {
+    fn from(col: SrgbaTuple) -> Self {
         ColorSpec::TrueColor(col)
     }
 }
@@ -259,9 +265,9 @@ impl From<RgbColor> for ColorSpec {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, FromDynamic, ToDynamic)]
 pub enum ColorAttribute {
     /// Use RgbColor when supported, falling back to the specified PaletteIndex.
-    TrueColorWithPaletteFallback(RgbColor, PaletteIndex),
+    TrueColorWithPaletteFallback(SrgbaTuple, PaletteIndex),
     /// Use RgbColor when supported, falling back to the default color
-    TrueColorWithDefaultFallback(RgbColor),
+    TrueColorWithDefaultFallback(SrgbaTuple),
     /// Use the specified PaletteIndex
     PaletteIndex(PaletteIndex),
     /// Use the default color

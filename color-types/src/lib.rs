@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 lazy_static::lazy_static! {
     static ref SRGB_TO_F32_TABLE: [f32;256] = generate_srgb8_to_linear_f32_table();
@@ -214,6 +215,22 @@ impl SrgbaPixel {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct SrgbaTuple(pub f32, pub f32, pub f32, pub f32);
 
+impl ToDynamic for SrgbaTuple {
+    fn to_dynamic(&self) -> Value {
+        self.to_string().to_dynamic()
+    }
+}
+
+impl FromDynamic for SrgbaTuple {
+    fn from_dynamic(
+        value: &Value,
+        options: FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        let s = String::from_dynamic(value, options)?;
+        Ok(SrgbaTuple::from_str(&s).map_err(|()| format!("unknown color name: {}", s))?)
+    }
+}
+
 impl From<(f32, f32, f32, f32)> for SrgbaTuple {
     fn from((r, g, b, a): (f32, f32, f32, f32)) -> SrgbaTuple {
         SrgbaTuple(r, g, b, a)
@@ -228,6 +245,12 @@ impl From<(u8, u8, u8, u8)> for SrgbaTuple {
             b as f32 / 255.,
             a as f32 / 255.,
         )
+    }
+}
+
+impl From<(u8, u8, u8)> for SrgbaTuple {
+    fn from((r, g, b): (u8, u8, u8)) -> SrgbaTuple {
+        SrgbaTuple(r as f32 / 255., g as f32 / 255., b as f32 / 255., 1.0)
     }
 }
 

@@ -691,7 +691,7 @@ mod test {
     use super::*;
     use crate::bail;
     use crate::caps::ProbeHints;
-    use crate::color::{AnsiColor, ColorAttribute, RgbColor};
+    use crate::color::{AnsiColor, ColorAttribute};
     use crate::escape::parser::Parser;
     use crate::escape::{Action, Esc, EscCode};
     use crate::input::InputEvent;
@@ -1180,7 +1180,7 @@ mod test {
         let mut out = FakeTerm::new(xterm_terminfo());
         out.render(&[
             Change::Attribute(AttributeChange::Foreground(
-                ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
+                ColorSpec::TrueColor((255, 128, 64).into()).into(),
             )),
             Change::Text("A".into()),
         ])
@@ -1191,7 +1191,7 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(
-                    ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
+                    ColorSpec::TrueColor((255, 128, 64).into()).into(),
                 ))),
                 Action::Print('A'),
             ]
@@ -1203,7 +1203,7 @@ mod test {
         let mut out = FakeTerm::new(no_terminfo_all_enabled());
         out.render(&[
             Change::Attribute(AttributeChange::Foreground(
-                ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
+                ColorSpec::TrueColor((255, 128, 64).into()).into(),
             )),
             Change::Text("A".into()),
         ])
@@ -1214,7 +1214,7 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(
-                    ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
+                    ColorSpec::TrueColor((255, 128, 64).into()).into(),
                 ))),
                 Action::Print('A'),
             ]

@@ -334,7 +334,7 @@ impl TabBarState {
 
         let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(colors.background))
+                .set_background(ColorSpec::TrueColor(*colors.background))
                 .clone(),
         );
 

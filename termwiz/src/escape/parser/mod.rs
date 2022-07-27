@@ -337,7 +337,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 mod test {
     use super::*;
     use crate::cell::{Intensity, Underline};
-    use crate::color::{ColorSpec, RgbColor};
+    use crate::color::ColorSpec;
     use crate::escape::csi::{
         CharacterPath, DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtSmGraphics,
         XtSmGraphicsItem, XtermKeyModifierResource,
@@ -433,7 +433,7 @@ mod test {
         assert_eq!(
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                    RgbColor::new_8bpc(128, 64, 192)
+                    (128, 64, 192).into()
                 )))),
                 Action::Print('w'),
             ],
@@ -446,7 +446,7 @@ mod test {
         assert_eq!(
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                    RgbColor::new_8bpc(0, 255, 0)
+                    (0, 255, 0).into()
                 )))),
                 Action::Print('w'),
             ],

@@ -528,8 +528,8 @@ impl super::TermWindow {
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
                     .colors(ElementColors {
                         border: BorderColor::default(),
-                        bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                        bg: colors.inactive_tab.bg_color.to_linear().into(),
+                        text: colors.inactive_tab.fg_color.to_linear().into(),
                     }),
                 TabBarItem::NewTabButton => Element::new(
                     &font,
@@ -559,13 +559,13 @@ impl super::TermWindow {
                 .border(BoxDimension::new(Dimension::Pixels(1.)))
                 .colors(ElementColors {
                     border: BorderColor::default(),
-                    bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
-                    text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
+                    bg: colors.new_tab.bg_color.to_linear().into(),
+                    text: colors.new_tab.fg_color.to_linear().into(),
                 })
                 .hover_colors(Some(ElementColors {
                     border: BorderColor::default(),
-                    bg: rgbcolor_to_window_color(colors.new_tab_hover.bg_color).into(),
-                    text: rgbcolor_to_window_color(colors.new_tab_hover.fg_color).into(),
+                    bg: colors.new_tab_hover.bg_color.to_linear().into(),
+                    text: colors.new_tab_hover.fg_color.to_linear().into(),
                 })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
@@ -725,17 +725,19 @@ impl super::TermWindow {
                             .item_type(UIItemType::CloseTab(tab_idx))
                             .hover_colors(Some(ElementColors {
                                 border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(if active {
+                                bg: (if active {
                                     colors.inactive_tab_hover.bg_color
                                 } else {
                                     colors.active_tab.bg_color
                                 })
+                                .to_linear()
                                 .into(),
-                                text: rgbcolor_to_window_color(if active {
+                                text: (if active {
                                     colors.inactive_tab_hover.fg_color
                                 } else {
                                     colors.active_tab.fg_color
                                 })
+                                .to_linear()
                                 .into(),
                             }))
                             .padding(BoxDimension {

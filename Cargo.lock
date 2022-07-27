@@ -5329,6 +5329,7 @@ dependencies = [
  "deltae",
  "lazy_static",
  "serde",
+ "wezterm-dynamic",
 ]
 
 [[package]]

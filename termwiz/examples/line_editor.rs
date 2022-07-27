@@ -1,5 +1,6 @@
+use std::str::FromStr;
 use termwiz::cell::AttributeChange;
-use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
+use termwiz::color::{AnsiColor, ColorAttribute, SrgbaTuple};
 use termwiz::lineedit::*;
 
 #[derive(Default)]
@@ -15,7 +16,7 @@ impl LineEditorHost for Host {
         vec![
             OutputElement::Attribute(AttributeChange::Background(
                 ColorAttribute::TrueColorWithPaletteFallback(
-                    RgbColor::from_named("darkslateblue").unwrap(),
+                    SrgbaTuple::from_str("darkslateblue").unwrap(),
                     AnsiColor::Navy.into(),
                 ),
             )),

@@ -1005,7 +1005,7 @@ mod test {
     #[cfg(target_pointer_width = "64")]
     fn memory_usage() {
         assert_eq!(std::mem::size_of::<crate::color::RgbColor>(), 4);
-        assert_eq!(std::mem::size_of::<ColorAttribute>(), 8);
+        assert_eq!(std::mem::size_of::<ColorAttribute>(), 20);
         assert_eq!(std::mem::size_of::<CellAttributes>(), 16);
         assert_eq!(std::mem::size_of::<Cell>(), 24);
         assert_eq!(std::mem::size_of::<Vec<u8>>(), 24);

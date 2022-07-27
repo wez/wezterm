@@ -48,6 +48,13 @@ impl From<SrgbaTuple> for RgbaColor {
     }
 }
 
+impl From<(u8, u8, u8)> for RgbaColor {
+    fn from((r, g, b): (u8, u8, u8)) -> Self {
+        let color: SrgbaTuple = (r, g, b).into();
+        Self { color }
+    }
+}
+
 impl std::ops::Deref for RgbaColor {
     type Target = SrgbaTuple;
     fn deref(&self) -> &SrgbaTuple {
@@ -219,9 +226,9 @@ pub struct TabBarColor {
     #[dynamic(default)]
     pub strikethrough: bool,
     /// The background color for the tab
-    pub bg_color: RgbColor,
+    pub bg_color: RgbaColor,
     /// The forgeground/text color for the tab
-    pub fg_color: RgbColor,
+    pub fg_color: RgbaColor,
 }
 
 impl TabBarColor {
@@ -231,8 +238,8 @@ impl TabBarColor {
             .set_underline(self.underline)
             .set_italic(self.italic)
             .set_strikethrough(self.strikethrough)
-            .set_background(ColorSpec::TrueColor(self.bg_color))
-            .set_foreground(ColorSpec::TrueColor(self.fg_color));
+            .set_background(ColorSpec::TrueColor(*self.bg_color))
+            .set_foreground(ColorSpec::TrueColor(*self.fg_color));
         attr
     }
 }
@@ -244,7 +251,7 @@ impl TabBarColor {
 pub struct TabBarColors {
     /// The background color for the tab bar
     #[dynamic(default = "default_background")]
-    pub background: RgbColor,
+    pub background: RgbaColor,
 
     /// Styling for the active tab
     #[dynamic(default = "default_active_tab")]
@@ -273,8 +280,8 @@ pub struct TabBarColors {
     pub inactive_tab_edge_hover: RgbaColor,
 }
 
-fn default_background() -> RgbColor {
-    RgbColor::new_8bpc(0x33, 0x33, 0x33)
+fn default_background() -> RgbaColor {
+    (0x33, 0x33, 0x33).into()
 }
 
 fn default_inactive_tab_edge() -> RgbaColor {
@@ -287,23 +294,23 @@ fn default_inactive_tab_edge_hover() -> RgbaColor {
 
 fn default_inactive_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x33, 0x33, 0x33),
-        fg_color: RgbColor::new_8bpc(0x80, 0x80, 0x80),
+        bg_color: (0x33, 0x33, 0x33).into(),
+        fg_color: (0x80, 0x80, 0x80).into(),
         ..TabBarColor::default()
     }
 }
 fn default_inactive_tab_hover() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x1f, 0x1f, 0x1f),
-        fg_color: RgbColor::new_8bpc(0x90, 0x90, 0x90),
+        bg_color: (0x1f, 0x1f, 0x1f).into(),
+        fg_color: (0x90, 0x90, 0x90).into(),
         italic: true,
         ..TabBarColor::default()
     }
 }
 fn default_active_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x00, 0x00, 0x00),
-        fg_color: RgbColor::new_8bpc(0xc0, 0xc0, 0xc0),
+        bg_color: (0x00, 0x00, 0x00).into(),
+        fg_color: (0xc0, 0xc0, 0xc0).into(),
         ..TabBarColor::default()
     }
 }
