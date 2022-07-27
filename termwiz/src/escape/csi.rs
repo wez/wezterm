@@ -1,6 +1,6 @@
 use super::OneBased;
 use crate::cell::{Blink, Intensity, Underline};
-use crate::color::{AnsiColor, ColorSpec, RgbColor};
+use crate::color::{AnsiColor, ColorSpec, RgbColor, SrgbaTuple};
 use crate::input::{Modifiers, MouseButtons};
 use num_derive::*;
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -1435,15 +1435,27 @@ impl Display for Sgr {
                 (White, ForegroundBrightWhite)
             ),
             Sgr::Foreground(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue, _alpha) = c.to_srgb_u8();
-                write!(
-                    f,
-                    "{}:2::{}:{}:{}m",
-                    SgrCode::ForegroundColor as i64,
-                    red,
-                    green,
-                    blue
-                )?
+                let (red, green, blue, alpha) = c.to_srgb_u8();
+                if alpha == 255 {
+                    write!(
+                        f,
+                        "{}:2::{}:{}:{}m",
+                        SgrCode::ForegroundColor as i64,
+                        red,
+                        green,
+                        blue
+                    )?
+                } else {
+                    write!(
+                        f,
+                        "{}:4::{}:{}:{}:{}m",
+                        SgrCode::ForegroundColor as i64,
+                        red,
+                        green,
+                        blue,
+                        alpha
+                    )?
+                }
             }
             Sgr::Background(ColorSpec::PaletteIndex(idx)) => ansi_color!(
                 *idx,
@@ -1469,27 +1481,51 @@ impl Display for Sgr {
                 (White, BackgroundBrightWhite)
             ),
             Sgr::Background(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue, _alpha) = c.to_srgb_u8();
-                write!(
-                    f,
-                    "{}:2::{}:{}:{}m",
-                    SgrCode::BackgroundColor as i64,
-                    red,
-                    green,
-                    blue
-                )?
+                let (red, green, blue, alpha) = c.to_srgb_u8();
+                if alpha == 255 {
+                    write!(
+                        f,
+                        "{}:2::{}:{}:{}m",
+                        SgrCode::BackgroundColor as i64,
+                        red,
+                        green,
+                        blue
+                    )?
+                } else {
+                    write!(
+                        f,
+                        "{}:4::{}:{}:{}:{}m",
+                        SgrCode::BackgroundColor as i64,
+                        red,
+                        green,
+                        blue,
+                        alpha
+                    )?
+                }
             }
             Sgr::UnderlineColor(ColorSpec::Default) => code!(ResetUnderlineColor),
             Sgr::UnderlineColor(ColorSpec::TrueColor(c)) => {
-                let (red, green, blue, _alpha) = c.to_srgb_u8();
-                write!(
-                    f,
-                    "{}:2::{}:{}:{}m",
-                    SgrCode::UnderlineColor as i64,
-                    red,
-                    green,
-                    blue
-                )?
+                let (red, green, blue, alpha) = c.to_srgb_u8();
+                if alpha == 255 {
+                    write!(
+                        f,
+                        "{}:2::{}:{}:{}m",
+                        SgrCode::UnderlineColor as i64,
+                        red,
+                        green,
+                        blue
+                    )?
+                } else {
+                    write!(
+                        f,
+                        "{}:4::{}:{}:{}:{}m",
+                        SgrCode::UnderlineColor as i64,
+                        red,
+                        green,
+                        blue,
+                        alpha
+                    )?
+                }
             }
             Sgr::UnderlineColor(ColorSpec::PaletteIndex(idx)) => {
                 write!(f, "{}:5:{}m", SgrCode::UnderlineColor as i64, *idx)?
@@ -2203,9 +2239,31 @@ impl<'a> CSIParser<'a> {
 
     fn parse_sgr_color(&mut self, params: &'a [CsiParam]) -> Result<ColorSpec, ()> {
         match params {
+            // wezterm extension to support an optional alpha channel in the `:` form only
+            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'),
+                    CsiParam::Integer(_colorspace), CsiParam::P(b':'),
+                    red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] => {
+                let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();
+                Ok(self.advance_by(13, params, res.into()))
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'),
+                    /* empty colorspace */ CsiParam::P(b':'),
+                    red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] => {
+                let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();
+                Ok(self.advance_by(12, params, res.into()))
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'), red, CsiParam::P(b':'), green,
+                    CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] =>
+            {
+                let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();
+                Ok(self.advance_by(11, params, res.into()))
+            }
+
+            // standard sgr colors
+
             [_, CsiParam::P(b':'), CsiParam::Integer(2), CsiParam::P(b':'),
-             CsiParam::Integer(_colorspace), CsiParam::P(b':'),
-             red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, ..] => {
+                    CsiParam::Integer(_colorspace), CsiParam::P(b':'),
+                    red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, ..] => {
                 let res = RgbColor::new_8bpc(to_u8(red)?, to_u8(green)?, to_u8(blue)?).into();
                 Ok(self.advance_by(11, params, res))
             }
