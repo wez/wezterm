@@ -88,6 +88,10 @@ return {
     -- Colors for copy_mode and quick_select
     -- available since: nightly builds only
     copy_mode_active_highlight_bg = { Color = "#000000" },
+    -- use `AnsiColor` to specify one of the ansi color palette values
+    -- (index 0-15) using one of the names "Black", "Maroon", "Green",
+    --  "Olive", "Navy", "Purple", "Teal", "Silver", "Grey", "Red", "Lime",
+    -- "Yellow", "Blue", "Fuchsia", "Aqua" or "White".
     copy_mode_active_highlight_fg = { AnsiColor = "Black" },
     copy_mode_inactive_highlight_bg = { Color = "#52ad70" },
     copy_mode_inactive_highlight_fg = { AnsiColor = "White" },
