@@ -85,6 +85,7 @@ impl<T: FromDynamic> FromDynamic for Option<T> {
     fn from_dynamic(value: &Value, options: FromDynamicOptions) -> Result<Self, Error> {
         match value {
             Value::Null => Ok(None),
+            Value::Object(table) if table.is_empty() => Ok(None),
             value => Ok(Some(T::from_dynamic(value, options)?)),
         }
     }
