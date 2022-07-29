@@ -354,6 +354,134 @@ mod test {
         String::from_utf8(res).unwrap()
     }
 
+    // <https://github.com/markbt/streampager/issues/57>
+    #[test]
+    fn osc_bel_parse_first_as_vec() {
+        let data = b"\x1b]8;;http://example.com\x07example\x1b]8;;\x07";
+        let mut p = Parser::new();
+
+        let mut offset = 0;
+        let mut actions = vec![];
+        while let Some((mut act, off)) = p.parse_first_as_vec(&data[offset..]) {
+            actions.append(&mut act);
+            offset += off;
+        }
+
+        k9::snapshot!(
+            actions,
+            r#"
+[
+    OperatingSystemCommand(
+        SetHyperlink(
+            Some(
+                Hyperlink {
+                    params: {},
+                    uri: "http://example.com",
+                    implicit: false,
+                },
+            ),
+        ),
+    ),
+    Print(
+        'e',
+    ),
+    Print(
+        'x',
+    ),
+    Print(
+        'a',
+    ),
+    Print(
+        'm',
+    ),
+    Print(
+        'p',
+    ),
+    Print(
+        'l',
+    ),
+    Print(
+        'e',
+    ),
+    OperatingSystemCommand(
+        SetHyperlink(
+            None,
+        ),
+    ),
+]
+"#
+        );
+    }
+
+    // <https://github.com/markbt/streampager/issues/57>
+    #[test]
+    fn osc_st_parse_first_as_vec() {
+        let data = b"\x1b]8;;http://example.com\x1b\\example\x1b]8;;\x1b\\";
+        let mut p = Parser::new();
+
+        let mut offset = 0;
+        let mut actions = vec![];
+        while let Some((mut act, off)) = p.parse_first_as_vec(&data[offset..]) {
+            actions.append(&mut act);
+            offset += off;
+        }
+
+        k9::snapshot!(
+            actions,
+            r#"
+[
+    OperatingSystemCommand(
+        SetHyperlink(
+            Some(
+                Hyperlink {
+                    params: {},
+                    uri: "http://example.com",
+                    implicit: false,
+                },
+            ),
+        ),
+    ),
+    Esc(
+        Code(
+            StringTerminator,
+        ),
+    ),
+    Print(
+        'e',
+    ),
+    Print(
+        'x',
+    ),
+    Print(
+        'a',
+    ),
+    Print(
+        'm',
+    ),
+    Print(
+        'p',
+    ),
+    Print(
+        'l',
+    ),
+    Print(
+        'e',
+    ),
+    OperatingSystemCommand(
+        SetHyperlink(
+            None,
+        ),
+    ),
+    Esc(
+        Code(
+            StringTerminator,
+        ),
+    ),
+]
+"#
+        );
+    }
+
     #[test]
     fn basic_parse() {
         let mut p = Parser::new();
