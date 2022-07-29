@@ -23,7 +23,7 @@ script.
 
 Yes please!
 
-If you are new to the Rust language check out https://rustbyexample.com/
+If you are new to the Rust language check out <https://doc.rust-lang.org/rust-by-example/>.
 
 ### Where to find things?
 
