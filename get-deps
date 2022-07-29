@@ -78,10 +78,12 @@ fedora_deps() {
     'make' \
     'gcc' \
     'gcc-c++' \
+    'flatpak-builder' \
     'fontconfig-devel' \
     'openssl-devel' \
     'perl-interpreter' \
     'python3' \
+    'python3-pip' \
     'libxcb-devel' \
     'libxkbcommon-devel' \
     'libxkbcommon-x11-devel' \
