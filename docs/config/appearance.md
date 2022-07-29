@@ -85,7 +85,8 @@ return {
     -- to this color to give a visual cue about the compose state.
     compose_cursor = 'orange',
 
-    -- Since: commit 7e3b35303c7d36c91f4ad6686b536a510fc1a93c
+    -- Colors for copy_mode and quick_select
+    -- available since: nightly builds only
     copy_mode_active_highlight_bg = { Color = "#000000" },
     copy_mode_active_highlight_fg = { AnsiColor = "Black" },
     copy_mode_inactive_highlight_bg = { Color = "#52ad70" },
