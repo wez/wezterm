@@ -46,3 +46,6 @@
 /perf.data*
 .idea/
 /winget-pkgs
+/repo
+/assets/flatpak/generated-sources.json
+/.flatpak-builder

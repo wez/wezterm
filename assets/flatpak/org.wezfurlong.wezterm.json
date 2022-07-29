@@ -1,0 +1,53 @@
+{
+    "app-id": "org.wezfurlong.wezterm",
+    "runtime": "org.freedesktop.Platform",
+    "runtime-version": "21.08",
+    "sdk": "org.freedesktop.Sdk",
+    "sdk-extensions" : [
+        "org.freedesktop.Sdk.Extension.rust-stable"
+    ],
+    "command": "wezterm",
+    "finish-args": [
+        "--share=ipc",
+        "--filesystem=host",
+        "--filesystem=xdg-config",
+        "--socket=fallback-x11",
+        "--socket=wayland",
+        "--device=dri",
+        "--share=network"
+    ],
+    "build-options": {
+        "append-path" : "/usr/lib/sdk/rust-stable/bin"
+    },
+    "modules": [
+        {
+            "name": "wezterm",
+            "buildsystem": "simple",
+            "build-options": {
+                "env": {
+                    "CARGO_HOME": "/run/build/wezterm/cargo"
+                }
+            },
+            "build-commands": [
+                "pwd",
+                "cargo --offline fetch --manifest-path Cargo.toml --verbose",
+                "cargo --offline build --release --verbose",
+                "mkdir -p /app/share/icons/hicolor/128x128/apps/",
+                "cp ./assets/icon/terminal.png /app/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png",
+                "mkdir -p /app/share/metainfo/",
+                "cp ./assets/wezterm.appdata.xml /app/share/metainfo/org.wezfurlong.wezterm.appdata.xml",
+                "mkdir -p /app/share/applications/",
+                "cp ./assets/wezterm.desktop /app/share/applications/org.wezfurlong.wezterm.desktop",
+                "install -Dm755 ./target/release/wezterm -t /app/bin/",
+                "install -Dm755 ./target/release/wezterm-gui -t /app/bin/"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "../.."
+                },
+                "generated-sources.json"
+            ]
+        }
+    ]
+}
