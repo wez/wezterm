@@ -186,6 +186,8 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Improved search performance</li>
 <li>Quickselect: now defaults to searching 1000 lines above and below the current viewport, making it faster and the labels shorter for users with a larger scrollback. A new <code>scope_lines</code> parameter to <a href="config/lua/keyassignment/QuickSelectArgs.html">QuickSelectArgs</a> allows controlling the search region explicitly. Thanks to <a href="https://github.com/yyogo">@yyogo</a> for the initial PR! <a href="https://github.com/wez/wezterm/pull/1317">#1317</a></li>
 <li>OSC 10, 11 and 12 (Set Default Text Background, Default Text Foreground Color, and Text Cursor Color) now support setting the alpha component <a href="https://github.com/wez/wezterm/issues/2313">#2313</a></li>
+<li>Copy Mode: setting the same selection mode a second time will now toggle off that mode and clear the selection, preserving the current position <a href="https://github.com/wez/wezterm/discussions/2246">#2246</a></li>
+<li>Copy Mode: new default vim-style <code>y</code> &quot;yank&quot; key assignment will copy the selection and close copy mode</li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
