@@ -1448,7 +1448,7 @@ impl Display for Sgr {
                 } else {
                     write!(
                         f,
-                        "{}:4::{}:{}:{}:{}m",
+                        "{}:6::{}:{}:{}:{}m",
                         SgrCode::ForegroundColor as i64,
                         red,
                         green,
@@ -1494,7 +1494,7 @@ impl Display for Sgr {
                 } else {
                     write!(
                         f,
-                        "{}:4::{}:{}:{}:{}m",
+                        "{}:6::{}:{}:{}:{}m",
                         SgrCode::BackgroundColor as i64,
                         red,
                         green,
@@ -1518,7 +1518,7 @@ impl Display for Sgr {
                 } else {
                     write!(
                         f,
-                        "{}:4::{}:{}:{}:{}m",
+                        "{}:6::{}:{}:{}:{}m",
                         SgrCode::UnderlineColor as i64,
                         red,
                         green,
@@ -2240,19 +2240,19 @@ impl<'a> CSIParser<'a> {
     fn parse_sgr_color(&mut self, params: &'a [CsiParam]) -> Result<ColorSpec, ()> {
         match params {
             // wezterm extension to support an optional alpha channel in the `:` form only
-            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'),
+            [_, CsiParam::P(b':'), CsiParam::Integer(6), CsiParam::P(b':'),
                     CsiParam::Integer(_colorspace), CsiParam::P(b':'),
                     red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] => {
                 let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();
                 Ok(self.advance_by(13, params, res.into()))
             }
-            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'),
+            [_, CsiParam::P(b':'), CsiParam::Integer(6), CsiParam::P(b':'),
                     /* empty colorspace */ CsiParam::P(b':'),
                     red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] => {
                 let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();
                 Ok(self.advance_by(12, params, res.into()))
             }
-            [_, CsiParam::P(b':'), CsiParam::Integer(4), CsiParam::P(b':'), red, CsiParam::P(b':'), green,
+            [_, CsiParam::P(b':'), CsiParam::Integer(6), CsiParam::P(b':'), red, CsiParam::P(b':'), green,
                     CsiParam::P(b':'), blue, CsiParam::P(b':'), alpha, ..] =>
             {
                 let res: SrgbaTuple = (to_u8(red)?, to_u8(green)?, to_u8(blue)?, to_u8(alpha)?).into();

@@ -453,7 +453,7 @@ mod test {
             actions
         );
 
-        let actions = p.parse_as_vec(b"\x1b[38:4:0:255:0:127mw");
+        let actions = p.parse_as_vec(b"\x1b[38:6:0:255:0:127mw");
         assert_eq!(
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
