@@ -18,6 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:set_position](config/lua/window/set_position.md) method for controlling window position.
 * [window:maximize](config/lua/window/maximize.md) and [window:restore](config/lua/window/restore.md) methods for controlling window maximization state.
 * [window:get_selection_escapes_for_pane](config/lua/window/get_selection_escapes_for_pane.md) method for getting the current selection including escape sequences. [#2223](https://github.com/wez/wezterm/issues/2223)
+* [window:current_event](config/lua/window/current_event.md) method for getting the current event. [#2296](https://github.com/wez/wezterm/pull/2296)
 * [wezterm.color](config/lua/wezterm.color/index.md) module for working with colors and importing color schemes.
 * [wezterm.gui](config/lua/wezterm.gui/index.md) module and [mux_window:gui_window](config/lua/mux-window/gui_window.md) method.
 * [wezterm.gui.screens()](config/lua/wezterm.gui/screens.md) function for getting information about the available screens/monitors/displays
@@ -32,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [pane:is_alt_screen_active()](config/lua/pane/is_alt_screen_active.md) for testing whether the alt screen is active. Thanks to [@Funami580](https://github.com/Funami580)! [#2234](https://github.com/wez/wezterm/issues/2234)
 * X11/Wayland: [XDG desktop portal](https://flatpak.github.io/xdg-desktop-portal/) is now used to determine whether dark mode is in use [#2258](https://github.com/wez/wezterm/issues/2258)
 * [SetPaneZoomState](config/lua/keyassignment/SetPaneZoomState.md) key assignment and [MuxTab:set_zoomed()](config/lua/MuxTab/set_zoomed.md) for explicitly setting the zoom state of a pane. [#2284](https://github.com/wez/wezterm/discussions/2284)
+* [mouse_bindings](config/mouse.md) can now handle scroll events. Thanks to [@Funami580](https://github.com/Funami580)! [#2173](https://github.com/wez/wezterm/issues/2173) [#2296](https://github.com/wez/wezterm/pull/2296)
 
 #### Changed
 * If `timeout_milliseconds` is specified in

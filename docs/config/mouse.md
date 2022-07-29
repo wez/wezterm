@@ -124,6 +124,36 @@ you wanted quadruple-click bindings you can specify `streak=4`.
 | Double Left Up  | `event={Up={streak=2, button="Left"}}` |
 | Single Left Drag  | `event={Drag={streak=1, button="Left"}}` |
 
+*since: nightly builds only*
+
+You can handle scroll events by using `'WheelUp'` or `'WheelDown'` as event.
+Currently, this only works with at least one modifier being present.
+
+```lua
+local wezterm = require 'wezterm'
+local act = wezterm.action
+
+return {
+  mouse_bindings = {
+    -- Scrolling up while holding CTRL increases the font size
+    {
+      event = 'WheelUp',
+      mods = 'CTRL',
+      action = act.IncreaseFontSize,
+    },
+
+    -- Scrolling down while holding CTRL decreases the font size
+    {
+      event = 'WheelDown',
+      mods = 'CTRL',
+      action = act.DecreaseFontSize,
+    },
+  },
+}
+```
+
+Take a look at [`window:current_event`](lua/window/current_event.md),
+if you want to access the delta scroll value while handling the event.
 
 # Gotcha on binding an 'Up' event only
 
