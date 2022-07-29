@@ -87,6 +87,9 @@ return {
 
     -- Colors for copy_mode and quick_select
     -- available since: nightly builds only
+    -- In copy_mode, the color of the active text is:
+    -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
+    -- 2. selection_* otherwise
     copy_mode_active_highlight_bg = { Color = "#000000" },
     -- use `AnsiColor` to specify one of the ansi color palette values
     -- (index 0-15) using one of the names "Black", "Maroon", "Green",
