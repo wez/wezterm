@@ -1,7 +1,8 @@
 use crate::selection::{SelectionCoordinate, SelectionRange, SelectionX};
 use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{
-    CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry, ScrollbackEraseMode, SelectionMode,
+    ClipboardCopyDestination, CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry,
+    ScrollbackEraseMode, SelectionMode,
 };
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
@@ -767,11 +768,18 @@ impl CopyRenderable {
         match mode {
             None => {
                 self.start.take();
+                self.clear_selection();
             }
             Some(mode) => {
                 if self.start.is_none() {
                     let coord = SelectionCoordinate::x_y(self.cursor.x, self.cursor.y);
                     self.start.replace(coord);
+                } else if self.selection_mode == *mode {
+                    // We have a selection and we're trying to set the same mode
+                    // again; consider this to be a toggle that clears the selection
+                    self.start.take();
+                    self.clear_selection();
+                    return;
                 }
                 self.selection_mode = *mode;
                 self.select_to_cursor_pos();
@@ -1355,6 +1363,14 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('O'),
             Modifiers::SHIFT,
             KeyAssignment::CopyMode(CopyModeAssignment::MoveToSelectionOtherEndHoriz),
+        ),
+        (
+            WKeyCode::Char('y'),
+            Modifiers::NONE,
+            KeyAssignment::Multiple(vec![
+                KeyAssignment::CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection),
+                KeyAssignment::CopyMode(CopyModeAssignment::Close),
+            ]),
         ),
     ] {
         table.insert((key, mods), KeyTableEntry { action });
