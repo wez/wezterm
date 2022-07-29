@@ -458,6 +458,7 @@ impl Pane for QuickSelectOverlay {
         let dims = self.get_dimensions();
 
         let (top, mut lines) = self.delegate.get_lines(lines);
+        let colors = renderer.config.resolved_palette.clone();
 
         // Process the lines; for the search row we want to render instead
         // the search UI.
@@ -492,8 +493,16 @@ impl Pane for QuickSelectOverlay {
                         if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
                         {
                             cell.attrs_mut()
-                                .set_background(AnsiColor::Black)
-                                .set_foreground(AnsiColor::Green)
+                                .set_background(
+                                    colors
+                                        .quick_select_match_bg
+                                        .unwrap_or(AnsiColor::Black.into()),
+                                )
+                                .set_foreground(
+                                    colors
+                                        .quick_select_match_fg
+                                        .unwrap_or(AnsiColor::Green.into()),
+                                )
                                 .set_reverse(false);
                         }
                     }
@@ -502,9 +511,17 @@ impl Pane for QuickSelectOverlay {
                             .get_cell(idx)
                             .map(|cell| cell.attrs().clone())
                             .unwrap_or_else(|| CellAttributes::default());
-                        attr.set_background(AnsiColor::Black)
-                            .set_foreground(AnsiColor::Olive)
-                            .set_reverse(false);
+                        attr.set_background(
+                            colors
+                                .quick_select_label_bg
+                                .unwrap_or(AnsiColor::Black.into()),
+                        )
+                        .set_foreground(
+                            colors
+                                .quick_select_label_fg
+                                .unwrap_or(AnsiColor::Olive.into()),
+                        )
+                        .set_reverse(false);
                         line.set_cell(m.range.start + idx, Cell::new(c, attr), SEQ_ZERO);
                     }
                 }

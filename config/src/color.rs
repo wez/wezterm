@@ -3,7 +3,8 @@ use luahelper::impl_lua_conversion_dynamic;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use termwiz::cell::CellAttributes;
-pub use termwiz::color::{ColorSpec, RgbColor, SrgbaTuple};
+use termwiz::color::ColorSpec as TWColorSpec;
+pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, SrgbaTuple};
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::color::ColorPalette;
 
@@ -90,6 +91,39 @@ impl TryFrom<String> for RgbaColor {
     }
 }
 
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
+pub enum ColorSpec {
+    AnsiColor(AnsiColor),
+    Color(RgbaColor),
+    Default,
+}
+
+impl From<AnsiColor> for ColorSpec {
+    fn from(color: AnsiColor) -> ColorSpec {
+        Self::AnsiColor(color)
+    }
+}
+
+impl Into<ColorAttribute> for ColorSpec {
+    fn into(self) -> ColorAttribute {
+        match self {
+            Self::AnsiColor(c) => ColorAttribute::PaletteIndex(c.into()),
+            Self::Color(RgbaColor { color }) => ColorAttribute::TrueColorWithDefaultFallback(color),
+            Self::Default => ColorAttribute::Default,
+        }
+    }
+}
+
+impl Into<TWColorSpec> for ColorSpec {
+    fn into(self) -> TWColorSpec {
+        match self {
+            Self::AnsiColor(c) => c.into(),
+            Self::Color(RgbaColor { color }) => TWColorSpec::TrueColor(color),
+            Self::Default => TWColorSpec::Default,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
@@ -124,6 +158,16 @@ pub struct Palette {
     pub visual_bell: Option<RgbaColor>,
     /// The color to use for the cursor when a dead key or leader state is active
     pub compose_cursor: Option<RgbaColor>,
+
+    pub copy_mode_active_highlight_fg: Option<ColorSpec>,
+    pub copy_mode_active_highlight_bg: Option<ColorSpec>,
+    pub copy_mode_inactive_highlight_fg: Option<ColorSpec>,
+    pub copy_mode_inactive_highlight_bg: Option<ColorSpec>,
+
+    pub quick_select_label_fg: Option<ColorSpec>,
+    pub quick_select_label_bg: Option<ColorSpec>,
+    pub quick_select_match_fg: Option<ColorSpec>,
+    pub quick_select_match_bg: Option<ColorSpec>,
 }
 impl_lua_conversion_dynamic!(Palette);
 
@@ -238,8 +282,8 @@ impl TabBarColor {
             .set_underline(self.underline)
             .set_italic(self.italic)
             .set_strikethrough(self.strikethrough)
-            .set_background(ColorSpec::TrueColor(*self.bg_color))
-            .set_foreground(ColorSpec::TrueColor(*self.fg_color));
+            .set_background(TWColorSpec::TrueColor(*self.bg_color))
+            .set_foreground(TWColorSpec::TrueColor(*self.fg_color));
         attr
     }
 }

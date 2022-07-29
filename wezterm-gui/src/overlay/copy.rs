@@ -956,6 +956,9 @@ impl Pane for CopyOverlay {
 
         let (top, mut lines) = self.delegate.get_lines(lines);
 
+        let config = config::configuration();
+        let colors = &config.resolved_palette;
+
         // Process the lines; for the search row we want to render instead
         // the search UI.
         // For rows with search results, we want to highlight the matching ranges
@@ -994,13 +997,29 @@ impl Pane for CopyOverlay {
                         {
                             if Some(m.result_index) == renderer.result_pos {
                                 cell.attrs_mut()
-                                    .set_background(AnsiColor::Yellow)
-                                    .set_foreground(AnsiColor::Black)
+                                    .set_background(
+                                        colors
+                                            .copy_mode_active_highlight_bg
+                                            .unwrap_or(AnsiColor::Yellow.into()),
+                                    )
+                                    .set_foreground(
+                                        colors
+                                            .copy_mode_active_highlight_fg
+                                            .unwrap_or(AnsiColor::Black.into()),
+                                    )
                                     .set_reverse(false);
                             } else {
                                 cell.attrs_mut()
-                                    .set_background(AnsiColor::Fuchsia)
-                                    .set_foreground(AnsiColor::Black)
+                                    .set_background(
+                                        colors
+                                            .copy_mode_inactive_highlight_bg
+                                            .unwrap_or(AnsiColor::Fuchsia.into()),
+                                    )
+                                    .set_foreground(
+                                        colors
+                                            .copy_mode_inactive_highlight_fg
+                                            .unwrap_or(AnsiColor::Black.into()),
+                                    )
                                     .set_reverse(false);
                             }
                         }
