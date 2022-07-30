@@ -215,6 +215,25 @@ usual hex notation; eg: <code>#000000</code> is equivalent to <code>black</code>
     -- holding input pending the result of input composition, change the cursor
     -- to this color to give a visual cue about the compose state.
     compose_cursor = 'orange',
+
+    -- Colors for copy_mode and quick_select
+    -- available since: nightly builds only
+    -- In copy_mode, the color of the active text is:
+    -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
+    -- 2. selection_* otherwise
+    copy_mode_active_highlight_bg = { Color = '#000000' },
+    -- use `AnsiColor` to specify one of the ansi color palette values
+    -- (index 0-15) using one of the names &quot;Black&quot;, &quot;Maroon&quot;, &quot;Green&quot;,
+    --  &quot;Olive&quot;, &quot;Navy&quot;, &quot;Purple&quot;, &quot;Teal&quot;, &quot;Silver&quot;, &quot;Grey&quot;, &quot;Red&quot;, &quot;Lime&quot;,
+    -- &quot;Yellow&quot;, &quot;Blue&quot;, &quot;Fuchsia&quot;, &quot;Aqua&quot; or &quot;White&quot;.
+    copy_mode_active_highlight_fg = { AnsiColor = 'Black' },
+    copy_mode_inactive_highlight_bg = { Color = '#52ad70' },
+    copy_mode_inactive_highlight_fg = { AnsiColor = 'White' },
+
+    quick_select_label_bg = { Color = 'peru' },
+    quick_select_label_fg = { Color = '#ffffff' },
+    quick_select_match_bg = { AnsiColor = 'Navy' },
+    quick_select_match_fg = { Color = '#ffffff' },
   },
 }
 </code></pre>
