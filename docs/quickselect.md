@@ -17,7 +17,8 @@ URL and path fragments, git hashes, ip addresses and numbers.
 
 Matches are highlighted and shown with a one or two character prefix derived
 from the [quick_select_alphabet](config/lua/config/quick_select_alphabet.md)
-configuration.
+configuration. The [colors](config/appearance.md#defining-your-own-colors)
+of the highlighted text can be configured.
 
 The bottom of the screen shows your input text along with a hint as to what to
 do next; typing in a highlighted prefix will cause that text to be selected and
