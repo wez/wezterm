@@ -406,7 +406,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_blob_get_user_data(
-        blob: *mut hb_blob_t,
+        blob: *const hb_blob_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -557,7 +557,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_unicode_funcs_get_user_data(
-        ufuncs: *mut hb_unicode_funcs_t,
+        ufuncs: *const hb_unicode_funcs_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -732,7 +732,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_set_get_user_data(
-        set: *mut hb_set_t,
+        set: *const hb_set_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -879,7 +879,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_face_get_user_data(
-        face: *mut hb_face_t,
+        face: *const hb_face_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -1156,7 +1156,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_font_funcs_get_user_data(
-        ffuncs: *mut hb_font_funcs_t,
+        ffuncs: *const hb_font_funcs_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -1727,7 +1727,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_font_get_user_data(
-        font: *mut hb_font_t,
+        font: *const hb_font_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -1863,7 +1863,8 @@ pub struct hb_glyph_info_t {
 pub enum hb_glyph_flags_t {
     HB_GLYPH_FLAG_UNSAFE_TO_BREAK = 1,
     HB_GLYPH_FLAG_UNSAFE_TO_CONCAT = 2,
-    HB_GLYPH_FLAG_DEFINED = 3,
+    HB_GLYPH_FLAG_SAFE_TO_INSERT_TATWEEL = 4,
+    HB_GLYPH_FLAG_DEFINED = 7,
 }
 extern "C" {
     pub fn hb_glyph_info_get_glyph_flags(info: *const hb_glyph_info_t) -> hb_glyph_flags_t;
@@ -1935,7 +1936,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_buffer_get_user_data(
-        buffer: *mut hb_buffer_t,
+        buffer: *const hb_buffer_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -2008,7 +2009,8 @@ pub enum hb_buffer_flags_t {
     HB_BUFFER_FLAG_DO_NOT_INSERT_DOTTED_CIRCLE = 16,
     HB_BUFFER_FLAG_VERIFY = 32,
     HB_BUFFER_FLAG_PRODUCE_UNSAFE_TO_CONCAT = 64,
-    HB_BUFFER_FLAG_DEFINED = 127,
+    HB_BUFFER_FLAG_PRODUCE_SAFE_TO_INSERT_TATWEEL = 128,
+    HB_BUFFER_FLAG_DEFINED = 255,
 }
 extern "C" {
     pub fn hb_buffer_set_flags(buffer: *mut hb_buffer_t, flags: hb_buffer_flags_t);
@@ -2402,7 +2404,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_map_get_user_data(
-        map: *mut hb_map_t,
+        map: *const hb_map_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
@@ -2524,7 +2526,7 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_shape_plan_get_user_data(
-        shape_plan: *mut hb_shape_plan_t,
+        shape_plan: *const hb_shape_plan_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
