@@ -90,19 +90,19 @@ return {
     -- In copy_mode, the color of the active text is:
     -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
     -- 2. selection_* otherwise
-    copy_mode_active_highlight_bg = { Color = "#000000" },
+    copy_mode_active_highlight_bg = { Color = '#000000' },
     -- use `AnsiColor` to specify one of the ansi color palette values
     -- (index 0-15) using one of the names "Black", "Maroon", "Green",
     --  "Olive", "Navy", "Purple", "Teal", "Silver", "Grey", "Red", "Lime",
     -- "Yellow", "Blue", "Fuchsia", "Aqua" or "White".
-    copy_mode_active_highlight_fg = { AnsiColor = "Black" },
-    copy_mode_inactive_highlight_bg = { Color = "#52ad70" },
-    copy_mode_inactive_highlight_fg = { AnsiColor = "White" },
+    copy_mode_active_highlight_fg = { AnsiColor = 'Black' },
+    copy_mode_inactive_highlight_bg = { Color = '#52ad70' },
+    copy_mode_inactive_highlight_fg = { AnsiColor = 'White' },
 
-    quick_select_label_bg = { Color = "peru" },
-    quick_select_label_fg = { Color = "#ffffff" },
-    quick_select_match_bg = { AnsiColor = "Navy" },
-    quick_select_match_fg = { Color = "#ffffff" },
+    quick_select_label_bg = { Color = 'peru' },
+    quick_select_label_fg = { Color = '#ffffff' },
+    quick_select_match_bg = { AnsiColor = 'Navy' },
+    quick_select_match_fg = { Color = '#ffffff' },
   },
 }
 ```
