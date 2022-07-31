@@ -74,6 +74,8 @@ impl ClientPane {
                     physical_top: 0,
                     scrollback_top: 0,
                     dpi: size.dpi,
+                    pixel_width: size.pixel_width,
+                    pixel_height: size.pixel_height,
                 },
                 title,
                 fetch_limiter,

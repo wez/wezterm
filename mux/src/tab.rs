@@ -220,9 +220,9 @@ fn pane_tree(
                 size: TerminalSize {
                     cols: dims.cols,
                     rows: dims.viewport_rows,
-                    pixel_height: 0,
-                    pixel_width: 0,
-                    dpi: 0,
+                    pixel_height: dims.pixel_height,
+                    pixel_width: dims.pixel_width,
+                    dpi: dims.dpi,
                 },
                 working_dir: working_dir.map(Into::into),
                 workspace: workspace.to_string(),

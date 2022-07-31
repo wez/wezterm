@@ -844,6 +844,17 @@ impl TerminalState {
         }
     }
 
+    pub fn get_size(&self) -> TerminalSize {
+        let screen = self.screen();
+        TerminalSize {
+            dpi: self.dpi,
+            pixel_width: self.pixel_width,
+            pixel_height: self.pixel_height,
+            rows: screen.physical_rows,
+            cols: screen.physical_cols,
+        }
+    }
+
     /// When dealing with selection, mark a range of lines as dirty
     pub fn make_all_lines_dirty(&mut self) {
         let seqno = self.seqno;

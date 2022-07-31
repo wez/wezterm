@@ -575,6 +575,9 @@ async fn resolve_pane_id(client: &Client, pane_id: Option<PaneId>) -> anyhow::Re
 struct CliListResultPtySize {
     rows: usize,
     cols: usize,
+    pixel_width: usize,
+    pixel_height: usize,
+    dpi: u32,
 }
 // This will be serialized to JSON via the 'List' command.
 // As such it is intended to be a stable output format,
@@ -600,7 +603,14 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
             workspace,
             title,
             working_dir,
-            size: TerminalSize { rows, cols, .. },
+            size:
+                TerminalSize {
+                    rows,
+                    cols,
+                    pixel_width,
+                    pixel_height,
+                    dpi,
+                },
             ..
         } = pane;
 
@@ -609,7 +619,13 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
             tab_id,
             pane_id,
             workspace,
-            size: CliListResultPtySize { rows, cols },
+            size: CliListResultPtySize {
+                rows,
+                cols,
+                pixel_width,
+                pixel_height,
+                dpi,
+            },
             title,
             cwd: working_dir
                 .as_ref()

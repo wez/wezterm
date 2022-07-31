@@ -40,6 +40,8 @@ pub struct RenderableDimensions {
     /// expressed as a stable index.
     pub scrollback_top: StableRowIndex,
     pub dpi: u32,
+    pub pixel_width: usize,
+    pub pixel_height: usize,
 }
 impl_lua_conversion_dynamic!(RenderableDimensions);
 
@@ -127,6 +129,7 @@ pub fn terminal_get_lines(
 
 /// Implements Pane::get_dimensions for Terminal
 pub fn terminal_get_dimensions(term: &mut Terminal) -> RenderableDimensions {
+    let size = term.get_size();
     let screen = term.screen();
     RenderableDimensions {
         cols: screen.physical_cols,
@@ -135,5 +138,7 @@ pub fn terminal_get_dimensions(term: &mut Terminal) -> RenderableDimensions {
         physical_top: screen.visible_row_to_stable_row(0),
         scrollback_top: screen.phys_to_stable_row_index(0),
         dpi: screen.dpi,
+        pixel_width: size.pixel_width,
+        pixel_height: size.pixel_height,
     }
 }

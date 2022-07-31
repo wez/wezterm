@@ -951,6 +951,8 @@ impl super::TermWindow {
                     scrollback_top: 0,
                     viewport_rows: 1,
                     dpi: self.terminal_size.dpi,
+                    pixel_height: self.render_metrics.cell_size.height as usize,
+                    pixel_width: self.terminal_size.pixel_width,
                 },
                 config: &self.config,
                 cursor_border_color: LinearRgba::default(),
