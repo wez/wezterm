@@ -1,6 +1,6 @@
 use crate::keyassignment::{KeyAssignment, MouseEventTrigger};
 use std::convert::TryFrom;
-use wezterm_dynamic::{FromDynamic, ToDynamic};
+use wezterm_dynamic::{Error as DynError, FromDynamic, FromDynamicOptions, ToDynamic, Value};
 use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, FromDynamic, ToDynamic)]
@@ -140,7 +140,55 @@ fn default_leader_timeout() -> u64 {
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
 pub struct Mouse {
     pub event: MouseEventTrigger,
+    #[dynamic(flatten)]
+    pub mods: MouseEventTriggerMods,
+    pub action: KeyAssignment,
+}
+
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub enum MouseEventAltScreen {
+    True,
+    False,
+    Any,
+}
+
+impl FromDynamic for MouseEventAltScreen {
+    fn from_dynamic(value: &Value, _options: FromDynamicOptions) -> Result<Self, DynError> {
+        match value {
+            Value::Bool(true) => Ok(Self::True),
+            Value::Bool(false) => Ok(Self::False),
+            Value::String(s) if s == "Both" => Ok(Self::Any),
+            _ => Err(DynError::Message(
+                "must be either true, false or 'Any'".to_string(),
+            )),
+        }
+    }
+}
+
+impl ToDynamic for MouseEventAltScreen {
+    fn to_dynamic(&self) -> Value {
+        match self {
+            Self::True => true.to_dynamic(),
+            Self::False => false.to_dynamic(),
+            Self::Any => "Any".to_dynamic(),
+        }
+    }
+}
+
+impl Default for MouseEventAltScreen {
+    fn default() -> Self {
+        Self::Any
+    }
+}
+
+#[derive(
+    Debug, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, FromDynamic, ToDynamic,
+)]
+pub struct MouseEventTriggerMods {
     #[dynamic(default, into = "String", try_from = "String")]
     pub mods: Modifiers,
-    pub action: KeyAssignment,
+    #[dynamic(default)]
+    pub mouse_reporting: bool,
+    #[dynamic(default)]
+    pub alt_screen: MouseEventAltScreen,
 }

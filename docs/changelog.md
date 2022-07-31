@@ -34,6 +34,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11/Wayland: [XDG desktop portal](https://flatpak.github.io/xdg-desktop-portal/) is now used to determine whether dark mode is in use [#2258](https://github.com/wez/wezterm/issues/2258)
 * [SetPaneZoomState](config/lua/keyassignment/SetPaneZoomState.md) key assignment and [MuxTab:set_zoomed()](config/lua/MuxTab/set_zoomed.md) for explicitly setting the zoom state of a pane. [#2284](https://github.com/wez/wezterm/discussions/2284)
 * [mouse_bindings](config/mouse.md) can now handle scroll events. Thanks to [@Funami580](https://github.com/Funami580)! [#2173](https://github.com/wez/wezterm/issues/2173) [#2296](https://github.com/wez/wezterm/pull/2296)
+* [mouse_bindings](config/mouse.md) may now also be defined based on whether the alt-screen is active and/or whether the application in the pane has enabled mouse reporting. [#581](https://github.com/wez/wezterm/issues/581)
 
 #### Changed
 * If `timeout_milliseconds` is specified in

@@ -396,6 +396,7 @@ pub enum KeyAssignment {
     MoveTab(usize),
     ScrollByPage(NotNan<f64>),
     ScrollByLine(isize),
+    ScrollByCurrentEventWheelDelta,
     ScrollToPrompt(isize),
     ScrollToTop,
     ScrollToBottom,

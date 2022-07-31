@@ -22,8 +22,8 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, KeyMapPreference, LoadedConfig, RgbaColor, CONFIG_DIR, CONFIG_FILE_OVERRIDE,
-    CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_true, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, CONFIG_DIR,
+    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -908,7 +908,9 @@ impl Config {
         tables
     }
 
-    pub fn mouse_bindings(&self) -> HashMap<(MouseEventTrigger, Modifiers), KeyAssignment> {
+    pub fn mouse_bindings(
+        &self,
+    ) -> HashMap<(MouseEventTrigger, MouseEventTriggerMods), KeyAssignment> {
         let mut map = HashMap::new();
 
         for m in &self.mouse_bindings {

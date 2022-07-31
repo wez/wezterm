@@ -6,6 +6,7 @@ use ::window::{
     WindowState,
 };
 use config::keyassignment::{MouseEventTrigger, SpawnTabDomain};
+use config::MouseEventAltScreen;
 use mux::pane::Pane;
 use mux::tab::SplitDirection;
 use mux::Mux;
@@ -755,21 +756,6 @@ impl super::TermWindow {
                     None
                 }
             }
-            WMEK::VertWheel(amount)
-                if !pane.is_mouse_grabbed()
-                    && !pane.is_alt_screen_active()
-                    && event.modifiers.is_empty() =>
-            {
-                // adjust viewport
-                let dims = pane.get_dimensions();
-                let position = self
-                    .get_viewport(pane.pane_id())
-                    .unwrap_or(dims.physical_top)
-                    .saturating_sub((*amount).into());
-                self.set_viewport(pane.pane_id(), Some(position), dims);
-                context.invalidate();
-                return;
-            }
             WMEK::VertWheel(amount) => Some(match *amount {
                 0 => return,
                 1.. => MouseEventTrigger::Down {
@@ -784,12 +770,7 @@ impl super::TermWindow {
             WMEK::HorzWheel(_) => None,
         };
 
-        if allow_action
-            && (!pane.is_mouse_grabbed()
-                || event
-                    .modifiers
-                    .contains(self.config.bypass_mouse_reporting_modifiers))
-        {
+        if allow_action {
             if let Some(mut event_trigger_type) = event_trigger_type {
                 self.current_event = Some(event_trigger_type.to_dynamic());
                 let mut modifiers = event.modifiers;
@@ -826,7 +807,17 @@ impl super::TermWindow {
                     _ => {}
                 };
 
-                if let Some(action) = self.input_map.lookup_mouse(event_trigger_type, modifiers) {
+                let mouse_mods = config::MouseEventTriggerMods {
+                    mods: modifiers,
+                    mouse_reporting: pane.is_mouse_grabbed(),
+                    alt_screen: if pane.is_alt_screen_active() {
+                        MouseEventAltScreen::True
+                    } else {
+                        MouseEventAltScreen::False
+                    },
+                };
+
+                if let Some(action) = self.input_map.lookup_mouse(event_trigger_type, mouse_mods) {
                     self.perform_key_assignment(&pane, &action).ok();
                     return;
                 }

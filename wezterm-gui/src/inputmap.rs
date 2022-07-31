@@ -3,7 +3,7 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, KeyTableEntry, KeyTables,
     MouseEventTrigger, SelectionMode,
 };
-use config::ConfigHandle;
+use config::{ConfigHandle, MouseEventAltScreen, MouseEventTriggerMods};
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 use wezterm_term::input::MouseButton;
@@ -11,7 +11,7 @@ use window::{KeyCode, Modifiers};
 
 pub struct InputMap {
     pub keys: KeyTables,
-    pub mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
+    pub mouse: HashMap<(MouseEventTrigger, MouseEventTriggerMods), KeyAssignment>,
     leader: Option<(KeyCode, Modifiers, Duration)>,
 }
 
@@ -52,7 +52,35 @@ impl InputMap {
         if !config.disable_default_mouse_bindings {
             m!(
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::False,
+                    },
+                    MouseEventTrigger::Down {
+                        streak: 1,
+                        button: MouseButton::WheelUp(1),
+                    },
+                    ScrollByCurrentEventWheelDelta
+                ],
+                [
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::False,
+                    },
+                    MouseEventTrigger::Down {
+                        streak: 1,
+                        button: MouseButton::WheelDown(1),
+                    },
+                    ScrollByCurrentEventWheelDelta
+                ],
+                [
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 3,
                         button: MouseButton::Left
@@ -60,7 +88,11 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Line)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 2,
                         button: MouseButton::Left
@@ -68,7 +100,11 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Word)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -76,7 +112,11 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Cell)
                 ],
                 [
-                    Modifiers::ALT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::ALT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -84,7 +124,11 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Block)
                 ],
                 [
-                    Modifiers::SHIFT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::SHIFT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -92,7 +136,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Cell)
                 ],
                 [
-                    Modifiers::SHIFT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::SHIFT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 1,
                         button: MouseButton::Left
@@ -102,7 +150,11 @@ impl InputMap {
                     )
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 1,
                         button: MouseButton::Left
@@ -112,7 +164,11 @@ impl InputMap {
                     )
                 ],
                 [
-                    Modifiers::ALT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::ALT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 1,
                         button: MouseButton::Left
@@ -120,7 +176,11 @@ impl InputMap {
                     CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
-                    Modifiers::ALT | Modifiers::SHIFT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::ALT | Modifiers::SHIFT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -128,7 +188,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Block)
                 ],
                 [
-                    Modifiers::ALT | Modifiers::SHIFT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::ALT | Modifiers::SHIFT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 1,
                         button: MouseButton::Left
@@ -138,7 +202,11 @@ impl InputMap {
                     )
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 2,
                         button: MouseButton::Left
@@ -146,7 +214,11 @@ impl InputMap {
                     CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Up {
                         streak: 3,
                         button: MouseButton::Left
@@ -154,7 +226,11 @@ impl InputMap {
                     CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 1,
                         button: MouseButton::Left
@@ -162,7 +238,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Cell)
                 ],
                 [
-                    Modifiers::ALT,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::ALT,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 1,
                         button: MouseButton::Left
@@ -170,7 +250,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Block)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 2,
                         button: MouseButton::Left
@@ -178,7 +262,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Word)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 3,
                         button: MouseButton::Left
@@ -186,7 +274,11 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(SelectionMode::Line)
                 ],
                 [
-                    Modifiers::NONE,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::NONE,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Middle
@@ -194,7 +286,11 @@ impl InputMap {
                     PasteFrom(ClipboardPasteSource::PrimarySelection)
                 ],
                 [
-                    Modifiers::SUPER,
+                    MouseEventTriggerMods {
+                        mods: Modifiers::SUPER,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 1,
                         button: MouseButton::Left,
@@ -202,7 +298,11 @@ impl InputMap {
                     StartWindowDrag
                 ],
                 [
-                    ctrl_shift,
+                    MouseEventTriggerMods {
+                        mods: ctrl_shift,
+                        mouse_reporting: false,
+                        alt_screen: MouseEventAltScreen::Any,
+                    },
                     MouseEventTrigger::Drag {
                         streak: 1,
                         button: MouseButton::Left,
@@ -214,7 +314,29 @@ impl InputMap {
 
         keys.default
             .retain(|_, v| v.action != KeyAssignment::DisableDefaultAssignment);
+
         mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
+        // Expand MouseEventAltScreen::Any to individual True/False entries
+        let mut expanded_mouse = vec![];
+        for ((code, mods), v) in &mouse {
+            if mods.alt_screen == MouseEventAltScreen::Any {
+                let mods_true = MouseEventTriggerMods {
+                    alt_screen: MouseEventAltScreen::True,
+                    ..*mods
+                };
+                let mods_false = MouseEventTriggerMods {
+                    alt_screen: MouseEventAltScreen::False,
+                    ..*mods
+                };
+                expanded_mouse.push((code.clone(), mods_true, v.clone()));
+                expanded_mouse.push((code.clone(), mods_false, v.clone()));
+            }
+        }
+        // Eliminate ::Any
+        mouse.retain(|(_, mods), _| mods.alt_screen != MouseEventAltScreen::Any);
+        for (code, mods, v) in expanded_mouse {
+            mouse.insert((code, mods), v);
+        }
 
         keys.by_name
             .entry("copy_mode".to_string())
@@ -259,10 +381,13 @@ impl InputMap {
             .cloned()
     }
 
-    pub fn lookup_mouse(&self, event: MouseEventTrigger, mods: Modifiers) -> Option<KeyAssignment> {
-        self.mouse
-            .get(&(event, mods.remove_positional_mods()))
-            .cloned()
+    pub fn lookup_mouse(
+        &self,
+        event: MouseEventTrigger,
+        mut mods: MouseEventTriggerMods,
+    ) -> Option<KeyAssignment> {
+        mods.mods = mods.mods.remove_positional_mods();
+        self.mouse.get(&(event, mods)).cloned()
     }
 
     pub fn show_keys(&self) {
@@ -284,28 +409,52 @@ impl InputMap {
             }
         }
 
-        section_header("Mouse");
         self.show_mouse();
     }
 
     fn show_mouse(&self) {
-        let ordered = self.mouse.iter().collect::<BTreeMap<_, _>>();
+        for (label, alt_screen, mouse_reporting) in [
+            ("Mouse", MouseEventAltScreen::False, false),
+            ("Mouse: alt_screen", MouseEventAltScreen::True, false),
+            ("Mouse: mouse_reporting", MouseEventAltScreen::False, true),
+            (
+                "Mouse: mouse_reporting + alt_screen",
+                MouseEventAltScreen::True,
+                true,
+            ),
+        ] {
+            let ordered = self
+                .mouse
+                .iter()
+                .filter(|((_, m), _)| {
+                    m.alt_screen == alt_screen && m.mouse_reporting == mouse_reporting
+                })
+                .collect::<BTreeMap<_, _>>();
 
-        let mut trigger_width = 0;
-        let mut mod_width = 0;
-        for (trigger, mods) in ordered.keys() {
-            mod_width = mod_width.max(format!("{mods:?}").len());
-            trigger_width = trigger_width.max(format!("{trigger:?}").len());
-        }
+            if ordered.is_empty() {
+                continue;
+            }
 
-        for ((trigger, mods), action) in ordered {
-            let mods = if *mods == Modifiers::NONE {
-                String::new()
-            } else {
-                format!("{mods:?}")
-            };
-            let trigger = format!("{trigger:?}");
-            println!("\t{mods:mod_width$}   {trigger:trigger_width$}   ->   {action:?}");
+            section_header(label);
+
+            let mut trigger_width = 0;
+            let mut mod_width = 0;
+            for (trigger, mods) in ordered.keys() {
+                mod_width = mod_width.max(format!("{:?}", mods.mods).len());
+                trigger_width = trigger_width.max(format!("{trigger:?}").len());
+            }
+
+            for ((trigger, mods), action) in ordered {
+                let mods = if mods.mods == Modifiers::NONE {
+                    String::new()
+                } else {
+                    format!("{:?}", mods.mods)
+                };
+                let trigger = format!("{trigger:?}");
+                println!("\t{mods:mod_width$}   {trigger:trigger_width$}   ->   {action:?}");
+            }
+
+            println!();
         }
     }
 }

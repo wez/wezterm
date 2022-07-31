@@ -19,6 +19,8 @@ bypassing mouse reporting capture.
 
 ## Default Mouse Assignments
 
+*Note: you can run `wezterm show-keys` to show the effective key and mouse assignments*.
+
 In the table below, `Triple Left Down` means that the left mouse button is
 being triple clicked and that the event matches the downstroke of the third
 quick consecutive press.  `Triple Left Up` matches the subsequent release event
@@ -99,6 +101,29 @@ return {
 }
 ```
 
+Each entry in the mouse binding table can have the following fields:
+
+* `event` - the mouse event on which to trigger. Described in detail below.
+* `mods` - the keyboard modifier keys that must be active in order to match the event.
+  `mods` have the same definition and meaning as for key assignments and are described
+  in more detail in [Configuring Key Assignments](keys.md#configuring-key-assignments).
+* `action` - the action to take when this mouse binding is matched
+* `mouse_reporting` - an optional boolean that defaults to `false`. This mouse binding
+   entry will only be considered if the current pane's mouse reporting state matches.
+   In general, you should avoid defining assignments that have
+   `mouse_reporting=true` as it will prevent the application running in the
+   pane from receiving that mouse event.  You can, of course, define these and
+   still send your mouse event to the pane by holding down the configured
+   [mouse reporting bypass modifier
+   key](lua/config/bypass_mouse_reporting_modifiers.md). (*Since: nightly builds only*)
+* `alt_screen` - an optional field that defaults to `'Any'`, but that can also
+  be set to either `true` or `false`. This mouse binding entry will only be
+  considered if the current pane's alt screen state matches this field.  Most
+  of the default mouse assignments are defined as `alt_screen='Any'`, a notable
+  exception being that mouse wheel scrolling only applies when
+  `alt_screen=false`, as the mouse wheel is typically mapped to arrow keys by
+  the terminal in alt screen mode. (*Since: nightly builds only*).
+
 The `action` and `mods` portions are described in more detail in the key assignment
 information below.
 
@@ -127,7 +152,6 @@ you wanted quadruple-click bindings you can specify `streak=4`.
 *since: nightly builds only*
 
 You can handle scroll events by using `'WheelUp'` or `'WheelDown'` as event.
-Currently, this only works with at least one modifier being present.
 
 ```lua
 local wezterm = require 'wezterm'
