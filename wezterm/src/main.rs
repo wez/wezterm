@@ -575,10 +575,14 @@ async fn resolve_pane_id(client: &Client, pane_id: Option<PaneId>) -> anyhow::Re
 struct CliListResultPtySize {
     rows: usize,
     cols: usize,
+    /// Pixel width of the pane, if known (can be zero)
     pixel_width: usize,
+    /// Pixel height of the pane, if known (can be zero)
     pixel_height: usize,
+    /// dpi of the pane, if known (can be zero)
     dpi: u32,
 }
+
 // This will be serialized to JSON via the 'List' command.
 // As such it is intended to be a stable output format,
 // Thus we need to be careful about both the fields and their types,
@@ -592,6 +596,16 @@ struct CliListResultItem {
     size: CliListResultPtySize,
     title: String,
     cwd: String,
+    /// Cursor x coordinate from top left of non-scrollback pane area
+    cursor_x: usize,
+    /// Cursor y coordinate from top left of non-scrollback pane area
+    cursor_y: usize,
+    cursor_shape: termwiz::surface::CursorShape,
+    cursor_visibility: termwiz::surface::CursorVisibility,
+    /// Number of cols from the left of the tab area to the left of this pane
+    left_col: usize,
+    /// Number of rows from the top of the tab area to the top of this pane
+    top_row: usize,
 }
 
 impl From<mux::tab::PaneEntry> for CliListResultItem {
@@ -603,6 +617,10 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
             workspace,
             title,
             working_dir,
+            cursor_pos,
+            physical_top,
+            left_col,
+            top_row,
             size:
                 TerminalSize {
                     rows,
@@ -632,6 +650,12 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
                 .map(|url| url.url.as_str())
                 .unwrap_or("")
                 .to_string(),
+            cursor_x: cursor_pos.x,
+            cursor_y: cursor_pos.y.saturating_sub(physical_top) as usize,
+            cursor_shape: cursor_pos.shape,
+            cursor_visibility: cursor_pos.visibility,
+            left_col,
+            top_row,
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::domain::DomainId;
 use crate::pane::*;
+use crate::renderable::StableCursorPosition;
 use crate::{Mux, WindowId};
 use bintree::PathBranch;
 use config::configuration;
@@ -10,7 +11,7 @@ use std::cell::{RefCell, RefMut};
 use std::convert::TryInto;
 use std::rc::Rc;
 use url::Url;
-use wezterm_term::TerminalSize;
+use wezterm_term::{StableRowIndex, TerminalSize};
 
 pub type Tree = bintree::Tree<Rc<dyn Pane>, SplitDirectionAndSize>;
 pub type Cursor = bintree::Cursor<Rc<dyn Pane>, SplitDirectionAndSize>;
@@ -194,21 +195,42 @@ fn pane_tree(
     active: Option<&Rc<dyn Pane>>,
     zoomed: Option<&Rc<dyn Pane>>,
     workspace: &str,
+    left_col: usize,
+    top_row: usize,
 ) -> PaneNode {
     match tree {
         Tree::Empty => PaneNode::Empty,
-        Tree::Node { left, right, data } => PaneNode::Split {
-            left: Box::new(pane_tree(
-                &*left, tab_id, window_id, active, zoomed, workspace,
-            )),
-            right: Box::new(pane_tree(
-                &*right, tab_id, window_id, active, zoomed, workspace,
-            )),
-            node: data.unwrap(),
-        },
+        Tree::Node { left, right, data } => {
+            let data = data.unwrap();
+            PaneNode::Split {
+                left: Box::new(pane_tree(
+                    &*left, tab_id, window_id, active, zoomed, workspace, left_col, top_row,
+                )),
+                right: Box::new(pane_tree(
+                    &*right,
+                    tab_id,
+                    window_id,
+                    active,
+                    zoomed,
+                    workspace,
+                    if data.direction == SplitDirection::Vertical {
+                        left_col
+                    } else {
+                        left_col + data.left_of_second()
+                    },
+                    if data.direction == SplitDirection::Horizontal {
+                        top_row
+                    } else {
+                        top_row + data.top_of_second()
+                    },
+                )),
+                node: data,
+            }
+        }
         Tree::Leaf(pane) => {
             let dims = pane.get_dimensions();
             let working_dir = pane.get_current_working_dir();
+            let cursor_pos = pane.get_cursor_position();
 
             PaneNode::Leaf(PaneEntry {
                 window_id,
@@ -226,6 +248,10 @@ fn pane_tree(
                 },
                 working_dir: working_dir.map(Into::into),
                 workspace: workspace.to_string(),
+                cursor_pos,
+                physical_top: dims.physical_top,
+                left_col,
+                top_row,
             })
         }
     }
@@ -567,6 +593,8 @@ impl Tab {
                 active.as_ref(),
                 zoomed.as_ref(),
                 &workspace,
+                0,
+                0,
             )
         } else {
             PaneNode::Empty
@@ -1862,6 +1890,10 @@ pub struct PaneEntry {
     pub is_active_pane: bool,
     pub is_zoomed_pane: bool,
     pub workspace: String,
+    pub cursor_pos: StableCursorPosition,
+    pub physical_top: StableRowIndex,
+    pub top_row: usize,
+    pub left_col: usize,
 }
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]
