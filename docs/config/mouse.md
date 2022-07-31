@@ -151,7 +151,11 @@ you wanted quadruple-click bindings you can specify `streak=4`.
 
 *since: nightly builds only*
 
-You can handle scroll events by using `'WheelUp'` or `'WheelDown'` as event.
+You can handle vertical wheel scroll events using the example shown below. The
+`streak` and amount associated with either `WheelUp` or `WheelDown` are set to
+`1` for the sake of simplicity of matching the event; you may use
+[`window:current_event`](lua/window/current_event.md), if to access the actual
+delta scroll value while handling the event.
 
 ```lua
 local wezterm = require 'wezterm'
@@ -161,14 +165,14 @@ return {
   mouse_bindings = {
     -- Scrolling up while holding CTRL increases the font size
     {
-      event = 'WheelUp',
+      event = { Down = { streak = 1, button = { WheelUp = 1 } } },
       mods = 'CTRL',
       action = act.IncreaseFontSize,
     },
 
     -- Scrolling down while holding CTRL decreases the font size
     {
-      event = 'WheelDown',
+      event = { Down = { streak = 1, button = { WheelDown = 1 } } },
       mods = 'CTRL',
       action = act.DecreaseFontSize,
     },
@@ -176,8 +180,6 @@ return {
 }
 ```
 
-Take a look at [`window:current_event`](lua/window/current_event.md),
-if you want to access the delta scroll value while handling the event.
 
 # Gotcha on binding an 'Up' event only
 

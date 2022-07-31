@@ -14,10 +14,11 @@ local wezterm = require 'wezterm'
 return {
   mouse_bindings = {
     {
-      event = 'WheelUp',
+      event = { Down = { streak = 1, button = { WheelUp = 1 } } },
       mods = 'CTRL',
       action = wezterm.action_callback(function(window, pane)
-        local delta = window:current_event()['Down']['button']['WheelUp']
+        -- note that you want `WheelDown` for a `WheelDown` event
+        local delta = window:current_event().Down.button.WheelUp
         wezterm.log_info('delta is: ' .. delta)
       end),
     },
