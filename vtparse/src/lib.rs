@@ -432,6 +432,12 @@ impl VTParser {
         }
     }
 
+    /// Returns if the state machine is in the ground state,
+    /// i.e. there is no pending state held by the state machine.
+    pub fn is_ground(&self) -> bool {
+        self.state == State::Ground
+    }
+
     fn as_integer_params(&self) -> [i64; MAX_PARAMS] {
         let mut res = [0i64; MAX_PARAMS];
         let mut i = 0;
