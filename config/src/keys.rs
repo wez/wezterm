@@ -157,7 +157,7 @@ impl FromDynamic for MouseEventAltScreen {
         match value {
             Value::Bool(true) => Ok(Self::True),
             Value::Bool(false) => Ok(Self::False),
-            Value::String(s) if s == "Both" => Ok(Self::Any),
+            Value::String(s) if s == "Any" => Ok(Self::Any),
             _ => Err(DynError::Message(
                 "must be either true, false or 'Any'".to_string(),
             )),
