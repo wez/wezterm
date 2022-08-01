@@ -160,7 +160,9 @@ impl Parser {
         result
     }
 
-    /// Similar to `parse_first` but collects all actions from the first sequence.
+    /// Similar to `parse_first` but collects all actions from the first sequence,
+    /// and guarantees the state machine is in the ground state at the end of this
+    /// sequence.
     pub fn parse_first_as_vec(&mut self, bytes: &[u8]) -> Option<(Vec<Action>, usize)> {
         let mut actions = Vec::new();
         let mut first_idx = None;
@@ -172,7 +174,7 @@ impl Parser {
                     state: &mut self.state.borrow_mut(),
                 },
             );
-            if !actions.is_empty() {
+            if !actions.is_empty() && self.state_machine.is_ground() {
                 // if we recognized any actions, record the iterator index
                 first_idx = Some(idx);
                 break;
@@ -416,67 +418,111 @@ mod test {
     // <https://github.com/markbt/streampager/issues/57>
     #[test]
     fn osc_st_parse_first_as_vec() {
-        let data = b"\x1b]8;;http://example.com\x1b\\example\x1b]8;;\x1b\\";
+        // This string includes an assitional trailing ST sequence which should
+        // be parsed separately.
+        let data = b"\x1b]8;;http://example.com\x1b\\example\x1b]8;;\x1b\\\x1b\\";
         let mut p = Parser::new();
 
         let mut offset = 0;
         let mut actions = vec![];
-        while let Some((mut act, off)) = p.parse_first_as_vec(&data[offset..]) {
-            actions.append(&mut act);
+        let mut slices = vec![];
+        while let Some((act, off)) = p.parse_first_as_vec(&data[offset..]) {
+            // Store each vec of actions so we can confirm that the ST sequence is bundled with the
+            // OSC SetHyperlink command.
+            actions.push(act);
+            // Additionally store all non-single-character slices so we can confirm these are split
+            // correctly.
+            if off > 1 {
+                slices.push(&data[offset..offset + off]);
+            }
             offset += off;
         }
+
+        assert_eq!(
+            slices,
+            vec![
+                b"\x1b]8;;http://example.com\x1b\\".as_slice(),
+                b"\x1b]8;;\x1b\\".as_slice(),
+                b"\x1b\\".as_slice()
+            ]
+        );
 
         k9::snapshot!(
             actions,
             r#"
 [
-    OperatingSystemCommand(
-        SetHyperlink(
-            Some(
-                Hyperlink {
-                    params: {},
-                    uri: "http://example.com",
-                    implicit: false,
-                },
+    [
+        OperatingSystemCommand(
+            SetHyperlink(
+                Some(
+                    Hyperlink {
+                        params: {},
+                        uri: "http://example.com",
+                        implicit: false,
+                    },
+                ),
             ),
         ),
-    ),
-    Esc(
-        Code(
-            StringTerminator,
+        Esc(
+            Code(
+                StringTerminator,
+            ),
         ),
-    ),
-    Print(
-        'e',
-    ),
-    Print(
-        'x',
-    ),
-    Print(
-        'a',
-    ),
-    Print(
-        'm',
-    ),
-    Print(
-        'p',
-    ),
-    Print(
-        'l',
-    ),
-    Print(
-        'e',
-    ),
-    OperatingSystemCommand(
-        SetHyperlink(
-            None,
+    ],
+    [
+        Print(
+            'e',
         ),
-    ),
-    Esc(
-        Code(
-            StringTerminator,
+    ],
+    [
+        Print(
+            'x',
         ),
-    ),
+    ],
+    [
+        Print(
+            'a',
+        ),
+    ],
+    [
+        Print(
+            'm',
+        ),
+    ],
+    [
+        Print(
+            'p',
+        ),
+    ],
+    [
+        Print(
+            'l',
+        ),
+    ],
+    [
+        Print(
+            'e',
+        ),
+    ],
+    [
+        OperatingSystemCommand(
+            SetHyperlink(
+                None,
+            ),
+        ),
+        Esc(
+            Code(
+                StringTerminator,
+            ),
+        ),
+    ],
+    [
+        Esc(
+            Code(
+                StringTerminator,
+            ),
+        ),
+    ],
 ]
 "#
         );
