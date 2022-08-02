@@ -12,7 +12,7 @@ license = "MIT AND Unicode-DFS-2016"
 
 [dependencies]
 log = "0.4"
-wezterm-dynamic = { path = "../wezterm-dynamic" }
+wezterm-dynamic = { version = "0.1", path = "../wezterm-dynamic" }
 
 [dev-dependencies]
 k9 = "0.11.0"
