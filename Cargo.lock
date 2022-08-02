@@ -4500,7 +4500,7 @@ checksum = "507e9898683b6c43a9aa55b64259b721b52ba226e0f3779137e50ad114a4c90b"
 
 [[package]]
 name = "termwiz"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "base64",

@@ -38,6 +38,6 @@ k9 = "0.11.0"
 unicode-normalization = "0.1"
 
 [dependencies.termwiz]
-version = "0.16"
+version = "0.17"
 path = "../termwiz"
 features = ["use_image"]
