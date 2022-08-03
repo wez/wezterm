@@ -824,10 +824,7 @@ impl CopyRenderable {
 
     fn set_selection_mode(&mut self, mode: &Option<SelectionMode>) {
         match mode {
-            None => {
-                self.start.take();
-                self.clear_selection();
-            }
+            None => self.clear_selection_mode(),
             Some(mode) => {
                 if self.start.is_none() {
                     let coord = SelectionCoordinate::x_y(self.cursor.x, self.cursor.y);
@@ -835,14 +832,18 @@ impl CopyRenderable {
                 } else if self.selection_mode == *mode {
                     // We have a selection and we're trying to set the same mode
                     // again; consider this to be a toggle that clears the selection
-                    self.start.take();
-                    self.clear_selection();
+                    self.clear_selection_mode();
                     return;
                 }
                 self.selection_mode = *mode;
                 self.select_to_cursor_pos();
             }
         }
+    }
+
+    fn clear_selection_mode(&mut self) {
+        self.start.take();
+        self.clear_selection();
     }
 }
 
@@ -936,6 +937,7 @@ impl Pane for CopyOverlay {
                     EditPattern => render.edit_pattern(),
                     AcceptPattern => render.accept_pattern(),
                     SetSelectionMode(mode) => render.set_selection_mode(mode),
+                    ClearSelectionMode => render.clear_selection_mode(),
                     MoveBackwardSemanticZone => render.move_by_zone(-1, None),
                     MoveForwardSemanticZone => render.move_by_zone(1, None),
                     MoveBackwardZoneOfType(zone_type) => render.move_by_zone(-1, Some(*zone_type)),

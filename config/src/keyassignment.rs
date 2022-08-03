@@ -474,6 +474,7 @@ pub enum CopyModeAssignment {
     MoveToScrollbackTop,
     MoveToScrollbackBottom,
     SetSelectionMode(Option<SelectionMode>),
+    ClearSelectionMode,
     MoveToStartOfLineContent,
     MoveToEndOfLineContent,
     MoveToStartOfLine,
