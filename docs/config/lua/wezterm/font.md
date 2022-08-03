@@ -13,7 +13,7 @@ return {
 
 The first parameter is the name of the font; the name can be one of the following types of names:
 
-* The font family name, eg: `"JetBrains Mono"`.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the *attributes* parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.
+* The font family name, eg: `"JetBrains Mono"`.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the *attributes* parameter.  **This is the recommended name to use for the font**, as it the most compatible way to resolve an installed font.
 * The computed *full name*, which is the family name with the sub-family (which incorporates style information) appended, eg: `"JetBrains Mono Regular"`.
 * (Since 20210502-154244-3f7122cb) The *postscript name*, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.
 
@@ -21,29 +21,65 @@ When specifying a font using its family name, the second *attributes* parameter
 is an optional table that can be used to specify style attributes; the
 following keys are allowed:
 
-* `bold` - whether to select a bold variant of the font (default: `false`)
-* `italic` - whether to select an italic variant of the font (default: `false`)
+* `weight` - specifies the weight of the font.  The default value is `"Regular"`, and possible values are:
+  * `"Thin"`
+  * `"ExtraLight"`
+  * `"Light"`
+  * `"DemiLight"`
+  * `"Book"`
+  * `"Regular"`
+  * `"Medium"`
+  * `"DemiBold"`
+  * `"Bold"`
+  * `"ExtraBold"`
+  * `"Black"`
+  * `"ExtraBlack"`.
 
-When attributes are specified, the font must match both the family name and attributes in order to be selected.
+  `weight` has been supported since version 20210502-130208-bff6815d, In earlier versions you
+  could use `bold=true` to get a bold font variant.
+* `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are:
+  * `"UltraCondensed"`
+  * `"ExtraCondensed"`
+  * `"Condensed"`
+  * `"SemiCondensed"`
+  * `"Normal"`
+  * `"SemiExpanded"`
+  * `"Expanded"`
+  * `"ExtraExpanded"`
+  * `"UltraExpanded"`.
+
+  `stretch` has been supported since version 20210502-130208-bff6815d.
+* `style` - specifies the font style to select.  The default is `"Normal"`, and possible values are:
+  * `"Normal"`
+  * `"Italic"`
+  * `"Oblique"`
+
+  `"Oblique"` and `"Italic"` fonts are similar in the sense that the glyphs
+  are presented at an angle.  `"Italic"` fonts usually have a distinctive
+  design difference from the `"Normal"` style in a given font family,
+  whereas `"Oblique"` usually looks very similar to `"Normal"`, but skewed
+  at an angle.
+
+  `style` has been supported since version 20220319-142410-0fcdea07. In earlier versions
+  you could use `italic=true` to get an italic font variant.
+
+When attributes are specified, the font must match both the family name and
+attributes in order to be selected.
+
+With the exception of being able to synthesize basic bold and italics (really,
+oblique) for non-bitmap fonts, wezterm can only select and use fonts that you
+have installed on your system.  The attributes that you specify are used to
+match a font from those that are available, so if you'd like to use a condensed
+font, for example, then you must install the condensed variant of that family.
+
 
 ```lua
 local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font('JetBrains Mono', { bold = true }),
+  font = wezterm.font('JetBrains Mono', { weight = 'Bold' }),
 }
 ```
-
-*Since: 20210502-130208-bff6815d*
-
-It is now possible to specify both font weight and font stretch when matching fonts:
-
-* `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are `"UltraCondensed"`, `"ExtraCondensed"`, `"Condensed"`, `"SemiCondensed"`, `"Normal"`, `"SemiExpanded"`, `"Expanded"`, `"ExtraExpanded"`, `"UltraExpanded"`.
-* `weight` - specifies the weight of the font with more precision than `bold`.  The default value is `"Regular"`, and possible values are `"Thin"`, `"ExtraLight"`, `"Light"`, `"DemiLight"`, `"Book"`, `"Regular"`, `"Medium"`, `"DemiBold"`, `"Bold"`, `"ExtraBold"`, `"Black"`, and `"ExtraBlack"`.
-* `bold` - has been superseded by the new `weight` parameter and will be eventually removed.  For compatibility purposes, specifying `bold=true` is equivalent to specifying `weight="Bold"`.
-
-These parameters are passed to the system font locator when resolving
-the font, which will apply system-specific rules to resolve the font.
 
 When resolving fonts from [font_dirs](../config/font_dirs.md), wezterm follows CSS Fonts
 Level 3 compatible font matching, which tries to exactly match the specified
@@ -101,18 +137,4 @@ The following options can be specified in the same way:
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
 * `assume_emoji_presentation = true` or `assume_emoji_presentation = false` to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. (*Since: nightly builds only*)
-
-*Since: 20220319-142410-0fcdea07*
-
-You may now specify `style="Normal"`, `style="Italic"` or `style="Oblique"`
-instead of simply specifying a boolean `italic` value such as `italic=true`.
-
-`italic=false` is equivalent to `style="Normal"`, and `italic=true` is
-equivalent to `style="Italic"`.
-
-`"Oblique"` and `"Italic"` fonts are similar in the sense that the glyphs
-are presented at an angle.  `"Italic"` fonts usually have a distinctive
-design difference from the `"Normal"` style in a given font family,
-whereas `"Oblique"` usually looks very similar to `"Normal"`, but skewed
-at an angle.
 
