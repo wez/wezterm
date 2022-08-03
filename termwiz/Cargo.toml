@@ -1,7 +1,7 @@
 [package]
 authors = ["Wez Furlong"]
 name = "termwiz"
-version = "0.17.0"
+version = "0.17.1"
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
 description = "Terminal Wizardry for Unix and Windows"
@@ -79,7 +79,7 @@ features = [
     "winnt",
     "impl-default"
 ]
-version = "0.3"
+version = "0.3.9"
 
 [package.metadata.docs.rs]
 features = ["docs"]
