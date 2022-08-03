@@ -191,6 +191,7 @@ impl PtyFd {
         let configured_umask = builder.umask;
 
         let mut cmd = builder.as_command()?;
+        let controlling_tty = builder.get_controlling_tty();
 
         unsafe {
             cmd.stdin(self.as_stdio()?)
@@ -221,7 +222,7 @@ impl PtyFd {
                     // are system dependent, which is why we're using `as _`.
                     // Suppress this lint for this section of code.
                     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_lossless))]
-                    {
+                    if controlling_tty {
                         // Set the pty as the controlling terminal.
                         // Failure to do this means that delivery of
                         // SIGWINCH won't happen when we resize the

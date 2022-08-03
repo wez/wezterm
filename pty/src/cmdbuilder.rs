@@ -156,6 +156,7 @@ pub struct CommandBuilder {
     cwd: Option<OsString>,
     #[cfg(unix)]
     pub(crate) umask: Option<libc::mode_t>,
+    controlling_tty: bool,
 }
 
 impl CommandBuilder {
@@ -168,6 +169,7 @@ impl CommandBuilder {
             cwd: None,
             #[cfg(unix)]
             umask: None,
+            controlling_tty: true,
         }
     }
 
@@ -179,7 +181,22 @@ impl CommandBuilder {
             cwd: None,
             #[cfg(unix)]
             umask: None,
+            controlling_tty: true,
         }
+    }
+
+    /// Set whether we should set the pty as the controlling terminal.
+    /// The default is true, which is usually what you want, but you
+    /// may need to set this to false if you are crossing container
+    /// boundaries (eg: flatpak) to workaround issues like:
+    /// <https://github.com/flatpak/flatpak/issues/3697>
+    /// <https://github.com/flatpak/flatpak/issues/3285>
+    pub fn set_controlling_tty(&mut self, controlling_tty: bool) {
+        self.controlling_tty = controlling_tty;
+    }
+
+    pub fn get_controlling_tty(&self) -> bool {
+        self.controlling_tty
     }
 
     /// Create a new builder instance that will run some idea of a default
@@ -191,6 +208,7 @@ impl CommandBuilder {
             cwd: None,
             #[cfg(unix)]
             umask: None,
+            controlling_tty: true,
         }
     }
 

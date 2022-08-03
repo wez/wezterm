@@ -329,6 +329,61 @@ impl LocalDomain {
             if let Some(cwd) = &spawn_command.cwd {
                 cmd.cwd(cwd);
             }
+        } else if std::env::var("FLATPAK_ID") == Ok("org.wezfurlong.wezterm".to_string()) {
+            // We're running inside a flatpak sandbox.
+            // Run the command outside the sandbox via flatpak-spawn
+            let mut args = vec![
+                "flatpak-spawn".to_string(),
+                "--host".to_string(),
+                "--watch-bus".to_string(),
+            ];
+            if let Some(cwd) = cmd.get_cwd() {
+                args.push(format!("--directory={}", PathBuf::from(cwd).display()));
+            }
+
+            let is_default_prog = cmd.is_default_prog();
+
+            // Note: WEZTERM_UNIX_SOCKET, WEZTERM_CONFIG_(FILE|DIR) and other env
+            // vars are not included in this.
+            // We can't include them: their paths are only meaningful in the sandbox
+            // and cannot be reasonably accessed from outside it in the shell.
+            for (k, v) in cmd.iter_extra_env_as_str() {
+                args.push(format!("--env={k}={v}"));
+            }
+
+            for arg in cmd.get_argv() {
+                args.push(
+                    arg.to_str()
+                        .ok_or_else(|| anyhow::anyhow!("command argument is not utf8"))?
+                        .to_string(),
+                );
+            }
+
+            if is_default_prog {
+                // We can't read $SHELL from inside the sandbox, so ask the host.
+                let output = std::process::Command::new("flatpak-spawn")
+                    .args(["--host", "sh", "-c", "echo $SHELL"])
+                    .output()?;
+                let shell = String::from_utf8_lossy(&output.stdout);
+
+                args.push(shell.trim().to_string());
+                // Assume we can pass `-l` for a login shell
+                args.push("-l".to_string());
+            }
+
+            // Avoid setting up the controlling tty as that is not compatible
+            // with flatpak:
+            // <https://github.com/flatpak/flatpak/issues/3697>
+            // <https://github.com/flatpak/flatpak/issues/3285>
+            cmd.set_controlling_tty(false);
+
+            // Re-apply to the builder
+            cmd.get_argv_mut().clear();
+            for arg in args {
+                cmd.get_argv_mut().push(arg.into());
+            }
+            cmd.clear_cwd();
+            log::trace!("made: {cmd:#?}");
         } else if let Some(dir) = cmd.get_cwd() {
             // I'm not normally a fan of existence checking, but not checking here
             // can be painful; in the case where a tab is local but has connected
