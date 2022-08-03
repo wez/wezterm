@@ -35,6 +35,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [SetPaneZoomState](config/lua/keyassignment/SetPaneZoomState.md) key assignment and [MuxTab:set_zoomed()](config/lua/MuxTab/set_zoomed.md) for explicitly setting the zoom state of a pane. [#2284](https://github.com/wez/wezterm/discussions/2284)
 * [mouse_bindings](config/mouse.md) can now handle scroll events. Thanks to [@Funami580](https://github.com/Funami580)! [#2173](https://github.com/wez/wezterm/issues/2173) [#2296](https://github.com/wez/wezterm/pull/2296)
 * [mouse_bindings](config/mouse.md) may now also be defined based on whether the alt-screen is active and/or whether the application in the pane has enabled mouse reporting. [#581](https://github.com/wez/wezterm/issues/581)
+* `wezterm.action.CopyMode('ClearSelectionMode')` allows clearing the selection mode without leaving [Copy Mode](copymode.md). Thanks to [@aznhe21](https://github.com/aznhe21)! [#2352](https://github.com/wez/wezterm/pull/2352)
 
 #### Changed
 * If `timeout_milliseconds` is specified in
