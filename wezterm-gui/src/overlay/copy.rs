@@ -22,8 +22,8 @@ use unicode_segmentation::*;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
-    TerminalSize,
+    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, SemanticType,
+    StableRowIndex, TerminalSize,
 };
 use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
 
@@ -352,35 +352,47 @@ impl CopyRenderable {
 
     fn select_to_cursor_pos(&mut self) {
         self.clamp_cursor_to_scrollback();
-        if let Some(start) = self.start {
-            let cursor_is_above_start = self.cursor.y < start.y;
-            let start = if self.selection_mode == SelectionMode::Line {
-                SelectionCoordinate::x_y(
-                    if cursor_is_above_start {
-                        usize::max_value()
-                    } else {
-                        0
-                    },
-                    start.y,
-                )
-            } else {
-                SelectionCoordinate {
-                    x: start.x,
-                    y: start.y,
-                }
-            };
+        if let Some(sel_start) = self.start {
+            let cursor = SelectionCoordinate::x_y(self.cursor.x, self.cursor.y);
 
-            let end = if self.selection_mode == SelectionMode::Line {
-                SelectionCoordinate::x_y(
-                    if cursor_is_above_start {
-                        0
-                    } else {
-                        usize::max_value()
-                    },
-                    self.cursor.y,
-                )
-            } else {
-                SelectionCoordinate::x_y(self.cursor.x, self.cursor.y)
+            let (start, end) = match self.selection_mode {
+                SelectionMode::Line => {
+                    let cursor_is_above_start = self.cursor.y < sel_start.y;
+
+                    let start = SelectionCoordinate::x_y(
+                        if cursor_is_above_start {
+                            usize::max_value()
+                        } else {
+                            0
+                        },
+                        sel_start.y,
+                    );
+                    let end = SelectionCoordinate::x_y(
+                        if cursor_is_above_start {
+                            0
+                        } else {
+                            usize::max_value()
+                        },
+                        self.cursor.y,
+                    );
+                    (start, end)
+                }
+                SelectionMode::SemanticZone => {
+                    let zone_range = SelectionRange::zone_around(cursor, &*self.delegate);
+                    let start_zone = SelectionRange::zone_around(sel_start, &*self.delegate);
+
+                    let range = zone_range.extend_with(start_zone);
+
+                    (range.start, range.end)
+                }
+                _ => {
+                    let start = SelectionCoordinate {
+                        x: sel_start.x,
+                        y: sel_start.y,
+                    };
+                    let end = cursor;
+                    (start, end)
+                }
             };
 
             self.adjust_selection(start, SelectionRange { start, end });
@@ -764,6 +776,52 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    fn move_by_zone(&mut self, mut delta: isize, zone_type: Option<SemanticType>) {
+        if delta == 0 {
+            return;
+        }
+
+        let zones = self
+            .delegate
+            .get_semantic_zones()
+            .unwrap_or_else(|_| vec![]);
+        let mut idx = match zones.binary_search_by(|zone| {
+            if zone.start_y == self.cursor.y {
+                zone.start_x.cmp(&self.cursor.x)
+            } else if zone.start_y < self.cursor.y {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            }
+        }) {
+            Ok(idx) | Err(idx) => idx,
+        };
+
+        let step = if delta > 0 { 1 } else { -1 };
+
+        while delta != 0 {
+            if step > 0 {
+                idx = idx.saturating_add(1);
+            } else {
+                idx = idx.saturating_sub(1);
+            }
+            let zone = match zones.get(idx) {
+                Some(z) => z,
+                None => return,
+            };
+            if let Some(zone_type) = &zone_type {
+                if zone.semantic_type != *zone_type {
+                    continue;
+                }
+            }
+            delta = delta.saturating_sub(step);
+
+            self.cursor.x = zone.start_x;
+            self.cursor.y = zone.start_y;
+        }
+        self.select_to_cursor_pos();
+    }
+
     fn set_selection_mode(&mut self, mode: &Option<SelectionMode>) {
         match mode {
             None => {
@@ -878,6 +936,10 @@ impl Pane for CopyOverlay {
                     EditPattern => render.edit_pattern(),
                     AcceptPattern => render.accept_pattern(),
                     SetSelectionMode(mode) => render.set_selection_mode(mode),
+                    MoveBackwardSemanticZone => render.move_by_zone(-1, None),
+                    MoveForwardSemanticZone => render.move_by_zone(1, None),
+                    MoveBackwardZoneOfType(zone_type) => render.move_by_zone(-1, Some(*zone_type)),
+                    MoveForwardZoneOfType(zone_type) => render.move_by_zone(1, Some(*zone_type)),
                 }
                 true
             }

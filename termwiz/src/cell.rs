@@ -147,7 +147,7 @@ macro_rules! bitfield {
 /// Input (that the user typed) and Prompt (effectively, "chrome" provided
 /// by the shell or application that the user is interacting with.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FromDynamic, ToDynamic)]
 #[repr(u16)]
 pub enum SemanticType {
     Output = 0,

@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
+use wezterm_term::SemanticType;
 
 #[derive(Default, Debug, Clone, FromDynamic, ToDynamic, PartialEq, Eq)]
 pub struct LauncherActionArgs {
@@ -496,6 +497,10 @@ pub enum CopyModeAssignment {
     ClearPattern,
     EditPattern,
     AcceptPattern,
+    MoveBackwardSemanticZone,
+    MoveForwardSemanticZone,
+    MoveBackwardZoneOfType(SemanticType),
+    MoveForwardZoneOfType(SemanticType),
 }
 
 pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;
