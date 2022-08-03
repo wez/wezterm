@@ -150,7 +150,7 @@ return {
 </code></pre>
 <p>The first parameter is the name of the font; the name can be one of the following types of names:</p>
 <ul>
-<li>The font family name, eg: <code>&quot;JetBrains Mono&quot;</code>.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the <em>attributes</em> parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.</li>
+<li>The font family name, eg: <code>&quot;JetBrains Mono&quot;</code>.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the <em>attributes</em> parameter.  <strong>This is the recommended name to use for the font</strong>, as it the most compatible way to resolve an installed font.</li>
 <li>The computed <em>full name</em>, which is the family name with the sub-family (which incorporates style information) appended, eg: <code>&quot;JetBrains Mono Regular&quot;</code>.</li>
 <li>(Since 20210502-154244-3f7122cb) The <em>postscript name</em>, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.</li>
 </ul>
@@ -158,25 +158,69 @@ return {
 is an optional table that can be used to specify style attributes; the
 following keys are allowed:</p>
 <ul>
-<li><code>bold</code> - whether to select a bold variant of the font (default: <code>false</code>)</li>
-<li><code>italic</code> - whether to select an italic variant of the font (default: <code>false</code>)</li>
+<li>
+<p><code>weight</code> - specifies the weight of the font.  The default value is <code>&quot;Regular&quot;</code>, and possible values are:</p>
+<ul>
+<li><code>&quot;Thin&quot;</code></li>
+<li><code>&quot;ExtraLight&quot;</code></li>
+<li><code>&quot;Light&quot;</code></li>
+<li><code>&quot;DemiLight&quot;</code></li>
+<li><code>&quot;Book&quot;</code></li>
+<li><code>&quot;Regular&quot;</code></li>
+<li><code>&quot;Medium&quot;</code></li>
+<li><code>&quot;DemiBold&quot;</code></li>
+<li><code>&quot;Bold&quot;</code></li>
+<li><code>&quot;ExtraBold&quot;</code></li>
+<li><code>&quot;Black&quot;</code></li>
+<li><code>&quot;ExtraBlack&quot;</code>.</li>
 </ul>
-<p>When attributes are specified, the font must match both the family name and attributes in order to be selected.</p>
+<p><code>weight</code> has been supported since version 20210502-130208-bff6815d, In earlier versions you
+could use <code>bold=true</code> to get a bold font variant.</p>
+</li>
+<li>
+<p><code>stretch</code> - specifies the font stretch to select.  The default value is <code>&quot;Normal&quot;</code>, and possible values are:</p>
+<ul>
+<li><code>&quot;UltraCondensed&quot;</code></li>
+<li><code>&quot;ExtraCondensed&quot;</code></li>
+<li><code>&quot;Condensed&quot;</code></li>
+<li><code>&quot;SemiCondensed&quot;</code></li>
+<li><code>&quot;Normal&quot;</code></li>
+<li><code>&quot;SemiExpanded&quot;</code></li>
+<li><code>&quot;Expanded&quot;</code></li>
+<li><code>&quot;ExtraExpanded&quot;</code></li>
+<li><code>&quot;UltraExpanded&quot;</code>.</li>
+</ul>
+<p><code>stretch</code> has been supported since version 20210502-130208-bff6815d.</p>
+</li>
+<li>
+<p><code>style</code> - specifies the font style to select.  The default is <code>&quot;Normal&quot;</code>, and possible values are:</p>
+<ul>
+<li><code>&quot;Normal&quot;</code></li>
+<li><code>&quot;Italic&quot;</code></li>
+<li><code>&quot;Oblique&quot;</code></li>
+</ul>
+<p><code>&quot;Oblique&quot;</code> and <code>&quot;Italic&quot;</code> fonts are similar in the sense that the glyphs
+are presented at an angle.  <code>&quot;Italic&quot;</code> fonts usually have a distinctive
+design difference from the <code>&quot;Normal&quot;</code> style in a given font family,
+whereas <code>&quot;Oblique&quot;</code> usually looks very similar to <code>&quot;Normal&quot;</code>, but skewed
+at an angle.</p>
+<p><code>style</code> has been supported since version 20220319-142410-0fcdea07. In earlier versions
+you could use <code>italic=true</code> to get an italic font variant.</p>
+</li>
+</ul>
+<p>When attributes are specified, the font must match both the family name and
+attributes in order to be selected.</p>
+<p>With the exception of being able to synthesize basic bold and italics (really,
+oblique) for non-bitmap fonts, wezterm can only select and use fonts that you
+have installed on your system.  The attributes that you specify are used to
+match a font from those that are available, so if you'd like to use a condensed
+font, for example, then you must install the condensed variant of that family.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
 
 return {
-  font = wezterm.font('JetBrains Mono', { bold = true }),
+  font = wezterm.font('JetBrains Mono', { weight = 'Bold' }),
 }
 </code></pre>
-<p><em>Since: 20210502-130208-bff6815d</em></p>
-<p>It is now possible to specify both font weight and font stretch when matching fonts:</p>
-<ul>
-<li><code>stretch</code> - specifies the font stretch to select.  The default value is <code>&quot;Normal&quot;</code>, and possible values are <code>&quot;UltraCondensed&quot;</code>, <code>&quot;ExtraCondensed&quot;</code>, <code>&quot;Condensed&quot;</code>, <code>&quot;SemiCondensed&quot;</code>, <code>&quot;Normal&quot;</code>, <code>&quot;SemiExpanded&quot;</code>, <code>&quot;Expanded&quot;</code>, <code>&quot;ExtraExpanded&quot;</code>, <code>&quot;UltraExpanded&quot;</code>.</li>
-<li><code>weight</code> - specifies the weight of the font with more precision than <code>bold</code>.  The default value is <code>&quot;Regular&quot;</code>, and possible values are <code>&quot;Thin&quot;</code>, <code>&quot;ExtraLight&quot;</code>, <code>&quot;Light&quot;</code>, <code>&quot;DemiLight&quot;</code>, <code>&quot;Book&quot;</code>, <code>&quot;Regular&quot;</code>, <code>&quot;Medium&quot;</code>, <code>&quot;DemiBold&quot;</code>, <code>&quot;Bold&quot;</code>, <code>&quot;ExtraBold&quot;</code>, <code>&quot;Black&quot;</code>, and <code>&quot;ExtraBlack&quot;</code>.</li>
-<li><code>bold</code> - has been superseded by the new <code>weight</code> parameter and will be eventually removed.  For compatibility purposes, specifying <code>bold=true</code> is equivalent to specifying <code>weight=&quot;Bold&quot;</code>.</li>
-</ul>
-<p>These parameters are passed to the system font locator when resolving
-the font, which will apply system-specific rules to resolve the font.</p>
 <p>When resolving fonts from <a href="../config/font_dirs.html">font_dirs</a>, wezterm follows CSS Fonts
 Level 3 compatible font matching, which tries to exactly match the specified
 attributes, but allows for locating a close match within the specified font
@@ -224,16 +268,6 @@ return {
 <li><a href="../config/freetype_load_flags.html">freetype_load_flags</a></li>
 <li><code>assume_emoji_presentation = true</code> or <code>assume_emoji_presentation = false</code> to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. (<em>Since: nightly builds only</em>)</li>
 </ul>
-<p><em>Since: 20220319-142410-0fcdea07</em></p>
-<p>You may now specify <code>style=&quot;Normal&quot;</code>, <code>style=&quot;Italic&quot;</code> or <code>style=&quot;Oblique&quot;</code>
-instead of simply specifying a boolean <code>italic</code> value such as <code>italic=true</code>.</p>
-<p><code>italic=false</code> is equivalent to <code>style=&quot;Normal&quot;</code>, and <code>italic=true</code> is
-equivalent to <code>style=&quot;Italic&quot;</code>.</p>
-<p><code>&quot;Oblique&quot;</code> and <code>&quot;Italic&quot;</code> fonts are similar in the sense that the glyphs
-are presented at an angle.  <code>&quot;Italic&quot;</code> fonts usually have a distinctive
-design difference from the <code>&quot;Normal&quot;</code> style in a given font family,
-whereas <code>&quot;Oblique&quot;</code> usually looks very similar to <code>&quot;Normal&quot;</code>, but skewed
-at an angle.</p>
 
                     </main>
 
