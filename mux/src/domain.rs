@@ -18,7 +18,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use wezterm_term::TerminalSize;
 
@@ -329,7 +329,7 @@ impl LocalDomain {
             if let Some(cwd) = &spawn_command.cwd {
                 cmd.cwd(cwd);
             }
-        } else if std::env::var("FLATPAK_ID") == Ok("org.wezfurlong.wezterm".to_string()) {
+        } else if Path::new("/.flatpak-info").exists() {
             // We're running inside a flatpak sandbox.
             // Run the command outside the sandbox via flatpak-spawn
             let mut args = vec![
@@ -338,7 +338,7 @@ impl LocalDomain {
                 "--watch-bus".to_string(),
             ];
             if let Some(cwd) = cmd.get_cwd() {
-                args.push(format!("--directory={}", PathBuf::from(cwd).display()));
+                args.push(format!("--directory={}", Path::new(cwd).display()));
             }
 
             let is_default_prog = cmd.is_default_prog();
@@ -391,7 +391,7 @@ impl LocalDomain {
             // that doesn't exist on the local system, process spawning can fail.
             // Another situation is `sudo -i` has the pane with set to a cwd
             // that is not accessible to the user.
-            if let Err(err) = std::path::Path::new(&dir).read_dir() {
+            if let Err(err) = Path::new(&dir).read_dir() {
                 log::warn!(
                     "Directory {:?} is not readable and will not be \
                      used for the command we are spawning: {:#}",
