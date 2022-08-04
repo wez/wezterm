@@ -338,6 +338,9 @@ pub struct LsFontsCommand {
 #[derive(Debug, Parser, Clone)]
 pub struct ShowKeysCommand {
     /// Show the keys as lua config statements
-    #[clap(long = "lua")]
+    #[clap(long)]
     pub lua: bool,
+    /// In lua mode, show only the named key table
+    #[clap(long)]
+    pub key_table: Option<String>,
 }

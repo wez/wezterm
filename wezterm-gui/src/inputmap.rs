@@ -391,20 +391,28 @@ impl InputMap {
         self.mouse.get(&(event, mods)).cloned()
     }
 
-    pub fn dump_config(&self) {
+    pub fn dump_config(&self, key_table: Option<&str>) {
         println!("local wezterm = require 'wezterm'");
         println!("local act = wezterm.action");
         println!();
         println!("return {{");
-        println!("  keys = {{");
-        show_key_table_as_lua(&self.keys.default, 4);
-        println!("  }},");
+
+        if key_table.is_none() {
+            println!("  keys = {{");
+            show_key_table_as_lua(&self.keys.default, 4);
+            println!("  }},");
+            println!();
+        }
 
         let mut table_names = self.keys.by_name.keys().collect::<Vec<_>>();
         table_names.sort();
-        println!();
         println!("  key_tables = {{");
         for name in table_names {
+            if let Some(wanted_table) = key_table {
+                if name != wanted_table {
+                    continue;
+                }
+            }
             if let Some(table) = self.keys.by_name.get(name) {
                 println!("    {name} = {{");
                 show_key_table_as_lua(table, 6);

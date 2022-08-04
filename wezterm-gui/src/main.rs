@@ -742,7 +742,7 @@ fn maybe_show_configuration_error_window() {
 fn run_show_keys(config: config::ConfigHandle, cmd: &ShowKeysCommand) -> anyhow::Result<()> {
     let map = crate::inputmap::InputMap::new(&config);
     if cmd.lua {
-        map.dump_config();
+        map.dump_config(cmd.key_table.as_deref());
     } else {
         map.show_keys();
     }

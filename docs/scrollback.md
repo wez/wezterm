@@ -96,39 +96,7 @@ There isn't a way to override portions of the key table, only to replace the ent
 
 The default configuration is equivalent to:
 
-```lua
-local wezterm = require 'wezterm'
-local act = wezterm.action
-
-return {
-  key_tables = {
-    search_mode = {
-      { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
-      { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
-      { key = 'Enter', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
-      { key = 'p', mods = 'CTRL', action = act.CopyMode 'PriorMatch' },
-      {
-        key = 'PageUp',
-        mods = 'NONE',
-        action = act.CopyMode 'PriorMatchPage',
-      },
-      {
-        key = 'PageDown',
-        mods = 'NONE',
-        action = act.CopyMode 'NextMatchPage',
-      },
-      { key = 'n', mods = 'CTRL', action = act.CopyMode 'NextMatchPage' },
-      {
-        key = 'DownArrow',
-        mods = 'NONE',
-        action = act.CopyMode 'NextMatch',
-      },
-      { key = 'r', mods = 'CTRL', action = act.CopyMode 'CycleMatchType' },
-      { key = 'u', mods = 'CTRL', action = act.CopyMode 'ClearPattern' },
-    },
-  },
-}
-```
+{{#include examples/default-search-mode-key-table.markdown}}
 
 (Those assignments reference `CopyMode` because search mode is a facet of [Copy Mode](copymode.md)).
 
