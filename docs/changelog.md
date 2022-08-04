@@ -51,7 +51,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Internal scrollback datastructure improvements reduce per-cell overhead by up to ~40x depending on the composition of the line (lines with lots of varied attributes or image attachments will have more overhead).
 * Improved search performance
 * Quickselect: now defaults to searching 1000 lines above and below the current viewport, making it faster and the labels shorter for users with a larger scrollback. A new `scope_lines` parameter to [QuickSelectArgs](config/lua/keyassignment/QuickSelectArgs.md) allows controlling the search region explicitly. Thanks to [@yyogo](https://github.com/yyogo) for the initial PR! [#1317](https://github.com/wez/wezterm/pull/1317)
-* OSC 10, 11 and 12 (Set Default Text Background, Default Text Foreground Color, and Text Cursor Color) now support setting the alpha component [#2313](https://github.com/wez/wezterm/issues/2313)
+* OSC 10, 11 and 12 (Set Default Text Background, Default Text Foreground Color, and Text Cursor Color) now support setting the alpha component [#2313](https://github.com/wez/wezterm/issues/2313), and added [CSI 38:6](escape-sequences.md#csi-386---foreground-color-rgba), `CSI 48:6` and `CSI 58:6` extensions to allow setting full color RGB with Alpha channel for spans of text.
 * Copy Mode: setting the same selection mode a second time will now toggle off that mode and clear the selection, preserving the current position [#2246](https://github.com/wez/wezterm/discussions/2246)
 * Copy Mode: new default vim-style `y` "yank" key assignment will copy the selection and close copy mode
 

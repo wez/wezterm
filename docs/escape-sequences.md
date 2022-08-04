@@ -225,12 +225,16 @@ is unambiguous and should be preferred; the semicolon form should not be used
 by new applications and is not documented here in the interest of avoiding
 accidental new implementations.
 
+##### CSI 38:5 - foreground color palette index
+
 This sequence will set the *foreground color* to the specified palette INDEX,
 which can be a decimal number in the range `0-255`.
 
 ```
 CSI 38 : 5 : INDEX m
 ```
+
+##### CSI 48:5 - background color palette index
 
 This sequence will set the *background color* to the specified palette INDEX,
 which can be a decimal number in the range `0-255`.
@@ -239,12 +243,16 @@ which can be a decimal number in the range `0-255`.
 CSI 48 : 5 : INDEX m
 ```
 
+##### CSI 58:5 - underline color palette index
+
 This sequence will set the *underline color* to the specified palette INDEX,
 which can be a decimal number in the range `0-255`.
 
 ```
 CSI 58 : 5 : INDEX m
 ```
+
+##### CSI 38:2 - foreground color: RGB
 
 This sequence will set the *foreground color* to an arbitrary color in RGB
 colorspace.  The `R`, `G` and `B` symbols below are decimal numbers in the
@@ -265,6 +273,19 @@ ID argument is not specified:
 CSI 38 : 2 : R : G : B m
 ```
 
+##### CSI 38:6 - foreground color: RGBA
+
+*Since: nightly builds only*
+
+This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+allowing you to specify the alpha channel in addition to the RGB channels.
+
+```
+CSI 38 : 6 : : R : G : B : A m
+```
+
+##### CSI 48:2 - background color: RGB
+
 This sequence will set the *background color* to an arbitrary color in RGB colorspace.
 The `R`, `G` and `B` symbols below are decimal numbers in the range `0-255`:
 
@@ -280,6 +301,19 @@ ID argument is not specified:
 CSI 48 : 2 : R : G : B m
 ```
 
+##### CSI 48:6 - background color: RGBA
+
+*Since: nightly builds only*
+
+This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+allowing you to specify the alpha channel in addition to the RGB channels.
+
+```
+CSI 48 : 6 : : R : G : B : A m
+```
+
+##### CSI 58:2 - underline color: RGB
+
 This sequence will set the *underline color* to an arbitrary color in RGB colorspace.
 The `R`, `G` and `B` symbols below are decimal numbers in the range `0-255`:
 
@@ -293,6 +327,17 @@ ID argument is not specified:
 
 ```
 CSI 58 : 2 : R : G : B m
+```
+
+##### CSI 58:6 - underline color: RGBA
+
+*Since: nightly builds only*
+
+This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+allowing you to specify the alpha channel in addition to the RGB channels.
+
+```
+CSI 58 : 6 : : R : G : B : A m
 ```
 
 #### Cursor Movement
@@ -345,9 +390,9 @@ The table below is keyed by the OSC code.
 |7  |Set Current Working Directory | [See Shell Integration](shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory) ||
 |8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.html#explicit-hyperlinks) | |
 |9  |iTerm2 Show System Notification | Show a "toast" notification | `printf "\e]9;%s\e\\" "hello there"` |
-|10 |Set Default Text Foreground Color| | `\x1b]10;#ff0000\x1b\\` |
-|11 |Set Default Text Background Color| | `\x1b]11;#0000ff\x1b\\` |
-|12 |Set Text Cursor Color| | `\x1b]12;#00ff00\x1b\\` |
+|10 |Set Default Text Foreground Color| | `\x1b]10;#ff0000\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]10;rgba(127,127,127,0.4)\x07"` |
+|11 |Set Default Text Background Color| | `\x1b]11;#0000ff\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]11;rgba:efff/ecff/f4ff/d000\x07"` |
+|12 |Set Text Cursor Color| | `\x1b]12;#00ff00\x1b\\`.<br/> Also supports RGBA in nightly builds. |
 |52 |Manipulate clipboard | Requests to query the clipboard are ignored. Allows setting or clearing the clipboard | |
 |104|ResetColors | Reset color palette entries to their default values | |
 |133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.html) |
