@@ -6,6 +6,7 @@ use config::keyassignment::{
 use config::{ConfigHandle, MouseEventAltScreen, MouseEventTriggerMods};
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
+use wezterm_dynamic::{ToDynamic, Value};
 use wezterm_term::input::MouseButton;
 use window::{KeyCode, Modifiers};
 
@@ -390,6 +391,32 @@ impl InputMap {
         self.mouse.get(&(event, mods)).cloned()
     }
 
+    pub fn dump_config(&self) {
+        println!("local wezterm = require 'wezterm'");
+        println!("local act = wezterm.action");
+        println!();
+        println!("return {{");
+        println!("  keys = {{");
+        show_key_table_as_lua(&self.keys.default, 4);
+        println!("  }},");
+
+        let mut table_names = self.keys.by_name.keys().collect::<Vec<_>>();
+        table_names.sort();
+        println!();
+        println!("  key_tables = {{");
+        for name in table_names {
+            if let Some(table) = self.keys.by_name.get(name) {
+                println!("    {name} = {{");
+                show_key_table_as_lua(table, 6);
+                println!("    }},");
+                println!();
+            }
+        }
+        println!("  }}");
+
+        println!("}}");
+    }
+
     pub fn show_keys(&self) {
         if let Some((key, mods, duration)) = &self.leader {
             println!("Leader: {key:?} {mods:?} {duration:?}");
@@ -483,6 +510,106 @@ fn human_key(key: &KeyCode) -> String {
     }
 }
 
+fn lua_key_code(key: &KeyCode) -> String {
+    match key {
+        KeyCode::Char('\x1b') => "Escape".to_string(),
+        KeyCode::Char('\x7f') => "Escape".to_string(),
+        KeyCode::Char('\x08') => "Backspace".to_string(),
+        KeyCode::Char('\r') => "Enter".to_string(),
+        KeyCode::Char(' ') => "Space".to_string(),
+        KeyCode::Char('\t') => "Tab".to_string(),
+        KeyCode::Char(c) if c.is_ascii_control() => c.escape_debug().to_string(),
+        KeyCode::Char(c) => c.to_string(),
+        KeyCode::Function(n) => format!("F{n}"),
+        KeyCode::Numpad(n) => format!("Numpad{n}"),
+        KeyCode::Physical(phys) => format!("phys:{}", phys.to_string()),
+        _ => format!("{key:?}"),
+    }
+}
+
+fn luaify(value: Value, is_top: bool) -> String {
+    match value {
+        Value::String(s) if is_top => format!("act.{s}"),
+        Value::String(s) => quote_lua_string(&s),
+        Value::Bool(true) => "true".to_string(),
+        Value::Bool(false) => "false".to_string(),
+        Value::Null => "nil".to_string(),
+        Value::U64(u) => u.to_string(),
+        Value::F64(u) => u.to_string(),
+        Value::I64(u) => u.to_string(),
+        Value::Array(a) => {
+            format!("wat {a:?}")
+        }
+        Value::Object(o) if is_top => {
+            for (k, v) in o {
+                let k = match k {
+                    Value::String(s) => s,
+                    _ => unreachable!(),
+                };
+                let arg = match v {
+                    Value::String(_) => format!(" {}", luaify(v, false)),
+                    Value::Array(a) => {
+                        let b: Vec<String> = a.into_iter().map(|v| luaify(v, false)).collect();
+                        format!("{{ {} }}", b.join(", "))
+                    }
+                    Value::I64(i) => format!("({i})"),
+                    Value::U64(i) => format!("({i})"),
+                    Value::F64(i) => format!("({i})"),
+                    _ => luaify(v, false),
+                };
+                return format!("act.{k}{arg}");
+            }
+            unreachable!()
+        }
+        Value::Object(o) => {
+            let mut fields = vec![];
+            for (k, v) in o {
+                let k = match k {
+                    Value::String(s) => s,
+                    _ => unreachable!(),
+                };
+                let arg = match v {
+                    Value::Null => continue,
+                    Value::String(_) => format!(" {}", luaify(v, false)),
+                    Value::Array(a) => {
+                        let b: Vec<String> = a.into_iter().map(|v| luaify(v, false)).collect();
+                        format!("{{ {} }}", b.join(", "))
+                    }
+                    Value::I64(i) => format!("({i})"),
+                    Value::U64(i) => format!("({i})"),
+                    Value::F64(i) => format!("({i})"),
+                    Value::Object(o) if o.is_empty() => continue,
+                    _ => luaify(v, false),
+                };
+                fields.push(format!("{k} = {arg}"));
+            }
+            format!("{{ {} }}", fields.join(", "))
+        }
+    }
+}
+
+fn quote_lua_string(s: &str) -> String {
+    if s.contains('\'') && !s.contains('"') {
+        format!("\"{s}\"")
+    } else if s.contains('\'') {
+        format!("\"{}\"", s.escape_debug())
+    } else {
+        format!("'{s}'")
+    }
+}
+
+fn lua_key(key: &KeyCode, mods: Modifiers, action: &KeyAssignment) -> String {
+    let dyn_action = action.to_dynamic();
+    // println!(" -- {dyn_action:?}");
+    let action = luaify(dyn_action, true);
+    let key = lua_key_code(key);
+    let key = quote_lua_string(&key);
+
+    let mods = format!("{mods:?}").replace(" ", "");
+
+    format!("{{ key = {key}, mods = '{mods}', action = {action} }}")
+}
+
 fn show_key_table(table: &config::keyassignment::KeyTable) {
     let ordered = table.iter().collect::<BTreeMap<_, _>>();
 
@@ -502,5 +629,15 @@ fn show_key_table(table: &config::keyassignment::KeyTable) {
         };
         let key = human_key(key);
         println!("\t{mods:mod_width$}   {key:key_width$}   ->   {action:?}");
+    }
+}
+
+fn show_key_table_as_lua(table: &config::keyassignment::KeyTable, indent: usize) {
+    let ordered = table.iter().collect::<BTreeMap<_, _>>();
+
+    let pad = " ".repeat(indent);
+    for ((key, mods), entry) in ordered {
+        let action = &entry.action;
+        println!("{pad}{},", lua_key(key, *mods, action));
     }
 }

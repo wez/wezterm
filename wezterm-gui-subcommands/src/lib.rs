@@ -336,4 +336,8 @@ pub struct LsFontsCommand {
 }
 
 #[derive(Debug, Parser, Clone)]
-pub struct ShowKeysCommand {}
+pub struct ShowKeysCommand {
+    /// Show the keys as lua config statements
+    #[clap(long = "lua")]
+    pub lua: bool,
+}

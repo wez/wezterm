@@ -739,9 +739,13 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
-fn run_show_keys(config: config::ConfigHandle, _cmd: &ShowKeysCommand) -> anyhow::Result<()> {
+fn run_show_keys(config: config::ConfigHandle, cmd: &ShowKeysCommand) -> anyhow::Result<()> {
     let map = crate::inputmap::InputMap::new(&config);
-    map.show_keys();
+    if cmd.lua {
+        map.dump_config();
+    } else {
+        map.show_keys();
+    }
     Ok(())
 }
 
