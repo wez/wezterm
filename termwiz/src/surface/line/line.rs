@@ -499,6 +499,10 @@ impl Line {
 
     pub fn split_off(&mut self, idx: usize, seqno: SequenceNo) -> Self {
         let my_cells = self.coerce_vec_storage();
+        // Clamp to avoid out of bounds panic if the line is shorter
+        // than the requested split point
+        // <https://github.com/wez/wezterm/issues/2355>
+        let idx = idx.min(my_cells.len());
         let cells = my_cells.split_off(idx);
         Self {
             bits: self.bits,
