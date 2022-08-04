@@ -78,6 +78,10 @@ The key assignments for copy mode are specified by the `copy_mode` [Key Table](c
 You may provide your own definition of this key table if you wish to customize it.
 There isn't a way to override portions of the key table, only to replace the entire table.
 
-The default configuration is equivalent to:
+The default configuration at the time that these docs were built (which
+may be more recent than your version of wezterm) is shown below.
+
+You can see the configuration in your version of wezterm by running
+`wezterm show-keys --lua --key-table copy_mode`.
 
 {{#include examples/default-copy-mode-key-table.markdown}}
