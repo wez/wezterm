@@ -1002,6 +1002,32 @@ impl TermWindow {
                     alert: Alert::ToastNotification { .. },
                     ..
                 } => {}
+                MuxNotification::TabAddedToWindow {
+                    window_id: _,
+                    tab_id,
+                } => {
+                    let mux = Mux::get().unwrap();
+                    let mut size = self.terminal_size;
+                    if let Some(tab) = mux.get_tab(tab_id) {
+                        // If we attached to a remote domain and loaded in
+                        // a tab async, we need to fixup its size, either
+                        // by resizing it or resizes ourselves.
+                        // The strategy here is to adjust both by taking
+                        // the maximal size in both horizontal and vertical
+                        // dimensions and applying that. In practice that
+                        // means that a new local client will resize larger
+                        // to adjust to the size of an existing client.
+                        let tab_size = tab.get_size();
+                        size.rows = size.rows.max(tab_size.rows);
+                        size.cols = size.cols.max(tab_size.cols);
+
+                        if size.rows != self.terminal_size.rows
+                            || size.cols != self.terminal_size.cols
+                        {
+                            self.set_window_size(size, window)?;
+                        }
+                    }
+                }
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }
@@ -1187,7 +1213,8 @@ impl TermWindow {
                 let mux = Mux::get().expect("mux is calling us");
                 return mux.get_window(mux_window_id).is_some();
             }
-            MuxNotification::WindowRemoved(window_id)
+            MuxNotification::TabAddedToWindow { window_id, .. }
+            | MuxNotification::WindowRemoved(window_id)
             | MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
                     return true;

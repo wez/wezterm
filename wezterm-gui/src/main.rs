@@ -298,7 +298,12 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 
     let window_id = {
         // Force the builder to notify the frontend early,
-        // so that the attach await below doesn't block it
+        // so that the attach await below doesn't block it.
+        // This has the consequence of creating the window
+        // at the initial size instead of populating it
+        // from the size specified in the remote mux.
+        // We use the TabAddedToWindow mux notification
+        // to detect and adjust the size later on.
         let builder = mux.new_empty_window(None);
         *builder
     };

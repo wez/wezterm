@@ -72,6 +72,10 @@ pub enum MuxNotification {
         name: Option<String>,
         data: Arc<Vec<u8>>,
     },
+    TabAddedToWindow {
+        tab_id: TabId,
+        window_id: WindowId,
+    },
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -763,6 +767,7 @@ impl Mux {
     }
 
     pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {
+        let tab_id = tab.tab_id();
         {
             let mut window = self
                 .get_window_mut(window_id)
@@ -770,6 +775,7 @@ impl Mux {
             window.push(tab);
         }
         self.recompute_pane_count();
+        self.notify(MuxNotification::TabAddedToWindow { tab_id, window_id });
         Ok(())
     }
 
