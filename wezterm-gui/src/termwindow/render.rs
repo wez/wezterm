@@ -490,6 +490,21 @@ impl super::TermWindow {
 
         let mut left_eles = vec![];
         let mut right_eles = vec![];
+        let bar_colors = ElementColors {
+            border: BorderColor::default(),
+            bg: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_bg
+            } else {
+                self.config.window_frame.inactive_titlebar_bg
+            })
+            .into(),
+            text: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_fg
+            } else {
+                self.config.window_frame.inactive_titlebar_fg
+            })
+            .into(),
+        };
 
         let item_to_elem = |item: &TabEntry| -> Element {
             let element = Element::with_line(&font, &item.title, palette);
@@ -526,11 +541,7 @@ impl super::TermWindow {
                         bottom: Dimension::Cells(0.),
                     })
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
-                    .colors(ElementColors {
-                        border: BorderColor::default(),
-                        bg: colors.inactive_tab.bg_color.to_linear().into(),
-                        text: colors.inactive_tab.fg_color.to_linear().into(),
-                    }),
+                    .colors(bar_colors.clone()),
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
@@ -762,22 +773,6 @@ impl super::TermWindow {
                 _ => left_eles.push(item_to_elem(item)),
             }
         }
-
-        let bar_colors = ElementColors {
-            border: BorderColor::default(),
-            bg: rgbcolor_to_window_color(if self.focused.is_some() {
-                self.config.window_frame.active_titlebar_bg
-            } else {
-                self.config.window_frame.inactive_titlebar_bg
-            })
-            .into(),
-            text: rgbcolor_to_window_color(if self.focused.is_some() {
-                self.config.window_frame.active_titlebar_fg
-            } else {
-                self.config.window_frame.inactive_titlebar_fg
-            })
-            .into(),
-        };
 
         let left_ele = Element::new(&font, ElementContent::Children(left_eles))
             .vertical_align(VerticalAlign::Bottom)
