@@ -81,6 +81,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Tab `x` button is no longer obscured by tab title text for long tab titles [#2269](https://github.com/wez/wezterm/issues/2269)
 * Cursor position could end up in the wrong place when rewrapping lines and the cursor was on the rewrap boundary [#2162](https://github.com/wez/wezterm/issues/2162)
 * Two or more panes closing at the same time could result in their containing tab hanging and being stuck with "no pane" for a title [#2304](https://github.com/wez/wezterm/issues/2304)
+* Visual Bell now fills out to the adjacent window edges rather than being constrained by the padding. [#2364](https://github.com/wez/wezterm/issues/2364)
 
 #### Updated
 * Bundled harfbuzz to 5.1.0

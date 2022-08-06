@@ -1239,13 +1239,45 @@ impl super::TermWindow {
                 let cell_width = self.render_metrics.cell_size.width as f32;
                 let cell_height = self.render_metrics.cell_size.height as f32;
 
+                // We want to fill out to the edges of the splits
+                let (x, width_delta) = if pos.left == 0 {
+                    (0., padding_left + (cell_width / 2.0))
+                } else {
+                    (
+                        padding_left - (cell_width / 2.0) + (pos.left as f32 * cell_width),
+                        cell_width,
+                    )
+                };
+
+                let (y, height_delta) = if pos.top == 0 {
+                    (
+                        (top_pixel_y - padding_top),
+                        padding_top + (cell_height / 2.0),
+                    )
+                } else {
+                    (
+                        top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
+                        cell_height,
+                    )
+                };
+
                 let mut quad = self.filled_rectangle(
                     &mut layers[0],
                     euclid::rect(
-                        (pos.left as f32 * cell_width) + padding_left,
-                        top_pixel_y + (pos.top as f32 * cell_height) + padding_top,
-                        pos.width as f32 * cell_width,
-                        pos.height as f32 * cell_height,
+                        x,
+                        y,
+                        // Go all the way to the right edge if we're right-most
+                        if pos.left + pos.width >= self.terminal_size.cols as usize {
+                            self.dimensions.pixel_width as f32 - x
+                        } else {
+                            (pos.width as f32 * cell_width) + width_delta
+                        },
+                        // Go all the way to the bottom if we're bottom-most
+                        if pos.top + pos.height >= self.terminal_size.rows as usize {
+                            self.dimensions.pixel_height as f32 - y
+                        } else {
+                            (pos.height as f32 * cell_height) + height_delta as f32
+                        },
                     ),
                     background,
                 )?;
