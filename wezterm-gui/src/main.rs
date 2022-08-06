@@ -875,6 +875,34 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     "",
                     parsed.handle.diagnostic_string()
                 );
+
+                if cmd.rasterize_ascii {
+                    let rasterized = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
+                    let mut x = 0;
+                    let mut glyph = String::new();
+                    for rgba in rasterized.data.chunks(4) {
+                        if let [r, g, b, a] = rgba {
+                            // Use regular RGB for other terminals, but then
+                            // set RGBA for wezterm
+                            glyph.push_str(&format!(
+                                "\x1b[38:2::{r}:{g}:{b}m\x1b[38:6::{r}:{g}:{b}:{a}m\u{2588}\x1b[0m"
+                            ));
+                            x += 1;
+                            if x >= rasterized.width {
+                                x = 0;
+                                glyph.push('\n');
+                            }
+                        }
+                    }
+                    println!(
+                        "bearing: x={} y={}, offset: x={} y={}",
+                        rasterized.bearing_x.get(),
+                        rasterized.bearing_y.get(),
+                        info.x_offset.get(),
+                        info.y_offset.get(),
+                    );
+                    println!("{glyph}");
+                }
             }
         }
         return Ok(());

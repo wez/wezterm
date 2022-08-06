@@ -333,6 +333,10 @@ pub struct LsFontsCommand {
     /// Explain which fonts are used to render the supplied text string
     #[clap(long = "text", conflicts_with = "list-system")]
     pub text: Option<String>,
+
+    /// Show rasterized glyphs for the text in --text using ascii blocks.
+    #[clap(long, requires = "text")]
+    pub rasterize_ascii: bool,
 }
 
 #[derive(Debug, Parser, Clone)]
