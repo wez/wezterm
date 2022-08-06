@@ -861,6 +861,7 @@ impl super::TermWindow {
                                     - (glyph.y_offset + glyph.bearing_y).get() as f32
                                     + element.baseline;
 
+                                let pos_x = pos_x + (glyph.x_offset + glyph.bearing_x).get() as f32;
                                 let width = texture.coords.size.width as f32 * glyph.scale as f32;
                                 let height = texture.coords.size.height as f32 * glyph.scale as f32;
                                 if pos_x + glyph.x_advance.get() as f32
