@@ -223,7 +223,7 @@ gentoo_deps() {
   portageq envvar USE | xargs -n 1 | grep '^X$' \
   || (echo 'X is not found in USE flags' && exit 1)
   EMERGE="$SUDO emerge"
-  $EMERGE --select \
+  for pkg in \
     'cmake' \
     'fontconfig' \
     'openssl' \
@@ -239,6 +239,9 @@ gentoo_deps() {
     'xcb-util-image' \
     'xcb-util-keysyms' \
     'xcb-util-wm'
+  do
+	  equery l "$pkg" > /dev/null || $EMERGE --select $pkg
+  done
 }
 
 fallback_method() {
