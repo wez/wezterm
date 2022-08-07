@@ -20,8 +20,8 @@ use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
-    VisualBellTarget,
+    ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform, TabBarColors,
+    TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::Pane;
@@ -1440,6 +1440,15 @@ impl super::TermWindow {
         )
         .to_arrays_transposed();
 
+        let use_subpixel = match self
+            .config
+            .freetype_render_target
+            .unwrap_or(self.config.freetype_load_target)
+        {
+            FreeTypeLoadTarget::HorizontalLcd | FreeTypeLoadTarget::VerticalLcd => true,
+            _ => false,
+        };
+
         let dual_source_blending = glium::DrawParameters {
             blend: glium::Blend {
                 color: BlendingFunction::Addition {
@@ -1497,7 +1506,7 @@ impl super::TermWindow {
                 let (vertex_count, index_count) = vb.vertex_index_count();
                 if vertex_count > 0 {
                     let vertices = vb.current_vb();
-                    let subpixel_aa = idx == 1;
+                    let subpixel_aa = use_subpixel && idx == 1;
 
                     frame.draw(
                         vertices.slice(0..vertex_count).unwrap(),
