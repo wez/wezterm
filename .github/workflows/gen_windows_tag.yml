@@ -59,6 +59,9 @@ jobs:
           path: "winget-pkgs"
           token: "${{ secrets.GH_PAT }}"
       - name: "Create winget manifest and push to fork"
+        env:
+          GIT_AUTHOR_EMAIL: wez@wezfurlong.org
+          GIT_AUTHOR_NAME: Wez Furlong
         shell: bash
         run: "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe"
       - name: "Submit PR"

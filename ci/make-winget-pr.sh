@@ -10,7 +10,7 @@ cd "$winget_repo" || exit 1
 # First sync repo with upstream
 git remote add upstream https://github.com/microsoft/winget-pkgs.git || true
 git fetch upstream master --quiet
-git co -b "$TAG_NAME" upstream/master
+git checkout -b "$TAG_NAME" upstream/master
 
 exehash=$(sha256sum -b ../$setup_exe | cut -f1 -d' ' | tr a-f A-F)
 

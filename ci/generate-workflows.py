@@ -572,6 +572,10 @@ cargo build --all --release""",
                 RunStep(
                     "Create winget manifest and push to fork",
                     "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe",
+                    env={
+                        "GIT_AUTHOR_NAME": "Wez Furlong",
+                        "GIT_AUTHOR_EMAIL": "wez@wezfurlong.org",
+                    },
                 ),
                 RunStep(
                     "Submit PR",
