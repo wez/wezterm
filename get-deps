@@ -227,7 +227,7 @@ gentoo_deps() {
     'cmake' \
     'fontconfig' \
     'openssl' \
-    'git' \
+    'dev-vcs/git' \
     'libX11' \
     'libxkbcommon' \
     'pkgconf' \
