@@ -236,7 +236,32 @@ pub fn get_entries() -> Vec<Entry> {
     entries
 }
 
+fn prune_old_logs() {
+    let one_week = std::time::Duration::from_secs(86400 * 7);
+    if let Ok(dir) = std::fs::read_dir(&*config::RUNTIME_DIR) {
+        for entry in dir {
+            if let Ok(entry) = entry {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.contains("-log-") {
+                        if let Ok(meta) = entry.metadata() {
+                            if let Ok(modified) = meta.modified() {
+                                if let Ok(elapsed) = modified.elapsed() {
+                                    if elapsed > one_week {
+                                        let _ = std::fs::remove_file(entry.path());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn setup_pretty() -> (LevelFilter, Logger) {
+    prune_old_logs();
+
     let base_name = std::env::current_exe()
         .ok()
         .and_then(|p| p.file_name().map(|s| s.to_string_lossy().to_string()))
