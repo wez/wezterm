@@ -83,6 +83,15 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
     Ok(data)
 }
 
+fn make_ident(key: &str) -> String {
+    let key = key.to_ascii_lowercase();
+    let fields: Vec<&str> = key
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|c| !c.is_empty())
+        .collect();
+    fields.join("-")
+}
+
 fn make_prefix(key: &str) -> (char, String) {
     for c in key.chars() {
         match c {
@@ -218,6 +227,22 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
             println!("Updating {file_name}");
             std::fs::write(file_name, code)?;
         }
+    }
+
+    // Summarize new schemes for the changelog
+    let mut new_items = vec![];
+    for s in &all {
+        if s.data.metadata.wezterm_version.as_deref() == Some("nightly builds only") {
+            let (prefix, _) = make_prefix(&s.name);
+            let ident = make_ident(&s.name);
+            new_items.push(format!(
+                "[{}](colorschemes/{}/index.md#{})",
+                s.name, prefix, ident
+            ));
+        }
+    }
+    if !new_items.is_empty() {
+        println!("* Color schemes: {}", new_items.join(", "));
     }
 
     // And the data for the docs

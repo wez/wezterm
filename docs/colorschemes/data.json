@@ -6255,6 +6255,46 @@
   {
     "colors": {
       "ansi": [
+        "#fcfefd",
+        "#f9906f",
+        "#8ab361",
+        "#f0c239",
+        "#b0a4e3",
+        "#cca4e3",
+        "#30dff3",
+        "#5a605d"
+      ],
+      "background": "#fcfefd",
+      "brights": [
+        "#cad8d2",
+        "#f9906f",
+        "#8ab361",
+        "#f0c239",
+        "#b0a4e3",
+        "#cca4e3",
+        "#30dff3",
+        "#2d302f"
+      ],
+      "cursor_bg": "#5a605d",
+      "cursor_border": "#5a605d",
+      "cursor_fg": "#5a605d",
+      "foreground": "#5a605d",
+      "indexed": {},
+      "selection_bg": "#5a605d",
+      "selection_fg": "#fcfefd"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Wenhan Zhu (Cosmos) (zhuwenhan950913@gmail.com)",
+      "name": "DanQing Light (base16)",
+      "origin_url": "https://github.com/CosmosAtlas/base16-danqing-scheme",
+      "prefix": "d",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2b2b2b",
         "#4eade5",
         "#6a8759",
@@ -24208,6 +24248,82 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#241b30",
+        "#e60a70",
+        "#00986c",
+        "#adad3e",
+        "#6e29ad",
+        "#b300ad",
+        "#00b0b1",
+        "#b9b1bc"
+      ],
+      "background": "#241b30",
+      "brights": [
+        "#7f7094",
+        "#e60a70",
+        "#0ae4a4",
+        "#f9f972",
+        "#aa54f9",
+        "#ff00f6",
+        "#00fbfd",
+        "#f2f2e3"
+      ],
+      "cursor_bg": "#f2f2e3",
+      "cursor_border": "#f2f2e3",
+      "cursor_fg": "#241b30",
+      "foreground": "#f2f2e3",
+      "indexed": {},
+      "selection_bg": "#6e29ad",
+      "selection_fg": "#f2f2e3"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "SynthwaveAlpha",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#241b30",
+        "#9a0048",
+        "#00986c",
+        "#adad3e",
+        "#6e29ad",
+        "#b300ad",
+        "#00b0b1",
+        "#b9b1bc"
+      ],
+      "background": "#241b30",
+      "brights": [
+        "#7f7094",
+        "#e60a70",
+        "#0ae4a4",
+        "#f9f972",
+        "#aa54f9",
+        "#ff00f6",
+        "#00fbfd",
+        "#f2f2e3"
+      ],
+      "cursor_bg": "#f2f2e3",
+      "cursor_border": "#f2f2e3",
+      "cursor_fg": "#f2f2e3",
+      "foreground": "#f2f2e3",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "SynthwaveAlpha (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
