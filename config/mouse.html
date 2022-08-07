@@ -239,14 +239,14 @@ In general, you should avoid defining assignments that have
 pane from receiving that mouse event.  You can, of course, define these and
 still send your mouse event to the pane by holding down the configured
 <a href="lua/config/bypass_mouse_reporting_modifiers.html">mouse reporting bypass modifier
-key</a>. (<em>Since: nightly builds only</em>)</li>
+key</a>. (<em>Since: 20220807-113146-c2fee766</em>)</li>
 <li><code>alt_screen</code> - an optional field that defaults to <code>'Any'</code>, but that can also
 be set to either <code>true</code> or <code>false</code>. This mouse binding entry will only be
 considered if the current pane's alt screen state matches this field.  Most
 of the default mouse assignments are defined as <code>alt_screen='Any'</code>, a notable
 exception being that mouse wheel scrolling only applies when
 <code>alt_screen=false</code>, as the mouse wheel is typically mapped to arrow keys by
-the terminal in alt screen mode. (<em>Since: nightly builds only</em>).</li>
+the terminal in alt screen mode. (<em>Since: 20220807-113146-c2fee766</em>).</li>
 </ul>
 <p>The <code>action</code> and <code>mods</code> portions are described in more detail in the key assignment
 information below.</p>
@@ -270,7 +270,7 @@ you wanted quadruple-click bindings you can specify <code>streak=4</code>.</p>
 <tr><td>Single Left Drag</td><td><code>event={Drag={streak=1, button=&quot;Left&quot;}}</code></td></tr>
 </tbody></table>
 </div>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20220807-113146-c2fee766</em></p>
 <p>You can handle vertical wheel scroll events using the example shown below. The
 <code>streak</code> and amount associated with either <code>WheelUp</code> or <code>WheelDown</code> are set to
 <code>1</code> for the sake of simplicity of matching the event; you may use

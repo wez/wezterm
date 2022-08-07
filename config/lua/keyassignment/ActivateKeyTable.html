@@ -148,12 +148,12 @@
 <li><code>name</code> - the name of the table to activate.  The name must match up to an entry in the <code>key_tables</code> configuration.</li>
 <li><code>timeout_milliseconds</code> - an optional duration expressed in milliseconds. If specified, then the activation will automatically expire and pop itself from the key table stack once that duration elapses.  If omitted, this activation will not expire due to time.
 <ul>
-<li><em>Since: nightly builds only</em>: the timer is reset each time you press a key that matches this key table activation, allowing for repeated key presses</li>
+<li><em>Since: 20220807-113146-c2fee766</em>: the timer is reset each time you press a key that matches this key table activation, allowing for repeated key presses</li>
 </ul>
 </li>
 <li><code>one_shot</code> - an optional boolean that controls whether the activation will pop itself after a single additional key press.  The default if left unspecified is <code>one_shot=true</code>. When set to <code>false</code>, pressing a key will not automatically pop the activation and you will need to use either a timeout or an explicit key assignment that triggers <a href="PopKeyTable.html">PopKeyTable</a> to cancel the activation.</li>
 <li><code>replace_current</code> - an optional boolean. Defaults to <code>false</code> if unspecified. If set to <code>true</code> then behave as though <a href="PopKeyTable.html">PopKeyTable</a> was triggered before pushing this new activation on the stack.  This is most useful for key assignments in a table that was activated using <code>one_shot=false</code>.</li>
-<li><code>until_unknown</code> - an optional boolean. Defaults to <code>false</code> if unspecified. If set to <code>true</code> then a key press that doesn't match any entries in the named key table will implicitly pop this entry from the stack. This can be used together with <code>timeout_milliseconds</code>. (<em>Since: nightly builds only</em>)</li>
+<li><code>until_unknown</code> - an optional boolean. Defaults to <code>false</code> if unspecified. If set to <code>true</code> then a key press that doesn't match any entries in the named key table will implicitly pop this entry from the stack. This can be used together with <code>timeout_milliseconds</code>. (<em>Since: 20220807-113146-c2fee766</em>)</li>
 </ul>
 
                     </main>
