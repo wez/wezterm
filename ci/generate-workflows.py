@@ -579,7 +579,7 @@ cargo build --all --release""",
                 ),
                 RunStep(
                     "Submit PR",
-                    'gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
+                    'cd winget-pkgs && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
                     env={
                         "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                     },
@@ -793,11 +793,10 @@ cargo build --all --release""",
         steps += self.package(trusted=True)
         steps += self.upload_artifact()
         steps += self.update_homebrew_tap()
-        steps += self.create_winget_pr()
 
         uploader = Job(
             runs_on="ubuntu-latest",
-            steps=self.checkout(submodules=False) + self.upload_asset_tag(),
+            steps=self.checkout(submodules=False) + self.upload_asset_tag() + self.create_winget_pr()
         )
 
         return (
