@@ -156,6 +156,12 @@ glyph is rendered in non-monochrome modes.</li>
 <p>See also <a href="freetype_render_target.html">freetype_render_target</a> and
 <a href="freetype_load_flags.html">freetype_load_flags</a> for more advanced flags that can
 be primarily used to influence font hinting.</p>
+<p>Note: when using subpixel-rendering, it comes at the cost of the ability to
+explicitly set the alpha channel for the text foreground color. You will need
+to choose between using the alpha channel or using subpixel-rendering, and you
+must select subpixel-rendering in your main configuration in order for the
+correct render mode to activate: setting it only in a
+<a href="../wezterm/font.html">wezterm.font</a> override is not sufficient.</p>
 
                     </main>
 
