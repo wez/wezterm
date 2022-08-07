@@ -1,6 +1,6 @@
 # `wezterm.color.get_default_colors()`
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Returns the set of colors that would be used by default.
 

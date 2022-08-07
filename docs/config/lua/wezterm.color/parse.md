@@ -1,6 +1,6 @@
 # wezterm.color.parse(string)
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Parses the passed color and returns a [Color
 object](../color/index.md).  `Color` objects evaluate as strings but

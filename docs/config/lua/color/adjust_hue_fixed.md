@@ -1,6 +1,6 @@
 ## `color:adjust_hue_fixed(degrees)`
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Adjust the hue angle by the specified number of degrees.
 

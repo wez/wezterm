@@ -1,6 +1,6 @@
 # wezterm.shell_split(line)
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Splits a command line into an argument array according to posix shell rules.
 

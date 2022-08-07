@@ -15,7 +15,7 @@ program will be spawned.
 This event is useful for starting a set of programs in a standard
 configuration to save you the effort of doing it manually each time.
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 The event receives an optional [SpawnCommand](../SpawnCommand.md) argument that
 corresponds to any arguments that may have been passed via `wezterm start`.

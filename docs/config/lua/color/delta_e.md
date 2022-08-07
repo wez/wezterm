@@ -1,6 +1,6 @@
 ### `color:delta_e(color)`
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Computes the CIEDE2000 DeltaE value representing the difference
 between the two colors.

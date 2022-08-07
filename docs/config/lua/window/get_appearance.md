@@ -45,7 +45,7 @@ return {}
 
 ### Wayland GNOME Appearance
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 wezterm uses [XDG Desktop
 Portal](https://flatpak.github.io/xdg-desktop-portal/) to determine the

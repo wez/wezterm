@@ -1,6 +1,6 @@
 ## window:tabs_with_info()
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Returns an array table holding an extended info entry for each of the tabs
 contained within this window.

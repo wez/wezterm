@@ -1,6 +1,6 @@
 # `wezterm.reload_configuration()`
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Immediately causes the configuration to be reloaded and re-applied.
 

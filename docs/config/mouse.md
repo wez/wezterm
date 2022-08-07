@@ -115,14 +115,14 @@ Each entry in the mouse binding table can have the following fields:
    pane from receiving that mouse event.  You can, of course, define these and
    still send your mouse event to the pane by holding down the configured
    [mouse reporting bypass modifier
-   key](lua/config/bypass_mouse_reporting_modifiers.md). (*Since: nightly builds only*)
+   key](lua/config/bypass_mouse_reporting_modifiers.md). (*Since: 20220807-113146-c2fee766*)
 * `alt_screen` - an optional field that defaults to `'Any'`, but that can also
   be set to either `true` or `false`. This mouse binding entry will only be
   considered if the current pane's alt screen state matches this field.  Most
   of the default mouse assignments are defined as `alt_screen='Any'`, a notable
   exception being that mouse wheel scrolling only applies when
   `alt_screen=false`, as the mouse wheel is typically mapped to arrow keys by
-  the terminal in alt screen mode. (*Since: nightly builds only*).
+  the terminal in alt screen mode. (*Since: 20220807-113146-c2fee766*).
 
 The `action` and `mods` portions are described in more detail in the key assignment
 information below.
@@ -149,7 +149,7 @@ you wanted quadruple-click bindings you can specify `streak=4`.
 | Double Left Up  | `event={Up={streak=2, button="Left"}}` |
 | Single Left Drag  | `event={Drag={streak=1, button="Left"}}` |
 
-*since: nightly builds only*
+*since: 20220807-113146-c2fee766*
 
 You can handle vertical wheel scroll events using the example shown below. The
 `streak` and amount associated with either `WheelUp` or `WheelDown` are set to

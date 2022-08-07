@@ -1,6 +1,6 @@
 # `wezterm.time.call_after(interval_seconds, function)`
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Arranges to call your callback function after the specified number of seconds
 have elapsed.

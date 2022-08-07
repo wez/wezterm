@@ -20,7 +20,7 @@ This example is what you'd see if you opened up the [debug overlay](../keyassign
 ["#6e40aa", "#ff8c38", "#5dea8d", "#6e40aa"]
 ```
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 This function has moved to
 [wezterm.color.gradient](../wezterm.color/gradient.md) and that name

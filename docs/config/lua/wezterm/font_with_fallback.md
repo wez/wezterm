@@ -65,7 +65,7 @@ The following options can be specified in the same way:
 * [freetype_load_target](../config/freetype_load_target.md)
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
-* `assume_emoji_presentation = true` or `assume_emoji_presentation = false` to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. (*Since: nightly builds only*)
+* `assume_emoji_presentation = true` or `assume_emoji_presentation = false` to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. (*Since: 20220807-113146-c2fee766*)
 
 ## Dealing with different fallback font heights
 

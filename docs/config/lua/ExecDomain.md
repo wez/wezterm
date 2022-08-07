@@ -1,6 +1,6 @@
 # ExecDomain
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 An `ExecDomain` defines a local-execution multiplexer domain. In simple terms,
 rather than directly executing the requested program, an `ExecDomain` allows

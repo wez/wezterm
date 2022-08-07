@@ -46,4 +46,4 @@ Possible values for the `FormatItem` elements are:
 * `{Foreground={Color="yellow"}}` - set foreground color to a named color or rgb value like `#ffffff`.
 * `{Background={AnsiColor="Black"}}` - set the background color to an ansi color as per `Foreground` above.
 * `{Background={Color="blue"}}` - set the background color to a named color or rgb value as per `Foreground` above.
-* `"ResetAttributes"` - reset all attributes to default. (*Since: nightly builds only*)
+* `"ResetAttributes"` - reset all attributes to default. (*Since: 20220807-113146-c2fee766*)

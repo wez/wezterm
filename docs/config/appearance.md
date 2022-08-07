@@ -86,7 +86,7 @@ return {
     compose_cursor = 'orange',
 
     -- Colors for copy_mode and quick_select
-    -- available since: nightly builds only
+    -- available since: 20220807-113146-c2fee766
     -- In copy_mode, the color of the active text is:
     -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
     -- 2. selection_* otherwise

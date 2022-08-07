@@ -275,7 +275,7 @@ CSI 38 : 2 : R : G : B m
 
 ##### CSI 38:6 - foreground color: RGBA
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
@@ -303,7 +303,7 @@ CSI 48 : 2 : R : G : B m
 
 ##### CSI 48:6 - background color: RGBA
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
@@ -331,7 +331,7 @@ CSI 58 : 2 : R : G : B m
 
 ##### CSI 58:6 - underline color: RGBA
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.

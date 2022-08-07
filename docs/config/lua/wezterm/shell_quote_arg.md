@@ -1,6 +1,6 @@
 # wezterm.shell_quote_arg(string)
 
-*Since: nightly builds only*
+*Since: 20220807-113146-c2fee766*
 
 Quotes its single argument using posix shell quoting rules.
 
