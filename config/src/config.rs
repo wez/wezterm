@@ -371,6 +371,8 @@ pub struct Config {
     /// The default is true.
     #[dynamic(default = "default_true")]
     pub enable_wayland: bool,
+    #[dynamic(default)]
+    pub enable_zwlr_output_manager: bool,
 
     /// Whether to prefer EGL over other GL implementations.
     /// EGL on Windows has jankier resize behavior than WGL (which

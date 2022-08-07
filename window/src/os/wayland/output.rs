@@ -64,7 +64,7 @@ impl Inner {
         _ddata: DispatchData,
         _inner: &Arc<Mutex<Self>>,
     ) {
-        log::debug!("{event:?}");
+        log::debug!("handle_zwlr_mode_event {event:?}");
         let id = wl_id(mode.detach());
         let mut info = self.zwlr_mode_info.entry(id).or_insert_with(|| ModeInfo {
             id,
@@ -98,7 +98,7 @@ impl Inner {
         _ddata: DispatchData,
         inner: &Arc<Mutex<Self>>,
     ) {
-        log::debug!("{event:?}");
+        log::debug!("handle_zwlr_head_event {event:?}");
         let id = wl_id(head.detach());
         let mut info = self.zwlr_head_info.entry(id).or_insert_with(|| HeadInfo {
             id,
@@ -155,6 +155,7 @@ impl Inner {
             }
             ZwlrOutputHeadEvent::Finished => {
                 drop(info);
+                log::debug!("remove head with id {id}");
                 self.zwlr_heads.remove(&id);
                 self.zwlr_head_info.remove(&id);
             }
@@ -170,7 +171,7 @@ impl Inner {
         _ddata: DispatchData,
         inner: &Arc<Mutex<Self>>,
     ) {
-        log::debug!("{event:?}");
+        log::debug!("handle_zwlr_output_event {event:?}");
         match event {
             ZwlrOutputEvent::Head { head } => {
                 let inner = Arc::clone(inner);
@@ -271,6 +272,9 @@ impl GlobalHandler<ZwlrOutputManagerV1> for OutputHandler {
         version: u32,
         _ddata: DispatchData,
     ) {
+        if !config::configuration().enable_zwlr_output_manager {
+            return;
+        }
         log::debug!("created ZwlrOutputManagerV1 {id} {version}");
         let zwlr = registry.bind::<ZwlrOutputManagerV1>(2, id);
 
