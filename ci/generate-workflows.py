@@ -796,7 +796,9 @@ cargo build --all --release""",
 
         uploader = Job(
             runs_on="ubuntu-latest",
-            steps=self.checkout(submodules=False) + self.upload_asset_tag() + self.create_winget_pr()
+            steps=self.checkout(submodules=False)
+            + self.upload_asset_tag()
+            + self.create_winget_pr(),
         )
 
         return (
