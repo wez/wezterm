@@ -83,10 +83,13 @@ jobs:
           repository: "wez/winget-pkgs"
           path: "winget-pkgs"
           token: "${{ secrets.GH_PAT }}"
+      - name: "Setup email for winget repo"
+        shell: bash
+        run: "cd winget-pkgs && git config user.email wez@wezfurlong.org"
+      - name: "Setup name for winget repo"
+        shell: bash
+        run: "cd winget-pkgs && git config user.name 'Wez Furlong'"
       - name: "Create winget manifest and push to fork"
-        env:
-          GIT_AUTHOR_EMAIL: wez@wezfurlong.org
-          GIT_AUTHOR_NAME: Wez Furlong
         shell: bash
         run: "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe"
       - name: "Submit PR"

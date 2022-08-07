@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -xe
 
 winget_repo=$1
 setup_exe=$2

@@ -570,12 +570,16 @@ cargo build --all --release""",
                     },
                 ),
                 RunStep(
+                    "Setup email for winget repo",
+                    "cd winget-pkgs && git config user.email wez@wezfurlong.org",
+                ),
+                RunStep(
+                    "Setup name for winget repo",
+                    "cd winget-pkgs && git config user.name 'Wez Furlong'",
+                ),
+                RunStep(
                     "Create winget manifest and push to fork",
                     "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe",
-                    env={
-                        "GIT_AUTHOR_NAME": "Wez Furlong",
-                        "GIT_AUTHOR_EMAIL": "wez@wezfurlong.org",
-                    },
                 ),
                 RunStep(
                     "Submit PR",
