@@ -89,6 +89,10 @@ impl UserData for GuiWin {
             this.window.notify(TermWindowNotif::SetRightStatus(status));
             Ok(())
         });
+        methods.add_method("set_left_status", |_, this, status: String| {
+            this.window.notify(TermWindowNotif::SetLeftStatus(status));
+            Ok(())
+        });
         methods.add_async_method("get_dimensions", |_, this, _: ()| async move {
             let (tx, rx) = smol::channel::bounded(1);
             this.window.notify(TermWindowNotif::GetDimensions(tx));

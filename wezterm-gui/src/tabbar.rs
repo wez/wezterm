@@ -19,6 +19,8 @@ pub struct TabBarState {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabBarItem {
     None,
+    LeftStatus,
+    RightStatus,
     Tab { tab_idx: usize, active: bool },
     NewTabButton,
 }
@@ -187,6 +189,7 @@ impl TabBarState {
         pane_info: &[PaneInformation],
         colors: Option<&TabBarColors>,
         config: &ConfigHandle,
+        left_status: &str,
         right_status: &str,
     ) -> Self {
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
@@ -256,6 +259,24 @@ impl TabBarState {
 
         let mut x = 0;
         let mut items = vec![];
+
+        let black_cell = Cell::blank_with_attrs(
+            CellAttributes::default()
+                .set_background(ColorSpec::TrueColor(*colors.background))
+                .clone(),
+        );
+
+        let left_status_line = parse_status_text(left_status, black_cell.attrs().clone());
+        if left_status_line.len() > 0 {
+            items.push(TabEntry {
+                item: TabBarItem::LeftStatus,
+                title: left_status_line.clone(),
+                x,
+                width: left_status_line.len(),
+            });
+            x += left_status_line.len();
+            line.append_line(left_status_line, SEQ_ZERO);
+        }
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
             let tab_title_len = tab_title.len.min(tab_width_max);
@@ -332,26 +353,21 @@ impl TabBarState {
             x += width;
         }
 
-        let black_cell = Cell::blank_with_attrs(
-            CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(*colors.background))
-                .clone(),
-        );
-
         let status_space_available = title_width.saturating_sub(x);
-        let mut status_line = parse_status_text(right_status, black_cell.attrs().clone());
+
+        let mut right_status_line = parse_status_text(right_status, black_cell.attrs().clone());
         items.push(TabEntry {
-            item: TabBarItem::None,
-            title: status_line.clone(),
+            item: TabBarItem::RightStatus,
+            title: right_status_line.clone(),
             x,
             width: status_space_available,
         });
 
-        while status_line.len() > status_space_available {
-            status_line.remove_cell(0, SEQ_ZERO);
+        while right_status_line.len() > status_space_available {
+            right_status_line.remove_cell(0, SEQ_ZERO);
         }
 
-        line.append_line(status_line, SEQ_ZERO);
+        line.append_line(right_status_line, SEQ_ZERO);
         while line.len() < title_width {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }

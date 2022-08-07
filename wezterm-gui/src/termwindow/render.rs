@@ -488,6 +488,7 @@ impl super::TermWindow {
             .cloned()
             .unwrap_or_else(TabBarColors::default);
 
+        let mut left_status = vec![];
         let mut left_eles = vec![];
         let mut right_eles = vec![];
         let bar_colors = ElementColors {
@@ -525,7 +526,7 @@ impl super::TermWindow {
                 });
 
             match item.item {
-                TabBarItem::None => element
+                TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => element
                     .item_type(UIItemType::TabBar(TabBarItem::None))
                     .line_height(Some(1.75))
                     .margin(BoxDimension {
@@ -709,7 +710,8 @@ impl super::TermWindow {
 
         for item in items {
             match item.item {
-                TabBarItem::None => right_eles.push(item_to_elem(item)),
+                TabBarItem::LeftStatus => left_status.push(item_to_elem(item)),
+                TabBarItem::None | TabBarItem::RightStatus => right_eles.push(item_to_elem(item)),
                 TabBarItem::Tab { tab_idx, active } => {
                     let mut elem = item_to_elem(item);
                     elem.max_width = Some(Dimension::Pixels(max_tab_width));
@@ -774,21 +776,34 @@ impl super::TermWindow {
             }
         }
 
-        let left_ele = Element::new(&font, ElementContent::Children(left_eles))
-            .vertical_align(VerticalAlign::Bottom)
-            .colors(bar_colors.clone())
-            .padding(BoxDimension {
-                left: Dimension::Cells(0.5),
-                right: Dimension::Cells(0.),
-                top: Dimension::Cells(0.),
-                bottom: Dimension::Cells(0.),
-            })
-            .zindex(1);
-        let right_ele = Element::new(&font, ElementContent::Children(right_eles))
-            .colors(bar_colors.clone())
-            .float(Float::Right);
+        let mut children = vec![];
 
-        let content = ElementContent::Children(vec![left_ele, right_ele]);
+        if !left_status.is_empty() {
+            children.push(
+                Element::new(&font, ElementContent::Children(left_status))
+                    .colors(bar_colors.clone()),
+            );
+        }
+
+        children.push(
+            Element::new(&font, ElementContent::Children(left_eles))
+                .vertical_align(VerticalAlign::Bottom)
+                .colors(bar_colors.clone())
+                .padding(BoxDimension {
+                    left: Dimension::Cells(0.5),
+                    right: Dimension::Cells(0.),
+                    top: Dimension::Cells(0.),
+                    bottom: Dimension::Cells(0.),
+                })
+                .zindex(1),
+        );
+        children.push(
+            Element::new(&font, ElementContent::Children(right_eles))
+                .colors(bar_colors.clone())
+                .float(Float::Right),
+        );
+
+        let content = ElementContent::Children(children);
 
         let tabs = Element::new(&font, content)
             .display(DisplayType::Block)

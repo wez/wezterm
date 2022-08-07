@@ -110,6 +110,7 @@ pub enum TermWindowNotif {
         pane_id: PaneId,
         assignment: KeyAssignment,
     },
+    SetLeftStatus(String),
     SetRightStatus(String),
     GetDimensions(Sender<(Dimensions, WindowState)>),
     GetSelectionForPane {
@@ -366,6 +367,7 @@ pub struct TermWindow {
     tab_bar: TabBarState,
     fancy_tab_bar: Option<box_model::ComputedElement>,
     pub right_status: String,
+    pub left_status: String,
     last_ui_item: Option<UIItem>,
     /// Tracks whether the current mouse-down event is part of click-focus.
     /// If so, we ignore mouse events until released
@@ -658,6 +660,7 @@ impl TermWindow {
             tab_bar: TabBarState::default(),
             fancy_tab_bar: None,
             right_status: String::new(),
+            left_status: String::new(),
             last_mouse_coords: (0, -1),
             window_drag_position: None,
             current_mouse_event: None,
@@ -926,6 +929,14 @@ impl TermWindow {
             TermWindowNotif::SetRightStatus(status) => {
                 if status != self.right_status {
                     self.right_status = status;
+                    self.update_title_post_status();
+                } else {
+                    self.schedule_next_status_update();
+                }
+            }
+            TermWindowNotif::SetLeftStatus(status) => {
+                if status != self.left_status {
+                    self.left_status = status;
                     self.update_title_post_status();
                 } else {
                     self.schedule_next_status_update();
@@ -1629,6 +1640,7 @@ impl TermWindow {
             &panes,
             self.config.resolved_palette.tab_bar.as_ref(),
             &self.config,
+            &self.left_status,
             &self.right_status,
         );
         if new_tab_bar != self.tab_bar {

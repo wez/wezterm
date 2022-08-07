@@ -395,7 +395,7 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.spawn_tab(&SpawnTabDomain::CurrentPaneDomain);
                 }
-                TabBarItem::None => {
+                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
                     // Potentially starting a drag by the tab bar
                     if !self
                         .window_state
@@ -410,7 +410,10 @@ impl super::TermWindow {
                 TabBarItem::Tab { tab_idx, .. } => {
                     self.close_tab_idx(tab_idx).ok();
                 }
-                TabBarItem::NewTabButton { .. } | TabBarItem::None => {}
+                TabBarItem::NewTabButton { .. }
+                | TabBarItem::None
+                | TabBarItem::LeftStatus
+                | TabBarItem::RightStatus => {}
             },
             WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab { .. } => {
@@ -419,7 +422,7 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.show_launcher();
                 }
-                TabBarItem::None => {}
+                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {}
             },
             WMEK::Move => match item {
                 TabBarItem::None => {
