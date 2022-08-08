@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
+  <content_rating type="oars-1.0" />
   <id>org.wezfurlong.wezterm.desktop</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
@@ -23,5 +24,18 @@ windows.
     </screenshot>
   </screenshots>
 
-	<developer_name>Wez Furlong</developer_name>
+  <developer_name>Wez Furlong</developer_name>
+
+  <releases>
+    <release version="20220807-113146-c2fee766" date="2022-08-07">
+      <description>
+        <p>
+          Featuring more powerful key and mouse bindings, new lua functions for
+          working with color, json, time, processes and windows, reduced
+          scrollback memory consumption, increased search performance, IME on
+          Wayland and more!
+        </p>
+      </description>
+    </release>
+  </releases>
 </component>
