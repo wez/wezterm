@@ -31,8 +31,6 @@
   <url type="help">https://wezfurlong.org/wezterm/help.html</url>
   <url type="bugtracker">https://github.com/wez/wezterm/issues</url>
   <url type="donation">https://github.com/sponsors/wez</url>
-  <url type="vcs-browser">https://github.com/wez/wezterm</url>
-  <url type="contribute">https://github.com/wez/wezterm/blob/main/CONTRIBUTING.md</url>
 
   <screenshots>
     <screenshot type="default">
