@@ -11,8 +11,6 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* Not yet
-
 #### New
 
 * Color schemes: [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
