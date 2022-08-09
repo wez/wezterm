@@ -25,6 +25,7 @@ an empty launcher:
 * `"DOMAINS"` - include multiplexing domains
 * `"KEY_ASSIGNMENTS"` - include items taken from your key assignments
 * `"WORKSPACES"` - include workspaces
+* `"COMMANDS"` - include a number of default commands (*Since: 20220408-101518-b908e2dd*)
 
 The flags can be joined together using a `|` character, so `"TABS|DOMAINS"` is
 an example of a set of flags that will include both tabs and domains in the
