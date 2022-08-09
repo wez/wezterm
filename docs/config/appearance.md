@@ -1,7 +1,11 @@
 ### Color Scheme
 
-WezTerm ships with the full set of over 200 color schemes available from
-[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots).
+WezTerm ships with over 700 color schemes available from
+[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots),
+[base16](https://github.com/chriskempson/base16-schemes-source),
+[Gogh](https://gogh-co.github.io/Gogh/) and
+[terminal.sexy](https://terminal.sexy/) and a couple of other locations.
+
 You can select a color scheme with a line like this:
 
 ```lua
