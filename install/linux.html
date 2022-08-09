@@ -139,7 +139,31 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="installing-on-linux-using-appimage"><a class="header" href="#installing-on-linux-using-appimage">Installing on Linux using AppImage</a></h2>
+                        <h2 id="installing-on-linux-via-flathub"><a class="header" href="#installing-on-linux-via-flathub">Installing on Linux via Flathub</a></h2>
+<p>WezTerm is available in flatpak format and published on
+<a href="https://flathub.org/apps/details/org.wezfurlong.wezterm">Flathub</a>, which is
+aggregated into the GNOME Software application and other similar
+storefront/software catalog applications.</p>
+<p><a href='https://flathub.org/apps/details/org.wezfurlong.wezterm'><img width='240' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.png'/></a></p>
+<p>To install using the command line:</p>
+<p>First, <a href="https://flatpak.org/setup/">setup flatpak on your system</a>, then:</p>
+<pre><code class="language-bash">flatpak install flathub org.wezfurlong.wezterm
+</code></pre>
+<p>and then run:</p>
+<pre><code class="language-bash">flatpak run org.wezfurlong.wezterm
+</code></pre>
+<p>You may wish to define an alias for convenience:</p>
+<pre><code class="language-bash">alias wezterm=flatpak run org.wezfurlong.wezterm
+</code></pre>
+<p>Note: flatpaks run in a sandbox so some functionality may behave a little
+differently when compared to installing the native package format for your
+system.  In particular, starting wezterm using <code>wezterm cli</code> subcommands will
+block on the first run since you logged in if you haven't already launched the
+gui.</p>
+<p>Only stable releases are allowed to be published to Flathub, so if
+you want/need to try a nightly download you will need to use one of
+the other options below.</p>
+<h2 id="installing-on-linux-using-appimage"><a class="header" href="#installing-on-linux-using-appimage">Installing on Linux using AppImage</a></h2>
 <p>WezTerm is available in <a href="https://appimage.org/">AppImage</a> format; a
 self-contained single file that doesn't require installation or
 any special privileges to run, and that is compatible with a wide
