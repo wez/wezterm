@@ -359,6 +359,9 @@ pub struct Config {
     pub hide_tab_bar_if_only_one_tab: bool,
 
     #[dynamic(default)]
+    pub tab_close_confirmation: TabCloseConfirmation,
+
+    #[dynamic(default)]
     pub enable_scroll_bar: bool,
 
     #[dynamic(try_from = "crate::units::PixelUnit", default = "default_half_cell")]
@@ -1483,6 +1486,18 @@ pub enum WindowCloseConfirmation {
 impl Default for WindowCloseConfirmation {
     fn default() -> Self {
         WindowCloseConfirmation::AlwaysPrompt
+    }
+}
+
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
+pub enum TabCloseConfirmation {
+    AlwaysPrompt,
+    DependsOnPanesPrompt,
+ }
+
+impl Default for TabCloseConfirmation {
+    fn default() -> Self {
+        TabCloseConfirmation::DependsOnPanesPrompt
     }
 }
 

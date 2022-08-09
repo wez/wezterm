@@ -3,8 +3,7 @@ use crate::pane::*;
 use crate::renderable::StableCursorPosition;
 use crate::{Mux, WindowId};
 use bintree::PathBranch;
-use config::configuration;
-use config::keyassignment::PaneDirection;
+use config::{configuration, TabCloseConfirmation, keyassignment::PaneDirection};
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -1463,13 +1462,20 @@ impl Tab {
     }
 
     pub fn can_close_without_prompting(&self, reason: CloseReason) -> bool {
-        let panes = self.iter_panes();
-        for pos in &panes {
-            if !pos.pane.can_close_without_prompting(reason) {
-                return false;
+        match configuration().tab_close_confirmation {
+            TabCloseConfirmation::AlwaysPrompt => {
+                false
+            }
+            TabCloseConfirmation::DependsOnPanesPrompt => {
+                let panes = self.iter_panes();
+                for pos in &panes {
+                    if !pos.pane.can_close_without_prompting(reason) {
+                        return false;
+                    }
+                }
+            true
             }
         }
-        true
     }
 
     pub fn is_dead(&self) -> bool {
