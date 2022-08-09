@@ -10,7 +10,9 @@ The arguments are a lua table with the following keys:
 * `flags` - required; the set of flags that specifies what to show in the launcher
 * `title` - optional; the title to show in the tab while the launcher is active
 
-The possible flags are:
+The possible flags are listed below. You must explicitly list each item that you
+want to include in the launcher. If you only specify `"FUZZY"` then you will see
+an empty launcher:
 
 * `"FUZZY"` - activate in fuzzy-only mode. By default the launcher will allow
   using the number keys to select from the first few items, as well as *vi* movement
