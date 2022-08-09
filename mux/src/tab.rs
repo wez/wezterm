@@ -5,9 +5,9 @@ use crate::{Mux, WindowId};
 use bintree::PathBranch;
 use config::configuration;
 use config::keyassignment::PaneDirection;
-use rangeset::range_intersection;
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::Rc;
 use url::Url;
@@ -19,6 +19,23 @@ pub type Cursor = bintree::Cursor<Rc<dyn Pane>, SplitDirectionAndSize>;
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
 
+#[derive(Default)]
+struct Recency {
+    count: usize,
+    by_idx: HashMap<usize, usize>,
+}
+
+impl Recency {
+    fn tag(&mut self, idx: usize) {
+        self.by_idx.insert(idx, self.count);
+        self.count += 1;
+    }
+
+    fn score(&self, idx: usize) -> usize {
+        self.by_idx.get(&idx).copied().unwrap_or(0)
+    }
+}
+
 /// A Tab is a container of Panes
 pub struct Tab {
     id: TabId,
@@ -27,6 +44,7 @@ pub struct Tab {
     active: RefCell<usize>,
     zoomed: RefCell<Option<Rc<dyn Pane>>>,
     title: RefCell<String>,
+    recency: RefCell<Recency>,
 }
 
 #[derive(Clone)]
@@ -489,6 +507,7 @@ impl Tab {
             active: RefCell::new(0),
             zoomed: RefCell::new(None),
             title: RefCell::new(String::new()),
+            recency: RefCell::new(Recency::default()),
         }
     }
 
@@ -532,6 +551,7 @@ impl Tab {
                     if active.pane_id() == pane.pane_id() {
                         // Found it
                         *self.active.borrow_mut() = index;
+                        self.recency.borrow_mut().tag(index);
                         break;
                     }
                     index += 1;
@@ -1254,47 +1274,34 @@ impl Tab {
 
         let mut best = None;
 
-        /// Compute the edge intersection size between two touching panes
-        fn compute_score(
-            active_start: usize,
-            active_size: usize,
-            current_start: usize,
-            current_size: usize,
-        ) -> usize {
-            range_intersection(
-                &(active_start..active_start + active_size),
-                &(current_start..current_start + current_size),
-            )
-            .unwrap_or(0..0)
-            .count()
-        }
+        let recency = self.recency.borrow();
 
         for pane in &panes {
             let score = match direction {
                 PaneDirection::Right => {
                     if pane.left == active.left + active.width + 1 {
-                        compute_score(active.top, active.height, pane.top, pane.height)
+                        1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Left => {
                     if pane.left + pane.width + 1 == active.left {
-                        compute_score(active.top, active.height, pane.top, pane.height)
+                        1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Up => {
                     if pane.top + pane.height + 1 == active.top {
-                        compute_score(active.left, active.width, pane.left, pane.width)
+                        1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Down => {
                     if active.top + active.height + 1 == pane.top {
-                        compute_score(active.left, active.width, pane.left, pane.width)
+                        1 + recency.score(pane.index)
                     } else {
                         0
                     }
@@ -1310,6 +1317,7 @@ impl Tab {
                 best.replace(target);
             }
         }
+        drop(recency);
 
         if let Some((_, target)) = best.take() {
             self.set_active_idx(target.index);
@@ -1501,6 +1509,7 @@ impl Tab {
         {
             let prior = self.get_active_pane();
             *self.active.borrow_mut() = item.index;
+            self.recency.borrow_mut().tag(item.index);
             self.advise_focus_change(prior);
         }
     }
@@ -1527,6 +1536,7 @@ impl Tab {
     pub fn set_active_idx(&self, pane_index: usize) {
         let prior = self.get_active_pane();
         *self.active.borrow_mut() = pane_index;
+        self.recency.borrow_mut().tag(pane_index);
         self.advise_focus_change(prior);
     }
 
@@ -1774,6 +1784,7 @@ impl Tab {
                         };
 
                         *self.active.borrow_mut() = pane_index;
+                        self.recency.borrow_mut().tag(pane_index);
                         return Ok(pane_index);
                     }
                     Err(cursor) => cursor,
@@ -1817,6 +1828,7 @@ impl Tab {
 
             if request.target_is_second {
                 *self.active.borrow_mut() = pane_index + 1;
+                self.recency.borrow_mut().tag(pane_index + 1);
             }
         }
 

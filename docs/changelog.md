@@ -15,6 +15,10 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Color schemes: [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
 
+#### Changed
+
+* [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
+
 ### 20220807-113146-c2fee766
 
 #### New

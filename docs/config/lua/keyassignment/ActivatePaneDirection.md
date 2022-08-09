@@ -49,3 +49,8 @@ if the active pane is already the highest pane index.
 
 `"Prev"` moves to the next lowest pane index, wrapping around to
 the highest of the active pane is already the lowest pane index.
+
+*Since: nightly builds only*
+
+Ambiguous moves are now resolved by selecting the most recently activated pane
+in a given direction, instead of based on the edge intersection.
