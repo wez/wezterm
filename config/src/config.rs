@@ -358,6 +358,10 @@ pub struct Config {
     #[dynamic(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
 
+    /// When true (the default), a middle click in a tab title close the tab.
+    #[dynamic(default = "default_true")]
+    pub middle_click_close_tab: bool,
+
     #[dynamic(default)]
     pub enable_scroll_bar: bool,
 
