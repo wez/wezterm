@@ -4,8 +4,8 @@ import sys
 import re
 
 CATEGORIZE = {
-    r".centos(\d+).rpm$": "centos\\1_rpm",
-    r".fedora(\d+).rpm$": "fedora\\1_rpm",
+    r".centos(\d+)(:?\S+)?.rpm$": "centos\\1_rpm",
+    r".fedora(\d+)(:?\S+)?.rpm$": "fedora\\1_rpm",
     r".el(\d+).x86_64.rpm$": "centos\\1_rpm",
     r".fc(\d+).x86_64.rpm$": "fedora\\1_rpm",
     r".opensuse_leap.rpm$": "opensuse_leap_rpm",
