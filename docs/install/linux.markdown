@@ -1,3 +1,42 @@
+## Installing on Linux via Flathub
+
+WezTerm is available in flatpak format and published on
+[Flathub](https://flathub.org/apps/details/org.wezfurlong.wezterm), which is
+aggregated into the GNOME Software application and other similar
+storefront/software catalog applications.
+
+<a href='https://flathub.org/apps/details/org.wezfurlong.wezterm'><img width='240' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.png'/></a>
+
+To install using the command line:
+
+First, [setup flatpak on your system](https://flatpak.org/setup/), then:
+
+```bash
+flatpak install flathub org.wezfurlong.wezterm
+```
+
+and then run:
+
+```bash
+flatpak run org.wezfurlong.wezterm
+```
+
+You may wish to define an alias for convenience:
+
+```bash
+alias wezterm=flatpak run org.wezfurlong.wezterm
+```
+
+Note: flatpaks run in a sandbox so some functionality may behave a little
+differently when compared to installing the native package format for your
+system.  In particular, starting wezterm using `wezterm cli` subcommands will
+block on the first run since you logged in if you haven't already launched the
+gui.
+
+Only stable releases are allowed to be published to Flathub, so if
+you want/need to try a nightly download you will need to use one of
+the other options below.
+
 ## Installing on Linux using AppImage
 
 WezTerm is available in [AppImage](https://appimage.org/) format; a
