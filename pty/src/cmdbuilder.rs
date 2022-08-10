@@ -364,7 +364,9 @@ impl CommandBuilder {
     }
 
     fn search_path(&self, exe: &OsStr, cwd: &OsStr) -> anyhow::Result<OsString> {
+        use nix::unistd::{access, AccessFlags};
         use std::path::Path;
+
         let exe_path: &Path = exe.as_ref();
         if exe_path.is_relative() {
             let cwd: &Path = cwd.as_ref();
@@ -376,7 +378,7 @@ impl CommandBuilder {
             if let Some(path) = self.resolve_path() {
                 for path in std::env::split_paths(&path) {
                     let candidate = path.join(&exe);
-                    if candidate.exists() {
+                    if access(&candidate, AccessFlags::X_OK).is_ok() {
                         return Ok(candidate.into_os_string());
                     }
                 }
@@ -387,9 +389,10 @@ impl CommandBuilder {
                 exe_path.display()
             );
         } else {
-            if !exe_path.exists() {
+            if let Err(err) = access(exe_path, AccessFlags::X_OK) {
                 anyhow::bail!(
-                    "Unable to spawn {} because it doesn't exist on the filesystem",
+                    "Unable to spawn {} because it doesn't exist on the filesystem \
+                    or is not executable ({err:#})",
                     exe_path.display()
                 );
             }

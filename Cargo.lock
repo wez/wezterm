@@ -3305,6 +3305,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
+ "nix 0.24.2",
  "serde",
  "serde_derive",
  "serial",

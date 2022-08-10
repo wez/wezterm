@@ -19,6 +19,10 @@ As features stabilize some brief notes about them will accumulate here.
 
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
 
+#### Fixed
+
+* macOS: crash on startup if `$SHELL` points to something that isn't executable. [#2378](https://github.com/wez/wezterm/issues/2378)
+
 ### 20220807-113146-c2fee766
 
 #### New
