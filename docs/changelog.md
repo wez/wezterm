@@ -18,6 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
+* [update-status](config/lua/window-events/update-status.md) is a more general event for updating left or right status. `update-right-status` is considered to be deprecated in favor of `update-status`.
 
 #### Fixed
 

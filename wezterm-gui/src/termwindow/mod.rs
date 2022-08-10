@@ -1265,6 +1265,7 @@ impl TermWindow {
 
     fn emit_status_event(&mut self) {
         self.emit_window_event("update-right-status", None);
+        self.emit_window_event("update-status", None);
     }
 
     fn schedule_window_event(&mut self, name: &str, pane_id: Option<PaneId>) {
