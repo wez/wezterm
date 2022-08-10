@@ -22,6 +22,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 
 * macOS: crash on startup if `$SHELL` points to something that isn't executable. [#2378](https://github.com/wez/wezterm/issues/2378)
+* tab titles truncated too short [#2379](https://github.com/wez/wezterm/issues/2379)
 
 ### 20220807-113146-c2fee766
 
