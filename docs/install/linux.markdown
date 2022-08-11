@@ -114,8 +114,8 @@ on most Linux systems.
 |Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
 |Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
-|openSUSE Leap    |Nighty builds only|[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
-|openSUSE Tumbleweed    |Nighty builds only|[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
+|openSUSE Leap    |[{{ opensuse_leap_rpm_stable_asset }}]({{ opensuse_leap_rpm_stable }})|[{{ opensuse_leap_rpm_nightly_asset }}]({{ opensuse_leap_rpm_nightly }})|
+|openSUSE Tumbleweed    |[{{ opensuse_tumbleweed_rpm_stable_asset }}]({{ opensuse_tumbleweed_rpm_stable }})|[{{ opensuse_tumbleweed_rpm_nightly_asset }}]({{ opensuse_tumbleweed_rpm_nightly }})|
 
 To download and install from the CLI you can use something like this, which
 shows how to install the Fedora 35 package:
@@ -155,10 +155,10 @@ APKs are built out from the `main` branch.
 
 |Version | Stable        | Nightly |
 |--------|---------------|---------|
-| 3.12   |               |[{{ alpine3_12_apk_nightly_asset }}]({{ alpine3_12_apk_nightly }})|
-| 3.13   |               |[{{ alpine3_13_apk_nightly_asset }}]({{ alpine3_13_apk_nightly }})|
-| 3.14   |               |[{{ alpine3_14_apk_nightly_asset }}]({{ alpine3_14_apk_nightly }})|
-| 3.15   |               |[{{ alpine3_15_apk_nightly_asset }}]({{ alpine3_15_apk_nightly }})|
+| 3.12   |[{{ alpine3_12_apk_stable_asset }}]({{ alpine3_12_apk_stable }})|[{{ alpine3_12_apk_nightly_asset }}]({{ alpine3_12_apk_nightly }})|
+| 3.13   |[{{ alpine3_13_apk_stable_asset }}]({{ alpine3_13_apk_stable }})|[{{ alpine3_13_apk_nightly_asset }}]({{ alpine3_13_apk_nightly }})|
+| 3.14   |[{{ alpine3_14_apk_stable_asset }}]({{ alpine3_14_apk_stable }})|[{{ alpine3_14_apk_nightly_asset }}]({{ alpine3_14_apk_nightly }})|
+| 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|[{{ alpine3_15_apk_nightly_asset }}]({{ alpine3_15_apk_nightly }})|
 
 ## Linuxbrew Tap
 

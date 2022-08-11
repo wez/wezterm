@@ -8,9 +8,8 @@ CATEGORIZE = {
     r".fedora(\d+)(:?\S+)?.rpm$": "fedora\\1_rpm",
     r".el(\d+).x86_64.rpm$": "centos\\1_rpm",
     r".fc(\d+).x86_64.rpm$": "fedora\\1_rpm",
-    r".opensuse_leap.rpm$": "opensuse_leap_rpm",
-    r".opensuse_leap.\d+.\d+.rpm$": "opensuse_leap_rpm",
-    r".opensuse_tumbleweed(\d+)?.rpm$": "opensuse_tumbleweed_rpm",
+    r".opensuse_leap(.*).rpm$": "opensuse_leap_rpm",
+    r".opensuse_tumbleweed(.*).rpm$": "opensuse_tumbleweed_rpm",
     r"Debian(\d+)(\.\d+)?\.deb$": "debian\\1_deb",
     r"Ubuntu(\d+)(\.\d+)?.AppImage$": "ubuntu\\1_AppImage",
     r"Ubuntu(\d+)(\.\d+)?.deb$": "ubuntu\\1_deb",
@@ -20,7 +19,7 @@ CATEGORIZE = {
     r"^WezTerm-macos-.*.zip$": "macos_zip",
     r"^WezTerm-windows-.*.zip$": "windows_zip",
     r"^WezTerm-.*.setup.exe$": "windows_exe",
-    r"alpine(\d+)\.(\d+).apk": "alpine\\1_\\2_apk",
+    r"alpine(\d+)\.(\d+)(:?-\S+)?.apk": "alpine\\1_\\2_apk",
 }
 
 
