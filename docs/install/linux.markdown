@@ -24,7 +24,7 @@ flatpak run org.wezfurlong.wezterm
 You may wish to define an alias for convenience:
 
 ```bash
-alias wezterm=flatpak run org.wezfurlong.wezterm
+alias wezterm='flatpak run org.wezfurlong.wezterm'
 ```
 
 Note: flatpaks run in a sandbox so some functionality may behave a little
