@@ -780,9 +780,11 @@ impl super::TermWindow {
 
                 // Since we use shift to force assessing the mouse bindings, pretend
                 // that shift is not one of the mods when the mouse is grabbed.
-                if pane.is_mouse_grabbed() {
+                let mut mouse_reporting = pane.is_mouse_grabbed();
+                if mouse_reporting {
                     if modifiers.contains(self.config.bypass_mouse_reporting_modifiers) {
                         modifiers.remove(self.config.bypass_mouse_reporting_modifiers);
+                        mouse_reporting = false;
                     }
                 }
 
@@ -812,7 +814,7 @@ impl super::TermWindow {
 
                 let mouse_mods = config::MouseEventTriggerMods {
                     mods: modifiers,
-                    mouse_reporting: pane.is_mouse_grabbed(),
+                    mouse_reporting,
                     alt_screen: if pane.is_alt_screen_active() {
                         MouseEventAltScreen::True
                     } else {
