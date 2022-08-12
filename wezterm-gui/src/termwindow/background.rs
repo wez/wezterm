@@ -115,11 +115,24 @@ impl CachedGradient {
                 let cy = fh * cy.unwrap_or(0.5);
 
                 for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                    let nx = noise(&rng, noise_amount);
-                    let ny = noise(&rng, noise_amount);
+                    let x = x as f64;
+                    let y = y as f64;
 
-                    let t = (nx + (x as f64 - cx).powi(2) + (ny + y as f64 - cy).powi(2)).sqrt()
-                        / radius;
+                    // If we are close to the center, stop applying noise,
+                    // as the noise can wrap around and start using the
+                    // color from the other end of the gradient and look weird
+                    let nx = if ((cx - x).abs() as usize) < noise_amount {
+                        0.
+                    } else {
+                        noise(&rng, noise_amount)
+                    };
+                    let ny = if ((cy - y).abs() as usize) < noise_amount {
+                        0.
+                    } else {
+                        noise(&rng, noise_amount)
+                    };
+
+                    let t = (nx + (x - cx).powi(2) + (ny + y - cy).powi(2)).sqrt() / radius;
                     *pixel = to_pixel(grad.at(t));
                 }
             }
