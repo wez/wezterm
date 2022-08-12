@@ -18,8 +18,10 @@ use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -438,6 +440,34 @@ impl LocalDomain {
     }
 }
 
+/// Allows sharing the writer between the Pane and the Terminal.
+/// This could potentially be eliminated in the future if we can
+/// teach the Pane impl to reference the writer in the Termninal,
+/// but the Pane trait returns a RefMut and that makes it a bit
+/// awkward at the moment.
+#[derive(Clone)]
+pub(crate) struct WriterWrapper {
+    writer: Arc<Mutex<Box<dyn Write + Send>>>,
+}
+
+impl WriterWrapper {
+    pub fn new(writer: Box<dyn Write + Send>) -> Self {
+        Self {
+            writer: Arc::new(Mutex::new(writer)),
+        }
+    }
+}
+
+impl std::io::Write for WriterWrapper {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.writer.lock().unwrap().write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.lock().unwrap().flush()
+    }
+}
+
 #[async_trait(?Send)]
 impl Domain for LocalDomain {
     async fn spawn_pane(
@@ -467,14 +497,14 @@ impl Domain for LocalDomain {
         let child = pair.slave.spawn_command(cmd)?;
         log::trace!("spawned: {:?}", child);
 
-        let writer = pair.master.try_clone_writer()?;
+        let writer = WriterWrapper::new(pair.master.take_writer()?);
 
         let mut terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
-            Box::new(writer),
+            Box::new(writer.clone()),
         );
         if self.is_conpty() {
             terminal.enable_conpty_quirks();
@@ -485,6 +515,7 @@ impl Domain for LocalDomain {
             terminal,
             child,
             pair.master,
+            Box::new(writer),
             self.id,
             command_description,
         ));

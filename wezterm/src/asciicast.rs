@@ -360,7 +360,7 @@ impl RecordCommand {
         writeln!(cast_file, "{}", serde_json::to_string(&header)?)?;
 
         let pty_system = native_pty_system();
-        let mut pair = pty_system.openpty(size)?;
+        let pair = pty_system.openpty(size)?;
 
         let cmd = config.build_prog(
             if self.prog.is_empty() {
@@ -423,11 +423,12 @@ impl RecordCommand {
         let mut child_status = None;
         let first_output = Instant::now();
         let mut buffer = vec![];
+        let mut writer = pair.master.take_writer()?;
 
         for msg in rx {
             match msg {
                 Message::Stdin(data) => {
-                    pair.master.write_all(&data)?;
+                    writer.write_all(&data)?;
                 }
                 Message::Stdout(mut data) => {
                     let elapsed = first_output.elapsed().as_secs_f32();

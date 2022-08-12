@@ -67,7 +67,7 @@ impl portable_pty::MasterPty for SshPty {
         Ok(Box::new(reader))
     }
 
-    fn try_clone_writer(&self) -> anyhow::Result<Box<(dyn Write + Send + 'static)>> {
+    fn take_writer(&self) -> anyhow::Result<Box<(dyn Write + Send + 'static)>> {
         let writer = self.writer.try_clone()?;
         Ok(Box::new(writer))
     }

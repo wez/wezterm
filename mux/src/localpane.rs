@@ -15,7 +15,7 @@ use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
-use std::io::Result as IoResult;
+use std::io::{Result as IoResult, Write};
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -55,6 +55,7 @@ pub struct LocalPane {
     terminal: RefCell<Terminal>,
     process: RefCell<ProcessState>,
     pty: RefCell<Box<dyn MasterPty>>,
+    writer: RefCell<Box<dyn Write>>,
     domain_id: DomainId,
     tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
     proc_list: RefCell<Option<CachedProcInfo>>,
@@ -294,7 +295,7 @@ impl Pane for LocalPane {
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {
         Mux::get().unwrap().record_input_for_current_identity();
-        self.pty.borrow_mut()
+        self.writer.borrow_mut()
     }
 
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
@@ -799,6 +800,7 @@ impl LocalPane {
         mut terminal: Terminal,
         process: Box<dyn Child + Send>,
         pty: Box<dyn MasterPty>,
+        writer: Box<dyn Write>,
         domain_id: DomainId,
         command_description: String,
     ) -> Self {
@@ -809,6 +811,7 @@ impl LocalPane {
             tmux_domain: None,
         }));
         terminal.set_notification_handler(Box::new(LocalPaneNotifHandler { pane_id }));
+
         Self {
             pane_id,
             terminal: RefCell::new(terminal),
@@ -819,6 +822,7 @@ impl LocalPane {
                 killed: false,
             }),
             pty: RefCell::new(pty),
+            writer: RefCell::new(writer),
             domain_id,
             tmux_domain: RefCell::new(None),
             proc_list: RefCell::new(None),

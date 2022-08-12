@@ -3,7 +3,6 @@ use crate::win::psuedocon::PsuedoCon;
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
 use anyhow::Error;
 use filedescriptor::{FileDescriptor, Pipe};
-use std::io;
 use std::sync::{Arc, Mutex};
 use winapi::um::wincon::COORD;
 
@@ -28,7 +27,7 @@ impl PtySystem for ConPtySystem {
             inner: Arc::new(Mutex::new(Inner {
                 con,
                 readable: stdout.read,
-                writable: stdin.write,
+                writable: Some(stdin.write),
                 size,
             })),
         };
@@ -47,7 +46,7 @@ impl PtySystem for ConPtySystem {
 struct Inner {
     con: PsuedoCon,
     readable: FileDescriptor,
-    writable: FileDescriptor,
+    writable: Option<FileDescriptor>,
     size: PtySize,
 }
 
@@ -97,17 +96,15 @@ impl MasterPty for ConPtyMasterPty {
         Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
 
-    fn try_clone_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
-        Ok(Box::new(self.inner.lock().unwrap().writable.try_clone()?))
-    }
-}
-
-impl io::Write for ConPtyMasterPty {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        self.inner.lock().unwrap().writable.write(buf)
-    }
-    fn flush(&mut self) -> Result<(), io::Error> {
-        Ok(())
+    fn take_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+        Ok(Box::new(
+            self.inner
+                .lock()
+                .unwrap()
+                .writable
+                .take()
+                .ok_or_else(|| anyhow::anyhow!("writer already taken"))?,
+        ))
     }
 }
 

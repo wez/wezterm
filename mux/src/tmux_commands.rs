@@ -1,4 +1,4 @@
-use crate::domain::DomainId;
+use crate::domain::{DomainId, WriterWrapper};
 use crate::localpane::LocalPane;
 use crate::pane::alloc_pane_id;
 use crate::tab::{Tab, TabId};
@@ -128,7 +128,7 @@ impl TmuxDomainState {
                 cmd_queue: self.cmd_queue.clone(),
                 master_pane: ref_pane,
             };
-            let writer = pane_pty.try_clone_writer()?;
+            let writer = WriterWrapper::new(pane_pty.take_writer()?);
             let mux = Mux::get().expect("should be called at main thread");
             let size = TerminalSize {
                 rows: pane.pane_height as usize,
@@ -147,7 +147,7 @@ impl TmuxDomainState {
                 std::sync::Arc::new(config::TermConfig::new()),
                 "WezTerm",
                 config::wezterm_version(),
-                Box::new(writer),
+                Box::new(writer.clone()),
             );
 
             let local_pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
@@ -155,6 +155,7 @@ impl TmuxDomainState {
                 terminal,
                 Box::new(child),
                 Box::new(pane_pty),
+                Box::new(writer),
                 self.domain_id,
                 "tmux pane".to_string(),
             ));

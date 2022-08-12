@@ -26,14 +26,32 @@ fn main() -> anyhow::Result<()> {
         let slave = pair.slave;
         let mut child = smol::unblock(move || slave.spawn_command(cmd)).await?;
 
+        {
+            // Obtain the writer.
+            // When the writer is dropped, EOF will be sent to
+            // the program that was spawned.
+            // It is important to take the writer even if you don't
+            // send anything to its stdin so that EOF can be
+            // generated, otherwise you risk deadlocking yourself.
+            let writer = pair.master.take_writer()?;
+
+            // Explicitly generate EOF
+            drop(writer);
+        }
+
+        println!(
+            "child status: {:?}",
+            smol::unblock(move || child
+                .wait()
+                .map_err(|e| anyhow!("waiting for child: {}", e)))
+            .await?
+        );
+
         let reader = pair.master.try_clone_reader()?;
 
-        // We hold handles on the pty.  Now that the child is complete
-        // there are no processes remaining that will write to it until
-        // we spawn more.  We're not going to do that in this example,
-        // so we should close it down.  If we didn't drop it explicitly
-        // here, then the attempt to read its output would block forever
-        // waiting for a future child that will never be spawned.
+        // Take care to drop the master after our processes are
+        // done, as some platforms get unhappy if it is dropped
+        // sooner than that.
         drop(pair.master);
 
         let mut lines = smol::io::BufReader::new(smol::Unblock::new(reader)).lines();
@@ -50,17 +68,6 @@ fn main() -> anyhow::Result<()> {
             println!();
         }
 
-        // Note that we're waiting until after we've read the output
-        // to call `wait` on the process.
-        // On macOS Catalina, waiting on the process seems to prevent
-        // its output from making it into the pty.
-        println!(
-            "child status: {:?}",
-            smol::unblock(move || child
-                .wait()
-                .map_err(|e| anyhow!("waiting for child: {}", e)))
-            .await?
-        );
         Ok(())
     })
 }

@@ -1,5 +1,5 @@
 use crate::connui::ConnectionUI;
-use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState, WriterWrapper};
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
 use crate::Mux;
@@ -520,7 +520,7 @@ fn connect_ssh_session(
 
                         // Obtain the real stdin/stdout for the pty
                         let reader = pty.try_clone_reader()?;
-                        let writer = pty.try_clone_writer()?;
+                        let writer = pty.take_writer()?;
 
                         // And send them to the wrapped reader/writer
                         stdin_tx
@@ -583,7 +583,7 @@ impl Domain for RemoteSshDomain {
 
             pty = Box::new(concrete_pty);
             child = Box::new(concrete_child);
-            writer = Box::new(pty.try_clone_writer()?);
+            writer = Box::new(pty.take_writer()?);
         } else {
             // We're starting the session
             let (session, events) = Session::connect(self.ssh_config()?)?;
@@ -667,12 +667,14 @@ impl Domain for RemoteSshDomain {
         // eg: tmux integration to be tunnelled via the remote
         // session without duplicating a lot of logic over here.
 
+        let writer = WriterWrapper::new(writer);
+
         let terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
-            writer,
+            Box::new(writer.clone()),
         );
 
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
@@ -680,6 +682,7 @@ impl Domain for RemoteSshDomain {
             terminal,
             child,
             pty,
+            Box::new(writer),
             self.id,
             "RemoteSshDomain".to_string(),
         ));
@@ -990,7 +993,7 @@ impl portable_pty::MasterPty for WrappedSshPty {
         }
     }
 
-    fn try_clone_writer(&self) -> anyhow::Result<Box<(dyn Write + Send + 'static)>> {
+    fn take_writer(&self) -> anyhow::Result<Box<(dyn Write + Send + 'static)>> {
         anyhow::bail!("writer must be created during bootstrap");
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "portable-pty"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Wez Furlong"]
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
@@ -19,12 +19,10 @@ shell-words = "1.1"
 serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
 serial = "0.4"
-ssh2 = {optional=true, version="0.9"}
 
 [features]
 default = []
 serde_support = ["serde", "serde_derive"]
-ssh = ["ssh2"]
 
 [target."cfg(windows)".dependencies]
 bitflags = "1.3"

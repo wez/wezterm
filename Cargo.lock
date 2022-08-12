@@ -3295,7 +3295,7 @@ dependencies = [
 
 [[package]]
 name = "portable-pty"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -3312,7 +3312,6 @@ dependencies = [
  "shared_library",
  "shell-words",
  "smol",
- "ssh2",
  "winapi",
  "winreg",
 ]

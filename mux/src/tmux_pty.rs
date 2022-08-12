@@ -143,7 +143,7 @@ impl MasterPty for TmuxPty {
         Ok(Box::new(self.reader.try_clone()?))
     }
 
-    fn try_clone_writer(&self) -> Result<Box<dyn Write + Send>, anyhow::Error> {
+    fn take_writer(&self) -> Result<Box<dyn Write + Send>, anyhow::Error> {
         Ok(Box::new(TmuxPtyWriter {
             domain_id: self.domain_id,
             master_pane: self.master_pane.clone(),

@@ -14,6 +14,7 @@ use filedescriptor::FileDescriptor;
 use serial::{
     BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
 };
+use std::cell::RefCell;
 use std::ffi::{OsStr, OsString};
 use std::io::{Read, Result as IoResult, Write};
 use std::sync::{Arc, Mutex};
@@ -91,7 +92,10 @@ impl PtySystem for SerialTty {
             slave: Box::new(Slave {
                 port: Arc::clone(&port),
             }),
-            master: Box::new(Master { port }),
+            master: Box::new(Master {
+                port,
+                took_writer: RefCell::new(false),
+            }),
         })
     }
 }
@@ -186,9 +190,14 @@ impl ChildKiller for SerialChildKiller {
 
 struct Master {
     port: Handle,
+    took_writer: RefCell<bool>,
 }
 
-impl Write for Master {
+struct MasterWriter {
+    port: Handle,
+}
+
+impl Write for MasterWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
         self.port.lock().unwrap().write(buf)
     }
@@ -217,9 +226,13 @@ impl MasterPty for Master {
         Ok(Box::new(Reader { fd }))
     }
 
-    fn try_clone_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+    fn take_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+        if *self.took_writer.borrow() {
+            anyhow::bail!("cannot take writer more than once");
+        }
+        *self.took_writer.borrow_mut() = true;
         let port = Arc::clone(&self.port);
-        Ok(Box::new(Master { port }))
+        Ok(Box::new(MasterWriter { port }))
     }
 
     #[cfg(unix)]

@@ -37,12 +37,6 @@
 //! # Ok::<(), Error>(())
 //! ```
 //!
-//! ## ssh2
-//!
-//! If the `ssh` feature is enabled, this crate exposes an
-//! `ssh::SshSession` type that can wrap an established ssh
-//! session with an implementation of `PtySystem`, allowing
-//! you to use the same pty interface with remote ptys.
 use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
 #[cfg(unix)]
@@ -60,9 +54,6 @@ pub use cmdbuilder::CommandBuilder;
 pub mod unix;
 #[cfg(windows)]
 pub mod win;
-
-#[cfg(feature = "ssh")]
-pub mod ssh;
 
 pub mod serial;
 
@@ -94,7 +85,7 @@ impl Default for PtySize {
 }
 
 /// Represents the master/control end of the pty
-pub trait MasterPty: std::io::Write {
+pub trait MasterPty {
     /// Inform the kernel and thus the child process that the window resized.
     /// It will update the winsize information maintained by the kernel,
     /// and generate a signal for the child to notice and update its state.
@@ -105,9 +96,10 @@ pub trait MasterPty: std::io::Write {
     /// via this stream.
     fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error>;
     /// Obtain a writable handle; writing to it will send data to the
-    /// slave end.  This is equivalent to the Write impl on MasterPty
-    /// itself, but allows splitting it off into a separate object.
-    fn try_clone_writer(&self) -> Result<Box<dyn std::io::Write + Send>, Error>;
+    /// slave end.
+    /// Dropping the writer will send EOF to the slave end.
+    /// It is invalid to take the writer more than once.
+    fn take_writer(&self) -> Result<Box<dyn std::io::Write + Send>, Error>;
 
     /// If applicable to the type of the tty, return the local process id
     /// of the process group or session leader

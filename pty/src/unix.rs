@@ -4,6 +4,7 @@ use crate::{Child, CommandBuilder, MasterPty, PtyPair, PtySize, PtySystem, Slave
 use anyhow::{bail, Error};
 use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
+use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
@@ -41,6 +42,7 @@ fn openpty(size: PtySize) -> anyhow::Result<(UnixMasterPty, UnixSlavePty)> {
 
     let master = UnixMasterPty {
         fd: PtyFd(unsafe { FileDescriptor::from_raw_fd(master) }),
+        took_writer: RefCell::new(false),
     };
     let slave = UnixSlavePty {
         fd: PtyFd(unsafe { FileDescriptor::from_raw_fd(slave) }),
@@ -261,6 +263,7 @@ impl PtyFd {
 /// The file descriptor will be closed when the Pty is dropped.
 struct UnixMasterPty {
     fd: PtyFd,
+    took_writer: RefCell<bool>,
 }
 
 /// Represents the slave end of a pty.
@@ -311,9 +314,13 @@ impl MasterPty for UnixMasterPty {
         Ok(Box::new(fd))
     }
 
-    fn try_clone_writer(&self) -> Result<Box<dyn Write + Send>, Error> {
+    fn take_writer(&self) -> Result<Box<dyn Write + Send>, Error> {
+        if *self.took_writer.borrow() {
+            anyhow::bail!("cannot take writer more than once");
+        }
+        *self.took_writer.borrow_mut() = true;
         let fd = PtyFd(self.fd.try_clone()?);
-        Ok(Box::new(UnixMasterPty { fd }))
+        Ok(Box::new(UnixMasterWriter { fd }))
     }
 
     fn process_group_leader(&self) -> Option<libc::pid_t> {
@@ -324,7 +331,28 @@ impl MasterPty for UnixMasterPty {
     }
 }
 
-impl Write for UnixMasterPty {
+/// Represents the master end of a pty.
+/// EOT will be sent, and then the file descriptor will be closed when
+/// the Pty is dropped.
+struct UnixMasterWriter {
+    fd: PtyFd,
+}
+
+impl Drop for UnixMasterWriter {
+    fn drop(&mut self) {
+        let mut t: libc::termios = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+        if unsafe { libc::tcgetattr(self.fd.0.as_raw_fd(), &mut t) } == 0 {
+            // EOF is only interpreted after a newline, so if it is set,
+            // we send a newline followed by EOF.
+            let eot = t.c_cc[libc::VEOF];
+            if eot != 0 {
+                let _ = self.fd.0.write_all(&[b'\r', b'\n', eot]);
+            }
+        }
+    }
+}
+
+impl Write for UnixMasterWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         self.fd.write(buf)
     }

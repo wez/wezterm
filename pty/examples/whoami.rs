@@ -3,6 +3,7 @@
 //! pipes involved and it is easy to get blocked/deadlocked if care and attention
 //! is not paid to those pipes!
 use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
+use std::sync::mpsc::channel;
 
 fn main() {
     let pty_system = NativePtySystem::default();
@@ -18,35 +19,63 @@ fn main() {
 
     let cmd = CommandBuilder::new("whoami");
     let mut child = pair.slave.spawn_command(cmd).unwrap();
+
     // Release any handles owned by the slave: we don't need it now
     // that we've spawned the child.
     drop(pair.slave);
 
+    {
+        // Obtain the writer.
+        // When the writer is dropped, EOF will be sent to
+        // the program that was spawned.
+        // It is important to take the writer even if you don't
+        // send anything to its stdin so that EOF can be
+        // generated, otherwise you risk deadlocking yourself.
+        let mut writer = pair.master.take_writer().unwrap();
+
+        // This example doesn't need to write anything, but if you
+        // want to send data to the child, you'd set `to_write` to
+        // that data and do it like this:
+        let to_write = "";
+        if !to_write.is_empty() {
+            // To avoid deadlock, wrt. reading and waiting, we send
+            // data to the stdin of the child in a different thread.
+            std::thread::spawn(move || {
+                writer.write_all(to_write.as_bytes()).unwrap();
+            });
+        }
+    }
+
+    // Read the output in another thread.
+    // This is important because it is easy to encounter a situation
+    // where read/write buffers fill and block either your process
+    // or the spawned process.
+    let (tx, rx) = channel();
     let mut reader = pair.master.try_clone_reader().unwrap();
-    // We hold handles on the pty.  Now that the child is complete
-    // there are no processes remaining that will write to it until
-    // we spawn more.  We're not going to do that in this example,
-    // so we should close it down.  If we didn't drop it explicitly
-    // here, then the attempt to read its output would block forever
-    // waiting for a future child that will never be spawned.
+    std::thread::spawn(move || {
+        // Consume the output from the child
+        let mut s = String::new();
+        reader.read_to_string(&mut s).unwrap();
+        tx.send(s).unwrap();
+    });
+
+    // Wait for the child to complete
+    println!("child status: {:?}", child.wait().unwrap());
+
+    // Take care to drop the master after our processes are
+    // done, as some platforms get unhappy if it is dropped
+    // sooner than that.
     drop(pair.master);
 
-    // Consume the output from the child
-    let mut s = String::new();
-    reader.read_to_string(&mut s).unwrap();
+    // Now wait for the output to be read by our reader thread
+    let output = rx.recv().unwrap();
 
     // We print with escapes escaped because the windows conpty
     // implementation synthesizes title change escape sequences
     // in the output stream and it can be confusing to see those
     // printed out raw in another terminal.
     print!("output: ");
-    for c in s.escape_debug() {
+    for c in output.escape_debug() {
         print!("{}", c);
     }
-
-    // Note that we're waiting until after we've read the output
-    // to call `wait` on the process.
-    // On macOS Catalina, waiting on the process seems to prevent
-    // its output from making it into the pty.
-    println!("child status: {:?}", child.wait().unwrap());
 }
