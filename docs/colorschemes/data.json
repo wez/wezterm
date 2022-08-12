@@ -4580,6 +4580,98 @@
   {
     "colors": {
       "ansi": [
+        "#282828",
+        "#ee5396",
+        "#25be6a",
+        "#08bdba",
+        "#78a9ff",
+        "#be95ff",
+        "#33b1ff",
+        "#dfdfe0"
+      ],
+      "background": "#161616",
+      "brights": [
+        "#484848",
+        "#f16da6",
+        "#46c880",
+        "#2dc7c4",
+        "#8cb6ff",
+        "#c8a5ff",
+        "#52bdff",
+        "#e4e4e5"
+      ],
+      "compose_cursor": "#3ddbd9",
+      "cursor_bg": "#f2f4f8",
+      "cursor_border": "#f2f4f8",
+      "cursor_fg": "#161616",
+      "foreground": "#f2f4f8",
+      "indexed": {
+        "16": "#ff7eb6",
+        "17": "#3ddbd9"
+      },
+      "scrollbar_thumb": "#7b7c7e",
+      "selection_bg": "#2a2a2a",
+      "selection_fg": "#f2f4f8",
+      "split": "#0c0c0c",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#7b7c7e",
+          "fg_color": "#161616",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#0c0c0c",
+        "inactive_tab": {
+          "bg_color": "#252525",
+          "fg_color": "#b6b8bb",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#0c0c0c",
+        "inactive_tab_edge_hover": "#252525",
+        "inactive_tab_hover": {
+          "bg_color": "#353535",
+          "fg_color": "#f2f4f8",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#161616",
+          "fg_color": "#b6b8bb",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#353535",
+          "fg_color": "#f2f4f8",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#f2f4f8"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "EdenEast",
+      "name": "carbonfox",
+      "origin_url": "https://github.com/EdenEast/nightfox.nvim",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#130f0c",
         "#604c38",
         "#8d7f85",
@@ -6767,7 +6859,7 @@
         },
         "background": "#ebe5df",
         "inactive_tab": {
-          "bg_color": "#faf4ed",
+          "bg_color": "#ebe0df",
           "fg_color": "#625c87",
           "intensity": "Normal",
           "italic": false,
@@ -6777,7 +6869,7 @@
         "inactive_tab_edge": "#ebe5df",
         "inactive_tab_edge_hover": "#ebe0df",
         "inactive_tab_hover": {
-          "bg_color": "#ebe0df",
+          "bg_color": "#ebdfe4",
           "fg_color": "#575279",
           "intensity": "Normal",
           "italic": false,
@@ -6793,7 +6885,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#ebe0df",
+          "bg_color": "#ebdfe4",
           "fg_color": "#575279",
           "intensity": "Normal",
           "italic": false,
@@ -6859,7 +6951,7 @@
         },
         "background": "#dbdbdb",
         "inactive_tab": {
-          "bg_color": "#eaeaea",
+          "bg_color": "#dbcece",
           "fg_color": "#233f5e",
           "intensity": "Normal",
           "italic": false,
@@ -6869,7 +6961,7 @@
         "inactive_tab_edge": "#dbdbdb",
         "inactive_tab_edge_hover": "#dbcece",
         "inactive_tab_hover": {
-          "bg_color": "#dbcece",
+          "bg_color": "#ced6db",
           "fg_color": "#1d344f",
           "intensity": "Normal",
           "italic": false,
@@ -6885,7 +6977,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#dbcece",
+          "bg_color": "#ced6db",
           "fg_color": "#1d344f",
           "intensity": "Normal",
           "italic": false,
@@ -7944,7 +8036,7 @@
         },
         "background": "#191726",
         "inactive_tab": {
-          "bg_color": "#232136",
+          "bg_color": "#2d2a45",
           "fg_color": "#cdcbe0",
           "intensity": "Normal",
           "italic": false,
@@ -7954,7 +8046,7 @@
         "inactive_tab_edge": "#191726",
         "inactive_tab_edge_hover": "#2d2a45",
         "inactive_tab_hover": {
-          "bg_color": "#2d2a45",
+          "bg_color": "#373354",
           "fg_color": "#e0def4",
           "intensity": "Normal",
           "italic": false,
@@ -7970,7 +8062,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#2d2a45",
+          "bg_color": "#373354",
           "fg_color": "#e0def4",
           "intensity": "Normal",
           "italic": false,
@@ -17703,7 +17795,7 @@
         },
         "background": "#131a24",
         "inactive_tab": {
-          "bg_color": "#192330",
+          "bg_color": "#212e3f",
           "fg_color": "#aeafb0",
           "intensity": "Normal",
           "italic": false,
@@ -17713,7 +17805,7 @@
         "inactive_tab_edge": "#131a24",
         "inactive_tab_edge_hover": "#212e3f",
         "inactive_tab_hover": {
-          "bg_color": "#212e3f",
+          "bg_color": "#29394f",
           "fg_color": "#cdcecf",
           "intensity": "Normal",
           "italic": false,
@@ -17729,7 +17821,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#212e3f",
+          "bg_color": "#29394f",
           "fg_color": "#cdcecf",
           "intensity": "Normal",
           "italic": false,
@@ -18116,7 +18208,7 @@
         },
         "background": "#232831",
         "inactive_tab": {
-          "bg_color": "#2e3440",
+          "bg_color": "#39404f",
           "fg_color": "#abb1bb",
           "intensity": "Normal",
           "italic": false,
@@ -18126,7 +18218,7 @@
         "inactive_tab_edge": "#232831",
         "inactive_tab_edge_hover": "#39404f",
         "inactive_tab_hover": {
-          "bg_color": "#39404f",
+          "bg_color": "#444c5e",
           "fg_color": "#cdcecf",
           "intensity": "Normal",
           "italic": false,
@@ -18142,7 +18234,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#39404f",
+          "bg_color": "#444c5e",
           "fg_color": "#cdcecf",
           "intensity": "Normal",
           "italic": false,
@@ -24972,7 +25064,7 @@
         },
         "background": "#0f1c1e",
         "inactive_tab": {
-          "bg_color": "#152528",
+          "bg_color": "#1d3337",
           "fg_color": "#cbd9d8",
           "intensity": "Normal",
           "italic": false,
@@ -24982,7 +25074,7 @@
         "inactive_tab_edge": "#0f1c1e",
         "inactive_tab_edge_hover": "#1d3337",
         "inactive_tab_hover": {
-          "bg_color": "#1d3337",
+          "bg_color": "#254147",
           "fg_color": "#e6eaea",
           "intensity": "Normal",
           "italic": false,
@@ -24998,7 +25090,7 @@
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#1d3337",
+          "bg_color": "#254147",
           "fg_color": "#e6eaea",
           "intensity": "Normal",
           "italic": false,
