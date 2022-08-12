@@ -147,7 +147,7 @@ fn main() {
         // Need to separate out the writer so that we can drop
         // the pty which would otherwise keep the ssh session
         // thread alive
-        let mut writer = pty.try_clone_writer()?;
+        let mut writer = pty.take_writer()?;
         std::thread::spawn(move || {
             let mut buf = [0u8; 8192];
             let mut stdin = std::io::stdin();

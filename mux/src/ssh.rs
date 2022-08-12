@@ -908,24 +908,6 @@ struct PtyWriter {
     rx: Receiver<BoxedWriter>,
 }
 
-impl std::io::Write for WrappedSshPty {
-    fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
-        log::error!("boo");
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "you are expected to write via try_clone_writer",
-        ))
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        log::error!("boo");
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "you are expected to write via try_clone_writer",
-        ))
-    }
-}
-
 impl WrappedSshPtyInner {
     fn check_connected(&mut self) -> anyhow::Result<()> {
         match self {
