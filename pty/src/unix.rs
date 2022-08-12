@@ -346,7 +346,7 @@ impl Drop for UnixMasterWriter {
             // we send a newline followed by EOF.
             let eot = t.c_cc[libc::VEOF];
             if eot != 0 {
-                let _ = self.fd.0.write_all(&[b'\r', b'\n', eot]);
+                let _ = self.fd.0.write_all(&[b'\n', eot]);
             }
         }
     }

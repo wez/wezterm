@@ -24,6 +24,19 @@ fn main() {
     // that we've spawned the child.
     drop(pair.slave);
 
+    // Read the output in another thread.
+    // This is important because it is easy to encounter a situation
+    // where read/write buffers fill and block either your process
+    // or the spawned process.
+    let (tx, rx) = channel();
+    let mut reader = pair.master.try_clone_reader().unwrap();
+    std::thread::spawn(move || {
+        // Consume the output from the child
+        let mut s = String::new();
+        reader.read_to_string(&mut s).unwrap();
+        tx.send(s).unwrap();
+    });
+
     {
         // Obtain the writer.
         // When the writer is dropped, EOF will be sent to
@@ -32,6 +45,19 @@ fn main() {
         // send anything to its stdin so that EOF can be
         // generated, otherwise you risk deadlocking yourself.
         let mut writer = pair.master.take_writer().unwrap();
+
+        if cfg!(target_os = "macos") {
+            // macOS quirk: the child and reader must be started and
+            // allowed a brief grace period to run before we allow
+            // the writer to drop. Otherwise, the data we send to
+            // the kernel to trigger EOF is interleaved with the
+            // data read by the reader! WTF!?
+            // This appears to be a race condition for very short
+            // lived processes on macOS.
+            // I'd love to find a more deterministic solution to
+            // this than sleeping.
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
 
         // This example doesn't need to write anything, but if you
         // want to send data to the child, you'd set `to_write` to
@@ -45,19 +71,6 @@ fn main() {
             });
         }
     }
-
-    // Read the output in another thread.
-    // This is important because it is easy to encounter a situation
-    // where read/write buffers fill and block either your process
-    // or the spawned process.
-    let (tx, rx) = channel();
-    let mut reader = pair.master.try_clone_reader().unwrap();
-    std::thread::spawn(move || {
-        // Consume the output from the child
-        let mut s = String::new();
-        reader.read_to_string(&mut s).unwrap();
-        tx.send(s).unwrap();
-    });
 
     // Wait for the child to complete
     println!("child status: {:?}", child.wait().unwrap());
