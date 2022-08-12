@@ -33,7 +33,7 @@
 //! let mut reader = pair.master.try_clone_reader()?;
 //!
 //! // Send data to the pty by writing to the master
-//! writeln!(pair.master, "ls -l\r\n")?;
+//! writeln!(pair.master.take_writer()?, "ls -l\r\n")?;
 //! # Ok::<(), Error>(())
 //! ```
 //!
