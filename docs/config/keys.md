@@ -25,6 +25,7 @@ Possible Modifier labels are:
  * `SUPER`, `CMD`, `WIN` - these are all equivalent: on macOS the `Command` key,
    on Windows the `Windows` key, on Linux this can also be the `Super` or `Hyper`
    key.  Left and right are equivalent.
+ * `CTRL` - The control key.  Left and right are equivalent.
  * `SHIFT` - The shift key.  Left and right are equivalent.
  * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
    on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
