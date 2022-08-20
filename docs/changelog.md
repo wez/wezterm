@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: crash on startup if `$SHELL` points to something that isn't executable. [#2378](https://github.com/wez/wezterm/issues/2378)
 * tab titles truncated too short [#2379](https://github.com/wez/wezterm/issues/2379)
 * `bypass_mouse_reporting_modifiers` stopped working (regression around new mouse binding logic) [#2389](https://github.com/wez/wezterm/issues/2389)
+* Entering IME-composed text would have no effect in `wezterm ssh` [#2434](https://github.com/wez/wezterm/issues/2434)
 
 ### 20220807-113146-c2fee766
 
