@@ -521,6 +521,24 @@ pub struct WindowFrameConfig {
     pub font: Option<TextStyle>,
     #[dynamic(default)]
     pub font_size: Option<f64>,
+
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub border_left_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub border_right_width: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub border_top_height: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit", default = "default_zero_pixel")]
+    pub border_bottom_height: Dimension,
+
+    pub border_left_color: Option<RgbaColor>,
+    pub border_right_color: Option<RgbaColor>,
+    pub border_top_color: Option<RgbaColor>,
+    pub border_bottom_color: Option<RgbaColor>,
+}
+
+const fn default_zero_pixel() -> Dimension {
+    Dimension::Pixels(0.)
 }
 
 impl Default for WindowFrameConfig {
@@ -538,6 +556,14 @@ impl Default for WindowFrameConfig {
             button_hover_bg: default_button_hover_bg(),
             font: None,
             font_size: None,
+            border_left_width: default_zero_pixel(),
+            border_right_width: default_zero_pixel(),
+            border_top_height: default_zero_pixel(),
+            border_bottom_height: default_zero_pixel(),
+            border_left_color: None,
+            border_right_color: None,
+            border_top_color: None,
+            border_bottom_color: None,
         }
     }
 }
