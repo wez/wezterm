@@ -5,6 +5,7 @@ use crate::{Mux, WindowId};
 use bintree::PathBranch;
 use config::configuration;
 use config::keyassignment::PaneDirection;
+use rangeset::intersects_range;
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -1276,31 +1277,51 @@ impl Tab {
 
         let recency = self.recency.borrow();
 
+        fn edge_intersects(
+            active_start: usize,
+            active_size: usize,
+            current_start: usize,
+            current_size: usize,
+        ) -> bool {
+            intersects_range(
+                &(active_start..active_start + active_size),
+                &(current_start..current_start + current_size),
+            )
+        }
+
         for pane in &panes {
             let score = match direction {
                 PaneDirection::Right => {
-                    if pane.left == active.left + active.width + 1 {
+                    if pane.left == active.left + active.width + 1
+                        && edge_intersects(active.top, active.height, pane.top, pane.height)
+                    {
                         1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Left => {
-                    if pane.left + pane.width + 1 == active.left {
+                    if pane.left + pane.width + 1 == active.left
+                        && edge_intersects(active.top, active.height, pane.top, pane.height)
+                    {
                         1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Up => {
-                    if pane.top + pane.height + 1 == active.top {
+                    if pane.top + pane.height + 1 == active.top
+                        && edge_intersects(active.left, active.width, pane.left, pane.width)
+                    {
                         1 + recency.score(pane.index)
                     } else {
                         0
                     }
                 }
                 PaneDirection::Down => {
-                    if active.top + active.height + 1 == pane.top {
+                    if active.top + active.height + 1 == pane.top
+                        && edge_intersects(active.left, active.width, pane.left, pane.width)
+                    {
                         1 + recency.score(pane.index)
                     } else {
                         0
