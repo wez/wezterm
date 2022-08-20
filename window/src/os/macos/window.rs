@@ -272,6 +272,14 @@ mod cglbits {
                 );
 
                 gl_context.setView_(view);
+
+                // Explicitly disable vsync; we'll manage throttling frames at
+                // the application level
+                let swap_interval: cgl::GLint = 0;
+                gl_context.setValues_forParameter_(
+                    &swap_interval,
+                    cocoa::appkit::NSOpenGLContextParameter::NSOpenGLCPSwapInterval,
+                );
             }
 
             Ok(Self {
@@ -430,8 +438,11 @@ impl Window {
             let inner = Rc::new(RefCell::new(Inner {
                 events,
                 view_id: None,
+                window_id,
                 window: None,
                 screen_changed: false,
+                paint_throttled: false,
+                invalidated: true,
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
                 tracking_rect_tag: 0,
@@ -985,6 +996,9 @@ impl WindowInner {
     fn invalidate(&mut self) {
         unsafe {
             let () = msg_send![*self.view, setNeedsDisplay: YES];
+            if let Some(window_view) = WindowView::get_this(&**self.view) {
+                window_view.inner.borrow_mut().invalidated = true;
+            }
         }
     }
     fn set_title(&mut self, title: &str) {
@@ -1169,6 +1183,9 @@ struct Inner {
     view_id: Option<WeakPtr>,
     window: Option<WeakPtr>,
     screen_changed: bool,
+    paint_throttled: bool,
+    window_id: usize,
+    invalidated: bool,
     gl_context_pair: Option<GlContextPair>,
     text_cursor_position: Rect,
     tracking_rect_tag: NSInteger,
@@ -2534,7 +2551,33 @@ impl WindowView {
                 return;
             }
 
-            inner.events.dispatch(WindowEvent::NeedRepaint);
+            if inner.paint_throttled {
+                inner.invalidated = true;
+            } else {
+                inner.events.dispatch(WindowEvent::NeedRepaint);
+                inner.invalidated = false;
+                inner.paint_throttled = true;
+
+                let window_id = inner.window_id;
+                let max_fps = inner.config.max_fps;
+                promise::spawn::spawn(async move {
+                    async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64))
+                        .await;
+                    Connection::with_window_inner(window_id, move |inner| {
+                        if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
+                            let mut state = window_view.inner.borrow_mut();
+                            state.paint_throttled = false;
+                            if state.invalidated {
+                                unsafe {
+                                    let () = msg_send![*inner.view, setNeedsDisplay: YES];
+                                }
+                            }
+                        }
+                        Ok(())
+                    });
+                })
+                .detach();
+            }
         }
     }
 
