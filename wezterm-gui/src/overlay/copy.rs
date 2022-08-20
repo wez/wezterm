@@ -801,9 +801,15 @@ impl CopyRenderable {
 
         while delta != 0 {
             if step > 0 {
-                idx = idx.saturating_add(1);
+                idx = match idx.checked_add(1) {
+                    Some(n) => n,
+                    None => return,
+                };
             } else {
-                idx = idx.saturating_sub(1);
+                idx = match idx.checked_sub(1) {
+                    Some(n) => n,
+                    None => return,
+                };
             }
             let zone = match zones.get(idx) {
                 Some(z) => z,
