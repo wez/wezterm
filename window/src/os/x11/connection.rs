@@ -17,7 +17,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use x11::xlib;
 use xcb::x::Atom;
-use xcb::{dri2, Raw};
+use xcb::{dri2, Raw, Xid};
 
 pub struct XConnection {
     pub conn: xcb::Connection,
@@ -176,6 +176,33 @@ impl ConnectionOps for XConnection {
                 crtc: c,
                 config_timestamp: res.config_timestamp(),
             }) {
+                let mode = cinfo.mode();
+                let max_fps = res
+                    .modes()
+                    .iter()
+                    .find(|m| m.id == mode.resource_id())
+                    .and_then(|m| {
+                        use xcb::randr::ModeFlag;
+                        let mut vtotal = m.vtotal;
+                        if m.mode_flags.contains(ModeFlag::DOUBLE_SCAN) {
+                            // Doublescan doubles the number of lines
+                            vtotal *= 2;
+                        }
+                        if m.mode_flags.contains(ModeFlag::INTERLACE) {
+                            // Interlace splits the frame into two fields.
+                            // The field rate is what is typically reported
+                            // by monitors.
+                            vtotal /= 2;
+                        }
+                        if m.htotal > 0 && vtotal > 0 {
+                            Some(
+                                (m.dot_clock as f32 / (m.htotal as f32 * vtotal as f32)).ceil()
+                                    as usize,
+                            )
+                        } else {
+                            None
+                        }
+                    });
                 let bounds = euclid::rect(
                     cinfo.x() as isize,
                     cinfo.y() as isize,
@@ -187,7 +214,7 @@ impl ConnectionOps for XConnection {
                     name: name.clone(),
                     rect: bounds,
                     scale: 1.0,
-                    max_fps: None,
+                    max_fps,
                 };
                 by_name.insert(name, info);
             }
