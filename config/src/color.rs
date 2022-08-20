@@ -171,6 +171,56 @@ pub struct Palette {
 }
 impl_lua_conversion_dynamic!(Palette);
 
+impl Palette {
+    pub fn overlay_with(&self, other: &Self) -> Self {
+        macro_rules! overlay {
+            ($name:ident) => {
+                if let Some(c) = &other.$name {
+                    Some(c.clone())
+                } else {
+                    self.$name.clone()
+                }
+            };
+        }
+        Self {
+            foreground: overlay!(foreground),
+            background: overlay!(background),
+            cursor_fg: overlay!(cursor_fg),
+            cursor_bg: overlay!(cursor_bg),
+            cursor_border: overlay!(cursor_border),
+            selection_fg: overlay!(selection_fg),
+            selection_bg: overlay!(selection_bg),
+            ansi: overlay!(ansi),
+            brights: overlay!(brights),
+            tab_bar: match (&self.tab_bar, &other.tab_bar) {
+                (Some(a), Some(b)) => Some(a.overlay_with(&b)),
+                (None, Some(b)) => Some(b.clone()),
+                (Some(a), None) => Some(a.clone()),
+                (None, None) => None,
+            },
+            indexed: {
+                let mut map = self.indexed.clone();
+                for (k, v) in &other.indexed {
+                    map.insert(k.clone(), v.clone());
+                }
+                map
+            },
+            scrollbar_thumb: overlay!(scrollbar_thumb),
+            split: overlay!(split),
+            visual_bell: overlay!(visual_bell),
+            compose_cursor: overlay!(compose_cursor),
+            copy_mode_active_highlight_fg: overlay!(copy_mode_active_highlight_fg),
+            copy_mode_active_highlight_bg: overlay!(copy_mode_active_highlight_bg),
+            copy_mode_inactive_highlight_fg: overlay!(copy_mode_inactive_highlight_fg),
+            copy_mode_inactive_highlight_bg: overlay!(copy_mode_inactive_highlight_bg),
+            quick_select_label_fg: overlay!(quick_select_label_fg),
+            quick_select_label_bg: overlay!(quick_select_label_bg),
+            quick_select_match_fg: overlay!(quick_select_match_fg),
+            quick_select_match_bg: overlay!(quick_select_match_bg),
+        }
+    }
+}
+
 impl From<ColorPalette> for Palette {
     fn from(cp: ColorPalette) -> Palette {
         let mut p = Palette::default();
@@ -291,37 +341,101 @@ impl TabBarColor {
 /// Specifies the colors to use for the tab bar portion of the UI.
 /// These are not part of the terminal model and cannot be updated
 /// in the same way that the dynamic color schemes are.
-#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+#[derive(Default, Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct TabBarColors {
     /// The background color for the tab bar
-    #[dynamic(default = "default_background")]
-    pub background: RgbaColor,
+    #[dynamic(default)]
+    pub background: Option<RgbaColor>,
 
     /// Styling for the active tab
-    #[dynamic(default = "default_active_tab")]
-    pub active_tab: TabBarColor,
+    #[dynamic(default)]
+    pub active_tab: Option<TabBarColor>,
 
     /// Styling for other inactive tabs
-    #[dynamic(default = "default_inactive_tab")]
-    pub inactive_tab: TabBarColor,
+    #[dynamic(default)]
+    pub inactive_tab: Option<TabBarColor>,
 
     /// Styling for an inactive tab with a mouse hovering
-    #[dynamic(default = "default_inactive_tab_hover")]
-    pub inactive_tab_hover: TabBarColor,
+    #[dynamic(default)]
+    pub inactive_tab_hover: Option<TabBarColor>,
 
     /// Styling for the new tab button
-    #[dynamic(default = "default_inactive_tab")]
-    pub new_tab: TabBarColor,
+    #[dynamic(default)]
+    pub new_tab: Option<TabBarColor>,
 
     /// Styling for the new tab button with a mouse hovering
-    #[dynamic(default = "default_inactive_tab_hover")]
-    pub new_tab_hover: TabBarColor,
+    #[dynamic(default)]
+    pub new_tab_hover: Option<TabBarColor>,
 
-    #[dynamic(default = "default_inactive_tab_edge")]
-    pub inactive_tab_edge: RgbaColor,
+    #[dynamic(default)]
+    pub inactive_tab_edge: Option<RgbaColor>,
 
-    #[dynamic(default = "default_inactive_tab_edge_hover")]
-    pub inactive_tab_edge_hover: RgbaColor,
+    #[dynamic(default)]
+    pub inactive_tab_edge_hover: Option<RgbaColor>,
+}
+
+impl TabBarColors {
+    pub fn background(&self) -> RgbaColor {
+        self.background.unwrap_or_else(default_background)
+    }
+
+    pub fn active_tab(&self) -> TabBarColor {
+        self.active_tab.clone().unwrap_or_else(default_active_tab)
+    }
+
+    pub fn inactive_tab(&self) -> TabBarColor {
+        self.inactive_tab
+            .clone()
+            .unwrap_or_else(default_inactive_tab)
+    }
+
+    pub fn inactive_tab_hover(&self) -> TabBarColor {
+        self.inactive_tab_hover
+            .clone()
+            .unwrap_or_else(default_inactive_tab_hover)
+    }
+
+    pub fn new_tab(&self) -> TabBarColor {
+        self.new_tab.clone().unwrap_or_else(default_inactive_tab)
+    }
+
+    pub fn new_tab_hover(&self) -> TabBarColor {
+        self.new_tab_hover
+            .clone()
+            .unwrap_or_else(default_inactive_tab_hover)
+    }
+
+    pub fn inactive_tab_edge(&self) -> RgbaColor {
+        self.inactive_tab_edge
+            .unwrap_or_else(default_inactive_tab_edge)
+    }
+
+    pub fn inactive_tab_edge_hover(&self) -> RgbaColor {
+        self.inactive_tab_edge_hover
+            .unwrap_or_else(default_inactive_tab_edge_hover)
+    }
+
+    pub fn overlay_with(&self, other: &Self) -> Self {
+        macro_rules! overlay {
+            ($name:ident) => {
+                if let Some(c) = &other.$name {
+                    Some(c.clone())
+                } else {
+                    self.$name.clone()
+                }
+            };
+        }
+        Self {
+            active_tab: overlay!(active_tab),
+            background: overlay!(background),
+            inactive_tab: overlay!(inactive_tab),
+            inactive_tab_hover: overlay!(inactive_tab_hover),
+            inactive_tab_edge: overlay!(inactive_tab_edge),
+            inactive_tab_edge_hover: overlay!(inactive_tab_edge_hover),
+            new_tab: overlay!(new_tab),
+            new_tab_hover: overlay!(new_tab_hover),
+        }
+    }
 }
 
 fn default_background() -> RgbaColor {
@@ -356,21 +470,6 @@ fn default_active_tab() -> TabBarColor {
         bg_color: (0x00, 0x00, 0x00).into(),
         fg_color: (0xc0, 0xc0, 0xc0).into(),
         ..TabBarColor::default()
-    }
-}
-
-impl Default for TabBarColors {
-    fn default() -> Self {
-        Self {
-            background: default_background(),
-            inactive_tab: default_inactive_tab(),
-            inactive_tab_hover: default_inactive_tab_hover(),
-            active_tab: default_active_tab(),
-            new_tab: default_inactive_tab(),
-            new_tab_hover: default_inactive_tab_hover(),
-            inactive_tab_edge: default_inactive_tab_edge(),
-            inactive_tab_edge_hover: default_inactive_tab_edge_hover(),
-        }
     }
 }
 

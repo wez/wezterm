@@ -17,13 +17,21 @@ return {
 You can find a list of available color schemes and screenshots
 in [The Color Schemes Section](../colorschemes/index.md).
 
-The `color_scheme` option takes precedence over the `colors` section below.
+### Precedence of `colors` vs `color_schemes`
+
+The `color_scheme` option takes precedence over the `colors` section below,
+and is mutually exclusive with it. If you want to merge/override colors
+you need to use [wezterm.color.get_builtin_color_schemes()](../lua/wezterm.color/get_builtin_color_schemes.md) and explicitly merge them.
+
+*Since: nightly builds only*
+
+The behavior has been changed so that the `color_scheme` you have selected, if
+any, is used to define the colors, and then any colors you define in the
+`colors` section will override those colors.
 
 ### Defining your own colors
 
-Rather than using a color scheme, you can specify the color palette using the
-`colors` configuration section.  Note that `color_scheme` takes precedence
-over this section.
+You can specify the color palette using the `colors` configuration section.
 
 You can configure colors with a section like this.  In addition to specifying
 [SVG/CSS3 color names](https://docs.rs/palette/0.4.1/palette/named/index.html#constants),

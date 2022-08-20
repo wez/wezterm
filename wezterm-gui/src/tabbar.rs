@@ -194,11 +194,11 @@ impl TabBarState {
     ) -> Self {
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
-        let active_cell_attrs = colors.active_tab.as_cell_attributes();
-        let inactive_hover_attrs = colors.inactive_tab_hover.as_cell_attributes();
-        let inactive_cell_attrs = colors.inactive_tab.as_cell_attributes();
-        let new_tab_hover_attrs = colors.new_tab_hover.as_cell_attributes();
-        let new_tab_attrs = colors.new_tab.as_cell_attributes();
+        let active_cell_attrs = colors.active_tab().as_cell_attributes();
+        let inactive_hover_attrs = colors.inactive_tab_hover().as_cell_attributes();
+        let inactive_cell_attrs = colors.inactive_tab().as_cell_attributes();
+        let new_tab_hover_attrs = colors.new_tab_hover().as_cell_attributes();
+        let new_tab_attrs = colors.new_tab().as_cell_attributes();
 
         let new_tab = parse_status_text(
             &config.tab_bar_style.new_tab,
@@ -262,7 +262,7 @@ impl TabBarState {
 
         let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(*colors.background))
+                .set_background(ColorSpec::TrueColor(*colors.background()))
                 .clone(),
         );
 

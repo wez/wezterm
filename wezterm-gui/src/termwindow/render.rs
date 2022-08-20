@@ -525,6 +525,10 @@ impl super::TermWindow {
                     col => Some(palette.resolve_fg(col)),
                 });
 
+            let new_tab = colors.new_tab();
+            let new_tab_hover = colors.new_tab_hover();
+            let active_tab = colors.active_tab();
+
             match item.item {
                 TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => element
                     .item_type(UIItemType::TabBar(TabBarItem::None))
@@ -571,13 +575,13 @@ impl super::TermWindow {
                 .border(BoxDimension::new(Dimension::Pixels(1.)))
                 .colors(ElementColors {
                     border: BorderColor::default(),
-                    bg: colors.new_tab.bg_color.to_linear().into(),
-                    text: colors.new_tab.fg_color.to_linear().into(),
+                    bg: new_tab.bg_color.to_linear().into(),
+                    text: new_tab.fg_color.to_linear().into(),
                 })
                 .hover_colors(Some(ElementColors {
                     border: BorderColor::default(),
-                    bg: colors.new_tab_hover.bg_color.to_linear().into(),
-                    text: colors.new_tab_hover.fg_color.to_linear().into(),
+                    bg: new_tab_hover.bg_color.to_linear().into(),
+                    text: new_tab_hover.fg_color.to_linear().into(),
                 })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
@@ -611,15 +615,15 @@ impl super::TermWindow {
                     .colors(ElementColors {
                         border: BorderColor::new(
                             bg_color
-                                .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                                .unwrap_or_else(|| active_tab.bg_color.into())
                                 .to_linear(),
                         ),
                         bg: bg_color
-                            .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                            .unwrap_or_else(|| active_tab.bg_color.into())
                             .to_linear()
                             .into(),
                         text: fg_color
-                            .unwrap_or_else(|| colors.active_tab.fg_color.into())
+                            .unwrap_or_else(|| active_tab.fg_color.into())
                             .to_linear()
                             .into(),
                     }),
@@ -661,10 +665,11 @@ impl super::TermWindow {
                         },
                     }))
                     .colors({
+                        let inactive_tab = colors.inactive_tab();
                         let bg = bg_color
-                            .unwrap_or_else(|| colors.inactive_tab.bg_color.into())
+                            .unwrap_or_else(|| inactive_tab.bg_color.into())
                             .to_linear();
-                        let edge = colors.inactive_tab_edge.to_linear();
+                        let edge = colors.inactive_tab_edge().to_linear();
                         ElementColors {
                             border: BorderColor {
                                 left: bg,
@@ -674,26 +679,29 @@ impl super::TermWindow {
                             },
                             bg: bg.into(),
                             text: fg_color
-                                .unwrap_or_else(|| colors.inactive_tab.fg_color.into())
+                                .unwrap_or_else(|| inactive_tab.fg_color.into())
                                 .to_linear()
                                 .into(),
                         }
                     })
-                    .hover_colors(Some(ElementColors {
-                        border: BorderColor::new(
-                            bg_color
-                                .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
-                                .to_linear(),
-                        ),
-                        bg: bg_color
-                            .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
-                            .to_linear()
-                            .into(),
-                        text: fg_color
-                            .unwrap_or_else(|| colors.inactive_tab_hover.fg_color.into())
-                            .to_linear()
-                            .into(),
-                    })),
+                    .hover_colors({
+                        let inactive_tab_hover = colors.inactive_tab_hover();
+                        Some(ElementColors {
+                            border: BorderColor::new(
+                                bg_color
+                                    .unwrap_or_else(|| inactive_tab_hover.bg_color.into())
+                                    .to_linear(),
+                            ),
+                            bg: bg_color
+                                .unwrap_or_else(|| inactive_tab_hover.bg_color.into())
+                                .to_linear()
+                                .into(),
+                            text: fg_color
+                                .unwrap_or_else(|| inactive_tab_hover.fg_color.into())
+                                .to_linear()
+                                .into(),
+                        })
+                    }),
             }
         };
 
@@ -736,23 +744,28 @@ impl super::TermWindow {
                             .vertical_align(VerticalAlign::Middle)
                             .float(Float::Right)
                             .item_type(UIItemType::CloseTab(tab_idx))
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::default(),
-                                bg: (if active {
-                                    colors.inactive_tab_hover.bg_color
-                                } else {
-                                    colors.active_tab.bg_color
+                            .hover_colors({
+                                let inactive_tab_hover = colors.inactive_tab_hover();
+                                let active_tab = colors.active_tab();
+
+                                Some(ElementColors {
+                                    border: BorderColor::default(),
+                                    bg: (if active {
+                                        inactive_tab_hover.bg_color
+                                    } else {
+                                        active_tab.bg_color
+                                    })
+                                    .to_linear()
+                                    .into(),
+                                    text: (if active {
+                                        inactive_tab_hover.fg_color
+                                    } else {
+                                        active_tab.fg_color
+                                    })
+                                    .to_linear()
+                                    .into(),
                                 })
-                                .to_linear()
-                                .into(),
-                                text: (if active {
-                                    colors.inactive_tab_hover.fg_color
-                                } else {
-                                    colors.active_tab.fg_color
-                                })
-                                .to_linear()
-                                .into(),
-                            }))
+                            })
                             .padding(BoxDimension {
                                 left: Dimension::Cells(0.25),
                                 right: Dimension::Cells(0.25),
