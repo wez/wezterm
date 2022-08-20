@@ -152,11 +152,16 @@
 </code></pre>
 <p>You can find a list of available color schemes and screenshots
 in <a href="../colorschemes/index.html">The Color Schemes Section</a>.</p>
-<p>The <code>color_scheme</code> option takes precedence over the <code>colors</code> section below.</p>
+<h3 id="precedence-of-colors-vs-color_schemes"><a class="header" href="#precedence-of-colors-vs-color_schemes">Precedence of <code>colors</code> vs <code>color_schemes</code></a></h3>
+<p>The <code>color_scheme</code> option takes precedence over the <code>colors</code> section below,
+and is mutually exclusive with it. If you want to merge/override colors
+you need to use <a href="../lua/wezterm.color/get_builtin_color_schemes.html">wezterm.color.get_builtin_color_schemes()</a> and explicitly merge them.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>The behavior has been changed so that the <code>color_scheme</code> you have selected, if
+any, is used to define the colors, and then any colors you define in the
+<code>colors</code> section will override those colors.</p>
 <h3 id="defining-your-own-colors"><a class="header" href="#defining-your-own-colors">Defining your own colors</a></h3>
-<p>Rather than using a color scheme, you can specify the color palette using the
-<code>colors</code> configuration section.  Note that <code>color_scheme</code> takes precedence
-over this section.</p>
+<p>You can specify the color palette using the <code>colors</code> configuration section.</p>
 <p>You can configure colors with a section like this.  In addition to specifying
 <a href="https://docs.rs/palette/0.4.1/palette/named/index.html#constants">SVG/CSS3 color names</a>,
 you can use <code>#RRGGBB</code> to specify a color code using the
