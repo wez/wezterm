@@ -14,4 +14,5 @@ pub struct ScreenInfo {
     pub name: String,
     pub rect: ScreenRect,
     pub scale: f64,
+    pub max_fps: Option<usize>,
 }

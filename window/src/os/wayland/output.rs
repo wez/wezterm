@@ -229,7 +229,15 @@ impl OutputHandler {
                 height as isize,
             );
             virtual_rect = virtual_rect.union(&rect);
-            by_name.insert(name.clone(), ScreenInfo { name, rect, scale });
+            by_name.insert(
+                name.clone(),
+                ScreenInfo {
+                    name,
+                    rect,
+                    scale,
+                    max_fps: None,
+                },
+            );
         }
 
         if by_name.is_empty() {

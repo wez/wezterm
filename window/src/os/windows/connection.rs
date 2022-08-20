@@ -154,6 +154,7 @@ impl ConnectionOps for Connection {
                     mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
                 ),
                 scale: 1.0,
+                max_fps: None,
             };
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);

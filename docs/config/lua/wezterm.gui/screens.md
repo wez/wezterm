@@ -52,4 +52,4 @@ The screen information is a table with the following keys:
 
 * `name` - the name of the screen.
 * `x`, `y`, `width`, `height` - the bounds of this screen
-
+* `max_fps` - the maximum refresh rate supported by the screen, if known, or `nil` otherwise. (*Since: nightly builds only*)
