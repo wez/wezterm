@@ -130,6 +130,16 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         ..Default::default()
     };
 
+    let start_command = StartCommand {
+        always_new_process: true,
+        class: opts.class,
+        cwd: None,
+        no_auto_connect: true,
+        position: opts.position,
+        workspace: None,
+        prog: opts.prog.clone(),
+    };
+
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
         Some(builder)
@@ -138,8 +148,12 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     };
 
     let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_domain(&dom)?);
+    let mux = Mux::get().unwrap();
+    mux.add_domain(&domain);
+    mux.set_default_domain(&domain);
 
-    async_run_with_domain_as_default(domain, cmd).await
+    let should_publish = false;
+    async_run_terminal_gui(cmd, start_command, should_publish).await
 }
 
 fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {

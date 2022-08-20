@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * tab titles truncated too short [#2379](https://github.com/wez/wezterm/issues/2379)
 * `bypass_mouse_reporting_modifiers` stopped working (regression around new mouse binding logic) [#2389](https://github.com/wez/wezterm/issues/2389)
 * Entering IME-composed text would have no effect in `wezterm ssh` [#2434](https://github.com/wez/wezterm/issues/2434)
+* `gui-startup` event now also works with `wezterm ssh`
 
 ### 20220807-113146-c2fee766
 
