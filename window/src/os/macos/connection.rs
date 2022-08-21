@@ -165,12 +165,19 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         frame.size.width as isize,
         frame.size.height as isize,
     );
-    let max_fps: NSInteger = unsafe { msg_send!(screen, maximumFramesPerSecond) };
+    let has_max_fps: objc::runtime::BOOL =
+        unsafe { msg_send!(screen, respondsToSelector: sel!(maximumFramesPerSecond)) };
+    let max_fps = if has_max_fps {
+        let max_fps: NSInteger = unsafe { msg_send!(screen, maximumFramesPerSecond) };
+        Some(max_fps as usize)
+    } else {
+        None
+    };
     ScreenInfo {
         name,
         rect,
         scale: 1.0,
-        max_fps: Some(max_fps as usize),
+        max_fps,
     }
 }
 
