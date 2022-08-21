@@ -553,8 +553,8 @@ impl super::TermWindow {
                         line_width: metrics.underline_height.max(2),
                         poly: SizedPoly {
                             poly: PLUS_BUTTON,
-                            width: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
-                            height: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
+                            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+                            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
                         },
                     },
                 )
@@ -733,8 +733,12 @@ impl super::TermWindow {
                                     line_width: metrics.underline_height.max(2),
                                     poly: SizedPoly {
                                         poly: X_BUTTON,
-                                        width: Dimension::Cells(0.5),
-                                        height: Dimension::Cells(0.5),
+                                        width: Dimension::Pixels(
+                                            metrics.cell_size.height as f32 / 2.,
+                                        ),
+                                        height: Dimension::Pixels(
+                                            metrics.cell_size.height as f32 / 2.,
+                                        ),
                                     },
                                 },
                             )
