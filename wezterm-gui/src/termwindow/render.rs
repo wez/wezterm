@@ -17,7 +17,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
+use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, ULength, WindowOps};
 use anyhow::anyhow;
 use config::{
     ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform, TabBarColors,
@@ -525,6 +525,10 @@ impl super::TermWindow {
                     col => Some(palette.resolve_fg(col)),
                 });
 
+            let new_tab = colors.new_tab();
+            let new_tab_hover = colors.new_tab_hover();
+            let active_tab = colors.active_tab();
+
             match item.item {
                 TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => element
                     .item_type(UIItemType::TabBar(TabBarItem::None))
@@ -549,8 +553,8 @@ impl super::TermWindow {
                         line_width: metrics.underline_height.max(2),
                         poly: SizedPoly {
                             poly: PLUS_BUTTON,
-                            width: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
-                            height: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
+                            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+                            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
                         },
                     },
                 )
@@ -571,13 +575,13 @@ impl super::TermWindow {
                 .border(BoxDimension::new(Dimension::Pixels(1.)))
                 .colors(ElementColors {
                     border: BorderColor::default(),
-                    bg: colors.new_tab.bg_color.to_linear().into(),
-                    text: colors.new_tab.fg_color.to_linear().into(),
+                    bg: new_tab.bg_color.to_linear().into(),
+                    text: new_tab.fg_color.to_linear().into(),
                 })
                 .hover_colors(Some(ElementColors {
                     border: BorderColor::default(),
-                    bg: colors.new_tab_hover.bg_color.to_linear().into(),
-                    text: colors.new_tab_hover.fg_color.to_linear().into(),
+                    bg: new_tab_hover.bg_color.to_linear().into(),
+                    text: new_tab_hover.fg_color.to_linear().into(),
                 })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
@@ -611,15 +615,15 @@ impl super::TermWindow {
                     .colors(ElementColors {
                         border: BorderColor::new(
                             bg_color
-                                .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                                .unwrap_or_else(|| active_tab.bg_color.into())
                                 .to_linear(),
                         ),
                         bg: bg_color
-                            .unwrap_or_else(|| colors.active_tab.bg_color.into())
+                            .unwrap_or_else(|| active_tab.bg_color.into())
                             .to_linear()
                             .into(),
                         text: fg_color
-                            .unwrap_or_else(|| colors.active_tab.fg_color.into())
+                            .unwrap_or_else(|| active_tab.fg_color.into())
                             .to_linear()
                             .into(),
                     }),
@@ -661,10 +665,11 @@ impl super::TermWindow {
                         },
                     }))
                     .colors({
+                        let inactive_tab = colors.inactive_tab();
                         let bg = bg_color
-                            .unwrap_or_else(|| colors.inactive_tab.bg_color.into())
+                            .unwrap_or_else(|| inactive_tab.bg_color.into())
                             .to_linear();
-                        let edge = colors.inactive_tab_edge.to_linear();
+                        let edge = colors.inactive_tab_edge().to_linear();
                         ElementColors {
                             border: BorderColor {
                                 left: bg,
@@ -674,26 +679,29 @@ impl super::TermWindow {
                             },
                             bg: bg.into(),
                             text: fg_color
-                                .unwrap_or_else(|| colors.inactive_tab.fg_color.into())
+                                .unwrap_or_else(|| inactive_tab.fg_color.into())
                                 .to_linear()
                                 .into(),
                         }
                     })
-                    .hover_colors(Some(ElementColors {
-                        border: BorderColor::new(
-                            bg_color
-                                .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
-                                .to_linear(),
-                        ),
-                        bg: bg_color
-                            .unwrap_or_else(|| colors.inactive_tab_hover.bg_color.into())
-                            .to_linear()
-                            .into(),
-                        text: fg_color
-                            .unwrap_or_else(|| colors.inactive_tab_hover.fg_color.into())
-                            .to_linear()
-                            .into(),
-                    })),
+                    .hover_colors({
+                        let inactive_tab_hover = colors.inactive_tab_hover();
+                        Some(ElementColors {
+                            border: BorderColor::new(
+                                bg_color
+                                    .unwrap_or_else(|| inactive_tab_hover.bg_color.into())
+                                    .to_linear(),
+                            ),
+                            bg: bg_color
+                                .unwrap_or_else(|| inactive_tab_hover.bg_color.into())
+                                .to_linear()
+                                .into(),
+                            text: fg_color
+                                .unwrap_or_else(|| inactive_tab_hover.fg_color.into())
+                                .to_linear()
+                                .into(),
+                        })
+                    }),
             }
         };
 
@@ -725,8 +733,12 @@ impl super::TermWindow {
                                     line_width: metrics.underline_height.max(2),
                                     poly: SizedPoly {
                                         poly: X_BUTTON,
-                                        width: Dimension::Cells(0.5),
-                                        height: Dimension::Cells(0.5),
+                                        width: Dimension::Pixels(
+                                            metrics.cell_size.height as f32 / 2.,
+                                        ),
+                                        height: Dimension::Pixels(
+                                            metrics.cell_size.height as f32 / 2.,
+                                        ),
                                     },
                                 },
                             )
@@ -736,23 +748,28 @@ impl super::TermWindow {
                             .vertical_align(VerticalAlign::Middle)
                             .float(Float::Right)
                             .item_type(UIItemType::CloseTab(tab_idx))
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::default(),
-                                bg: (if active {
-                                    colors.inactive_tab_hover.bg_color
-                                } else {
-                                    colors.active_tab.bg_color
+                            .hover_colors({
+                                let inactive_tab_hover = colors.inactive_tab_hover();
+                                let active_tab = colors.active_tab();
+
+                                Some(ElementColors {
+                                    border: BorderColor::default(),
+                                    bg: (if active {
+                                        inactive_tab_hover.bg_color
+                                    } else {
+                                        active_tab.bg_color
+                                    })
+                                    .to_linear()
+                                    .into(),
+                                    text: (if active {
+                                        inactive_tab_hover.fg_color
+                                    } else {
+                                        active_tab.fg_color
+                                    })
+                                    .to_linear()
+                                    .into(),
                                 })
-                                .to_linear()
-                                .into(),
-                                text: (if active {
-                                    colors.inactive_tab_hover.fg_color
-                                } else {
-                                    colors.active_tab.fg_color
-                                })
-                                .to_linear()
-                                .into(),
-                            }))
+                            })
                             .padding(BoxDimension {
                                 left: Dimension::Cells(0.25),
                                 right: Dimension::Cells(0.25),
@@ -882,10 +899,58 @@ impl super::TermWindow {
     }
 
     pub fn get_os_border(&self) -> window::parameters::Border {
-        self.os_parameters
+        let mut border = self
+            .os_parameters
             .as_ref()
             .and_then(|p| p.border_dimensions.clone())
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        border.left += ULength::new(
+            self.config
+                .window_frame
+                .border_left_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.dimensions.pixel_width as f32,
+                    pixel_cell: self.render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.right += ULength::new(
+            self.config
+                .window_frame
+                .border_right_width
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.dimensions.pixel_width as f32,
+                    pixel_cell: self.render_metrics.cell_size.width as f32,
+                })
+                .ceil() as usize,
+        );
+        border.top += ULength::new(
+            self.config
+                .window_frame
+                .border_top_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.dimensions.pixel_height as f32,
+                    pixel_cell: self.render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+        border.bottom += ULength::new(
+            self.config
+                .window_frame
+                .border_bottom_height
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.dimensions.pixel_height as f32,
+                    pixel_cell: self.render_metrics.cell_size.height as f32,
+                })
+                .ceil() as usize,
+        );
+
+        border
     }
 
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
@@ -990,52 +1055,72 @@ impl super::TermWindow {
     }
 
     fn paint_window_borders(&mut self) -> anyhow::Result<()> {
-        if let Some(ref os_params) = self.os_parameters {
-            if let Some(ref border_dimensions) = os_params.border_dimensions {
-                let gl_state = self.render_state.as_ref().unwrap();
-                let layer = gl_state.layer_for_zindex(0)?;
-                let vb = &layer.vb.borrow()[2];
-                let mut vb_mut = vb.current_vb_mut();
-                let mut layer1 = vb.map(&mut vb_mut);
+        let border_dimensions = self.get_os_border();
 
-                let height = self.dimensions.pixel_height as f32;
-                let width = self.dimensions.pixel_width as f32;
+        if border_dimensions.top.get() > 0
+            || border_dimensions.bottom.get() > 0
+            || border_dimensions.left.get() > 0
+            || border_dimensions.right.get() > 0
+        {
+            let gl_state = self.render_state.as_ref().unwrap();
+            let layer = gl_state.layer_for_zindex(0)?;
+            let vb = &layer.vb.borrow()[2];
+            let mut vb_mut = vb.current_vb_mut();
+            let mut layer1 = vb.map(&mut vb_mut);
 
-                let border_top = border_dimensions.top.get() as f32;
-                if border_top > 0.0 {
-                    self.filled_rectangle(
-                        &mut layer1,
-                        euclid::rect(0.0, 0.0, width, border_top),
-                        border_dimensions.color,
-                    )?;
-                }
+            let height = self.dimensions.pixel_height as f32;
+            let width = self.dimensions.pixel_width as f32;
 
-                let border_left = border_dimensions.left.get() as f32;
-                if border_left > 0.0 {
-                    self.filled_rectangle(
-                        &mut layer1,
-                        euclid::rect(0.0, 0.0, border_left, height),
-                        border_dimensions.color,
-                    )?;
-                }
+            let border_top = border_dimensions.top.get() as f32;
+            if border_top > 0.0 {
+                self.filled_rectangle(
+                    &mut layer1,
+                    euclid::rect(0.0, 0.0, width, border_top),
+                    self.config
+                        .window_frame
+                        .border_top_color
+                        .map(|c| c.to_linear())
+                        .unwrap_or(border_dimensions.color),
+                )?;
+            }
 
-                let border_bottom = border_dimensions.bottom.get() as f32;
-                if border_bottom > 0.0 {
-                    self.filled_rectangle(
-                        &mut layer1,
-                        euclid::rect(0.0, height - border_bottom, width, height),
-                        border_dimensions.color,
-                    )?;
-                }
+            let border_left = border_dimensions.left.get() as f32;
+            if border_left > 0.0 {
+                self.filled_rectangle(
+                    &mut layer1,
+                    euclid::rect(0.0, 0.0, border_left, height),
+                    self.config
+                        .window_frame
+                        .border_left_color
+                        .map(|c| c.to_linear())
+                        .unwrap_or(border_dimensions.color),
+                )?;
+            }
 
-                let border_right = border_dimensions.right.get() as f32;
-                if border_right > 0.0 {
-                    self.filled_rectangle(
-                        &mut layer1,
-                        euclid::rect(width - border_right, 0.0, width, height),
-                        border_dimensions.color,
-                    )?;
-                }
+            let border_bottom = border_dimensions.bottom.get() as f32;
+            if border_bottom > 0.0 {
+                self.filled_rectangle(
+                    &mut layer1,
+                    euclid::rect(0.0, height - border_bottom, width, height),
+                    self.config
+                        .window_frame
+                        .border_bottom_color
+                        .map(|c| c.to_linear())
+                        .unwrap_or(border_dimensions.color),
+                )?;
+            }
+
+            let border_right = border_dimensions.right.get() as f32;
+            if border_right > 0.0 {
+                self.filled_rectangle(
+                    &mut layer1,
+                    euclid::rect(width - border_right, 0.0, border_right, height),
+                    self.config
+                        .window_frame
+                        .border_right_color
+                        .map(|c| c.to_linear())
+                        .unwrap_or(border_dimensions.color),
+                )?;
             }
         }
 
@@ -1164,10 +1249,14 @@ impl super::TermWindow {
 
             // We want to fill out to the edges of the splits
             let (x, width_delta) = if pos.left == 0 {
-                (0., padding_left + (cell_width / 2.0))
+                (
+                    0.,
+                    padding_left + border.left.get() as f32 + (cell_width / 2.0),
+                )
             } else {
                 (
-                    padding_left - (cell_width / 2.0) + (pos.left as f32 * cell_width),
+                    padding_left + border.left.get() as f32 - (cell_width / 2.0)
+                        + (pos.left as f32 * cell_width),
                     cell_width,
                 )
             };
@@ -1256,10 +1345,14 @@ impl super::TermWindow {
 
                 // We want to fill out to the edges of the splits
                 let (x, width_delta) = if pos.left == 0 {
-                    (0., padding_left + (cell_width / 2.0))
+                    (
+                        0.,
+                        padding_left + border.left.get() as f32 + (cell_width / 2.0),
+                    )
                 } else {
                     (
-                        padding_left - (cell_width / 2.0) + (pos.left as f32 * cell_width),
+                        padding_left + border.left.get() as f32 - (cell_width / 2.0)
+                            + (pos.left as f32 * cell_width),
                         cell_width,
                     )
                 };
@@ -1396,6 +1489,7 @@ impl super::TermWindow {
                     top_pixel_y: top_pixel_y
                         + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
                     left_pixel_x: padding_left
+                        + border.left.get() as f32
                         + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
                     pixel_width: dims.cols as f32 * self.render_metrics.cell_size.width as f32,
                     stable_line_idx: Some(stable_row),
@@ -1586,16 +1680,17 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
+        let border = self.get_os_border();
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
-        } + self.get_os_border().top.get() as f32;
+        } + border.top.get() as f32;
 
         let (padding_left, padding_top) = self.padding_left_top();
 
         let pos_y = split.top as f32 * cell_height + first_row_offset + padding_top;
-        let pos_x = split.left as f32 * cell_width + padding_left;
+        let pos_x = split.left as f32 * cell_width + padding_left + border.left.get() as f32;
 
         if split.direction == SplitDirection::Horizontal {
             self.filled_rectangle(
@@ -1609,7 +1704,9 @@ impl super::TermWindow {
                 foreground,
             )?;
             self.ui_items.push(UIItem {
-                x: padding_left as usize + (split.left * cell_width as usize),
+                x: border.left.get() as usize
+                    + padding_left as usize
+                    + (split.left * cell_width as usize),
                 width: cell_width as usize,
                 y: padding_top as usize
                     + first_row_offset as usize
@@ -1629,7 +1726,9 @@ impl super::TermWindow {
                 foreground,
             )?;
             self.ui_items.push(UIItem {
-                x: padding_left as usize + (split.left * cell_width as usize),
+                x: border.left.get() as usize
+                    + padding_left as usize
+                    + (split.left * cell_width as usize),
                 width: split.size * cell_width as usize,
                 y: padding_top as usize
                     + first_row_offset as usize

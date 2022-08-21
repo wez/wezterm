@@ -14,17 +14,23 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 
 * Color schemes: [carbonfox](colorschemes/c/index.md#carbonfox), [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
+* [window_frame](config/lua/config/window_frame.md) now supports setting border size and color [#2417](https://github.com/wez/wezterm/issues/2417)
 
 #### Changed
 
+* `colors` now override colors from your selected `color_scheme`. Previously, `color_scheme` was mutually exclusive with `colors` and always took precedence. The new behavior is more in line with what most people expect.
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
 * [update-status](config/lua/window-events/update-status.md) is a more general event for updating left or right status. `update-right-status` is considered to be deprecated in favor of `update-status`.
+* Cache XDG Portal Appearance values. Thanks to [@vimposter](https://github.com/vimpostor)! [#2402](https://github.com/wez/wezterm/pull/2402)
 
 #### Fixed
 
 * macOS: crash on startup if `$SHELL` points to something that isn't executable. [#2378](https://github.com/wez/wezterm/issues/2378)
 * tab titles truncated too short [#2379](https://github.com/wez/wezterm/issues/2379)
 * `bypass_mouse_reporting_modifiers` stopped working (regression around new mouse binding logic) [#2389](https://github.com/wez/wezterm/issues/2389)
+* Entering IME-composed text would have no effect in `wezterm ssh` [#2434](https://github.com/wez/wezterm/issues/2434)
+* `gui-startup` event now also works with `wezterm ssh`
+* `x` and `+` buttons in the fancy tab bar are now always square [#2399](https://github.com/wez/wezterm/issues/2399)
 
 ### 20220807-113146-c2fee766
 

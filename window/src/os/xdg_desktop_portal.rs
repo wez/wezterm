@@ -6,6 +6,8 @@ use crate::{Appearance, Connection, ConnectionOps};
 use anyhow::Context;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::Instant;
 use zbus::dbus_proxy;
 use zvariant::OwnedValue;
 
@@ -24,6 +26,22 @@ trait PortalSettings {
 
     #[dbus_proxy(signal)]
     fn SettingChanged(&self, namespace: &str, key: &str, value: OwnedValue) -> Result<()>;
+}
+
+struct State {
+    appearance: Option<Appearance>,
+    subscribe_running: bool,
+    last_update: Instant,
+}
+
+lazy_static::lazy_static! {
+  static ref STATE: Mutex<State> = Mutex::new(
+          State {
+              appearance: None,
+              subscribe_running: false,
+              last_update: Instant::now(),
+          }
+   );
 }
 
 pub async fn read_setting(namespace: &str, key: &str) -> anyhow::Result<OwnedValue> {
@@ -48,8 +66,50 @@ fn value_to_appearance(value: OwnedValue) -> anyhow::Result<Appearance> {
 }
 
 pub async fn get_appearance() -> anyhow::Result<Appearance> {
-    let value = read_setting("org.freedesktop.appearance", "color-scheme").await?;
-    value_to_appearance(value)
+    let mut state = STATE.lock().unwrap();
+    if state.appearance.is_some()
+        && (state.subscribe_running || state.last_update.elapsed().as_secs() < 1)
+    {
+        Ok(state.appearance.unwrap())
+    } else {
+        let value = read_setting("org.freedesktop.appearance", "color-scheme").await?;
+        let appearance = value_to_appearance(value)?;
+        state.appearance = Some(appearance);
+        state.last_update = Instant::now();
+        Ok(appearance)
+    }
+}
+
+pub async fn run_signal_loop(stream: &mut SettingChangedStream<'_>) -> Result<(), anyhow::Error> {
+    // query appearance again as it might have changed without us knowing
+    if let Ok(value) =
+        value_to_appearance(read_setting("org.freedesktop.appearance", "color-scheme").await?)
+    {
+        let mut state = STATE.lock().unwrap();
+        if state.appearance != Some(value) {
+            state.appearance = Some(value);
+            state.last_update = Instant::now();
+            drop(state);
+            let conn = Connection::get().ok_or_else(|| anyhow::anyhow!("connection is dead"))?;
+            conn.advise_of_appearance_change(value);
+        }
+    }
+
+    while let Some(signal) = stream.next().await {
+        let args = signal.args()?;
+        if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
+            if let Ok(appearance) = value_to_appearance(args.value) {
+                let mut state = STATE.lock().unwrap();
+                state.appearance = Some(appearance);
+                state.last_update = Instant::now();
+                drop(state);
+                let conn =
+                    Connection::get().ok_or_else(|| anyhow::anyhow!("connection is dead"))?;
+                conn.advise_of_appearance_change(appearance);
+            }
+        }
+    }
+    Result::<(), anyhow::Error>::Ok(())
 }
 
 pub fn subscribe() {
@@ -59,17 +119,12 @@ pub fn subscribe() {
             .await
             .context("make proxy")?;
         let mut stream = proxy.receive_SettingChanged().await?;
-        while let Some(signal) = stream.next().await {
-            let args = signal.args()?;
-            if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
-                if let Ok(appearance) = value_to_appearance(args.value) {
-                    let conn =
-                        Connection::get().ok_or_else(|| anyhow::anyhow!("connection is dead"))?;
-                    conn.advise_of_appearance_change(appearance);
-                }
-            }
-        }
-        Result::<(), anyhow::Error>::Ok(())
+
+        STATE.lock().unwrap().subscribe_running = true;
+        let res = run_signal_loop(&mut stream).await;
+        STATE.lock().unwrap().subscribe_running = false;
+
+        res
     })
     .detach();
 }

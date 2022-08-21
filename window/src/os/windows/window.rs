@@ -107,6 +107,8 @@ pub(crate) struct WindowInner {
     appearance: Appearance,
 
     config: ConfigHandle,
+    paint_throttled: bool,
+    invalidated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -462,6 +464,8 @@ impl Window {
             track_mouse_leave: false,
             window_drag_position: None,
             config: config.clone(),
+            paint_throttled: false,
+            invalidated: true,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -1306,6 +1310,11 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
+    if inner.paint_throttled {
+        inner.invalidated = true;
+        return Some(0);
+    }
+
     let mut ps = PAINTSTRUCT {
         fErase: 0,
         fIncUpdate: 0,
@@ -1323,8 +1332,24 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     // Do nothing right now
     EndPaint(hwnd, &mut ps);
 
+    inner.invalidated = false;
     // Ask the app to repaint in a bit
     inner.events.dispatch(WindowEvent::NeedRepaint);
+
+    inner.paint_throttled = true;
+    let window_id = inner.hwnd;
+    let max_fps = inner.config.max_fps;
+    promise::spawn::spawn(async move {
+        async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64)).await;
+        Connection::with_window_inner(window_id, move |inner| {
+            inner.paint_throttled = false;
+            if inner.invalidated {
+                InvalidateRect(inner.hwnd.0, null(), 0);
+            }
+            Ok(())
+        });
+    })
+    .detach();
 
     Some(0)
 }

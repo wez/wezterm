@@ -81,7 +81,11 @@ impl super::TermWindow {
             .max(0)
             / self.render_metrics.cell_size.height) as i64;
 
-        let x = (event.coords.x.sub(padding_left as isize).max(0) as f32)
+        let x = (event
+            .coords
+            .x
+            .sub((padding_left + border.left.get() as f32) as isize)
+            .max(0) as f32)
             / self.render_metrics.cell_size.width as f32;
         let x = if !pane.is_mouse_grabbed() {
             // Round the x coordinate so that we're a bit more forgiving of
@@ -101,7 +105,10 @@ impl super::TermWindow {
             y_pixel_offset = y_pixel_offset.max(0) % self.render_metrics.cell_size.height;
         }
 
-        let mut x_pixel_offset = event.coords.x.sub(padding_left as isize);
+        let mut x_pixel_offset = event
+            .coords
+            .x
+            .sub((padding_left + border.left.get() as f32) as isize);
         if x > 0 {
             x_pixel_offset = x_pixel_offset.max(0) % self.render_metrics.cell_size.width;
         }

@@ -996,8 +996,6 @@ impl Config {
         cfg.load_color_schemes(&cfg.compute_color_scheme_dirs())
             .ok();
 
-        cfg.resolved_palette = cfg.colors.as_ref().cloned().unwrap_or(Default::default());
-        // Color scheme overrides any manually specified palette
         if let Some(scheme) = cfg.color_scheme.as_ref() {
             match cfg.resolve_color_scheme() {
                 None => {
@@ -1011,6 +1009,10 @@ impl Config {
                     cfg.resolved_palette = p.clone();
                 }
             }
+        }
+
+        if let Some(colors) = &cfg.colors {
+            cfg.resolved_palette = cfg.resolved_palette.overlay_with(colors);
         }
 
         if let Some(bg) = BackgroundLayer::with_legacy(self) {

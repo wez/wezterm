@@ -9,7 +9,7 @@ use crate::spawn::*;
 use crate::Appearance;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular, NSScreen};
 use cocoa::base::{id, nil};
-use cocoa::foundation::{NSArray, NSRect};
+use cocoa::foundation::{NSArray, NSInteger, NSRect};
 use objc::runtime::Object;
 use objc::*;
 use std::cell::RefCell;
@@ -165,10 +165,12 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         frame.size.width as isize,
         frame.size.height as isize,
     );
+    let max_fps: NSInteger = unsafe { msg_send!(screen, maximumFramesPerSecond) };
     ScreenInfo {
         name,
         rect,
         scale: 1.0,
+        max_fps: Some(max_fps as usize),
     }
 }
 

@@ -480,7 +480,15 @@ impl ConnectionOps for WaylandConnection {
                 let scale = info.scale_factor as f64;
 
                 virtual_rect = virtual_rect.union(&rect);
-                by_name.insert(name.clone(), ScreenInfo { name, rect, scale });
+                by_name.insert(
+                    name.clone(),
+                    ScreenInfo {
+                        name,
+                        rect,
+                        scale,
+                        max_fps: None,
+                    },
+                );
             });
         }
 
