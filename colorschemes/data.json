@@ -22217,6 +22217,86 @@
   {
     "colors": {
       "ansi": [
+        "#131317",
+        "#999eb2",
+        "#626983",
+        "#d3d5de",
+        "#7c829d",
+        "#e2e4ed",
+        "#b6bac8",
+        "#868690"
+      ],
+      "background": "#0f1014",
+      "brights": [
+        "#575861",
+        "#999eb2",
+        "#626983",
+        "#d3d5de",
+        "#7c829d",
+        "#e2e4ed",
+        "#b6bac8",
+        "#868690"
+      ],
+      "cursor_bg": "#7c829d",
+      "cursor_border": "#7c829d",
+      "cursor_fg": "#868690",
+      "foreground": "#868690",
+      "indexed": {},
+      "selection_bg": "#22222a",
+      "selection_fg": "#93939c"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Hiroya-W and Michael Andreuzza",
+      "name": "Sequoia Monochrome",
+      "origin_url": "https://github.com/Hiroya-W/wezterm-sequoia-theme",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#131317",
+        "#f58ee0",
+        "#8eb5f5",
+        "#9898a6",
+        "#c58fff",
+        "#fdfdfe",
+        "#ffbb88",
+        "#868690"
+      ],
+      "background": "#0f1014",
+      "brights": [
+        "#575861",
+        "#f58ee0",
+        "#8eb5f5",
+        "#9898a6",
+        "#c58fff",
+        "#fdfdfe",
+        "#ffbb88",
+        "#868690"
+      ],
+      "cursor_bg": "#c58fff",
+      "cursor_border": "#c58fff",
+      "cursor_fg": "#868690",
+      "foreground": "#868690",
+      "indexed": {},
+      "selection_bg": "#22222a",
+      "selection_fg": "#93939c"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Hiroya-W and Michael Andreuzza",
+      "name": "Sequoia Moonlight",
+      "origin_url": "https://github.com/Hiroya-W/wezterm-sequoia-theme",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#323232",
         "#c22832",
         "#8ec43d",
