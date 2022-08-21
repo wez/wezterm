@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
-use clap::{Parser, ValueHint};
-use clap_complete::{generate as generate_completion, Shell};
+use clap::{Parser, ValueEnum, ValueHint};
+use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
 use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
@@ -56,6 +56,40 @@ struct Opt {
     cmd: Option<SubCommand>,
 }
 
+#[derive(Debug, Clone, ValueEnum)]
+enum Shell {
+    Bash,
+    Elvish,
+    Fish,
+    PowerShell,
+    Zsh,
+    Fig,
+}
+
+impl CompletionGenerator for Shell {
+    fn file_name(&self, name: &str) -> String {
+        match self {
+            Shell::Bash => shells::Bash.file_name(name),
+            Shell::Elvish => shells::Elvish.file_name(name),
+            Shell::Fish => shells::Fish.file_name(name),
+            Shell::PowerShell => shells::PowerShell.file_name(name),
+            Shell::Zsh => shells::Zsh.file_name(name),
+            Shell::Fig => clap_complete_fig::Fig.file_name(name),
+        }
+    }
+
+    fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
+        match self {
+            Shell::Bash => shells::Bash.generate(cmd, buf),
+            Shell::Elvish => shells::Elvish.generate(cmd, buf),
+            Shell::Fish => shells::Fish.generate(cmd, buf),
+            Shell::PowerShell => shells::PowerShell.generate(cmd, buf),
+            Shell::Zsh => shells::Zsh.generate(cmd, buf),
+            Shell::Fig => clap_complete_fig::Fig.generate(cmd, buf),
+        }
+    }
+}
+
 #[derive(Debug, Parser, Clone)]
 enum SubCommand {
     #[clap(
@@ -102,7 +136,7 @@ enum SubCommand {
     #[clap(name = "shell-completion")]
     ShellCompletion {
         /// Which shell to generate for
-        #[clap(long, possible_values=["bash", "elvish", "fish", "powershell", "zsh"])]
+        #[clap(long, value_parser)]
         shell: Shell,
     },
 }

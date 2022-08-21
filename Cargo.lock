@@ -539,6 +539,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete_fig"
+version = "3.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed37b4c0c1214673eba6ad8ea31666626bf72be98ffb323067d973c48b4964b9"
+dependencies = [
+ "clap 3.2.17",
+ "clap_complete",
+]
+
+[[package]]
 name = "clap_derive"
 version = "3.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5253,6 +5263,7 @@ dependencies = [
  "chrono",
  "clap 3.2.17",
  "clap_complete",
+ "clap_complete_fig",
  "codec",
  "config",
  "env-bootstrap",
