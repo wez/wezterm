@@ -2734,16 +2734,6 @@ impl TermWindow {
         }
     }
 
-    fn close_tab_idx(&mut self, idx: usize) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
-        if let Some(mut win) = mux.get_window_mut(self.mux_window_id) {
-            let tab = win.remove_by_idx(idx);
-            drop(win);
-            mux.remove_tab(tab.tab_id());
-        }
-        self.activate_tab_relative(0, true)
-    }
-
     pub fn pane_state(&self, pane_id: PaneId) -> RefMut<PaneState> {
         RefMut::map(self.pane_state.borrow_mut(), |state| {
             state.entry(pane_id).or_insert_with(PaneState::default)

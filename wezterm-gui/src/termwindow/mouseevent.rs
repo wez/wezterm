@@ -415,7 +415,7 @@ impl super::TermWindow {
             },
             WMEK::Press(MousePress::Middle) => match item {
                 TabBarItem::Tab { tab_idx, .. } => {
-                    self.close_tab_idx(tab_idx).ok();
+                    self.close_specific_tab(tab_idx, true);
                 }
                 TabBarItem::NewTabButton { .. }
                 | TabBarItem::None
