@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior};
 use domain::{Domain, DomainId, DomainState, SplitSource};
-use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
+use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 #[cfg(unix)]
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
@@ -21,7 +21,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
@@ -131,6 +131,8 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
     let mut parser = termwiz::escape::parser::Parser::new();
     let mut actions = vec![];
     let mut hold = false;
+    let mut action_size = 0;
+    let mut delay_ms = configuration().mux_output_parser_coalesce_delay_ms;
 
     loop {
         match rx.read(&mut buf) {
@@ -154,6 +156,7 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
                             // Flush prior actions
                             if !actions.is_empty() {
                                 send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
+                                action_size = 0;
                             }
                         }
                         Action::CSI(CSI::Mode(Mode::ResetDecPrivateMode(
@@ -172,13 +175,40 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
 
                     if flush && !actions.is_empty() {
                         send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
+                        action_size = 0;
                     }
                 });
+                action_size += size;
                 if !actions.is_empty() && !hold {
+                    // If we haven't accumulated too much data,
+                    // pause for a short while to increase the chances
+                    // that we coalesce a full "frame" from an unoptimized
+                    // TUI program
+                    if action_size < buf.len() {
+                        if delay_ms > 0 {
+                            let mut pfd = [pollfd {
+                                fd: rx.as_socket_descriptor(),
+                                events: POLLIN,
+                                revents: 0,
+                            }];
+                            if let Ok(1) = poll(&mut pfd, Some(Duration::from_millis(delay_ms))) {
+                                // We can read now without blocking, so accumulate
+                                // more data into actions
+                                continue;
+                            }
+
+                            // Not readable in time: let the data we have flow into
+                            // the terminal model
+                        }
+                    }
+
                     send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
+                    action_size = 0;
                 }
 
-                buf.resize(configuration().mux_output_parser_buffer_size, 0);
+                let config = configuration();
+                buf.resize(config.mux_output_parser_buffer_size, 0);
+                delay_ms = config.mux_output_parser_coalesce_delay_ms;
             }
         }
     }

@@ -280,6 +280,13 @@ pub struct Config {
     #[dynamic(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
+    /// How many ms to delay after reading a chunk of output
+    /// in order to try to coalesce fragmented writes into
+    /// a single bigger chunk of output and reduce the chances
+    /// observing "screen tearing" with un-synchronized output
+    #[dynamic(default = "default_mux_output_parser_coalesce_delay_ms")]
+    pub mux_output_parser_coalesce_delay_ms: u64,
+
     #[dynamic(default = "default_mux_env_remove")]
     pub mux_env_remove: Vec<String>,
 
@@ -1218,6 +1225,10 @@ fn default_pane_select_font_size() -> f64 {
 
 fn default_swallow_mouse_click_on_window_focus() -> bool {
     cfg!(target_os = "macos")
+}
+
+fn default_mux_output_parser_coalesce_delay_ms() -> u64 {
+    3
 }
 
 fn default_mux_output_parser_buffer_size() -> usize {

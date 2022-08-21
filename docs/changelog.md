@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
 * [update-status](config/lua/window-events/update-status.md) is a more general event for updating left or right status. `update-right-status` is considered to be deprecated in favor of `update-status`.
 * Cache XDG Portal Appearance values. Thanks to [@vimposter](https://github.com/vimpostor)! [#2402](https://github.com/wez/wezterm/pull/2402)
+* Compensate for TUI programs that flicker due to unsynchronized output by adding up to 3ms additional latency after each read to coalesce their screen outputs into a single frame. You can set this delay via a new `mux_output_parser_coalesce_delay_ms` option. [#2443](https://github.com/wez/wezterm/issues/2443)
 
 #### Fixed
 
