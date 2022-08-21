@@ -141,8 +141,10 @@
                     <main>
                         <h1 id="window_frame"><a class="header" href="#window_frame">window_frame</a></h1>
 <p><em>Since: 20210814-124438-54e29167</em></p>
-<p>This setting is applicable only on Wayland systems when client side decorations are in use.</p>
+<p>This setting is applicable primarily on Wayland systems when client side
+decorations are in use.</p>
 <p>It allows you to customize the colors of the window frame.</p>
+<p>Some of these colors are used by the fancy tab bar.</p>
 <pre><code class="language-lua">return {
   window_frame = {
     inactive_titlebar_bg = '#353535',
@@ -155,6 +157,21 @@
     button_bg = '#2b2042',
     button_hover_fg = '#ffffff',
     button_hover_bg = '#3b3052',
+  },
+}
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may explicitly add a border around the window area:</p>
+<pre><code class="language-lua">return {
+  window_frame = {
+    border_left_width = '0.5cell',
+    border_right_width = '0.5cell',
+    border_bottom_height = '0.25cell',
+    border_top_height = '0.25cell',
+    border_left_color = 'purple',
+    border_right_color = 'purple',
+    border_bottom_color = 'purple',
+    border_top_color = 'purple',
   },
 }
 </code></pre>
