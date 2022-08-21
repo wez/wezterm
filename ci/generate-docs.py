@@ -384,6 +384,10 @@ TOC = [
                         "enum: KeyAssignment",
                         "config/lua/keyassignment",
                     ),
+                    Gen(
+                        "enum: CopyModeAssignment",
+                        "config/lua/keyassignment/CopyMode",
+                    ),
                     Gen("object: Color", "config/lua/color"),
                     Page("object: ExecDomain", "config/lua/ExecDomain.md"),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
