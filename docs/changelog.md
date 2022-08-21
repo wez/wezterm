@@ -30,6 +30,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `bypass_mouse_reporting_modifiers` stopped working (regression around new mouse binding logic) [#2389](https://github.com/wez/wezterm/issues/2389)
 * Entering IME-composed text would have no effect in `wezterm ssh` [#2434](https://github.com/wez/wezterm/issues/2434)
 * `gui-startup` event now also works with `wezterm ssh`
+* `x` and `+` buttons in the fancy tab bar are now always square [#2399](https://github.com/wez/wezterm/issues/2399)
 
 ### 20220807-113146-c2fee766
 
