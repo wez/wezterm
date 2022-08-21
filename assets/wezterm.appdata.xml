@@ -61,6 +61,10 @@
       <caption>Compose multiple background layers with parallax scrolling</caption>
       <video>https://wezfurlong.org/wezterm/screenshots/wezterm-parallax-2.mp4</video>
     </screenshot>
+    <screenshot>
+      <caption>Split the screen into panes and use mouse-less pane selection mode to navigate them</caption>
+      <image>https://wezfurlong.org/wezterm/screenshots/pane-select.png</image>
+    </screenshot>
   </screenshots>
 
   <developer_name>Wez Furlong</developer_name>
