@@ -1,4 +1,4 @@
-# CopyMode { MoveForewardSemanticZone = ZONE }
+# CopyMode { MoveForwardSemanticZone = ZONE }
 
 *Since: nightly builds only*
 
@@ -24,7 +24,7 @@ return {
       {
         key = 'Z',
         mods = 'ALT',
-        action = act.CopyMode { MoveForewardZoneOfType = 'Output' },
+        action = act.CopyMode { MoveForwardZoneOfType = 'Output' },
       },
     },
   },
