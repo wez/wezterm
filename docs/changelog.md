@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Entering IME-composed text would have no effect in `wezterm ssh` [#2434](https://github.com/wez/wezterm/issues/2434)
 * `gui-startup` event now also works with `wezterm ssh`
 * `x` and `+` buttons in the fancy tab bar are now always square [#2399](https://github.com/wez/wezterm/issues/2399)
+* middle clicking a tab to close it will now confirm closing using the same rules as [CloseCurrentTab](config/lua/keyassignment/CloseCurrentTab.md) [#2350](https://github.com/wez/wezterm/issues/2350)
 
 ### 20220807-113146-c2fee766
 
