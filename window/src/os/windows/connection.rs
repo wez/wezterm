@@ -15,7 +15,9 @@ use winapi::shared::minwindef::*;
 use winapi::shared::windef::*;
 use winapi::shared::winerror::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
 use winapi::um::winbase::INFINITE;
-use winapi::um::wingdi::{DISPLAY_DEVICEW, QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE};
+use winapi::um::wingdi::{
+    DEVMODEW, DISPLAY_DEVICEW, DM_DISPLAYFREQUENCY, QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE,
+};
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
 use windows::Win32::Devices::Display::{
@@ -114,6 +116,19 @@ impl ConnectionOps for Connection {
             mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
             GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
 
+            let mut devmode: DEVMODEW = std::mem::zeroed();
+            devmode.dmSize = std::mem::size_of::<DEVMODEW>() as u16;
+            let max_fps =
+                if EnumDisplaySettingsW(mi.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut devmode)
+                    != 0
+                    && (devmode.dmFields & DM_DISPLAYFREQUENCY) != 0
+                    && devmode.dmDisplayFrequency > 1
+                {
+                    Some(devmode.dmDisplayFrequency as usize)
+                } else {
+                    None
+                };
+
             let monitor_name = wstr(&mi.szDevice);
             let friendly_name = match info.friendly_names.get(&monitor_name) {
                 Some(name) => name.to_string(),
@@ -154,7 +169,7 @@ impl ConnectionOps for Connection {
                     mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
                 ),
                 scale: 1.0,
-                max_fps: None,
+                max_fps,
             };
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
