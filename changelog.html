@@ -159,6 +159,7 @@ usually the best available version.</p>
 <li><a href="config/lua/keyassignment/ActivatePaneDirection.html">ActivatePaneDirection</a> now uses recency to resolve ambiguous moves <a href="https://github.com/wez/wezterm/issues/2374">#2374</a></li>
 <li><a href="config/lua/window-events/update-status.html">update-status</a> is a more general event for updating left or right status. <code>update-right-status</code> is considered to be deprecated in favor of <code>update-status</code>.</li>
 <li>Cache XDG Portal Appearance values. Thanks to <a href="https://github.com/vimpostor">@vimposter</a>! <a href="https://github.com/wez/wezterm/pull/2402">#2402</a></li>
+<li>Compensate for TUI programs that flicker due to unsynchronized output by adding up to 3ms additional latency after each read to coalesce their screen outputs into a single frame. You can set this delay via a new <code>mux_output_parser_coalesce_delay_ms</code> option. <a href="https://github.com/wez/wezterm/issues/2443">#2443</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
