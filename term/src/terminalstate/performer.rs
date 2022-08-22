@@ -185,6 +185,20 @@ impl<'a> Performer<'a> {
         self.print.clear();
     }
 
+    /// ConPTY, at the time of writing, does something horrible to rewrite
+    /// `ESC k TITLE ST` into something completely different and out-of-order,
+    /// and critically, removes the ST.
+    /// The result is that our hack to accumulate the tmux title gets stuck
+    /// in a mode where all printable output is accumulated for the title.
+    /// To combat this, we pop_tmux_title_state when we're obviously moving
+    /// to different escape sequence parsing states.
+    /// <https://github.com/wez/wezterm/issues/2442>
+    fn pop_tmux_title_state(&mut self) {
+        if let Some(title) = self.accumulating_title.take() {
+            log::warn!("ST never received for pending tmux title escape sequence: {title:?}");
+        }
+    }
+
     pub fn perform(&mut self, action: Action) {
         debug!("perform {:?}", action);
         if self.suppress_initial_title_change {
@@ -219,6 +233,7 @@ impl<'a> Performer<'a> {
     }
 
     fn device_control(&mut self, ctrl: DeviceControlMode) {
+        self.pop_tmux_title_state();
         match &ctrl {
             DeviceControlMode::ShortDeviceControl(s) => {
                 match (s.byte, s.intermediates.as_slice()) {
@@ -294,6 +309,7 @@ impl<'a> Performer<'a> {
 
     fn control(&mut self, control: ControlCode) {
         let seqno = self.seqno;
+        self.pop_tmux_title_state();
         self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
@@ -404,6 +420,7 @@ impl<'a> Performer<'a> {
     }
 
     fn csi_dispatch(&mut self, csi: CSI) {
+        self.pop_tmux_title_state();
         self.flush_print();
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
@@ -497,6 +514,9 @@ impl<'a> Performer<'a> {
     fn esc_dispatch(&mut self, esc: Esc) {
         let seqno = self.seqno;
         self.flush_print();
+        if esc != Esc::Code(EscCode::StringTerminator) {
+            self.pop_tmux_title_state();
+        }
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
                 // String Terminator (ST); for the most part has nothing to do here, as its purpose is
@@ -638,6 +658,7 @@ impl<'a> Performer<'a> {
     }
 
     fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
+        self.pop_tmux_title_state();
         self.flush_print();
         match osc {
             OperatingSystemCommand::SetIconNameSun(title)
