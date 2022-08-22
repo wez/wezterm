@@ -546,6 +546,9 @@ pub struct Config {
     #[dynamic(default)]
     pub launch_menu: Vec<SpawnCommand>,
 
+    #[dynamic(default)]
+    pub use_box_model_render: bool,
+
     /// When true, watch the config file and reload it automatically
     /// when it is detected as changing.
     #[dynamic(default = "default_true")]

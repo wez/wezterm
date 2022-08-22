@@ -52,7 +52,7 @@ impl Default for Float {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct PixelDimension {
     pub left: f32,
     pub top: f32,
