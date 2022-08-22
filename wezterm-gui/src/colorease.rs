@@ -1,3 +1,4 @@
+use crate::uniforms::{UniformBuilder, UniformStruct};
 use config::EasingFunction;
 use std::time::{Duration, Instant};
 
@@ -106,5 +107,32 @@ impl ColorEase {
                 None
             }
         }
+    }
+}
+
+pub struct ColorEaseUniform {
+    pub in_function: [f32; 4],
+    pub out_function: [f32; 4],
+    pub in_duration_ms: u32,
+    pub out_duration_ms: u32,
+}
+
+impl From<ColorEase> for ColorEaseUniform {
+    fn from(ease: ColorEase) -> ColorEaseUniform {
+        Self {
+            in_duration_ms: (ease.in_duration * 1000.).ceil() as u32,
+            out_duration_ms: (ease.out_duration * 1000.).ceil() as u32,
+            in_function: ease.in_function.as_bezier_array(),
+            out_function: ease.out_function.as_bezier_array(),
+        }
+    }
+}
+
+impl<'a> UniformStruct<'a> for ColorEaseUniform {
+    fn add_fields(&'a self, struct_name: &str, builder: &mut UniformBuilder<'a>) {
+        builder.add_struct_field(struct_name, "in_function", &self.in_function);
+        builder.add_struct_field(struct_name, "out_function", &self.out_function);
+        builder.add_struct_field(struct_name, "in_duration_ms", &self.in_duration_ms);
+        builder.add_struct_field(struct_name, "out_duration_ms", &self.out_duration_ms);
     }
 }

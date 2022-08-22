@@ -21,14 +21,19 @@ impl EasingFunction {
                 + x.powi(3) * p3
         }
 
+        let [a, b, c, d] = self.as_bezier_array();
+        cubic_bezier(a, b, c, d, position)
+    }
+
+    pub fn as_bezier_array(&self) -> [f32; 4] {
         match self {
-            Self::Constant => 0.,
-            Self::Linear => cubic_bezier(0., 0., 1.0, 1.0, position),
-            Self::CubicBezier(a, b, c, d) => cubic_bezier(*a, *b, *c, *d, position),
-            Self::Ease => cubic_bezier(0.25, 0.1, 0.25, 1.0, position),
-            Self::EaseIn => cubic_bezier(0.42, 0.0, 1.0, 1.0, position),
-            Self::EaseInOut => cubic_bezier(0.42, 0., 0.58, 1.0, position),
-            Self::EaseOut => cubic_bezier(0., 0., 0.58, 1.0, position),
+            Self::Constant => [0., 0., 0., 0.],
+            Self::Linear => [0., 0., 1.0, 1.0],
+            Self::CubicBezier(a, b, c, d) => [*a, *b, *c, *d],
+            Self::Ease => [0.25, 0.1, 0.25, 1.0],
+            Self::EaseIn => [0.42, 0.0, 1.0, 1.0],
+            Self::EaseInOut => [0.42, 0., 0.58, 1.0],
+            Self::EaseOut => [0., 0., 0.58, 1.0],
         }
     }
 }

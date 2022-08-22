@@ -44,6 +44,7 @@ mod shapecache;
 mod stats;
 mod tabbar;
 mod termwindow;
+mod uniforms;
 mod update;
 mod utilsprites;
 

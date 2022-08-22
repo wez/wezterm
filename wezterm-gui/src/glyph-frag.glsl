@@ -20,6 +20,40 @@ uniform vec3 foreground_text_hsb;
 uniform sampler2D atlas_nearest_sampler;
 uniform sampler2D atlas_linear_sampler;
 uniform bool subpixel_aa;
+uniform uint milliseconds;
+
+struct ColorEase {
+  vec4 in_function;
+  vec4 out_function;
+  uint in_duration_ms;
+  uint out_duration_ms;
+};
+
+float evaluate_cubic_bezier(vec4 bezier, float x) {
+  return pow(1.0 - x, 3.0) * bezier[0]
+    + 3.0 * pow(1.0 - x, 2.) * x * bezier[1]
+    + 3.0 * (1.0 - x) * pow(x, 2.) * bezier[2]
+    + pow(x, 3.) * bezier[3];
+}
+
+float colorease_intensity(ColorEase ease) {
+  uint total_duration = ease.in_duration_ms + ease.out_duration_ms;
+  uint elapsed = milliseconds % total_duration;
+  if (elapsed < ease.in_duration_ms) {
+    return evaluate_cubic_bezier(
+      ease.in_function,
+      float(elapsed) / float(ease.in_duration_ms)
+    );
+  }
+  return 1.0 - evaluate_cubic_bezier(
+    ease.out_function,
+    float(elapsed - ease.in_duration_ms) / float(ease.out_duration_ms)
+  );
+}
+
+uniform ColorEase cursor_blink;
+uniform ColorEase blink;
+uniform ColorEase rapid_blink;
 
 vec3 rgb2hsv(vec3 c)
 {

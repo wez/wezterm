@@ -1,5 +1,5 @@
 use super::box_model::*;
-use crate::colorease::ColorEase;
+use crate::colorease::{ColorEase, ColorEaseUniform};
 use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
@@ -10,13 +10,14 @@ use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
 };
+use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
-use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
+use ::window::glium::{BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, ULength, WindowOps};
 use anyhow::anyhow;
 use config::{
@@ -1609,6 +1610,12 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
+        let milliseconds = self.created.elapsed().as_millis() as u32;
+
+        let cursor_blink: ColorEaseUniform = (*self.cursor_blink_state.borrow()).into();
+        let blink: ColorEaseUniform = (*self.blink_state.borrow()).into();
+        let rapid_blink: ColorEaseUniform = (*self.rapid_blink_state.borrow()).into();
+
         for layer in gl_state.layers.borrow().iter() {
             for idx in 0..3 {
                 let vb = &layer.vb.borrow()[idx];
@@ -1617,17 +1624,23 @@ impl super::TermWindow {
                     let vertices = vb.current_vb();
                     let subpixel_aa = use_subpixel && idx == 1;
 
+                    let mut uniforms = UniformBuilder::default();
+
+                    uniforms.add("projection", &projection);
+                    uniforms.add("atlas_nearest_sampler", &atlas_nearest_sampler);
+                    uniforms.add("atlas_linear_sampler", &atlas_linear_sampler);
+                    uniforms.add("foreground_text_hsb", &foreground_text_hsb);
+                    uniforms.add("subpixel_aa", &subpixel_aa);
+                    uniforms.add("milliseconds", &milliseconds);
+                    uniforms.add_struct("cursor_blink", &cursor_blink);
+                    uniforms.add_struct("blink", &blink);
+                    uniforms.add_struct("rapid_blink", &rapid_blink);
+
                     frame.draw(
                         vertices.slice(0..vertex_count).unwrap(),
                         vb.indices.slice(0..index_count).unwrap(),
                         &gl_state.glyph_prog,
-                        &uniform! {
-                            projection: projection,
-                            atlas_nearest_sampler:  atlas_nearest_sampler,
-                            atlas_linear_sampler:  atlas_linear_sampler,
-                            foreground_text_hsb: foreground_text_hsb,
-                            subpixel_aa: subpixel_aa,
-                        },
+                        &uniforms,
                         if subpixel_aa {
                             &dual_source_blending
                         } else {

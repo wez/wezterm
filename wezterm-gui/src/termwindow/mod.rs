@@ -418,6 +418,8 @@ pub struct TermWindow {
     allow_images: bool,
     scheduled_animation: RefCell<Option<Instant>>,
 
+    created: Instant,
+
     gl: Option<Rc<glium::backend::Context>>,
     config_subscription: Option<config::ConfigSubscription>,
 }
@@ -635,6 +637,7 @@ impl TermWindow {
         let render_state = None;
 
         let myself = Self {
+            created: Instant::now(),
             config_subscription: None,
             os_parameters: None,
             gl: None,
