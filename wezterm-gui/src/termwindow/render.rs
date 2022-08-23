@@ -138,6 +138,49 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
+pub struct LineToElementParams<'a> {
+    pub line: &'a Line,
+    pub config: &'a ConfigHandle,
+    pub pane_id: PaneId,
+    pub palette: &'a ColorPalette,
+    pub stable_line_idx: StableRowIndex,
+    pub window_is_transparent: bool,
+    pub cursor: &'a StableCursorPosition,
+}
+
+use mux::pane::PaneId;
+use termwiz::surface::SequenceNo;
+
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub struct LineToElementShapeKey {
+    pub pane_id: PaneId,
+    pub seqno: SequenceNo,
+    pub stable_line_idx: StableRowIndex,
+    /// Only set if cursor.y == stable_row
+    /// Tuple is (cursor_x, compose-text)
+    pub composing: Option<(usize, String)>,
+}
+
+pub struct LineToElementShape {
+    pub attrs: CellAttributes,
+    pub style: TextStyle,
+    pub underline_tex_rect: TextureRect,
+    pub fg_color: LinearRgba,
+    pub bg_color: LinearRgba,
+    pub underline_color: LinearRgba,
+    pub x_pos: f32,
+    pub pixel_width: f32,
+    pub glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
+    pub cluster: CellCluster,
+}
+
+#[derive(Hash, PartialEq, Eq)]
+pub struct LineToElementKey {
+    pub shape_key: LineToElementShapeKey,
+    /// Only set if cursor.y == stable_row
+    pub cursor: Option<StableRowIndex>,
+}
+
 pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
     /// needs to be rendered, measured in pixels
@@ -226,15 +269,6 @@ pub struct ClusterStyleCache<'a> {
     underline_color: LinearRgba,
 }
 
-#[derive(Clone, Debug)]
-pub struct ShapedCluster<'a> {
-    style: ClusterStyleCache<'a>,
-    x_pos: f32,
-    pixel_width: f32,
-    cluster: &'a CellCluster,
-    glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
-}
-
 impl super::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
         // If nothing on screen needs animating, then we can avoid
@@ -301,6 +335,7 @@ impl super::TermWindow {
                         self.invalidate_fancy_tab_bar();
                         self.invalidate_modal();
                         self.shape_cache.borrow_mut().clear();
+                        self.line_to_ele_shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
                         break 'pass;
@@ -1153,7 +1188,7 @@ impl super::TermWindow {
         } else {
             0.
         };
-        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
+        let (top_bar_height, _bottom_bar_height) = if self.config.tab_bar_at_bottom {
             (0.0, tab_bar_height)
         } else {
             (tab_bar_height, 0.0)
@@ -1978,17 +2013,37 @@ impl super::TermWindow {
         Ok(())
     }
 
-    fn cluster_and_shape<'a>(
+    fn build_line_element_shape(
         &self,
-        cell_clusters: &'a [CellCluster],
-        params: &'a RenderScreenLineOpenGLParams,
-    ) -> anyhow::Result<Vec<ShapedCluster<'a>>> {
+        params: &LineToElementParams,
+        shape_key: &LineToElementShapeKey,
+    ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
+        let (bidi_enabled, bidi_direction) = params.line.bidi_info();
+        let bidi_hint = if bidi_enabled {
+            Some(bidi_direction)
+        } else {
+            None
+        };
+        let cell_clusters = if let Some((cursor_x, composing)) = &shape_key.composing {
+            // Create an updated line with the composition overlaid
+            let mut line = params.line.clone();
+            line.overlay_text_with_attribute(
+                *cursor_x,
+                &composing,
+                CellAttributes::blank(),
+                shape_key.seqno,
+            );
+            line.cluster(bidi_hint)
+        } else {
+            params.line.cluster(bidi_hint)
+        };
+
         let gl_state = self.render_state.as_ref().unwrap();
         let mut shaped = vec![];
         let mut last_style = None;
         let mut x_pos = 0.;
 
-        for cluster in cell_clusters {
+        for cluster in &cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
             {
                 let attrs = &cluster.attrs;
@@ -2006,13 +2061,19 @@ impl super::TermWindow {
                         attrs.strikethrough(),
                         attrs.underline(),
                         attrs.overline(),
-                        &params.render_metrics,
+                        &self.render_metrics,
                     )?
                     .texture_coords();
                 let bg_is_default = attrs.background() == ColorAttribute::Default;
                 let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
-                let fg_color = resolve_fg_color_attr(&attrs, attrs.foreground(), &params, style);
+                let fg_color = resolve_fg_color_attr(
+                    &attrs,
+                    attrs.foreground(),
+                    &params.palette,
+                    &params.config,
+                    style,
+                );
                 let (fg_color, bg_color, bg_is_default) = {
                     let mut fg = fg_color;
                     let mut bg = bg_color;
@@ -2061,7 +2122,7 @@ impl super::TermWindow {
                 let glyph_color = fg_color;
                 let underline_color = match attrs.underline_color() {
                     ColorAttribute::Default => fg_color,
-                    c => resolve_fg_color_attr(&attrs, c, &params, style),
+                    c => resolve_fg_color_attr(&attrs, c, &params.palette, &params.config, style),
                 };
 
                 let (bg_r, bg_g, bg_b, _) = bg_color.tuple();
@@ -2078,7 +2139,7 @@ impl super::TermWindow {
 
                 last_style.replace(ClusterStyleCache {
                     attrs,
-                    style: params.style.unwrap_or(style),
+                    style,
                     underline_tex_rect: underline_tex_rect.clone(),
                     bg_color,
                     fg_color: glyph_color,
@@ -2093,18 +2154,23 @@ impl super::TermWindow {
                 &cluster,
                 &gl_state,
                 params.line,
-                params.font.as_ref(),
-                &params.render_metrics,
+                None,
+                &self.render_metrics,
             )?;
             let pixel_width = glyph_info
                 .iter()
                 .map(|info| info.glyph.x_advance.get() as f32)
                 .sum();
 
-            shaped.push(ShapedCluster {
-                style: style_params,
+            shaped.push(LineToElementShape {
+                attrs: style_params.attrs.clone(),
+                style: style_params.style.clone(),
+                underline_tex_rect: style_params.underline_tex_rect,
+                bg_color: style_params.bg_color,
+                fg_color: style_params.fg_color,
+                underline_color: style_params.underline_color,
                 pixel_width,
-                cluster,
+                cluster: cluster.clone(),
                 glyph_info,
                 x_pos,
             });
@@ -2112,7 +2178,39 @@ impl super::TermWindow {
             x_pos += pixel_width;
         }
 
+        let shaped = Rc::new(shaped);
+
+        self.line_to_ele_shape_cache
+            .borrow_mut()
+            .put(shape_key.clone(), Rc::clone(&shaped));
+
         Ok(shaped)
+    }
+
+    fn line_to_element_shape(
+        &self,
+        params: LineToElementParams,
+    ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
+        let shape_key = LineToElementShapeKey {
+            pane_id: params.pane_id,
+            seqno: params.line.current_seqno(),
+            stable_line_idx: params.stable_line_idx,
+            composing: if params.cursor.y == params.stable_line_idx {
+                if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
+                    Some((params.cursor.x, composing.to_string()))
+                } else {
+                    None
+                }
+            } else {
+                None
+            },
+        };
+
+        if let Some(shaped) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
+            return Ok(Rc::clone(shaped));
+        }
+
+        self.build_line_element_shape(&params, &shape_key)
     }
 
     /// "Render" a line of the terminal screen into the vertex buffer.
@@ -2160,8 +2258,6 @@ impl super::TermWindow {
 
         let start = Instant::now();
 
-        let cell_clusters;
-
         let cursor_idx = if params.pane.is_some()
             && params.is_active
             && params.stable_line_idx == Some(params.cursor.y)
@@ -2184,31 +2280,13 @@ impl super::TermWindow {
 
         let mut composition_width = 0;
 
-        let (bidi_enabled, bidi_direction) = params.line.bidi_info();
-        let bidi_hint = if bidi_enabled {
-            Some(bidi_direction)
-        } else {
-            None
-        };
+        let (_bidi_enabled, bidi_direction) = params.line.bidi_info();
         let direction = bidi_direction.direction();
 
         // Do we need to shape immediately, or can we use the pre-shaped data?
-        let to_shape = if let Some(composing) = composing {
-            // Create an updated line with the composition overlaid
-            let mut line = params.line.clone();
-            line.overlay_text_with_attribute(
-                params.cursor.x,
-                composing,
-                CellAttributes::blank(),
-                termwiz::surface::SEQ_ZERO,
-            );
-            cell_clusters = line.cluster(bidi_hint);
+        if let Some(composing) = composing {
             composition_width = unicode_column_width(composing, None);
-            &cell_clusters
-        } else {
-            cell_clusters = params.line.cluster(bidi_hint);
-            &cell_clusters
-        };
+        }
 
         let cursor_range = if composition_width > 0 {
             params.cursor.x..params.cursor.x + composition_width
@@ -2227,7 +2305,18 @@ impl super::TermWindow {
         let cursor_range_pixels = params.left_pixel_x + cursor_range.start as f32 * cell_width
             ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
 
-        let shaped = self.cluster_and_shape(&to_shape, &params)?;
+        let shaped = self.line_to_element_shape(LineToElementParams {
+            config: params.config,
+            line: params.line,
+            cursor: params.cursor,
+            palette: params.palette,
+            pane_id: params
+                .pane
+                .map(|p| p.pane_id())
+                .unwrap_or(PaneId::max_value()),
+            stable_line_idx: params.stable_line_idx.unwrap_or(0),
+            window_is_transparent: params.window_is_transparent,
+        })?;
 
         let bounding_rect = euclid::rect(
             params.left_pixel_x,
@@ -2265,7 +2354,7 @@ impl super::TermWindow {
         // Need to consider:
         // * background when it is not the default color
         // * Reverse video attribute
-        for item in &shaped {
+        for item in shaped.iter() {
             let cluster = &item.cluster;
             let attrs = &cluster.attrs;
             let cluster_width = cluster.width;
@@ -2273,8 +2362,13 @@ impl super::TermWindow {
             let bg_is_default = attrs.background() == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
-            let fg_color =
-                resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
+            let fg_color = resolve_fg_color_attr(
+                &attrs,
+                attrs.foreground(),
+                &params.palette,
+                &params.config,
+                &Default::default(),
+            );
 
             let (bg_color, bg_is_default) = {
                 let mut fg = fg_color;
@@ -2322,7 +2416,7 @@ impl super::TermWindow {
             }
 
             // Underlines
-            if item.style.underline_tex_rect != params.white_space {
+            if item.underline_tex_rect != params.white_space {
                 // Draw one per cell, otherwise curly underlines
                 // stretch across the whole span
                 for i in 0..cluster_width {
@@ -2339,8 +2433,8 @@ impl super::TermWindow {
                     quad.set_position(x, pos_y, x + cell_width, pos_y + cell_height);
                     quad.set_hsv(hsv);
                     quad.set_has_color(false);
-                    quad.set_texture(item.style.underline_tex_rect);
-                    quad.set_fg_color(item.style.underline_color);
+                    quad.set_texture(item.underline_tex_rect);
+                    quad.set_fg_color(item.underline_color);
                 }
             }
         }
@@ -2370,8 +2464,13 @@ impl super::TermWindow {
                 let attrs = c.attrs();
                 let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
-                let fg_color =
-                    resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
+                let fg_color = resolve_fg_color_attr(
+                    &attrs,
+                    attrs.foreground(),
+                    &params.palette,
+                    &params.config,
+                    &Default::default(),
+                );
 
                 (fg_color, bg_color)
             } else {
@@ -2442,8 +2541,7 @@ impl super::TermWindow {
             Direction::RightToLeft => params.pixel_width,
         };
 
-        for item in &shaped {
-            let style_params = &item.style;
+        for item in shaped.iter() {
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
             let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
@@ -2482,7 +2580,7 @@ impl super::TermWindow {
                                 visual_cell_idx + glyph_idx,
                                 &params,
                                 hsv,
-                                style_params.fg_color,
+                                item.fg_color,
                             )?;
                         }
                     }
@@ -2614,8 +2712,8 @@ impl super::TermWindow {
                             } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                                 cursor: if is_cursor { Some(params.cursor) } else { None },
                                 selected,
-                                fg_color: style_params.fg_color,
-                                bg_color: style_params.bg_color,
+                                fg_color: item.fg_color,
+                                bg_color: item.bg_color,
                                 palette: params.palette,
                                 is_active_pane: params.is_active,
                                 config: params.config,
@@ -2673,7 +2771,7 @@ impl super::TermWindow {
                             overlay_images.push((
                                 visual_cell_idx + glyph_idx,
                                 img.clone(),
-                                style_params.fg_color,
+                                item.fg_color,
                             ));
                         }
                     }
@@ -3151,6 +3249,7 @@ impl super::TermWindow {
 
     pub fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
         self.shape_cache.borrow_mut().clear();
+        self.line_to_ele_shape_cache.borrow_mut().clear();
         if let Some(render_state) = self.render_state.as_mut() {
             render_state.recreate_texture_atlas(&self.fonts, &self.render_metrics, size)?;
         }
@@ -3170,7 +3269,8 @@ pub fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba
 fn resolve_fg_color_attr(
     attrs: &CellAttributes,
     fg: ColorAttribute,
-    params: &RenderScreenLineOpenGLParams,
+    palette: &ColorPalette,
+    config: &ConfigHandle,
     style: &config::TextStyle,
 ) -> LinearRgba {
     match fg {
@@ -3178,11 +3278,11 @@ fn resolve_fg_color_attr(
             if let Some(fg) = style.foreground {
                 fg.into()
             } else {
-                params.palette.resolve_fg(attrs.foreground())
+                palette.resolve_fg(attrs.foreground())
             }
         }
         wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-            if idx < 8 && params.config.bold_brightens_ansi_colors =>
+            if idx < 8 && config.bold_brightens_ansi_colors =>
         {
             // For compatibility purposes, switch to a brighter version
             // of one of the standard ANSI colors when Bold is enabled.
@@ -3192,11 +3292,10 @@ fn resolve_fg_color_attr(
             } else {
                 idx
             };
-            params
-                .palette
-                .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
+
+            palette.resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
         }
-        _ => params.palette.resolve_fg(fg),
+        _ => palette.resolve_fg(fg),
     }
     .to_linear()
 }

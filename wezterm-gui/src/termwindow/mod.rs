@@ -22,6 +22,7 @@ use crate::termwindow::background::{
 };
 use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
+use crate::termwindow::render::{LineToElementShape, LineToElementShapeKey};
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -397,6 +398,7 @@ pub struct TermWindow {
 
     shape_cache:
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
+    line_to_ele_shape_cache: RefCell<LruCache<LineToElementShapeKey, Rc<Vec<LineToElementShape>>>>,
 
     last_status_call: Instant,
     cursor_blink_state: RefCell<ColorEase>,
@@ -678,6 +680,11 @@ impl TermWindow {
             shape_cache: RefCell::new(LruCache::new(
                 "shape_cache.hit.rate",
                 "shape_cache.miss.rate",
+                65536,
+            )),
+            line_to_ele_shape_cache: RefCell::new(LruCache::new(
+                "line_to_ele_shape_cache.hit.rate",
+                "line_to_ele_shape_cache.miss.rate",
                 65536,
             )),
             last_status_call: Instant::now(),
