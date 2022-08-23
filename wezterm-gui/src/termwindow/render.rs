@@ -143,7 +143,7 @@ const PLUS_BUTTON: &[Poly] = &[
 pub struct LineToElementParams<'a> {
     pub line: &'a Line,
     pub config: &'a ConfigHandle,
-    pub pane_id: PaneId,
+    pub pane_id: Option<PaneId>,
     pub palette: &'a ColorPalette,
     pub stable_line_idx: StableRowIndex,
     pub window_is_transparent: bool,
@@ -155,12 +155,18 @@ use termwiz::surface::SequenceNo;
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub struct LineToElementShapeKey {
-    pub pane_id: PaneId,
+    pub pane_id: Option<PaneId>,
     pub seqno: SequenceNo,
     pub stable_line_idx: StableRowIndex,
     /// Only set if cursor.y == stable_row
     /// Tuple is (cursor_x, compose-text)
     pub composing: Option<(usize, String)>,
+}
+
+impl LineToElementShapeKey {
+    pub fn is_cacheable(&self) -> bool {
+        self.pane_id.is_some()
+    }
 }
 
 pub struct LineToElementShape {
@@ -937,10 +943,9 @@ impl super::TermWindow {
     }
 
     fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
-        let computed = self
-            .fancy_tab_bar
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("paint_tab_bar called but fancy_tab_bar is None"))?;
+        let computed = self.fancy_tab_bar.as_ref().ok_or_else(|| {
+            anyhow::anyhow!("paint_fancy_tab_bar called but fancy_tab_bar is None")
+        })?;
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
@@ -1004,7 +1009,7 @@ impl super::TermWindow {
         border
     }
 
-    fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
+    fn paint_tab_bar(&mut self, layers: &mut TripleLayerQuadAllocator) -> anyhow::Result<()> {
         if self.config.use_fancy_tab_bar {
             if self.fancy_tab_bar.is_none() {
                 let palette = self.palette().clone();
@@ -1048,17 +1053,6 @@ impl super::TermWindow {
                 self.config.text_background_opacity
             });
 
-        let layer = gl_state.layer_for_zindex(0)?;
-        let vbs = layer.vb.borrow();
-        let vb = [&vbs[0], &vbs[1], &vbs[2]];
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ]));
         self.render_screen_line_opengl(
             RenderScreenLineOpenGLParams {
                 top_pixel_y: tab_bar_y,
@@ -1099,7 +1093,7 @@ impl super::TermWindow {
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
                 render_metrics: self.render_metrics,
             },
-            &mut layers,
+            layers,
         )?;
 
         Ok(())
@@ -2018,7 +2012,7 @@ impl super::TermWindow {
         }
 
         if self.show_tab_bar {
-            self.paint_tab_bar()?;
+            self.paint_tab_bar(&mut layers)?;
         }
 
         self.paint_window_borders(&mut layers)?;
@@ -2195,9 +2189,11 @@ impl super::TermWindow {
 
         let shaped = Rc::new(shaped);
 
-        self.line_to_ele_shape_cache
-            .borrow_mut()
-            .put(shape_key.clone(), Rc::clone(&shaped));
+        if shape_key.is_cacheable() {
+            self.line_to_ele_shape_cache
+                .borrow_mut()
+                .put(shape_key.clone(), Rc::clone(&shaped));
+        }
 
         Ok(shaped)
     }
@@ -2221,8 +2217,10 @@ impl super::TermWindow {
             },
         };
 
-        if let Some(shaped) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
-            return Ok(Rc::clone(shaped));
+        if shape_key.is_cacheable() {
+            if let Some(shaped) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
+                return Ok(Rc::clone(shaped));
+            }
         }
 
         self.build_line_element_shape(&params, &shape_key)
@@ -2242,10 +2240,7 @@ impl super::TermWindow {
 
         let ele_key = LineToElementKey {
             shape_key: LineToElementShapeKey {
-                pane_id: params
-                    .pane
-                    .map(|p| p.pane_id())
-                    .unwrap_or(PaneId::max_value()),
+                pane_id: params.pane.map(|p| p.pane_id()),
                 seqno: params.line.current_seqno(),
                 stable_line_idx: params
                     .stable_line_idx
@@ -2271,6 +2266,10 @@ impl super::TermWindow {
             is_active: params.is_active,
             is_focused: self.focused.is_some(),
         };
+
+        if !ele_key.shape_key.is_cacheable() {
+            return self.render_screen_line_opengl_impl(params, layers);
+        }
 
         if let Some(value) = self.line_to_ele_cache.borrow_mut().get(&ele_key) {
             let expired = value.expires.map(|i| Instant::now() >= i).unwrap_or(false);
@@ -2400,10 +2399,7 @@ impl super::TermWindow {
             line: params.line,
             cursor: params.cursor,
             palette: params.palette,
-            pane_id: params
-                .pane
-                .map(|p| p.pane_id())
-                .unwrap_or(PaneId::max_value()),
+            pane_id: params.pane.map(|p| p.pane_id()),
             stable_line_idx: params.stable_line_idx.unwrap_or(0),
             window_is_transparent: params.window_is_transparent,
         })?;
