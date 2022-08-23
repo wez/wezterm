@@ -2,9 +2,9 @@
 use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
-use crate::quad::Quad;
+use crate::quad::{Quad, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
 use crate::termwindow::{
-    ColorEase, MappedQuads, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
+    BorrowedLayers, ColorEase, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
     UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
@@ -794,11 +794,11 @@ impl super::TermWindow {
         let mut vb_mut0 = vb[0].current_vb_mut();
         let mut vb_mut1 = vb[1].current_vb_mut();
         let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = [
+        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
             vb[0].map(&mut vb_mut0),
             vb[1].map(&mut vb_mut1),
             vb[2].map(&mut vb_mut2),
-        ];
+        ]));
 
         let colors = match &element.hover_colors {
             Some(hc) => {
@@ -843,7 +843,7 @@ impl super::TermWindow {
                                 break;
                             }
 
-                            let mut quad = layers[2].allocate()?;
+                            let mut quad = layers.allocate(2)?;
                             quad.set_position(
                                 pos_x + left,
                                 pos_y,
@@ -870,7 +870,7 @@ impl super::TermWindow {
                                 let width = texture.coords.size.width as f32 * glyph.scale as f32;
                                 let height = texture.coords.size.height as f32 * glyph.scale as f32;
 
-                                let mut quad = layers[1].allocate()?;
+                                let mut quad = layers.allocate(1)?;
                                 quad.set_position(
                                     pos_x + left,
                                     pos_y,
@@ -900,7 +900,8 @@ impl super::TermWindow {
             ComputedElementContent::Poly { poly, line_width } => {
                 if element.content_rect.width() >= poly.width {
                     let mut quad = self.poly_quad(
-                        &mut layers[1],
+                        &mut layers,
+                        1,
                         element.content_rect.origin,
                         poly.poly,
                         *line_width,
@@ -981,7 +982,7 @@ impl super::TermWindow {
         &self,
         element: &ComputedElement,
         colors: &ElementColors,
-        layers: &mut [MappedQuads; 3],
+        layers: &mut TripleLayerQuadAllocator,
         inherited_colors: Option<&ElementColors>,
     ) -> anyhow::Result<()> {
         let mut top_left_width = 0.;
@@ -1007,7 +1008,8 @@ impl super::TermWindow {
 
             if top_left_width > 0. && top_left_height > 0. {
                 self.poly_quad(
-                    &mut layers[0],
+                    layers,
+                    0,
                     element.border_rect.origin,
                     c.top_left.poly,
                     element.border.top as isize,
@@ -1018,7 +1020,8 @@ impl super::TermWindow {
             }
             if top_right_width > 0. && top_right_height > 0. {
                 self.poly_quad(
-                    &mut layers[0],
+                    layers,
+                    0,
                     euclid::point2(
                         element.border_rect.max_x() - top_right_width,
                         element.border_rect.min_y(),
@@ -1032,7 +1035,8 @@ impl super::TermWindow {
             }
             if bottom_left_width > 0. && bottom_left_height > 0. {
                 self.poly_quad(
-                    &mut layers[0],
+                    layers,
+                    0,
                     euclid::point2(
                         element.border_rect.min_x(),
                         element.border_rect.max_y() - bottom_left_height,
@@ -1046,7 +1050,8 @@ impl super::TermWindow {
             }
             if bottom_right_width > 0. && bottom_right_height > 0. {
                 self.poly_quad(
-                    &mut layers[0],
+                    layers,
+                    0,
                     euclid::point2(
                         element.border_rect.max_x() - bottom_right_width,
                         element.border_rect.max_y() - bottom_right_height,
@@ -1073,7 +1078,8 @@ impl super::TermWindow {
 
             // The `T` piece
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x() + top_left_width,
                     element.border_rect.min_y(),
@@ -1086,7 +1092,8 @@ impl super::TermWindow {
 
             // The `B` piece
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x() + bottom_left_width,
                     element.border_rect.max_y() - bottom_left_height.max(bottom_right_height),
@@ -1099,7 +1106,8 @@ impl super::TermWindow {
 
             // The `L` piece
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x(),
                     element.border_rect.min_y() + top_left_height,
@@ -1112,7 +1120,8 @@ impl super::TermWindow {
 
             // The `R` piece
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.max_x() - top_right_width,
                     element.border_rect.min_y() + top_right_height,
@@ -1125,7 +1134,8 @@ impl super::TermWindow {
 
             // The `C` piece
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x() + top_left_width,
                     element.border_rect.min_y() + top_right_height.min(top_left_height),
@@ -1139,7 +1149,7 @@ impl super::TermWindow {
             self.resolve_bg(colors, inherited_colors).apply(&mut quad);
         } else if colors.bg != InheritableColor::Color(LinearRgba::TRANSPARENT) {
             let mut quad =
-                self.filled_rectangle(&mut layers[0], element.padding, LinearRgba::TRANSPARENT)?;
+                self.filled_rectangle(layers, 0, element.padding, LinearRgba::TRANSPARENT)?;
             self.resolve_bg(colors, inherited_colors).apply(&mut quad);
         }
 
@@ -1150,7 +1160,8 @@ impl super::TermWindow {
 
         if element.border.top > 0. && colors.border.top != LinearRgba::TRANSPARENT {
             self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x() + top_left_width as f32,
                     element.border_rect.min_y(),
@@ -1162,7 +1173,8 @@ impl super::TermWindow {
         }
         if element.border.bottom > 0. && colors.border.bottom != LinearRgba::TRANSPARENT {
             self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x() + bottom_left_width as f32,
                     element.border_rect.max_y() - element.border.bottom,
@@ -1174,7 +1186,8 @@ impl super::TermWindow {
         }
         if element.border.left > 0. && colors.border.left != LinearRgba::TRANSPARENT {
             self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.min_x(),
                     element.border_rect.min_y() + top_left_height as f32,
@@ -1186,7 +1199,8 @@ impl super::TermWindow {
         }
         if element.border.right > 0. && colors.border.right != LinearRgba::TRANSPARENT {
             self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     element.border_rect.max_x() - element.border.right,
                     element.border_rect.min_y() + top_right_height as f32,

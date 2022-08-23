@@ -20,8 +20,8 @@ pub struct MappedQuads<'a> {
     capacity: usize,
 }
 
-impl<'a> MappedQuads<'a> {
-    pub fn allocate<'b>(&'b mut self) -> anyhow::Result<Quad<'b>> {
+impl<'a> QuadAllocator for MappedQuads<'a> {
+    fn allocate<'b>(&'b mut self) -> anyhow::Result<Quad<'b>> {
         let idx = *self.next;
         *self.next += 1;
         let idx = if idx >= self.capacity {
@@ -183,6 +183,14 @@ impl RenderLayer {
         };
 
         Ok(buffer)
+    }
+}
+
+pub struct BorrowedLayers<'a>(pub [MappedQuads<'a>; 3]);
+
+impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
+    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
+        self.0[layer_num].allocate()
     }
 }
 

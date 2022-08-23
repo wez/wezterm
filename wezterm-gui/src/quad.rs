@@ -2,6 +2,7 @@
 // this warning to its use
 #![allow(clippy::unneeded_field_pattern)]
 
+use crate::renderstate::BorrowedLayers;
 use ::window::bitmaps::TextureRect;
 use ::window::color::LinearRgba;
 
@@ -129,5 +130,25 @@ impl<'a> Quad<'a> {
         self.vert[V_TOP_RIGHT].position = (right, top);
         self.vert[V_BOT_LEFT].position = (left, bottom);
         self.vert[V_BOT_RIGHT].position = (right, bottom);
+    }
+}
+
+pub trait QuadAllocator {
+    fn allocate(&mut self) -> anyhow::Result<Quad>;
+}
+
+pub trait TripleLayerQuadAllocatorTrait {
+    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad>;
+}
+
+pub enum TripleLayerQuadAllocator<'a> {
+    Gpu(BorrowedLayers<'a>),
+}
+
+impl<'a> TripleLayerQuadAllocatorTrait for TripleLayerQuadAllocator<'a> {
+    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
+        match self {
+            Self::Gpu(b) => b.allocate(layer_num),
+        }
     }
 }

@@ -3,12 +3,12 @@ use crate::colorease::{ColorEase, ColorEaseUniform};
 use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
-use crate::quad::Quad;
+use crate::quad::{Quad, QuadAllocator, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
+use crate::renderstate::BorrowedLayers;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
-    UIItem, UIItemType,
+    BorrowedShapeCacheKey, RenderState, ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -429,11 +429,12 @@ impl super::TermWindow {
 
     pub fn filled_rectangle<'a>(
         &self,
-        layer: &'a mut MappedQuads,
+        layers: &'a mut TripleLayerQuadAllocator,
+        layer_num: usize,
         rect: RectF,
         color: LinearRgba,
     ) -> anyhow::Result<Quad<'a>> {
-        let mut quad = layer.allocate()?;
+        let mut quad = layers.allocate(layer_num)?;
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
         let top_offset = self.dimensions.pixel_height as f32 / 2.;
         let gl_state = self.render_state.as_ref().unwrap();
@@ -452,7 +453,8 @@ impl super::TermWindow {
 
     pub fn poly_quad<'a>(
         &self,
-        layer: &'a mut MappedQuads,
+        layers: &'a mut TripleLayerQuadAllocator,
+        layer_num: usize,
         point: PointF,
         polys: &'static [Poly],
         underline_height: IntPixelLength,
@@ -475,7 +477,7 @@ impl super::TermWindow {
             )?
             .texture_coords();
 
-        let mut quad = layer.allocate()?;
+        let mut quad = layers.allocate(layer_num)?;
 
         quad.set_position(
             point.x - left_offset,
@@ -1039,11 +1041,11 @@ impl super::TermWindow {
         let mut vb_mut0 = vb[0].current_vb_mut();
         let mut vb_mut1 = vb[1].current_vb_mut();
         let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = [
+        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
             vb[0].map(&mut vb_mut0),
             vb[1].map(&mut vb_mut1),
             vb[2].map(&mut vb_mut2),
-        ];
+        ]));
         self.render_screen_line_opengl(
             RenderScreenLineOpenGLParams {
                 top_pixel_y: tab_bar_y,
@@ -1090,7 +1092,10 @@ impl super::TermWindow {
         Ok(())
     }
 
-    fn paint_window_borders(&mut self) -> anyhow::Result<()> {
+    fn paint_window_borders(
+        &mut self,
+        layers: &mut TripleLayerQuadAllocator,
+    ) -> anyhow::Result<()> {
         let border_dimensions = self.get_os_border();
 
         if border_dimensions.top.get() > 0
@@ -1098,19 +1103,14 @@ impl super::TermWindow {
             || border_dimensions.left.get() > 0
             || border_dimensions.right.get() > 0
         {
-            let gl_state = self.render_state.as_ref().unwrap();
-            let layer = gl_state.layer_for_zindex(0)?;
-            let vb = &layer.vb.borrow()[2];
-            let mut vb_mut = vb.current_vb_mut();
-            let mut layer1 = vb.map(&mut vb_mut);
-
             let height = self.dimensions.pixel_height as f32;
             let width = self.dimensions.pixel_width as f32;
 
             let border_top = border_dimensions.top.get() as f32;
             if border_top > 0.0 {
                 self.filled_rectangle(
-                    &mut layer1,
+                    layers,
+                    1,
                     euclid::rect(0.0, 0.0, width, border_top),
                     self.config
                         .window_frame
@@ -1123,7 +1123,8 @@ impl super::TermWindow {
             let border_left = border_dimensions.left.get() as f32;
             if border_left > 0.0 {
                 self.filled_rectangle(
-                    &mut layer1,
+                    layers,
+                    1,
                     euclid::rect(0.0, 0.0, border_left, height),
                     self.config
                         .window_frame
@@ -1136,7 +1137,8 @@ impl super::TermWindow {
             let border_bottom = border_dimensions.bottom.get() as f32;
             if border_bottom > 0.0 {
                 self.filled_rectangle(
-                    &mut layer1,
+                    layers,
+                    1,
                     euclid::rect(0.0, height - border_bottom, width, height),
                     self.config
                         .window_frame
@@ -1149,7 +1151,8 @@ impl super::TermWindow {
             let border_right = border_dimensions.right.get() as f32;
             if border_right > 0.0 {
                 self.filled_rectangle(
-                    &mut layer1,
+                    layers,
+                    1,
                     euclid::rect(width - border_right, 0.0, border_right, height),
                     self.config
                         .window_frame
@@ -1298,6 +1301,7 @@ impl super::TermWindow {
         &mut self,
         pos: &PositionedPane,
         num_panes: usize,
+        layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         if self.config.use_box_model_render {
             return self.paint_pane_opengl_new(pos, num_panes);
@@ -1370,21 +1374,6 @@ impl super::TermWindow {
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let layer = gl_state.layer_for_zindex(0)?;
-        let vbs = layer.vb.borrow();
-        let vb = [&vbs[0], &vbs[1], &vbs[2]];
-
-        let start = Instant::now();
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = [
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ];
-        log::trace!("quad map elapsed {:?}", start.elapsed());
-        metrics::histogram!("quad.map", start.elapsed());
 
         let cursor_border_color = palette.cursor_border.to_linear();
         let foreground = palette.foreground.to_linear();
@@ -1435,7 +1424,8 @@ impl super::TermWindow {
             };
 
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     x,
                     y,
@@ -1531,7 +1521,8 @@ impl super::TermWindow {
                 };
 
                 let mut quad = self.filled_rectangle(
-                    &mut layers[0],
+                    layers,
+                    0,
                     euclid::rect(
                         x,
                         y,
@@ -1614,7 +1605,8 @@ impl super::TermWindow {
             });
 
             self.filled_rectangle(
-                &mut layers[2],
+                layers,
+                2,
                 euclid::rect(
                     thumb_x as f32,
                     abs_thumb_top as f32,
@@ -1678,7 +1670,7 @@ impl super::TermWindow {
                     use_pixel_positioning: self.config.experimental_pixel_positioning,
                     render_metrics: self.render_metrics,
                 },
-                &mut layers,
+                layers,
             )?;
         }
         /*
@@ -1840,14 +1832,10 @@ impl super::TermWindow {
 
     pub fn paint_split_opengl(
         &mut self,
+        layers: &mut TripleLayerQuadAllocator,
         split: &PositionedSplit,
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
-        let gl_state = self.render_state.as_ref().unwrap();
-        let layer = gl_state.layer_for_zindex(0)?;
-        let vb = &layer.vb.borrow()[2];
-        let mut vb_mut = vb.current_vb_mut();
-        let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
         let foreground = palette.split.to_linear();
         let cell_width = self.render_metrics.cell_size.width as f32;
@@ -1867,7 +1855,8 @@ impl super::TermWindow {
 
         if split.direction == SplitDirection::Horizontal {
             self.filled_rectangle(
-                &mut quads,
+                layers,
+                2,
                 euclid::rect(
                     pos_x + (cell_width / 2.0),
                     pos_y - (cell_height / 2.0),
@@ -1889,7 +1878,8 @@ impl super::TermWindow {
             });
         } else {
             self.filled_rectangle(
-                &mut quads,
+                layers,
+                2,
                 euclid::rect(
                     pos_x - (cell_width / 2.0),
                     pos_y + (cell_height / 2.0),
@@ -1931,6 +1921,22 @@ impl super::TermWindow {
         let window_is_transparent =
             !self.window_background.is_empty() || self.config.window_background_opacity != 1.0;
 
+        let start = Instant::now();
+        let gl_state = self.render_state.as_ref().unwrap();
+        let layer = gl_state.layer_for_zindex(0)?;
+        let vbs = layer.vb.borrow();
+        let vb = [&vbs[0], &vbs[1], &vbs[2]];
+        let mut vb_mut0 = vb[0].current_vb_mut();
+        let mut vb_mut1 = vb[1].current_vb_mut();
+        let mut vb_mut2 = vb[2].current_vb_mut();
+        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
+            vb[0].map(&mut vb_mut0),
+            vb[1].map(&mut vb_mut1),
+            vb[2].map(&mut vb_mut2),
+        ]));
+        log::trace!("quad map elapsed {:?}", start.elapsed());
+        metrics::histogram!("quad.map", start.elapsed());
+
         // Render the full window background
         match (self.window_background.is_empty(), self.allow_images) {
             (false, true) => {
@@ -1964,14 +1970,9 @@ impl super::TermWindow {
                 .to_linear()
                 .mul_alpha(self.config.window_background_opacity);
 
-                let gl_state = self.render_state.as_ref().unwrap();
-                let render_layer = gl_state.layer_for_zindex(0)?;
-                let vbs = render_layer.vb.borrow();
-                let mut vb_mut0 = vbs[0].current_vb_mut();
-                let mut layer0 = vbs[0].map(&mut vb_mut0);
-
                 self.filled_rectangle(
-                    &mut layer0,
+                    &mut layers,
+                    0,
                     euclid::rect(
                         0.,
                         0.,
@@ -1993,13 +1994,13 @@ impl super::TermWindow {
                         .record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            self.paint_pane_opengl(&pos, num_panes)?;
+            self.paint_pane_opengl(&pos, num_panes, &mut layers)?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
             for split in &splits {
-                self.paint_split_opengl(split, &pane)?;
+                self.paint_split_opengl(&mut layers, split, &pane)?;
             }
         }
 
@@ -2007,8 +2008,9 @@ impl super::TermWindow {
             self.paint_tab_bar()?;
         }
 
+        self.paint_window_borders(&mut layers)?;
+        drop(layers);
         self.paint_modal()?;
-        self.paint_window_borders()?;
 
         Ok(())
     }
@@ -2220,7 +2222,7 @@ impl super::TermWindow {
     pub fn render_screen_line_opengl(
         &self,
         params: RenderScreenLineOpenGLParams,
-        layers: &mut [MappedQuads; 3],
+        layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
 
@@ -2334,7 +2336,8 @@ impl super::TermWindow {
 
         if params.line.is_reverse() {
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(
                     params.left_pixel_x,
                     params.top_pixel_y,
@@ -2410,7 +2413,7 @@ impl super::TermWindow {
 
                 let rect = euclid::rect(x, params.top_pixel_y, width, cell_height);
                 if let Some(rect) = rect.intersection(&bounding_rect) {
-                    let mut quad = self.filled_rectangle(&mut layers[0], rect, bg_color)?;
+                    let mut quad = self.filled_rectangle(layers, 0, rect, bg_color)?;
                     quad.set_hsv(hsv);
                 }
             }
@@ -2420,7 +2423,7 @@ impl super::TermWindow {
                 // Draw one per cell, otherwise curly underlines
                 // stretch across the whole span
                 for i in 0..cluster_width {
-                    let mut quad = layers[0].allocate()?;
+                    let mut quad = layers.allocate(0)?;
                     let x = gl_x
                         + params.left_pixel_x
                         + if params.use_pixel_positioning {
@@ -2446,7 +2449,8 @@ impl super::TermWindow {
             let start = params.left_pixel_x + (params.selection.start as f32 * cell_width);
             let width = (params.selection.end - params.selection.start) as f32 * cell_width;
             let mut quad = self.filled_rectangle(
-                &mut layers[0],
+                layers,
+                0,
                 euclid::rect(start, params.top_pixel_y, width, cell_height),
                 params.selection_bg,
             )?;
@@ -2504,7 +2508,7 @@ impl super::TermWindow {
                 + (phys(params.cursor.x, num_cols, direction) as f32 * cell_width);
 
             if cursor_shape.is_some() {
-                let mut quad = layers[0].allocate()?;
+                let mut quad = layers.allocate(0)?;
                 quad.set_position(
                     pos_x,
                     pos_y,
@@ -2576,7 +2580,8 @@ impl super::TermWindow {
                             self.populate_image_quad(
                                 &img,
                                 gl_state,
-                                &mut layers[0],
+                                layers,
+                                0,
                                 visual_cell_idx + glyph_idx,
                                 &params,
                                 hsv,
@@ -2741,7 +2746,7 @@ impl super::TermWindow {
 
                             let texture_rect = texture.texture.to_texture_coords(pixel_rect);
 
-                            let mut quad = layers[1].allocate()?;
+                            let mut quad = layers.allocate(1)?;
                             quad.set_position(
                                 gl_x + range.start,
                                 pos_y + top,
@@ -2802,7 +2807,8 @@ impl super::TermWindow {
             self.populate_image_quad(
                 &img,
                 gl_state,
-                &mut layers[2],
+                layers,
+                2,
                 phys(cell_idx, num_cols, direction),
                 &params,
                 hsv,
@@ -2819,7 +2825,7 @@ impl super::TermWindow {
         &self,
         block: BlockKey,
         gl_state: &RenderState,
-        quads: &mut MappedQuads,
+        quads: &mut dyn QuadAllocator,
         pos_x: f32,
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
@@ -2848,7 +2854,8 @@ impl super::TermWindow {
         &self,
         image: &termwiz::image::ImageCell,
         gl_state: &RenderState,
-        quads: &mut MappedQuads,
+        layers: &mut TripleLayerQuadAllocator,
+        layer_num: usize,
         cell_idx: usize,
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
@@ -2899,7 +2906,7 @@ impl super::TermWindow {
 
         let texture_rect = TextureRect::new(origin, size);
 
-        let mut quad = quads.allocate()?;
+        let mut quad = layers.allocate(layer_num)?;
         let cell_width = params.render_metrics.cell_size.width as f32;
         let cell_height = params.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
