@@ -21,6 +21,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 
 * `colors` now override colors from your selected `color_scheme`. Previously, `color_scheme` was mutually exclusive with `colors` and always took precedence. The new behavior is more in line with what most people expect.
+* Reduced CPU utilization for busy/large screen updates, blinking cursor and other easing animations
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now uses recency to resolve ambiguous moves [#2374](https://github.com/wez/wezterm/issues/2374)
 * [update-status](config/lua/window-events/update-status.md) is a more general event for updating left or right status. `update-right-status` is considered to be deprecated in favor of `update-status`.
 * Cache XDG Portal Appearance values. Thanks to [@vimposter](https://github.com/vimpostor)! [#2402](https://github.com/wez/wezterm/pull/2402)
