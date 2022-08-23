@@ -78,7 +78,13 @@ impl ColorEase {
         match intensity {
             Some(i) => {
                 let now = Instant::now();
-                let fps = config::configuration().animation_fps as u64;
+                let fps = if self.in_function == EasingFunction::Constant
+                    && self.out_function == EasingFunction::Constant
+                {
+                    1
+                } else {
+                    config::configuration().animation_fps as u64
+                };
                 let next = match fps {
                     1 if elapsed < self.in_duration => {
                         start + Duration::from_secs_f32(self.in_duration)
