@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * middle clicking a tab to close it will now confirm closing using the same rules as [CloseCurrentTab](config/lua/keyassignment/CloseCurrentTab.md) [#2350](https://github.com/wez/wezterm/issues/2350)
 * Emitting the tmux-style `ESC k TITLE ST` sequence via ConPTY breaks output for the pane [#2442](https://github.com/wez/wezterm/issues/2442)
 * Avoid using full path canonicalization for `--cwd` options [#2449](https://github.com/wez/wezterm/issues/2449)
+* Scroll to the bottom on mouse input when mouse reporting is enabled [#2447](https://github.com/wez/wezterm/issues/2447)
 
 ### 20220807-113146-c2fee766
 

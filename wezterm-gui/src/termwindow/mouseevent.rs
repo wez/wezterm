@@ -795,6 +795,15 @@ impl super::TermWindow {
                     }
                 }
 
+                if mouse_reporting {
+                    // If they were scrolled back prior to launching an
+                    // application that captures the mouse, then mouse based
+                    // scrolling assignments won't have any effect.
+                    // Ensure that we scroll to the bottom if they try to
+                    // use the mouse so that things are less surprising
+                    self.scroll_to_bottom(&pane);
+                }
+
                 // normalize delta and streak to make mouse assignment
                 // easier to wrangle
                 match event_trigger_type {
