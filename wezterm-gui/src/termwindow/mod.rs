@@ -23,7 +23,7 @@ use crate::termwindow::background::{
 use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
 use crate::termwindow::render::{
-    LineToElementKey, LineToElementShape, LineToElementShapeKey, LineToElementValue,
+    LineToElementKey, LineToElementShapeItem, LineToElementShapeKey, LineToElementValue,
 };
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
@@ -400,7 +400,7 @@ pub struct TermWindow {
 
     shape_cache:
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
-    line_to_ele_shape_cache: RefCell<LruCache<LineToElementShapeKey, Rc<Vec<LineToElementShape>>>>,
+    line_to_ele_shape_cache: RefCell<LruCache<LineToElementShapeKey, LineToElementShapeItem>>,
     line_to_ele_cache: RefCell<LruCache<LineToElementKey, LineToElementValue>>,
 
     last_status_call: Instant,

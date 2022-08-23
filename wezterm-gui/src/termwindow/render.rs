@@ -169,6 +169,11 @@ impl LineToElementShapeKey {
     }
 }
 
+pub struct LineToElementShapeItem {
+    pub expires: Option<Instant>,
+    pub shaped: Rc<Vec<LineToElementShape>>,
+}
+
 pub struct LineToElementShape {
     pub attrs: CellAttributes,
     pub style: TextStyle,
@@ -399,17 +404,8 @@ impl super::TermWindow {
     }
 
     pub fn update_next_frame_time(&self, next_due: Option<Instant>) {
-        if let Some(next_due) = next_due {
-            let mut has_anim = self.has_animation.borrow_mut();
-            match *has_anim {
-                None => {
-                    has_anim.replace(next_due);
-                }
-                Some(t) if next_due < t => {
-                    has_anim.replace(next_due);
-                }
-                _ => {}
-            }
+        if next_due.is_some() {
+            update_next_frame_time(&mut *self.has_animation.borrow_mut(), next_due);
         }
     }
 
@@ -2051,6 +2047,7 @@ impl super::TermWindow {
         let mut shaped = vec![];
         let mut last_style = None;
         let mut x_pos = 0.;
+        let mut expires = None;
 
         for cluster in &cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
@@ -2121,6 +2118,7 @@ impl super::TermWindow {
                                 a,
                             );
 
+                            update_next_frame_time(&mut expires, Some(next));
                             self.update_next_frame_time(Some(next));
                         }
                     }
@@ -2190,9 +2188,13 @@ impl super::TermWindow {
         let shaped = Rc::new(shaped);
 
         if shape_key.is_cacheable() {
-            self.line_to_ele_shape_cache
-                .borrow_mut()
-                .put(shape_key.clone(), Rc::clone(&shaped));
+            self.line_to_ele_shape_cache.borrow_mut().put(
+                shape_key.clone(),
+                LineToElementShapeItem {
+                    expires,
+                    shaped: Rc::clone(&shaped),
+                },
+            );
         }
 
         Ok(shaped)
@@ -2218,8 +2220,13 @@ impl super::TermWindow {
         };
 
         if shape_key.is_cacheable() {
-            if let Some(shaped) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
-                return Ok(Rc::clone(shaped));
+            if let Some(entry) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
+                let expired = entry.expires.map(|i| Instant::now() >= i).unwrap_or(false);
+
+                if !expired {
+                    self.update_next_frame_time(entry.expires);
+                    return Ok(Rc::clone(&entry.shaped));
+                }
             }
         }
 
@@ -2274,12 +2281,13 @@ impl super::TermWindow {
         if let Some(value) = self.line_to_ele_cache.borrow_mut().get(&ele_key) {
             let expired = value.expires.map(|i| Instant::now() >= i).unwrap_or(false);
             if !expired {
+                self.update_next_frame_time(value.expires);
                 value.buf.apply_to(layers)?;
                 return Ok(());
             }
         }
 
-        let next_due = self.has_animation.borrow().clone();
+        let next_due = self.has_animation.borrow_mut().take();
 
         let mut buf_layer = HeapQuadAllocator::default();
         self.render_screen_line_opengl_impl(
@@ -2288,15 +2296,8 @@ impl super::TermWindow {
         )?;
         buf_layer.apply_to(layers)?;
 
-        let expires = if let Some(has_anim) = self.has_animation.borrow().as_ref() {
-            if Some(*has_anim) == next_due {
-                None
-            } else {
-                Some(*has_anim)
-            }
-        } else {
-            None
-        };
+        let expires = self.has_animation.borrow().as_ref().cloned();
+        self.update_next_frame_time(next_due);
 
         self.line_to_ele_cache.borrow_mut().put(
             ele_key,
@@ -3390,4 +3391,20 @@ fn resolve_fg_color_attr(
         _ => palette.resolve_fg(fg),
     }
     .to_linear()
+}
+
+fn update_next_frame_time(storage: &mut Option<Instant>, next_due: Option<Instant>) {
+    if let Some(next_due) = next_due {
+        match storage.take() {
+            None => {
+                storage.replace(next_due);
+            }
+            Some(t) if next_due < t => {
+                storage.replace(next_due);
+            }
+            Some(t) => {
+                storage.replace(t);
+            }
+        }
+    }
 }
