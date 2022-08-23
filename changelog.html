@@ -157,6 +157,7 @@ usually the best available version.</p>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
 <li><code>colors</code> now override colors from your selected <code>color_scheme</code>. Previously, <code>color_scheme</code> was mutually exclusive with <code>colors</code> and always took precedence. The new behavior is more in line with what most people expect.</li>
+<li>Reduced CPU utilization for busy/large screen updates, blinking cursor and other easing animations</li>
 <li><a href="config/lua/keyassignment/ActivatePaneDirection.html">ActivatePaneDirection</a> now uses recency to resolve ambiguous moves <a href="https://github.com/wez/wezterm/issues/2374">#2374</a></li>
 <li><a href="config/lua/window-events/update-status.html">update-status</a> is a more general event for updating left or right status. <code>update-right-status</code> is considered to be deprecated in favor of <code>update-status</code>.</li>
 <li>Cache XDG Portal Appearance values. Thanks to <a href="https://github.com/vimpostor">@vimposter</a>! <a href="https://github.com/wez/wezterm/pull/2402">#2402</a></li>
