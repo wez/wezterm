@@ -185,6 +185,7 @@ pub struct LineToElementKey {
     pub left: u32,
     pub top: u32,
     pub is_active: bool,
+    pub is_focused: bool,
 }
 
 pub struct LineToElementValue {
@@ -2268,6 +2269,7 @@ impl super::TermWindow {
             left: params.left_pixel_x.ceil() as u32,
             top: params.top_pixel_y.ceil() as u32,
             is_active: params.is_active,
+            is_focused: self.focused.is_some(),
         };
 
         if let Some(value) = self.line_to_ele_cache.borrow_mut().get(&ele_key) {
