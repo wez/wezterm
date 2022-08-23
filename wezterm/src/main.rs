@@ -442,10 +442,10 @@ struct SetCwdCommand {
 
 impl SetCwdCommand {
     fn run(&self) -> anyhow::Result<()> {
-        let cwd: std::path::PathBuf = match self.cwd.as_ref() {
-            Some(d) => std::fs::canonicalize(d)?,
-            None => std::env::current_dir()?,
-        };
+        let mut cwd = std::env::current_dir()?;
+        if let Some(dir) = &self.cwd {
+            cwd.push(dir);
+        }
 
         let mut url = url::Url::from_directory_path(&cwd)
             .map_err(|_| anyhow::anyhow!("cwd {} is not an absolute path", cwd.display()))?;
@@ -462,11 +462,12 @@ impl SetCwdCommand {
     }
 }
 
-fn canon_cwd(cwd: Option<OsString>) -> anyhow::Result<Option<String>> {
+fn resolve_relative_cwd(cwd: Option<OsString>) -> anyhow::Result<Option<String>> {
     match cwd {
         None => Ok(None),
         Some(cwd) => Ok(Some(
-            std::fs::canonicalize(cwd)?
+            std::env::current_dir()?
+                .join(cwd)
                 .to_str()
                 .ok_or_else(|| anyhow!("path is not representable as String"))?
                 .to_string(),
@@ -1003,7 +1004,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         let builder = CommandBuilder::from_argv(prog);
                         Some(builder)
                     },
-                    command_dir: canon_cwd(cwd)?,
+                    command_dir: resolve_relative_cwd(cwd)?,
                     move_pane_id,
                 })
                 .await?;
@@ -1098,7 +1099,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         let builder = CommandBuilder::from_argv(prog);
                         Some(builder)
                     },
-                    command_dir: canon_cwd(cwd)?,
+                    command_dir: resolve_relative_cwd(cwd)?,
                     size,
                     workspace,
                 })
