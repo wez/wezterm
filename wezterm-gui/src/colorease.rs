@@ -83,16 +83,14 @@ impl ColorEase {
                     1 if elapsed < self.in_duration => {
                         start + Duration::from_secs_f32(self.in_duration)
                     }
-                    1 => {
-                        start
-                            + Duration::from_secs_f32(self.in_duration)
-                            + Duration::from_secs_f32(self.out_duration)
-                    }
+                    1 => start + Duration::from_secs_f32(self.in_duration + self.out_duration),
                     _ => {
                         let frame_interval = 1000 / fps as u64;
                         let elapsed = (elapsed * 1000.).ceil() as u64;
                         let remain = elapsed % frame_interval;
-                        if remain != 0 {
+                        if remain != 0
+                            && self.last_render.elapsed() >= Duration::from_millis(frame_interval)
+                        {
                             now + Duration::from_millis(remain)
                         } else {
                             now + Duration::from_millis(frame_interval)
