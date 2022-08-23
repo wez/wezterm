@@ -9,7 +9,7 @@ use wezterm_term::{Line, StableRowIndex, Terminal};
 
 /// Describes the location of the cursor
 #[derive(
-    Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, FromDynamic, ToDynamic,
+    Debug, Default, Copy, Clone, Hash, Eq, PartialEq, Deserialize, Serialize, FromDynamic, ToDynamic,
 )]
 pub struct StableCursorPosition {
     pub x: usize,

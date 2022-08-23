@@ -43,6 +43,24 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 
         Ok(quad)
     }
+
+    fn vertices(&self) -> &[Vertex] {
+        &self.mapping[0..*self.next]
+    }
+
+    fn extend_with(&mut self, vertices: &[Vertex]) {
+        let idx = *self.next;
+        // idx and next are number of quads, so divide by number of vertices
+        *self.next += vertices.len() / VERTICES_PER_CELL;
+        // Only copy in if there is enough room.
+        // We'll detect the out of space condition at the end of
+        // the render pass.
+        let idx = idx * VERTICES_PER_CELL;
+        let len = self.capacity * VERTICES_PER_CELL;
+        if idx + vertices.len() < len {
+            self.mapping[idx..idx + vertices.len()].copy_from_slice(vertices);
+        }
+    }
 }
 
 pub struct TripleVertexBuffer {
@@ -191,6 +209,12 @@ pub struct BorrowedLayers<'a>(pub [MappedQuads<'a>; 3]);
 impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
         self.0[layer_num].allocate()
+    }
+    fn vertices(&self, layer_num: usize) -> &[Vertex] {
+        self.0[layer_num].vertices()
+    }
+    fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
+        self.0[layer_num].extend_with(vertices)
     }
 }
 

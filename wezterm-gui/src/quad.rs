@@ -135,20 +135,95 @@ impl<'a> Quad<'a> {
 
 pub trait QuadAllocator {
     fn allocate(&mut self) -> anyhow::Result<Quad>;
+    fn vertices(&self) -> &[Vertex];
+    fn extend_with(&mut self, vertices: &[Vertex]);
 }
 
 pub trait TripleLayerQuadAllocatorTrait {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad>;
+    fn vertices(&self, layer_num: usize) -> &[Vertex];
+    fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]);
+}
+
+#[derive(Default)]
+pub struct HeapQuadAllocator {
+    layer0: Vec<Vertex>,
+    layer1: Vec<Vertex>,
+    layer2: Vec<Vertex>,
+}
+
+impl HeapQuadAllocator {
+    pub fn apply_to(&self, other: &mut TripleLayerQuadAllocator) -> anyhow::Result<()> {
+        let start = std::time::Instant::now();
+        for (layer_num, verts) in [(0, &self.layer0), (1, &self.layer1), (2, &self.layer2)] {
+            other.extend_with(layer_num, verts);
+        }
+        metrics::histogram!("quad_buffer_apply", start.elapsed());
+        Ok(())
+    }
+}
+
+impl TripleLayerQuadAllocatorTrait for HeapQuadAllocator {
+    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
+        let verts = match layer_num {
+            0 => &mut self.layer0,
+            1 => &mut self.layer1,
+            2 => &mut self.layer2,
+            _ => unreachable!(),
+        };
+
+        let idx = verts.len();
+        verts.resize_with(verts.len() + VERTICES_PER_CELL, Vertex::default);
+
+        Ok(Quad {
+            vert: &mut verts[idx..idx + VERTICES_PER_CELL],
+        })
+    }
+
+    fn vertices(&self, layer_num: usize) -> &[Vertex] {
+        match layer_num {
+            0 => &self.layer0,
+            1 => &self.layer1,
+            2 => &self.layer2,
+            _ => unreachable!(),
+        }
+    }
+
+    fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
+        let verts = match layer_num {
+            0 => &mut self.layer0,
+            1 => &mut self.layer1,
+            2 => &mut self.layer2,
+            _ => unreachable!(),
+        };
+        verts.extend_from_slice(vertices);
+    }
 }
 
 pub enum TripleLayerQuadAllocator<'a> {
     Gpu(BorrowedLayers<'a>),
+    Heap(&'a mut HeapQuadAllocator),
 }
 
 impl<'a> TripleLayerQuadAllocatorTrait for TripleLayerQuadAllocator<'a> {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
         match self {
             Self::Gpu(b) => b.allocate(layer_num),
+            Self::Heap(h) => h.allocate(layer_num),
+        }
+    }
+
+    fn vertices(&self, layer_num: usize) -> &[Vertex] {
+        match self {
+            Self::Gpu(b) => b.vertices(layer_num),
+            Self::Heap(h) => h.vertices(layer_num),
+        }
+    }
+
+    fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
+        match self {
+            Self::Gpu(b) => b.extend_with(layer_num, vertices),
+            Self::Heap(h) => h.extend_with(layer_num, vertices),
         }
     }
 }

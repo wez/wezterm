@@ -3,7 +3,9 @@ use crate::colorease::{ColorEase, ColorEaseUniform};
 use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
-use crate::quad::{Quad, QuadAllocator, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
+use crate::quad::{
+    HeapQuadAllocator, Quad, QuadAllocator, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait,
+};
 use crate::renderstate::BorrowedLayers;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
@@ -178,7 +180,16 @@ pub struct LineToElementShape {
 pub struct LineToElementKey {
     pub shape_key: LineToElementShapeKey,
     /// Only set if cursor.y == stable_row
-    pub cursor: Option<StableRowIndex>,
+    pub cursor: Option<StableCursorPosition>,
+    pub selection: Range<usize>,
+    pub left: u32,
+    pub top: u32,
+    pub is_active: bool,
+}
+
+pub struct LineToElementValue {
+    pub buf: HeapQuadAllocator,
+    pub expires: Option<Instant>,
 }
 
 pub struct RenderScreenLineOpenGLParams<'a> {
@@ -336,6 +347,7 @@ impl super::TermWindow {
                         self.invalidate_modal();
                         self.shape_cache.borrow_mut().clear();
                         self.line_to_ele_shape_cache.borrow_mut().clear();
+                        self.line_to_ele_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
                         break 'pass;
@@ -2215,11 +2227,92 @@ impl super::TermWindow {
         self.build_line_element_shape(&params, &shape_key)
     }
 
+    pub fn render_screen_line_opengl(
+        &self,
+        params: RenderScreenLineOpenGLParams,
+        layers: &mut TripleLayerQuadAllocator,
+    ) -> anyhow::Result<()> {
+        if params.line.is_double_height_bottom() {
+            // The top and bottom lines are required to have the same content.
+            // For the sake of simplicity, we render both of them as part of
+            // rendering the top row, so we have nothing more to do here.
+            return Ok(());
+        }
+
+        let ele_key = LineToElementKey {
+            shape_key: LineToElementShapeKey {
+                pane_id: params
+                    .pane
+                    .map(|p| p.pane_id())
+                    .unwrap_or(PaneId::max_value()),
+                seqno: params.line.current_seqno(),
+                stable_line_idx: params
+                    .stable_line_idx
+                    .unwrap_or(StableRowIndex::max_value()),
+                composing: if Some(params.cursor.y) == params.stable_line_idx {
+                    if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
+                        Some((params.cursor.x, composing.to_string()))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                },
+            },
+            cursor: if Some(params.cursor.y) == params.stable_line_idx {
+                Some(*params.cursor)
+            } else {
+                None
+            },
+            selection: params.selection.clone(),
+            left: params.left_pixel_x.ceil() as u32,
+            top: params.top_pixel_y.ceil() as u32,
+            is_active: params.is_active,
+        };
+
+        if let Some(value) = self.line_to_ele_cache.borrow_mut().get(&ele_key) {
+            let expired = value.expires.map(|i| Instant::now() >= i).unwrap_or(false);
+            if !expired {
+                value.buf.apply_to(layers)?;
+                return Ok(());
+            }
+        }
+
+        let next_due = self.has_animation.borrow().clone();
+
+        let mut buf_layer = HeapQuadAllocator::default();
+        self.render_screen_line_opengl_impl(
+            params,
+            &mut TripleLayerQuadAllocator::Heap(&mut buf_layer),
+        )?;
+        buf_layer.apply_to(layers)?;
+
+        let expires = if let Some(has_anim) = self.has_animation.borrow().as_ref() {
+            if Some(*has_anim) == next_due {
+                None
+            } else {
+                Some(*has_anim)
+            }
+        } else {
+            None
+        };
+
+        self.line_to_ele_cache.borrow_mut().put(
+            ele_key,
+            LineToElementValue {
+                buf: buf_layer,
+                expires,
+            },
+        );
+
+        Ok(())
+    }
+
     /// "Render" a line of the terminal screen into the vertex buffer.
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
     /// of extra complexity to deal with multi-cell glyphs.
-    pub fn render_screen_line_opengl(
+    fn render_screen_line_opengl_impl(
         &self,
         params: RenderScreenLineOpenGLParams,
         layers: &mut TripleLayerQuadAllocator,
@@ -2239,13 +2332,6 @@ impl super::TermWindow {
         } else {
             1.0
         };
-
-        if params.line.is_double_height_bottom() {
-            // The top and bottom lines are required to have the same content.
-            // For the sake of simplicity, we render both of them as part of
-            // rendering the top row, so we have nothing more to do here.
-            return Ok(());
-        }
 
         let height_scale = if params.line.is_double_height_top() {
             2.0
@@ -3257,6 +3343,7 @@ impl super::TermWindow {
     pub fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
         self.shape_cache.borrow_mut().clear();
         self.line_to_ele_shape_cache.borrow_mut().clear();
+        self.line_to_ele_cache.borrow_mut().clear();
         if let Some(render_state) = self.render_state.as_mut() {
             render_state.recreate_texture_atlas(&self.fonts, &self.render_metrics, size)?;
         }
