@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Emitting the tmux-style `ESC k TITLE ST` sequence via ConPTY breaks output for the pane [#2442](https://github.com/wez/wezterm/issues/2442)
 * Avoid using full path canonicalization for `--cwd` options [#2449](https://github.com/wez/wezterm/issues/2449)
 * Scroll to the bottom on mouse input when mouse reporting is enabled [#2447](https://github.com/wez/wezterm/issues/2447)
+* ssh: correctly expand `%h` ssh_config tokens [#2448](https://github.com/wez/wezterm/issues/2448)
 
 ### 20220807-113146-c2fee766
 

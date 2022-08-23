@@ -521,9 +521,12 @@ impl Config {
             );
         }
 
+        let mut token_map = self.tokens.clone();
+        token_map.insert("%h".to_string(), host.to_string());
+
         for (k, v) in &mut result {
             if let Some(tokens) = self.should_expand_tokens(k) {
-                self.expand_tokens(v, tokens);
+                self.expand_tokens(v, tokens, &token_map);
             }
 
             if self.should_expand_environment(k) {
@@ -617,9 +620,9 @@ impl Config {
     }
 
     /// Perform token substitution
-    fn expand_tokens(&self, value: &mut String, tokens: &[&str]) {
+    fn expand_tokens(&self, value: &mut String, tokens: &[&str], token_map: &ConfigMap) {
         for &t in tokens {
-            if let Some(v) = self.tokens.get(t) {
+            if let Some(v) = token_map.get(t) {
                 *value = value.replace(t, v);
             } else if t == "%u" {
                 *value = value.replace(t, &self.resolve_local_user());
@@ -787,6 +790,65 @@ Config {
     "identityfile": "/home/me/.ssh/id_pub.dsa",
     "port": "22",
     "user": "foo",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn hostname_expansion() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo0 foo1 foo2
+            HostName server-%h
+            "#,
+        );
+
+        let opts = config.for_host("foo0");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "server-foo0",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let opts = config.for_host("foo1");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "server-foo1",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let opts = config.for_host("foo2");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "server-foo2",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "user": "me",
     "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
 "#
