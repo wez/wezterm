@@ -10,7 +10,7 @@ use crate::Appearance;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular, NSScreen};
 use cocoa::base::{id, nil};
 use cocoa::foundation::{NSArray, NSInteger, NSRect};
-use objc::runtime::Object;
+use objc::runtime::{Object, BOOL, YES};
 use objc::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -157,7 +157,6 @@ fn screen_backing_frame(screen: *mut Object) -> NSRect {
 }
 
 fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
-    let name = unsafe { nsstring_to_str(msg_send!(screen, localizedName)) }.to_string();
     let frame = screen_backing_frame(screen);
     let rect = euclid::rect(
         frame.origin.x as isize,
@@ -165,9 +164,19 @@ fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         frame.size.width as isize,
         frame.size.height as isize,
     );
-    let has_max_fps: objc::runtime::BOOL =
+    let has_name: BOOL = unsafe { msg_send!(screen, respondsToSelector: sel!(localizedName)) };
+    let name = if has_name == YES {
+        unsafe { nsstring_to_str(msg_send!(screen, localizedName)) }.to_string()
+    } else {
+        format!(
+            "{}x{}@{},{}",
+            frame.size.width, frame.size.height, frame.origin.x, frame.origin.y
+        )
+    };
+
+    let has_max_fps: BOOL =
         unsafe { msg_send!(screen, respondsToSelector: sel!(maximumFramesPerSecond)) };
-    let max_fps = if has_max_fps == objc::runtime::YES {
+    let max_fps = if has_max_fps == YES {
         let max_fps: NSInteger = unsafe { msg_send!(screen, maximumFramesPerSecond) };
         Some(max_fps as usize)
     } else {
