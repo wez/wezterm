@@ -10,8 +10,8 @@ use crate::renderstate::BorrowedLayers;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, CachedLogicalLines, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
-    UIItem, UIItemType,
+    BorrowedShapeCacheKey, CachedLogicalLines, CopyOverlay, QuickSelectOverlay, RenderState,
+    ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -1371,7 +1371,10 @@ impl super::TermWindow {
                 .logical_line_cache
                 .as_ref()
                 .and_then(|cached| {
-                    if cached.seqno == seqno && cached.stable_range == stable_range {
+                    if cached.seqno == seqno
+                        && cached.stable_range == stable_range
+                        && !pane_is_overlay_that_aliases_pane_id(&pos.pane)
+                    {
                         Some((cached.top, Rc::clone(&cached.lines)))
                     } else {
                         None
@@ -2227,7 +2230,13 @@ impl super::TermWindow {
 
         let ele_key = LineToElementKey {
             shape_key: LineToElementShapeKey {
-                pane_id: params.pane.map(|p| p.pane_id()),
+                pane_id: params.pane.and_then(|p| {
+                    if pane_is_overlay_that_aliases_pane_id(p) {
+                        None
+                    } else {
+                        Some(p.pane_id())
+                    }
+                }),
                 seqno: params.line.current_seqno(),
                 stable_line_idx: params
                     .stable_line_idx
@@ -2380,7 +2389,13 @@ impl super::TermWindow {
             line: params.line,
             cursor: params.cursor,
             palette: params.palette,
-            pane_id: params.pane.map(|p| p.pane_id()),
+            pane_id: params.pane.and_then(|p| {
+                if pane_is_overlay_that_aliases_pane_id(p) {
+                    None
+                } else {
+                    Some(p.pane_id())
+                }
+            }),
             stable_line_idx: params.stable_line_idx.unwrap_or(0),
             window_is_transparent: params.window_is_transparent,
         })?;
@@ -3391,4 +3406,11 @@ fn update_next_frame_time(storage: &mut Option<Instant>, next_due: Option<Instan
             }
         }
     }
+}
+
+/// I'd love to unwind and remove that aliasing, but for now, we need
+/// to detect and deal with it
+fn pane_is_overlay_that_aliases_pane_id(pane: &Rc<dyn Pane>) -> bool {
+    pane.downcast_ref::<CopyOverlay>().is_some()
+        || pane.downcast_ref::<QuickSelectOverlay>().is_some()
 }
