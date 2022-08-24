@@ -10,7 +10,8 @@ use crate::renderstate::BorrowedLayers;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, RenderState, ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
+    BorrowedShapeCacheKey, CachedLogicalLines, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
+    UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -1363,17 +1364,42 @@ impl super::TermWindow {
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
             };
 
-            let start = Instant::now();
-            let (top, vp_lines) = pos
-                .pane
-                .get_lines_with_hyperlinks_applied(stable_range, &self.config.hyperlink_rules);
-            metrics::histogram!("get_lines_with_hyperlinks_applied.latency", start.elapsed());
-            log::trace!(
-                "get_lines_with_hyperlinks_applied took {:?}",
-                start.elapsed()
-            );
-            stable_top = top;
-            lines = vp_lines;
+            let seqno = pos.pane.get_current_seqno();
+            let mut state = self.pane_state(pos.pane.pane_id());
+
+            (stable_top, lines) = state
+                .logical_line_cache
+                .as_ref()
+                .and_then(|cached| {
+                    if cached.seqno == seqno && cached.stable_range == stable_range {
+                        Some((cached.top, Rc::clone(&cached.lines)))
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| {
+                    let start = Instant::now();
+                    let (top, vp_lines) = pos.pane.get_lines_with_hyperlinks_applied(
+                        stable_range.clone(),
+                        &self.config.hyperlink_rules,
+                    );
+                    metrics::histogram!(
+                        "get_lines_with_hyperlinks_applied.latency",
+                        start.elapsed()
+                    );
+                    log::trace!(
+                        "get_lines_with_hyperlinks_applied took {:?}",
+                        start.elapsed()
+                    );
+                    let lines = Rc::new(vp_lines);
+                    state.logical_line_cache = Some(CachedLogicalLines {
+                        seqno,
+                        stable_range,
+                        top,
+                        lines: Rc::clone(&lines),
+                    });
+                    (top, lines)
+                });
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
