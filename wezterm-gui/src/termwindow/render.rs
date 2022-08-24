@@ -3101,7 +3101,11 @@ impl super::TermWindow {
                 if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
                     (params.bg_color, params.fg_color, params.fg_color)
                 } else {
-                    (params.cursor_fg, params.cursor_bg, params.cursor_bg)
+                    (
+                        params.cursor_fg.when_fully_transparent(params.fg_color),
+                        params.cursor_bg,
+                        params.cursor_bg,
+                    )
                 }
             }
             (
