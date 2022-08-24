@@ -696,17 +696,17 @@ impl TermWindow {
             shape_cache: RefCell::new(LruCache::new(
                 "shape_cache.hit.rate",
                 "shape_cache.miss.rate",
-                65536,
+                1024,
             )),
             line_to_ele_shape_cache: RefCell::new(LruCache::new(
                 "line_to_ele_shape_cache.hit.rate",
                 "line_to_ele_shape_cache.miss.rate",
-                65536,
+                1024,
             )),
             line_to_ele_cache: RefCell::new(LruCache::new(
                 "line_to_ele_cache.hit.rate",
                 "line_to_ele_cache.miss.rate",
-                65536,
+                1024,
             )),
             last_status_call: Instant::now(),
             cursor_blink_state: RefCell::new(ColorEase::new(
