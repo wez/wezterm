@@ -317,6 +317,9 @@ pub trait Pane: Downcast {
         lines: Range<StableRowIndex>,
         rules: &[Rule],
     ) -> (StableRowIndex, Vec<Line>) {
+        if rules.is_empty() {
+            return self.get_lines(lines);
+        }
         let requested_first = lines.start;
         let num_lines = (lines.end - lines.start) as usize;
         let logical = self.get_logical_lines(lines);
