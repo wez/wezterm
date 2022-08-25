@@ -223,10 +223,6 @@ pub trait Pane: Downcast {
     /// screen and the index would go off the bottom.
     /// Because of this, we also return the adjusted StableRowIndex for
     /// the first row in the range.
-    ///
-    /// For each line, if it was dirty in the backing data, then the dirty
-    /// flag will be cleared in the backing data.  The returned line will
-    /// have its dirty bit set appropriately.
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
