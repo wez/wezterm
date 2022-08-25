@@ -1378,7 +1378,8 @@ impl super::TermWindow {
                     if cached.seqno == seqno
                         && cached.stable_range == stable_range
                         && !pane_is_overlay_that_aliases_pane_id(&pos.pane)
-                        && false // FIXME caching busted
+                        && false
+                    // FIXME caching busted
                     {
                         Some((cached.top, Rc::clone(&cached.lines)))
                     } else {
