@@ -199,6 +199,7 @@ fn test_789() {
         zones: [],
         seqno: 5,
         bits: NONE,
+        appdata: None,
     },
 ]
 "#

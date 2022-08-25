@@ -274,6 +274,7 @@ Line {
     zones: [],
     seqno: 1,
     bits: NONE,
+    appdata: None,
 }
 "#
     );
@@ -579,6 +580,7 @@ Line {
     zones: [],
     seqno: 5,
     bits: NONE,
+    appdata: None,
 }
 "#
     );

@@ -9,8 +9,10 @@ use crate::surface::line::vecstorage::{VecStorage, VecStorageIter};
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
+use std::any::Any;
 use std::borrow::Cow;
 use std::ops::Range;
+use std::sync::{Arc, Weak};
 use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::{Direction, ParagraphDirectionHint};
 
@@ -28,12 +30,20 @@ pub enum DoubleClickRange {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Line {
     pub(crate) cells: CellStorage,
     zones: Vec<ZoneRange>,
     seqno: SequenceNo,
     bits: LineBits,
+    #[cfg_attr(feature = "use_serde", serde(skip))]
+    appdata: Option<Weak<dyn Any + Send + Sync>>,
+}
+
+impl PartialEq for Line {
+    fn eq(&self, other: &Self) -> bool {
+        self.seqno == other.seqno && self.bits == other.bits && self.cells == other.cells
+    }
 }
 
 impl Line {
@@ -46,6 +56,7 @@ impl Line {
             cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -56,6 +67,7 @@ impl Line {
             cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -69,6 +81,7 @@ impl Line {
             cells: CellStorage::C(ClusteredLine::new()),
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -81,6 +94,7 @@ impl Line {
             cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -106,6 +120,7 @@ impl Line {
             bits: LineBits::NONE,
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -181,6 +196,23 @@ impl Line {
         } else {
             vec![self]
         }
+    }
+
+    /// Set arbitrary application specific data for the line.
+    /// Only one piece of appdata can be tracked per line,
+    /// so this is only suitable for the overall application
+    /// and not for use by "middleware" crates.
+    /// A Weak reference is stored.
+    /// `get_appdata` is used to retrieve a previously stored reference.
+    pub fn set_appdata(&mut self, appdata: Arc<dyn Any + Send + Sync>) {
+        self.appdata.replace(Arc::downgrade(&appdata));
+    }
+
+    /// Retrieve the appdata for the line, if any.
+    /// This may return None in the case where the underlying data has
+    /// been released: Line only stores a Weak reference to it.
+    pub fn get_appdata(&self) -> Option<Arc<dyn Any + Send + Sync>> {
+        self.appdata.as_ref().and_then(|data| data.upgrade())
     }
 
     /// Returns true if the line's last changed seqno is more recent
@@ -509,6 +541,7 @@ impl Line {
             cells: CellStorage::V(VecStorage::new(cells)),
             seqno,
             zones: vec![],
+            appdata: None,
         }
     }
 
@@ -592,6 +625,7 @@ impl Line {
             cells: CellStorage::V(VecStorage::new(cells)),
             seqno: self.current_seqno(),
             zones: vec![],
+            appdata: None,
         }
     }
 
