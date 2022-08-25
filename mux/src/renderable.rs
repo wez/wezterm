@@ -42,6 +42,8 @@ pub struct RenderableDimensions {
     pub dpi: u32,
     pub pixel_width: usize,
     pub pixel_height: usize,
+    /// True if the lines should be rendered reversed
+    pub reverse_video: bool,
 }
 impl_lua_conversion_dynamic!(RenderableDimensions);
 
@@ -78,14 +80,11 @@ pub fn terminal_get_logical_lines(
 ) -> Vec<LogicalLine> {
     let screen = term.screen();
     let mut result = vec![];
-    let reverse = term.get_reverse_video();
     screen.for_each_logical_line_in_stable_range(lines.clone(), |sr, lines| {
         let mut physical_lines: Vec<Line> = lines
             .iter()
             .map(|line| {
-                let mut line = (*line).clone();
-                let seqno = line.current_seqno();
-                line.set_reverse(reverse, seqno);
+                let line = (*line).clone();
                 line
             })
             .collect();
@@ -113,16 +112,11 @@ pub fn terminal_get_lines(
     term: &mut Terminal,
     lines: Range<StableRowIndex>,
 ) -> (StableRowIndex, Vec<Line>) {
-    let reverse = term.get_reverse_video();
     let screen = term.screen_mut();
     let phys_range = screen.stable_range(&lines);
 
     let first = screen.phys_to_stable_row_index(phys_range.start);
-    let mut lines = screen.lines_in_phys_range(phys_range);
-    for line in &mut lines {
-        let seqno = line.current_seqno();
-        line.set_reverse(reverse, seqno);
-    }
+    let lines = screen.lines_in_phys_range(phys_range);
 
     (first, lines)
 }
@@ -140,5 +134,6 @@ pub fn terminal_get_dimensions(term: &mut Terminal) -> RenderableDimensions {
         dpi: screen.dpi,
         pixel_width: size.pixel_width,
         pixel_height: size.pixel_height,
+        reverse_video: term.get_reverse_video(),
     }
 }

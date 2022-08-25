@@ -14,20 +14,16 @@ bitflags! {
         const HAS_IMPLICIT_HYPERLINKS = 1<<3;
 
         /// true if this line should be displayed with
-        /// foreground/background colors reversed
-        const REVERSE = 1<<4;
-
-        /// true if this line should be displayed with
         /// in double-width
-        const DOUBLE_WIDTH = 1<<5;
+        const DOUBLE_WIDTH = 1<<4;
 
         /// true if this line should be displayed
         /// as double-height top-half
-        const DOUBLE_HEIGHT_TOP = 1<<6;
+        const DOUBLE_HEIGHT_TOP = 1<<5;
 
         /// true if this line should be displayed
         /// as double-height bottom-half
-        const DOUBLE_HEIGHT_BOTTOM = 1<<7;
+        const DOUBLE_HEIGHT_BOTTOM = 1<<6;
 
         const DOUBLE_WIDTH_HEIGHT_MASK =
             Self::DOUBLE_WIDTH.bits |
@@ -44,13 +40,13 @@ bitflags! {
         /// true if the line base direction is RTL.
         /// When BIDI_ENABLED is also true, this is passed to the bidi algorithm.
         /// When rendering, the line will be rendered from RTL.
-        const RTL = 1<<8;
+        const RTL = 1<<7;
 
         /// true if the direction for the line should be auto-detected
         /// when BIDI_ENABLED is also true.
         /// If false, the direction is taken from the RTL bit only.
         /// Otherwise, the auto-detect direction is used, falling back
         /// to the direction specified by the RTL bit.
-        const AUTO_DETECT_DIRECTION = 1<<9;
+        const AUTO_DETECT_DIRECTION = 1<<8;
     }
 }

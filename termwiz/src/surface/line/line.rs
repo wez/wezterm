@@ -233,21 +233,6 @@ impl Line {
         self.seqno = self.seqno.max(seqno);
     }
 
-    /// Check whether the reverse video bit is set.  If it is set,
-    /// then the line should be displayed with foreground/background
-    /// colors reversed.
-    #[inline]
-    pub fn is_reverse(&self) -> bool {
-        self.bits.contains(LineBits::REVERSE)
-    }
-
-    /// Force the reverse bit set.  This also implicitly sets dirty.
-    #[inline]
-    pub fn set_reverse(&mut self, reverse: bool, seqno: SequenceNo) {
-        self.bits.set(LineBits::REVERSE, reverse);
-        self.update_last_change_seqno(seqno);
-    }
-
     /// Check whether the line is single-width.
     #[inline]
     pub fn is_single_width(&self) -> bool {

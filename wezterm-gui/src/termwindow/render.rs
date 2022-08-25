@@ -149,6 +149,7 @@ pub struct LineToElementParams<'a> {
     pub stable_line_idx: StableRowIndex,
     pub window_is_transparent: bool,
     pub cursor: &'a StableCursorPosition,
+    pub reverse_video: bool,
 }
 
 use mux::pane::PaneId;
@@ -1070,6 +1071,7 @@ impl super::TermWindow {
                     dpi: self.terminal_size.dpi,
                     pixel_height: self.render_metrics.cell_size.height as usize,
                     pixel_width: self.terminal_size.pixel_width,
+                    reverse_video: false,
                 },
                 config: &self.config,
                 cursor_border_color: LinearRgba::default(),
@@ -2069,7 +2071,7 @@ impl super::TermWindow {
                     let mut bg_default = bg_is_default;
 
                     // Check the line reverse_video flag and flip.
-                    if attrs.reverse() == !params.line.is_reverse() {
+                    if attrs.reverse() == !params.reverse_video {
                         std::mem::swap(&mut fg, &mut bg);
                         bg_default = false;
                     }
@@ -2398,6 +2400,7 @@ impl super::TermWindow {
             }),
             stable_line_idx: params.stable_line_idx.unwrap_or(0),
             window_is_transparent: params.window_is_transparent,
+            reverse_video: params.dims.reverse_video,
         })?;
 
         let bounding_rect = euclid::rect(
@@ -2414,7 +2417,7 @@ impl super::TermWindow {
             }
         }
 
-        if params.line.is_reverse() {
+        if params.dims.reverse_video {
             let mut quad = self.filled_rectangle(
                 layers,
                 0,
@@ -2459,7 +2462,7 @@ impl super::TermWindow {
                 let mut bg_default = bg_is_default;
 
                 // Check the line reverse_video flag and flip.
-                if attrs.reverse() == !params.line.is_reverse() {
+                if attrs.reverse() == !params.dims.reverse_video {
                     std::mem::swap(&mut fg, &mut bg);
                     bg_default = false;
                 }

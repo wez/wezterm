@@ -76,6 +76,7 @@ impl ClientPane {
                     dpi: size.dpi,
                     pixel_width: size.pixel_width,
                     pixel_height: size.pixel_height,
+                    reverse_video: false,
                 },
                 title,
                 fetch_limiter,
