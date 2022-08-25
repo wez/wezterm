@@ -167,7 +167,9 @@ pub struct LineToElementShapeKey {
 
 impl LineToElementShapeKey {
     pub fn is_cacheable(&self) -> bool {
-        self.pane_id.is_some()
+        // FIXME: it's not generaly valid to cache based on seqno/line idx.
+        // will fix this properly layer, but for now, just bypass caching
+        self.pane_id.is_some() && false
     }
 }
 
@@ -1376,6 +1378,7 @@ impl super::TermWindow {
                     if cached.seqno == seqno
                         && cached.stable_range == stable_range
                         && !pane_is_overlay_that_aliases_pane_id(&pos.pane)
+                        && false // FIXME caching busted
                     {
                         Some((cached.top, Rc::clone(&cached.lines)))
                     } else {
