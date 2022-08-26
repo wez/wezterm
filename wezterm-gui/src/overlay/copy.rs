@@ -5,7 +5,7 @@ use config::keyassignment::{
     ScrollbackEraseMode, SelectionMode,
 };
 use mux::domain::DomainId;
-use mux::pane::{Pane, PaneId, Pattern, SearchResult};
+use mux::pane::{ForEachPaneLogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines};
 use mux::renderable::*;
 use mux::tab::TabId;
 use rangeset::RangeSet;
@@ -1021,6 +1021,18 @@ impl Pane for CopyOverlay {
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
         self.delegate.get_changed_since(lines, seqno)
+    }
+
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
+        todo!();
+    }
+
+    fn for_each_logical_line_in_stable_range_mut(
+        &self,
+        lines: Range<StableRowIndex>,
+        for_line: &mut dyn ForEachPaneLogicalLine,
+    ) {
+        todo!();
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

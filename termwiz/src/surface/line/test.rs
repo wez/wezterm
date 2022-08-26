@@ -274,7 +274,11 @@ Line {
     zones: [],
     seqno: 1,
     bits: NONE,
-    appdata: None,
+    appdata: Mutex {
+        data: None,
+        poisoned: false,
+        ..
+    },
 }
 "#
     );
@@ -580,7 +584,11 @@ Line {
     zones: [],
     seqno: 5,
     bits: NONE,
-    appdata: None,
+    appdata: Mutex {
+        data: None,
+        poisoned: false,
+        ..
+    },
 }
 "#
     );

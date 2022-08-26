@@ -512,6 +512,63 @@ impl Line {
         }
     }
 
+    /// Scan through a logical line that is comprised of an array of
+    /// physical lines and look for sequences that match the provided
+    /// rules.  Matching sequences are considered to be implicit hyperlinks
+    /// and will have a hyperlink attribute associated with them.
+    /// This function will only make changes if the line has been invalidated
+    /// since the last time this function was called.
+    /// This function does not remember the values of the `rules` slice, so it
+    /// is the responsibility of the caller to call `invalidate_implicit_hyperlinks`
+    /// if it wishes to call this function with different `rules`.
+    pub fn apply_hyperlink_rules(rules: &[Rule], logical_line: &mut [&mut Line]) {
+        if rules.is_empty() || logical_line.is_empty() {
+            return;
+        }
+
+        let mut need_scan = false;
+        for line in logical_line.iter() {
+            if !line.bits.contains(LineBits::SCANNED_IMPLICIT_HYPERLINKS) {
+                need_scan = true;
+                break;
+            }
+        }
+        if !need_scan {
+            return;
+        }
+
+        let mut logical = logical_line[0].clone();
+        for line in &logical_line[1..] {
+            let seqno = logical.current_seqno().max(line.current_seqno());
+            logical.append_line((**line).clone(), seqno);
+        }
+        let seq = logical.current_seqno();
+
+        logical.invalidate_implicit_hyperlinks(seq);
+        logical.scan_and_create_hyperlinks(rules);
+
+        if !logical.has_hyperlink() {
+            for line in logical_line.iter_mut() {
+                line.bits.set(LineBits::SCANNED_IMPLICIT_HYPERLINKS, true);
+            }
+            return;
+        }
+
+        // Re-compute the physical lines that comprise this logical line
+        for phys in logical_line.iter_mut() {
+            let wrapped = phys.last_cell_was_wrapped();
+            let is_cluster = matches!(&phys.cells, CellStorage::C(_));
+            let len = phys.len();
+            let remainder = logical.split_off(len, seq);
+            **phys = logical;
+            logical = remainder;
+            phys.set_last_cell_was_wrapped(wrapped, seq);
+            if is_cluster {
+                phys.compress_for_scrollback();
+            }
+        }
+    }
+
     /// Returns true if the line contains a hyperlink
     #[inline]
     pub fn has_hyperlink(&self) -> bool {

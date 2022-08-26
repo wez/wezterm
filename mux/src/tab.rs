@@ -2007,6 +2007,22 @@ mod test {
             unimplemented!();
         }
 
+        fn with_lines_mut(
+            &self,
+            stable_range: Range<StableRowIndex>,
+            with_lines: &mut dyn WithPaneLines,
+        ) {
+            unimplemented!();
+        }
+
+        fn for_each_logical_line_in_stable_range_mut(
+            &self,
+            lines: Range<StableRowIndex>,
+            for_line: &mut dyn ForEachPaneLogicalLine,
+        ) {
+            unimplemented!();
+        }
+
         fn get_lines(&self, _lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
             unimplemented!();
         }

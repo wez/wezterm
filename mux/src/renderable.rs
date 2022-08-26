@@ -1,4 +1,4 @@
-use crate::pane::LogicalLine;
+use crate::pane::{ForEachPaneLogicalLine, LogicalLine, WithPaneLines};
 use luahelper::impl_lua_conversion_dynamic;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
@@ -74,6 +74,17 @@ pub fn terminal_get_dirty_lines(
     set
 }
 
+pub fn terminal_for_each_logical_line_in_stable_range_mut(
+    term: &mut Terminal,
+    lines: Range<StableRowIndex>,
+    for_line: &mut dyn ForEachPaneLogicalLine,
+) {
+    let screen = term.screen_mut();
+    screen.for_each_logical_line_in_stable_range_mut(lines, |stable_range, lines| {
+        for_line.with_logical_line_mut(stable_range, lines)
+    });
+}
+
 pub fn terminal_get_logical_lines(
     term: &mut Terminal,
     lines: Range<StableRowIndex>,
@@ -105,6 +116,31 @@ pub fn terminal_get_logical_lines(
         true
     });
     result
+}
+
+/// Implements Pane::with_lines for Terminal
+pub fn terminal_with_lines<F>(term: &mut Terminal, lines: Range<StableRowIndex>, mut func: F)
+where
+    F: FnMut(StableRowIndex, &[&Line]),
+{
+    let screen = term.screen_mut();
+    let phys_range = screen.stable_range(&lines);
+    let first = screen.phys_to_stable_row_index(phys_range.start);
+
+    screen.with_phys_lines(phys_range, |lines| func(first, lines));
+}
+
+/// Implements Pane::with_lines_mut for Terminal
+pub fn terminal_with_lines_mut(
+    term: &mut Terminal,
+    lines: Range<StableRowIndex>,
+    with_lines: &mut dyn WithPaneLines,
+) {
+    let screen = term.screen_mut();
+    let phys_range = screen.stable_range(&lines);
+    let first = screen.phys_to_stable_row_index(phys_range.start);
+
+    screen.with_phys_lines_mut(phys_range, |lines| with_lines.with_lines_mut(first, lines));
 }
 
 /// Implements Pane::get_lines for Terminal

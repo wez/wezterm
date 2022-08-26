@@ -6,7 +6,10 @@ use async_trait::async_trait;
 use codec::*;
 use config::configuration;
 use mux::domain::DomainId;
-use mux::pane::{alloc_pane_id, CloseReason, Pane, PaneId, Pattern, SearchResult};
+use mux::pane::{
+    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, Pane, PaneId, Pattern, SearchResult,
+    WithPaneLines,
+};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
@@ -199,6 +202,19 @@ impl Pane for ClientPane {
     fn get_dimensions(&self) -> RenderableDimensions {
         self.renderable.borrow().get_dimensions()
     }
+
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
+        todo!();
+    }
+
+    fn for_each_logical_line_in_stable_range_mut(
+        &self,
+        lines: Range<StableRowIndex>,
+        for_line: &mut dyn ForEachPaneLogicalLine,
+    ) {
+        todo!();
+    }
+
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         self.renderable.borrow().get_lines(lines)
     }

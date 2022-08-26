@@ -4,7 +4,9 @@
 //! session.
 
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::pane::{alloc_pane_id, CloseReason, Pane, PaneId};
+use crate::pane::{
+    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, Pane, PaneId, WithPaneLines,
+};
 use crate::renderable::*;
 use crate::tab::Tab;
 use crate::window::WindowId;
@@ -137,6 +139,22 @@ impl Pane for TermWizTerminalPane {
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
         terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
+    }
+
+    fn for_each_logical_line_in_stable_range_mut(
+        &self,
+        lines: Range<StableRowIndex>,
+        for_line: &mut dyn ForEachPaneLogicalLine,
+    ) {
+        terminal_for_each_logical_line_in_stable_range_mut(
+            &mut self.terminal.borrow_mut(),
+            lines,
+            for_line,
+        );
+    }
+
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
+        terminal_with_lines_mut(&mut self.terminal.borrow_mut(), lines, with_lines)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

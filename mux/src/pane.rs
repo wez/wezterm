@@ -224,6 +224,13 @@ pub trait Pane: Downcast {
     /// Because of this, we also return the adjusted StableRowIndex for
     /// the first row in the range.
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines);
+
+    fn for_each_logical_line_in_stable_range_mut(
+        &self,
+        lines: Range<StableRowIndex>,
+        for_line: &mut dyn ForEachPaneLogicalLine,
+    );
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
         // NOTE: see terminal_get_logical_lines() for the implementation that is
@@ -306,6 +313,25 @@ pub trait Pane: Downcast {
             }
         }
         lines
+    }
+
+    fn apply_hyperlinks(&self, lines: Range<StableRowIndex>, rules: &[Rule]) {
+        struct ApplyHyperLinks<'a> {
+            rules: &'a [Rule],
+        }
+        impl<'a> ForEachPaneLogicalLine for ApplyHyperLinks<'a> {
+            fn with_logical_line_mut(
+                &mut self,
+                _: Range<StableRowIndex>,
+                lines: &mut [&mut Line],
+            ) -> bool {
+                Line::apply_hyperlink_rules(self.rules, lines);
+
+                true
+            }
+        }
+
+        self.for_each_logical_line_in_stable_range_mut(lines, &mut ApplyHyperLinks { rules });
     }
 
     fn get_lines_with_hyperlinks_applied(
@@ -457,15 +483,28 @@ pub trait Pane: Downcast {
 }
 impl_downcast!(Pane);
 
+pub trait WithPaneLines {
+    fn with_lines_mut(&mut self, first_row: StableRowIndex, lines: &mut [&mut Line]);
+}
+
+pub trait ForEachPaneLogicalLine {
+    fn with_logical_line_mut(
+        &mut self,
+        stable_range: Range<StableRowIndex>,
+        lines: &mut [&mut Line],
+    ) -> bool;
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use k9::snapshot;
     use std::borrow::Cow;
+    use std::cell::RefCell;
     use termwiz::surface::SEQ_ZERO;
 
     struct FakePane {
-        lines: Vec<Line>,
+        lines: RefCell<Vec<Line>>,
     }
 
     impl Pane for FakePane {
@@ -487,11 +526,38 @@ mod test {
         ) -> RangeSet<StableRowIndex> {
             unimplemented!()
         }
+
+        fn with_lines_mut(
+            &self,
+            stable_range: Range<StableRowIndex>,
+            with_lines: &mut dyn WithPaneLines,
+        ) {
+            let mut line_refs = vec![];
+            let mut lines = self.lines.borrow_mut();
+            for line in lines
+                .iter_mut()
+                .skip(stable_range.start as usize)
+                .take((stable_range.end - stable_range.start) as usize)
+            {
+                line_refs.push(line);
+            }
+            with_lines.with_lines_mut(stable_range.start, &mut line_refs);
+        }
+
+        fn for_each_logical_line_in_stable_range_mut(
+            &self,
+            lines: Range<StableRowIndex>,
+            for_line: &mut dyn ForEachPaneLogicalLine,
+        ) {
+            unimplemented!();
+        }
+
         fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
             let first = lines.start;
             (
                 first,
                 self.lines
+                    .borrow()
                     .iter()
                     .skip(lines.start as usize)
                     .take((lines.end - lines.start) as usize)
@@ -553,7 +619,9 @@ mod test {
     fn hyperlink_rule_apply_preserves_seqno() {
         let text = "Hello https://example.com\nwoot";
         let lines = physical_lines_from_text(text, 5);
-        let pane = FakePane { lines };
+        let pane = FakePane {
+            lines: RefCell::new(lines),
+        };
         let (_first, lines) = pane.get_lines_with_hyperlinks_applied(
             0..2,
             &[Rule {
@@ -704,7 +772,7 @@ mod test {
         );
 
         let pane = FakePane {
-            lines: physical_lines,
+            lines: RefCell::new(physical_lines),
         };
 
         let logical = pane.get_logical_lines(0..30);

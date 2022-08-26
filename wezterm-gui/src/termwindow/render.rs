@@ -7,11 +7,12 @@ use crate::quad::{
     HeapQuadAllocator, Quad, QuadAllocator, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait,
 };
 use crate::renderstate::BorrowedLayers;
+use crate::selection::SelectionRange;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, CachedLogicalLines, CopyOverlay, QuickSelectOverlay, RenderState,
-    ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
+    BorrowedShapeCacheKey, CopyOverlay, QuickSelectOverlay, RenderState, ScrollHit, ShapedInfo,
+    TermWindowNotif, UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -28,7 +29,7 @@ use config::{
     TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
-use mux::pane::Pane;
+use mux::pane::{Pane, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use smol::Timer;
@@ -1334,7 +1335,7 @@ impl super::TermWindow {
 
         let global_cursor_fg = self.palette().cursor_fg;
         let global_cursor_bg = self.palette().cursor_bg;
-        let config = &self.config;
+        let config = self.config.clone();
         let palette = pos.pane.palette();
 
         let (padding_left, padding_top) = self.padding_left_top();
@@ -1359,57 +1360,7 @@ impl super::TermWindow {
         }
 
         let current_viewport = self.get_viewport(pos.pane.pane_id());
-        let (stable_top, lines);
         let dims = pos.pane.get_dimensions();
-
-        {
-            let stable_range = match current_viewport {
-                Some(top) => top..top + dims.viewport_rows as StableRowIndex,
-                None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
-            };
-
-            let seqno = pos.pane.get_current_seqno();
-            let mut state = self.pane_state(pos.pane.pane_id());
-
-            (stable_top, lines) = state
-                .logical_line_cache
-                .as_ref()
-                .and_then(|cached| {
-                    if cached.seqno == seqno
-                        && cached.stable_range == stable_range
-                        && !pane_is_overlay_that_aliases_pane_id(&pos.pane)
-                        && false
-                    // FIXME caching busted
-                    {
-                        Some((cached.top, Rc::clone(&cached.lines)))
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or_else(|| {
-                    let start = Instant::now();
-                    let (top, vp_lines) = pos.pane.get_lines_with_hyperlinks_applied(
-                        stable_range.clone(),
-                        &self.config.hyperlink_rules,
-                    );
-                    metrics::histogram!(
-                        "get_lines_with_hyperlinks_applied.latency",
-                        start.elapsed()
-                    );
-                    log::trace!(
-                        "get_lines_with_hyperlinks_applied took {:?}",
-                        start.elapsed()
-                    );
-                    let lines = Rc::new(vp_lines);
-                    state.logical_line_cache = Some(CachedLogicalLines {
-                        seqno,
-                        stable_range,
-                        top,
-                        lines: Rc::clone(&lines),
-                    });
-                    (top, lines)
-                });
-        }
 
         let gl_state = self.render_state.as_ref().unwrap();
 
@@ -1500,7 +1451,7 @@ impl super::TermWindow {
             // top of this in the configured bell color
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
                 &pos.pane,
-                config,
+                &config,
                 VisualBellTarget::BackgroundColor,
             ) {
                 // target background color
@@ -1622,49 +1573,135 @@ impl super::TermWindow {
         let cursor_is_default_color =
             palette.cursor_fg == global_cursor_fg && palette.cursor_bg == global_cursor_bg;
 
-        for (line_idx, line) in lines.iter().enumerate() {
-            let stable_row = stable_top + line_idx as StableRowIndex;
+        {
+            let stable_range = match current_viewport {
+                Some(top) => top..top + dims.viewport_rows as StableRowIndex,
+                None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
+            };
 
-            let selrange = selrange.map_or(0..0, |sel| sel.cols_for_row(stable_row, rectangular));
-            // Constrain to the pane width!
-            let selrange = selrange.start..selrange.end.min(dims.cols);
+            pos.pane
+                .apply_hyperlinks(stable_range.clone(), &self.config.hyperlink_rules);
 
-            self.render_screen_line_opengl(
-                RenderScreenLineOpenGLParams {
-                    top_pixel_y: top_pixel_y
-                        + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
-                    left_pixel_x: padding_left
-                        + border.left.get() as f32
-                        + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
-                    pixel_width: dims.cols as f32 * self.render_metrics.cell_size.width as f32,
-                    stable_line_idx: Some(stable_row),
-                    line: &line,
-                    selection: selrange,
-                    cursor: &cursor,
-                    palette: &palette,
-                    dims: &dims,
-                    config: &config,
-                    cursor_border_color,
-                    foreground,
-                    is_active: pos.is_active,
-                    pane: Some(&pos.pane),
-                    selection_fg,
-                    selection_bg,
-                    cursor_fg,
-                    cursor_bg,
-                    cursor_is_default_color,
-                    white_space,
-                    filled_box,
-                    window_is_transparent,
-                    default_bg,
-                    font: None,
-                    style: None,
-                    use_pixel_positioning: self.config.experimental_pixel_positioning,
-                    render_metrics: self.render_metrics,
-                },
-                layers,
-            )?;
+            struct LineRender<'a> {
+                term_window: &'a mut super::TermWindow,
+                selrange: Option<SelectionRange>,
+                rectangular: bool,
+                dims: RenderableDimensions,
+                top_pixel_y: f32,
+                pos: &'a PositionedPane,
+                padding_left: f32,
+                border: &'a window::parameters::Border,
+                cursor: &'a StableCursorPosition,
+                palette: &'a ColorPalette,
+                default_bg: LinearRgba,
+                cursor_border_color: LinearRgba,
+                selection_fg: LinearRgba,
+                selection_bg: LinearRgba,
+                cursor_fg: LinearRgba,
+                cursor_bg: LinearRgba,
+                foreground: LinearRgba,
+                cursor_is_default_color: bool,
+                white_space: TextureRect,
+                filled_box: TextureRect,
+                window_is_transparent: bool,
+                layers: HeapQuadAllocator,
+                error: Option<anyhow::Error>,
+            }
+
+            let mut render = LineRender {
+                term_window: self,
+                selrange,
+                rectangular,
+                dims,
+                top_pixel_y,
+                pos,
+                padding_left,
+                border: &border,
+                cursor: &cursor,
+                palette: &palette,
+                cursor_border_color,
+                selection_fg,
+                selection_bg,
+                cursor_fg,
+                default_bg,
+                cursor_bg,
+                foreground,
+                cursor_is_default_color,
+                white_space,
+                filled_box,
+                window_is_transparent,
+                layers: HeapQuadAllocator::default(),
+                error: None,
+            };
+
+            impl<'a> WithPaneLines for LineRender<'a> {
+                fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
+                    for (line_idx, line) in lines.iter().enumerate() {
+                        let stable_row = stable_top + line_idx as StableRowIndex;
+
+                        let selrange = self
+                            .selrange
+                            .map_or(0..0, |sel| sel.cols_for_row(stable_row, self.rectangular));
+                        // Constrain to the pane width!
+                        let selrange = selrange.start..selrange.end.min(self.dims.cols);
+
+                        let res = self.term_window.render_screen_line_opengl_impl(
+                            RenderScreenLineOpenGLParams {
+                                top_pixel_y: self.top_pixel_y
+                                    + (line_idx + self.pos.top) as f32
+                                        * self.term_window.render_metrics.cell_size.height as f32,
+                                left_pixel_x: self.padding_left
+                                    + self.border.left.get() as f32
+                                    + (self.pos.left as f32
+                                        * self.term_window.render_metrics.cell_size.width as f32),
+                                pixel_width: self.dims.cols as f32
+                                    * self.term_window.render_metrics.cell_size.width as f32,
+                                stable_line_idx: Some(stable_row),
+                                line: &line,
+                                selection: selrange,
+                                cursor: &self.cursor,
+                                palette: &self.palette,
+                                dims: &self.dims,
+                                config: &self.term_window.config,
+                                cursor_border_color: self.cursor_border_color,
+                                foreground: self.foreground,
+                                is_active: self.pos.is_active,
+                                pane: Some(&self.pos.pane),
+                                selection_fg: self.selection_fg,
+                                selection_bg: self.selection_bg,
+                                cursor_fg: self.cursor_fg,
+                                cursor_bg: self.cursor_bg,
+                                cursor_is_default_color: self.cursor_is_default_color,
+                                white_space: self.white_space,
+                                filled_box: self.filled_box,
+                                window_is_transparent: self.window_is_transparent,
+                                default_bg: self.default_bg,
+                                font: None,
+                                style: None,
+                                use_pixel_positioning: self
+                                    .term_window
+                                    .config
+                                    .experimental_pixel_positioning,
+                                render_metrics: self.term_window.render_metrics,
+                            },
+                            &mut TripleLayerQuadAllocator::Heap(&mut self.layers),
+                        );
+
+                        if let Err(error) = res {
+                            self.error.replace(error);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            pos.pane.with_lines_mut(stable_range.clone(), &mut render);
+            if let Some(error) = render.error.take() {
+                return Err(error);
+            }
+            render.layers.apply_to(layers)?;
         }
+
         /*
         if let Some(zone) = zone {
             // TODO: render a thingy to jump to prior prompt
@@ -2314,6 +2351,13 @@ impl super::TermWindow {
         params: RenderScreenLineOpenGLParams,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
+        if params.line.is_double_height_bottom() {
+            // The top and bottom lines are required to have the same content.
+            // For the sake of simplicity, we render both of them as part of
+            // rendering the top row, so we have nothing more to do here.
+            return Ok(());
+        }
+
         let gl_state = self.render_state.as_ref().unwrap();
 
         let num_cols = params.dims.cols;

@@ -1,5 +1,8 @@
 use crate::domain::DomainId;
-use crate::pane::{CloseReason, LogicalLine, Pane, PaneId, Pattern, SearchResult};
+use crate::pane::{
+    CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult,
+    WithPaneLines,
+};
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux, MuxNotification};
@@ -90,6 +93,22 @@ impl Pane for LocalPane {
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
         terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
+    }
+
+    fn for_each_logical_line_in_stable_range_mut(
+        &self,
+        lines: Range<StableRowIndex>,
+        for_line: &mut dyn ForEachPaneLogicalLine,
+    ) {
+        terminal_for_each_logical_line_in_stable_range_mut(
+            &mut self.terminal.borrow_mut(),
+            lines,
+            for_line,
+        );
+    }
+
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
+        terminal_with_lines_mut(&mut self.terminal.borrow_mut(), lines, with_lines)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
