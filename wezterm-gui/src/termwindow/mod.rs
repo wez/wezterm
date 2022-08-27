@@ -427,6 +427,11 @@ pub struct TermWindow {
 
     created: Instant,
 
+    pub last_frame_duration: Duration,
+    last_fps_check_time: Instant,
+    num_frames: usize,
+    pub fps: f32,
+
     gl: Option<Rc<glium::backend::Context>>,
     config_subscription: Option<config::ConfigSubscription>,
 }
@@ -645,6 +650,10 @@ impl TermWindow {
 
         let myself = Self {
             created: Instant::now(),
+            last_fps_check_time: Instant::now(),
+            num_frames: 0,
+            last_frame_duration: Duration::ZERO,
+            fps: 0.,
             config_subscription: None,
             os_parameters: None,
             gl: None,

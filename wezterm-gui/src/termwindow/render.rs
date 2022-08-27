@@ -36,7 +36,7 @@ use std::any::Any;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
@@ -296,6 +296,7 @@ pub struct ClusterStyleCache<'a> {
 
 impl super::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
+        self.num_frames += 1;
         // If nothing on screen needs animating, then we can avoid
         // invalidating as frequently
         *self.has_animation.borrow_mut() = None;
@@ -303,6 +304,16 @@ impl super::TermWindow {
         self.allow_images = true;
 
         let start = Instant::now();
+
+        {
+            let diff = start.duration_since(self.last_fps_check_time);
+            if diff > Duration::from_secs(1) {
+                let seconds = diff.as_secs_f32();
+                self.fps = self.num_frames as f32 / seconds;
+                self.num_frames = 0;
+                self.last_fps_check_time = start;
+            }
+        }
 
         frame.clear_color(0., 0., 0., 0.);
 
@@ -372,8 +383,9 @@ impl super::TermWindow {
         log::debug!("paint_impl before call_draw elapsed={:?}", start.elapsed());
 
         self.call_draw(frame).ok();
-        log::debug!("paint_impl elapsed={:?}", start.elapsed());
-        metrics::histogram!("gui.paint.opengl", start.elapsed());
+        self.last_frame_duration = start.elapsed();
+        log::debug!("paint_impl elapsed={:?}, fps={}", self.last_frame_duration, self.fps);
+        metrics::histogram!("gui.paint.opengl", self.last_frame_duration);
         metrics::histogram!("gui.paint.opengl.rate", 1.);
         self.update_title_post_status();
 
