@@ -1705,6 +1705,7 @@ impl super::TermWindow {
                                 cached.layers.apply_to(&mut TripleLayerQuadAllocator::Heap(
                                     &mut self.layers,
                                 ))?;
+                                self.term_window.update_next_frame_time(cached.expires);
                                 // Touch it in the LRU
                                 self.term_window
                                     .line_render_cache
