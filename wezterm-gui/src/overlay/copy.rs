@@ -1023,16 +1023,126 @@ impl Pane for CopyOverlay {
         self.delegate.get_changed_since(lines, seqno)
     }
 
-    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
-        todo!();
-    }
-
     fn for_each_logical_line_in_stable_range_mut(
         &self,
         lines: Range<StableRowIndex>,
         for_line: &mut dyn ForEachPaneLogicalLine,
     ) {
-        todo!();
+        self.delegate
+            .for_each_logical_line_in_stable_range_mut(lines, for_line);
+    }
+
+    fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
+        // Take care to access self.delegate methods here before we get into
+        // calling into its own with_lines_mut to avoid a runtime
+        // borrow erro!
+        let mut renderer = self.render.borrow_mut();
+        if self.delegate.get_current_seqno() > renderer.last_result_seqno {
+            renderer.update_search();
+        }
+        renderer.check_for_resize();
+        let dims = self.get_dimensions();
+        let search_row = renderer.compute_search_row();
+
+        struct OverlayLines<'a> {
+            with_lines: &'a mut dyn WithPaneLines,
+            dims: RenderableDimensions,
+            search_row: StableRowIndex,
+            renderer: &'a mut CopyRenderable,
+        }
+
+        self.delegate.with_lines_mut(
+            lines,
+            &mut OverlayLines {
+                with_lines,
+                dims,
+                search_row,
+                renderer: &mut *renderer,
+            },
+        );
+
+        impl<'a> WithPaneLines for OverlayLines<'a> {
+            fn with_lines_mut(&mut self, first_row: StableRowIndex, lines: &mut [&mut Line]) {
+                let mut overlay_lines = vec![];
+                let config = config::configuration();
+                let colors = &config.resolved_palette;
+
+                for (idx, line) in lines.iter_mut().enumerate() {
+                    let mut line: Line = line.clone();
+
+                    let stable_idx = idx as StableRowIndex + first_row;
+                    self.renderer.dirty_results.remove(stable_idx);
+                    if stable_idx == self.search_row
+                        && (self.renderer.editing_search || !self.renderer.pattern.is_empty())
+                    {
+                        // Replace with search UI
+                        let rev = CellAttributes::default().set_reverse(true).clone();
+                        line.fill_range(0..self.dims.cols, &Cell::new(' ', rev.clone()), SEQ_ZERO);
+                        let mode = &match self.renderer.pattern {
+                            Pattern::CaseSensitiveString(_) => "case-sensitive",
+                            Pattern::CaseInSensitiveString(_) => "ignore-case",
+                            Pattern::Regex(_) => "regex",
+                        };
+                        line.overlay_text_with_attribute(
+                            0,
+                            &format!(
+                                "Search: {} ({}/{} matches. {})",
+                                *self.renderer.pattern,
+                                self.renderer.result_pos.map(|x| x + 1).unwrap_or(0),
+                                self.renderer.results.len(),
+                                mode
+                            ),
+                            rev,
+                            SEQ_ZERO,
+                        );
+                        self.renderer.last_bar_pos = Some(self.search_row);
+                        line.clear_appdata();
+                    } else if let Some(matches) = self.renderer.by_line.get(&stable_idx) {
+                        for m in matches {
+                            // highlight
+                            for cell_idx in m.range.clone() {
+                                if let Some(cell) =
+                                    line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
+                                {
+                                    if Some(m.result_index) == self.renderer.result_pos {
+                                        cell.attrs_mut()
+                                            .set_background(
+                                                colors
+                                                    .copy_mode_active_highlight_bg
+                                                    .unwrap_or(AnsiColor::Yellow.into()),
+                                            )
+                                            .set_foreground(
+                                                colors
+                                                    .copy_mode_active_highlight_fg
+                                                    .unwrap_or(AnsiColor::Black.into()),
+                                            )
+                                            .set_reverse(false);
+                                    } else {
+                                        cell.attrs_mut()
+                                            .set_background(
+                                                colors
+                                                    .copy_mode_inactive_highlight_bg
+                                                    .unwrap_or(AnsiColor::Fuchsia.into()),
+                                            )
+                                            .set_foreground(
+                                                colors
+                                                    .copy_mode_inactive_highlight_fg
+                                                    .unwrap_or(AnsiColor::Black.into()),
+                                            )
+                                            .set_reverse(false);
+                                    }
+                                }
+                            }
+                        }
+                        line.clear_appdata();
+                    }
+                    overlay_lines.push(line);
+                }
+
+                let mut overlay_refs: Vec<&mut Line> = overlay_lines.iter_mut().collect();
+                self.with_lines.with_lines_mut(first_row, &mut overlay_refs);
+            }
+        }
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

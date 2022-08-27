@@ -223,6 +223,10 @@ impl Line {
             .replace(Arc::downgrade(&appdata));
     }
 
+    pub fn clear_appdata(&self) {
+        self.appdata.lock().unwrap().take();
+    }
+
     /// Retrieve the appdata for the line, if any.
     /// This may return None in the case where the underlying data has
     /// been released: Line only stores a Weak reference to it.
