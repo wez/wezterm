@@ -36,7 +36,7 @@ use std::any::Any;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
@@ -384,7 +384,11 @@ impl super::TermWindow {
 
         self.call_draw(frame).ok();
         self.last_frame_duration = start.elapsed();
-        log::debug!("paint_impl elapsed={:?}, fps={}", self.last_frame_duration, self.fps);
+        log::debug!(
+            "paint_impl elapsed={:?}, fps={}",
+            self.last_frame_duration,
+            self.fps
+        );
         metrics::histogram!("gui.paint.opengl", self.last_frame_duration);
         metrics::histogram!("gui.paint.opengl.rate", 1.);
         self.update_title_post_status();
