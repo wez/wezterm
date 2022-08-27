@@ -160,6 +160,7 @@ pub struct LineRenderCache {
     pub left_pixel_x: f32,
     pub phys_line_idx: usize,
     pub cursor_x: Option<usize>,
+    pub reverse_video: bool,
 
     // Value portion
     pub layers: HeapQuadAllocator,
@@ -1667,14 +1668,15 @@ impl super::TermWindow {
 
                     let mut shape_id = None;
 
-                    if let Some(cached) = line.get_appdata() {
-                        if let Some(cached) = cached.downcast_ref::<LineRenderCache>() {
+                    if let Some(cached_arc) = line.get_appdata() {
+                        if let Some(cached) = cached_arc.downcast_ref::<LineRenderCache>() {
                             let expired =
                                 cached.expires.map(|i| Instant::now() >= i).unwrap_or(false);
                             let shape_consistent = cached.config_generation
                                 == self.term_window.config.generation()
                                 && cached.shape_generation == self.term_window.shape_generation
                                 && cached.seqno == line.current_seqno()
+                                && cached.reverse_video == self.dims.reverse_video
                                 && cached.composing == composing;
                             let quad_consistent = cached.selection == selrange
                                 && cached.top_pixel_y == self.top_pixel_y
@@ -1684,14 +1686,14 @@ impl super::TermWindow {
                                 && cached.phys_line_idx == line_idx;
 
                             if shape_consistent && quad_consistent && !expired {
+                                cached.layers.apply_to(&mut TripleLayerQuadAllocator::Heap(
+                                    &mut self.layers,
+                                ))?;
                                 // Touch it in the LRU
                                 self.term_window
                                     .line_render_cache
                                     .borrow_mut()
-                                    .get(&cached.id);
-                                cached.layers.apply_to(&mut TripleLayerQuadAllocator::Heap(
-                                    &mut self.layers,
-                                ))?;
+                                    .put(cached.id, cached_arc);
                                 return Ok(());
                             }
 
@@ -1773,6 +1775,7 @@ impl super::TermWindow {
                         left_pixel_x: self.left_pixel_x,
                         phys_line_idx: line_idx,
                         layers: buf,
+                        reverse_video: self.dims.reverse_video,
                         expires,
                     });
 
