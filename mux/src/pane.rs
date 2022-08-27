@@ -403,11 +403,34 @@ pub trait Pane: Downcast {
 }
 impl_downcast!(Pane);
 
+/// This trait is used to implement/provide a callback that is used together
+/// with the Pane::with_lines_mut method.
+/// Ideally we'd simply pass an FnMut with the same signature as the trait
+/// method defined here, but doing so results in Pane not being object-safe.
 pub trait WithPaneLines {
+    /// The `first_row` parameter is set to the StableRowIndex of the resolved
+    /// first row from the Pane::with_lines_mut method. It will usually be
+    /// the start of the lines range, but in case that row is no longer in
+    /// a valid range (scrolled out of scrollback), it may be revised.
+    ///
+    /// `lines` is a mutable slice of the mutable lines in the requested
+    /// stable range.
     fn with_lines_mut(&mut self, first_row: StableRowIndex, lines: &mut [&mut Line]);
 }
 
+/// This trait is used to implement/provide a callback that is used together
+/// with the Pane::for_each_logical_line_in_stable_range_mut method.
+/// Ideally we'd simply pass an FnMut with the same signature as the trait
+/// method defined here, but doing so results in Pane not being object-safe.
 pub trait ForEachPaneLogicalLine {
+    /// The `stable_range` parameter is set to the range of physical lines
+    /// that comprise the current logical line.
+    ///
+    /// `lines` is a mutable slice of the mutable physical lines that comprise
+    /// the current logical line.
+    ///
+    /// Return `true` to continue with the next logical line in the requested
+    /// range, or `false` to cease iteration.
     fn with_logical_line_mut(
         &mut self,
         stable_range: Range<StableRowIndex>,
@@ -415,6 +438,12 @@ pub trait ForEachPaneLogicalLine {
     ) -> bool;
 }
 
+/// A helper that allows you to implement Pane::with_lines_mut in terms
+/// of your existing Pane::get_lines method.
+///
+/// The mutability is really a lie: while `with_lines` is passed something
+/// that is mutable, it is operating on a copy the lines that won't persist
+/// beyond the call to Pane::with_lines_mut.
 pub fn impl_with_lines_via_get_lines<P: Pane + ?Sized>(
     pane: &P,
     lines: Range<StableRowIndex>,
@@ -428,6 +457,12 @@ pub fn impl_with_lines_via_get_lines<P: Pane + ?Sized>(
     with_lines.with_lines_mut(first, &mut line_refs);
 }
 
+/// A helper that allows you to implement Pane::for_each_logical_line_in_stable_range_mut
+/// in terms of your existing Pane::get_logical_lines method.
+///
+/// The mutability is really a lie: while `with_lines` is passed something
+/// that is mutable, it is operating on a copy the lines that won't persist
+/// beyond the call to Pane::with_lines_mut.
 pub fn impl_for_each_logical_line_via_get_logical_lines<P: Pane + ?Sized>(
     pane: &P,
     lines: Range<StableRowIndex>,
@@ -449,6 +484,8 @@ pub fn impl_for_each_logical_line_via_get_logical_lines<P: Pane + ?Sized>(
     }
 }
 
+/// A helper that allows you to implement Pane::get_logical_lines in terms of
+/// your Pane::get_lines method.
 pub fn impl_get_logical_lines_via_get_lines<P: Pane + ?Sized>(
     pane: &P,
     lines: Range<StableRowIndex>,
@@ -532,6 +569,8 @@ pub fn impl_get_logical_lines_via_get_lines<P: Pane + ?Sized>(
     lines
 }
 
+/// A helper that allows you to implement Pane::get_lines in terms
+/// of your Pane::with_lines_mut method.
 pub fn impl_get_lines_via_with_lines<P: Pane + ?Sized>(
     pane: &P,
     lines: Range<StableRowIndex>,
