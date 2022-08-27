@@ -3,7 +3,9 @@ use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{ClipboardCopyDestination, QuickSelectArguments, ScrollbackEraseMode};
 use config::ConfigHandle;
 use mux::domain::DomainId;
-use mux::pane::{ForEachPaneLogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines};
+use mux::pane::{
+    ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines,
+};
 use mux::renderable::*;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -459,6 +461,10 @@ impl Pane for QuickSelectOverlay {
     ) {
         self.delegate
             .for_each_logical_line_in_stable_range_mut(lines, for_line);
+    }
+
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        self.delegate.get_logical_lines(lines)
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {

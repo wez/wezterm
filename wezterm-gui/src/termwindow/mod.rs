@@ -48,13 +48,13 @@ use smol::Timer;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use std::ops::{Add, Range};
+use std::ops::Add;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
-use termwiz::surface::{Line, SequenceNo};
+use termwiz::surface::SequenceNo;
 use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
 use wezterm_gui_subcommands::GuiPosition;
@@ -190,19 +190,6 @@ pub struct PaneState {
 
     bell_start: Option<Instant>,
     pub mouse_terminal_coords: Option<(ClickPosition, StableRowIndex)>,
-
-    /// Cache to avoid calling pane.get_lines_with_hyperlinks_applied
-    /// if the pane hasn't changed since the last render
-    pub logical_line_cache: Option<CachedLogicalLines>,
-}
-
-pub struct CachedLogicalLines {
-    // Key fields
-    pub seqno: SequenceNo,
-    pub stable_range: Range<StableRowIndex>,
-    // Value fields
-    pub top: StableRowIndex,
-    pub lines: Rc<Vec<Line>>,
 }
 
 /// Data used when synchronously formatting pane and window titles

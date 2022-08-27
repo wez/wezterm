@@ -716,13 +716,6 @@ impl RenderableState {
         self.inner.borrow().cursor_position
     }
 
-    pub fn with_lines<F>(&self, lines: Range<StableRowIndex>, func: F)
-    where
-        F: FnMut(StableRowIndex, &[&Line]),
-    {
-        todo!();
-    }
-
     pub fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let mut inner = self.inner.borrow_mut();
         let mut result = vec![];

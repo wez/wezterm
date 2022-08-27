@@ -224,6 +224,7 @@ pub trait Pane: Downcast {
     /// Because of this, we also return the adjusted StableRowIndex for
     /// the first row in the range.
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
+
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines);
 
     fn for_each_logical_line_in_stable_range_mut(
@@ -232,88 +233,7 @@ pub trait Pane: Downcast {
         for_line: &mut dyn ForEachPaneLogicalLine,
     );
 
-    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
-        // NOTE: see terminal_get_logical_lines() for the implementation that is
-        // actually used by most panes; this particular method is the fallback
-        // implementation for other Panes.
-        let (mut first, mut phys) = self.get_lines(lines);
-
-        // Avoid pathological cases where we have eg: a really long logical line
-        // (such as 1.5MB of json) that we previously wrapped.  We don't want to
-        // un-wrap, scan, and re-wrap that thing.
-        // This is an imperfect length constraint to partially manage the cost.
-        const MAX_LOGICAL_LINE_LEN: usize = 1024;
-        let mut back_len = 0;
-
-        // Look backwards to find the start of the first logical line
-        while first > 0 {
-            let (prior, back) = self.get_lines(first - 1..first);
-            if prior == first {
-                break;
-            }
-            if !back[0].last_cell_was_wrapped() {
-                break;
-            }
-            if back[0].len() + back_len > MAX_LOGICAL_LINE_LEN {
-                break;
-            }
-            back_len += back[0].len();
-            first = prior;
-            for (idx, line) in back.into_iter().enumerate() {
-                phys.insert(idx, line);
-            }
-        }
-
-        // Look forwards to find the end of the last logical line
-        while let Some(last) = phys.last() {
-            if !last.last_cell_was_wrapped() {
-                break;
-            }
-            if last.len() > MAX_LOGICAL_LINE_LEN {
-                break;
-            }
-
-            let next_row = first + phys.len() as StableRowIndex;
-            let (last_row, mut ahead) = self.get_lines(next_row..next_row + 1);
-            if last_row != next_row {
-                break;
-            }
-            phys.append(&mut ahead);
-        }
-
-        // Now process this stuff into logical lines
-        let mut lines = vec![];
-        for (idx, line) in phys.into_iter().enumerate() {
-            match lines.last_mut() {
-                None => {
-                    let logical = line.clone();
-                    lines.push(LogicalLine {
-                        physical_lines: vec![line],
-                        logical,
-                        first_row: first + idx as StableRowIndex,
-                    });
-                }
-                Some(prior) => {
-                    if prior.logical.last_cell_was_wrapped()
-                        && prior.logical.len() <= MAX_LOGICAL_LINE_LEN
-                    {
-                        let seqno = prior.logical.current_seqno().max(line.current_seqno());
-                        prior.logical.set_last_cell_was_wrapped(false, seqno);
-                        prior.logical.append_line(line.clone(), seqno);
-                        prior.physical_lines.push(line);
-                    } else {
-                        let logical = line.clone();
-                        lines.push(LogicalLine {
-                            physical_lines: vec![line],
-                            logical,
-                            first_row: first + idx as StableRowIndex,
-                        });
-                    }
-                }
-            }
-        }
-        lines
-    }
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine>;
 
     fn apply_hyperlinks(&self, lines: Range<StableRowIndex>, rules: &[Rule]) {
         struct ApplyHyperLinks<'a> {
@@ -495,6 +415,150 @@ pub trait ForEachPaneLogicalLine {
     ) -> bool;
 }
 
+pub fn impl_with_lines_via_get_lines<P: Pane + ?Sized>(
+    pane: &P,
+    lines: Range<StableRowIndex>,
+    with_lines: &mut dyn WithPaneLines,
+) {
+    let (first, mut lines) = pane.get_lines(lines);
+    let mut line_refs = vec![];
+    for line in lines.iter_mut() {
+        line_refs.push(line);
+    }
+    with_lines.with_lines_mut(first, &mut line_refs);
+}
+
+pub fn impl_for_each_logical_line_via_get_logical_lines<P: Pane + ?Sized>(
+    pane: &P,
+    lines: Range<StableRowIndex>,
+    for_line: &mut dyn ForEachPaneLogicalLine,
+) {
+    let mut logical = pane.get_logical_lines(lines);
+
+    for line in &mut logical {
+        let num_lines = line.physical_lines.len() as StableRowIndex;
+        let mut line_refs = vec![];
+        for phys in line.physical_lines.iter_mut() {
+            line_refs.push(phys);
+        }
+        let should_continue = for_line
+            .with_logical_line_mut(line.first_row..line.first_row + num_lines, &mut line_refs);
+        if !should_continue {
+            break;
+        }
+    }
+}
+
+pub fn impl_get_logical_lines_via_get_lines<P: Pane + ?Sized>(
+    pane: &P,
+    lines: Range<StableRowIndex>,
+) -> Vec<LogicalLine> {
+    let (mut first, mut phys) = pane.get_lines(lines);
+
+    // Avoid pathological cases where we have eg: a really long logical line
+    // (such as 1.5MB of json) that we previously wrapped.  We don't want to
+    // un-wrap, scan, and re-wrap that thing.
+    // This is an imperfect length constraint to partially manage the cost.
+    const MAX_LOGICAL_LINE_LEN: usize = 1024;
+    let mut back_len = 0;
+
+    // Look backwards to find the start of the first logical line
+    while first > 0 {
+        let (prior, back) = pane.get_lines(first - 1..first);
+        if prior == first {
+            break;
+        }
+        if !back[0].last_cell_was_wrapped() {
+            break;
+        }
+        if back[0].len() + back_len > MAX_LOGICAL_LINE_LEN {
+            break;
+        }
+        back_len += back[0].len();
+        first = prior;
+        for (idx, line) in back.into_iter().enumerate() {
+            phys.insert(idx, line);
+        }
+    }
+
+    // Look forwards to find the end of the last logical line
+    while let Some(last) = phys.last() {
+        if !last.last_cell_was_wrapped() {
+            break;
+        }
+        if last.len() > MAX_LOGICAL_LINE_LEN {
+            break;
+        }
+
+        let next_row = first + phys.len() as StableRowIndex;
+        let (last_row, mut ahead) = pane.get_lines(next_row..next_row + 1);
+        if last_row != next_row {
+            break;
+        }
+        phys.append(&mut ahead);
+    }
+
+    // Now process this stuff into logical lines
+    let mut lines = vec![];
+    for (idx, line) in phys.into_iter().enumerate() {
+        match lines.last_mut() {
+            None => {
+                let logical = line.clone();
+                lines.push(LogicalLine {
+                    physical_lines: vec![line],
+                    logical,
+                    first_row: first + idx as StableRowIndex,
+                });
+            }
+            Some(prior) => {
+                if prior.logical.last_cell_was_wrapped()
+                    && prior.logical.len() <= MAX_LOGICAL_LINE_LEN
+                {
+                    let seqno = prior.logical.current_seqno().max(line.current_seqno());
+                    prior.logical.set_last_cell_was_wrapped(false, seqno);
+                    prior.logical.append_line(line.clone(), seqno);
+                    prior.physical_lines.push(line);
+                } else {
+                    let logical = line.clone();
+                    lines.push(LogicalLine {
+                        physical_lines: vec![line],
+                        logical,
+                        first_row: first + idx as StableRowIndex,
+                    });
+                }
+            }
+        }
+    }
+    lines
+}
+
+pub fn impl_get_lines_via_with_lines<P: Pane + ?Sized>(
+    pane: &P,
+    lines: Range<StableRowIndex>,
+) -> (StableRowIndex, Vec<Line>) {
+    struct LineCollector {
+        first: StableRowIndex,
+        lines: Vec<Line>,
+    }
+
+    let mut collector = LineCollector {
+        first: 0,
+        lines: vec![],
+    };
+
+    impl WithPaneLines for LineCollector {
+        fn with_lines_mut(&mut self, first_row: StableRowIndex, lines: &mut [&mut Line]) {
+            self.first = first_row;
+            for line in lines.iter_mut() {
+                self.lines.push(line.clone());
+            }
+        }
+    }
+
+    pane.with_lines_mut(lines, &mut collector);
+    (collector.first, collector.lines)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -549,7 +613,11 @@ mod test {
             lines: Range<StableRowIndex>,
             for_line: &mut dyn ForEachPaneLogicalLine,
         ) {
-            unimplemented!();
+            crate::pane::impl_for_each_logical_line_via_get_logical_lines(self, lines, for_line)
+        }
+
+        fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+            crate::pane::impl_get_logical_lines_via_get_lines(self, lines)
         }
 
         fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
@@ -652,88 +720,6 @@ mod test {
             }
         }
         physical_lines
-    }
-
-    #[test]
-    fn logical_lines_terminal() {
-        use wezterm_term::{Terminal, TerminalConfiguration};
-
-        #[derive(Debug)]
-        struct TermConfig {}
-        impl TerminalConfiguration for TermConfig {
-            fn color_palette(&self) -> ColorPalette {
-                ColorPalette::default()
-            }
-        }
-
-        let mut terminal = Terminal::new(
-            TerminalSize {
-                rows: 24,
-                cols: 20,
-                pixel_width: 0,
-                pixel_height: 0,
-                dpi: 0,
-            },
-            Arc::new(TermConfig {}),
-            "WezTerm",
-            "o_O",
-            Box::new(Vec::new()),
-        );
-
-        let text = "Hello there this is a long line.\r\nlogical line two\r\nanother long line here\r\nlogical line four\r\nlogical line five\r\ncap it off with another long line";
-        terminal.advance_bytes(text.as_bytes());
-
-        let logical = terminal_get_logical_lines(&mut terminal, 0..9);
-
-        snapshot!(
-            summarize_logical_lines(&logical),
-            r#"
-[
-    (
-        0,
-        "Hello there this is a long line.",
-    ),
-    (
-        2,
-        "logical line two",
-    ),
-    (
-        3,
-        "another long line here",
-    ),
-    (
-        5,
-        "logical line four",
-    ),
-    (
-        6,
-        "logical line five",
-    ),
-    (
-        7,
-        "cap it off with another long line",
-    ),
-]
-"#
-        );
-
-        // Now try with offset bounds
-        let offset = terminal_get_logical_lines(&mut terminal, 1..3);
-        snapshot!(
-            summarize_logical_lines(&offset),
-            r#"
-[
-    (
-        0,
-        "Hello there this is a long line.",
-    ),
-    (
-        2,
-        "logical line two",
-    ),
-]
-"#
-        );
     }
 
     fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, Cow<str>)> {

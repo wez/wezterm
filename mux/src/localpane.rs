@@ -22,14 +22,15 @@ use std::io::{Result as IoResult, Write};
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use termwiz::escape::DeviceControlMode;
+use termwiz::escape::csi::{Sgr, CSI};
+use termwiz::escape::{Action, ControlCode, DeviceControlMode};
 use termwiz::input::KeyboardEncoding;
-use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
+use termwiz::surface::{Line, SequenceNo};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, AlertHandler, CellAttributes, Clipboard, DownloadHandler, KeyCode, KeyModifiers,
-    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
+    Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent,
+    SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
 
 #[derive(Debug)]
@@ -112,28 +113,11 @@ impl Pane for LocalPane {
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        let (first, mut lines) = terminal_get_lines(&mut self.terminal.borrow_mut(), lines);
-
-        if self.tmux_domain.borrow().is_some() {
-            let cursor = terminal_get_cursor_position(&mut self.terminal.borrow_mut());
-            let idx = cursor.y as isize - first as isize;
-            if idx > 0 {
-                if let Some(line) = lines.get_mut(idx as usize) {
-                    line.overlay_text_with_attribute(
-                        0,
-                        "This pane is running tmux control mode. Press q to detach.",
-                        CellAttributes::default(),
-                        SEQ_ZERO,
-                    );
-                }
-            }
-        }
-
-        (first, lines)
+        crate::pane::impl_get_lines_via_with_lines(self, lines)
     }
 
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
-        terminal_get_logical_lines(&mut self.terminal.borrow_mut(), lines)
+        crate::pane::impl_get_logical_lines_via_get_lines(self, lines)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
@@ -681,6 +665,27 @@ struct LocalPaneDCSHandler {
     tmux_domain: Option<Arc<TmuxDomainState>>,
 }
 
+fn emit_output_for_pane(pane_id: PaneId, message: &str) {
+    let mut actions = vec![
+        Action::CSI(CSI::Sgr(Sgr::Reset)),
+        Action::Control(ControlCode::CarriageReturn),
+        Action::Control(ControlCode::LineFeed),
+    ];
+    for c in message.chars() {
+        actions.push(Action::Print(c));
+    }
+    actions.push(Action::Control(ControlCode::CarriageReturn));
+    actions.push(Action::Control(ControlCode::LineFeed));
+
+    promise::spawn::spawn_into_main_thread(async move {
+        let mux = Mux::get().unwrap();
+        if let Some(pane) = mux.get_pane(pane_id) {
+            pane.perform_actions(actions);
+        }
+    })
+    .detach();
+}
+
 impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
     fn handle_device_control(&mut self, control: termwiz::escape::DeviceControlMode) {
         match control {
@@ -705,6 +710,11 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                         pane.tmux_domain
                             .borrow_mut()
                             .replace(Arc::clone(&tmux_domain));
+
+                        emit_output_for_pane(
+                            self.pane_id,
+                            "[This pane is running tmux control mode. Press q to detach]",
+                        );
                     }
 
                     self.tmux_domain.replace(tmux_domain);

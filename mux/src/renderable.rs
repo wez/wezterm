@@ -1,4 +1,4 @@
-use crate::pane::{ForEachPaneLogicalLine, LogicalLine, WithPaneLines};
+use crate::pane::{ForEachPaneLogicalLine, WithPaneLines};
 use luahelper::impl_lua_conversion_dynamic;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
@@ -83,39 +83,6 @@ pub fn terminal_for_each_logical_line_in_stable_range_mut(
     screen.for_each_logical_line_in_stable_range_mut(lines, |stable_range, lines| {
         for_line.with_logical_line_mut(stable_range, lines)
     });
-}
-
-pub fn terminal_get_logical_lines(
-    term: &mut Terminal,
-    lines: Range<StableRowIndex>,
-) -> Vec<LogicalLine> {
-    let screen = term.screen();
-    let mut result = vec![];
-    screen.for_each_logical_line_in_stable_range(lines.clone(), |sr, lines| {
-        let mut physical_lines: Vec<Line> = lines
-            .iter()
-            .map(|line| {
-                let line = (*line).clone();
-                line
-            })
-            .collect();
-
-        let mut logical = physical_lines[0].clone();
-        for line in &mut physical_lines[1..] {
-            let seqno = line.current_seqno();
-            logical.set_last_cell_was_wrapped(false, seqno);
-            logical.append_line((*line).clone(), seqno);
-        }
-
-        result.push(LogicalLine {
-            physical_lines,
-            logical,
-            first_row: sr.start,
-        });
-
-        true
-    });
-    result
 }
 
 /// Implements Pane::with_lines for Terminal

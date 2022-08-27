@@ -5,7 +5,7 @@
 
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{
-    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, Pane, PaneId, WithPaneLines,
+    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, WithPaneLines,
 };
 use crate::renderable::*;
 use crate::tab::Tab;
@@ -151,6 +151,10 @@ impl Pane for TermWizTerminalPane {
             lines,
             for_line,
         );
+    }
+
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        crate::pane::impl_get_logical_lines_via_get_lines(self, lines)
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {

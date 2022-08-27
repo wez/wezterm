@@ -7,8 +7,8 @@ use codec::*;
 use config::configuration;
 use mux::domain::DomainId;
 use mux::pane::{
-    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, Pane, PaneId, Pattern, SearchResult,
-    WithPaneLines,
+    alloc_pane_id, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
+    SearchResult, WithPaneLines,
 };
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
@@ -204,7 +204,7 @@ impl Pane for ClientPane {
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
-        todo!();
+        mux::pane::impl_with_lines_via_get_lines(self, lines, with_lines);
     }
 
     fn for_each_logical_line_in_stable_range_mut(
@@ -212,11 +212,15 @@ impl Pane for ClientPane {
         lines: Range<StableRowIndex>,
         for_line: &mut dyn ForEachPaneLogicalLine,
     ) {
-        todo!();
+        mux::pane::impl_for_each_logical_line_via_get_logical_lines(self, lines, for_line);
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         self.renderable.borrow().get_lines(lines)
+    }
+
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        mux::pane::impl_get_logical_lines_via_get_lines(self, lines)
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
