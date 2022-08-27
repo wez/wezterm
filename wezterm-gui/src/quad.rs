@@ -152,6 +152,12 @@ pub struct HeapQuadAllocator {
     layer2: Vec<Vertex>,
 }
 
+impl std::fmt::Debug for HeapQuadAllocator {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.debug_struct("HeapQuadAllocator").finish()
+    }
+}
+
 impl HeapQuadAllocator {
     pub fn apply_to(&self, other: &mut TripleLayerQuadAllocator) -> anyhow::Result<()> {
         let start = std::time::Instant::now();

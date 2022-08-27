@@ -22,9 +22,7 @@ use crate::termwindow::background::{
 };
 use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
-use crate::termwindow::render::{
-    LineToElementKey, LineToElementShapeItem, LineToElementShapeKey, LineToElementValue,
-};
+use crate::termwindow::render::LineToElementShapeItem;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -47,6 +45,7 @@ use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use smol::channel::Sender;
 use smol::Timer;
+use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::{Add, Range};
@@ -411,10 +410,13 @@ pub struct TermWindow {
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
 
+    quad_generation: usize,
+    shape_generation: usize,
     shape_cache:
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
-    line_to_ele_shape_cache: RefCell<LruCache<LineToElementShapeKey, LineToElementShapeItem>>,
-    line_to_ele_cache: RefCell<LruCache<LineToElementKey, LineToElementValue>>,
+    line_to_ele_shape_cache: RefCell<LruCache<usize, LineToElementShapeItem>>,
+    line_render_cache: RefCell<LruCache<usize, Arc<dyn Any + Send + Sync>>>,
+    next_line_render_cache_id: usize,
 
     last_status_call: Instant,
     cursor_blink_state: RefCell<ColorEase>,
@@ -693,19 +695,22 @@ impl TermWindow {
             current_mouse_capture: None,
             last_mouse_click: None,
             current_highlight: None,
+            quad_generation: 0,
+            shape_generation: 0,
             shape_cache: RefCell::new(LruCache::new(
                 "shape_cache.hit.rate",
                 "shape_cache.miss.rate",
                 1024,
             )),
+            next_line_render_cache_id: 0,
+            line_render_cache: RefCell::new(LruCache::new(
+                "line_render_cache.hit.rate",
+                "line_render_cache.miss.rate",
+                1024,
+            )),
             line_to_ele_shape_cache: RefCell::new(LruCache::new(
                 "line_to_ele_shape_cache.hit.rate",
                 "line_to_ele_shape_cache.miss.rate",
-                1024,
-            )),
-            line_to_ele_cache: RefCell::new(LruCache::new(
-                "line_to_ele_cache.hit.rate",
-                "line_to_ele_cache.miss.rate",
                 1024,
             )),
             last_status_call: Instant::now(),
@@ -941,6 +946,7 @@ impl TermWindow {
 
         match notif {
             TermWindowNotif::InvalidateShapeCache => {
+                self.shape_generation += 1;
                 self.shape_cache.borrow_mut().clear();
                 self.invalidate_modal();
                 window.invalidate();
@@ -1518,6 +1524,7 @@ impl TermWindow {
         );
 
         self.show_scroll_bar = config.enable_scroll_bar;
+        self.shape_generation += 1;
         self.shape_cache.borrow_mut().clear();
         self.fancy_tab_bar.take();
         self.invalidate_fancy_tab_bar();

@@ -940,6 +940,7 @@ impl Screen {
         F: FnMut(&mut [&mut Line]),
     {
         let (first, second) = self.lines.as_mut_slices();
+        let first_len = first.len();
         let first_range = 0..first.len();
         let second_range = first.len()..first.len() + second.len();
         let first_range = phys_intersection(&first_range, &phys_range);
@@ -949,7 +950,9 @@ impl Screen {
         for line in &mut first[first_range] {
             lines.push(line);
         }
-        for line in &mut second[second_range] {
+        for line in &mut second[second_range.start.saturating_sub(first_len)
+            ..second_range.end.saturating_sub(first_len)]
+        {
             lines.push(line);
         }
         func(&mut lines)

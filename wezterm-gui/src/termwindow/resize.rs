@@ -41,6 +41,7 @@ impl super::TermWindow {
         }
         let last_state = self.window_state;
         self.window_state = window_state;
+        self.quad_generation += 1;
         if last_state != self.window_state {
             self.load_os_parameters();
         }
@@ -129,6 +130,7 @@ impl super::TermWindow {
         );
         let saved_dims = self.dimensions;
         self.dimensions = *dimensions;
+        self.quad_generation += 1;
 
         if scale_changed_cells.is_some() && !self.window_state.can_resize() {
             log::warn!(

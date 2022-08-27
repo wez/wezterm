@@ -11,8 +11,7 @@ use crate::selection::SelectionRange;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, CopyOverlay, QuickSelectOverlay, RenderState, ScrollHit, ShapedInfo,
-    TermWindowNotif, UIItem, UIItemType,
+    BorrowedShapeCacheKey, RenderState, ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -33,12 +32,14 @@ use mux::pane::{Pane, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use smol::Timer;
+use std::any::Any;
 use std::ops::Range;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Instant;
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
-use termwiz::surface::{CursorShape, CursorVisibility};
+use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use wezterm_bidi::Direction;
 use wezterm_font::shaper::PresentationWidth;
 use wezterm_font::units::{IntPixelLength, PixelLength};
@@ -142,36 +143,47 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
+#[derive(Debug)]
+pub struct LineRenderCache {
+    pub config_generation: usize,
+    pub shape_generation: usize,
+    pub quad_generation: usize,
+    pub seqno: SequenceNo,
+    /// Only set if cursor.y == stable_row
+    /// Tuple is (cursor_x, compose-text)
+    pub composing: Option<String>,
+    pub selection: Range<usize>,
+
+    pub id: usize,
+    pub expires: Option<Instant>,
+    pub top_pixel_y: f32,
+    pub left_pixel_x: f32,
+    pub phys_line_idx: usize,
+    pub cursor_x: Option<usize>,
+
+    // Value portion
+    pub layers: HeapQuadAllocator,
+}
+
 pub struct LineToElementParams<'a> {
     pub line: &'a Line,
     pub config: &'a ConfigHandle,
-    pub pane_id: Option<PaneId>,
     pub palette: &'a ColorPalette,
     pub stable_line_idx: StableRowIndex,
     pub window_is_transparent: bool,
     pub cursor: &'a StableCursorPosition,
     pub reverse_video: bool,
+    pub shape_id: Option<usize>,
 }
-
-use mux::pane::PaneId;
-use termwiz::surface::SequenceNo;
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub struct LineToElementShapeKey {
-    pub pane_id: Option<PaneId>,
+    pub shape_id: Option<usize>,
     pub seqno: SequenceNo,
     pub stable_line_idx: StableRowIndex,
     /// Only set if cursor.y == stable_row
     /// Tuple is (cursor_x, compose-text)
     pub composing: Option<(usize, String)>,
-}
-
-impl LineToElementShapeKey {
-    pub fn is_cacheable(&self) -> bool {
-        // FIXME: it's not generaly valid to cache based on seqno/line idx.
-        // will fix this properly layer, but for now, just bypass caching
-        self.pane_id.is_some() && false
-    }
 }
 
 pub struct LineToElementShapeItem {
@@ -190,23 +202,6 @@ pub struct LineToElementShape {
     pub pixel_width: f32,
     pub glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
     pub cluster: CellCluster,
-}
-
-#[derive(Hash, PartialEq, Eq)]
-pub struct LineToElementKey {
-    pub shape_key: LineToElementShapeKey,
-    /// Only set if cursor.y == stable_row
-    pub cursor: Option<StableCursorPosition>,
-    pub selection: Range<usize>,
-    pub left: u32,
-    pub top: u32,
-    pub is_active: bool,
-    pub is_focused: bool,
-}
-
-pub struct LineToElementValue {
-    pub buf: HeapQuadAllocator,
-    pub expires: Option<Instant>,
 }
 
 pub struct RenderScreenLineOpenGLParams<'a> {
@@ -252,6 +247,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub use_pixel_positioning: bool,
 
     pub render_metrics: RenderMetrics,
+    pub shape_id: Option<usize>,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -362,9 +358,9 @@ impl super::TermWindow {
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
                         self.invalidate_fancy_tab_bar();
                         self.invalidate_modal();
+                        self.shape_generation += 1;
                         self.shape_cache.borrow_mut().clear();
                         self.line_to_ele_shape_cache.borrow_mut().clear();
-                        self.line_to_ele_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
                         break 'pass;
@@ -1094,6 +1090,7 @@ impl super::TermWindow {
                 font: None,
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
                 render_metrics: self.render_metrics,
+                shape_id: None,
             },
             layers,
         )?;
@@ -1588,9 +1585,8 @@ impl super::TermWindow {
                 rectangular: bool,
                 dims: RenderableDimensions,
                 top_pixel_y: f32,
+                left_pixel_x: f32,
                 pos: &'a PositionedPane,
-                padding_left: f32,
-                border: &'a window::parameters::Border,
                 cursor: &'a StableCursorPosition,
                 palette: &'a ColorPalette,
                 default_bg: LinearRgba,
@@ -1608,15 +1604,18 @@ impl super::TermWindow {
                 error: Option<anyhow::Error>,
             }
 
+            let left_pixel_x = padding_left
+                + border.left.get() as f32
+                + (pos.left as f32 * self.render_metrics.cell_size.width as f32);
+
             let mut render = LineRender {
                 term_window: self,
                 selrange,
                 rectangular,
                 dims,
                 top_pixel_y,
+                left_pixel_x,
                 pos,
-                padding_left,
-                border: &border,
                 cursor: &cursor,
                 palette: &palette,
                 cursor_border_color,
@@ -1634,61 +1633,165 @@ impl super::TermWindow {
                 error: None,
             };
 
+            impl<'a> LineRender<'a> {
+                fn render_line(
+                    &mut self,
+                    stable_top: StableRowIndex,
+                    line_idx: usize,
+                    line: &&mut Line,
+                ) -> anyhow::Result<()> {
+                    let stable_row = stable_top + line_idx as StableRowIndex;
+                    let selrange = self
+                        .selrange
+                        .map_or(0..0, |sel| sel.cols_for_row(stable_row, self.rectangular));
+                    // Constrain to the pane width!
+                    let selrange = selrange.start..selrange.end.min(self.dims.cols);
+
+                    let cursor_x = if self.cursor.y == stable_row {
+                        Some(self.cursor.x)
+                    } else {
+                        None
+                    };
+
+                    let composing = if self.cursor.y == stable_row {
+                        if let DeadKeyStatus::Composing(composing) =
+                            &self.term_window.dead_key_status
+                        {
+                            Some(composing.to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
+                    let mut shape_id = None;
+
+                    if let Some(cached) = line.get_appdata() {
+                        if let Some(cached) = cached.downcast_ref::<LineRenderCache>() {
+                            let expired =
+                                cached.expires.map(|i| Instant::now() >= i).unwrap_or(false);
+                            let shape_consistent = cached.config_generation
+                                == self.term_window.config.generation()
+                                && cached.shape_generation == self.term_window.shape_generation
+                                && cached.seqno == line.current_seqno()
+                                && cached.composing == composing;
+                            let quad_consistent = cached.selection == selrange
+                                && cached.top_pixel_y == self.top_pixel_y
+                                && cached.left_pixel_x == self.left_pixel_x
+                                && cached.cursor_x == cursor_x
+                                && cached.quad_generation == self.term_window.quad_generation
+                                && cached.phys_line_idx == line_idx;
+
+                            if shape_consistent && quad_consistent && !expired {
+                                // Touch it in the LRU
+                                self.term_window
+                                    .line_render_cache
+                                    .borrow_mut()
+                                    .get(&cached.id);
+                                cached.layers.apply_to(&mut TripleLayerQuadAllocator::Heap(
+                                    &mut self.layers,
+                                ))?;
+                                return Ok(());
+                            }
+
+                            shape_id = if shape_consistent && !expired {
+                                Some(cached.id)
+                            } else {
+                                None
+                            };
+                        }
+                    }
+
+                    let shape_id = shape_id.unwrap_or_else(|| {
+                        let id = self.term_window.next_line_render_cache_id;
+                        self.term_window.next_line_render_cache_id += 1;
+                        id
+                    });
+
+                    let mut buf = HeapQuadAllocator::default();
+                    let next_due = self.term_window.has_animation.borrow_mut().take();
+
+                    self.term_window.render_screen_line_opengl(
+                        RenderScreenLineOpenGLParams {
+                            top_pixel_y: self.top_pixel_y
+                                + (line_idx + self.pos.top) as f32
+                                    * self.term_window.render_metrics.cell_size.height as f32,
+                            left_pixel_x: self.left_pixel_x,
+                            pixel_width: self.dims.cols as f32
+                                * self.term_window.render_metrics.cell_size.width as f32,
+                            stable_line_idx: Some(stable_row),
+                            line: &line,
+                            selection: selrange.clone(),
+                            cursor: &self.cursor,
+                            palette: &self.palette,
+                            dims: &self.dims,
+                            config: &self.term_window.config,
+                            cursor_border_color: self.cursor_border_color,
+                            foreground: self.foreground,
+                            is_active: self.pos.is_active,
+                            pane: Some(&self.pos.pane),
+                            selection_fg: self.selection_fg,
+                            selection_bg: self.selection_bg,
+                            cursor_fg: self.cursor_fg,
+                            cursor_bg: self.cursor_bg,
+                            cursor_is_default_color: self.cursor_is_default_color,
+                            white_space: self.white_space,
+                            filled_box: self.filled_box,
+                            window_is_transparent: self.window_is_transparent,
+                            default_bg: self.default_bg,
+                            font: None,
+                            style: None,
+                            use_pixel_positioning: self
+                                .term_window
+                                .config
+                                .experimental_pixel_positioning,
+                            render_metrics: self.term_window.render_metrics,
+                            shape_id: Some(shape_id),
+                        },
+                        &mut TripleLayerQuadAllocator::Heap(&mut buf),
+                    )?;
+
+                    let expires = self.term_window.has_animation.borrow().as_ref().cloned();
+                    self.term_window.update_next_frame_time(next_due);
+
+                    buf.apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
+
+                    let id = self.term_window.next_line_render_cache_id;
+                    self.term_window.next_line_render_cache_id += 1;
+
+                    let cached: Arc<dyn Any + Send + Sync> = Arc::new(LineRenderCache {
+                        config_generation: self.term_window.config.generation(),
+                        shape_generation: self.term_window.shape_generation,
+                        quad_generation: self.term_window.quad_generation,
+                        seqno: line.current_seqno(),
+                        composing,
+                        selection: selrange,
+                        cursor_x,
+                        id: shape_id,
+                        top_pixel_y: self.top_pixel_y,
+                        left_pixel_x: self.left_pixel_x,
+                        phys_line_idx: line_idx,
+                        layers: buf,
+                        expires,
+                    });
+
+                    line.set_appdata(Arc::clone(&cached));
+
+                    self.term_window
+                        .line_render_cache
+                        .borrow_mut()
+                        .put(id, cached);
+
+                    Ok(())
+                }
+            }
+
             impl<'a> WithPaneLines for LineRender<'a> {
                 fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
                     for (line_idx, line) in lines.iter().enumerate() {
-                        let stable_row = stable_top + line_idx as StableRowIndex;
-
-                        let selrange = self
-                            .selrange
-                            .map_or(0..0, |sel| sel.cols_for_row(stable_row, self.rectangular));
-                        // Constrain to the pane width!
-                        let selrange = selrange.start..selrange.end.min(self.dims.cols);
-
-                        let res = self.term_window.render_screen_line_opengl_impl(
-                            RenderScreenLineOpenGLParams {
-                                top_pixel_y: self.top_pixel_y
-                                    + (line_idx + self.pos.top) as f32
-                                        * self.term_window.render_metrics.cell_size.height as f32,
-                                left_pixel_x: self.padding_left
-                                    + self.border.left.get() as f32
-                                    + (self.pos.left as f32
-                                        * self.term_window.render_metrics.cell_size.width as f32),
-                                pixel_width: self.dims.cols as f32
-                                    * self.term_window.render_metrics.cell_size.width as f32,
-                                stable_line_idx: Some(stable_row),
-                                line: &line,
-                                selection: selrange,
-                                cursor: &self.cursor,
-                                palette: &self.palette,
-                                dims: &self.dims,
-                                config: &self.term_window.config,
-                                cursor_border_color: self.cursor_border_color,
-                                foreground: self.foreground,
-                                is_active: self.pos.is_active,
-                                pane: Some(&self.pos.pane),
-                                selection_fg: self.selection_fg,
-                                selection_bg: self.selection_bg,
-                                cursor_fg: self.cursor_fg,
-                                cursor_bg: self.cursor_bg,
-                                cursor_is_default_color: self.cursor_is_default_color,
-                                white_space: self.white_space,
-                                filled_box: self.filled_box,
-                                window_is_transparent: self.window_is_transparent,
-                                default_bg: self.default_bg,
-                                font: None,
-                                style: None,
-                                use_pixel_positioning: self
-                                    .term_window
-                                    .config
-                                    .experimental_pixel_positioning,
-                                render_metrics: self.term_window.render_metrics,
-                            },
-                            &mut TripleLayerQuadAllocator::Heap(&mut self.layers),
-                        );
-
-                        if let Err(error) = res {
-                            self.error.replace(error);
+                        if let Err(err) = self.render_line(stable_top, line_idx, line) {
+                            self.error.replace(err);
                             return;
                         }
                     }
@@ -2046,8 +2149,8 @@ impl super::TermWindow {
 
     fn build_line_element_shape(
         &self,
-        params: &LineToElementParams,
-        shape_key: &LineToElementShapeKey,
+        params: LineToElementParams,
+        shape_key: LineToElementShapeKey,
     ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
         let (bidi_enabled, bidi_direction) = params.line.bidi_info();
         let bidi_hint = if bidi_enabled {
@@ -2213,9 +2316,9 @@ impl super::TermWindow {
 
         let shaped = Rc::new(shaped);
 
-        if shape_key.is_cacheable() {
+        if let Some(shape_id) = shape_key.shape_id {
             self.line_to_ele_shape_cache.borrow_mut().put(
-                shape_key.clone(),
+                shape_id,
                 LineToElementShapeItem {
                     expires,
                     shaped: Rc::clone(&shaped),
@@ -2226,127 +2329,11 @@ impl super::TermWindow {
         Ok(shaped)
     }
 
-    fn line_to_element_shape(
-        &self,
-        params: LineToElementParams,
-    ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
-        let shape_key = LineToElementShapeKey {
-            pane_id: params.pane_id,
-            seqno: params.line.current_seqno(),
-            stable_line_idx: params.stable_line_idx,
-            composing: if params.cursor.y == params.stable_line_idx {
-                if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
-                    Some((params.cursor.x, composing.to_string()))
-                } else {
-                    None
-                }
-            } else {
-                None
-            },
-        };
-
-        if shape_key.is_cacheable() {
-            if let Some(entry) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_key) {
-                let expired = entry.expires.map(|i| Instant::now() >= i).unwrap_or(false);
-
-                if !expired {
-                    self.update_next_frame_time(entry.expires);
-                    return Ok(Rc::clone(&entry.shaped));
-                }
-            }
-        }
-
-        self.build_line_element_shape(&params, &shape_key)
-    }
-
-    pub fn render_screen_line_opengl(
-        &self,
-        params: RenderScreenLineOpenGLParams,
-        layers: &mut TripleLayerQuadAllocator,
-    ) -> anyhow::Result<()> {
-        if params.line.is_double_height_bottom() {
-            // The top and bottom lines are required to have the same content.
-            // For the sake of simplicity, we render both of them as part of
-            // rendering the top row, so we have nothing more to do here.
-            return Ok(());
-        }
-
-        let ele_key = LineToElementKey {
-            shape_key: LineToElementShapeKey {
-                pane_id: params.pane.and_then(|p| {
-                    if pane_is_overlay_that_aliases_pane_id(p) {
-                        None
-                    } else {
-                        Some(p.pane_id())
-                    }
-                }),
-                seqno: params.line.current_seqno(),
-                stable_line_idx: params
-                    .stable_line_idx
-                    .unwrap_or(StableRowIndex::max_value()),
-                composing: if Some(params.cursor.y) == params.stable_line_idx {
-                    if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
-                        Some((params.cursor.x, composing.to_string()))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                },
-            },
-            cursor: if Some(params.cursor.y) == params.stable_line_idx {
-                Some(*params.cursor)
-            } else {
-                None
-            },
-            selection: params.selection.clone(),
-            left: params.left_pixel_x.ceil() as u32,
-            top: params.top_pixel_y.ceil() as u32,
-            is_active: params.is_active,
-            is_focused: self.focused.is_some(),
-        };
-
-        if !ele_key.shape_key.is_cacheable() {
-            return self.render_screen_line_opengl_impl(params, layers);
-        }
-
-        if let Some(value) = self.line_to_ele_cache.borrow_mut().get(&ele_key) {
-            let expired = value.expires.map(|i| Instant::now() >= i).unwrap_or(false);
-            if !expired {
-                self.update_next_frame_time(value.expires);
-                value.buf.apply_to(layers)?;
-                return Ok(());
-            }
-        }
-
-        let next_due = self.has_animation.borrow_mut().take();
-
-        let mut buf_layer = HeapQuadAllocator::default();
-        self.render_screen_line_opengl_impl(
-            params,
-            &mut TripleLayerQuadAllocator::Heap(&mut buf_layer),
-        )?;
-        buf_layer.apply_to(layers)?;
-
-        let expires = self.has_animation.borrow().as_ref().cloned();
-        self.update_next_frame_time(next_due);
-
-        self.line_to_ele_cache.borrow_mut().put(
-            ele_key,
-            LineToElementValue {
-                buf: buf_layer,
-                expires,
-            },
-        );
-
-        Ok(())
-    }
-
     /// "Render" a line of the terminal screen into the vertex buffer.
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
     /// of extra complexity to deal with multi-cell glyphs.
-    fn render_screen_line_opengl_impl(
+    fn render_screen_line_opengl(
         &self,
         params: RenderScreenLineOpenGLParams,
         layers: &mut TripleLayerQuadAllocator,
@@ -2434,22 +2421,49 @@ impl super::TermWindow {
         let cursor_range_pixels = params.left_pixel_x + cursor_range.start as f32 * cell_width
             ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
 
-        let shaped = self.line_to_element_shape(LineToElementParams {
-            config: params.config,
-            line: params.line,
-            cursor: params.cursor,
-            palette: params.palette,
-            pane_id: params.pane.and_then(|p| {
-                if pane_is_overlay_that_aliases_pane_id(p) {
-                    None
-                } else {
-                    Some(p.pane_id())
+        let mut shaped = None;
+        if let Some(shape_id) = params.shape_id {
+            if let Some(entry) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_id) {
+                let expired = entry.expires.map(|i| Instant::now() >= i).unwrap_or(false);
+
+                if !expired {
+                    self.update_next_frame_time(entry.expires);
+                    shaped.replace(Rc::clone(&entry.shaped));
                 }
-            }),
-            stable_line_idx: params.stable_line_idx.unwrap_or(0),
-            window_is_transparent: params.window_is_transparent,
-            reverse_video: params.dims.reverse_video,
-        })?;
+            }
+        }
+
+        let shaped = if let Some(shaped) = shaped {
+            shaped
+        } else {
+            let params = LineToElementParams {
+                config: params.config,
+                line: params.line,
+                cursor: params.cursor,
+                palette: params.palette,
+                stable_line_idx: params.stable_line_idx.unwrap_or(0),
+                window_is_transparent: params.window_is_transparent,
+                reverse_video: params.dims.reverse_video,
+                shape_id: params.shape_id,
+            };
+
+            let shape_key = LineToElementShapeKey {
+                shape_id: params.shape_id,
+                seqno: params.line.current_seqno(),
+                stable_line_idx: params.stable_line_idx,
+                composing: if params.cursor.y == params.stable_line_idx {
+                    if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
+                        Some((params.cursor.x, composing.to_string()))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                },
+            };
+
+            self.build_line_element_shape(params, shape_key)?
+        };
 
         let bounding_rect = euclid::rect(
             params.left_pixel_x,
@@ -3390,9 +3404,9 @@ impl super::TermWindow {
     }
 
     pub fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
+        self.shape_generation += 1;
         self.shape_cache.borrow_mut().clear();
         self.line_to_ele_shape_cache.borrow_mut().clear();
-        self.line_to_ele_cache.borrow_mut().clear();
         if let Some(render_state) = self.render_state.as_mut() {
             render_state.recreate_texture_atlas(&self.fonts, &self.render_metrics, size)?;
         }
@@ -3457,11 +3471,4 @@ fn update_next_frame_time(storage: &mut Option<Instant>, next_due: Option<Instan
             }
         }
     }
-}
-
-/// I'd love to unwind and remove that aliasing, but for now, we need
-/// to detect and deal with it
-fn pane_is_overlay_that_aliases_pane_id(pane: &Rc<dyn Pane>) -> bool {
-    pane.downcast_ref::<CopyOverlay>().is_some()
-        || pane.downcast_ref::<QuickSelectOverlay>().is_some()
 }
