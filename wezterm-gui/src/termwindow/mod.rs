@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::cache::LruCache;
+use crate::cache::*;
 use crate::colorease::ColorEase;
 use crate::frontend::{front_end, try_front_end};
 use crate::glium::texture::SrgbTexture2d;
@@ -22,7 +22,10 @@ use crate::termwindow::background::{
 };
 use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
-use crate::termwindow::render::LineToElementShapeItem;
+use crate::termwindow::render::{
+    CachedLineState, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
+    LineToElementShapeItem,
+};
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -45,7 +48,6 @@ use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use smol::channel::Sender;
 use smol::Timer;
-use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -400,10 +402,13 @@ pub struct TermWindow {
     quad_generation: usize,
     shape_generation: usize,
     shape_cache:
-        RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
-    line_to_ele_shape_cache: RefCell<LruCache<usize, LineToElementShapeItem>>,
-    line_render_cache: RefCell<LruCache<usize, Arc<dyn Any + Send + Sync>>>,
-    next_line_render_cache_id: usize,
+        RefCell<LfuCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
+    line_to_ele_shape_cache: RefCell<LfuCache<LineToEleShapeCacheKey, LineToElementShapeItem>>,
+
+    line_state_cache: RefCell<LfuCacheU64<Arc<CachedLineState>>>,
+    next_line_state_id: u64,
+
+    line_quad_cache: RefCell<LfuCache<LineQuadCacheKey, LineQuadCacheValue>>,
 
     last_status_call: Instant,
     cursor_blink_state: RefCell<ColorEase>,
@@ -694,18 +699,23 @@ impl TermWindow {
             current_highlight: None,
             quad_generation: 0,
             shape_generation: 0,
-            shape_cache: RefCell::new(LruCache::new(
+            shape_cache: RefCell::new(LfuCache::new(
                 "shape_cache.hit.rate",
                 "shape_cache.miss.rate",
                 1024,
             )),
-            next_line_render_cache_id: 0,
-            line_render_cache: RefCell::new(LruCache::new(
-                "line_render_cache.hit.rate",
-                "line_render_cache.miss.rate",
+            line_state_cache: RefCell::new(LfuCacheU64::new(
+                "line_state_cache.hit.rate",
+                "line_state_cache.miss.rate",
                 1024,
             )),
-            line_to_ele_shape_cache: RefCell::new(LruCache::new(
+            next_line_state_id: 0,
+            line_quad_cache: RefCell::new(LfuCache::new(
+                "line_quad_cache.hit.rate",
+                "line_quad_cache.miss.rate",
+                1024,
+            )),
+            line_to_ele_shape_cache: RefCell::new(LfuCache::new(
                 "line_to_ele_shape_cache.hit.rate",
                 "line_to_ele_shape_cache.miss.rate",
                 1024,

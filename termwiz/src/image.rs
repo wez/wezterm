@@ -14,6 +14,7 @@
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
@@ -36,7 +37,7 @@ where
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureCoordinate {
     #[cfg_attr(
         feature = "use_serde",
@@ -103,6 +104,19 @@ impl ImageCell {
         data: Arc<ImageData>,
     ) -> Self {
         Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, 0, 0, None, None)
+    }
+
+    pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
+        self.top_left.hash(hasher);
+        self.bottom_right.hash(hasher);
+        self.data.hash.hash(hasher);
+        self.z_index.hash(hasher);
+        self.padding_left.hash(hasher);
+        self.padding_top.hash(hasher);
+        self.padding_right.hash(hasher);
+        self.padding_bottom.hash(hasher);
+        self.image_id.hash(hasher);
+        self.placement_id.hash(hasher);
     }
 
     pub fn with_z_index(

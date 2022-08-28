@@ -435,6 +435,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec8a7b6a70fde80372154c65702f00a0f56f3e1c36abbc6c440484be248856db"
 
 [[package]]
+name = "cache-advisor"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "656c75db54b59b714d3f30a5006160f9fbe329ca2fd6520a65910552f2d37664"
+dependencies = [
+ "crossbeam-queue",
+]
+
+[[package]]
 name = "cache-padded"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4562,6 +4571,7 @@ dependencies = [
  "serde",
  "sha2",
  "signal-hook 0.1.17",
+ "siphasher",
  "terminfo",
  "termios 0.3.3",
  "thiserror",
@@ -5405,6 +5415,7 @@ dependencies = [
  "anyhow",
  "benchmarking",
  "bitflags",
+ "cache-advisor",
  "cc",
  "chrono",
  "clap 3.2.17",
@@ -5419,6 +5430,7 @@ dependencies = [
  "euclid",
  "fastrand",
  "filedescriptor",
+ "fnv",
  "futures",
  "fuzzy-matcher",
  "hdrhistogram",
@@ -5428,7 +5440,6 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "lru",
  "luahelper",
  "metrics",
  "mlua",

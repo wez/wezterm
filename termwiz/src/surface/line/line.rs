@@ -9,8 +9,10 @@ use crate::surface::line::vecstorage::{VecStorage, VecStorageIter};
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
+use siphasher::sip128::{Hasher128, SipHasher};
 use std::any::Any;
 use std::borrow::Cow;
+use std::hash::Hash;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, Weak};
 use unicode_segmentation::UnicodeSegmentation;
@@ -95,6 +97,23 @@ impl Line {
             zones: vec![],
             appdata: Mutex::new(None),
         }
+    }
+
+    /// Computes a hash over the line that will change if the way that
+    /// the line contents are shaped would change.
+    /// This is independent of the seqno and is based purely on the
+    /// content of the line.
+    ///
+    /// Line doesn't implement Hash in terms of this function as compute_shape_hash
+    /// doesn't every possible bit of internal state, and we don't want to
+    /// encourage using Line directly as a hash key.
+    pub fn compute_shape_hash(&self) -> [u8; 16] {
+        let mut hasher = SipHasher::new();
+        self.bits.bits().hash(&mut hasher);
+        for cell in self.visible_cells() {
+            cell.compute_shape_hash(&mut hasher);
+        }
+        hasher.finish128().as_bytes()
     }
 
     pub fn with_width(width: usize, seqno: SequenceNo) -> Self {
@@ -216,7 +235,8 @@ impl Line {
     /// and not for use by "middleware" crates.
     /// A Weak reference is stored.
     /// `get_appdata` is used to retrieve a previously stored reference.
-    pub fn set_appdata(&self, appdata: Arc<dyn Any + Send + Sync>) {
+    pub fn set_appdata<T: Any + Send + Sync>(&self, appdata: Arc<T>) {
+        let appdata: Arc<dyn Any + Send + Sync> = appdata;
         self.appdata
             .lock()
             .unwrap()

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use wezterm_font::shaper::GlyphInfo;
 use wezterm_font::units::*;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct ShapeCacheKey {
     pub style: TextStyle,
     pub text: String,
@@ -101,13 +101,6 @@ impl<'a> ShapeCacheKeyTrait for BorrowedShapeCacheKey<'a> {
 impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for ShapeCacheKey {
     fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
         self
-    }
-}
-
-impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for lru::KeyRef<ShapeCacheKey> {
-    fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
-        let k: &ShapeCacheKey = self.borrow();
-        k
     }
 }
 

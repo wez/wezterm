@@ -10,6 +10,7 @@ use regex::{Captures, Regex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
+use std::hash::{Hash, Hasher};
 use std::ops::Range;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
@@ -27,6 +28,15 @@ pub struct Hyperlink {
 impl Hyperlink {
     pub fn uri(&self) -> &str {
         &self.uri
+    }
+
+    pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
+        self.uri.hash(hasher);
+        for (k, v) in &self.params {
+            k.hash(hasher);
+            v.hash(hasher);
+        }
+        self.implicit.hash(hasher);
     }
 
     pub fn params(&self) -> &HashMap<String, String> {

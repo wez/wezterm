@@ -7,12 +7,13 @@ use crate::image::ImageCell;
 use crate::widechar_width::WcWidth;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 enum SmallColor {
     Default,
     PaletteIndex(PaletteIndex),
@@ -85,6 +86,20 @@ struct FatAttributes {
     underline_color: ColorAttribute,
     foreground: ColorAttribute,
     background: ColorAttribute,
+}
+
+impl FatAttributes {
+    pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
+        if let Some(link) = &self.hyperlink {
+            link.compute_shape_hash(hasher);
+        }
+        for cell in &self.image {
+            cell.compute_shape_hash(hasher);
+        }
+        self.underline_color.hash(hasher);
+        self.foreground.hash(hasher);
+        self.background.hash(hasher);
+    }
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -265,6 +280,15 @@ impl CellAttributes {
     /// cells are the same, and is used by some `Renderer` implementations.
     pub fn attribute_bits_equal(&self, other: &Self) -> bool {
         self.attributes == other.attributes
+    }
+
+    pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
+        self.attributes.hash(hasher);
+        self.foreground.hash(hasher);
+        self.background.hash(hasher);
+        if let Some(fat) = &self.fat {
+            fat.compute_shape_hash(hasher);
+        }
     }
 
     /// Set the foreground color for the cell to that specified

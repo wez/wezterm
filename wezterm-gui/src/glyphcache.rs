@@ -1,5 +1,5 @@
 use super::utilsprites::RenderMetrics;
-use crate::cache::LruCache;
+use crate::cache::LfuCacheU64;
 use crate::customglyph::*;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 #[cfg(test)]
@@ -249,7 +249,7 @@ pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    pub image_cache: LruCache<usize, DecodedImage>,
+    pub image_cache: LfuCacheU64<DecodedImage>,
     frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<SizedBlockKey, Sprite<T>>,
@@ -266,10 +266,10 @@ impl GlyphCache<ImageTexture> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LruCache::new(
+            image_cache: LfuCacheU64::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
-                16,
+                256,
             ),
             frame_cache: HashMap::new(),
             atlas,
@@ -316,10 +316,10 @@ impl GlyphCache<SrgbTexture2d> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LruCache::new(
+            image_cache: LfuCacheU64::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
-                64, // FIXME: make configurable
+                256, // FIXME: make configurable
             ),
             frame_cache: HashMap::new(),
             atlas,
@@ -644,7 +644,7 @@ impl<T: Texture2d> GlyphCache<T> {
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
-        let id = image_data.id();
+        let id = image_data.id() as u64;
 
         if let Some(decoded) = self.image_cache.get_mut(&id) {
             Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, decoded, padding)

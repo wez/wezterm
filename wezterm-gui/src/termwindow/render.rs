@@ -31,8 +31,8 @@ use euclid::num::Zero;
 use mux::pane::{Pane, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
+use ordered_float::NotNan;
 use smol::Timer;
-use std::any::Any;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -143,26 +143,35 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
+/// The data that we associate with a line; we use this to cache it shape hash
 #[derive(Debug)]
-pub struct LineRenderCache {
+pub struct CachedLineState {
+    pub id: u64,
+    pub seqno: SequenceNo,
+    pub shape_hash: [u8; 16],
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct LineQuadCacheKey {
     pub config_generation: usize,
     pub shape_generation: usize,
     pub quad_generation: usize,
-    pub seqno: SequenceNo,
     /// Only set if cursor.y == stable_row
     /// Tuple is (cursor_x, compose-text)
     pub composing: Option<String>,
     pub selection: Range<usize>,
-
-    pub id: usize,
-    pub expires: Option<Instant>,
-    pub top_pixel_y: f32,
-    pub left_pixel_x: f32,
+    pub shape_hash: [u8; 16],
+    pub top_pixel_y: NotNan<f32>,
+    pub left_pixel_x: NotNan<f32>,
     pub phys_line_idx: usize,
     pub cursor_x: Option<usize>,
     pub reverse_video: bool,
+}
 
-    // Value portion
+pub struct LineQuadCacheValue {
+    /// For resolving hash collisions
+    pub line: Line,
+    pub expires: Option<Instant>,
     pub layers: HeapQuadAllocator,
 }
 
@@ -174,16 +183,12 @@ pub struct LineToElementParams<'a> {
     pub window_is_transparent: bool,
     pub cursor: &'a StableCursorPosition,
     pub reverse_video: bool,
-    pub shape_id: Option<usize>,
+    pub shape_key: &'a Option<LineToEleShapeCacheKey>,
 }
 
-#[derive(Hash, PartialEq, Eq, Clone)]
-pub struct LineToElementShapeKey {
-    pub shape_id: Option<usize>,
-    pub seqno: SequenceNo,
-    pub stable_line_idx: StableRowIndex,
-    /// Only set if cursor.y == stable_row
-    /// Tuple is (cursor_x, compose-text)
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct LineToEleShapeCacheKey {
+    pub shape_hash: [u8; 16],
     pub composing: Option<(usize, String)>,
 }
 
@@ -248,7 +253,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub use_pixel_positioning: bool,
 
     pub render_metrics: RenderMetrics,
-    pub shape_id: Option<usize>,
+    pub shape_key: Option<LineToEleShapeCacheKey>,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -1107,7 +1112,7 @@ impl super::TermWindow {
                 font: None,
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
                 render_metrics: self.render_metrics,
-                shape_id: None,
+                shape_key: None,
             },
             layers,
         )?;
@@ -1682,54 +1687,55 @@ impl super::TermWindow {
                         None
                     };
 
-                    let mut shape_id = None;
+                    let shape_hash = self.term_window.shape_hash_for_line(line);
 
-                    if let Some(cached_arc) = line.get_appdata() {
-                        if let Some(cached) = cached_arc.downcast_ref::<LineRenderCache>() {
-                            let expired =
-                                cached.expires.map(|i| Instant::now() >= i).unwrap_or(false);
-                            let shape_consistent = cached.config_generation
-                                == self.term_window.config.generation()
-                                && cached.shape_generation == self.term_window.shape_generation
-                                && cached.seqno == line.current_seqno()
-                                && cached.reverse_video == self.dims.reverse_video
-                                && cached.composing == composing;
-                            let quad_consistent = cached.selection == selrange
-                                && cached.top_pixel_y == self.top_pixel_y
-                                && cached.left_pixel_x == self.left_pixel_x
-                                && cached.cursor_x == cursor_x
-                                && cached.quad_generation == self.term_window.quad_generation
-                                && cached.phys_line_idx == line_idx;
+                    let quad_key = LineQuadCacheKey {
+                        config_generation: self.term_window.config.generation(),
+                        shape_generation: self.term_window.shape_generation,
+                        quad_generation: self.term_window.quad_generation,
+                        composing: composing.clone(),
+                        selection: selrange.clone(),
+                        cursor_x,
+                        shape_hash,
+                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap(),
+                        left_pixel_x: NotNan::new(self.left_pixel_x).unwrap(),
+                        phys_line_idx: line_idx,
+                        reverse_video: self.dims.reverse_video,
+                    };
 
-                            if shape_consistent && quad_consistent && !expired {
-                                cached.layers.apply_to(&mut TripleLayerQuadAllocator::Heap(
-                                    &mut self.layers,
-                                ))?;
-                                self.term_window.update_next_frame_time(cached.expires);
-                                // Touch it in the LRU
-                                self.term_window
-                                    .line_render_cache
-                                    .borrow_mut()
-                                    .put(cached.id, cached_arc);
-                                return Ok(());
-                            }
-
-                            shape_id = if shape_consistent && !expired {
-                                Some(cached.id)
-                            } else {
-                                None
-                            };
+                    if let Some(cached_quad) =
+                        self.term_window.line_quad_cache.borrow_mut().get(&quad_key)
+                    {
+                        let expired = cached_quad
+                            .expires
+                            .map(|i| Instant::now() >= i)
+                            .unwrap_or(false);
+                        if !expired {
+                            cached_quad
+                                .layers
+                                .apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
+                            self.term_window.update_next_frame_time(cached_quad.expires);
+                            return Ok(());
                         }
                     }
 
-                    let shape_id = shape_id.unwrap_or_else(|| {
-                        let id = self.term_window.next_line_render_cache_id;
-                        self.term_window.next_line_render_cache_id += 1;
-                        id
-                    });
-
                     let mut buf = HeapQuadAllocator::default();
                     let next_due = self.term_window.has_animation.borrow_mut().take();
+
+                    let shape_key = LineToEleShapeCacheKey {
+                        shape_hash,
+                        composing: if self.cursor.y == stable_row {
+                            if let DeadKeyStatus::Composing(composing) =
+                                &self.term_window.dead_key_status
+                            {
+                                Some((self.cursor.x, composing.to_string()))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        },
+                    };
 
                     self.term_window.render_screen_line_opengl(
                         RenderScreenLineOpenGLParams {
@@ -1766,7 +1772,7 @@ impl super::TermWindow {
                                 .config
                                 .experimental_pixel_positioning,
                             render_metrics: self.term_window.render_metrics,
-                            shape_id: Some(shape_id),
+                            shape_key: Some(shape_key),
                         },
                         &mut TripleLayerQuadAllocator::Heap(&mut buf),
                     )?;
@@ -1776,32 +1782,16 @@ impl super::TermWindow {
 
                     buf.apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
 
-                    let id = self.term_window.next_line_render_cache_id;
-                    self.term_window.next_line_render_cache_id += 1;
-
-                    let cached: Arc<dyn Any + Send + Sync> = Arc::new(LineRenderCache {
-                        config_generation: self.term_window.config.generation(),
-                        shape_generation: self.term_window.shape_generation,
-                        quad_generation: self.term_window.quad_generation,
-                        seqno: line.current_seqno(),
-                        composing,
-                        selection: selrange,
-                        cursor_x,
-                        id: shape_id,
-                        top_pixel_y: self.top_pixel_y,
-                        left_pixel_x: self.left_pixel_x,
-                        phys_line_idx: line_idx,
+                    let quad_value = LineQuadCacheValue {
                         layers: buf,
-                        reverse_video: self.dims.reverse_video,
                         expires,
-                    });
-
-                    line.set_appdata(Arc::clone(&cached));
+                        line: (*line).clone(),
+                    };
 
                     self.term_window
-                        .line_render_cache
+                        .line_quad_cache
                         .borrow_mut()
-                        .put(id, cached);
+                        .put(quad_key, quad_value);
 
                     Ok(())
                 }
@@ -2170,7 +2160,6 @@ impl super::TermWindow {
     fn build_line_element_shape(
         &self,
         params: LineToElementParams,
-        shape_key: LineToElementShapeKey,
     ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
         let (bidi_enabled, bidi_direction) = params.line.bidi_info();
         let bidi_hint = if bidi_enabled {
@@ -2178,15 +2167,13 @@ impl super::TermWindow {
         } else {
             None
         };
-        let cell_clusters = if let Some((cursor_x, composing)) = &shape_key.composing {
+        let cell_clusters = if let Some((cursor_x, composing)) =
+            params.shape_key.as_ref().and_then(|k| k.composing.as_ref())
+        {
             // Create an updated line with the composition overlaid
             let mut line = params.line.clone();
-            line.overlay_text_with_attribute(
-                *cursor_x,
-                &composing,
-                CellAttributes::blank(),
-                shape_key.seqno,
-            );
+            let seqno = line.current_seqno();
+            line.overlay_text_with_attribute(*cursor_x, &composing, CellAttributes::blank(), seqno);
             line.cluster(bidi_hint)
         } else {
             params.line.cluster(bidi_hint)
@@ -2336,9 +2323,9 @@ impl super::TermWindow {
 
         let shaped = Rc::new(shaped);
 
-        if let Some(shape_id) = shape_key.shape_id {
+        if let Some(shape_key) = params.shape_key {
             self.line_to_ele_shape_cache.borrow_mut().put(
-                shape_id,
+                shape_key.clone(),
                 LineToElementShapeItem {
                     expires,
                     shaped: Rc::clone(&shaped),
@@ -2442,8 +2429,9 @@ impl super::TermWindow {
             ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
 
         let mut shaped = None;
-        if let Some(shape_id) = params.shape_id {
-            if let Some(entry) = self.line_to_ele_shape_cache.borrow_mut().get(&shape_id) {
+        if let Some(shape_key) = &params.shape_key {
+            let mut cache = self.line_to_ele_shape_cache.borrow_mut();
+            if let Some(entry) = cache.get(shape_key) {
                 let expired = entry.expires.map(|i| Instant::now() >= i).unwrap_or(false);
 
                 if !expired {
@@ -2464,25 +2452,10 @@ impl super::TermWindow {
                 stable_line_idx: params.stable_line_idx.unwrap_or(0),
                 window_is_transparent: params.window_is_transparent,
                 reverse_video: params.dims.reverse_video,
-                shape_id: params.shape_id,
+                shape_key: &params.shape_key,
             };
 
-            let shape_key = LineToElementShapeKey {
-                shape_id: params.shape_id,
-                seqno: params.line.current_seqno(),
-                stable_line_idx: params.stable_line_idx,
-                composing: if params.cursor.y == params.stable_line_idx {
-                    if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
-                        Some((params.cursor.x, composing.to_string()))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                },
-            };
-
-            self.build_line_element_shape(params, shape_key)?
+            self.build_line_element_shape(params)?
         };
 
         let bounding_rect = euclid::rect(
@@ -3431,6 +3404,40 @@ impl super::TermWindow {
             render_state.recreate_texture_atlas(&self.fonts, &self.render_metrics, size)?;
         }
         Ok(())
+    }
+
+    fn shape_hash_for_line(&mut self, line: &Line) -> [u8; 16] {
+        let seqno = line.current_seqno();
+        let mut id = None;
+        if let Some(cached_arc) = line.get_appdata() {
+            if let Some(line_state) = cached_arc.downcast_ref::<CachedLineState>() {
+                if line_state.seqno == seqno {
+                    // Touch the LRU
+                    self.line_state_cache.borrow_mut().get(&line_state.id);
+                    return line_state.shape_hash;
+                }
+                id.replace(line_state.id);
+            }
+        }
+
+        let id = id.unwrap_or_else(|| {
+            let id = self.next_line_state_id;
+            self.next_line_state_id += 1;
+            id
+        });
+
+        let shape_hash = line.compute_shape_hash();
+
+        let state = Arc::new(CachedLineState {
+            id,
+            seqno,
+            shape_hash,
+        });
+
+        line.set_appdata(Arc::clone(&state));
+
+        self.line_state_cache.borrow_mut().put(id, state);
+        shape_hash
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::emoji::Presentation;
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug)]
 pub enum CellRef<'a> {
@@ -64,5 +65,10 @@ impl<'a> CellRef<'a> {
 
     pub fn same_contents(&self, other: &Self) -> bool {
         self.str() == other.str() && self.width() == other.width() && self.attrs() == other.attrs()
+    }
+
+    pub fn compute_shape_hash<H: Hasher>(&self, hasher: &mut H) {
+        self.str().hash(hasher);
+        self.attrs().compute_shape_hash(hasher);
     }
 }

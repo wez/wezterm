@@ -262,7 +262,7 @@ impl From<SrgbaTuple> for ColorSpec {
 /// TrueColor value, allowing a fallback to a more traditional palette
 /// index if TrueColor is not available.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, FromDynamic, ToDynamic, Hash)]
 pub enum ColorAttribute {
     /// Use RgbColor when supported, falling back to the specified PaletteIndex.
     TrueColorWithPaletteFallback(SrgbaTuple, PaletteIndex),
