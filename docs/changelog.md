@@ -17,6 +17,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window_frame](config/lua/config/window_frame.md) now supports setting border size and color [#2417](https://github.com/wez/wezterm/issues/2417)
 * [CopyMode](copymode.md) now supports selecting and move by semantic zones. [#2346](https://github.com/wez/wezterm/issues/2346)
 * [max_fps](config/lua/config/max_fps.md) option to limit maximum frame rate [#2419](https://github.com/wez/wezterm/discussions/2419)
+* [`user-var-changed` event](config/lua/window-events/user-var-changed.md) allows triggering lua code in response to user vars being changed
 
 #### Changed
 

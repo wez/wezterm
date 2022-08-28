@@ -1008,13 +1008,18 @@ impl TermWindow {
             }
             TermWindowNotif::MuxNotification(n) => match n {
                 MuxNotification::Alert {
+                    alert: Alert::SetUserVar { name, value },
+                    pane_id,
+                } => {
+                    self.emit_user_var_event(pane_id, name, value);
+                }
+                MuxNotification::Alert {
                     alert:
                         Alert::OutputSinceFocusLost
                         | Alert::CurrentWorkingDirectoryChanged
                         | Alert::WindowTitleChanged(_)
                         | Alert::TabTitleChanged(_)
-                        | Alert::IconTitleChanged(_)
-                        | Alert::SetUserVar { .. },
+                        | Alert::IconTitleChanged(_),
                     ..
                 } => {
                     self.update_title();
@@ -1231,6 +1236,7 @@ impl TermWindow {
                     | Alert::WindowTitleChanged(_)
                     | Alert::TabTitleChanged(_)
                     | Alert::IconTitleChanged(_)
+                    | Alert::SetUserVar { .. }
                     | Alert::Bell,
             }
             | MuxNotification::PaneOutput(pane_id) => {
@@ -1266,10 +1272,7 @@ impl TermWindow {
                 }
             }
             MuxNotification::Alert {
-                alert:
-                    Alert::SetUserVar { .. }
-                    | Alert::ToastNotification { .. }
-                    | Alert::PaletteChanged { .. },
+                alert: Alert::ToastNotification { .. } | Alert::PaletteChanged { .. },
                 ..
             }
             | MuxNotification::AssignClipboard { .. }
@@ -1611,6 +1614,44 @@ impl TermWindow {
     fn update_title(&mut self) {
         self.schedule_status_update();
         self.update_title_impl();
+    }
+
+    fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
+        let window = GuiWin::new(self);
+        let pane = match Mux::get().expect("on main thread").get_pane(pane_id) {
+            Some(pane) => PaneObject::new(&pane),
+            None => return,
+        };
+
+        async fn do_event(
+            lua: Option<Rc<mlua::Lua>>,
+            name: String,
+            value: String,
+            window: GuiWin,
+            pane: PaneObject,
+        ) -> anyhow::Result<()> {
+            if let Some(lua) = lua {
+                let args = lua.pack_multi((window.clone(), pane, name, value))?;
+                if let Err(err) =
+                    config::lua::emit_event(&lua, ("user-var-changed".to_string(), args)).await
+                {
+                    log::error!("while processing user-var-changed event: {:#}", err);
+                }
+            }
+
+            window
+                .window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    term_window.update_title();
+                })));
+
+            Ok(())
+        }
+
+        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+            do_event(lua, name, value, window, pane)
+        }))
+        .detach();
     }
 
     /// Called by window:set_right_status after the status has
