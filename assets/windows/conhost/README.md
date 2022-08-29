@@ -12,10 +12,16 @@ to point to that so that we can enable mouse reporting in wezterm.
 It looks like we'll eventually be able to drop this once Windows
 and/or the build for the terminal project make some more progress.
 
-https://github.com/microsoft/terminal/issues/1130
+https://github.com/wez/wezterm/issues/1927
 
-These assets were built by opening the solution in visual studio 2019 and
-building the `Host.EXE` and `winconpty.DLL` projects.
+These assets were built by cloning the ms-terminal repo and running:
+
+```
+.\tools\razzle.cmd
+bcz rel
+```
+
+then the files can be copied from `bin/x64/Release` to this location.
 
 It's possible that you'll need to download this runtime support package
 from MS in order for this to work:
