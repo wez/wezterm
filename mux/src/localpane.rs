@@ -23,7 +23,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{Sgr, CSI};
-use termwiz::escape::{Action, ControlCode, DeviceControlMode};
+use termwiz::escape::{Action, DeviceControlMode};
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo};
 use url::Url;
@@ -221,18 +221,7 @@ impl Pane for LocalPane {
         }
 
         if let Some(notify) = notify {
-            let pane_id = self.pane_id;
-            promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().unwrap();
-                if let Some(pane) = mux.get_pane(pane_id) {
-                    let mut parser = termwiz::escape::parser::Parser::new();
-                    let mut actions = vec![];
-                    parser.parse(notify.as_bytes(), |action| actions.push(action));
-                    pane.perform_actions(actions);
-                    mux.notify(MuxNotification::PaneOutput(pane_id));
-                }
-            })
-            .detach();
+            emit_output_for_pane(self.pane_id, &notify);
         }
 
         match &*proc {
@@ -665,22 +654,16 @@ struct LocalPaneDCSHandler {
     tmux_domain: Option<Arc<TmuxDomainState>>,
 }
 
-fn emit_output_for_pane(pane_id: PaneId, message: &str) {
-    let mut actions = vec![
-        Action::CSI(CSI::Sgr(Sgr::Reset)),
-        Action::Control(ControlCode::CarriageReturn),
-        Action::Control(ControlCode::LineFeed),
-    ];
-    for c in message.chars() {
-        actions.push(Action::Print(c));
-    }
-    actions.push(Action::Control(ControlCode::CarriageReturn));
-    actions.push(Action::Control(ControlCode::LineFeed));
+pub(crate) fn emit_output_for_pane(pane_id: PaneId, message: &str) {
+    let mut parser = termwiz::escape::parser::Parser::new();
+    let mut actions = vec![Action::CSI(CSI::Sgr(Sgr::Reset))];
+    parser.parse(message.as_bytes(), |action| actions.push(action));
 
     promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
         if let Some(pane) = mux.get_pane(pane_id) {
             pane.perform_actions(actions);
+            mux.notify(MuxNotification::PaneOutput(pane_id));
         }
     })
     .detach();
@@ -713,7 +696,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
 
                         emit_output_for_pane(
                             self.pane_id,
-                            "[This pane is running tmux control mode. Press q to detach]",
+                            "\r\n[This pane is running tmux control mode. Press q to detach]",
                         );
                     }
 
