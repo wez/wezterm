@@ -28,7 +28,7 @@ use config::{
     TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
-use mux::pane::{Pane, WithPaneLines};
+use mux::pane::{Pane, PaneId, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use ordered_float::NotNan;
@@ -164,6 +164,8 @@ pub struct LineQuadCacheKey {
     pub top_pixel_y: NotNan<f32>,
     pub left_pixel_x: NotNan<f32>,
     pub phys_line_idx: usize,
+    pub pane_id: PaneId,
+    pub pane_is_active: bool,
     /// A cursor position with the y value fixed at 0.
     /// Only is_some() if the y value matches this row.
     pub cursor: Option<StableCursorPosition>,
@@ -1380,7 +1382,8 @@ impl super::TermWindow {
             self.prev_cursor.update(&cursor);
         }
 
-        let current_viewport = self.get_viewport(pos.pane.pane_id());
+        let pane_id = pos.pane.pane_id();
+        let current_viewport = self.get_viewport(pane_id);
         let dims = pos.pane.get_dimensions();
 
         let gl_state = self.render_state.as_ref().unwrap();
@@ -1611,6 +1614,7 @@ impl super::TermWindow {
                 top_pixel_y: f32,
                 left_pixel_x: f32,
                 pos: &'a PositionedPane,
+                pane_id: PaneId,
                 cursor: &'a StableCursorPosition,
                 palette: &'a ColorPalette,
                 default_bg: LinearRgba,
@@ -1640,6 +1644,7 @@ impl super::TermWindow {
                 top_pixel_y,
                 left_pixel_x,
                 pos,
+                pane_id,
                 cursor: &cursor,
                 palette: &palette,
                 cursor_border_color,
@@ -1692,6 +1697,8 @@ impl super::TermWindow {
                     let shape_hash = self.term_window.shape_hash_for_line(line);
 
                     let quad_key = LineQuadCacheKey {
+                        pane_id: self.pane_id,
+                        pane_is_active: self.pos.is_active,
                         config_generation: self.term_window.config.generation(),
                         shape_generation: self.term_window.shape_generation,
                         quad_generation: self.term_window.quad_generation,
