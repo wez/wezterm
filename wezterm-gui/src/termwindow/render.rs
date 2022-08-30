@@ -164,7 +164,9 @@ pub struct LineQuadCacheKey {
     pub top_pixel_y: NotNan<f32>,
     pub left_pixel_x: NotNan<f32>,
     pub phys_line_idx: usize,
-    pub cursor_x: Option<usize>,
+    /// A cursor position with the y value fixed at 0.
+    /// Only is_some() if the y value matches this row.
+    pub cursor: Option<StableCursorPosition>,
     pub reverse_video: bool,
 }
 
@@ -1669,22 +1671,22 @@ impl super::TermWindow {
                     // Constrain to the pane width!
                     let selrange = selrange.start..selrange.end.min(self.dims.cols);
 
-                    let cursor_x = if self.cursor.y == stable_row {
-                        Some(self.cursor.x)
+                    let (cursor, composing) = if self.cursor.y == stable_row {
+                        (
+                            Some(StableCursorPosition {
+                                y: 0,
+                                ..*self.cursor
+                            }),
+                            if let DeadKeyStatus::Composing(composing) =
+                                &self.term_window.dead_key_status
+                            {
+                                Some(composing.to_string())
+                            } else {
+                                None
+                            },
+                        )
                     } else {
-                        None
-                    };
-
-                    let composing = if self.cursor.y == stable_row {
-                        if let DeadKeyStatus::Composing(composing) =
-                            &self.term_window.dead_key_status
-                        {
-                            Some(composing.to_string())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
+                        (None, None)
                     };
 
                     let shape_hash = self.term_window.shape_hash_for_line(line);
@@ -1695,7 +1697,7 @@ impl super::TermWindow {
                         quad_generation: self.term_window.quad_generation,
                         composing: composing.clone(),
                         selection: selrange.clone(),
-                        cursor_x,
+                        cursor,
                         shape_hash,
                         top_pixel_y: NotNan::new(self.top_pixel_y).unwrap(),
                         left_pixel_x: NotNan::new(self.left_pixel_x).unwrap(),
