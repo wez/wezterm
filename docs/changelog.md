@@ -42,6 +42,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Avoid using full path canonicalization for `--cwd` options [#2449](https://github.com/wez/wezterm/issues/2449)
 * Scroll to the bottom on mouse input when mouse reporting is enabled [#2447](https://github.com/wez/wezterm/issues/2447)
 * ssh: correctly expand `%h` ssh_config tokens [#2448](https://github.com/wez/wezterm/issues/2448)
+* ssh: `CloseCurrentPane` wouldn't release all resources associated with the pane and could lead to a `too many open files` error for a long running `wezterm ssh` session. [#2466](https://github.com/wez/wezterm/issues/2466)
 
 ### 20220807-113146-c2fee766
 

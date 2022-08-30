@@ -30,6 +30,7 @@ pub(crate) struct ChannelInfo {
     pub channel_id: ChannelId,
     pub channel: ChannelWrap,
     pub exit: Option<Sender<ExitStatus>>,
+    pub exited: bool,
     pub descriptors: [DescriptorState; 3],
 }
 
@@ -382,7 +383,7 @@ impl SessionInner {
                             fd: fd.as_socket_descriptor(),
                             events: if fd_num == 0 {
                                 POLLIN
-                            } else if !state.buf.is_empty() {
+                            } else if !state.buf.is_empty() || info.exited {
                                 POLLOUT
                             } else {
                                 0
@@ -414,25 +415,33 @@ impl SessionInner {
                         match read_into_buf(fd, &mut state.buf) {
                             Ok(_) => {}
                             Err(err) => {
-                                log::debug!("error reading from stdin pipe: {:#}", err);
+                                log::debug!(
+                                    "error reading from channel {channel_id} stdin pipe: {:#}",
+                                    err
+                                );
                                 info.channel.close();
                                 state.fd.take();
                             }
                         }
                     } else {
-                        // We can write our buffered output
-                        match write_from_buf(fd, &mut state.buf) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                log::debug!(
-                                    "error while writing to channel {} fd {}: {:#}",
-                                    channel_id,
-                                    fd_num,
-                                    err
-                                );
+                        if info.exited && state.buf.is_empty() {
+                            log::trace!("channel {channel_id} exited and we have no data to send to fd {fd_num}: close it!");
+                            state.fd.take();
+                        } else {
+                            // We can write our buffered output
+                            match write_from_buf(fd, &mut state.buf) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    log::debug!(
+                                        "error while writing to channel {} fd {}: {:#}",
+                                        channel_id,
+                                        fd_num,
+                                        err
+                                    );
 
-                                // Close it out
-                                state.fd.take();
+                                    // Close it out
+                                    state.fd.take();
+                                }
                             }
                         }
                     }
@@ -448,6 +457,8 @@ impl SessionInner {
         for (id, chan) in self.channels.iter_mut() {
             if chan.exit.is_some() {
                 if let Some(status) = chan.channel.exit_status() {
+                    log::trace!("channel {id} has exit status {status:?}");
+                    chan.exited = true;
                     let exit = chan.exit.take().unwrap();
                     smol::block_on(exit.send(status)).ok();
                 }
@@ -805,6 +816,7 @@ impl SessionInner {
             channel_id,
             channel,
             exit: Some(exit_tx),
+            exited: false,
             descriptors: [
                 DescriptorState {
                     fd: Some(read_from_stdin),
