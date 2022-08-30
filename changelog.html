@@ -178,6 +178,7 @@ usually the best available version.</p>
 <li>Avoid using full path canonicalization for <code>--cwd</code> options <a href="https://github.com/wez/wezterm/issues/2449">#2449</a></li>
 <li>Scroll to the bottom on mouse input when mouse reporting is enabled <a href="https://github.com/wez/wezterm/issues/2447">#2447</a></li>
 <li>ssh: correctly expand <code>%h</code> ssh_config tokens <a href="https://github.com/wez/wezterm/issues/2448">#2448</a></li>
+<li>ssh: <code>CloseCurrentPane</code> wouldn't release all resources associated with the pane and could lead to a <code>too many open files</code> error for a long running <code>wezterm ssh</code> session. <a href="https://github.com/wez/wezterm/issues/2466">#2466</a></li>
 </ul>
 <h3 id="20220807-113146-c2fee766"><a class="header" href="#20220807-113146-c2fee766">20220807-113146-c2fee766</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
