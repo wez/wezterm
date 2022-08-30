@@ -232,6 +232,13 @@ fn set_socket_buffer(fd: &mut FileDescriptor, option: i32, size: usize) -> anyho
     }
 }
 
+fn allocate_socketpair() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
+    let (mut tx, mut rx) = socketpair().context("socketpair")?;
+    set_socket_buffer(&mut tx, SO_SNDBUF, BUFSIZE).context("SO_SNDBUF")?;
+    set_socket_buffer(&mut rx, SO_RCVBUF, BUFSIZE).context("SO_RCVBUF")?;
+    Ok((tx, rx))
+}
+
 /// This function is run in a separate thread; its purpose is to perform
 /// blocking reads from the pty (non-blocking reads are not portable to
 /// all platforms and pty/tty types), parse the escape sequences and
@@ -243,9 +250,20 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
     // or in the main mux thread.  If `true`, this thread will terminate.
     let dead = Arc::new(AtomicBool::new(false));
 
-    let (mut tx, mut rx) = socketpair().unwrap();
-    set_socket_buffer(&mut tx, SO_SNDBUF, BUFSIZE).unwrap();
-    set_socket_buffer(&mut rx, SO_RCVBUF, BUFSIZE).unwrap();
+    let (mut tx, rx) = match allocate_socketpair() {
+        Ok(pair) => pair,
+        Err(err) => {
+            log::error!("read_from_pane_pty: Unable to allocate a socketpair: {err:#}");
+            localpane::emit_output_for_pane(
+                pane_id,
+                &format!(
+                    "⚠️  wezterm: read_from_pane_pty: \
+                    Unable to allocate a socketpair: {err:#}"
+                ),
+            );
+            return;
+        }
+    };
 
     std::thread::spawn({
         let dead = Arc::clone(&dead);
