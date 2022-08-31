@@ -20445,6 +20445,186 @@
   {
     "colors": {
       "ansi": [
+        "#171922",
+        "#d0679d",
+        "#5de4c7",
+        "#fffac2",
+        "#89ddff",
+        "#fcc5e9",
+        "#89ddff",
+        "#ffffff"
+      ],
+      "background": "#1b1e28",
+      "brights": [
+        "#506477",
+        "#d0679d",
+        "#5de4c7",
+        "#fffac2",
+        "#add7ff",
+        "#fcc5e9",
+        "#add7ff",
+        "#ffffff"
+      ],
+      "compose_cursor": "#fcc5e9",
+      "cursor_bg": "#7390aa",
+      "cursor_border": "#7390aa",
+      "cursor_fg": "#1b1e28",
+      "foreground": "#e4f0fb",
+      "indexed": {
+        "16": "#5de4c7",
+        "17": "#d0679d"
+      },
+      "scrollbar_thumb": "#303340",
+      "selection_bg": "#506477",
+      "selection_fg": "#e4f0fb",
+      "split": "#171922",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#e4f0fb",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#171922",
+        "inactive_tab": {
+          "bg_color": "#171922",
+          "fg_color": "#506477",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_hover": {
+          "bg_color": "#171922",
+          "fg_color": "#767c9d",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#171922",
+          "fg_color": "#506477",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#171922",
+          "fg_color": "#767c9d",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#506477"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Oliver Cederborg",
+      "name": "Poimandres",
+      "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1e28",
+        "#d0679d",
+        "#5de4c7",
+        "#fffac2",
+        "#89ddff",
+        "#fcc5e9",
+        "#89ddff",
+        "#ffffff"
+      ],
+      "background": "#252b37",
+      "brights": [
+        "#506477",
+        "#d0679d",
+        "#5de4c7",
+        "#fffac2",
+        "#add7ff",
+        "#fcc5e9",
+        "#add7ff",
+        "#ffffff"
+      ],
+      "compose_cursor": "#fcc5e9",
+      "cursor_bg": "#7390aa",
+      "cursor_border": "#7390aa",
+      "cursor_fg": "#252b37",
+      "foreground": "#e4f0fb",
+      "indexed": {
+        "16": "#5de4c7",
+        "17": "#d0679d"
+      },
+      "scrollbar_thumb": "#404350",
+      "selection_bg": "#506477",
+      "selection_fg": "#e4f0fb",
+      "split": "#252b37",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#e4f0fb",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#1b1e28",
+        "inactive_tab": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#506477",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_hover": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#868cad",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#506477",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#1b1e28",
+          "fg_color": "#868cad",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#506477"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Oliver Cederborg",
+      "name": "Poimandres Storm",
+      "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#000000",
         "#eb008a",
         "#37b349",
