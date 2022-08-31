@@ -198,4 +198,10 @@ pub fn bootstrap() {
     // wezterm or the mux server from inside gnome terminal.
     // <https://github.com/wez/wezterm/issues/2237>
     std::env::remove_var("VTE_VERSION");
+
+    // Sice folks don't like to reboot or sign out if they `chsh`,
+    // SHELL may be stale. Rather than using a stale value, unset
+    // it so that pty::CommandBuilder::get_shell will resolve the
+    // shell from the password database instead.
+    std::env::remove_var("SHELL");
 }
