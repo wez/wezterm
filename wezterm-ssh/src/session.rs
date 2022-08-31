@@ -103,6 +103,7 @@ impl Session {
             next_file_id: 1,
             sender_read,
             session_was_dropped: false,
+            shown_accept_env_error: false,
         };
         std::thread::spawn(move || inner.run());
         Ok((Self { tx: session_sender }, rx_event))

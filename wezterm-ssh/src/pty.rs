@@ -228,13 +228,26 @@ impl crate::sessioninner::SessionInner {
                     // Depending on the server configuration, a given
                     // setenv request may not succeed, but that doesn't
                     // prevent the connection from being set up.
-                    log::warn!(
-                        "ssh: setenv {}={} failed: {}. \
-                         Check the AcceptEnv setting on the ssh server side.",
-                        key,
-                        val,
-                        err
-                    );
+                    if !self.shown_accept_env_error {
+                        log::warn!(
+                            "ssh: setenv {}={} failed: {}. \
+                            Check the AcceptEnv setting on the ssh server side. \
+                            Additional errors with setting env vars in this \
+                            session will be logged at debug log level.",
+                            key,
+                            val,
+                            err
+                        );
+                        self.shown_accept_env_error = true;
+                    } else {
+                        log::debug!(
+                            "ssh: setenv {}={} failed: {}. \
+                             Check the AcceptEnv setting on the ssh server side.",
+                            key,
+                            val,
+                            err
+                        );
+                    }
                 }
             }
         }

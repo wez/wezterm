@@ -47,6 +47,7 @@ pub(crate) struct SessionInner {
     pub next_file_id: FileId,
     pub sender_read: FileDescriptor,
     pub session_was_dropped: bool,
+    pub shown_accept_env_error: bool,
 }
 
 impl Drop for SessionInner {
