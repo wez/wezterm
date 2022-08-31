@@ -760,6 +760,7 @@ impl SessionInner {
             .channels
             .get_mut(&info.channel)
             .ok_or_else(|| anyhow::anyhow!("invalid channel id {}", info.channel))?;
+        log::trace!("send SIG{} to channel {}", info.signame, info.channel);
         chan_info.channel.send_signal(info.signame)?;
         Ok(())
     }
