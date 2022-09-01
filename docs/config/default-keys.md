@@ -1,6 +1,9 @@
 ## Default Shortcut / Key Binding Assignments
 
-The default key assignments are:
+The default key assignments are shown in the table below.
+
+You may also use `wezterm show-keys --lua` to see the assignments
+in a form that you can copy and paste into your own configuration.
 
 | Modifiers | Key | Action |
 | --------- | --- | ------ |
@@ -61,6 +64,8 @@ The default key assignments are:
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` (*Since: 20210814-124438-54e29167*)|
+| `CTRL+SHIFT`     | `P`    | `PaneSelect` (*Since: nightly builds only*)|
+| `CTRL+SHIFT`     | `U`    | `CharSelect` (*Since: nightly builds only*)|
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
