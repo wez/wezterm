@@ -596,8 +596,7 @@ impl CommandBuilder {
             .get_env("ComSpec")
             .unwrap_or(OsStr::new("cmd.exe"))
             .into();
-        exe
-            .into_string()
+        exe.into_string()
             .unwrap_or_else(|_| "%CompSpec%".to_string())
     }
 
