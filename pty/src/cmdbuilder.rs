@@ -412,10 +412,9 @@ impl CommandBuilder {
             .map(|dir| dir.as_os_str())
             .filter(|dir| std::path::Path::new(dir).is_dir())
             .unwrap_or(home.as_ref());
+        let shell = self.get_shell();
 
         let mut cmd = if self.is_default_prog() {
-            let shell = self.get_shell()?;
-
             let mut cmd = std::process::Command::new(&shell);
 
             // Run the shell as a login shell by prefixing the shell's
@@ -434,6 +433,7 @@ impl CommandBuilder {
         cmd.current_dir(dir);
 
         cmd.env_clear();
+        cmd.env("SHELL", shell);
         cmd.envs(self.envs.values().map(
             |EnvEntry {
                  is_from_base_env: _,
@@ -448,7 +448,7 @@ impl CommandBuilder {
     /// Determine which shell to run.
     /// We take the contents of the $SHELL env var first, then
     /// fall back to looking it up from the password database.
-    pub fn get_shell(&self) -> anyhow::Result<String> {
+    pub fn get_shell(&self) -> String {
         use nix::unistd::{access, AccessFlags};
         use std::ffi::CStr;
         use std::path::Path;
@@ -456,7 +456,7 @@ impl CommandBuilder {
 
         if let Some(shell) = self.get_env("SHELL").and_then(OsStr::to_str) {
             match access(shell, AccessFlags::X_OK) {
-                Ok(()) => return Ok(shell.into()),
+                Ok(()) => return shell.into(),
                 Err(err) => log::warn!(
                     "$SHELL -> {shell:?} which is \
                      not executable ({err:#}), falling back to password db lookup"
@@ -467,21 +467,27 @@ impl CommandBuilder {
         let ent = unsafe { libc::getpwuid(libc::getuid()) };
         if !ent.is_null() {
             let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
-            let shell = shell
-                .to_str()
-                .map(str::to_owned)
-                .context("failed to resolve shell from passwd database")?;
-
-            if let Err(err) = access(Path::new(&shell), AccessFlags::X_OK) {
-                log::warn!(
-                    "passwd database shell={shell:?} which is \
-                     not executable ({err:#}), fallback to /bin/sh"
-                );
-            } else {
-                return Ok(shell)
+            match shell.to_str().map(str::to_owned) {
+                Err(err) => {
+                    log::warn!(
+                        "passwd database shell could not be \
+                                represented as utf-8: {err:#}, \
+                                falling back to /bin/sh"
+                    );
+                }
+                Ok(shell) => {
+                    if let Err(err) = access(Path::new(&shell), AccessFlags::X_OK) {
+                        log::warn!(
+                            "passwd database shell={shell:?} which is \
+                             not executable ({err:#}), falling back to /bin/sh"
+                        );
+                    } else {
+                        return shell;
+                    }
+                }
             }
         }
-        Ok("/bin/sh".into())
+        "/bin/sh".into()
     }
 
     fn get_home_dir(&self) -> anyhow::Result<String> {

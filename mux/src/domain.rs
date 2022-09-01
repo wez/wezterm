@@ -488,7 +488,7 @@ impl Domain for LocalDomain {
         let command_description = format!(
             "\"{}\" in domain \"{}\"",
             if command_line.is_empty() {
-                cmd.get_shell()?
+                cmd.get_shell()
             } else {
                 command_line
             },
