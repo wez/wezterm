@@ -477,6 +477,8 @@ impl CommandBuilder {
                     "passwd database shell={shell:?} which is \
                      not executable ({err:#}), fallback to /bin/sh"
                 );
+            } else {
+                return Ok(shell)
             }
         }
         Ok("/bin/sh".into())
