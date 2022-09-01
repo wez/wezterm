@@ -70,8 +70,7 @@ dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 x11 = {version ="2.19", features = ["xlib_xcb", "xlib"]}
 xcb = {version="1.1.1", features=["render", "randr", "dri2", "xkb", "xlib_xcb", "present"]}
-xkbcommon = { version = "0.5.0-beta.0", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", branch="key-by-name"}
-#xkbcommon = { version = "0.6", features = ["x11", "wayland"], path="../../xkbcommon-rs" }
+xkbcommon = { version = "0.5.0", features = ["x11", "wayland"] }
 mio = {version="0.8", features=["os-ext"]}
 libc = "0.2"
 smithay-client-toolkit = {version = "0.15", default-features=false, optional=true}

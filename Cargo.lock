@@ -6007,8 +6007,9 @@ dependencies = [
 
 [[package]]
 name = "xkbcommon"
-version = "0.5.0-beta.0"
-source = "git+https://github.com/wez/xkbcommon-rs.git?branch=key-by-name#546ba7dbf2ace214b9947fc4646a0f4afd70cb0a"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acbee136714379ab22da0280207fdb7f47e0bb940adea97731b65598b8c7a92e"
 dependencies = [
  "libc",
  "memmap2 0.5.7",
