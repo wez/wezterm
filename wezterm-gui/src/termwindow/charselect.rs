@@ -49,7 +49,7 @@ enum Character {
 struct Alias {
     name: Cow<'static, str>,
     character: Character,
-    group: Option<CharSelectGroup>,
+    group: CharSelectGroup,
 }
 
 impl Alias {
@@ -139,7 +139,7 @@ fn build_aliases() -> Vec<Alias> {
             aliases.push(Alias {
                 name: Cow::Owned(r.name.clone()),
                 character,
-                group: None,
+                group: CharSelectGroup::RecentlyUsed,
             });
         }
     }
@@ -161,7 +161,7 @@ fn build_aliases() -> Vec<Alias> {
             Alias {
                 name: Cow::Borrowed(emoji.name()),
                 character: Character::Emoji(emoji),
-                group: Some(group),
+                group,
             },
         );
         if let Some(short) = emoji.shortcode() {
@@ -171,7 +171,7 @@ fn build_aliases() -> Vec<Alias> {
                     Alias {
                         name: Cow::Borrowed(short),
                         character: Character::Emoji(emoji),
-                        group: Some(group),
+                        group,
                     },
                 );
             }
@@ -187,7 +187,7 @@ fn build_aliases() -> Vec<Alias> {
                     name,
                     value: char::from_u32(*value).unwrap(),
                 },
-                group: Some(CharSelectGroup::UnicodeNames),
+                group: CharSelectGroup::UnicodeNames,
             },
         );
     }
@@ -201,7 +201,7 @@ fn build_aliases() -> Vec<Alias> {
                     name,
                     value: *value,
                 },
-                group: Some(CharSelectGroup::NerdFonts),
+                group: CharSelectGroup::NerdFonts,
             },
         );
     }
@@ -242,10 +242,7 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
         aliases
             .iter()
             .enumerate()
-            .filter(|(_idx, a)| match a.group {
-                Some(g) => g == group,
-                None => true,
-            })
+            .filter(|(_idx, a)| a.group == group)
             .map(|(idx, _a)| idx)
             .collect()
     } else {
@@ -306,11 +303,21 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
 
 impl CharSelector {
     pub fn new(_term_window: &mut TermWindow, args: &CharSelectArguments) -> Self {
+        let aliases = build_aliases();
+        let has_recents = aliases[0].group == CharSelectGroup::RecentlyUsed;
+        let group = args.group.unwrap_or_else(|| {
+            if has_recents {
+                CharSelectGroup::RecentlyUsed
+            } else {
+                CharSelectGroup::default()
+            }
+        });
+
         Self {
             element: RefCell::new(None),
             selection: RefCell::new(String::new()),
-            group: RefCell::new(args.group),
-            aliases: build_aliases(),
+            group: RefCell::new(group),
+            aliases,
             matches: RefCell::new(None),
             selected_row: RefCell::new(0),
             top_row: RefCell::new(0),
@@ -321,6 +328,7 @@ impl CharSelector {
     fn compute(
         term_window: &mut TermWindow,
         selection: &str,
+        group: CharSelectGroup,
         aliases: &[Alias],
         matches: &MatchResults,
         max_rows_on_screen: usize,
@@ -341,16 +349,32 @@ impl CharSelector {
         let (padding_left, padding_top) = term_window.padding_left_top();
         let border = term_window.get_os_border();
         let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
-        let mut elements =
-            vec![
-                Element::new(&font, ElementContent::Text(format!("Select: {selection}_")))
-                    .colors(ElementColors {
-                        border: BorderColor::default(),
-                        bg: LinearRgba::TRANSPARENT.into(),
-                        text: term_window.config.pane_select_fg_color.to_linear().into(),
-                    })
-                    .display(DisplayType::Block),
-            ];
+
+        let label = match group {
+            CharSelectGroup::RecentlyUsed => "Recent",
+            CharSelectGroup::SmileysAndEmotion => "Emotion",
+            CharSelectGroup::PeopleAndBody => "People",
+            CharSelectGroup::AnimalsAndNature => "Animals",
+            CharSelectGroup::FoodAndDrink => "Food",
+            CharSelectGroup::TravelAndPlaces => "Travel",
+            CharSelectGroup::Activities => "Activities",
+            CharSelectGroup::Objects => "Objects",
+            CharSelectGroup::Symbols => "Symbols",
+            CharSelectGroup::Flags => "Flags",
+            CharSelectGroup::NerdFonts => "NerdFonts",
+            CharSelectGroup::UnicodeNames => "Unicode",
+        };
+
+        let mut elements = vec![Element::new(
+            &font,
+            ElementContent::Text(format!("{label}: {selection}_")),
+        )
+        .colors(ElementColors {
+            border: BorderColor::default(),
+            bg: LinearRgba::TRANSPARENT.into(),
+            text: term_window.config.pane_select_fg_color.to_linear().into(),
+        })
+        .display(DisplayType::Block)];
 
         for (display_idx, alias) in matches
             .matches
@@ -627,6 +651,7 @@ impl Modal for CharSelector {
             let element = Self::compute(
                 term_window,
                 selection,
+                group,
                 &self.aliases,
                 matches,
                 max_rows_on_screen,

@@ -320,6 +320,7 @@ pub struct PaneSelectArguments {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum CharSelectGroup {
+    RecentlyUsed,
     SmileysAndEmotion,
     PeopleAndBody,
     AnimalsAndNature,
@@ -336,6 +337,7 @@ pub enum CharSelectGroup {
 impl CharSelectGroup {
     pub fn next(self) -> Self {
         match self {
+            Self::RecentlyUsed => Self::SmileysAndEmotion,
             Self::SmileysAndEmotion => Self::PeopleAndBody,
             Self::PeopleAndBody => Self::AnimalsAndNature,
             Self::AnimalsAndNature => Self::FoodAndDrink,
@@ -346,7 +348,7 @@ impl CharSelectGroup {
             Self::Symbols => Self::Flags,
             Self::Flags => Self::NerdFonts,
             Self::NerdFonts => Self::UnicodeNames,
-            Self::UnicodeNames => Self::SmileysAndEmotion,
+            Self::UnicodeNames => Self::RecentlyUsed,
         }
     }
 }
@@ -360,7 +362,7 @@ impl Default for CharSelectGroup {
 #[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct CharSelectArguments {
     #[dynamic(default)]
-    pub group: CharSelectGroup,
+    pub group: Option<CharSelectGroup>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
