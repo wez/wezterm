@@ -303,6 +303,24 @@ static DEFS: &[CommandDef] = &[
         args: &[ArgType::ActivePane],
     },
     CommandDef {
+        brief: "Enter Emoji / Character selection mode",
+        doc: "Activates the character selection UI for the current pane",
+        exp: |exp| {
+            exp.push(CharSelect(CharSelectArguments::default()));
+        },
+        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "u")],
+        args: &[ArgType::ActivePane],
+    },
+    CommandDef {
+        brief: "Enter Pane selection mode",
+        doc: "Activates the pane selection UI",
+        exp: |exp| {
+            exp.push(PaneSelect(PaneSelectArguments::default()));
+        },
+        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "p")],
+        args: &[ArgType::ActivePane],
+    },
+    CommandDef {
         brief: "Decrease font size",
         doc: "Scales the font size smaller by 10%",
         exp: |exp| {

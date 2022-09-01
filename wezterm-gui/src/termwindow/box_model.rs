@@ -644,11 +644,12 @@ impl super::TermWindow {
                 })
             }
             ElementContent::Children(kids) => {
-                let mut pixel_width: f32 = 0.;
-                let mut pixel_height: f32 = 0.;
+                let mut block_pixel_width: f32 = 0.;
+                let mut block_pixel_height: f32 = 0.;
                 let mut computed_kids = vec![];
                 let mut max_x: f32 = 0.;
                 let mut float_width: f32 = 0.;
+                let mut y_coord: f32 = 0.;
 
                 let max_width = match element.max_width {
                     Some(w) => w
@@ -659,20 +660,27 @@ impl super::TermWindow {
                 .min(context.width.pixel_max);
 
                 for child in kids {
+                    if child.display == DisplayType::Block {
+                        y_coord += block_pixel_height;
+                        block_pixel_height = 0.;
+                        block_pixel_width = 0.;
+                    }
+
                     let kid = self.compute_element(
                         &LayoutContext {
                             bounds: match child.float {
                                 Float::None => euclid::rect(
-                                    pixel_width,
-                                    context.bounds.min_y(),
-                                    context.bounds.max_x() - (context.bounds.min_x() + pixel_width),
-                                    context.bounds.height(),
+                                    block_pixel_width,
+                                    y_coord,
+                                    context.bounds.max_x()
+                                        - (context.bounds.min_x() + block_pixel_width),
+                                    context.bounds.max_y() - (context.bounds.min_y() + y_coord),
                                 ),
                                 Float::Right => euclid::rect(
                                     0.,
-                                    context.bounds.min_y(),
+                                    y_coord,
                                     context.bounds.width(),
-                                    context.bounds.height(),
+                                    context.bounds.max_y() - (context.bounds.min_y() + y_coord),
                                 ),
                             },
                             gl_state: context.gl_state,
@@ -692,11 +700,11 @@ impl super::TermWindow {
                             float_width += float_width.max(kid.bounds.width());
                         }
                         Float::None => {
-                            pixel_width += kid.bounds.width();
-                            max_x = max_x.max(pixel_width);
+                            block_pixel_width += kid.bounds.width();
+                            max_x = max_x.max(block_pixel_width);
                         }
                     }
-                    pixel_height = pixel_height.max(kid.bounds.height());
+                    block_pixel_height = block_pixel_height.max(kid.bounds.height());
 
                     computed_kids.push(kid);
                 }
@@ -706,7 +714,7 @@ impl super::TermWindow {
 
                 let mut float_max_x = (max_x + float_width).min(max_width);
 
-                let pixel_height = pixel_height.max(min_height);
+                let pixel_height = (y_coord + block_pixel_height).max(min_height);
 
                 for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
                     match child.float {

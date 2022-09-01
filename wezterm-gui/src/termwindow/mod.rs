@@ -66,6 +66,7 @@ use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration, TerminalSize};
 
 pub mod background;
 pub mod box_model;
+pub mod charselect;
 pub mod clipboard;
 mod keyevent;
 pub mod modal;
@@ -1582,6 +1583,9 @@ impl TermWindow {
     fn invalidate_modal(&mut self) {
         if let Some(modal) = self.get_modal() {
             modal.reconfigure(self);
+            if let Some(window) = self.window.as_ref() {
+                window.invalidate();
+            }
         }
     }
 
@@ -2691,6 +2695,10 @@ impl TermWindow {
             }
             PaneSelect(args) => {
                 let modal = crate::termwindow::paneselect::PaneSelector::new(self, args);
+                self.modal.borrow_mut().replace(Rc::new(modal));
+            }
+            CharSelect(args) => {
+                let modal = crate::termwindow::charselect::CharSelector::new(self, args);
                 self.modal.borrow_mut().replace(Rc::new(modal));
             }
         };

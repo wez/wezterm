@@ -318,6 +318,51 @@ pub struct PaneSelectArguments {
     pub mode: PaneSelectMode,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub enum CharSelectGroup {
+    SmileysAndEmotion,
+    PeopleAndBody,
+    AnimalsAndNature,
+    FoodAndDrink,
+    TravelAndPlaces,
+    Activities,
+    Objects,
+    Symbols,
+    Flags,
+    NerdFonts,
+    UnicodeNames,
+}
+
+impl CharSelectGroup {
+    pub fn next(self) -> Self {
+        match self {
+            Self::SmileysAndEmotion => Self::PeopleAndBody,
+            Self::PeopleAndBody => Self::AnimalsAndNature,
+            Self::AnimalsAndNature => Self::FoodAndDrink,
+            Self::FoodAndDrink => Self::TravelAndPlaces,
+            Self::TravelAndPlaces => Self::Activities,
+            Self::Activities => Self::Objects,
+            Self::Objects => Self::Symbols,
+            Self::Symbols => Self::Flags,
+            Self::Flags => Self::NerdFonts,
+            Self::NerdFonts => Self::UnicodeNames,
+            Self::UnicodeNames => Self::SmileysAndEmotion,
+        }
+    }
+}
+
+impl Default for CharSelectGroup {
+    fn default() -> Self {
+        Self::SmileysAndEmotion
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+pub struct CharSelectArguments {
+    #[dynamic(default)]
+    pub group: CharSelectGroup,
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct QuickSelectArguments {
     /// Overrides the main quick_select_alphabet config
@@ -434,6 +479,7 @@ pub enum KeyAssignment {
     RotatePanes(RotationDirection),
     SplitPane(SplitPane),
     PaneSelect(PaneSelectArguments),
+    CharSelect(CharSelectArguments),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

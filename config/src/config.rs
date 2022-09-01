@@ -97,6 +97,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
+    #[dynamic(default = "default_char_select_font_size")]
+    pub char_select_font_size: f64,
+
     #[dynamic(default = "default_pane_select_font_size")]
     pub pane_select_font_size: f64,
 
@@ -1224,6 +1227,10 @@ fn default_pane_select_bg_color() -> RgbaColor {
 
 fn default_pane_select_font_size() -> f64 {
     36.0
+}
+
+fn default_char_select_font_size() -> f64 {
+    18.0
 }
 
 fn default_swallow_mouse_click_on_window_focus() -> bool {
