@@ -82,6 +82,7 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '(--list-system)--text=[Explain which fonts are used to render the supplied text string]:TEXT: ' \
 '--list-system[Whether to list all fonts available to the system]' \
+'--rasterize-ascii[Show rasterized glyphs for the text in --text using ascii blocks]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
@@ -231,7 +232,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (shell-completion)
 _arguments "${_arguments_options[@]}" \
-'--shell=[Which shell to generate for]:SHELL:(bash elvish fish powershell zsh)' \
+'*--shell=[Which shell to generate for]:SHELL:(bash elvish fish power-shell zsh fig)' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
