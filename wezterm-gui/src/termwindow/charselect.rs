@@ -12,10 +12,13 @@ use config::keyassignment::{
 };
 use config::Dimension;
 use emojis::{Emoji, Group};
+use frecency::Frecency;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
+use std::path::PathBuf;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
 
@@ -46,7 +49,7 @@ enum Character {
 struct Alias {
     name: Cow<'static, str>,
     character: Character,
-    group: CharSelectGroup,
+    group: Option<CharSelectGroup>,
 }
 
 impl Alias {
@@ -73,12 +76,72 @@ impl Alias {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Recent {
+    glyph: String,
+    name: String,
+    frecency: Frecency,
+}
+
+fn recent_file_name() -> PathBuf {
+    config::RUNTIME_DIR.join("recent-emoji.json")
+}
+
+fn load_recents() -> anyhow::Result<Vec<Recent>> {
+    let file_name = recent_file_name();
+    let f = std::fs::File::open(&file_name)?;
+    let mut recents: Vec<Recent> = serde_json::from_reader(f)?;
+    recents.sort_by(|a, b| b.frecency.score().partial_cmp(&a.frecency.score()).unwrap());
+    Ok(recents)
+}
+
+fn save_recent(alias: &Alias) -> anyhow::Result<()> {
+    let mut recents = load_recents().unwrap_or_else(|_| vec![]);
+    let glyph = alias.glyph();
+    if let Some(recent_idx) = recents.iter().position(|r| r.glyph == glyph) {
+        let recent = recents.get_mut(recent_idx).unwrap();
+        recent.frecency.register_access();
+    } else {
+        let mut frecency = Frecency::new();
+        frecency.register_access();
+        recents.push(Recent {
+            glyph,
+            name: alias.name().to_string(),
+            frecency,
+        });
+    }
+
+    let json = serde_json::to_string(&recents)?;
+    let file_name = recent_file_name();
+    std::fs::write(&file_name, json)?;
+    Ok(())
+}
+
 fn build_aliases() -> Vec<Alias> {
     let mut aliases = vec![];
     let start = std::time::Instant::now();
 
     fn push(aliases: &mut Vec<Alias>, alias: Alias) {
         aliases.push(alias);
+    }
+
+    if let Ok(recents) = load_recents() {
+        for r in recents {
+            let character = if let Some(emoji) = emojis::get(&r.glyph) {
+                Character::Emoji(emoji)
+            } else {
+                Character::Unicode {
+                    name: "",
+                    value: r.glyph.chars().next().unwrap(),
+                }
+            };
+
+            aliases.push(Alias {
+                name: Cow::Owned(r.name.clone()),
+                character,
+                group: None,
+            });
+        }
     }
 
     for emoji in emojis::iter() {
@@ -98,7 +161,7 @@ fn build_aliases() -> Vec<Alias> {
             Alias {
                 name: Cow::Borrowed(emoji.name()),
                 character: Character::Emoji(emoji),
-                group,
+                group: Some(group),
             },
         );
         if let Some(short) = emoji.shortcode() {
@@ -108,7 +171,7 @@ fn build_aliases() -> Vec<Alias> {
                     Alias {
                         name: Cow::Borrowed(short),
                         character: Character::Emoji(emoji),
-                        group,
+                        group: Some(group),
                     },
                 );
             }
@@ -124,7 +187,7 @@ fn build_aliases() -> Vec<Alias> {
                     name,
                     value: char::from_u32(*value).unwrap(),
                 },
-                group: CharSelectGroup::UnicodeNames,
+                group: Some(CharSelectGroup::UnicodeNames),
             },
         );
     }
@@ -138,7 +201,7 @@ fn build_aliases() -> Vec<Alias> {
                     name,
                     value: *value,
                 },
-                group: CharSelectGroup::NerdFonts,
+                group: Some(CharSelectGroup::NerdFonts),
             },
         );
     }
@@ -179,7 +242,10 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
         aliases
             .iter()
             .enumerate()
-            .filter(|(_idx, a)| a.group == group)
+            .filter(|(_idx, a)| match a.group {
+                Some(g) => g == group,
+                None => true,
+            })
             .map(|(idx, _a)| idx)
             .collect()
     } else {
@@ -418,8 +484,6 @@ impl CharSelector {
         if *row < *top_row {
             *top_row = *row;
         }
-
-        log::info!("selected_row={} top_row={}", *row, *top_row);
     }
 
     fn move_down(&self) {
@@ -437,7 +501,6 @@ impl CharSelector {
         if *row + *top_row > max_rows_on_screen - 1 {
             *top_row = row.saturating_sub(max_rows_on_screen - 1);
         }
-        log::info!("selected_row={} top_row={}", *row, *top_row);
     }
 }
 
@@ -503,7 +566,11 @@ impl Modal for CharSelector {
                     .borrow()
                     .as_ref()
                     .map_or(selected_idx, |m| m.matches[selected_idx]);
-                let glyph = self.aliases[alias_idx].glyph();
+                let item = &self.aliases[alias_idx];
+                if let Err(err) = save_recent(item) {
+                    log::error!("Error while saving recents: {err:#}");
+                }
+                let glyph = item.glyph();
                 log::trace!("selected: {glyph}");
                 term_window.copy_to_clipboard(
                     ClipboardCopyDestination::ClipboardAndPrimarySelection,
