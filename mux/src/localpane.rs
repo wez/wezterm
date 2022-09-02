@@ -76,6 +76,7 @@ impl Pane for LocalPane {
     fn get_metadata(&self) -> Value {
         let mut map: BTreeMap<Value, Value> = BTreeMap::new();
 
+        #[cfg(unix)]
         if let Some(tio) = self.pty.borrow().get_termios() {
             use nix::sys::termios::LocalFlags;
             // Detect whether we might be in password input mode.
