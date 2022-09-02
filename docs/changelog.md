@@ -45,6 +45,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Scroll to the bottom on mouse input when mouse reporting is enabled [#2447](https://github.com/wez/wezterm/issues/2447)
 * ssh: correctly expand `%h` ssh_config tokens [#2448](https://github.com/wez/wezterm/issues/2448)
 * ssh: `CloseCurrentPane` wouldn't release all resources associated with the pane and could lead to a `too many open files` error for a long running `wezterm ssh` session. [#2466](https://github.com/wez/wezterm/issues/2466)
+* mouse cursor is now reset to arrow when the mouse leaves the window [#2471](https://github.com/wez/wezterm/issues/2471)
 
 ### 20220807-113146-c2fee766
 

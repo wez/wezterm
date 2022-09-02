@@ -235,6 +235,7 @@ impl super::TermWindow {
     pub fn mouse_leave_impl(&mut self, context: &dyn WindowOps) {
         self.current_mouse_event = None;
         self.update_title();
+        context.set_cursor(Some(MouseCursor::Arrow));
         context.invalidate();
     }
 
@@ -709,11 +710,16 @@ impl super::TermWindow {
             }
         };
 
+        let outside_window = event.coords.x < 0
+            || event.coords.x as usize > self.dimensions.pixel_width
+            || event.coords.y < 0
+            || event.coords.y as usize > self.dimensions.pixel_height;
+
         context.set_cursor(Some(if self.current_highlight.is_some() {
             // When hovering over a hyperlink, show an appropriate
             // mouse cursor to give the cue that it is clickable
             MouseCursor::Hand
-        } else if pane.is_mouse_grabbed() {
+        } else if pane.is_mouse_grabbed() || outside_window {
             MouseCursor::Arrow
         } else {
             MouseCursor::Text
