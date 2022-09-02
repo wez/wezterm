@@ -2621,6 +2621,7 @@ dependencies = [
  "async-trait",
  "base64",
  "bintree",
+ "bitflags",
  "chrono",
  "config",
  "crossbeam",
@@ -2636,6 +2637,7 @@ dependencies = [
  "metrics",
  "mlua",
  "names",
+ "nix 0.25.0",
  "ntapi",
  "percent-encoding",
  "portable-pty",
@@ -2747,6 +2749,20 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "memoffset",
+]
+
+[[package]]
+name = "nix"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e322c04a9e3440c327fca7b6c8a63e6890a32fa2ad689db972425f07e0d22abb"
+dependencies = [
+ "autocfg",
+ "bitflags",
+ "cfg-if 1.0.0",
+ "libc",
+ "memoffset",
+ "pin-utils",
 ]
 
 [[package]]
@@ -3401,7 +3417,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "nix 0.24.2",
+ "nix 0.25.0",
  "serde",
  "serde_derive",
  "serial",

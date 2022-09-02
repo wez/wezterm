@@ -155,6 +155,9 @@ pub struct Config {
     #[dynamic(default = "default_clean_exits")]
     pub clean_exit_codes: Vec<u32>,
 
+    #[dynamic(default = "default_true")]
+    pub detect_password_input: bool,
+
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
     /// This is not used when working with remote domains.
