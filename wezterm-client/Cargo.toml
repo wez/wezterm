@@ -37,6 +37,7 @@ textwrap = "0.15"
 thiserror = "1.0"
 umask = { path = "../umask" }
 url = "2"
+wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 

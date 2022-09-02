@@ -5420,6 +5420,7 @@ dependencies = [
  "uds_windows",
  "umask",
  "url",
+ "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
  "winapi",

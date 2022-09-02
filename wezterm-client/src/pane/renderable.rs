@@ -72,7 +72,7 @@ pub struct RenderableInner {
     fetch_limiter: RateLimiter,
 
     last_send_time: Instant,
-    last_recv_time: Instant,
+    pub last_recv_time: Instant,
     last_late_dirty: Instant,
     last_input_rtt: u64,
 
