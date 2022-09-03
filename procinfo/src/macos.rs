@@ -178,6 +178,11 @@ impl LocalProcessInfo {
 
             let exe_path = consume_cstr(&mut ptr)?.into();
 
+            // For some reason, sysctl sometimes puts some null bytes
+            // between the executable field and the argv field
+            let not_nul = ptr.iter().position(|&c| c != 0)?;
+            ptr = ptr.get(not_nul..)?;
+
             let mut args = vec![];
             for _ in 0..argc {
                 args.push(consume_cstr(&mut ptr)?);
