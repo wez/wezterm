@@ -37,6 +37,8 @@ pub struct CharSelector {
     selected_row: RefCell<usize>,
     top_row: RefCell<usize>,
     max_rows_on_screen: RefCell<usize>,
+    copy_on_select: bool,
+    copy_to: ClipboardCopyDestination,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -322,6 +324,8 @@ impl CharSelector {
             selected_row: RefCell::new(0),
             top_row: RefCell::new(0),
             max_rows_on_screen: RefCell::new(0),
+            copy_on_select: args.copy_on_select,
+            copy_to: args.copy_to,
         }
     }
 
@@ -595,11 +599,15 @@ impl Modal for CharSelector {
                     log::error!("Error while saving recents: {err:#}");
                 }
                 let glyph = item.glyph();
-                log::trace!("selected: {glyph}");
-                term_window.copy_to_clipboard(
-                    ClipboardCopyDestination::ClipboardAndPrimarySelection,
-                    glyph.clone(),
+                log::trace!(
+                    "selected: {glyph}. copy_on_select={} -> {:?}",
+                    self.copy_on_select,
+                    self.copy_to
                 );
+
+                if self.copy_on_select {
+                    term_window.copy_to_clipboard(self.copy_to, glyph.clone());
+                }
                 if let Some(pane) = term_window.get_active_pane_or_overlay() {
                     pane.writer().write_all(glyph.as_bytes()).ok();
                 }
