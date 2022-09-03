@@ -196,6 +196,7 @@ pub struct LineToElementParams<'a> {
 pub struct LineToEleShapeCacheKey {
     pub shape_hash: [u8; 16],
     pub composing: Option<(usize, String)>,
+    pub shape_generation: usize,
 }
 
 pub struct LineToElementShapeItem {
@@ -1752,6 +1753,7 @@ impl super::TermWindow {
 
                     let shape_key = LineToEleShapeCacheKey {
                         shape_hash,
+                        shape_generation: quad_key.shape_generation,
                         composing: if self.cursor.y == stable_row {
                             if let DeadKeyStatus::Composing(composing) =
                                 &self.term_window.dead_key_status
