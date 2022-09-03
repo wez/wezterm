@@ -18,7 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [CopyMode](copymode.md) now supports selecting and move by semantic zones. [#2346](https://github.com/wez/wezterm/issues/2346)
 * [max_fps](config/lua/config/max_fps.md) option to limit maximum frame rate [#2419](https://github.com/wez/wezterm/discussions/2419)
 * [`user-var-changed` event](config/lua/window-events/user-var-changed.md) allows triggering lua code in response to user vars being changed
-* `CTRL-SHIFT-U` activates a new Emoij/Unicodes/NerdFont character picker modal overlay. Fuzzy search by name or hex unicode codepoint value, or browse with keys. `CTRL-r` to cycle the browser between categories. `Enter` to select an item, copy it to the clipboard and send it to the active pane as input. `Esc` to cancel.
+* `CTRL-SHIFT-U` activates a new Emoij/Unicodes/NerdFont character picker modal overlay. Fuzzy search by name or hex unicode codepoint value, or browse with keys. `CTRL-r` to cycle the browser between categories. `Enter` to select an item, copy it to the clipboard and send it to the active pane as input. `Esc` to cancel. [CharSelect](config/lua/keyassignment/CharSelect.md).
 * `CTRL-SHIFT-P` is now a default assignment for [PaneSelect](config/lua/keyassignment/PaneSelect.md)
 * Cursor now changes to a lock glyph to indicate when local echo is disabled for password entry. Detection is limited to local unix processes and cannot work with tmux. Use `detect_password_input=false` to disable this. [#2460](https://github.com/wez/wezterm/issues/2460)
 

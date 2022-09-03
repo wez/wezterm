@@ -19,7 +19,7 @@ Characters are categorized into the following groups:
 * `"Symbols"`
 * `"Flags"`
 * `"NerdFonts"` - glyphs that are present in [Nerd Fonts](https://www.nerdfonts.com/cheat-sheet)
-* `UnicodeNames"` - all codepoints defined in unicode
+* `"UnicodeNames"` - all codepoints defined in unicode
 
 The following key assignments are available (they are not currently configurable):
 
