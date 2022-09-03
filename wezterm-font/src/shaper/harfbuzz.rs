@@ -14,6 +14,16 @@ use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::Direction;
 
+// Changing these will switch to using harfbuzz's opentype functions.
+// There's something awry with our integration in that mode: the advances
+// aren't equivalent to its freetype functions and this manifests most
+// prominently in proportional fonts as well as with fonts with bitmap
+// strikes.
+// Until we get to the bottom of this, these are compile-time rather
+// than runtime configs.
+const USE_OT_FUNCS: bool = false;
+const USE_OT_FACE: bool = false;
+
 #[derive(Clone, Debug)]
 struct Info {
     cluster: usize,
@@ -138,13 +148,19 @@ impl HarfbuzzShaper {
                     let handle = &self.handles[font_idx];
                     log::trace!("shaper wants {} {:?}", font_idx, handle);
                     let face = self.lib.face_from_locator(&handle.handle)?;
-                    let mut font = harfbuzz::Font::new(face.face);
-                    let (load_flags, _) = ftwrap::compute_load_flags_from_config(
-                        handle.freetype_load_flags,
-                        handle.freetype_load_target,
-                        handle.freetype_render_target,
-                    );
-                    font.set_load_flags(load_flags);
+
+                    let font = if USE_OT_FACE {
+                        harfbuzz::Font::from_locator(&handle.handle)?
+                    } else {
+                        let (load_flags, _) = ftwrap::compute_load_flags_from_config(
+                            handle.freetype_load_flags,
+                            handle.freetype_load_target,
+                            handle.freetype_render_target,
+                        );
+                        let mut font = harfbuzz::Font::new(face.face);
+                        font.set_load_flags(load_flags);
+                        font
+                    };
 
                     let features = match &handle.harfbuzz_features {
                         Some(features) => features
@@ -220,22 +236,33 @@ impl HarfbuzzShaper {
                             }
                         }
                     }
-                    pair.face.set_font_size(
-                        font_size * self.handles[font_idx].scale.unwrap_or(1.),
-                        dpi,
-                    )?;
+                    let point_size = font_size * self.handles[font_idx].scale.unwrap_or(1.);
+                    pair.face.set_font_size(point_size, dpi)?;
+
                     // Tell harfbuzz to recompute important font metrics!
                     let mut font = pair.font.borrow_mut();
+
+                    if USE_OT_FACE {
+                        font.set_ppem(0, 0);
+                        font.set_ptem(0.);
+                        let scale = (point_size * 2f64.powf(6.)) as i32;
+                        font.set_font_scale(scale, scale);
+                    }
+
                     font.font_changed();
+
+                    if USE_OT_FUNCS {
+                        font.set_ot_funcs();
+                    }
+
                     shaped_any = pair.shaped_any;
                     font.shape(&mut buf, pair.features.as_slice());
-                    /*
-                    log::info!(
-                        "shaped font_idx={} as: {}",
+                    log::trace!(
+                        "shaped font_idx={} {:?} as: {}",
                         font_idx,
-                        buf.serialize(Some(&pair.font))
+                        &s[range.start..range.end],
+                        buf.serialize(Some(&*font))
                     );
-                    */
                     break;
                 }
                 None => {
