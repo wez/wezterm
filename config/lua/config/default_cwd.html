@@ -141,8 +141,13 @@
                     <main>
                         <h1 id="default_cwd"><a class="header" href="#default_cwd"><code>default_cwd</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
-<p>Sets the default current working directory used by the initial window. If
-<code>wezterm start --cwd /some/path</code> is used to specify the current working
+<p>Sets the default current working directory used by the initial window.</p>
+<p>The value is a string specifying the absolute path that should be used for the
+home directory. Using strings like <code>~</code> or <code>~username</code> that are typically
+expanded by the shell is <strong>not supported</strong>. You can use
+<a href="../wezterm/home_dir.html">wezterm.home_dir</a> to explicitly refer to your home
+directory.</p>
+<p>If <code>wezterm start --cwd /some/path</code> is used to specify the current working
 directory, that will take precedence.</p>
 <p>Commands launched using <a href="../SpawnCommand.html"><code>SpawnCommand</code></a> will use the
 <code>cwd</code> specified in the <code>SpawnCommand</code>, if any.</p>
