@@ -13,6 +13,10 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Not yet
 
+### 20220904-064125-9a6cee2b
+
+* Fix build on architectures where `c_char` is `u8` instead of `i8`. Thanks to [@liushuyu](https://github.com/liushuyu)! [#2480](https://github.com/wez/wezterm/pull/2480)
+
 ### 20220903-194523-3bb1ed61
 
 #### New
