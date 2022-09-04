@@ -45,6 +45,10 @@ local wezterm = require 'wezterm'
 local act = wezterm.act
 
 return {
+  -- Control the size of the font.
+  -- Uses the same font as window_frame.font
+  -- char_select_font_size = 18.0,
+
   keys = {
     {
       key = 'u',
