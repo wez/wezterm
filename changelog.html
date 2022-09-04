@@ -152,6 +152,9 @@ usually the best available version.</p>
 <li>fontconfig: when locating a fallback font for a given codepoint, allow
 matching non-monospace fonts if we can't find any matching monospace fonts.
 <a href="https://github.com/wez/wezterm/discussions/2468">#2468</a></li>
+<li><code>os.getenv</code> now knows how to resolve environment variables that would normally
+require logging out to update, such as <code>SHELL</code> (if you <code>chsh</code> on unix systeams),
+or those set through the registry on Windows. <a href="https://github.com/wez/wezterm/discussions/2481">#2481</a></li>
 </ul>
 <h3 id="20220904-064125-9a6cee2b"><a class="header" href="#20220904-064125-9a6cee2b">20220904-064125-9a6cee2b</a></h3>
 <ul>
