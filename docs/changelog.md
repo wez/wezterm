@@ -11,7 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* Not yet
+#### Changed
+* fontconfig: when locating a fallback font for a given codepoint, allow
+  matching non-monospace fonts if we can't find any matching monospace fonts.
+  [#2468](https://github.com/wez/wezterm/discussions/2468)
 
 ### 20220904-064125-9a6cee2b
 
