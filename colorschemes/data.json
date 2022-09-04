@@ -4666,7 +4666,7 @@
       "name": "carbonfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -6381,7 +6381,7 @@
       "name": "DanQing Light (base16)",
       "origin_url": "https://github.com/CosmosAtlas/base16-danqing-scheme",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -7955,7 +7955,7 @@
       "name": "Dracula (Official)",
       "origin_url": "https://github.com/dracula/wezterm",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -20529,7 +20529,7 @@
       "name": "Poimandres",
       "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -20619,7 +20619,7 @@
       "name": "Poimandres Storm",
       "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -22517,7 +22517,7 @@
       "name": "Sequoia Monochrome",
       "origin_url": "https://github.com/Hiroya-W/wezterm-sequoia-theme",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -22557,7 +22557,7 @@
       "name": "Sequoia Moonlight",
       "origin_url": "https://github.com/Hiroya-W/wezterm-sequoia-theme",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -24984,7 +24984,7 @@
       "name": "SynthwaveAlpha",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -25021,7 +25021,7 @@
       "name": "SynthwaveAlpha (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
