@@ -26,7 +26,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220903-194523-3bb1ed61*
 
 You may explicitly add a border around the window area:
 

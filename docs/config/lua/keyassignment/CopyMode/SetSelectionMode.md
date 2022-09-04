@@ -10,7 +10,7 @@ MODE can be one of:
 * `"Word"` - selection expands by a word at a time
 * `"Line"` - selection expands by a line at a time
 * `"Block"` - selection expands to define a rectangular block using the starting point and current cursor position as the corners
-* `"SemanticZone"` - selection expands to the current semantic zone. See [Shell Integration](../../../../shell-integration.md). (*Since: nightly builds only*).
+* `"SemanticZone"` - selection expands to the current semantic zone. See [Shell Integration](../../../../shell-integration.md). (*Since: 20220903-194523-3bb1ed61*).
 
 ```lua
 local wezterm = require 'wezterm'

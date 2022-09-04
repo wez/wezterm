@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet
+
+### 20220903-194523-3bb1ed61
+
 #### New
 
 * Color schemes: [carbonfox](colorschemes/c/index.md#carbonfox), [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [Dracula (Official)](colorschemes/d/index.md#dracula-official), [Poimandres](colorschemes/p/index.md#poimandres), [Poimandres Storm](colorschemes/p/index.md#poimandres-storm), [Sequoia Monochrome](colorschemes/s/index.md#sequoia-monochrome), [Sequoia Moonlight](colorschemes/s/index.md#sequoia-moonlight), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
