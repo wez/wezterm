@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet
+
+### 20220905-102802-7d4b8249
+
 #### New
 * [switch_to_last_active_tab_when_closing_tab](config/lua/config/switch_to_last_active_tab_when_closing_tab.md)
   option to control behavior when closing the active tab.
