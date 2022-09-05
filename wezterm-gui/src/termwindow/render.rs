@@ -1726,7 +1726,9 @@ impl super::TermWindow {
                         selection: selrange.clone(),
                         cursor,
                         shape_hash,
-                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap(),
+                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap()
+                            + (line_idx + self.pos.top) as f32
+                                * self.term_window.render_metrics.cell_size.height as f32,
                         left_pixel_x: NotNan::new(self.left_pixel_x).unwrap(),
                         phys_line_idx: line_idx,
                         reverse_video: self.dims.reverse_video,
@@ -1769,9 +1771,7 @@ impl super::TermWindow {
 
                     self.term_window.render_screen_line_opengl(
                         RenderScreenLineOpenGLParams {
-                            top_pixel_y: self.top_pixel_y
-                                + (line_idx + self.pos.top) as f32
-                                    * self.term_window.render_metrics.cell_size.height as f32,
+                            top_pixel_y: *quad_key.top_pixel_y,
                             left_pixel_x: self.left_pixel_x,
                             pixel_width: self.dims.cols as f32
                                 * self.term_window.render_metrics.cell_size.width as f32,
