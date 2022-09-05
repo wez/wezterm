@@ -12,6 +12,16 @@ User facing docs and guide at: https://wezfurlong.org/wezterm/
 
 https://wezfurlong.org/wezterm/installation.html
 
+#### Windows
+```winget install wez.wezterm```
+
+#### macOS
+```brew tap wez/wezterm && brew install --cask wez/wezterm/wezterm```
+
+#### Linux:
+Binaries, packages, & portable distributions available in the installation guide.
+
+
 ## Getting help
 
 This is a spare time project, so please bear with me.  There are a couple of channels for support:
