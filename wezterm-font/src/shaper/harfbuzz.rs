@@ -435,7 +435,7 @@ impl HarfbuzzShaper {
                 }
 
                 // It is important that this bit happens after we've had the
-                // oppotunity to coalesce runs of runresolved codepoints,
+                // opportunity to coalesce runs of unresolved codepoints,
                 // otherwise we can produce incorrect shaping
                 // <https://github.com/wez/wezterm/issues/2482>
                 if cluster.last().unwrap().cluster == info.cluster {
