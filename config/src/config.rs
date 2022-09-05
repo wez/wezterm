@@ -95,6 +95,9 @@ pub struct Config {
     pub colors: Option<Palette>,
 
     #[dynamic(default)]
+    pub switch_to_last_active_tab_when_closing_tab: bool,
+
+    #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
     #[dynamic(default = "default_char_select_font_size")]

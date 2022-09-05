@@ -128,17 +128,31 @@ impl Window {
     pub fn remove_by_idx(&mut self, idx: usize) -> Rc<Tab> {
         self.invalidate();
         let active = self.get_active().map(Rc::clone);
-        let tab = self.tabs.remove(idx);
-        self.fixup_active_tab_after_removal(active);
-        tab
+        self.do_remove_idx(idx, active)
     }
 
     pub fn remove_by_id(&mut self, id: TabId) {
         let active = self.get_active().map(Rc::clone);
         if let Some(idx) = self.idx_by_id(id) {
-            self.tabs.remove(idx);
+            self.do_remove_idx(idx, active);
         }
+    }
+
+    fn do_remove_idx(&mut self, idx: usize, active: Option<Rc<Tab>>) -> Rc<Tab> {
+        if let (Some(active), Some(removing)) = (&active, self.tabs.get(idx)) {
+            if active.tab_id() == removing.tab_id()
+                && config::configuration().switch_to_last_active_tab_when_closing_tab
+            {
+                // If we are removing the active tab, switch back to
+                // the previously active tab
+                if let Some(last_active) = self.get_last_active_idx() {
+                    self.set_active_without_saving(last_active);
+                }
+            }
+        }
+        let tab = self.tabs.remove(idx);
         self.fixup_active_tab_after_removal(active);
+        tab
     }
 
     pub fn get_active(&self) -> Option<&Rc<Tab>> {
