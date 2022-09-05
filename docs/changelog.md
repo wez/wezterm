@@ -18,9 +18,11 @@ As features stabilize some brief notes about them will accumulate here.
 * `os.getenv` now knows how to resolve environment variables that would normally
   require logging out to update, such as `SHELL` (if you `chsh` on unix systeams),
   or those set through the registry on Windows. [#2481](https://github.com/wez/wezterm/discussions/2481)
+* Searching is now incremental and shows progress. [#1209](https://github.com/wez/wezterm/issues/1209)
 
 #### Fixed
 * Hangul in NFC incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
+* Visual artifacts when resizing splits [#2483](https://github.com/wez/wezterm/issues/2483)
 
 ### 20220904-064125-9a6cee2b
 
