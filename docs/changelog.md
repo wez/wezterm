@@ -19,6 +19,9 @@ As features stabilize some brief notes about them will accumulate here.
   require logging out to update, such as `SHELL` (if you `chsh` on unix systeams),
   or those set through the registry on Windows. [#2481](https://github.com/wez/wezterm/discussions/2481)
 
+#### Fixed
+* Hangul in NFC incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
+
 ### 20220904-064125-9a6cee2b
 
 * Fix build on architectures where `c_char` is `u8` instead of `i8`. Thanks to [@liushuyu](https://github.com/liushuyu)! [#2480](https://github.com/wez/wezterm/pull/2480)

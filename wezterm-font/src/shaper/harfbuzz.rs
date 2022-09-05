@@ -404,10 +404,6 @@ impl HarfbuzzShaper {
             }
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
-                if cluster.last().unwrap().cluster == info.cluster {
-                    cluster.push(info);
-                    continue;
-                }
                 // Don't fragment runs of unresolved codepoints; they could be a sequence
                 // that shapes together in a fallback font.
                 if info.codepoint == 0 {
@@ -436,6 +432,15 @@ impl HarfbuzzShaper {
                         }
                         // log::info!("prior={:#?}, info={:#?}", prior, info);
                     }
+                }
+
+                // It is important that this bit happens after we've had the
+                // oppotunity to coalesce runs of runresolved codepoints,
+                // otherwise we can produce incorrect shaping
+                // <https://github.com/wez/wezterm/issues/2482>
+                if cluster.last().unwrap().cluster == info.cluster {
+                    cluster.push(info);
+                    continue;
                 }
             }
             info_clusters.push(vec![info]);
