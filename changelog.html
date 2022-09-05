@@ -155,10 +155,12 @@ matching non-monospace fonts if we can't find any matching monospace fonts.
 <li><code>os.getenv</code> now knows how to resolve environment variables that would normally
 require logging out to update, such as <code>SHELL</code> (if you <code>chsh</code> on unix systeams),
 or those set through the registry on Windows. <a href="https://github.com/wez/wezterm/discussions/2481">#2481</a></li>
+<li>Searching is now incremental and shows progress. <a href="https://github.com/wez/wezterm/issues/1209">#1209</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li>Hangul in NFC incorrectly shaped <a href="https://github.com/wez/wezterm/issues/2482">#2482</a></li>
+<li>Visual artifacts when resizing splits <a href="https://github.com/wez/wezterm/issues/2483">#2483</a></li>
 </ul>
 <h3 id="20220904-064125-9a6cee2b"><a class="header" href="#20220904-064125-9a6cee2b">20220904-064125-9a6cee2b</a></h3>
 <ul>
