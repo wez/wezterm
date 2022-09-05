@@ -156,6 +156,10 @@ matching non-monospace fonts if we can't find any matching monospace fonts.
 require logging out to update, such as <code>SHELL</code> (if you <code>chsh</code> on unix systeams),
 or those set through the registry on Windows. <a href="https://github.com/wez/wezterm/discussions/2481">#2481</a></li>
 </ul>
+<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<ul>
+<li>Hangul in NFC incorrectly shaped <a href="https://github.com/wez/wezterm/issues/2482">#2482</a></li>
+</ul>
 <h3 id="20220904-064125-9a6cee2b"><a class="header" href="#20220904-064125-9a6cee2b">20220904-064125-9a6cee2b</a></h3>
 <ul>
 <li>Fix build on architectures where <code>c_char</code> is <code>u8</code> instead of <code>i8</code>. Thanks to <a href="https://github.com/liushuyu">@liushuyu</a>! <a href="https://github.com/wez/wezterm/pull/2480">#2480</a></li>
@@ -182,7 +186,7 @@ or those set through the registry on Windows. <a href="https://github.com/wez/we
 <li>Compensate for TUI programs that flicker due to unsynchronized output by adding up to 3ms additional latency after each read to coalesce their screen outputs into a single frame. You can set this delay via a new <code>mux_output_parser_coalesce_delay_ms</code> option. <a href="https://github.com/wez/wezterm/issues/2443">#2443</a></li>
 <li>win32: Updated openconsole/conpty to v1.14.2281.0</li>
 </ul>
-<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
 <ul>
 <li>macOS: crash on startup if <code>$SHELL</code> points to something that isn't executable. <a href="https://github.com/wez/wezterm/issues/2378">#2378</a></li>
 <li>tab titles truncated too short <a href="https://github.com/wez/wezterm/issues/2379">#2379</a></li>
@@ -246,7 +250,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Copy Mode: setting the same selection mode a second time will now toggle off that mode and clear the selection, preserving the current position <a href="https://github.com/wez/wezterm/discussions/2246">#2246</a></li>
 <li>Copy Mode: new default vim-style <code>y</code> &quot;yank&quot; key assignment will copy the selection and close copy mode</li>
 </ul>
-<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
+<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
 <ul>
 <li><a href="config/lua/keyassignment/ActivateKeyTable.html">ActivateKeyTable</a>'s <code>replace_current</code> field was not actually optional. Made it optional. <a href="https://github.com/wez/wezterm/issues/2179">#2179</a></li>
 <li><code>winget</code> causes toast notification spam <a href="https://github.com/wez/wezterm/issues/2185">#2185</a></li>
@@ -340,7 +344,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li><a href="config/lua/config/exit_behavior.html">exit_behavior</a> now defaults to <code>&quot;Close&quot;</code>. <a href="https://github.com/wez/wezterm/issues/2105">#2105</a></li>
 <li>Improved <a href="config/lua/wezterm/action.html">wezterm.action</a> syntax for slightly more ergnomic and understandable key assignments. <a href="https://github.com/wez/wezterm/issues/1150">#1150</a></li>
 </ul>
-<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
+<h4 id="fixed-3"><a class="header" href="#fixed-3">Fixed</a></h4>
 <ul>
 <li>Flush after replying to <code>XTGETTCAP</code>, <code>DECRQM</code>, <code>XTVERSION</code>, <code>DA2</code>, <code>DA3</code> <a href="https://github.com/wez/wezterm/issues/2060">#2060</a> <a href="https://github.com/wez/wezterm/issues/1850">#1850</a> <a href="https://github.com/wez/wezterm/issues/1950">#1950</a></li>
 <li>macOS: <code>CMD-.</code> was treated as <code>CTRL-ESC</code> <a href="https://github.com/wez/wezterm/issues/1867">#1867</a></li>
@@ -393,7 +397,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Kitty image protocol: now also supports shared memory data transmission. Thanks to <a href="https://github.com/tantei3">@tantei3</a>! <a href="https://github.com/wez/wezterm/pull/1810">#1810</a></li>
 <li>Secondary DA response bumped up to persuade vim to set <code>ttymouse=sgr</code> by default. <a href="https://github.com/wez/wezterm/issues/1825">#1825</a></li>
 </ul>
-<h4 id="fixed-3"><a class="header" href="#fixed-3">Fixed</a></h4>
+<h4 id="fixed-4"><a class="header" href="#fixed-4">Fixed</a></h4>
 <ul>
 <li>Incorrect csi-u encoding with non-ascii characters. <a href="https://github.com/wez/wezterm/issues/1746">#1746</a></li>
 <li>X11 <code>_NET_WM_ICON</code> had red/blue channels swapped <a href="https://github.com/wez/wezterm/issues/1754">#1754</a></li>
@@ -459,7 +463,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>macOS: <code>use_ime=true</code> no longer prevents key repeat from working with some keys <a href="https://github.com/wez/wezterm/issues/1131">#1131</a></li>
 <li>Bundled harfbuzz to 4.0.1</li>
 </ul>
-<h4 id="fixed-4"><a class="header" href="#fixed-4">Fixed</a></h4>
+<h4 id="fixed-5"><a class="header" href="#fixed-5">Fixed</a></h4>
 <ul>
 <li>Regression that broke fontconfig aliases such as <code>&quot;monospace&quot;</code> <a href="https://github.com/wez/wezterm/pull/1250">#1250</a></li>
 <li>Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL+C <a href="https://github.com/wez/wezterm/issues/678">#678</a></li>
@@ -527,7 +531,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>You can now pass <a href="config/lua/keyassignment/SendKey.html">SendKey</a> to <a href="config/lua/wezterm/action.html">wezterm.action</a> and make your <code>keys</code> config look more consistent</li>
 <li>Mouse wheel events are now routed to the hovered pane, rather than sent to the focused pane <a href="https://github.com/wez/wezterm/issues/798">#798</a></li>
 </ul>
-<h4 id="fixed-5"><a class="header" href="#fixed-5">Fixed</a></h4>
+<h4 id="fixed-6"><a class="header" href="#fixed-6">Fixed</a></h4>
 <ul>
 <li>DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1376">#1376</a></li>
 <li>Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1377">#1377</a></li>
@@ -551,7 +555,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Splitting a tab would cause the window to lose its transparency <a href="https://github.com/wez/wezterm/issues/1459">#1459</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
-<h4 id="fixed-6"><a class="header" href="#fixed-6">Fixed</a></h4>
+<h4 id="fixed-7"><a class="header" href="#fixed-7">Fixed</a></h4>
 <ul>
 <li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
 <li>Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process <a href="https://github.com/wez/wezterm/issues/1358">#1358</a></li>
@@ -598,7 +602,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
 <li>Splits now look better, especially when using escape sequences to change the default background color <a href="https://github.com/wez/wezterm/issues/1256">#1256</a></li>
 </ul>
-<h4 id="fixed-7"><a class="header" href="#fixed-7">Fixed</a></h4>
+<h4 id="fixed-8"><a class="header" href="#fixed-8">Fixed</a></h4>
 <ul>
 <li><code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li><code>text_background_opacity</code> opacity was not respected</li>
