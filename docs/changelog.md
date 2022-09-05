@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### New
+* [switch_to_last_active_tab_when_closing_tab](config/lua/config/switch_to_last_active_tab_when_closing_tab.md)
+  option to control behavior when closing the active tab.
+  [#2487](https://github.com/wez/wezterm/issues/2487)
 #### Changed
 * fontconfig: when locating a fallback font for a given codepoint, allow
   matching non-monospace fonts if we can't find any matching monospace fonts.
