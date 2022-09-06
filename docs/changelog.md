@@ -11,7 +11,11 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* Not yet
+#### Fixed
+* Wayland: key repeat gets stuck after pressing two keys in quick succession.
+  Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!
+  [#2492](https://github.com/wez/wezterm/pull/2492)
+  [#2452](https://github.com/wez/wezterm/issues/2452)
 
 ### 20220905-102802-7d4b8249
 
