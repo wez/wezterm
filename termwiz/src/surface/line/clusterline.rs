@@ -27,14 +27,14 @@ pub(crate) struct ClusteredLine {
             serialize_with = "serialize_bitset"
         )
     )]
-    is_double_wide: Option<FixedBitSet>,
+    is_double_wide: Option<Box<FixedBitSet>>,
     clusters: Vec<Cluster>,
     len: usize,
     last_cell_width: Option<NonZeroU8>,
 }
 
 #[cfg(feature = "use_serde")]
-fn deserialize_bitset<'de, D>(deserializer: D) -> Result<Option<FixedBitSet>, D::Error>
+fn deserialize_bitset<'de, D>(deserializer: D) -> Result<Option<Box<FixedBitSet>>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -47,7 +47,7 @@ where
         for idx in wide_indices {
             bitset.set(idx, true);
         }
-        Ok(Some(bitset))
+        Ok(Some(Box::new(bitset)))
     }
 }
 
@@ -56,7 +56,7 @@ where
 /// That may not be strictly true for users that heavily use asian scripts,
 /// but we'll start with this and see if we need to improve it.
 #[cfg(feature = "use_serde")]
-fn serialize_bitset<S>(value: &Option<FixedBitSet>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_bitset<S>(value: &Option<Box<FixedBitSet>>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -139,7 +139,7 @@ impl ClusteredLine {
         Self {
             text,
             is_double_wide: if any_double {
-                Some(is_double_wide)
+                Some(Box::new(is_double_wide))
             } else {
                 None
             },
@@ -196,7 +196,7 @@ impl ClusteredLine {
                 None => {
                     let mut bitset = FixedBitSet::with_capacity(new_cell_index + 1);
                     bitset.set(new_cell_index, true);
-                    bitset
+                    Box::new(bitset)
                 }
             };
             self.is_double_wide.replace(bitset);
@@ -232,7 +232,7 @@ impl ClusteredLine {
                 None => {
                     let mut bitset = FixedBitSet::with_capacity(new_cell_index + 1);
                     bitset.set(new_cell_index, true);
-                    bitset
+                    Box::new(bitset)
                 }
             };
             self.is_double_wide.replace(bitset);
@@ -339,5 +339,20 @@ impl<'a> Iterator for ClusterLineCellIter<'a> {
             text,
             attrs,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn memory_usage() {
+        assert_eq!(std::mem::size_of::<ClusteredLine>(), 72);
+        assert_eq!(std::mem::size_of::<String>(), 24);
+        assert_eq!(std::mem::size_of::<Vec<Cluster>>(), 24);
+        assert_eq!(std::mem::size_of::<Option<Box<FixedBitSet>>>(), 8);
+        assert_eq!(std::mem::size_of::<Option<NonZeroU8>>(), 1);
     }
 }
