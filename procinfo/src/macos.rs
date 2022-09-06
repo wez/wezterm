@@ -178,7 +178,7 @@ impl LocalProcessInfo {
 
             let exe_path = consume_cstr(&mut ptr)?.into();
 
-            // For some reason, sysctl sometimes puts some null bytes
+            // For some reason, sysctl sometimes puts null bytes
             // between the executable field and the argv field
             let not_nul = ptr.iter().position(|&c| c != 0)?;
             ptr = ptr.get(not_nul..)?;
