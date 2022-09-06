@@ -25,64 +25,8 @@ fn harfbuzz() {
 
     let target = env::var("TARGET").unwrap();
 
-    for f in [
-        "hb-aat-layout.cc",
-        "hb-aat-map.cc",
-        "hb-blob.cc",
-        "hb-buffer-serialize.cc",
-        "hb-buffer-verify.cc",
-        "hb-buffer.cc",
-        "hb-common.cc",
-        "hb-face.cc",
-        "hb-fallback-shape.cc",
-        "hb-font.cc",
-        "hb-ft.cc",
-        "hb-map.cc",
-        "hb-number.cc",
-        "hb-ot-cff1-table.cc",
-        "hb-ot-cff2-table.cc",
-        "hb-ot-color.cc",
-        "hb-ot-face.cc",
-        "hb-ot-font.cc",
-        "hb-ot-layout.cc",
-        "hb-ot-map.cc",
-        "hb-ot-math.cc",
-        "hb-ot-metrics.cc",
-        "hb-ot-name.cc",
-        "hb-ot-shaper-arabic.cc",
-        "hb-ot-shaper-default.cc",
-        "hb-ot-shaper-hangul.cc",
-        "hb-ot-shaper-hebrew.cc",
-        "hb-ot-shaper-indic-table.cc",
-        "hb-ot-shaper-indic.cc",
-        "hb-ot-shaper-khmer.cc",
-        "hb-ot-shaper-myanmar.cc",
-        "hb-ot-shaper-syllabic.cc",
-        "hb-ot-shaper-thai.cc",
-        "hb-ot-shaper-use.cc",
-        "hb-ot-shaper-vowel-constraints.cc",
-        "hb-ot-shape-fallback.cc",
-        "hb-ot-shape-normalize.cc",
-        "hb-ot-shape.cc",
-        "hb-ot-tag.cc",
-        "hb-ot-var.cc",
-        "hb-set.cc",
-        "hb-shape-plan.cc",
-        "hb-shape.cc",
-        "hb-shaper.cc",
-        "hb-static.cc",
-        "hb-ucd.cc",
-        "hb-unicode.cc",
-    ]
-    .iter()
-    {
-        cfg.file(format!("harfbuzz/src/{}", f));
-    }
-
+    cfg.file("harfbuzz/src/harfbuzz.cc");
     cfg.define("HB_NO_MT", None);
-    cfg.define("HAVE_FALLBACK", None);
-    cfg.define("HAVE_UCDN", None);
-    cfg.include("harfbuzz/src/hb-ucdn");
 
     if !target.contains("windows") {
         cfg.define("HAVE_UNISTD_H", None);
@@ -95,6 +39,7 @@ fn harfbuzz() {
     cfg.define("HAVE_FT_GET_VAR_BLEND_COORDINATES", Some("1"));
     cfg.define("HAVE_FT_SET_VAR_BLEND_COORDINATES", Some("1"));
     cfg.define("HAVE_FT_DONE_MM_VAR", Some("1"));
+    cfg.define("HAVE_FT_GET_TRANSFORM", Some("1"));
 
     // Import the include dirs exported from deps/freetype/build.rs
     for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(';') {

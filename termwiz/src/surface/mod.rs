@@ -751,9 +751,6 @@ impl Surface {
     ///
     /// The returned list of `Change`s can be passed to the `add_changes` method
     /// to make the region within self match the region within other.
-    /// # Panics
-    /// Will panic if the regions of interest are not within the bounds of
-    /// their respective `Surface`.
     #[allow(clippy::too_many_arguments)]
     pub fn diff_region(
         &self,
@@ -765,11 +762,6 @@ impl Surface {
         other_x: usize,
         other_y: usize,
     ) -> Vec<Change> {
-        assert!(x + width <= self.width);
-        assert!(y + height <= self.height);
-        assert!(other_x + width <= other.width);
-        assert!(other_y + height <= other.height);
-
         let mut diff_state = DiffState::default();
 
         for ((row_num, line), other_line) in self

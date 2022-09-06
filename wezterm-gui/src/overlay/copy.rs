@@ -33,6 +33,8 @@ lazy_static::lazy_static! {
     static ref SAVED_PATTERN: Mutex<HashMap<TabId, Pattern>> = Mutex::new(HashMap::new());
 }
 
+const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
+
 pub struct CopyOverlay {
     delegate: Rc<dyn Pane>,
     render: RefCell<CopyRenderable>,
@@ -62,6 +64,11 @@ struct CopyRenderable {
     tab_id: TabId,
     /// Used to debounce queries while the user is typing
     typing_cookie: usize,
+    searching: Option<Searching>,
+}
+
+struct Searching {
+    remain: StableRowIndex,
 }
 
 #[derive(Debug)]
@@ -127,6 +134,7 @@ impl CopyOverlay {
             result_pos: None,
             selection_mode: SelectionMode::Cell,
             typing_cookie: 0,
+            searching: None,
         };
 
         let search_row = render.compute_search_row();
@@ -194,10 +202,11 @@ impl CopyRenderable {
         self.result_pos = pos;
     }
 
-    fn recompute_results(&mut self) {
-        log::debug!("there are {} results", self.results.len());
-        self.by_line.clear();
-        for (result_index, res) in self.results.iter().enumerate() {
+    fn incrementally_recompute_results(&mut self, mut results: Vec<SearchResult>) {
+        results.sort();
+        results.reverse();
+        for (result_index, res) in results.iter().enumerate() {
+            let result_index = self.results.len() + result_index;
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {
                     // Range on same line
@@ -224,6 +233,7 @@ impl CopyRenderable {
                 self.dirty_results.add(idx);
             }
         }
+        self.results.append(&mut results);
     }
 
     fn schedule_update_search(&mut self) {
@@ -276,16 +286,21 @@ impl CopyRenderable {
             let pane: Rc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
+            let dims = pane.get_dimensions();
+
+            let end = dims.scrollback_top + dims.scrollback_rows as StableRowIndex;
+            let range = end
+                .saturating_sub(SEARCH_CHUNK_SIZE)
+                .max(dims.scrollback_top)..end;
+
+            self.searching.replace(Searching {
+                remain: range.start - dims.scrollback_top,
+            });
+
             promise::spawn::spawn(async move {
-                let dims = pane.get_dimensions();
-                let range = dims.scrollback_top
-                    ..dims.scrollback_top + dims.scrollback_rows as StableRowIndex;
                 let limit = None;
-                log::debug!("Searching for {pattern:?} in {range:?}");
-                let mut results = pane.search(pattern, range, limit).await?;
-                log::debug!("Sorting {} results", results.len());
-                results.sort();
-                log::debug!("Sorted");
+                log::trace!("Searching for {pattern:?} in {range:?}");
+                let results = pane.search(pattern.clone(), range.clone(), limit).await?;
 
                 let pane_id = pane.pane_id();
                 let mut results = Some(results);
@@ -294,25 +309,81 @@ impl CopyRenderable {
                     if let Some(overlay) = state.overlay.as_ref() {
                         if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
                             let mut r = copy_overlay.render.borrow_mut();
-                            r.results = results.take().unwrap();
-                            r.recompute_results();
-                            let num_results = r.results.len();
-
-                            if !r.results.is_empty() {
-                                r.activate_match_number(num_results - 1);
-                            } else {
-                                r.set_viewport(None);
-                                r.clear_selection();
-                            }
+                            r.processed_search_chunk(pattern, results.take().unwrap(), range);
                         }
                     }
                 })));
+
                 anyhow::Result::<()>::Ok(())
             })
             .detach();
         } else {
+            self.searching.take();
             self.clear_selection();
         }
+        self.window.invalidate();
+    }
+
+    fn processed_search_chunk(
+        &mut self,
+        pattern: Pattern,
+        results: Vec<SearchResult>,
+        range: Range<StableRowIndex>,
+    ) {
+        self.window.invalidate();
+        if pattern != self.pattern {
+            return;
+        }
+        let is_first = self.results.is_empty();
+        self.incrementally_recompute_results(results);
+
+        if is_first {
+            if !self.results.is_empty() {
+                self.activate_match_number(0);
+            } else {
+                self.set_viewport(None);
+                self.clear_selection();
+            }
+        }
+
+        let dims = self.delegate.get_dimensions();
+        if range.start == dims.scrollback_top {
+            self.searching.take();
+            return;
+        }
+
+        // Search next chunk
+        let pane: Rc<dyn Pane> = self.delegate.clone();
+        let window = self.window.clone();
+        let end = range.start;
+        let range = end
+            .saturating_sub(SEARCH_CHUNK_SIZE)
+            .max(dims.scrollback_top)..end;
+
+        self.searching.replace(Searching {
+            remain: range.start - dims.scrollback_top,
+        });
+
+        promise::spawn::spawn(async move {
+            let limit = None;
+            log::trace!("Searching for {pattern:?} in {range:?}");
+            let results = pane.search(pattern.clone(), range.clone(), limit).await?;
+
+            let pane_id = pane.pane_id();
+            let mut results = Some(results);
+            window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                let state = term_window.pane_state(pane_id);
+                if let Some(overlay) = state.overlay.as_ref() {
+                    if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
+                        let mut r = copy_overlay.render.borrow_mut();
+                        r.processed_search_chunk(pattern, results.take().unwrap(), range);
+                    }
+                }
+            })));
+
+            anyhow::Result::<()>::Ok(())
+        })
+        .detach();
     }
 
     fn clear_selection(&mut self) {
@@ -483,8 +554,8 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
-    /// Move to prior match
-    fn prior_match(&mut self) {
+    /// Move to next match
+    fn next_match(&mut self) {
         if let Some(cur) = self.result_pos.as_ref() {
             let prior = if *cur > 0 {
                 cur - 1
@@ -495,8 +566,8 @@ impl CopyRenderable {
         }
     }
 
-    /// Move to next match
-    fn next_match(&mut self) {
+    /// Move to prior match
+    fn prior_match(&mut self) {
         if let Some(cur) = self.result_pos.as_ref() {
             let next = if *cur + 1 >= self.results.len() {
                 0
@@ -506,9 +577,10 @@ impl CopyRenderable {
             self.activate_match_number(next);
         }
     }
-    /// Skip this page of matches and move up to the first match from
-    /// the prior page.
-    fn prior_match_page(&mut self) {
+
+    /// Skip this page of matches and move down to the first match from
+    /// the next page.
+    fn next_match_page(&mut self) {
         let dims = self.delegate.get_dimensions();
         if let Some(cur) = self.result_pos {
             let top = self.viewport.unwrap_or(dims.physical_top);
@@ -525,9 +597,9 @@ impl CopyRenderable {
         }
     }
 
-    /// Skip this page of matches and move down to the first match from
-    /// the next page.
-    fn next_match_page(&mut self) {
+    /// Skip this page of matches and move up to the first match from
+    /// the prior page.
+    fn prior_match_page(&mut self) {
         let dims = self.delegate.get_dimensions();
         if let Some(cur) = self.result_pos {
             let top = self.viewport.unwrap_or(dims.physical_top);
@@ -1089,10 +1161,18 @@ impl Pane for CopyOverlay {
                             Pattern::CaseInSensitiveString(_) => "ignore-case",
                             Pattern::Regex(_) => "regex",
                         };
+
+                        let remain = match &self.renderer.searching {
+                            Some(Searching { remain, .. }) => {
+                                format!(" searching {remain} lines")
+                            }
+                            None => String::new(),
+                        };
+
                         line.overlay_text_with_attribute(
                             0,
                             &format!(
-                                "Search: {} ({}/{} matches. {})",
+                                "Search: {} ({}/{} matches. {}{remain})",
                                 *self.renderer.pattern,
                                 self.renderer.result_pos.map(|x| x + 1).unwrap_or(0),
                                 self.renderer.results.len(),

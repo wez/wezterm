@@ -1,6 +1,7 @@
 //! PaneObject represents a Mux Pane instance in lua code
 use super::luaerr;
 use anyhow::anyhow;
+use luahelper::dynamic_to_lua_value;
 use mlua::{UserData, UserDataMethods};
 use mux::pane::{Pane, PaneId};
 use mux::Mux;
@@ -47,6 +48,10 @@ impl UserData for PaneObject {
                 .pane()?
                 .get_current_working_dir()
                 .map(|u| u.to_string()))
+        });
+        methods.add_method("get_metadata", |lua, this, _: ()| {
+            let value = this.pane()?.get_metadata();
+            dynamic_to_lua_value(lua, value)
         });
         methods.add_method("get_foreground_process_name", |_, this, _: ()| {
             Ok(this.pane()?.get_foreground_process_name())

@@ -14,6 +14,16 @@ use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::Direction;
 
+// Changing these will switch to using harfbuzz's opentype functions.
+// There's something awry with our integration in that mode: the advances
+// aren't equivalent to its freetype functions and this manifests most
+// prominently in proportional fonts as well as with fonts with bitmap
+// strikes.
+// Until we get to the bottom of this, these are compile-time rather
+// than runtime configs.
+const USE_OT_FUNCS: bool = false;
+const USE_OT_FACE: bool = false;
+
 #[derive(Clone, Debug)]
 struct Info {
     cluster: usize,
@@ -138,13 +148,19 @@ impl HarfbuzzShaper {
                     let handle = &self.handles[font_idx];
                     log::trace!("shaper wants {} {:?}", font_idx, handle);
                     let face = self.lib.face_from_locator(&handle.handle)?;
-                    let mut font = harfbuzz::Font::new(face.face);
-                    let (load_flags, _) = ftwrap::compute_load_flags_from_config(
-                        handle.freetype_load_flags,
-                        handle.freetype_load_target,
-                        handle.freetype_render_target,
-                    );
-                    font.set_load_flags(load_flags);
+
+                    let font = if USE_OT_FACE {
+                        harfbuzz::Font::from_locator(&handle.handle)?
+                    } else {
+                        let (load_flags, _) = ftwrap::compute_load_flags_from_config(
+                            handle.freetype_load_flags,
+                            handle.freetype_load_target,
+                            handle.freetype_render_target,
+                        );
+                        let mut font = harfbuzz::Font::new(face.face);
+                        font.set_load_flags(load_flags);
+                        font
+                    };
 
                     let features = match &handle.harfbuzz_features {
                         Some(features) => features
@@ -206,7 +222,6 @@ impl HarfbuzzShaper {
         );
 
         let shaped_any;
-        let initial_font_idx = font_idx;
 
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
@@ -215,27 +230,44 @@ impl HarfbuzzShaper {
                     if font_idx + 1 < self.fonts.len() {
                         if let Some(p) = presentation {
                             if pair.presentation != p {
+                                log::trace!(
+                                    "wanted presentation is {p:?} != font \
+                                     presentation {:?} so skip \
+                                     font_idx={font_idx}",
+                                    pair.presentation
+                                );
                                 font_idx += 1;
                                 continue;
                             }
                         }
                     }
-                    pair.face.set_font_size(
-                        font_size * self.handles[font_idx].scale.unwrap_or(1.),
-                        dpi,
-                    )?;
+                    let point_size = font_size * self.handles[font_idx].scale.unwrap_or(1.);
+                    pair.face.set_font_size(point_size, dpi)?;
+
                     // Tell harfbuzz to recompute important font metrics!
                     let mut font = pair.font.borrow_mut();
+
+                    if USE_OT_FACE {
+                        font.set_ppem(0, 0);
+                        font.set_ptem(0.);
+                        let scale = (point_size * 2f64.powf(6.)) as i32;
+                        font.set_font_scale(scale, scale);
+                    }
+
                     font.font_changed();
+
+                    if USE_OT_FUNCS {
+                        font.set_ot_funcs();
+                    }
+
                     shaped_any = pair.shaped_any;
                     font.shape(&mut buf, pair.features.as_slice());
-                    /*
-                    log::info!(
-                        "shaped font_idx={} as: {}",
+                    log::trace!(
+                        "shaped font_idx={} {:?} presentation={presentation:?} as: {}",
                         font_idx,
-                        buf.serialize(Some(&pair.font))
+                        &s[range.start..range.end],
+                        buf.serialize(Some(&*font))
                     );
-                    */
                     break;
                 }
                 None => {
@@ -260,6 +292,7 @@ impl HarfbuzzShaper {
             }
 
             if presentation.is_some() {
+                log::debug!("hit last resort, retry shape with no presentation, starting");
                 // We hit the last resort and we have an explicit presentation.
                 // This is a little awkward; we want to record the missing
                 // glyphs so that we can resolve them async, but we also
@@ -273,7 +306,7 @@ impl HarfbuzzShaper {
                 // that glyph in a fallback font and swap it out a little
                 // later after a flash of showing the emoji one.
                 return self.do_shape(
-                    initial_font_idx,
+                    0,
                     s,
                     font_size,
                     dpi,
@@ -377,10 +410,6 @@ impl HarfbuzzShaper {
             }
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
-                if cluster.last().unwrap().cluster == info.cluster {
-                    cluster.push(info);
-                    continue;
-                }
                 // Don't fragment runs of unresolved codepoints; they could be a sequence
                 // that shapes together in a fallback font.
                 if info.codepoint == 0 {
@@ -409,6 +438,15 @@ impl HarfbuzzShaper {
                         }
                         // log::info!("prior={:#?}, info={:#?}", prior, info);
                     }
+                }
+
+                // It is important that this bit happens after we've had the
+                // opportunity to coalesce runs of unresolved codepoints,
+                // otherwise we can produce incorrect shaping
+                // <https://github.com/wez/wezterm/issues/2482>
+                if cluster.last().unwrap().cluster == info.cluster {
+                    cluster.push(info);
+                    continue;
                 }
             }
             info_clusters.push(vec![info]);
@@ -534,7 +572,11 @@ impl FontShaper for HarfbuzzShaper {
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let range = range.unwrap_or_else(|| 0..text.len());
 
-        log::trace!("shape byte_len={} `{}`", text.len(), text.escape_debug());
+        log::trace!(
+            "shape byte_len={} `{}` with presentation={presentation:?}",
+            text.len(),
+            text.escape_debug()
+        );
         let start = std::time::Instant::now();
         let result = self.do_shape(
             0,

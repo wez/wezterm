@@ -14,6 +14,7 @@ use termwiz::hyperlink::Rule;
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo};
 use url::Url;
+use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
@@ -203,6 +204,11 @@ pub trait Pane: Downcast {
     fn get_cursor_position(&self) -> StableCursorPosition;
 
     fn get_current_seqno(&self) -> SequenceNo;
+
+    /// Returns misc metadata that is pane-specific
+    fn get_metadata(&self) -> Value {
+        Value::Null
+    }
 
     /// Given a range of lines, return the subset of those lines that
     /// have changed since the supplied sequence no.

@@ -22,7 +22,7 @@ have `$SHELL` set in the environment, you will need to sign out and
 sign back in again for the environment to pick up your new `$SHELL`
 value.
 
-*Since: nightly builds only*: wezterm will now always resolve the shell via the
+*Since: 20220903-194523-3bb1ed61*: wezterm will now always resolve the shell via the
 password database.
 
 ### On Windows Systems

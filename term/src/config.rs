@@ -193,6 +193,12 @@ pub trait TerminalConfiguration: std::fmt::Debug {
         }
     }
 
+    /// Whether to normalize incoming text runs to
+    /// canonical NFC unicode representation
+    fn normalize_to_nfc(&self) -> bool {
+        false
+    }
+
     fn debug_key_events(&self) -> bool {
         false
     }

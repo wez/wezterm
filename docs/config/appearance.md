@@ -23,7 +23,7 @@ The `color_scheme` option takes precedence over the `colors` section below,
 and is mutually exclusive with it. If you want to merge/override colors
 you need to use [wezterm.color.get_default_colors()](lua/wezterm.color/get_default_colors.md) and explicitly merge them.
 
-*Since: nightly builds only*
+*Since: 20220903-194523-3bb1ed61*
 
 The behavior has been changed so that the `color_scheme` you have selected, if
 any, is used to define the colors, and then any colors you define in the

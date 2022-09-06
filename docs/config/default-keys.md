@@ -64,8 +64,8 @@ in a form that you can copy and paste into your own configuration.
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` (*Since: 20210814-124438-54e29167*)|
-| `CTRL+SHIFT`     | `P`    | `PaneSelect` (*Since: nightly builds only*)|
-| `CTRL+SHIFT`     | `U`    | `CharSelect` (*Since: nightly builds only*)|
+| `CTRL+SHIFT`     | `P`    | `PaneSelect` (*Since: 20220903-194523-3bb1ed61*)|
+| `CTRL+SHIFT`     | `U`    | `CharSelect` (*Since: 20220903-194523-3bb1ed61*)|
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |

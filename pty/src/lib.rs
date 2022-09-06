@@ -105,6 +105,13 @@ pub trait MasterPty {
     /// of the process group or session leader
     #[cfg(unix)]
     fn process_group_leader(&self) -> Option<libc::pid_t>;
+
+    /// If applicable to the type of the tty, return the termios
+    /// associated with the stream
+    #[cfg(unix)]
+    fn get_termios(&self) -> Option<nix::sys::termios::Termios> {
+        None
+    }
 }
 
 /// Represents a child process spawned into the pty.
