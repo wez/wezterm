@@ -74,7 +74,7 @@ impl KeyRepeatState {
 
                     let mut inner = handle.borrow_mut();
 
-                    if inner.key_repeat.as_ref().map(|k| Arc::as_ptr(k))
+                    if inner.key_repeat.as_ref().map(|(_, k)| Arc::as_ptr(k))
                         != Some(Arc::as_ptr(&state))
                     {
                         // Key was released and/or some other key is doing
@@ -138,7 +138,7 @@ pub struct WaylandWindowInner {
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     modifiers: Modifiers,
-    key_repeat: Option<Arc<Mutex<KeyRepeatState>>>,
+    key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
@@ -439,10 +439,14 @@ impl WaylandWindowInner {
                         when: Instant::now(),
                         event,
                     }));
-                    self.key_repeat.replace(Arc::clone(&rep));
+                    self.key_repeat.replace((key, Arc::clone(&rep)));
                     KeyRepeatState::schedule(rep, self.window_id);
-                } else {
-                    self.key_repeat.take();
+                } else if let Some((cur_key, _)) = self.key_repeat.as_ref() {
+                    // important to check that it's the same key, because the release of the previously
+                    // repeated key can come right after the press of the newly held key
+                    if *cur_key == key {
+                        self.key_repeat.take();
+                    }
                 }
             }
             WlKeyboardEvent::Modifiers {
