@@ -5,7 +5,7 @@ use ::window::*;
 use anyhow::{anyhow, Context};
 use clap::{Parser, ValueHint};
 use config::keyassignment::SpawnCommand;
-use config::{ConfigHandle, SshDomain, SshMultiplexing};
+use config::{AllowSquareGlyphOverflow, ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
@@ -839,11 +839,16 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     byte_lens.push(len);
                 }
             }
+            let base_metrics = font.metrics();
 
             println!("{:?}", cluster.direction);
 
             while let Some(info) = iter.next() {
                 let idx = cluster.byte_to_cell_idx(info.cluster as usize);
+                let followed_by_space = match line.get_cell(idx + 1) {
+                    Some(cell) => cell.str() == " ",
+                    None => false,
+                };
 
                 let text = if cluster.direction == Direction::LeftToRight {
                     if let Some(next) = iter.peek() {
@@ -878,12 +883,51 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     })
                     .unwrap_or_else(String::new);
 
+                let rasterized = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
+
+                let idx_metrics = font.metrics_for_idx(info.font_idx)?;
+
+                // Maximum width allowed for this glyph based on its unicode width and
+                // the dimensions of a cell
+                let max_pixel_width =
+                    base_metrics.cell_width.get() * (info.num_cells.max(1) as f64 + 0.25);
+                let aspect = (idx_metrics.cell_width / idx_metrics.cell_height).get();
+                // 0.7 is used for this as that is ~ the threshold for \u24e9 on a mac,
+                // which is looks squareish and for which it is desirable to allow to
+                // overflow.  0.5 is the typical monospace font aspect ratio.
+                let is_square_or_wide = aspect >= 0.7;
+                let allow_width_overflow = if is_square_or_wide {
+                    match config.allow_square_glyphs_to_overflow_width {
+                        AllowSquareGlyphOverflow::Never => false,
+                        AllowSquareGlyphOverflow::Always => true,
+                        AllowSquareGlyphOverflow::WhenFollowedBySpace => followed_by_space,
+                    }
+                } else {
+                    false
+                };
+
+                let scale = if !idx_metrics.is_scaled {
+                    // A bitmap font that isn't scaled to the requested height.
+                    let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
+                    let y_scaled_width = y_scale * rasterized.width as f64;
+
+                    if allow_width_overflow || y_scaled_width <= max_pixel_width {
+                        // prefer height-wise scaling
+                        y_scale
+                    } else {
+                        // otherwise just make it fit the width
+                        max_pixel_width / rasterized.width as f64
+                    }
+                } else {
+                    1.0
+                };
+
                 println!(
                     "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={}{:<4} {}\n{:38}{}",
                     info.cluster,
                     text,
                     escaped,
-                    info.x_advance.get(),
+                    info.x_advance.get() * scale,
                     info.num_cells,
                     glyph_name,
                     info.glyph_pos,
@@ -893,10 +937,23 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 );
 
                 if cmd.rasterize_ascii {
-                    let rasterized = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
+                    let image = Image::with_rgba32(
+                        rasterized.width,
+                        rasterized.height,
+                        4 * rasterized.width,
+                        &rasterized.data,
+                    );
+
+                    let image = if scale != 1.0 {
+                        image.scale_by(scale)
+                    } else {
+                        image
+                    };
+
                     let mut x = 0;
                     let mut glyph = String::new();
-                    for rgba in rasterized.data.chunks(4) {
+                    let (width, _height) = image.image_dimensions();
+                    for rgba in image.pixel_data_slice().chunks(4) {
                         if let [r, g, b, a] = rgba {
                             // Use regular RGB for other terminals, but then
                             // set RGBA for wezterm
@@ -904,7 +961,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                                 "\x1b[38:2::{r}:{g}:{b}m\x1b[38:6::{r}:{g}:{b}:{a}m\u{2588}\x1b[0m"
                             ));
                             x += 1;
-                            if x >= rasterized.width {
+                            if x >= width {
                                 x = 0;
                                 glyph.push('\n');
                             }
@@ -912,10 +969,10 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     }
                     println!(
                         "bearing: x={} y={}, offset: x={} y={}",
-                        rasterized.bearing_x.get(),
-                        rasterized.bearing_y.get(),
-                        info.x_offset.get(),
-                        info.y_offset.get(),
+                        rasterized.bearing_x.get() * scale,
+                        rasterized.bearing_y.get() * scale,
+                        info.x_offset.get() * scale,
+                        info.y_offset.get() * scale,
                     );
                     println!("{glyph}");
                 }
