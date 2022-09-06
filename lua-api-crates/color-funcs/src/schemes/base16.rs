@@ -56,7 +56,7 @@ impl Base16Scheme {
             colors: Palette {
                 foreground: Some(base_5),
                 background: Some(base_0),
-                cursor_fg: Some(base_5),
+                cursor_fg: Some(base_0),
                 cursor_bg: Some(base_5),
                 cursor_border: Some(base_5),
                 selection_bg: Some(base_5),
