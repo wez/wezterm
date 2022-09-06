@@ -2,7 +2,7 @@
 set -x
 name="$1"
 
-notes=$(cat <<'EOT'
+notes=$(cat <<EOT
 See https://wezfurlong.org/wezterm/changelog.html#$name for the changelog
 
 If you're looking for nightly downloads or more detailed installation instructions:
