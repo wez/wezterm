@@ -333,9 +333,12 @@ impl WaylandWindow {
             Decorations::ClientSide
         });
 
+        let scale = get_surface_scale_factor(&surface);
+
         window.set_frame_config(ConceptConfig {
             font_config: Some(Rc::clone(&font_config)),
             config: config.cloned(),
+            scale,
             ..Default::default()
         });
 
@@ -650,7 +653,16 @@ impl WaylandWindowInner {
                 }
 
                 // Update the window decoration size
-                self.window.as_mut().unwrap().resize(w, h);
+                if let Some(window) = self.window.as_mut() {
+                    window.set_frame_config(ConceptConfig {
+                        font_config: Some(Rc::clone(&self.font_config)),
+                        config: self.config.as_ref().cloned(),
+                        scale: factor,
+                        ..Default::default()
+                    });
+
+                    window.resize(w, h);
+                }
 
                 // Compute the new pixel dimensions
                 let new_dimensions = Dimensions {
@@ -1180,6 +1192,7 @@ impl WaylandWindowInner {
             window.set_frame_config(ConceptConfig {
                 font_config: Some(Rc::clone(&self.font_config)),
                 config: Some(config.clone()),
+                scale: get_surface_scale_factor(&self.surface),
                 ..Default::default()
             });
             // I tried re-applying the config to window.set_decorate

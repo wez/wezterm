@@ -45,6 +45,7 @@ pub struct ConceptConfig {
     pub font_config: Option<Rc<FontConfiguration>>,
     pub config: Option<ConfigHandle>,
     pub default_frame: WindowFrameConfig,
+    pub scale: i32,
 }
 
 impl ConceptConfig {
@@ -62,6 +63,7 @@ impl Default for ConceptConfig {
             font_config: None,
             default_frame: WindowFrameConfig::default(),
             config: None,
+            scale: 1,
         }
     }
 }
@@ -103,149 +105,6 @@ struct Part {
     subsurface: wl_subsurface::WlSubsurface,
 }
 
-pub(crate) struct SurfaceUserData {
-    scale_factor: i32,
-    outputs: Vec<(wl_output::WlOutput, i32, OutputListener)>,
-}
-
-impl SurfaceUserData {
-    fn new() -> Self {
-        SurfaceUserData {
-            scale_factor: 1,
-            outputs: Vec::new(),
-        }
-    }
-
-    pub(crate) fn enter<F>(
-        &mut self,
-        output: wl_output::WlOutput,
-        surface: wl_surface::WlSurface,
-        callback: &Option<Rc<RefCell<F>>>,
-    ) where
-        F: FnMut(i32, wl_surface::WlSurface, DispatchData) + 'static,
-    {
-        let output_scale = with_output_info(&output, |info| info.scale_factor).unwrap_or(1);
-        let my_surface = surface.clone();
-        // Use a UserData to safely share the callback with the other thread
-        let my_callback = wayland_client::UserData::new();
-        if let Some(ref cb) = callback {
-            my_callback.set(|| cb.clone());
-        }
-        let listener = add_output_listener(&output, move |output, info, ddata| {
-            let mut user_data = my_surface
-                .as_ref()
-                .user_data()
-                .get::<Mutex<SurfaceUserData>>()
-                .unwrap()
-                .lock()
-                .unwrap();
-            // update the scale factor of the relevant output
-            for (ref o, ref mut factor, _) in user_data.outputs.iter_mut() {
-                if o.as_ref().equals(output.as_ref()) {
-                    if info.obsolete {
-                        // an output that no longer exists is marked by a scale factor of -1
-                        *factor = -1;
-                    } else {
-                        *factor = info.scale_factor;
-                    }
-                    break;
-                }
-            }
-            // recompute the scale factor with the new info
-            let callback = my_callback.get::<Rc<RefCell<F>>>().cloned();
-            let old_scale_factor = user_data.scale_factor;
-            let new_scale_factor = user_data.recompute_scale_factor();
-            drop(user_data);
-            if let Some(ref cb) = callback {
-                if old_scale_factor != new_scale_factor {
-                    (&mut *cb.borrow_mut())(new_scale_factor, surface.clone(), ddata);
-                }
-            }
-        });
-        self.outputs.push((output, output_scale, listener));
-    }
-
-    pub(crate) fn leave(&mut self, output: &wl_output::WlOutput) {
-        self.outputs
-            .retain(|(ref output2, _, _)| !output.as_ref().equals(output2.as_ref()));
-    }
-
-    fn recompute_scale_factor(&mut self) -> i32 {
-        let mut new_scale_factor = 1;
-        self.outputs.retain(|&(_, output_scale, _)| {
-            if output_scale > 0 {
-                new_scale_factor = ::std::cmp::max(new_scale_factor, output_scale);
-                true
-            } else {
-                // cleanup obsolete output
-                false
-            }
-        });
-        if self.outputs.is_empty() {
-            // don't update the scale factor if we are not displayed on any output
-            return self.scale_factor;
-        }
-        self.scale_factor = new_scale_factor;
-        new_scale_factor
-    }
-}
-
-/// Returns the current suggested scale factor of a surface.
-///
-/// Panics if the surface was not created using `create_surface`
-fn get_surface_scale_factor(surface: &wl_surface::WlSurface) -> i32 {
-    surface
-        .as_ref()
-        .user_data()
-        .get::<Mutex<SurfaceUserData>>()
-        .expect("SCTK: Surface was not created by SCTK.")
-        .lock()
-        .unwrap()
-        .scale_factor
-}
-
-fn setup_surface<F>(
-    surface: Main<wl_surface::WlSurface>,
-    callback: Option<F>,
-) -> Attached<wl_surface::WlSurface>
-where
-    F: FnMut(i32, wl_surface::WlSurface, DispatchData) + 'static,
-{
-    let callback = callback.map(|c| Rc::new(RefCell::new(c)));
-    surface.quick_assign(move |surface, event, ddata| {
-        let mut user_data = surface
-            .as_ref()
-            .user_data()
-            .get::<Mutex<SurfaceUserData>>()
-            .unwrap()
-            .lock()
-            .unwrap();
-        match event {
-            wl_surface::Event::Enter { output } => {
-                // Passing the callback to be added to output listener
-                user_data.enter(output, surface.detach(), &callback);
-            }
-            wl_surface::Event::Leave { output } => {
-                user_data.leave(&output);
-            }
-            _ => unreachable!(),
-        };
-        let old_scale_factor = user_data.scale_factor;
-        let new_scale_factor = user_data.recompute_scale_factor();
-        drop(user_data);
-        if let Some(ref cb) = callback {
-            if old_scale_factor != new_scale_factor {
-                (&mut *cb.borrow_mut())(new_scale_factor, surface.detach(), ddata);
-            }
-        }
-    });
-    surface
-        .as_ref()
-        .user_data()
-        .set_threadsafe(|| Mutex::new(SurfaceUserData::new()));
-    surface.into()
-}
-
 impl Part {
     fn new(
         parent: &wl_surface::WlSurface,
@@ -253,30 +112,7 @@ impl Part {
         subcompositor: &Attached<wl_subcompositor::WlSubcompositor>,
         inner: Option<Rc<RefCell<Inner>>>,
     ) -> Part {
-        let surface = if let Some(inner) = inner {
-            setup_surface(
-                compositor.create_surface(),
-                Some(
-                    move |dpi, surface: wl_surface::WlSurface, ddata: DispatchData| {
-                        surface.set_buffer_scale(dpi);
-                        surface.commit();
-                        (&mut inner.borrow_mut().implem)(FrameRequest::Refresh, 0, ddata);
-                    },
-                ),
-            )
-        } else {
-            setup_surface(
-                compositor.create_surface(),
-                Some(
-                    move |dpi, surface: wl_surface::WlSurface, _ddata: DispatchData| {
-                        surface.set_buffer_scale(dpi);
-                        surface.commit();
-                    },
-                ),
-            )
-        };
-
-        let surface = surface.detach();
+        let surface = compositor.create_surface().detach();
 
         let subsurface = subcompositor.get_subsurface(&surface, parent);
 
@@ -789,18 +625,16 @@ impl Frame for ConceptFrame {
         // they will be created once `self.hidden` will become `false`.
         let parts = &inner.parts;
 
-        let scales: Vec<u32> = parts
-            .iter()
-            .map(|part| get_surface_scale_factor(&part.surface) as u32)
-            .collect();
-
         let (width, height) = inner.size;
 
-        // Use header scale for all the thing.
-        let header_scale = scales[HEAD];
+        for p in inner.parts.iter() {
+            p.surface.set_buffer_scale(self.config.scale);
+        }
 
-        let scaled_header_height = HEADER_SIZE * header_scale;
-        let scaled_header_width = width * header_scale;
+        let scale = self.config.scale as u32;
+
+        let scaled_header_height = HEADER_SIZE * scale;
+        let scaled_header_width = width * scale;
 
         {
             // grab the current pool
@@ -808,14 +642,12 @@ impl Frame for ConceptFrame {
                 Some(pool) => pool,
                 None => return,
             };
-            let lr_surfaces_scale = max(scales[LEFT], scales[RIGHT]);
-            let tp_surfaces_scale = max(scales[TOP], scales[BOTTOM]);
 
             // resize the pool as appropriate
             let pxcount = (scaled_header_height * scaled_header_width)
                 + max(
-                    (width + 2 * BORDER_SIZE) * BORDER_SIZE * tp_surfaces_scale * tp_surfaces_scale,
-                    (height + HEADER_SIZE) * BORDER_SIZE * lr_surfaces_scale * lr_surfaces_scale,
+                    (width + 2 * BORDER_SIZE) * BORDER_SIZE * scale * scale,
+                    (height + HEADER_SIZE) * BORDER_SIZE * scale * scale,
                 );
 
             pool.resize(4 * pxcount as usize)
@@ -893,7 +725,7 @@ impl Frame for ConceptFrame {
                     draw_buttons(
                         &mut pixmap,
                         width,
-                        header_scale,
+                        scale,
                         inner.resizable,
                         self.active,
                         &self
@@ -958,9 +790,9 @@ impl Frame for ConceptFrame {
             // -> top-subsurface
             let buffer = pool.buffer(
                 4 * (scaled_header_width * scaled_header_height) as i32,
-                ((width + 2 * BORDER_SIZE) * scales[TOP]) as i32,
-                (BORDER_SIZE * scales[TOP]) as i32,
-                (4 * scales[TOP] * (width + 2 * BORDER_SIZE)) as i32,
+                ((width + 2 * BORDER_SIZE) * scale) as i32,
+                (BORDER_SIZE * scale) as i32,
+                (4 * scale * (width + 2 * BORDER_SIZE)) as i32,
                 wl_shm::Format::Argb8888,
             );
             parts[TOP].subsurface.set_position(
@@ -976,8 +808,8 @@ impl Frame for ConceptFrame {
                 parts[TOP].surface.damage_buffer(
                     0,
                     0,
-                    ((width + 2 * BORDER_SIZE) * scales[TOP]) as i32,
-                    (BORDER_SIZE * scales[TOP]) as i32,
+                    ((width + 2 * BORDER_SIZE) * self.config.scale as u32) as i32,
+                    (BORDER_SIZE * self.config.scale as u32) as i32,
                 );
             } else {
                 // surface is old and does not support damage_buffer, so we damage
@@ -994,9 +826,9 @@ impl Frame for ConceptFrame {
             // -> bottom-subsurface
             let buffer = pool.buffer(
                 4 * (scaled_header_width * scaled_header_height) as i32,
-                ((width + 2 * BORDER_SIZE) * scales[BOTTOM]) as i32,
-                (BORDER_SIZE * scales[BOTTOM]) as i32,
-                (4 * scales[BOTTOM] * (width + 2 * BORDER_SIZE)) as i32,
+                ((width + 2 * BORDER_SIZE) * scale) as i32,
+                (BORDER_SIZE * scale) as i32,
+                (4 * scale * (width + 2 * BORDER_SIZE)) as i32,
                 wl_shm::Format::Argb8888,
             );
             parts[BOTTOM]
@@ -1007,8 +839,8 @@ impl Frame for ConceptFrame {
                 parts[BOTTOM].surface.damage_buffer(
                     0,
                     0,
-                    ((width + 2 * BORDER_SIZE) * scales[BOTTOM]) as i32,
-                    (BORDER_SIZE * scales[BOTTOM]) as i32,
+                    ((width + 2 * BORDER_SIZE) * scale) as i32,
+                    (BORDER_SIZE * scale) as i32,
                 );
             } else {
                 // surface is old and does not support damage_buffer, so we damage
@@ -1025,9 +857,9 @@ impl Frame for ConceptFrame {
             // -> left-subsurface
             let buffer = pool.buffer(
                 4 * (scaled_header_width * scaled_header_height) as i32,
-                (BORDER_SIZE * scales[LEFT]) as i32,
-                ((height + HEADER_SIZE) * scales[LEFT]) as i32,
-                4 * (BORDER_SIZE * scales[LEFT]) as i32,
+                (BORDER_SIZE * scale) as i32,
+                ((height + HEADER_SIZE) * scale) as i32,
+                4 * (BORDER_SIZE * scale) as i32,
                 wl_shm::Format::Argb8888,
             );
             parts[LEFT]
@@ -1038,8 +870,8 @@ impl Frame for ConceptFrame {
                 parts[LEFT].surface.damage_buffer(
                     0,
                     0,
-                    (BORDER_SIZE * scales[LEFT]) as i32,
-                    ((height + HEADER_SIZE) * scales[LEFT]) as i32,
+                    (BORDER_SIZE * scale) as i32,
+                    ((height + HEADER_SIZE) * scale) as i32,
                 );
             } else {
                 // surface is old and does not support damage_buffer, so we damage
@@ -1053,9 +885,9 @@ impl Frame for ConceptFrame {
             // -> right-subsurface
             let buffer = pool.buffer(
                 4 * (scaled_header_width * scaled_header_height) as i32,
-                (BORDER_SIZE * scales[RIGHT]) as i32,
-                ((height + HEADER_SIZE) * scales[RIGHT]) as i32,
-                4 * (BORDER_SIZE * scales[RIGHT]) as i32,
+                (BORDER_SIZE * scale) as i32,
+                ((height + HEADER_SIZE) * scale) as i32,
+                4 * (BORDER_SIZE * scale) as i32,
                 wl_shm::Format::Argb8888,
             );
             parts[RIGHT]
@@ -1066,8 +898,8 @@ impl Frame for ConceptFrame {
                 parts[RIGHT].surface.damage_buffer(
                     0,
                     0,
-                    (BORDER_SIZE * scales[RIGHT]) as i32,
-                    ((height + HEADER_SIZE) * scales[RIGHT]) as i32,
+                    (BORDER_SIZE * scale) as i32,
+                    ((height + HEADER_SIZE) * scale) as i32,
                 );
             } else {
                 // surface is old and does not support damage_buffer, so we damage
@@ -1110,7 +942,7 @@ impl Frame for ConceptFrame {
     fn set_config(&mut self, config: ConceptConfig) {
         self.config = config;
         // Refresh parts to reflect window_decorations
-        self.inner.borrow_mut().parts.clear();
+        // self.inner.borrow_mut().parts.clear();
         self.set_hidden(self.hidden);
         self.redraw();
     }
