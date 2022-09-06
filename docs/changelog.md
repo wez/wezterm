@@ -33,7 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Searching is now incremental and shows progress. [#1209](https://github.com/wez/wezterm/issues/1209)
 
 #### Fixed
-* Hangul in NFC incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
+* Hangul in NFD incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
 * Visual artifacts when resizing splits [#2483](https://github.com/wez/wezterm/issues/2483)
 
 ### 20220904-064125-9a6cee2b
