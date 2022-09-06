@@ -97,6 +97,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().debug_key_events
     }
 
+    fn normalize_to_nfc(&self) -> bool {
+        self.configuration().normalize_to_nfc
+    }
+
     fn bidi_mode(&self) -> BidiMode {
         let config = self.configuration();
         BidiMode {

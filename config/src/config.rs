@@ -311,6 +311,9 @@ pub struct Config {
     pub debug_key_events: bool,
 
     #[dynamic(default)]
+    pub normalize_to_nfc: bool,
+
+    #[dynamic(default)]
     pub disable_default_key_bindings: bool,
     pub leader: Option<LeaderKey>,
 
