@@ -1,3 +1,4 @@
+use crate::default_true;
 use crate::keys::KeyNoAction;
 use luahelper::impl_lua_conversion_dynamic;
 use ordered_float::NotNan;
@@ -359,10 +360,24 @@ impl Default for CharSelectGroup {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub struct CharSelectArguments {
     #[dynamic(default)]
     pub group: Option<CharSelectGroup>,
+    #[dynamic(default = "default_true")]
+    pub copy_on_select: bool,
+    #[dynamic(default)]
+    pub copy_to: ClipboardCopyDestination,
+}
+
+impl Default for CharSelectArguments {
+    fn default() -> Self {
+        Self {
+            group: None,
+            copy_on_select: true,
+            copy_to: ClipboardCopyDestination::default(),
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]

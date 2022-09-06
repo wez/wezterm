@@ -20,6 +20,7 @@ use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OperatingSystemCommand, CSI,
 };
 use termwiz::input::KeyboardEncoding;
+use unicode_normalization::{is_nfc_quick, IsNormalized, UnicodeNormalization};
 use url::Url;
 use wezterm_bidi::ParagraphDirectionHint;
 
@@ -116,8 +117,16 @@ impl<'a> Performer<'a> {
 
         let seqno = self.seqno;
         let mut p = std::mem::take(&mut self.print);
+        let normalized: String;
+        let text = if self.config.normalize_to_nfc() && is_nfc_quick(p.chars()) != IsNormalized::Yes
+        {
+            normalized = p.as_str().nfc().collect();
+            normalized.as_str()
+        } else {
+            p.as_str()
+        };
 
-        for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
+        for g in unicode_segmentation::UnicodeSegmentation::graphemes(text, true) {
             let g = self.remap_grapheme(g);
 
             let print_width = grapheme_column_width(g, Some(self.unicode_version));

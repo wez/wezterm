@@ -11,6 +11,37 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Fixed
+* Wayland: key repeat gets stuck after pressing two keys in quick succession.
+  Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!
+  [#2492](https://github.com/wez/wezterm/pull/2492)
+  [#2452](https://github.com/wez/wezterm/issues/2452)
+
+### 20220905-102802-7d4b8249
+
+#### New
+* [switch_to_last_active_tab_when_closing_tab](config/lua/config/switch_to_last_active_tab_when_closing_tab.md)
+  option to control behavior when closing the active tab.
+  [#2487](https://github.com/wez/wezterm/issues/2487)
+#### Changed
+* fontconfig: when locating a fallback font for a given codepoint, allow
+  matching non-monospace fonts if we can't find any matching monospace fonts.
+  [#2468](https://github.com/wez/wezterm/discussions/2468)
+* `os.getenv` now knows how to resolve environment variables that would normally
+  require logging out to update, such as `SHELL` (if you `chsh` on unix systeams),
+  or those set through the registry on Windows. [#2481](https://github.com/wez/wezterm/discussions/2481)
+* Searching is now incremental and shows progress. [#1209](https://github.com/wez/wezterm/issues/1209)
+
+#### Fixed
+* Hangul in NFD incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
+* Visual artifacts when resizing splits [#2483](https://github.com/wez/wezterm/issues/2483)
+
+### 20220904-064125-9a6cee2b
+
+* Fix build on architectures where `c_char` is `u8` instead of `i8`. Thanks to [@liushuyu](https://github.com/liushuyu)! [#2480](https://github.com/wez/wezterm/pull/2480)
+
+### 20220903-194523-3bb1ed61
+
 #### New
 
 * Color schemes: [carbonfox](colorschemes/c/index.md#carbonfox), [DanQing Light (base16)](colorschemes/d/index.md#danqing-light-base16), [Dracula (Official)](colorschemes/d/index.md#dracula-official), [Poimandres](colorschemes/p/index.md#poimandres), [Poimandres Storm](colorschemes/p/index.md#poimandres-storm), [Sequoia Monochrome](colorschemes/s/index.md#sequoia-monochrome), [Sequoia Moonlight](colorschemes/s/index.md#sequoia-moonlight), [SynthwaveAlpha](colorschemes/s/index.md#synthwavealpha), [SynthwaveAlpha (Gogh)](colorschemes/s/index.md#synthwavealpha-gogh)
@@ -18,8 +49,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [CopyMode](copymode.md) now supports selecting and move by semantic zones. [#2346](https://github.com/wez/wezterm/issues/2346)
 * [max_fps](config/lua/config/max_fps.md) option to limit maximum frame rate [#2419](https://github.com/wez/wezterm/discussions/2419)
 * [`user-var-changed` event](config/lua/window-events/user-var-changed.md) allows triggering lua code in response to user vars being changed
-* `CTRL-SHIFT-U` activates a new Emoij/Unicodes/NerdFont character picker modal overlay. Fuzzy search by name or hex unicode codepoint value, or browse with keys. `CTRL-r` to cycle the browser between categories. `Enter` to select an item, copy it to the clipboard and send it to the active pane as input. `Esc` to cancel.
+* `CTRL-SHIFT-U` activates a new Emoij/Unicodes/NerdFont character picker modal overlay. Fuzzy search by name or hex unicode codepoint value, or browse with keys. `CTRL-r` to cycle the browser between categories. `Enter` to select an item, copy it to the clipboard and send it to the active pane as input. `Esc` to cancel. [CharSelect](config/lua/keyassignment/CharSelect.md).
 * `CTRL-SHIFT-P` is now a default assignment for [PaneSelect](config/lua/keyassignment/PaneSelect.md)
+* Cursor now changes to a lock glyph to indicate when local echo is disabled for password entry. Detection is limited to local unix processes and cannot work with tmux. Use `detect_password_input=false` to disable this. [#2460](https://github.com/wez/wezterm/issues/2460)
 
 #### Changed
 
@@ -45,6 +77,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Scroll to the bottom on mouse input when mouse reporting is enabled [#2447](https://github.com/wez/wezterm/issues/2447)
 * ssh: correctly expand `%h` ssh_config tokens [#2448](https://github.com/wez/wezterm/issues/2448)
 * ssh: `CloseCurrentPane` wouldn't release all resources associated with the pane and could lead to a `too many open files` error for a long running `wezterm ssh` session. [#2466](https://github.com/wez/wezterm/issues/2466)
+* mouse cursor is now reset to arrow when the mouse leaves the window [#2471](https://github.com/wez/wezterm/issues/2471)
 
 ### 20220807-113146-c2fee766
 

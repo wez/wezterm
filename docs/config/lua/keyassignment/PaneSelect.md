@@ -24,7 +24,8 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 
 return {
-  -- 36 is the default, but you can choose a different size
+  -- 36 is the default, but you can choose a different size.
+  -- Uses the same font as window_frame.font
   -- pane_select_font_size=36,
 
   keys = {

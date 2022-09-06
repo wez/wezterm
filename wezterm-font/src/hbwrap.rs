@@ -3,9 +3,14 @@ use freetype;
 
 pub use harfbuzz::*;
 
-use anyhow::{ensure, Error};
+use crate::locator::{FontDataHandle, FontDataSource};
+use anyhow::{ensure, Context, Error};
+use memmap2::{Mmap, MmapOptions};
+use std::ffi::CStr;
+use std::io::Read;
 use std::ops::Range;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_int, c_uint, c_void};
+use std::sync::Arc;
 use std::{mem, slice};
 
 extern "C" {
@@ -36,6 +41,191 @@ pub fn feature_from_string(s: &str) -> Result<hb_feature_t, Error> {
     }
 }
 
+pub struct Blob {
+    blob: *mut hb_blob_t,
+}
+
+impl Drop for Blob {
+    fn drop(&mut self) {
+        unsafe {
+            hb_blob_destroy(self.blob);
+        }
+    }
+}
+
+impl Blob {
+    pub fn from_source(source: &FontDataSource) -> anyhow::Result<Self> {
+        let blob = match source {
+            FontDataSource::OnDisk(p) => {
+                let mut file = std::fs::File::open(p)
+                    .with_context(|| format!("opening file {}", p.display()))?;
+
+                let meta = file
+                    .metadata()
+                    .with_context(|| format!("querying metadata for {}", p.display()))?;
+
+                if !meta.is_file() {
+                    anyhow::bail!("{} is not a file", p.display());
+                }
+
+                let len = meta.len();
+                if len as usize > c_uint::MAX as usize {
+                    anyhow::bail!(
+                        "{} is too large to pass to harfbuzz! (len={})",
+                        p.display(),
+                        len
+                    );
+                }
+
+                match unsafe { MmapOptions::new().map(&file) } {
+                    Ok(map) => {
+                        let data_ptr = map.as_ptr();
+                        let data_len = map.len() as u32;
+                        let user_data = Arc::new(map);
+
+                        let user_data: *const Mmap = Arc::into_raw(user_data);
+
+                        extern "C" fn release_arc_mmap(user_data: *mut c_void) {
+                            let user_data = user_data as *mut Mmap;
+                            let user_data: Arc<Mmap> = unsafe { Arc::from_raw(user_data) };
+                            drop(user_data);
+                        }
+
+                        let blob = unsafe {
+                            hb_blob_create_or_fail(
+                                data_ptr as *const _,
+                                data_len,
+                                hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
+                                user_data as *mut _,
+                                Some(release_arc_mmap),
+                            )
+                        };
+
+                        if blob.is_null() {
+                            release_arc_mmap(user_data as *mut _);
+                        }
+
+                        blob
+                    }
+                    Err(err) => {
+                        log::warn!(
+                            "Unable to memory map {}: {}, will use regular file IO instead",
+                            p.display(),
+                            err
+                        );
+                        let mut data = vec![];
+                        file.read_to_end(&mut data)
+                            .with_context(|| format!("reading font file {}", p.display()))?;
+                        let data = Arc::new(data);
+
+                        let data_ptr = data.as_ptr();
+                        let data_len = data.len() as u32;
+                        let user_data: *const Vec<u8> = Arc::into_raw(data);
+
+                        extern "C" fn release_arc_vec(user_data: *mut c_void) {
+                            let user_data = user_data as *mut Vec<u8>;
+                            let user_data: Arc<Vec<u8>> = unsafe { Arc::from_raw(user_data) };
+                            drop(user_data);
+                        }
+
+                        let blob = unsafe {
+                            hb_blob_create_or_fail(
+                                data_ptr as *const _,
+                                data_len,
+                                hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
+                                user_data as *mut _,
+                                Some(release_arc_vec),
+                            )
+                        };
+
+                        if blob.is_null() {
+                            release_arc_vec(user_data as *mut _);
+                        }
+
+                        blob
+                    }
+                }
+            }
+            FontDataSource::BuiltIn { data, .. } => unsafe {
+                hb_blob_create_or_fail(
+                    data.as_ptr() as *const _,
+                    data.len() as u32,
+                    hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
+                    std::ptr::null_mut(),
+                    None,
+                )
+            },
+            FontDataSource::Memory { data, .. } => {
+                let data_ptr = data.as_ptr();
+                let data_len = data.len() as u32;
+                let user_data: *const Box<[u8]> = Arc::into_raw(Arc::clone(data));
+
+                extern "C" fn release_arc(user_data: *mut c_void) {
+                    let user_data = user_data as *const Box<[u8]>;
+                    let user_data: Arc<Box<[u8]>> = unsafe { Arc::from_raw(user_data) };
+                    drop(user_data);
+                }
+
+                let blob = unsafe {
+                    hb_blob_create_or_fail(
+                        data_ptr as *const _,
+                        data_len,
+                        hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
+                        user_data as *mut _,
+                        Some(release_arc),
+                    )
+                };
+
+                if blob.is_null() {
+                    release_arc(user_data as *mut _);
+                }
+
+                blob
+            }
+        };
+
+        if blob.is_null() {
+            anyhow::bail!("failed to wrap font as blob");
+        }
+
+        Ok(Self { blob })
+    }
+}
+
+pub struct Face {
+    face: *mut hb_face_t,
+}
+
+impl Drop for Face {
+    fn drop(&mut self) {
+        unsafe {
+            hb_face_destroy(self.face);
+        }
+    }
+}
+
+impl Face {
+    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
+        let blob = Blob::from_source(&handle.source)?;
+        let mut index = handle.index;
+        if handle.variation != 0 {
+            index |= handle.variation << 16;
+        }
+
+        let face = unsafe { hb_face_create(blob.blob, index) };
+        if face.is_null() {
+            anyhow::bail!("failed to create harfbuzz Face");
+        }
+
+        Ok(Self { face })
+    }
+
+    #[allow(dead_code)]
+    pub fn get_upem(&self) -> c_uint {
+        unsafe { hb_face_get_upem(self.face) }
+    }
+}
+
 pub struct Font {
     font: *mut hb_font_t,
 }
@@ -57,6 +247,56 @@ impl Font {
         // test here.
         Font {
             font: unsafe { hb_ft_font_create_referenced(face as _) },
+        }
+    }
+
+    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
+        let face = Face::from_locator(handle)?;
+        let font = unsafe { hb_font_create(face.face) };
+        if font.is_null() {
+            anyhow::bail!("failed to create harfbuzz Font");
+        }
+        Ok(Self { font })
+    }
+
+    #[allow(dead_code)]
+    pub fn get_face(&self) -> Face {
+        let face = unsafe { hb_font_get_face(self.font) };
+        unsafe {
+            hb_face_reference(face);
+        }
+        Face { face }
+    }
+
+    pub fn set_ot_funcs(&mut self) {
+        unsafe {
+            hb_ot_font_set_funcs(self.font);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_ft_funcs(&mut self) {
+        unsafe {
+            hb_ft_font_set_funcs(self.font);
+        }
+    }
+
+    pub fn set_font_scale(&mut self, x_scale: c_int, y_scale: c_int) {
+        log::info!("setting x_scale={x_scale}, y_scale={y_scale}");
+        unsafe {
+            hb_font_set_scale(self.font, x_scale, y_scale);
+        }
+    }
+
+    pub fn set_ppem(&mut self, x_ppem: u32, y_ppem: u32) {
+        unsafe {
+            hb_font_set_ppem(self.font, x_ppem, y_ppem);
+        }
+    }
+
+    pub fn set_ptem(&mut self, ptem: f32) {
+        unsafe {
+            hb_font_set_ptem(self.font, ptem);
         }
     }
 
@@ -91,6 +331,23 @@ impl Drop for Buffer {
     }
 }
 
+#[allow(dead_code)]
+extern "C" fn log_buffer_message(
+    _buf: *mut hb_buffer_t,
+    _font: *mut hb_font_t,
+    message: *const c_char,
+    _user_data: *mut c_void,
+) -> i32 {
+    unsafe {
+        if !message.is_null() {
+            let message = CStr::from_ptr(message);
+            log::info!("{message:?}");
+        }
+    }
+
+    1
+}
+
 impl Buffer {
     /// Create a new buffer
     pub fn new() -> Result<Buffer, Error> {
@@ -103,7 +360,9 @@ impl Buffer {
             hb_buffer_set_content_type(
                 buf,
                 harfbuzz::hb_buffer_content_type_t::HB_BUFFER_CONTENT_TYPE_UNICODE,
-            )
+            );
+
+            // hb_buffer_set_message_func(buf, Some(log_buffer_message), std::ptr::null_mut(), None);
         };
         Ok(Buffer { buf })
     }

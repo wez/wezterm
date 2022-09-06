@@ -16,13 +16,14 @@ use mux::{Mux, MuxNotification};
 use rangeset::RangeSet;
 use ratelim::RateLimiter;
 use std::cell::{RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::input::KeyEvent;
 use termwiz::surface::SequenceNo;
 use url::Url;
+use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
@@ -193,6 +194,23 @@ impl ClientPane {
 impl Pane for ClientPane {
     fn pane_id(&self) -> PaneId {
         self.local_pane_id
+    }
+
+    fn get_metadata(&self) -> Value {
+        let renderable = self.renderable.borrow();
+        let inner = renderable.inner.borrow();
+
+        let mut map: BTreeMap<Value, Value> = BTreeMap::new();
+        map.insert(
+            Value::String("is_tardy".to_string()),
+            Value::Bool(inner.is_tardy()),
+        );
+        map.insert(
+            Value::String("since_last_response_ms".to_string()),
+            Value::U64(inner.last_recv_time.elapsed().as_millis() as u64),
+        );
+
+        Value::Object(map.into())
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {

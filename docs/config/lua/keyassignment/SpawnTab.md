@@ -29,4 +29,5 @@ return {
 }
 ```
 
-
+See [SpawnCommandInNewTab](SpawnCommandInNewTab.md) for a more flexible action
+that allows more control over the spawned command.

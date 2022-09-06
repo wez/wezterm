@@ -22,7 +22,7 @@ if the hook takes longer than the
 `wezterm` won't schedule another call until `status_update_interval`
 milliseconds have elapsed since the last call completed.
 
-*Since: nightly builds only*
+*Since: 20220903-194523-3bb1ed61*
 
 This event is considered to be deprecated and you should migrate
 to using [update-status](update-status.md), which behaves the

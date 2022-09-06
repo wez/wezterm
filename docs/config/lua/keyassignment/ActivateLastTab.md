@@ -2,7 +2,7 @@
 
 *Since: 20210404-112810-b63a949d*
 
-Activate the last active tab. If there is none, it will do nothing.
+Activate the previously active tab. If there is none, it will do nothing.
 
 ```lua
 return {
@@ -18,4 +18,5 @@ return {
 }
 ```
 
+See [ActivateTab](ActivateTab.md) for a way to activate a tab based on its position/index.
 

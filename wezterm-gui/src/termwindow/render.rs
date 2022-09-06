@@ -41,6 +41,7 @@ use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use wezterm_bidi::Direction;
+use wezterm_dynamic::Value;
 use wezterm_font::shaper::PresentationWidth;
 use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
@@ -170,6 +171,7 @@ pub struct LineQuadCacheKey {
     /// Only is_some() if the y value matches this row.
     pub cursor: Option<StableCursorPosition>,
     pub reverse_video: bool,
+    pub password_input: bool,
 }
 
 pub struct LineQuadCacheValue {
@@ -194,6 +196,7 @@ pub struct LineToElementParams<'a> {
 pub struct LineToEleShapeCacheKey {
     pub shape_hash: [u8; 16],
     pub composing: Option<(usize, String)>,
+    pub shape_generation: usize,
 }
 
 pub struct LineToElementShapeItem {
@@ -258,6 +261,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
 
     pub render_metrics: RenderMetrics,
     pub shape_key: Option<LineToEleShapeCacheKey>,
+    pub password_input: bool,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -1117,6 +1121,7 @@ impl super::TermWindow {
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
                 render_metrics: self.render_metrics,
                 shape_key: None,
+                password_input: false,
             },
             layers,
         )?;
@@ -1676,7 +1681,7 @@ impl super::TermWindow {
                     // Constrain to the pane width!
                     let selrange = selrange.start..selrange.end.min(self.dims.cols);
 
-                    let (cursor, composing) = if self.cursor.y == stable_row {
+                    let (cursor, composing, password_input) = if self.cursor.y == stable_row {
                         (
                             Some(StableCursorPosition {
                                 y: 0,
@@ -1689,15 +1694,30 @@ impl super::TermWindow {
                             } else {
                                 None
                             },
+                            if self.term_window.config.detect_password_input {
+                                match self.pos.pane.get_metadata() {
+                                    Value::Object(obj) => {
+                                        match obj.get(&Value::String("password_input".to_string()))
+                                        {
+                                            Some(Value::Bool(b)) => *b,
+                                            _ => false,
+                                        }
+                                    }
+                                    _ => false,
+                                }
+                            } else {
+                                false
+                            },
                         )
                     } else {
-                        (None, None)
+                        (None, None, false)
                     };
 
                     let shape_hash = self.term_window.shape_hash_for_line(line);
 
                     let quad_key = LineQuadCacheKey {
                         pane_id: self.pane_id,
+                        password_input,
                         pane_is_active: self.pos.is_active,
                         config_generation: self.term_window.config.generation(),
                         shape_generation: self.term_window.shape_generation,
@@ -1706,7 +1726,9 @@ impl super::TermWindow {
                         selection: selrange.clone(),
                         cursor,
                         shape_hash,
-                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap(),
+                        top_pixel_y: NotNan::new(self.top_pixel_y).unwrap()
+                            + (line_idx + self.pos.top) as f32
+                                * self.term_window.render_metrics.cell_size.height as f32,
                         left_pixel_x: NotNan::new(self.left_pixel_x).unwrap(),
                         phys_line_idx: line_idx,
                         reverse_video: self.dims.reverse_video,
@@ -1733,6 +1755,7 @@ impl super::TermWindow {
 
                     let shape_key = LineToEleShapeCacheKey {
                         shape_hash,
+                        shape_generation: quad_key.shape_generation,
                         composing: if self.cursor.y == stable_row {
                             if let DeadKeyStatus::Composing(composing) =
                                 &self.term_window.dead_key_status
@@ -1748,9 +1771,7 @@ impl super::TermWindow {
 
                     self.term_window.render_screen_line_opengl(
                         RenderScreenLineOpenGLParams {
-                            top_pixel_y: self.top_pixel_y
-                                + (line_idx + self.pos.top) as f32
-                                    * self.term_window.render_metrics.cell_size.height as f32,
+                            top_pixel_y: *quad_key.top_pixel_y,
                             left_pixel_x: self.left_pixel_x,
                             pixel_width: self.dims.cols as f32
                                 * self.term_window.render_metrics.cell_size.width as f32,
@@ -1782,6 +1803,7 @@ impl super::TermWindow {
                                 .experimental_pixel_positioning,
                             render_metrics: self.term_window.render_metrics,
                             shape_key: Some(shape_key),
+                            password_input,
                         },
                         &mut TripleLayerQuadAllocator::Heap(&mut buf),
                     )?;
@@ -2613,6 +2635,7 @@ impl super::TermWindow {
         if !cursor_range.is_empty() {
             let (fg_color, bg_color) = if let Some(c) = params.line.get_cell(cursor_range.start) {
                 let attrs = c.attrs();
+
                 let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
 
                 let fg_color = resolve_fg_color_attr(
@@ -2656,26 +2679,63 @@ impl super::TermWindow {
 
             if cursor_shape.is_some() {
                 let mut quad = layers.allocate(0)?;
-                quad.set_position(
-                    pos_x,
-                    pos_y,
-                    pos_x + (cursor_range.end - cursor_range.start) as f32 * cell_width,
-                    pos_y + cell_height,
-                );
                 quad.set_hsv(hsv);
                 quad.set_has_color(false);
 
-                quad.set_texture(
-                    gl_state
-                        .glyph_cache
-                        .borrow_mut()
-                        .cursor_sprite(
-                            cursor_shape,
-                            &params.render_metrics,
-                            (cursor_range.end - cursor_range.start) as u8,
-                        )?
-                        .texture_coords(),
-                );
+                let mut draw_basic = true;
+
+                if params.password_input {
+                    let attrs = params
+                        .line
+                        .get_cell(cursor_range.start)
+                        .map(|cell| cell.attrs().clone())
+                        .unwrap_or_else(|| CellAttributes::blank());
+
+                    let glyph = self.resolve_lock_glyph(
+                        &TextStyle::default(),
+                        &attrs,
+                        params.font.as_ref(),
+                        gl_state,
+                        &params.render_metrics,
+                    )?;
+
+                    if let Some(sprite) = &glyph.texture {
+                        let width = sprite.coords.size.width as f32 * glyph.scale as f32;
+                        let height =
+                            sprite.coords.size.height as f32 * glyph.scale as f32 * height_scale;
+
+                        let pos_y = pos_y
+                            + cell_height
+                            + (params.render_metrics.descender.get() as f32
+                                - (glyph.y_offset + glyph.bearing_y).get() as f32)
+                                * height_scale;
+
+                        let pos_x = pos_x + (glyph.x_offset + glyph.bearing_x).get() as f32;
+                        quad.set_position(pos_x, pos_y, pos_x + width, pos_y + height);
+                        quad.set_texture(sprite.texture_coords());
+                        draw_basic = false;
+                    }
+                }
+
+                if draw_basic {
+                    quad.set_position(
+                        pos_x,
+                        pos_y,
+                        pos_x + (cursor_range.end - cursor_range.start) as f32 * cell_width,
+                        pos_y + cell_height,
+                    );
+                    quad.set_texture(
+                        gl_state
+                            .glyph_cache
+                            .borrow_mut()
+                            .cursor_sprite(
+                                cursor_shape,
+                                &params.render_metrics,
+                                (cursor_range.end - cursor_range.start) as u8,
+                            )?
+                            .texture_coords(),
+                    );
+                }
 
                 quad.set_fg_color(cursor_border_color);
                 quad.set_alt_color_and_mix_value(cursor_border_color_alt, cursor_border_mix);
@@ -2966,6 +3026,22 @@ impl super::TermWindow {
         metrics::histogram!("render_screen_line_opengl", start.elapsed());
 
         Ok(())
+    }
+
+    fn resolve_lock_glyph(
+        &self,
+        style: &TextStyle,
+        attrs: &CellAttributes,
+        font: Option<&Rc<LoadedFont>>,
+        gl_state: &RenderState,
+        metrics: &RenderMetrics,
+    ) -> anyhow::Result<Rc<CachedGlyph<SrgbTexture2d>>> {
+        let fa_lock = "\u{f023}";
+        let line = Line::from_text(fa_lock, attrs, 0, None);
+        let cluster = line.cluster(None);
+        let shape_info =
+            self.cached_cluster_shape(style, &cluster[0], gl_state, &line, font, metrics)?;
+        Ok(Rc::clone(&shape_info[0].glyph))
     }
 
     pub fn populate_block_quad(

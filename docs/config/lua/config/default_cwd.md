@@ -2,8 +2,15 @@
 
 *Since: 20210203-095643-70a364eb*
 
-Sets the default current working directory used by the initial window. If
-`wezterm start --cwd /some/path` is used to specify the current working
+Sets the default current working directory used by the initial window.
+
+The value is a string specifying the absolute path that should be used for the
+home directory. Using strings like `~` or `~username` that are typically
+expanded by the shell is **not supported**. You can use
+[wezterm.home_dir](../wezterm/home_dir.md) to explicitly refer to your home
+directory.
+
+If `wezterm start --cwd /some/path` is used to specify the current working
 directory, that will take precedence.
 
 Commands launched using [`SpawnCommand`](../SpawnCommand.md) will use the

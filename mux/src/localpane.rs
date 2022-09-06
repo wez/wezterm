@@ -16,7 +16,7 @@ use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Result as IoResult, Write};
 use std::ops::Range;
@@ -27,6 +27,7 @@ use termwiz::escape::{Action, DeviceControlMode};
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo};
 use url::Url;
+use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent,
@@ -70,6 +71,27 @@ pub struct LocalPane {
 impl Pane for LocalPane {
     fn pane_id(&self) -> PaneId {
         self.pane_id
+    }
+
+    fn get_metadata(&self) -> Value {
+        let mut map: BTreeMap<Value, Value> = BTreeMap::new();
+
+        #[cfg(unix)]
+        if let Some(tio) = self.pty.borrow().get_termios() {
+            use nix::sys::termios::LocalFlags;
+            // Detect whether we might be in password input mode.
+            // If local echo is disabled and canonical input mode
+            // is enabled, then we assume that we're in some kind
+            // of password-entry mode.
+            let pw_input = !tio.local_flags.contains(LocalFlags::ECHO)
+                && tio.local_flags.contains(LocalFlags::ICANON);
+            map.insert(
+                Value::String("password_input".to_string()),
+                Value::Bool(pw_input),
+            );
+        }
+
+        Value::Object(map.into())
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {

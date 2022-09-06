@@ -95,6 +95,9 @@ pub struct Config {
     pub colors: Option<Palette>,
 
     #[dynamic(default)]
+    pub switch_to_last_active_tab_when_closing_tab: bool,
+
+    #[dynamic(default)]
     pub window_frame: WindowFrameConfig,
 
     #[dynamic(default = "default_char_select_font_size")]
@@ -154,6 +157,9 @@ pub struct Config {
 
     #[dynamic(default = "default_clean_exits")]
     pub clean_exit_codes: Vec<u32>,
+
+    #[dynamic(default = "default_true")]
+    pub detect_password_input: bool,
 
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
@@ -303,6 +309,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub debug_key_events: bool,
+
+    #[dynamic(default)]
+    pub normalize_to_nfc: bool,
 
     #[dynamic(default)]
     pub disable_default_key_bindings: bool,

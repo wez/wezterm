@@ -1,6 +1,6 @@
 # CopyMode { MoveForwardSemanticZone = ZONE }
 
-*Since: nightly builds only*
+*Since: 20220903-194523-3bb1ed61*
 
 Moves the CopyMode cursor position to the next semantic zone of the specified
 type that follows the current zone.

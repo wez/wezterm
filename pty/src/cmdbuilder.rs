@@ -36,8 +36,40 @@ impl EnvEntry {
     }
 }
 
+#[cfg(unix)]
+fn get_shell() -> String {
+    use nix::unistd::{access, AccessFlags};
+    use std::ffi::CStr;
+    use std::path::Path;
+    use std::str;
+
+    let ent = unsafe { libc::getpwuid(libc::getuid()) };
+    if !ent.is_null() {
+        let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
+        match shell.to_str().map(str::to_owned) {
+            Err(err) => {
+                log::warn!(
+                    "passwd database shell could not be \
+                     represented as utf-8: {err:#}, \
+                     falling back to /bin/sh"
+                );
+            }
+            Ok(shell) => {
+                if let Err(err) = access(Path::new(&shell), AccessFlags::X_OK) {
+                    log::warn!(
+                        "passwd database shell={shell:?} which is \
+                         not executable ({err:#}), falling back to /bin/sh"
+                    );
+                } else {
+                    return shell;
+                }
+            }
+        }
+    }
+    "/bin/sh".into()
+}
+
 fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
-    #[allow(unused_mut)]
     let mut env: BTreeMap<OsString, EnvEntry> = std::env::vars_os()
         .map(|(key, value)| {
             (
@@ -50,6 +82,18 @@ fn get_base_env() -> BTreeMap<OsString, EnvEntry> {
             )
         })
         .collect();
+
+    #[cfg(unix)]
+    {
+        env.insert(
+            EnvEntry::map_key("SHELL".into()),
+            EnvEntry {
+                is_from_base_env: true,
+                preferred_key: "SHELL".into(),
+                value: get_shell().into(),
+            },
+        );
+    }
 
     #[cfg(windows)]
     {
@@ -275,7 +319,7 @@ impl CommandBuilder {
         self.envs.clear();
     }
 
-    fn get_env<K>(&self, key: K) -> Option<&OsStr>
+    pub fn get_env<K>(&self, key: K) -> Option<&OsStr>
     where
         K: AsRef<OsStr>,
     {
@@ -450,9 +494,6 @@ impl CommandBuilder {
     /// fall back to looking it up from the password database.
     pub fn get_shell(&self) -> String {
         use nix::unistd::{access, AccessFlags};
-        use std::ffi::CStr;
-        use std::path::Path;
-        use std::str;
 
         if let Some(shell) = self.get_env("SHELL").and_then(OsStr::to_str) {
             match access(shell, AccessFlags::X_OK) {
@@ -464,30 +505,7 @@ impl CommandBuilder {
             }
         }
 
-        let ent = unsafe { libc::getpwuid(libc::getuid()) };
-        if !ent.is_null() {
-            let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
-            match shell.to_str().map(str::to_owned) {
-                Err(err) => {
-                    log::warn!(
-                        "passwd database shell could not be \
-                                represented as utf-8: {err:#}, \
-                                falling back to /bin/sh"
-                    );
-                }
-                Ok(shell) => {
-                    if let Err(err) = access(Path::new(&shell), AccessFlags::X_OK) {
-                        log::warn!(
-                            "passwd database shell={shell:?} which is \
-                             not executable ({err:#}), falling back to /bin/sh"
-                        );
-                    } else {
-                        return shell;
-                    }
-                }
-            }
-        }
-        "/bin/sh".into()
+        get_shell().into()
     }
 
     fn get_home_dir(&self) -> anyhow::Result<String> {

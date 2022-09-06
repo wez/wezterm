@@ -329,6 +329,10 @@ impl MasterPty for UnixMasterPty {
             _ => None,
         }
     }
+
+    fn get_termios(&self) -> Option<nix::sys::termios::Termios> {
+        nix::sys::termios::tcgetattr(self.fd.0.as_raw_fd()).ok()
+    }
 }
 
 /// Represents the master end of a pty.

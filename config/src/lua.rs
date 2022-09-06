@@ -7,6 +7,7 @@ use anyhow::anyhow;
 use luahelper::{from_lua_value_dynamic, lua_value_to_dynamic};
 use mlua::{FromLua, Lua, Table, ToLuaMulti, Value, Variadic};
 use ordered_float::NotNan;
+use portable_pty::CommandBuilder;
 use std::convert::TryFrom;
 use std::path::Path;
 use std::sync::Mutex;
@@ -207,6 +208,12 @@ end
         wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
         wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
 
+        // Define our own os.getenv function that knows how to resolve current
+        // environment values from eg: the registry on Windows, or for
+        // the current SHELL value on unix, even if the user has changed
+        // those values since wezterm was started
+        get_or_create_module(&lua, "os")?.set("getenv", lua.create_function(getenv)?)?;
+
         package.set("path", path_array.join(";"))?;
     }
 
@@ -215,6 +222,23 @@ end
     }
 
     Ok(lua)
+}
+
+/// Resolve an environment variable.
+/// Lean on CommandBuilder's ability to update to current values of certain
+/// environment variables that may be adjusted via the registry or implicitly
+/// via eg: chsh (SHELL).
+fn getenv<'lua>(_: &'lua Lua, env: String) -> mlua::Result<Option<String>> {
+    let cmd = CommandBuilder::new_default_prog();
+    match cmd.get_env(&env) {
+        Some(s) => match s.to_str() {
+            Some(s) => Ok(Some(s.to_string())),
+            None => Err(mlua::Error::external(format!(
+                "env var {env} is not representable as UTF-8"
+            ))),
+        },
+        None => Ok(None),
+    }
 }
 
 fn shell_split<'lua>(_: &'lua Lua, line: String) -> mlua::Result<Vec<String>> {
