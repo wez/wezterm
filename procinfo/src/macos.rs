@@ -154,41 +154,7 @@ impl LocalProcessInfo {
             }
             unsafe { buf.set_len(size) };
 
-            // The data in our buffer is laid out like this:
-            // argc - c_int
-            // exe_path - NUL terminated string
-            // argv[0] - NUL terminated string
-            // argv[1] - NUL terminated string
-            // ...
-            // argv[n] - NUL terminated string
-            // envp[0] - NUL terminated string
-            // ...
-
-            let mut ptr = &buf[0..size];
-
-            let argc: c_int = unsafe { std::ptr::read(ptr.as_ptr() as *const c_int) };
-            ptr = &ptr[std::mem::size_of::<c_int>()..];
-
-            fn consume_cstr(ptr: &mut &[u8]) -> Option<String> {
-                let nul = ptr.iter().position(|&c| c == 0)?;
-                let s = String::from_utf8_lossy(&ptr[0..nul]).to_owned().to_string();
-                *ptr = ptr.get(nul + 1..)?;
-                Some(s)
-            }
-
-            let exe_path = consume_cstr(&mut ptr)?.into();
-
-            // For some reason, sysctl sometimes puts null bytes
-            // between the executable field and the argv field
-            let not_nul = ptr.iter().position(|&c| c != 0)?;
-            ptr = ptr.get(not_nul..)?;
-
-            let mut args = vec![];
-            for _ in 0..argc {
-                args.push(consume_cstr(&mut ptr)?);
-            }
-
-            Some((exe_path, args))
+            parse_exe_and_argv_sysctl(buf)
         }
 
         fn exe_for_pid(pid: libc::pid_t) -> PathBuf {
@@ -230,5 +196,99 @@ impl LocalProcessInfo {
         } else {
             None
         }
+    }
+}
+
+fn parse_exe_and_argv_sysctl(buf: Vec<u8>) -> Option<(PathBuf, Vec<String>)> {
+    use libc::c_int;
+
+    // The data in our buffer is laid out like this:
+    // argc - c_int
+    // exe_path - NUL terminated string
+    // argv[0] - NUL terminated string
+    // argv[1] - NUL terminated string
+    // ...
+    // argv[n] - NUL terminated string
+    // envp[0] - NUL terminated string
+    // ...
+
+    let mut ptr = &buf[0..buf.len()];
+
+    let argc: c_int = unsafe { std::ptr::read(ptr.as_ptr() as *const c_int) };
+    ptr = &ptr[std::mem::size_of::<c_int>()..];
+
+    fn consume_cstr(ptr: &mut &[u8]) -> Option<String> {
+        // Trim out trailing nulls
+        let not_nul = ptr.iter().position(|&c| c != 0)?;
+        *ptr = ptr.get(not_nul..)?;
+
+        // Then parse to the end of the null terminated string
+        let nul = ptr.iter().position(|&c| c == 0)?;
+        let s = String::from_utf8_lossy(&ptr[0..nul]).to_owned().to_string();
+        *ptr = ptr.get(nul + 1..)?;
+        Some(s)
+    }
+
+    let exe_path = consume_cstr(&mut ptr)?.into();
+
+    let mut args = vec![];
+    for _ in 0..argc {
+        args.push(consume_cstr(&mut ptr)?);
+    }
+
+    Some((exe_path, args))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::parse_exe_and_argv_sysctl;
+
+    #[test]
+    fn test_trailing_zeros() {
+        // Example data generated from running 'sleep 5' on the commit author's local machine,
+        let buf = vec![
+            2, 0, 0, 0, 47, 98, 105, 110, 47, 115, 108, 101, 101, 112, 0, 0, 0, 0, 0, 0, 115, 108,
+            101, 101, 112, 0, 53, 0,
+        ];
+
+        let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
+
+        assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
+        assert_eq!(argv[0], "sleep".to_string());
+        assert_eq!(argv[1], "5".to_string());
+    }
+
+    #[test]
+    fn test_no_trailing_zeros() {
+        // Example data generated from running 'sleep 5' on the commit author's local machine,
+        // then modified to remove the trailing 0s between the exe_path and the argv
+        let buf = vec![
+            2, 0, 0, 0, 47, 98, 105, 110, 47, 115, 108, 101, 101, 112, 0, 115, 108, 101, 101, 112,
+            0, 53, 0,
+        ];
+
+        let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
+
+        assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
+        assert_eq!(argv[0], "sleep".to_string());
+        assert_eq!(argv[1], "5".to_string());
+    }
+
+    #[test]
+    fn test_multiple_trailing_zeros() {
+        // Example data generated from running 'sleep 5' on the commit author's local machine,
+        // then modified to add trailing 0s between argv items
+        let buf = vec![
+            2, 0, 0, 0, 47, 98, 105, 110, 47, 115, 108, 101, 101, 112, 0, 0, 0, 115, 108, 101, 101,
+            112, 0, 0, 0, 53, 0,
+        ];
+
+        let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
+
+        assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
+        assert_eq!(argv[0], "sleep".to_string());
+        assert_eq!(argv[1], "5".to_string());
     }
 }
