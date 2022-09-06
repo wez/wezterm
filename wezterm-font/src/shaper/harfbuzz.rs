@@ -222,7 +222,6 @@ impl HarfbuzzShaper {
         );
 
         let shaped_any;
-        let initial_font_idx = font_idx;
 
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
@@ -231,6 +230,12 @@ impl HarfbuzzShaper {
                     if font_idx + 1 < self.fonts.len() {
                         if let Some(p) = presentation {
                             if pair.presentation != p {
+                                log::trace!(
+                                    "wanted presentation is {p:?} != font \
+                                     presentation {:?} so skip \
+                                     font_idx={font_idx}",
+                                    pair.presentation
+                                );
                                 font_idx += 1;
                                 continue;
                             }
@@ -258,7 +263,7 @@ impl HarfbuzzShaper {
                     shaped_any = pair.shaped_any;
                     font.shape(&mut buf, pair.features.as_slice());
                     log::trace!(
-                        "shaped font_idx={} {:?} as: {}",
+                        "shaped font_idx={} {:?} presentation={presentation:?} as: {}",
                         font_idx,
                         &s[range.start..range.end],
                         buf.serialize(Some(&*font))
@@ -287,6 +292,7 @@ impl HarfbuzzShaper {
             }
 
             if presentation.is_some() {
+                log::debug!("hit last resort, retry shape with no presentation, starting");
                 // We hit the last resort and we have an explicit presentation.
                 // This is a little awkward; we want to record the missing
                 // glyphs so that we can resolve them async, but we also
@@ -300,7 +306,7 @@ impl HarfbuzzShaper {
                 // that glyph in a fallback font and swap it out a little
                 // later after a flash of showing the emoji one.
                 return self.do_shape(
-                    initial_font_idx,
+                    0,
                     s,
                     font_size,
                     dpi,
@@ -566,7 +572,11 @@ impl FontShaper for HarfbuzzShaper {
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let range = range.unwrap_or_else(|| 0..text.len());
 
-        log::trace!("shape byte_len={} `{}`", text.len(), text.escape_debug());
+        log::trace!(
+            "shape byte_len={} `{}` with presentation={presentation:?}",
+            text.len(),
+            text.escape_debug()
+        );
         let start = std::time::Instant::now();
         let result = self.do_shape(
             0,
