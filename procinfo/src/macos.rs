@@ -256,8 +256,7 @@ mod tests {
         let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
 
         assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
-        assert_eq!(argv[0], "sleep".to_string());
-        assert_eq!(argv[1], "5".to_string());
+        assert_eq!(argv, vec!["sleep".to_string(), "5".to_string()]);
     }
 
     #[test]
@@ -272,8 +271,7 @@ mod tests {
         let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
 
         assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
-        assert_eq!(argv[0], "sleep".to_string());
-        assert_eq!(argv[1], "5".to_string());
+        assert_eq!(argv, vec!["sleep".to_string(), "5".to_string()]);
     }
 
     #[test]
@@ -288,7 +286,33 @@ mod tests {
         let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
 
         assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
-        assert_eq!(argv[0], "sleep".to_string());
-        assert_eq!(argv[1], "5".to_string());
+        assert_eq!(argv, vec!["sleep".to_string(), "5".to_string()]);
+    }
+
+    #[test]
+    fn test_trailing_zeros_at_end() {
+        // Example data generated from running 'sleep 5' on the commit author's local machine,
+        // then modified to add zeroes to the end of the buffer
+        let buf = vec![
+            2, 0, 0, 0, 47, 98, 105, 110, 47, 115, 108, 101, 101, 112, 0, 0, 0, 115, 108, 101, 101,
+            112, 0, 0, 0, 53, 0, 0, 0, 0, 0,
+        ];
+
+        let (exe_path, argv) = parse_exe_and_argv_sysctl(buf).unwrap();
+
+        assert_eq!(exe_path, Path::new("/bin/sleep").to_path_buf());
+        assert_eq!(argv, vec!["sleep".to_string(), "5".to_string()]);
+    }
+
+    #[test]
+    fn test_malformed() {
+        // Example data generated from running 'sleep 5' on the commit author's local machine,
+        // then modified to remove the last 0, making a malformed null-terminated string
+        let buf = vec![
+            2, 0, 0, 0, 47, 98, 105, 110, 47, 115, 108, 101, 101, 112, 0, 0, 0, 115, 108, 101, 101,
+            112, 0, 0, 0, 53,
+        ];
+
+        assert!(parse_exe_and_argv_sysctl(buf).is_none());
     }
 }
