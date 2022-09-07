@@ -7,7 +7,7 @@ use ::window::{
 };
 use config::keyassignment::{MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
-use mux::pane::Pane;
+use mux::pane::{Pane, WithPaneLines};
 use mux::tab::SplitDirection;
 use mux::Mux;
 use std::convert::TryInto;
@@ -15,6 +15,8 @@ use std::ops::Sub;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
+use termwiz::hyperlink::Hyperlink;
+use termwiz::surface::Line;
 use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
@@ -670,34 +672,37 @@ impl super::TermWindow {
                 stable_row,
             ));
 
-        let (top, mut lines) = pane.get_lines_with_hyperlinks_applied(
-            stable_row..stable_row + 1,
-            &self.config.hyperlink_rules,
-        );
-        let new_highlight = if top == stable_row {
-            if let Some(line) = lines.get_mut(0) {
-                if let Some(cell) = line.get_cell(column) {
-                    cell.attrs().hyperlink().cloned()
-                } else {
-                    None
+        pane.apply_hyperlinks(stable_row..stable_row + 1, &self.config.hyperlink_rules);
+
+        struct FindCurrentLink {
+            current: Option<Arc<Hyperlink>>,
+            stable_row: StableRowIndex,
+            column: usize,
+        }
+
+        impl WithPaneLines for FindCurrentLink {
+            fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
+                if stable_top == self.stable_row {
+                    if let Some(line) = lines.get(0) {
+                        if let Some(cell) = line.get_cell(self.column) {
+                            self.current = cell.attrs().hyperlink().cloned();
+                        }
+                    }
                 }
-            } else {
-                None
             }
-        } else {
-            None
+        }
+
+        let mut find_link = FindCurrentLink {
+            current: None,
+            stable_row,
+            column,
         };
+        pane.with_lines_mut(stable_row..stable_row + 1, &mut find_link);
+        let new_highlight = find_link.current;
 
         match (self.current_highlight.as_ref(), new_highlight) {
             (Some(old_link), Some(new_link)) if Arc::ptr_eq(&old_link, &new_link) => {
                 // Unchanged
-            }
-            (Some(old_link), Some(new_link)) if *old_link == new_link => {
-                // Unchanged
-                // Note: ideally this case wouldn't exist, as we *should*
-                // only be matching distinct instances of the hyperlink.
-                // However, for horrible reasons, we always end up with duplicated
-                // hyperlink instances today, so we have to do a deeper compare.
             }
             (None, None) => {
                 // Unchanged

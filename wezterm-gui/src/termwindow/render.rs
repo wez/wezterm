@@ -39,6 +39,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
+use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use wezterm_bidi::Direction;
 use wezterm_dynamic::Value;
@@ -179,6 +180,10 @@ pub struct LineQuadCacheValue {
     pub line: Line,
     pub expires: Option<Instant>,
     pub layers: HeapQuadAllocator,
+    // Only set if the line contains any hyperlinks, so
+    // that we can invalidate when it changes
+    pub current_highlight: Option<Arc<Hyperlink>>,
+    pub invalidate_on_hover_change: bool,
 }
 
 pub struct LineToElementParams<'a> {
@@ -202,6 +207,10 @@ pub struct LineToEleShapeCacheKey {
 pub struct LineToElementShapeItem {
     pub expires: Option<Instant>,
     pub shaped: Rc<Vec<LineToElementShape>>,
+    // Only set if the line contains any hyperlinks, so
+    // that we can invalidate when it changes
+    pub current_highlight: Option<Arc<Hyperlink>>,
+    pub invalidate_on_hover_change: bool,
 }
 
 pub struct LineToElementShape {
@@ -215,6 +224,10 @@ pub struct LineToElementShape {
     pub pixel_width: f32,
     pub glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
     pub cluster: CellCluster,
+}
+
+pub struct RenderScreenLineOpenGLResult {
+    pub invalidate_on_hover_change: bool,
 }
 
 pub struct RenderScreenLineOpenGLParams<'a> {
@@ -1741,7 +1754,15 @@ impl super::TermWindow {
                             .expires
                             .map(|i| Instant::now() >= i)
                             .unwrap_or(false);
-                        if !expired {
+                        let hover_changed = if cached_quad.invalidate_on_hover_change {
+                            !same_hyperlink(
+                                cached_quad.current_highlight.as_ref(),
+                                self.term_window.current_highlight.as_ref(),
+                            )
+                        } else {
+                            false
+                        };
+                        if !expired && !hover_changed {
                             cached_quad
                                 .layers
                                 .apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
@@ -1769,7 +1790,7 @@ impl super::TermWindow {
                         },
                     };
 
-                    self.term_window.render_screen_line_opengl(
+                    let render_result = self.term_window.render_screen_line_opengl(
                         RenderScreenLineOpenGLParams {
                             top_pixel_y: *quad_key.top_pixel_y,
                             left_pixel_x: self.left_pixel_x,
@@ -1817,6 +1838,12 @@ impl super::TermWindow {
                         layers: buf,
                         expires,
                         line: (*line).clone(),
+                        invalidate_on_hover_change: render_result.invalidate_on_hover_change,
+                        current_highlight: if render_result.invalidate_on_hover_change {
+                            self.term_window.current_highlight.clone()
+                        } else {
+                            None
+                        },
                     };
 
                     self.term_window
@@ -2191,7 +2218,7 @@ impl super::TermWindow {
     fn build_line_element_shape(
         &self,
         params: LineToElementParams,
-    ) -> anyhow::Result<Rc<Vec<LineToElementShape>>> {
+    ) -> anyhow::Result<(Rc<Vec<LineToElementShape>>, bool)> {
         let (bidi_enabled, bidi_direction) = params.line.bidi_info();
         let bidi_hint = if bidi_enabled {
             Some(bidi_direction)
@@ -2215,16 +2242,19 @@ impl super::TermWindow {
         let mut last_style = None;
         let mut x_pos = 0.;
         let mut expires = None;
+        let mut invalidate_on_hover_change = false;
 
         for cluster in &cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
             {
                 let attrs = &cluster.attrs;
                 let style = self.fonts.match_style(params.config, attrs);
-                let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
-                    (Some(ref this), &Some(ref highlight)) => **this == *highlight,
-                    _ => false,
-                };
+                let hyperlink = attrs.hyperlink();
+                let is_highlited_hyperlink =
+                    same_hyperlink(hyperlink, self.current_highlight.as_ref());
+                if hyperlink.is_some() {
+                    invalidate_on_hover_change = true;
+                }
                 // underline and strikethrough
                 let underline_tex_rect = gl_state
                     .glyph_cache
@@ -2360,11 +2390,17 @@ impl super::TermWindow {
                 LineToElementShapeItem {
                     expires,
                     shaped: Rc::clone(&shaped),
+                    invalidate_on_hover_change,
+                    current_highlight: if invalidate_on_hover_change {
+                        self.current_highlight.clone()
+                    } else {
+                        None
+                    },
                 },
             );
         }
 
-        Ok(shaped)
+        Ok((shaped, invalidate_on_hover_change))
     }
 
     /// "Render" a line of the terminal screen into the vertex buffer.
@@ -2375,12 +2411,14 @@ impl super::TermWindow {
         &self,
         params: RenderScreenLineOpenGLParams,
         layers: &mut TripleLayerQuadAllocator,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<RenderScreenLineOpenGLResult> {
         if params.line.is_double_height_bottom() {
             // The top and bottom lines are required to have the same content.
             // For the sake of simplicity, we render both of them as part of
             // rendering the top row, so we have nothing more to do here.
-            return Ok(());
+            return Ok(RenderScreenLineOpenGLResult {
+                invalidate_on_hover_change: false,
+            });
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
@@ -2460,15 +2498,27 @@ impl super::TermWindow {
             ..params.left_pixel_x + cursor_range.end as f32 * cell_width;
 
         let mut shaped = None;
+        let mut invalidate_on_hover_change = false;
+
         if let Some(shape_key) = &params.shape_key {
             let mut cache = self.line_to_ele_shape_cache.borrow_mut();
             if let Some(entry) = cache.get(shape_key) {
                 let expired = entry.expires.map(|i| Instant::now() >= i).unwrap_or(false);
+                let hover_changed = if entry.invalidate_on_hover_change {
+                    !same_hyperlink(
+                        entry.current_highlight.as_ref(),
+                        self.current_highlight.as_ref(),
+                    )
+                } else {
+                    false
+                };
 
-                if !expired {
+                if !expired && !hover_changed {
                     self.update_next_frame_time(entry.expires);
                     shaped.replace(Rc::clone(&entry.shaped));
                 }
+
+                invalidate_on_hover_change = entry.invalidate_on_hover_change;
             }
         }
 
@@ -2486,7 +2536,9 @@ impl super::TermWindow {
                 shape_key: &params.shape_key,
             };
 
-            self.build_line_element_shape(params)?
+            let (shaped, invalidate_on_hover) = self.build_line_element_shape(params)?;
+            invalidate_on_hover_change = invalidate_on_hover;
+            shaped
         };
 
         let bounding_rect = euclid::rect(
@@ -3025,7 +3077,9 @@ impl super::TermWindow {
 
         metrics::histogram!("render_screen_line_opengl", start.elapsed());
 
-        Ok(())
+        Ok(RenderScreenLineOpenGLResult {
+            invalidate_on_hover_change,
+        })
     }
 
     fn resolve_lock_glyph(
@@ -3582,5 +3636,12 @@ fn update_next_frame_time(storage: &mut Option<Instant>, next_due: Option<Instan
                 storage.replace(t);
             }
         }
+    }
+}
+
+fn same_hyperlink(a: Option<&Arc<Hyperlink>>, b: Option<&Arc<Hyperlink>>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+        _ => false,
     }
 }

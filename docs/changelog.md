@@ -22,6 +22,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Correctly invalidate the display when using
   `wezterm.action.ClearScrollback("ScrollbackAndViewport")`
   [#2498](https://github.com/wez/wezterm/issues/2498)
+* Hyperlinks didn't underline on hover
+  [#2496](https://github.com/wez/wezterm/issues/2496)
 
 ### 20220905-102802-7d4b8249
 

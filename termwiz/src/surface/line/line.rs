@@ -545,6 +545,9 @@ impl Line {
     /// This function does not remember the values of the `rules` slice, so it
     /// is the responsibility of the caller to call `invalidate_implicit_hyperlinks`
     /// if it wishes to call this function with different `rules`.
+    ///
+    /// This function will call Line::clear_appdata on lines where
+    /// hyperlinks are adjusted.
     pub fn apply_hyperlink_rules(rules: &[Rule], logical_line: &mut [&mut Line]) {
         if rules.is_empty() || logical_line.is_empty() {
             return;
@@ -574,6 +577,7 @@ impl Line {
         if !logical.has_hyperlink() {
             for line in logical_line.iter_mut() {
                 line.bits.set(LineBits::SCANNED_IMPLICIT_HYPERLINKS, true);
+                line.clear_appdata();
             }
             return;
         }
@@ -587,6 +591,7 @@ impl Line {
             **phys = logical;
             logical = remainder;
             phys.set_last_cell_was_wrapped(wrapped, seq);
+            phys.clear_appdata();
             if is_cluster {
                 phys.compress_for_scrollback();
             }

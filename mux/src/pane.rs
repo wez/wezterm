@@ -170,28 +170,6 @@ impl LogicalLine {
         }
         (y - 1, x - idx + self.physical_lines.last().unwrap().len())
     }
-
-    pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
-        let seq = self.logical.current_seqno();
-        self.logical.invalidate_implicit_hyperlinks(seq);
-        self.logical.scan_and_create_hyperlinks(rules);
-        if !self.logical.has_hyperlink() {
-            return;
-        }
-
-        // Re-compute the physical lines
-        let mut line = self.logical.clone();
-        let num_phys = self.physical_lines.len();
-        for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
-            let len = phys.len();
-            let seq = seq.max(phys.current_seqno());
-            let remainder = line.split_off(len, seq);
-            *phys = line;
-            line = remainder;
-            let wrapped = idx == num_phys - 1;
-            phys.set_last_cell_was_wrapped(wrapped, seq);
-        }
-    }
 }
 
 /// A Pane represents a view on a terminal
@@ -258,42 +236,6 @@ pub trait Pane: Downcast {
         }
 
         self.for_each_logical_line_in_stable_range_mut(lines, &mut ApplyHyperLinks { rules });
-    }
-
-    fn get_lines_with_hyperlinks_applied(
-        &self,
-        lines: Range<StableRowIndex>,
-        rules: &[Rule],
-    ) -> (StableRowIndex, Vec<Line>) {
-        if rules.is_empty() {
-            return self.get_lines(lines);
-        }
-        let requested_first = lines.start;
-        let num_lines = (lines.end - lines.start) as usize;
-        let logical = self.get_logical_lines(lines);
-
-        let mut first = None;
-        let mut phys_lines = vec![];
-        'outer: for mut log_line in logical {
-            log_line.apply_hyperlink_rules(rules);
-            for (idx, phys) in log_line.physical_lines.into_iter().enumerate() {
-                if log_line.first_row + idx as StableRowIndex >= requested_first {
-                    if first.is_none() {
-                        first.replace(log_line.first_row + idx as StableRowIndex);
-                    }
-                    phys_lines.push(phys);
-                    if phys_lines.len() == num_lines {
-                        break 'outer;
-                    }
-                }
-            }
-        }
-
-        if first.is_none() {
-            assert_eq!(phys_lines.len(), 0);
-        }
-
-        (first.unwrap_or(0), phys_lines)
     }
 
     /// Returns render related dimensions
