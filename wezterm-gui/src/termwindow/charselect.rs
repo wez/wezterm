@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
 use std::path::PathBuf;
+use termwiz::input::Modifiers;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
 
@@ -551,6 +552,8 @@ impl Modal for CharSelector {
         mods: KeyModifiers,
         term_window: &mut TermWindow,
     ) -> anyhow::Result<()> {
+        const CTRL_AND_SHIFT: Modifiers = KeyModifiers::CTRL.union(KeyModifiers::SHIFT);
+
         match (key, mods) {
             (KeyCode::Escape, KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CTRL) => {
                 term_window.cancel_modal();
@@ -559,6 +562,13 @@ impl Modal for CharSelector {
                 // Cycle the selected group
                 let mut group = self.group.borrow_mut();
                 *group = group.next();
+                self.selection.borrow_mut().clear();
+                self.updated_input();
+            }
+            (KeyCode::Char('R'), KeyModifiers::CTRL) | (KeyCode::Char('r'), CTRL_AND_SHIFT) => {
+                // Cycle the selected group in reverse direction
+                let mut group = self.group.borrow_mut();
+                *group = group.previous();
                 self.selection.borrow_mut().clear();
                 self.updated_input();
             }

@@ -23,15 +23,16 @@ Characters are categorized into the following groups:
 
 The following key assignments are available (they are not currently configurable):
 
-|Key       | Action |
-|----------|--------|
-|UpArrow   |Move Up |
-|DownArrow |Move Down|
-|Enter     |Accept the current item, copy it to the clipboard, insert it into the active pane, and cancel the modal|
-|Esc       |Cancel the modal|
-|CTRL-g    |Cancel the modal|
-|CTRL-r    |Cycle to the next group of characters|
-|CTRL-u    |Clear text input|
+|Key             | Action |
+|----------------|--------|
+|UpArrow         |Move Up |
+|DownArrow       |Move Down|
+|Enter           |Accept the current item, copy it to the clipboard, insert it into the active pane, and cancel the modal|
+|Esc             |Cancel the modal|
+|CTRL-g          |Cancel the modal|
+|CTRL-r          |Cycle to the next group of characters|
+|CTRL-SHIFT-r    |Cycle to the previous group of characters|
+|CTRL-u          |Clear text input|
 
 Typing a name or a hex unicode codepoint value will fuzzy search across all
 possible groups (not just the current group) and filter the results.
