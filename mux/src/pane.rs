@@ -670,24 +670,6 @@ mod test {
         }
     }
 
-    #[test]
-    fn hyperlink_rule_apply_preserves_seqno() {
-        let text = "Hello https://example.com\nwoot";
-        let lines = physical_lines_from_text(text, 5);
-        let pane = FakePane {
-            lines: RefCell::new(lines),
-        };
-        let (_first, lines) = pane.get_lines_with_hyperlinks_applied(
-            0..2,
-            &[Rule {
-                regex: regex::Regex::new("example").unwrap(),
-                format: "$0".to_string(),
-            }],
-        );
-        let seqs: Vec<_> = lines.iter().map(|line| line.current_seqno()).collect();
-        k9::assert_equal!(seqs, vec![1, 1]);
-    }
-
     fn physical_lines_from_text(text: &str, width: usize) -> Vec<Line> {
         let mut physical_lines = vec![];
         for logical in text.split('\n') {
