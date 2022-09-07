@@ -335,24 +335,39 @@ pub enum CharSelectGroup {
     UnicodeNames,
 }
 
-impl CharSelectGroup {
-    pub fn next(self) -> Self {
-        match self {
-            Self::RecentlyUsed => Self::SmileysAndEmotion,
-            Self::SmileysAndEmotion => Self::PeopleAndBody,
-            Self::PeopleAndBody => Self::AnimalsAndNature,
-            Self::AnimalsAndNature => Self::FoodAndDrink,
-            Self::FoodAndDrink => Self::TravelAndPlaces,
-            Self::TravelAndPlaces => Self::Activities,
-            Self::Activities => Self::Objects,
-            Self::Objects => Self::Symbols,
-            Self::Symbols => Self::Flags,
-            Self::Flags => Self::NerdFonts,
-            Self::NerdFonts => Self::UnicodeNames,
-            Self::UnicodeNames => Self::RecentlyUsed,
+// next is default, previous is the reverse
+macro_rules! char_select_group_impl_next_prev {
+    ($($x:ident => $y:ident),+ $(,)?) => {
+        impl CharSelectGroup {
+            pub const fn next(self) -> Self {
+                match self {
+                    $(CharSelectGroup::$x => CharSelectGroup::$y),+
+                }
+            }
+
+            pub const fn previous(self) -> Self {
+                match self {
+                    $(CharSelectGroup::$y => CharSelectGroup::$x),+
+                }
+            }
         }
-    }
+    };
 }
+
+char_select_group_impl_next_prev! (
+    RecentlyUsed => SmileysAndEmotion,
+    SmileysAndEmotion => PeopleAndBody,
+    PeopleAndBody => AnimalsAndNature,
+    AnimalsAndNature => FoodAndDrink,
+    FoodAndDrink => TravelAndPlaces,
+    TravelAndPlaces => Activities,
+    Activities => Objects,
+    Objects => Symbols,
+    Symbols => Flags,
+    Flags => NerdFonts,
+    NerdFonts => UnicodeNames,
+    UnicodeNames => RecentlyUsed,
+);
 
 impl Default for CharSelectGroup {
     fn default() -> Self {
