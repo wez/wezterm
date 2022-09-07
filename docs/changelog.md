@@ -11,6 +11,11 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### New
+* [wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
+  and [wezterm.gui.default_keys](config/lua/wezterm.gui/default_keys.md) for
+  more conveniently copying and extending the default configuration.
+
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
   Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!

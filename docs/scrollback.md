@@ -91,8 +91,11 @@ When the search overlay is active the behavior of wezterm changes:
 
 The key assignments for copy mode are specified by the `search_mode` [Key Table](config/key-tables.md).
 
-You may provide your own definition of this key table if you wish to customize it.
-There isn't a way to override portions of the key table, only to replace the entire table.
+You may use
+[wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
+to obtain the defaults and extend them. In earlier versions of wezterm there
+wasn't a way to override portions of the key table, only to replace the entire
+table.
 
 The default configuration at the time that these docs were built (which
 may be more recent than your version of wezterm) is shown below.

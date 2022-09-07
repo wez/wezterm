@@ -700,6 +700,13 @@ impl ConfigHandle {
     pub fn generation(&self) -> usize {
         self.generation
     }
+
+    pub fn default_config() -> Self {
+        Self {
+            config: Arc::new(Config::default_config()),
+            generation: 0,
+        }
+    }
 }
 
 impl std::ops::Deref for ConfigHandle {

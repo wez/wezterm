@@ -17,6 +17,11 @@ pub struct InputMap {
 }
 
 impl InputMap {
+    pub fn default_input_map() -> Self {
+        let config = ConfigHandle::default_config();
+        Self::new(&config)
+    }
+
     pub fn new(config: &ConfigHandle) -> Self {
         let mut mouse = config.mouse_bindings();
 
