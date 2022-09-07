@@ -39,6 +39,9 @@ impl TerminalState {
         let mut foreground_color = RgbColor::new_8bpc(0, 0xff, 0);
 
         let mut emit_sixel = |d: &u8, foreground_color: &RgbColor, x: u32, y: u32| {
+            if x >= width {
+                return;
+            }
             let (red, green, blue) = foreground_color.to_tuple_rgb8();
             for bitno in 0..6 {
                 if y + bitno >= height {
