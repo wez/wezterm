@@ -42,7 +42,7 @@ The default assignment is equivalent to this config:
 
 ```lua
 local wezterm = require 'wezterm'
-local act = wezterm.act
+local act = wezterm.action
 
 return {
   -- Control the size of the font.
