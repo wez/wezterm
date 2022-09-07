@@ -483,6 +483,20 @@ impl CellAttributes {
         // easier time in get_semantic_zones.
         res.set_semantic_type(SemanticType::default());
         res.set_underline_color(self.underline_color());
+
+        // Turn off underline because it can have surprising results
+        // if underline is on, then we get CRLF and then SGR reset:
+        // If the CRLF causes a line to scroll, we'll call clone_sgr_only()
+        // to get a blank cell for the new line and it would be filled
+        // with underlines.
+        // clone_sgr_only() is primarily for preserving the background
+        // color when erasing rather than other attributes, so it should
+        // be fine to clear out the actual underline attribute.
+        // Let's extend this to other line attribute types as well.
+        // <https://github.com/wez/wezterm/issues/2489>
+        res.set_underline(Underline::None);
+        res.set_overline(false);
+        res.set_strikethrough(false);
         res
     }
 

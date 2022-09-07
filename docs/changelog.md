@@ -16,6 +16,9 @@ As features stabilize some brief notes about them will accumulate here.
   Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!
   [#2492](https://github.com/wez/wezterm/pull/2492)
   [#2452](https://github.com/wez/wezterm/issues/2452)
+* If the underline attribute was active and CRLF scrolled a new line into the
+  bottom of the display, we'd fill that new line with underlines.
+  [#2489](https://github.com/wez/wezterm/issues/2489)
 
 ### 20220905-102802-7d4b8249
 
