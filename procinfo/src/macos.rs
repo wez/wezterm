@@ -218,14 +218,19 @@ fn parse_exe_and_argv_sysctl(buf: Vec<u8>) -> Option<(PathBuf, Vec<String>)> {
     ptr = &ptr[std::mem::size_of::<c_int>()..];
 
     fn consume_cstr(ptr: &mut &[u8]) -> Option<String> {
-        // Trim out trailing nulls
-        let not_nul = ptr.iter().position(|&c| c != 0)?;
-        *ptr = ptr.get(not_nul..)?;
-
-        // Then parse to the end of the null terminated string
+        // Parse to the end of a null terminated string
         let nul = ptr.iter().position(|&c| c == 0)?;
         let s = String::from_utf8_lossy(&ptr[0..nul]).to_owned().to_string();
         *ptr = ptr.get(nul + 1..)?;
+
+        // Find the position of the first non null byte. `.position()`
+        // will return None if we run off the end.
+        if let Some(not_nul) = ptr.iter().position(|&c| c != 0) {
+            // If there are no trailing nulls, not_nul will be 0
+            // and this call will be a noop
+            *ptr = ptr.get(not_nul..)?;
+        }
+
         Some(s)
     }
 
