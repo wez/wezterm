@@ -19,6 +19,9 @@ As features stabilize some brief notes about them will accumulate here.
 * If the underline attribute was active and CRLF scrolled a new line into the
   bottom of the display, we'd fill that new line with underlines.
   [#2489](https://github.com/wez/wezterm/issues/2489)
+* Correctly invalidate the display when using
+  `wezterm.action.ClearScrollback("ScrollbackAndViewport")`
+  [#2498](https://github.com/wez/wezterm/issues/2498)
 
 ### 20220905-102802-7d4b8249
 

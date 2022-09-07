@@ -686,6 +686,10 @@ impl TerminalState {
     }
 
     pub fn erase_scrollback_and_viewport(&mut self) {
+        // Since we may be called outside of perform_actions,
+        // we need to ensure that we increment the seqno in
+        // order to correctly invalidate the display
+        self.increment_seqno();
         self.erase_in_display(EraseInDisplay::EraseScrollback);
 
         let row_index = self.screen.phys_row(self.cursor.y);
@@ -703,6 +707,10 @@ impl TerminalState {
     /// Discards the scrollback, leaving only the data that is present
     /// in the viewport.
     pub fn erase_scrollback(&mut self) {
+        // Since we may be called outside of perform_actions,
+        // we need to ensure that we increment the seqno in
+        // order to correctly invalidate the display
+        self.increment_seqno();
         self.screen_mut().erase_scrollback();
     }
 
