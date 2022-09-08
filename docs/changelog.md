@@ -29,6 +29,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2498](https://github.com/wez/wezterm/issues/2498)
 * Hyperlinks didn't underline on hover
   [#2496](https://github.com/wez/wezterm/issues/2496)
+* base16 color schemes cursor fg/bg were the same. We now also set the indexed
+  colors.  Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!
+  [#2491](https://github.com/wez/wezterm/pull/2492)
 
 ### 20220905-102802-7d4b8249
 
