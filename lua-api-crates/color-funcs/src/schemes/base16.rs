@@ -1,6 +1,7 @@
 use anyhow::Context;
 use config::{ColorSchemeFile, ColorSchemeMetaData, Palette, RgbaColor};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[derive(Deserialize, Debug)]
@@ -36,21 +37,29 @@ impl Base16Scheme {
         let scheme: Self = serde_yaml::from_str(&data)?;
 
         let base_0 = RgbaColor::try_from(scheme.base00)?;
-        // let base_1 = RgbaColor::try_from(scheme.base01)?;
-        // let base_2 = RgbaColor::try_from(scheme.base02)?;
+        let base_1 = RgbaColor::try_from(scheme.base01)?;
+        let base_2 = RgbaColor::try_from(scheme.base02)?;
         let base_3 = RgbaColor::try_from(scheme.base03)?;
-        // let base_4 = RgbaColor::try_from(scheme.base04)?;
+        let base_4 = RgbaColor::try_from(scheme.base04)?;
         let base_5 = RgbaColor::try_from(scheme.base05)?;
-        // let base_6 = RgbaColor::try_from(scheme.base06)?;
+        let base_6 = RgbaColor::try_from(scheme.base06)?;
         let base_7 = RgbaColor::try_from(scheme.base07)?;
         let base_8 = RgbaColor::try_from(scheme.base08)?;
-        // let base_9 = RgbaColor::try_from(scheme.base09)?;
+        let base_9 = RgbaColor::try_from(scheme.base09)?;
         let base_a = RgbaColor::try_from(scheme.base0A)?;
         let base_b = RgbaColor::try_from(scheme.base0B)?;
         let base_c = RgbaColor::try_from(scheme.base0C)?;
         let base_d = RgbaColor::try_from(scheme.base0D)?;
         let base_e = RgbaColor::try_from(scheme.base0E)?;
-        // let base_f = RgbaColor::try_from(scheme.base0F)?;
+        let base_f = RgbaColor::try_from(scheme.base0F)?;
+
+        let mut indexed = HashMap::new();
+        indexed.insert(16, base_9);
+        indexed.insert(17, base_f);
+        indexed.insert(18, base_1);
+        indexed.insert(19, base_2);
+        indexed.insert(20, base_4);
+        indexed.insert(21, base_6);
 
         Ok(ColorSchemeFile {
             colors: Palette {
@@ -67,6 +76,7 @@ impl Base16Scheme {
                 brights: Some([
                     base_3, base_8, base_b, base_a, base_d, base_e, base_c, base_7,
                 ]),
+                indexed,
                 ..Default::default()
             },
             metadata: ColorSchemeMetaData {
