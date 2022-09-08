@@ -32,6 +32,8 @@ As features stabilize some brief notes about them will accumulate here.
 * base16 color schemes cursor fg/bg were the same. We now also set the indexed
   colors.  Thanks to [@unrelentingtech](https://github.com/unrelentingtech)!
   [#2491](https://github.com/wez/wezterm/pull/2492)
+* Panic when processing a sixel with inconsistent width information
+  [#2500](https://github.com/wez/wezterm/issues/2500)
 
 ### 20220905-102802-7d4b8249
 
