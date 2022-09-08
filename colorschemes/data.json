@@ -24,9 +24,16 @@
       ],
       "cursor_bg": "#a5a2a2",
       "cursor_border": "#a5a2a2",
-      "cursor_fg": "#a5a2a2",
+      "cursor_fg": "#090300",
       "foreground": "#a5a2a2",
-      "indexed": {},
+      "indexed": {
+        "16": "#e8bbd0",
+        "17": "#cdab53",
+        "18": "#3a3432",
+        "19": "#4a4543",
+        "20": "#807d7c",
+        "21": "#d6d5d4"
+      },
       "selection_bg": "#a5a2a2",
       "selection_fg": "#090300"
     },
@@ -607,9 +614,16 @@
       ],
       "cursor_bg": "#81b5ac",
       "cursor_border": "#81b5ac",
-      "cursor_fg": "#81b5ac",
+      "cursor_fg": "#031a16",
       "foreground": "#81b5ac",
-      "indexed": {},
+      "indexed": {
+        "16": "#3e7996",
+        "17": "#3e965b",
+        "18": "#0b342d",
+        "19": "#184e45",
+        "20": "#5f9c92",
+        "21": "#a7cec8"
+      },
       "selection_bg": "#81b5ac",
       "selection_fg": "#031a16"
     },
@@ -647,9 +661,16 @@
       ],
       "cursor_bg": "#bcbcbc",
       "cursor_border": "#bcbcbc",
-      "cursor_fg": "#bcbcbc",
+      "cursor_fg": "#262626",
       "foreground": "#bcbcbc",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff8700",
+        "17": "#5f87af",
+        "18": "#303030",
+        "19": "#333333",
+        "20": "#787878",
+        "21": "#c9c9c9"
+      },
       "selection_bg": "#bcbcbc",
       "selection_fg": "#262626"
     },
@@ -804,9 +825,16 @@
       ],
       "cursor_bg": "#c7ccd1",
       "cursor_border": "#c7ccd1",
-      "cursor_fg": "#c7ccd1",
+      "cursor_fg": "#1c2023",
       "foreground": "#c7ccd1",
-      "indexed": {},
+      "indexed": {
+        "16": "#c7c795",
+        "17": "#c79595",
+        "18": "#393f45",
+        "19": "#565e65",
+        "20": "#adb3ba",
+        "21": "#dfe2e5"
+      },
       "selection_bg": "#c7ccd1",
       "selection_fg": "#1c2023"
     },
@@ -917,9 +945,16 @@
       ],
       "cursor_bg": "#8b8792",
       "cursor_border": "#8b8792",
-      "cursor_fg": "#8b8792",
+      "cursor_fg": "#19171c",
       "foreground": "#8b8792",
-      "indexed": {},
+      "indexed": {
+        "16": "#aa573c",
+        "17": "#bf40bf",
+        "18": "#26232a",
+        "19": "#585260",
+        "20": "#7e7887",
+        "21": "#e2dfe7"
+      },
       "selection_bg": "#8b8792",
       "selection_fg": "#19171c"
     },
@@ -957,9 +992,16 @@
       ],
       "cursor_bg": "#585260",
       "cursor_border": "#585260",
-      "cursor_fg": "#585260",
+      "cursor_fg": "#efecf4",
       "foreground": "#585260",
-      "indexed": {},
+      "indexed": {
+        "16": "#aa573c",
+        "17": "#bf40bf",
+        "18": "#e2dfe7",
+        "19": "#8b8792",
+        "20": "#655f6d",
+        "21": "#26232a"
+      },
       "selection_bg": "#585260",
       "selection_fg": "#efecf4"
     },
@@ -997,9 +1039,16 @@
       ],
       "cursor_bg": "#a6a28c",
       "cursor_border": "#a6a28c",
-      "cursor_fg": "#a6a28c",
+      "cursor_fg": "#20201d",
       "foreground": "#a6a28c",
-      "indexed": {},
+      "indexed": {
+        "16": "#b65611",
+        "17": "#d43552",
+        "18": "#292824",
+        "19": "#6e6b5e",
+        "20": "#999580",
+        "21": "#e8e4cf"
+      },
       "selection_bg": "#a6a28c",
       "selection_fg": "#20201d"
     },
@@ -1037,9 +1086,16 @@
       ],
       "cursor_bg": "#6e6b5e",
       "cursor_border": "#6e6b5e",
-      "cursor_fg": "#6e6b5e",
+      "cursor_fg": "#fefbec",
       "foreground": "#6e6b5e",
-      "indexed": {},
+      "indexed": {
+        "16": "#b65611",
+        "17": "#d43552",
+        "18": "#e8e4cf",
+        "19": "#a6a28c",
+        "20": "#7d7a68",
+        "21": "#292824"
+      },
       "selection_bg": "#6e6b5e",
       "selection_fg": "#fefbec"
     },
@@ -1077,9 +1133,16 @@
       ],
       "cursor_bg": "#929181",
       "cursor_border": "#929181",
-      "cursor_fg": "#929181",
+      "cursor_fg": "#22221b",
       "foreground": "#929181",
-      "indexed": {},
+      "indexed": {
+        "16": "#ae7313",
+        "17": "#9d6c7c",
+        "18": "#302f27",
+        "19": "#5f5e4e",
+        "20": "#878573",
+        "21": "#e7e6df"
+      },
       "selection_bg": "#929181",
       "selection_fg": "#22221b"
     },
@@ -1117,9 +1180,16 @@
       ],
       "cursor_bg": "#5f5e4e",
       "cursor_border": "#5f5e4e",
-      "cursor_fg": "#5f5e4e",
+      "cursor_fg": "#f4f3ec",
       "foreground": "#5f5e4e",
-      "indexed": {},
+      "indexed": {
+        "16": "#ae7313",
+        "17": "#9d6c7c",
+        "18": "#e7e6df",
+        "19": "#929181",
+        "20": "#6c6b5a",
+        "21": "#302f27"
+      },
       "selection_bg": "#5f5e4e",
       "selection_fg": "#f4f3ec"
     },
@@ -1157,9 +1227,16 @@
       ],
       "cursor_bg": "#a8a19f",
       "cursor_border": "#a8a19f",
-      "cursor_fg": "#a8a19f",
+      "cursor_fg": "#1b1918",
       "foreground": "#a8a19f",
-      "indexed": {},
+      "indexed": {
+        "16": "#df5320",
+        "17": "#c33ff3",
+        "18": "#2c2421",
+        "19": "#68615e",
+        "20": "#9c9491",
+        "21": "#e6e2e0"
+      },
       "selection_bg": "#a8a19f",
       "selection_fg": "#1b1918"
     },
@@ -1197,9 +1274,16 @@
       ],
       "cursor_bg": "#68615e",
       "cursor_border": "#68615e",
-      "cursor_fg": "#68615e",
+      "cursor_fg": "#f1efee",
       "foreground": "#68615e",
-      "indexed": {},
+      "indexed": {
+        "16": "#df5320",
+        "17": "#c33ff3",
+        "18": "#e6e2e0",
+        "19": "#a8a19f",
+        "20": "#766e6b",
+        "21": "#2c2421"
+      },
       "selection_bg": "#68615e",
       "selection_fg": "#f1efee"
     },
@@ -1237,9 +1321,16 @@
       ],
       "cursor_bg": "#ab9bab",
       "cursor_border": "#ab9bab",
-      "cursor_fg": "#ab9bab",
+      "cursor_fg": "#1b181b",
       "foreground": "#ab9bab",
-      "indexed": {},
+      "indexed": {
+        "16": "#a65926",
+        "17": "#cc33cc",
+        "18": "#292329",
+        "19": "#695d69",
+        "20": "#9e8f9e",
+        "21": "#d8cad8"
+      },
       "selection_bg": "#ab9bab",
       "selection_fg": "#1b181b"
     },
@@ -1277,9 +1368,16 @@
       ],
       "cursor_bg": "#695d69",
       "cursor_border": "#695d69",
-      "cursor_fg": "#695d69",
+      "cursor_fg": "#f7f3f7",
       "foreground": "#695d69",
-      "indexed": {},
+      "indexed": {
+        "16": "#a65926",
+        "17": "#cc33cc",
+        "18": "#d8cad8",
+        "19": "#ab9bab",
+        "20": "#776977",
+        "21": "#292329"
+      },
       "selection_bg": "#695d69",
       "selection_fg": "#f7f3f7"
     },
@@ -1317,9 +1415,16 @@
       ],
       "cursor_bg": "#7ea2b4",
       "cursor_border": "#7ea2b4",
-      "cursor_fg": "#7ea2b4",
+      "cursor_fg": "#161b1d",
       "foreground": "#7ea2b4",
-      "indexed": {},
+      "indexed": {
+        "16": "#935c25",
+        "17": "#b72dd2",
+        "18": "#1f292e",
+        "19": "#516d7b",
+        "20": "#7195a8",
+        "21": "#c1e4f6"
+      },
       "selection_bg": "#7ea2b4",
       "selection_fg": "#161b1d"
     },
@@ -1357,9 +1462,16 @@
       ],
       "cursor_bg": "#516d7b",
       "cursor_border": "#516d7b",
-      "cursor_fg": "#516d7b",
+      "cursor_fg": "#ebf8ff",
       "foreground": "#516d7b",
-      "indexed": {},
+      "indexed": {
+        "16": "#935c25",
+        "17": "#b72dd2",
+        "18": "#c1e4f6",
+        "19": "#7ea2b4",
+        "20": "#5a7b8c",
+        "21": "#1f292e"
+      },
       "selection_bg": "#516d7b",
       "selection_fg": "#ebf8ff"
     },
@@ -1397,9 +1509,16 @@
       ],
       "cursor_bg": "#8a8585",
       "cursor_border": "#8a8585",
-      "cursor_fg": "#8a8585",
+      "cursor_fg": "#1b1818",
       "foreground": "#8a8585",
-      "indexed": {},
+      "indexed": {
+        "16": "#b45a3c",
+        "17": "#bd5187",
+        "18": "#292424",
+        "19": "#585050",
+        "20": "#7e7777",
+        "21": "#e7dfdf"
+      },
       "selection_bg": "#8a8585",
       "selection_fg": "#1b1818"
     },
@@ -1437,9 +1556,16 @@
       ],
       "cursor_bg": "#585050",
       "cursor_border": "#585050",
-      "cursor_fg": "#585050",
+      "cursor_fg": "#f4ecec",
       "foreground": "#585050",
-      "indexed": {},
+      "indexed": {
+        "16": "#b45a3c",
+        "17": "#bd5187",
+        "18": "#e7dfdf",
+        "19": "#8a8585",
+        "20": "#655d5d",
+        "21": "#292424"
+      },
       "selection_bg": "#585050",
       "selection_fg": "#f4ecec"
     },
@@ -1477,9 +1603,16 @@
       ],
       "cursor_bg": "#87928a",
       "cursor_border": "#87928a",
-      "cursor_fg": "#87928a",
+      "cursor_fg": "#171c19",
       "foreground": "#87928a",
-      "indexed": {},
+      "indexed": {
+        "16": "#9f713c",
+        "17": "#867469",
+        "18": "#232a25",
+        "19": "#526057",
+        "20": "#78877d",
+        "21": "#dfe7e2"
+      },
       "selection_bg": "#87928a",
       "selection_fg": "#171c19"
     },
@@ -1517,9 +1650,16 @@
       ],
       "cursor_bg": "#526057",
       "cursor_border": "#526057",
-      "cursor_fg": "#526057",
+      "cursor_fg": "#ecf4ee",
       "foreground": "#526057",
-      "indexed": {},
+      "indexed": {
+        "16": "#9f713c",
+        "17": "#867469",
+        "18": "#dfe7e2",
+        "19": "#87928a",
+        "20": "#5f6d64",
+        "21": "#232a25"
+      },
       "selection_bg": "#526057",
       "selection_fg": "#ecf4ee"
     },
@@ -1557,9 +1697,16 @@
       ],
       "cursor_bg": "#8ca68c",
       "cursor_border": "#8ca68c",
-      "cursor_fg": "#8ca68c",
+      "cursor_fg": "#131513",
       "foreground": "#8ca68c",
-      "indexed": {},
+      "indexed": {
+        "16": "#87711d",
+        "17": "#e619c3",
+        "18": "#242924",
+        "19": "#5e6e5e",
+        "20": "#809980",
+        "21": "#cfe8cf"
+      },
       "selection_bg": "#8ca68c",
       "selection_fg": "#131513"
     },
@@ -1597,9 +1744,16 @@
       ],
       "cursor_bg": "#5e6e5e",
       "cursor_border": "#5e6e5e",
-      "cursor_fg": "#5e6e5e",
+      "cursor_fg": "#f4fbf4",
       "foreground": "#5e6e5e",
-      "indexed": {},
+      "indexed": {
+        "16": "#87711d",
+        "17": "#e619c3",
+        "18": "#cfe8cf",
+        "19": "#8ca68c",
+        "20": "#687d68",
+        "21": "#242924"
+      },
       "selection_bg": "#5e6e5e",
       "selection_fg": "#f4fbf4"
     },
@@ -1637,9 +1791,16 @@
       ],
       "cursor_bg": "#979db4",
       "cursor_border": "#979db4",
-      "cursor_fg": "#979db4",
+      "cursor_fg": "#202746",
       "foreground": "#979db4",
-      "indexed": {},
+      "indexed": {
+        "16": "#c76b29",
+        "17": "#9c637a",
+        "18": "#293256",
+        "19": "#5e6687",
+        "20": "#898ea4",
+        "21": "#dfe2f1"
+      },
       "selection_bg": "#979db4",
       "selection_fg": "#202746"
     },
@@ -1677,9 +1838,16 @@
       ],
       "cursor_bg": "#5e6687",
       "cursor_border": "#5e6687",
-      "cursor_fg": "#5e6687",
+      "cursor_fg": "#f5f7ff",
       "foreground": "#5e6687",
-      "indexed": {},
+      "indexed": {
+        "16": "#c76b29",
+        "17": "#9c637a",
+        "18": "#dfe2f1",
+        "19": "#979db4",
+        "20": "#6b7394",
+        "21": "#293256"
+      },
       "selection_bg": "#5e6687",
       "selection_fg": "#f5f7ff"
     },
@@ -2106,9 +2274,16 @@
       ],
       "cursor_bg": "#a1a19a",
       "cursor_border": "#a1a19a",
-      "cursor_fg": "#a1a19a",
+      "cursor_fg": "#002635",
       "foreground": "#a1a19a",
-      "indexed": {},
+      "indexed": {
+        "16": "#f08e48",
+        "17": "#c43060",
+        "18": "#00384d",
+        "19": "#517f8d",
+        "20": "#869696",
+        "21": "#e6e6dc"
+      },
       "selection_bg": "#a1a19a",
       "selection_fg": "#002635"
     },
@@ -2764,9 +2939,16 @@
       ],
       "cursor_bg": "#8a8986",
       "cursor_border": "#8a8986",
-      "cursor_fg": "#8a8986",
+      "cursor_fg": "#28211c",
       "foreground": "#8a8986",
-      "indexed": {},
+      "indexed": {
+        "16": "#cf7d34",
+        "17": "#937121",
+        "18": "#36312e",
+        "19": "#5e5d5c",
+        "20": "#797977",
+        "21": "#9d9b97"
+      },
       "selection_bg": "#8a8986",
       "selection_fg": "#28211c"
     },
@@ -2953,9 +3135,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -2993,9 +3182,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3033,9 +3229,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3073,9 +3276,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3113,9 +3323,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3153,9 +3370,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3193,9 +3417,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3233,9 +3464,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3273,9 +3511,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3313,9 +3558,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3353,9 +3605,16 @@
       ],
       "cursor_bg": "#c1c1c1",
       "cursor_border": "#c1c1c1",
-      "cursor_fg": "#c1c1c1",
+      "cursor_fg": "#000000",
       "foreground": "#c1c1c1",
-      "indexed": {},
+      "indexed": {
+        "16": "#aaaaaa",
+        "17": "#444444",
+        "18": "#121212",
+        "19": "#222222",
+        "20": "#999999",
+        "21": "#999999"
+      },
       "selection_bg": "#c1c1c1",
       "selection_fg": "#000000"
     },
@@ -3817,9 +4076,16 @@
       ],
       "cursor_bg": "#b7b8b9",
       "cursor_border": "#b7b8b9",
-      "cursor_fg": "#b7b8b9",
+      "cursor_fg": "#0c0d0e",
       "foreground": "#b7b8b9",
-      "indexed": {},
+      "indexed": {
+        "16": "#e6550d",
+        "17": "#b15928",
+        "18": "#2e2f30",
+        "19": "#515253",
+        "20": "#959697",
+        "21": "#dadbdc"
+      },
       "selection_bg": "#b7b8b9",
       "selection_fg": "#0c0d0e"
     },
@@ -3895,9 +4161,16 @@
       ],
       "cursor_bg": "#e0e0e0",
       "cursor_border": "#e0e0e0",
-      "cursor_fg": "#e0e0e0",
+      "cursor_fg": "#000000",
       "foreground": "#e0e0e0",
-      "indexed": {},
+      "indexed": {
+        "16": "#fc6d24",
+        "17": "#be643c",
+        "18": "#303030",
+        "19": "#505050",
+        "20": "#d0d0d0",
+        "21": "#f5f5f5"
+      },
       "selection_bg": "#e0e0e0",
       "selection_fg": "#000000"
     },
@@ -4052,9 +4325,16 @@
       ],
       "cursor_bg": "#4e5ab7",
       "cursor_border": "#4e5ab7",
-      "cursor_fg": "#4e5ab7",
+      "cursor_fg": "#1f1f1f",
       "foreground": "#4e5ab7",
-      "indexed": {},
+      "indexed": {
+        "16": "#de352e",
+        "17": "#ffffff",
+        "18": "#f81118",
+        "19": "#2dc55e",
+        "20": "#2a84d2",
+        "21": "#1081d6"
+      },
       "selection_bg": "#4e5ab7",
       "selection_fg": "#1f1f1f"
     },
@@ -4092,9 +4372,16 @@
       ],
       "cursor_bg": "#6d828e",
       "cursor_border": "#6d828e",
-      "cursor_fg": "#6d828e",
+      "cursor_fg": "#e3efef",
       "foreground": "#6d828e",
-      "indexed": {},
+      "indexed": {
+        "16": "#d8bba2",
+        "17": "#b39f9f",
+        "18": "#c9dbdc",
+        "19": "#b0c5c8",
+        "20": "#8299a1",
+        "21": "#5a6d7a"
+      },
       "selection_bg": "#6d828e",
       "selection_fg": "#e3efef"
     },
@@ -4132,9 +4419,16 @@
       ],
       "cursor_bg": "#b0c5c8",
       "cursor_border": "#b0c5c8",
-      "cursor_fg": "#b0c5c8",
+      "cursor_fg": "#485867",
       "foreground": "#b0c5c8",
-      "indexed": {},
+      "indexed": {
+        "16": "#d8bba2",
+        "17": "#b39f9f",
+        "18": "#5a6d7a",
+        "19": "#6d828e",
+        "20": "#98afb5",
+        "21": "#c9dbdc"
+      },
       "selection_bg": "#b0c5c8",
       "selection_fg": "#485867"
     },
@@ -5175,9 +5469,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#151515",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#eda987",
+        "17": "#deaf8f",
+        "18": "#202020",
+        "19": "#303030",
+        "20": "#b0b0b0",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#151515"
     },
@@ -5483,9 +5784,16 @@
       ],
       "cursor_bg": "#a7a7a7",
       "cursor_border": "#a7a7a7",
-      "cursor_fg": "#a7a7a7",
+      "cursor_fg": "#191919",
       "foreground": "#a7a7a7",
-      "indexed": {},
+      "indexed": {
+        "16": "#4bb1a7",
+        "17": "#b888e2",
+        "18": "#202020",
+        "19": "#303030",
+        "20": "#505050",
+        "21": "#808080"
+      },
       "selection_bg": "#a7a7a7",
       "selection_fg": "#191919"
     },
@@ -5558,9 +5866,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#151515",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#d28445",
+        "17": "#8f5536",
+        "18": "#202020",
+        "19": "#303030",
+        "20": "#b0b0b0",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#151515"
     },
@@ -5601,9 +5916,16 @@
       ],
       "cursor_bg": "#303030",
       "cursor_border": "#303030",
-      "cursor_fg": "#303030",
+      "cursor_fg": "#f5f5f5",
       "foreground": "#303030",
-      "indexed": {},
+      "indexed": {
+        "16": "#d28445",
+        "17": "#8f5536",
+        "18": "#e0e0e0",
+        "19": "#d0d0d0",
+        "20": "#505050",
+        "21": "#202020"
+      },
       "selection_bg": "#303030",
       "selection_fg": "#f5f5f5"
     },
@@ -5833,9 +6155,16 @@
       ],
       "cursor_bg": "#9ea7a6",
       "cursor_border": "#9ea7a6",
-      "cursor_fg": "#9ea7a6",
+      "cursor_fg": "#232c31",
       "foreground": "#9ea7a6",
-      "indexed": {},
+      "indexed": {
+        "16": "#43820d",
+        "17": "#c98344",
+        "18": "#1c3657",
+        "19": "#2a343a",
+        "20": "#84898c",
+        "21": "#a7cfa3"
+      },
       "selection_bg": "#9ea7a6",
       "selection_fg": "#232c31"
     },
@@ -6057,9 +6386,16 @@
       ],
       "cursor_bg": "#bbbbbb",
       "cursor_border": "#bbbbbb",
-      "cursor_fg": "#bbbbbb",
+      "cursor_fg": "#111111",
       "foreground": "#bbbbbb",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff851b",
+        "17": "#85144b",
+        "18": "#333333",
+        "19": "#555555",
+        "20": "#999999",
+        "21": "#dddddd"
+      },
       "selection_bg": "#bbbbbb",
       "selection_fg": "#111111"
     },
@@ -6171,9 +6507,16 @@
       ],
       "cursor_bg": "#8b8198",
       "cursor_border": "#8b8198",
-      "cursor_fg": "#8b8198",
+      "cursor_fg": "#fbf1f2",
       "foreground": "#8b8198",
-      "indexed": {},
+      "indexed": {
+        "16": "#ebb790",
+        "17": "#baa58c",
+        "18": "#f2f1f4",
+        "19": "#d8d5dd",
+        "20": "#a59daf",
+        "21": "#72677e"
+      },
       "selection_bg": "#8b8198",
       "selection_fg": "#fbf1f2"
     },
@@ -6211,9 +6554,16 @@
       ],
       "cursor_bg": "#404040",
       "cursor_border": "#404040",
-      "cursor_fg": "#404040",
+      "cursor_fg": "#ffffff",
       "foreground": "#404040",
-      "indexed": {},
+      "indexed": {
+        "16": "#eb8500",
+        "17": "#826b28",
+        "18": "#c0c0c0",
+        "19": "#c0c0c0",
+        "20": "#808080",
+        "21": "#404040"
+      },
       "selection_bg": "#404040",
       "selection_fg": "#ffffff"
     },
@@ -6329,9 +6679,16 @@
       ],
       "cursor_bg": "#e0f0ef",
       "cursor_border": "#e0f0ef",
-      "cursor_fg": "#e0f0ef",
+      "cursor_fg": "#2d302f",
       "foreground": "#e0f0ef",
-      "indexed": {},
+      "indexed": {
+        "16": "#b38a61",
+        "17": "#ca6924",
+        "18": "#434846",
+        "19": "#5a605d",
+        "20": "#cad8d2",
+        "21": "#ecf6f2"
+      },
       "selection_bg": "#e0f0ef",
       "selection_fg": "#2d302f"
     },
@@ -6369,9 +6726,16 @@
       ],
       "cursor_bg": "#5a605d",
       "cursor_border": "#5a605d",
-      "cursor_fg": "#5a605d",
+      "cursor_fg": "#fcfefd",
       "foreground": "#5a605d",
-      "indexed": {},
+      "indexed": {
+        "16": "#b38a61",
+        "17": "#ca6924",
+        "18": "#ecf6f2",
+        "19": "#e0f0ef",
+        "20": "#9da8a3",
+        "21": "#434846"
+      },
       "selection_bg": "#5a605d",
       "selection_fg": "#fcfefd"
     },
@@ -6409,9 +6773,16 @@
       ],
       "cursor_bg": "#a9b7c6",
       "cursor_border": "#a9b7c6",
-      "cursor_fg": "#a9b7c6",
+      "cursor_fg": "#2b2b2b",
       "foreground": "#a9b7c6",
-      "indexed": {},
+      "indexed": {
+        "16": "#689757",
+        "17": "#808080",
+        "18": "#323232",
+        "19": "#323232",
+        "20": "#a4a3a3",
+        "21": "#ffc66d"
+      },
       "selection_bg": "#a9b7c6",
       "selection_fg": "#2b2b2b"
     },
@@ -6526,9 +6897,16 @@
       ],
       "cursor_bg": "#b08ae6",
       "cursor_border": "#b08ae6",
-      "cursor_fg": "#b08ae6",
+      "cursor_fg": "#000000",
       "foreground": "#b08ae6",
-      "indexed": {},
+      "indexed": {
+        "16": "#bb66cc",
+        "17": "#a886bf",
+        "18": "#231a40",
+        "19": "#432d59",
+        "20": "#00ff00",
+        "21": "#9045e6"
+      },
       "selection_bg": "#b08ae6",
       "selection_fg": "#000000"
     },
@@ -6683,9 +7061,16 @@
       ],
       "cursor_bg": "#c7c7a5",
       "cursor_border": "#c7c7a5",
-      "cursor_fg": "#c7c7a5",
+      "cursor_fg": "#171e1f",
       "foreground": "#c7c7a5",
-      "indexed": {},
+      "indexed": {
+        "16": "#e6db74",
+        "17": "#d27b53",
+        "18": "#252c2d",
+        "19": "#373c3d",
+        "20": "#818f80",
+        "21": "#e3e3c8"
+      },
       "selection_bg": "#c7c7a5",
       "selection_fg": "#171e1f"
     },
@@ -6762,9 +7147,16 @@
       ],
       "cursor_bg": "#a89984",
       "cursor_border": "#a89984",
-      "cursor_fg": "#a89984",
+      "cursor_fg": "#1d2021",
       "foreground": "#a89984",
-      "indexed": {},
+      "indexed": {
+        "16": "#fe8625",
+        "17": "#a87322",
+        "18": "#32302f",
+        "19": "#504945",
+        "20": "#928374",
+        "21": "#d5c4a1"
+      },
       "selection_bg": "#a89984",
       "selection_fg": "#1d2021"
     },
@@ -7056,9 +7448,16 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#2d2d2d",
       "foreground": "#cccccc",
-      "indexed": {},
+      "indexed": {
+        "16": "#ffbf70",
+        "17": "#ff93b3",
+        "18": "#393939",
+        "19": "#515151",
+        "20": "#b4b7b4",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#cccccc",
       "selection_fg": "#2d2d2d"
     },
@@ -7170,9 +7569,16 @@
       ],
       "cursor_bg": "#d8d8d8",
       "cursor_border": "#d8d8d8",
-      "cursor_fg": "#d8d8d8",
+      "cursor_fg": "#181818",
       "foreground": "#d8d8d8",
-      "indexed": {},
+      "indexed": {
+        "16": "#dc9656",
+        "17": "#a16946",
+        "18": "#282828",
+        "19": "#383838",
+        "20": "#b8b8b8",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#d8d8d8",
       "selection_fg": "#181818"
     },
@@ -7210,9 +7616,16 @@
       ],
       "cursor_bg": "#383838",
       "cursor_border": "#383838",
-      "cursor_fg": "#383838",
+      "cursor_fg": "#f8f8f8",
       "foreground": "#383838",
-      "indexed": {},
+      "indexed": {
+        "16": "#dc9656",
+        "17": "#a16946",
+        "18": "#e8e8e8",
+        "19": "#d8d8d8",
+        "20": "#585858",
+        "21": "#282828"
+      },
       "selection_bg": "#383838",
       "selection_fg": "#f8f8f8"
     },
@@ -7435,9 +7848,16 @@
       ],
       "cursor_bg": "#000000",
       "cursor_border": "#000000",
-      "cursor_fg": "#000000",
+      "cursor_fg": "#e0e0e0",
       "foreground": "#000000",
-      "indexed": {},
+      "indexed": {
+        "16": "#006565",
+        "17": "#755b00",
+        "18": "#d0dad0",
+        "19": "#d0d0d0",
+        "20": "#202020",
+        "21": "#f8f8f8"
+      },
       "selection_bg": "#000000",
       "selection_fg": "#e0e0e0"
     },
@@ -7820,9 +8240,16 @@
       ],
       "cursor_bg": "#e9e9f4",
       "cursor_border": "#e9e9f4",
-      "cursor_fg": "#e9e9f4",
+      "cursor_fg": "#282936",
       "foreground": "#e9e9f4",
-      "indexed": {},
+      "indexed": {
+        "16": "#b45bcf",
+        "17": "#00f769",
+        "18": "#3a3c4e",
+        "19": "#4d4f68",
+        "20": "#62d6e8",
+        "21": "#f1f2f8"
+      },
       "selection_bg": "#e9e9f4",
       "selection_fg": "#282936"
     },
@@ -8266,9 +8693,16 @@
       ],
       "cursor_bg": "#b7bec9",
       "cursor_border": "#b7bec9",
-      "cursor_fg": "#b7bec9",
+      "cursor_fg": "#262729",
       "foreground": "#b7bec9",
-      "indexed": {},
+      "indexed": {
+        "16": "#e77171",
+        "17": "#5ebaa5",
+        "18": "#88909f",
+        "19": "#b7bec9",
+        "20": "#73b3e7",
+        "21": "#d390e7"
+      },
       "selection_bg": "#b7bec9",
       "selection_fg": "#262729"
     },
@@ -8306,9 +8740,16 @@
       ],
       "cursor_bg": "#5e646f",
       "cursor_border": "#5e646f",
-      "cursor_fg": "#5e646f",
+      "cursor_fg": "#fafafa",
       "foreground": "#5e646f",
-      "indexed": {},
+      "indexed": {
+        "16": "#db7070",
+        "17": "#509c93",
+        "18": "#7c9f4b",
+        "19": "#d69822",
+        "20": "#6587bf",
+        "21": "#b870ce"
+      },
       "selection_bg": "#5e646f",
       "selection_fg": "#fafafa"
     },
@@ -8346,9 +8787,16 @@
       ],
       "cursor_bg": "#d3d0c8",
       "cursor_border": "#d3d0c8",
-      "cursor_fg": "#d3d0c8",
+      "cursor_fg": "#2d2d2d",
       "foreground": "#d3d0c8",
-      "indexed": {},
+      "indexed": {
+        "16": "#f99157",
+        "17": "#d27b53",
+        "18": "#393939",
+        "19": "#515151",
+        "20": "#a09f93",
+        "21": "#e8e6df"
+      },
       "selection_bg": "#d3d0c8",
       "selection_fg": "#2d2d2d"
     },
@@ -8648,9 +9096,16 @@
       ],
       "cursor_bg": "#a39a90",
       "cursor_border": "#a39a90",
-      "cursor_fg": "#a39a90",
+      "cursor_fg": "#16130f",
       "foreground": "#a39a90",
-      "indexed": {},
+      "indexed": {
+        "16": "#828257",
+        "17": "#825757",
+        "18": "#2c2620",
+        "19": "#433b32",
+        "20": "#8a8075",
+        "21": "#beb6ae"
+      },
       "selection_bg": "#a39a90",
       "selection_fg": "#16130f"
     },
@@ -8835,9 +9290,16 @@
       ],
       "cursor_bg": "#afaba2",
       "cursor_border": "#afaba2",
-      "cursor_fg": "#afaba2",
+      "cursor_fg": "#0c1118",
       "foreground": "#afaba2",
-      "indexed": {},
+      "indexed": {
+        "16": "#df5923",
+        "17": "#e3488e",
+        "18": "#181c22",
+        "19": "#22262d",
+        "20": "#949088",
+        "21": "#cac6bd"
+      },
       "selection_bg": "#afaba2",
       "selection_fg": "#0c1118"
     },
@@ -8875,9 +9337,16 @@
       ],
       "cursor_bg": "#ababab",
       "cursor_border": "#ababab",
-      "cursor_fg": "#ababab",
+      "cursor_fg": "#111111",
       "foreground": "#ababab",
-      "indexed": {},
+      "indexed": {
+        "16": "#df5923",
+        "17": "#e3488e",
+        "18": "#1b1b1b",
+        "19": "#262626",
+        "20": "#919191",
+        "21": "#c6c6c6"
+      },
       "selection_bg": "#ababab",
       "selection_fg": "#111111"
     },
@@ -8915,9 +9384,16 @@
       ],
       "cursor_bg": "#474747",
       "cursor_border": "#474747",
-      "cursor_fg": "#474747",
+      "cursor_fg": "#f1f1f1",
       "foreground": "#474747",
-      "indexed": {},
+      "indexed": {
+        "16": "#bf3e05",
+        "17": "#c42775",
+        "18": "#e2e2e2",
+        "19": "#d4d4d4",
+        "20": "#5e5e5e",
+        "21": "#303030"
+      },
       "selection_bg": "#474747",
       "selection_fg": "#f1f1f1"
     },
@@ -8955,9 +9431,16 @@
       ],
       "cursor_bg": "#43474e",
       "cursor_border": "#43474e",
-      "cursor_fg": "#43474e",
+      "cursor_fg": "#f5f0e7",
       "foreground": "#43474e",
-      "indexed": {},
+      "indexed": {
+        "16": "#bf3e05",
+        "17": "#c42775",
+        "18": "#e7e2d9",
+        "19": "#d8d4cb",
+        "20": "#5a5f66",
+        "21": "#2c3138"
+      },
       "selection_bg": "#43474e",
       "selection_fg": "#f5f0e7"
     },
@@ -9069,9 +9552,16 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#2d2d2d",
       "foreground": "#cccccc",
-      "indexed": {},
+      "indexed": {
+        "16": "#f9a959",
+        "17": "#f97394",
+        "18": "#393939",
+        "19": "#515151",
+        "20": "#b4b7b4",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#cccccc",
       "selection_fg": "#2d2d2d"
     },
@@ -9186,9 +9676,16 @@
       ],
       "cursor_bg": "#9fa2a6",
       "cursor_border": "#9fa2a6",
-      "cursor_fg": "#9fa2a6",
+      "cursor_fg": "#2a3b4d",
       "foreground": "#9fa2a6",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9966",
+        "17": "#bb64a9",
+        "18": "#3d566f",
+        "19": "#4b6988",
+        "20": "#7e90a3",
+        "21": "#d6d7d9"
+      },
       "selection_bg": "#9fa2a6",
       "selection_fg": "#2a3b4d"
     },
@@ -9226,9 +9723,16 @@
       ],
       "cursor_bg": "#9fa2a6",
       "cursor_border": "#9fa2a6",
-      "cursor_fg": "#9fa2a6",
+      "cursor_fg": "#2a3b4d",
       "foreground": "#9fa2a6",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9966",
+        "17": "#bb64a9",
+        "18": "#3d566f",
+        "19": "#4b6988",
+        "20": "#7e90a3",
+        "21": "#d6d7d9"
+      },
       "selection_bg": "#9fa2a6",
       "selection_fg": "#2a3b4d"
     },
@@ -9686,9 +10190,16 @@
       ],
       "cursor_bg": "#e0e0e0",
       "cursor_border": "#e0e0e0",
-      "cursor_fg": "#e0e0e0",
+      "cursor_fg": "#2c3e50",
       "foreground": "#e0e0e0",
-      "indexed": {},
+      "indexed": {
+        "16": "#e67e22",
+        "17": "#be643c",
+        "18": "#34495e",
+        "19": "#7f8c8d",
+        "20": "#bdc3c7",
+        "21": "#f5f5f5"
+      },
       "selection_bg": "#e0e0e0",
       "selection_fg": "#2c3e50"
     },
@@ -9993,9 +10504,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#181818",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#fc4769",
+        "17": "#b15f4a",
+        "18": "#151515",
+        "19": "#464646",
+        "20": "#b9b9b9",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#181818"
     },
@@ -10112,9 +10630,16 @@
       ],
       "cursor_bg": "#515151",
       "cursor_border": "#515151",
-      "cursor_fg": "#515151",
+      "cursor_fg": "#f1ecf1",
       "foreground": "#515151",
-      "indexed": {},
+      "indexed": {
+        "16": "#fe6d08",
+        "17": "#b16f40",
+        "18": "#e0dee0",
+        "19": "#d8d5d5",
+        "20": "#979598",
+        "21": "#474545"
+      },
       "selection_bg": "#515151",
       "selection_fg": "#f1ecf1"
     },
@@ -10313,9 +10838,16 @@
       ],
       "cursor_bg": "#e9e7e1",
       "cursor_border": "#e9e7e1",
-      "cursor_fg": "#e9e7e1",
+      "cursor_fg": "#202126",
       "foreground": "#e9e7e1",
-      "indexed": {},
+      "indexed": {
+        "16": "#19f988",
+        "17": "#6187ff",
+        "18": "#2d303d",
+        "19": "#5a576e",
+        "20": "#cad3ff",
+        "21": "#eff0f9"
+      },
       "selection_bg": "#e9e7e1",
       "selection_fg": "#202126"
     },
@@ -10392,9 +10924,16 @@
       ],
       "cursor_bg": "#333333",
       "cursor_border": "#333333",
-      "cursor_fg": "#333333",
+      "cursor_fg": "#ffffff",
       "foreground": "#333333",
-      "indexed": {},
+      "indexed": {
+        "16": "#0086b3",
+        "17": "#333333",
+        "18": "#f5f5f5",
+        "19": "#c8c8fa",
+        "20": "#e8e8e8",
+        "21": "#ffffff"
+      },
       "selection_bg": "#333333",
       "selection_fg": "#ffffff"
     },
@@ -10654,9 +11193,16 @@
       ],
       "cursor_bg": "#c5c8c6",
       "cursor_border": "#c5c8c6",
-      "cursor_fg": "#c5c8c6",
+      "cursor_fg": "#1d1f21",
       "foreground": "#c5c8c6",
-      "indexed": {},
+      "indexed": {
+        "16": "#f96a38",
+        "17": "#3971ed",
+        "18": "#282a2e",
+        "19": "#373b41",
+        "20": "#b4b7b4",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#c5c8c6",
       "selection_fg": "#1d1f21"
     },
@@ -10697,9 +11243,16 @@
       ],
       "cursor_bg": "#373b41",
       "cursor_border": "#373b41",
-      "cursor_fg": "#373b41",
+      "cursor_fg": "#ffffff",
       "foreground": "#373b41",
-      "indexed": {},
+      "indexed": {
+        "16": "#f96a38",
+        "17": "#3971ed",
+        "18": "#e0e0e0",
+        "19": "#c5c8c6",
+        "20": "#969896",
+        "21": "#282a2e"
+      },
       "selection_bg": "#373b41",
       "selection_fg": "#ffffff"
     },
@@ -10999,9 +11552,16 @@
       ],
       "cursor_bg": "#b9b9b9",
       "cursor_border": "#b9b9b9",
-      "cursor_fg": "#b9b9b9",
+      "cursor_fg": "#101010",
       "foreground": "#b9b9b9",
-      "indexed": {},
+      "indexed": {
+        "16": "#999999",
+        "17": "#5e5e5e",
+        "18": "#252525",
+        "19": "#464646",
+        "20": "#ababab",
+        "21": "#e3e3e3"
+      },
       "selection_bg": "#b9b9b9",
       "selection_fg": "#101010"
     },
@@ -11042,9 +11602,16 @@
       ],
       "cursor_bg": "#464646",
       "cursor_border": "#464646",
-      "cursor_fg": "#464646",
+      "cursor_fg": "#f7f7f7",
       "foreground": "#464646",
-      "indexed": {},
+      "indexed": {
+        "16": "#999999",
+        "17": "#5e5e5e",
+        "18": "#e3e3e3",
+        "19": "#b9b9b9",
+        "20": "#525252",
+        "21": "#252525"
+      },
       "selection_bg": "#464646",
       "selection_fg": "#f7f7f7"
     },
@@ -11082,9 +11649,16 @@
       ],
       "cursor_bg": "#00bb00",
       "cursor_border": "#00bb00",
-      "cursor_fg": "#00bb00",
+      "cursor_fg": "#001100",
       "foreground": "#00bb00",
-      "indexed": {},
+      "indexed": {
+        "16": "#009900",
+        "17": "#005500",
+        "18": "#003300",
+        "19": "#005500",
+        "20": "#009900",
+        "21": "#00dd00"
+      },
       "selection_bg": "#00bb00",
       "selection_fg": "#001100"
     },
@@ -11188,7 +11762,7 @@
       ],
       "background": "#181818",
       "brights": [
-        "#52494e",
+        "#9dae93",
         "#f43841",
         "#73c936",
         "#ffdd33",
@@ -11199,9 +11773,16 @@
       ],
       "cursor_bg": "#f4f4ff",
       "cursor_border": "#f4f4ff",
-      "cursor_fg": "#f4f4ff",
+      "cursor_fg": "#181818",
       "foreground": "#f4f4ff",
-      "indexed": {},
+      "indexed": {
+        "16": "#c73c3f",
+        "17": "#cc8c3c",
+        "18": "#453d41",
+        "19": "#665c7f",
+        "20": "#e4e4ef",
+        "21": "#f5f5f5"
+      },
       "selection_bg": "#f4f4ff",
       "selection_fg": "#181818"
     },
@@ -11315,9 +11896,16 @@
       ],
       "cursor_bg": "#d5c4a1",
       "cursor_border": "#d5c4a1",
-      "cursor_fg": "#d5c4a1",
+      "cursor_fg": "#1d2021",
       "foreground": "#d5c4a1",
-      "indexed": {},
+      "indexed": {
+        "16": "#fe8019",
+        "17": "#d65d0e",
+        "18": "#3c3836",
+        "19": "#504945",
+        "20": "#bdae93",
+        "21": "#ebdbb2"
+      },
       "selection_bg": "#d5c4a1",
       "selection_fg": "#1d2021"
     },
@@ -11355,9 +11943,16 @@
       ],
       "cursor_bg": "#d5c4a1",
       "cursor_border": "#d5c4a1",
-      "cursor_fg": "#d5c4a1",
+      "cursor_fg": "#282828",
       "foreground": "#d5c4a1",
-      "indexed": {},
+      "indexed": {
+        "16": "#fe8019",
+        "17": "#d65d0e",
+        "18": "#3c3836",
+        "19": "#504945",
+        "20": "#bdae93",
+        "21": "#ebdbb2"
+      },
       "selection_bg": "#d5c4a1",
       "selection_fg": "#282828"
     },
@@ -11395,9 +11990,16 @@
       ],
       "cursor_bg": "#dab997",
       "cursor_border": "#dab997",
-      "cursor_fg": "#dab997",
+      "cursor_fg": "#262626",
       "foreground": "#dab997",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff8700",
+        "17": "#d65d0e",
+        "18": "#3a3a3a",
+        "19": "#4e4e4e",
+        "20": "#949494",
+        "21": "#d5c4a1"
+      },
       "selection_bg": "#dab997",
       "selection_fg": "#262626"
     },
@@ -11435,9 +12037,16 @@
       ],
       "cursor_bg": "#d5c4a1",
       "cursor_border": "#d5c4a1",
-      "cursor_fg": "#d5c4a1",
+      "cursor_fg": "#32302f",
       "foreground": "#d5c4a1",
-      "indexed": {},
+      "indexed": {
+        "16": "#fe8019",
+        "17": "#d65d0e",
+        "18": "#3c3836",
+        "19": "#504945",
+        "20": "#bdae93",
+        "21": "#ebdbb2"
+      },
       "selection_bg": "#d5c4a1",
       "selection_fg": "#32302f"
     },
@@ -11514,9 +12123,16 @@
       ],
       "cursor_bg": "#504945",
       "cursor_border": "#504945",
-      "cursor_fg": "#504945",
+      "cursor_fg": "#f9f5d7",
       "foreground": "#504945",
-      "indexed": {},
+      "indexed": {
+        "16": "#af3a03",
+        "17": "#d65d0e",
+        "18": "#ebdbb2",
+        "19": "#d5c4a1",
+        "20": "#665c54",
+        "21": "#3c3836"
+      },
       "selection_bg": "#504945",
       "selection_fg": "#f9f5d7"
     },
@@ -11554,9 +12170,16 @@
       ],
       "cursor_bg": "#504945",
       "cursor_border": "#504945",
-      "cursor_fg": "#504945",
+      "cursor_fg": "#fbf1c7",
       "foreground": "#504945",
-      "indexed": {},
+      "indexed": {
+        "16": "#af3a03",
+        "17": "#d65d0e",
+        "18": "#ebdbb2",
+        "19": "#d5c4a1",
+        "20": "#665c54",
+        "21": "#3c3836"
+      },
       "selection_bg": "#504945",
       "selection_fg": "#fbf1c7"
     },
@@ -11594,9 +12217,16 @@
       ],
       "cursor_bg": "#504945",
       "cursor_border": "#504945",
-      "cursor_fg": "#504945",
+      "cursor_fg": "#f2e5bc",
       "foreground": "#504945",
-      "indexed": {},
+      "indexed": {
+        "16": "#af3a03",
+        "17": "#d65d0e",
+        "18": "#ebdbb2",
+        "19": "#d5c4a1",
+        "20": "#665c54",
+        "21": "#3c3836"
+      },
       "selection_bg": "#504945",
       "selection_fg": "#f2e5bc"
     },
@@ -11788,9 +12418,16 @@
       ],
       "cursor_bg": "#cdcdcd",
       "cursor_border": "#cdcdcd",
-      "cursor_fg": "#cdcdcd",
+      "cursor_fg": "#212121",
       "foreground": "#cdcdcd",
-      "indexed": {},
+      "indexed": {
+        "16": "#fd971f",
+        "17": "#e8b882",
+        "18": "#303030",
+        "19": "#353535",
+        "20": "#707070",
+        "21": "#e5e5e5"
+      },
       "selection_bg": "#cdcdcd",
       "selection_fg": "#212121"
     },
@@ -11828,9 +12465,16 @@
       ],
       "cursor_bg": "#cbd6e2",
       "cursor_border": "#cbd6e2",
-      "cursor_fg": "#cbd6e2",
+      "cursor_fg": "#0b1c2c",
       "foreground": "#cbd6e2",
-      "indexed": {},
+      "indexed": {
+        "16": "#bfbf56",
+        "17": "#bf5656",
+        "18": "#223b54",
+        "19": "#405c79",
+        "20": "#aabcce",
+        "21": "#e5ebf1"
+      },
       "selection_bg": "#cbd6e2",
       "selection_fg": "#0b1c2c"
     },
@@ -11868,9 +12512,16 @@
       ],
       "cursor_bg": "#405c79",
       "cursor_border": "#405c79",
-      "cursor_fg": "#405c79",
+      "cursor_fg": "#f7f9fb",
       "foreground": "#405c79",
-      "indexed": {},
+      "indexed": {
+        "16": "#bfbf56",
+        "17": "#bf5656",
+        "18": "#e5ebf1",
+        "19": "#cbd6e2",
+        "20": "#627e99",
+        "21": "#223b54"
+      },
       "selection_bg": "#405c79",
       "selection_fg": "#f7f9fb"
     },
@@ -12065,9 +12716,16 @@
       ],
       "cursor_bg": "#bdb6c5",
       "cursor_border": "#bdb6c5",
-      "cursor_fg": "#bdb6c5",
+      "cursor_fg": "#190134",
       "foreground": "#bdb6c5",
-      "indexed": {},
+      "indexed": {
+        "16": "#5ba2b6",
+        "17": "#470546",
+        "18": "#392551",
+        "19": "#5a496e",
+        "20": "#9c92a8",
+        "21": "#dedae2"
+      },
       "selection_bg": "#bdb6c5",
       "selection_fg": "#190134"
     },
@@ -12105,9 +12763,16 @@
       ],
       "cursor_bg": "#5a496e",
       "cursor_border": "#5a496e",
-      "cursor_fg": "#5a496e",
+      "cursor_fg": "#feffff",
       "foreground": "#5a496e",
-      "indexed": {},
+      "indexed": {
+        "16": "#bdb6c5",
+        "17": "#dedae2",
+        "18": "#392551",
+        "19": "#7b6d8b",
+        "20": "#ddd6e5",
+        "21": "#470546"
+      },
       "selection_bg": "#5a496e",
       "selection_fg": "#feffff"
     },
@@ -12145,9 +12810,16 @@
       ],
       "cursor_bg": "#d5d5d5",
       "cursor_border": "#d5d5d5",
-      "cursor_fg": "#d5d5d5",
+      "cursor_fg": "#1d2021",
       "foreground": "#d5d5d5",
-      "indexed": {},
+      "indexed": {
+        "16": "#eb8413",
+        "17": "#c85e0d",
+        "18": "#383c3e",
+        "19": "#53585b",
+        "20": "#cdcdcd",
+        "21": "#dddddd"
+      },
       "selection_bg": "#d5d5d5",
       "selection_fg": "#1d2021"
     },
@@ -12499,9 +13171,16 @@
       ],
       "cursor_bg": "#cbced0",
       "cursor_border": "#cbced0",
-      "cursor_fg": "#cbced0",
+      "cursor_fg": "#1c1e26",
       "foreground": "#cbced0",
-      "indexed": {},
+      "indexed": {
+        "16": "#e58d7d",
+        "17": "#e4a382",
+        "18": "#232530",
+        "19": "#2e303e",
+        "20": "#9da0a2",
+        "21": "#dcdfe4"
+      },
       "selection_bg": "#cbced0",
       "selection_fg": "#1c1e26"
     },
@@ -12539,9 +13218,16 @@
       ],
       "cursor_bg": "#cbced0",
       "cursor_border": "#cbced0",
-      "cursor_fg": "#cbced0",
+      "cursor_fg": "#1c1e26",
       "foreground": "#cbced0",
-      "indexed": {},
+      "indexed": {
+        "16": "#fab795",
+        "17": "#f09383",
+        "18": "#232530",
+        "19": "#2e303e",
+        "20": "#9da0a2",
+        "21": "#dcdfe4"
+      },
       "selection_bg": "#cbced0",
       "selection_fg": "#1c1e26"
     },
@@ -12579,9 +13265,16 @@
       ],
       "cursor_bg": "#403c3d",
       "cursor_border": "#403c3d",
-      "cursor_fg": "#403c3d",
+      "cursor_fg": "#fdf0ed",
       "foreground": "#403c3d",
-      "indexed": {},
+      "indexed": {
+        "16": "#f6661e",
+        "17": "#e58c92",
+        "18": "#fadad1",
+        "19": "#f9cbbe",
+        "20": "#948c8a",
+        "21": "#302c2d"
+      },
       "selection_bg": "#403c3d",
       "selection_fg": "#fdf0ed"
     },
@@ -12619,9 +13312,16 @@
       ],
       "cursor_bg": "#403c3d",
       "cursor_border": "#403c3d",
-      "cursor_fg": "#403c3d",
+      "cursor_fg": "#fdf0ed",
       "foreground": "#403c3d",
-      "indexed": {},
+      "indexed": {
+        "16": "#f9cec3",
+        "17": "#f9cbbe",
+        "18": "#fadad1",
+        "19": "#f9cbbe",
+        "20": "#948c8a",
+        "21": "#302c2d"
+      },
       "selection_bg": "#403c3d",
       "selection_fg": "#fdf0ed"
     },
@@ -12733,9 +13433,16 @@
       ],
       "cursor_bg": "#f8f8f2",
       "cursor_border": "#f8f8f2",
-      "cursor_fg": "#f8f8f2",
+      "cursor_fg": "#232629",
       "foreground": "#f8f8f2",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9505",
+        "17": "#b27701",
+        "18": "#333b3d",
+        "19": "#484e54",
+        "20": "#c0c0bd",
+        "21": "#fcfcf6"
+      },
       "selection_bg": "#f8f8f2",
       "selection_fg": "#232629"
     },
@@ -12773,9 +13480,16 @@
       ],
       "cursor_bg": "#232629",
       "cursor_border": "#232629",
-      "cursor_fg": "#232629",
+      "cursor_fg": "#f8f8f2",
       "foreground": "#232629",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff3d00",
+        "17": "#b27701",
+        "18": "#efefe9",
+        "19": "#deded8",
+        "20": "#60615d",
+        "21": "#2f3337"
+      },
       "selection_bg": "#232629",
       "selection_fg": "#f8f8f2"
     },
@@ -13033,9 +13747,16 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#1a1a1a",
       "foreground": "#cccccc",
-      "indexed": {},
+      "indexed": {
+        "16": "#d86868",
+        "17": "#8b6c37",
+        "18": "#222222",
+        "19": "#1d414d",
+        "20": "#b8b8b8",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#cccccc",
       "selection_fg": "#1a1a1a"
     },
@@ -13073,9 +13794,16 @@
       ],
       "cursor_bg": "#181818",
       "cursor_border": "#181818",
-      "cursor_fg": "#181818",
+      "cursor_fg": "#f6f6f6",
       "foreground": "#181818",
-      "indexed": {},
+      "indexed": {
+        "16": "#c43e18",
+        "17": "#8b6c37",
+        "18": "#dedede",
+        "19": "#bde5f2",
+        "20": "#767676",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#181818",
       "selection_fg": "#f6f6f6"
     },
@@ -13383,9 +14111,16 @@
       ],
       "cursor_bg": "#095b67",
       "cursor_border": "#095b67",
-      "cursor_fg": "#095b67",
+      "cursor_fg": "#021012",
       "foreground": "#095b67",
-      "indexed": {},
+      "indexed": {
+        "16": "#b3ebf2",
+        "17": "#0097a7",
+        "18": "#031619",
+        "19": "#041f23",
+        "20": "#064048",
+        "21": "#0c7c8c"
+      },
       "selection_bg": "#095b67",
       "selection_fg": "#021012"
     },
@@ -13609,9 +14344,16 @@
       ],
       "cursor_bg": "#b5b3aa",
       "cursor_border": "#b5b3aa",
-      "cursor_fg": "#b5b3aa",
+      "cursor_fg": "#000000",
       "foreground": "#b5b3aa",
-      "indexed": {},
+      "indexed": {
+        "16": "#e9c062",
+        "17": "#b18a3d",
+        "18": "#242422",
+        "19": "#484844",
+        "20": "#918f88",
+        "21": "#d9d7cc"
+      },
       "selection_bg": "#b5b3aa",
       "selection_fg": "#000000"
     },
@@ -13725,9 +14467,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#000000",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9900",
+        "17": "#3300ff",
+        "18": "#404040",
+        "19": "#606060",
+        "20": "#c0c0c0",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#000000"
     },
@@ -14326,9 +15075,16 @@
       ],
       "cursor_bg": "#dedee7",
       "cursor_border": "#dedee7",
-      "cursor_fg": "#dedee7",
+      "cursor_fg": "#222222",
       "foreground": "#dedee7",
-      "indexed": {},
+      "indexed": {
+        "16": "#476c88",
+        "17": "#704f4f",
+        "18": "#313131",
+        "19": "#555d55",
+        "20": "#5a5a5a",
+        "21": "#c3c3b4"
+      },
       "selection_bg": "#dedee7",
       "selection_fg": "#222222"
     },
@@ -14829,9 +15585,16 @@
       ],
       "cursor_bg": "#d9d8d8",
       "cursor_border": "#d9d8d8",
-      "cursor_fg": "#d9d8d8",
+      "cursor_fg": "#231f20",
       "foreground": "#d9d8d8",
-      "indexed": {},
+      "indexed": {
+        "16": "#f386a1",
+        "17": "#b06110",
+        "18": "#1c3f95",
+        "19": "#5a5758",
+        "20": "#959ca1",
+        "21": "#e7e7e8"
+      },
       "selection_bg": "#d9d8d8",
       "selection_fg": "#231f20"
     },
@@ -15162,9 +15925,16 @@
       ],
       "cursor_bg": "#c0c0c0",
       "cursor_border": "#c0c0c0",
-      "cursor_fg": "#c0c0c0",
+      "cursor_fg": "#000000",
       "foreground": "#c0c0c0",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff6403",
+        "17": "#90713a",
+        "18": "#404040",
+        "19": "#404040",
+        "20": "#808080",
+        "21": "#c0c0c0"
+      },
       "selection_bg": "#c0c0c0",
       "selection_fg": "#000000"
     },
@@ -15357,9 +16127,16 @@
       ],
       "cursor_bg": "#948e48",
       "cursor_border": "#948e48",
-      "cursor_fg": "#948e48",
+      "cursor_fg": "#201602",
       "foreground": "#948e48",
-      "indexed": {},
+      "indexed": {
+        "16": "#b36144",
+        "17": "#b3588e",
+        "18": "#302e00",
+        "19": "#5f5b17",
+        "20": "#86813b",
+        "21": "#ccc37a"
+      },
       "selection_bg": "#948e48",
       "selection_fg": "#201602"
     },
@@ -15470,9 +16247,16 @@
       ],
       "cursor_bg": "#cdd3de",
       "cursor_border": "#cdd3de",
-      "cursor_fg": "#cdd3de",
+      "cursor_fg": "#263238",
       "foreground": "#cdd3de",
-      "indexed": {},
+      "indexed": {
+        "16": "#ea9560",
+        "17": "#ec5f67",
+        "18": "#2c393f",
+        "19": "#37474f",
+        "20": "#c9ccd3",
+        "21": "#d5dbe5"
+      },
       "selection_bg": "#cdd3de",
       "selection_fg": "#263238"
     },
@@ -15549,9 +16333,16 @@
       ],
       "cursor_bg": "#eeffff",
       "cursor_border": "#eeffff",
-      "cursor_fg": "#eeffff",
+      "cursor_fg": "#263238",
       "foreground": "#eeffff",
-      "indexed": {},
+      "indexed": {
+        "16": "#f78c6c",
+        "17": "#ff5370",
+        "18": "#2e3c43",
+        "19": "#314549",
+        "20": "#b2ccd6",
+        "21": "#eeffff"
+      },
       "selection_bg": "#eeffff",
       "selection_fg": "#263238"
     },
@@ -15661,9 +16452,16 @@
       ],
       "cursor_bg": "#eeffff",
       "cursor_border": "#eeffff",
-      "cursor_fg": "#eeffff",
+      "cursor_fg": "#212121",
       "foreground": "#eeffff",
-      "indexed": {},
+      "indexed": {
+        "16": "#f78c6c",
+        "17": "#ff5370",
+        "18": "#303030",
+        "19": "#353535",
+        "20": "#b2ccd6",
+        "21": "#eeffff"
+      },
       "selection_bg": "#eeffff",
       "selection_fg": "#212121"
     },
@@ -15701,9 +16499,16 @@
       ],
       "cursor_bg": "#80cbc4",
       "cursor_border": "#80cbc4",
-      "cursor_fg": "#80cbc4",
+      "cursor_fg": "#fafafa",
       "foreground": "#80cbc4",
-      "indexed": {},
+      "indexed": {
+        "16": "#f76d47",
+        "17": "#e53935",
+        "18": "#e7eaec",
+        "19": "#cceae7",
+        "20": "#8796b0",
+        "21": "#80cbc4"
+      },
       "selection_bg": "#80cbc4",
       "selection_fg": "#fafafa"
     },
@@ -15741,9 +16546,16 @@
       ],
       "cursor_bg": "#959dcb",
       "cursor_border": "#959dcb",
-      "cursor_fg": "#959dcb",
+      "cursor_fg": "#292d3e",
       "foreground": "#959dcb",
-      "indexed": {},
+      "indexed": {
+        "16": "#f78c6c",
+        "17": "#ff5370",
+        "18": "#444267",
+        "19": "#32374d",
+        "20": "#8796b0",
+        "21": "#959dcb"
+      },
       "selection_bg": "#959dcb",
       "selection_fg": "#292d3e"
     },
@@ -15781,9 +16593,16 @@
       ],
       "cursor_bg": "#80868b",
       "cursor_border": "#80868b",
-      "cursor_fg": "#80868b",
+      "cursor_fg": "#202124",
       "foreground": "#80868b",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9800",
+        "17": "#8d6e63",
+        "18": "#27292c",
+        "19": "#323639",
+        "20": "#676c71",
+        "21": "#9e9e9e"
+      },
       "selection_bg": "#80868b",
       "selection_fg": "#202124"
     },
@@ -16129,9 +16948,16 @@
       ],
       "cursor_bg": "#ffeeff",
       "cursor_border": "#ffeeff",
-      "cursor_fg": "#ffeeff",
+      "cursor_fg": "#1e0528",
       "foreground": "#ffeeff",
-      "indexed": {},
+      "indexed": {
+        "16": "#aa00a3",
+        "17": "#4d6fff",
+        "18": "#1a092d",
+        "19": "#331354",
+        "20": "#873582",
+        "21": "#ffeeff"
+      },
       "selection_bg": "#ffeeff",
       "selection_fg": "#1e0528"
     },
@@ -16169,9 +16995,16 @@
       ],
       "cursor_bg": "#383838",
       "cursor_border": "#383838",
-      "cursor_fg": "#383838",
+      "cursor_fg": "#f8f8f8",
       "foreground": "#383838",
-      "indexed": {},
+      "indexed": {
+        "16": "#dc9656",
+        "17": "#a16946",
+        "18": "#e8e8e8",
+        "19": "#d8d8d8",
+        "20": "#585858",
+        "21": "#282828"
+      },
       "selection_bg": "#383838",
       "selection_fg": "#f8f8f8"
     },
@@ -16396,9 +17229,16 @@
       ],
       "cursor_bg": "#d0c8c6",
       "cursor_border": "#d0c8c6",
-      "cursor_fg": "#d0c8c6",
+      "cursor_fg": "#3b3228",
       "foreground": "#d0c8c6",
-      "indexed": {},
+      "indexed": {
+        "16": "#d28b71",
+        "17": "#bb9584",
+        "18": "#534636",
+        "19": "#645240",
+        "20": "#b8afad",
+        "21": "#e9e1dd"
+      },
       "selection_bg": "#d0c8c6",
       "selection_fg": "#3b3228"
     },
@@ -16881,9 +17721,16 @@
       ],
       "cursor_bg": "#f8f8f2",
       "cursor_border": "#f8f8f2",
-      "cursor_fg": "#f8f8f2",
+      "cursor_fg": "#272822",
       "foreground": "#f8f8f2",
-      "indexed": {},
+      "indexed": {
+        "16": "#fd971f",
+        "17": "#cc6633",
+        "18": "#383830",
+        "19": "#49483e",
+        "20": "#a59f85",
+        "21": "#f5f4f1"
+      },
       "selection_bg": "#f8f8f2",
       "selection_fg": "#272822"
     },
@@ -17476,9 +18323,16 @@
       ],
       "cursor_bg": "#a4a6a9",
       "cursor_border": "#a4a6a9",
-      "cursor_fg": "#a4a6a9",
+      "cursor_fg": "#22273b",
       "foreground": "#a4a6a9",
-      "indexed": {},
+      "indexed": {
+        "16": "#94929e",
+        "17": "#8c70a7",
+        "18": "#414f60",
+        "19": "#5a8380",
+        "20": "#87888b",
+        "21": "#c7c9cd"
+      },
       "selection_bg": "#a4a6a9",
       "selection_fg": "#22273b"
     },
@@ -18193,9 +19047,16 @@
       ],
       "cursor_bg": "#e5e9f0",
       "cursor_border": "#e5e9f0",
-      "cursor_fg": "#e5e9f0",
+      "cursor_fg": "#2e3440",
       "foreground": "#e5e9f0",
-      "indexed": {},
+      "indexed": {
+        "16": "#d08770",
+        "17": "#5e81ac",
+        "18": "#3b4252",
+        "19": "#434c5e",
+        "20": "#d8dee9",
+        "21": "#eceff4"
+      },
       "selection_bg": "#e5e9f0",
       "selection_fg": "#2e3440"
     },
@@ -18401,9 +19262,16 @@
       ],
       "cursor_bg": "#c5d4dd",
       "cursor_border": "#c5d4dd",
-      "cursor_fg": "#c5d4dd",
+      "cursor_fg": "#3c4c55",
       "foreground": "#c5d4dd",
-      "indexed": {},
+      "indexed": {
+        "16": "#7fc1ca",
+        "17": "#f2c38f",
+        "18": "#556873",
+        "19": "#6a7d89",
+        "20": "#899ba6",
+        "21": "#899ba6"
+      },
       "selection_bg": "#c5d4dd",
       "selection_fg": "#3c4c55"
     },
@@ -18663,9 +19531,16 @@
       ],
       "cursor_bg": "#c0c5ce",
       "cursor_border": "#c0c5ce",
-      "cursor_fg": "#c0c5ce",
+      "cursor_fg": "#2b303b",
       "foreground": "#c0c5ce",
-      "indexed": {},
+      "indexed": {
+        "16": "#d08770",
+        "17": "#ab7967",
+        "18": "#343d46",
+        "19": "#4f5b66",
+        "20": "#a7adba",
+        "21": "#dfe1e8"
+      },
       "selection_bg": "#c0c5ce",
       "selection_fg": "#2b303b"
     },
@@ -18859,9 +19734,16 @@
       ],
       "cursor_bg": "#c0c5ce",
       "cursor_border": "#c0c5ce",
-      "cursor_fg": "#c0c5ce",
+      "cursor_fg": "#1b2b34",
       "foreground": "#c0c5ce",
-      "indexed": {},
+      "indexed": {
+        "16": "#f99157",
+        "17": "#ab7967",
+        "18": "#343d46",
+        "19": "#4f5b66",
+        "20": "#a7adba",
+        "21": "#cdd3de"
+      },
       "selection_bg": "#c0c5ce",
       "selection_fg": "#1b2b34"
     },
@@ -18975,9 +19857,16 @@
       ],
       "cursor_bg": "#383a42",
       "cursor_border": "#383a42",
-      "cursor_fg": "#383a42",
+      "cursor_fg": "#fafafa",
       "foreground": "#383a42",
-      "indexed": {},
+      "indexed": {
+        "16": "#d75f00",
+        "17": "#986801",
+        "18": "#f0f0f1",
+        "19": "#e5e5e6",
+        "20": "#696c77",
+        "21": "#202227"
+      },
       "selection_bg": "#383a42",
       "selection_fg": "#fafafa"
     },
@@ -19015,9 +19904,16 @@
       ],
       "cursor_bg": "#abb2bf",
       "cursor_border": "#abb2bf",
-      "cursor_fg": "#abb2bf",
+      "cursor_fg": "#282c34",
       "foreground": "#abb2bf",
-      "indexed": {},
+      "indexed": {
+        "16": "#d19a66",
+        "17": "#be5046",
+        "18": "#353b45",
+        "19": "#3e4451",
+        "20": "#565c64",
+        "21": "#b6bdca"
+      },
       "selection_bg": "#abb2bf",
       "selection_fg": "#282c34"
     },
@@ -19320,9 +20216,16 @@
       ],
       "cursor_bg": "#d0d0fa",
       "cursor_border": "#d0d0fa",
-      "cursor_fg": "#d0d0fa",
+      "cursor_fg": "#00002a",
       "foreground": "#d0d0fa",
-      "indexed": {},
+      "indexed": {
+        "16": "#fc8d28",
+        "17": "#f003ef",
+        "18": "#20204a",
+        "19": "#30305a",
+        "20": "#b0b0da",
+        "21": "#e0e0ff"
+      },
       "selection_bg": "#d0d0fa",
       "selection_fg": "#00002a"
     },
@@ -19623,9 +20526,16 @@
       ],
       "cursor_bg": "#808080",
       "cursor_border": "#808080",
-      "cursor_fg": "#808080",
+      "cursor_fg": "#1c1c1c",
       "foreground": "#808080",
-      "indexed": {},
+      "indexed": {
+        "16": "#5faf5f",
+        "17": "#5f8787",
+        "18": "#af005f",
+        "19": "#5faf00",
+        "20": "#5fafd7",
+        "21": "#d7875f"
+      },
       "selection_bg": "#808080",
       "selection_fg": "#1c1c1c"
     },
@@ -19663,9 +20573,16 @@
       ],
       "cursor_bg": "#444444",
       "cursor_border": "#444444",
-      "cursor_fg": "#444444",
+      "cursor_fg": "#eeeeee",
       "foreground": "#444444",
-      "indexed": {},
+      "indexed": {
+        "16": "#d70000",
+        "17": "#005f87",
+        "18": "#af0000",
+        "19": "#008700",
+        "20": "#0087af",
+        "21": "#005f87"
+      },
       "selection_bg": "#444444",
       "selection_fg": "#eeeeee"
     },
@@ -19892,9 +20809,16 @@
       ],
       "cursor_bg": "#dedcdf",
       "cursor_border": "#dedcdf",
-      "cursor_fg": "#dedcdf",
+      "cursor_fg": "#271c3a",
       "foreground": "#dedcdf",
-      "indexed": {},
+      "indexed": {
+        "16": "#918889",
+        "17": "#59325c",
+        "18": "#100323",
+        "19": "#3e2d5c",
+        "20": "#bebcbf",
+        "21": "#edeaef"
+      },
       "selection_bg": "#dedcdf",
       "selection_fg": "#271c3a"
     },
@@ -20197,9 +21121,16 @@
       ],
       "cursor_bg": "#b8bbc2",
       "cursor_border": "#b8bbc2",
-      "cursor_fg": "#b8bbc2",
+      "cursor_fg": "#061229",
       "foreground": "#b8bbc2",
-      "indexed": {},
+      "indexed": {
+        "16": "#f0a000",
+        "17": "#b08060",
+        "18": "#2a3448",
+        "19": "#4d5666",
+        "20": "#9a99a3",
+        "21": "#dbdde0"
+      },
       "selection_bg": "#b8bbc2",
       "selection_fg": "#061229"
     },
@@ -20311,9 +21242,16 @@
       ],
       "cursor_bg": "#5f574f",
       "cursor_border": "#5f574f",
-      "cursor_fg": "#5f574f",
+      "cursor_fg": "#000000",
       "foreground": "#5f574f",
-      "indexed": {},
+      "indexed": {
+        "16": "#ffa300",
+        "17": "#ffccaa",
+        "18": "#1d2b53",
+        "19": "#7e2553",
+        "20": "#ab5236",
+        "21": "#c2c3c7"
+      },
       "selection_bg": "#5f574f",
       "selection_fg": "#000000"
     },
@@ -20351,9 +21289,16 @@
       ],
       "cursor_bg": "#f5f5f5",
       "cursor_border": "#f5f5f5",
-      "cursor_fg": "#f5f5f5",
+      "cursor_fg": "#171517",
       "foreground": "#f5f5f5",
-      "indexed": {},
+      "indexed": {
+        "16": "#00ff66",
+        "17": "#df206c",
+        "18": "#1b181b",
+        "19": "#1d1b1d",
+        "20": "#e7dbdb",
+        "21": "#ffffff"
+      },
       "selection_bg": "#f5f5f5",
       "selection_fg": "#171517"
     },
@@ -20647,9 +21592,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#000000",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#f29333",
+        "17": "#7a2d00",
+        "18": "#202020",
+        "19": "#303030",
+        "20": "#b0b0b0",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#000000"
     },
@@ -20726,9 +21678,16 @@
       ],
       "cursor_bg": "#d8d8d8",
       "cursor_border": "#d8d8d8",
-      "cursor_fg": "#d8d8d8",
+      "cursor_fg": "#292c36",
       "foreground": "#d8d8d8",
-      "indexed": {},
+      "indexed": {
+        "16": "#d28e5d",
+        "17": "#986841",
+        "18": "#333344",
+        "19": "#474160",
+        "20": "#b8b8b8",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#d8d8d8",
       "selection_fg": "#292c36"
     },
@@ -21029,9 +21988,16 @@
       ],
       "cursor_bg": "#ddd0dd",
       "cursor_border": "#ddd0dd",
-      "cursor_fg": "#ddd0dd",
+      "cursor_fg": "#100510",
       "foreground": "#ddd0dd",
-      "indexed": {},
+      "indexed": {
+        "16": "#ccae14",
+        "17": "#6a2a3c",
+        "18": "#302030",
+        "19": "#403040",
+        "20": "#bbb0bb",
+        "21": "#eee0ee"
+      },
       "selection_bg": "#ddd0dd",
       "selection_fg": "#100510"
     },
@@ -21145,9 +22111,16 @@
       ],
       "cursor_bg": "#c0c0c0",
       "cursor_border": "#c0c0c0",
-      "cursor_fg": "#c0c0c0",
+      "cursor_fg": "#101010",
       "foreground": "#c0c0c0",
-      "indexed": {},
+      "indexed": {
+        "16": "#a3b8ef",
+        "17": "#808080",
+        "18": "#454545",
+        "19": "#454545",
+        "20": "#808080",
+        "21": "#c0c0c0"
+      },
       "selection_bg": "#c0c0c0",
       "selection_fg": "#101010"
     },
@@ -21185,9 +22158,16 @@
       ],
       "cursor_bg": "#e6e1dc",
       "cursor_border": "#e6e1dc",
-      "cursor_fg": "#e6e1dc",
+      "cursor_fg": "#2b2b2b",
       "foreground": "#e6e1dc",
-      "indexed": {},
+      "indexed": {
+        "16": "#cc7833",
+        "17": "#bc9458",
+        "18": "#272935",
+        "19": "#3a4055",
+        "20": "#d4cfc9",
+        "21": "#f4f1ed"
+      },
       "selection_bg": "#e6e1dc",
       "selection_fg": "#2b2b2b"
     },
@@ -21454,9 +22434,16 @@
       ],
       "cursor_bg": "#f1eff8",
       "cursor_border": "#f1eff8",
-      "cursor_fg": "#f1eff8",
+      "cursor_fg": "#292a44",
       "foreground": "#f1eff8",
-      "indexed": {},
+      "indexed": {
+        "16": "#efe4a1",
+        "17": "#ff79c6",
+        "18": "#663399",
+        "19": "#383a62",
+        "20": "#a0a0c5",
+        "21": "#ccccff"
+      },
       "selection_bg": "#f1eff8",
       "selection_fg": "#292a44"
     },
@@ -21804,9 +22791,16 @@
       ],
       "cursor_bg": "#e0def4",
       "cursor_border": "#e0def4",
-      "cursor_fg": "#e0def4",
+      "cursor_fg": "#191724",
       "foreground": "#e0def4",
-      "indexed": {},
+      "indexed": {
+        "16": "#eb6f92",
+        "17": "#e5e5e5",
+        "18": "#1f1d2e",
+        "19": "#26233a",
+        "20": "#6e6a86",
+        "21": "#f0f0f3"
+      },
       "selection_bg": "#e0def4",
       "selection_fg": "#191724"
     },
@@ -21844,9 +22838,16 @@
       ],
       "cursor_bg": "#575279",
       "cursor_border": "#575279",
-      "cursor_fg": "#575279",
+      "cursor_fg": "#faf4ed",
       "foreground": "#575279",
-      "indexed": {},
+      "indexed": {
+        "16": "#b4637a",
+        "17": "#c5c3ce",
+        "18": "#fffaf3",
+        "19": "#f2e9de",
+        "20": "#6e6a86",
+        "21": "#555169"
+      },
       "selection_bg": "#575279",
       "selection_fg": "#faf4ed"
     },
@@ -21884,9 +22885,16 @@
       ],
       "cursor_bg": "#e0def4",
       "cursor_border": "#e0def4",
-      "cursor_fg": "#e0def4",
+      "cursor_fg": "#232136",
       "foreground": "#e0def4",
-      "indexed": {},
+      "indexed": {
+        "16": "#eb6f92",
+        "17": "#b9b9bc",
+        "18": "#2a273f",
+        "19": "#393552",
+        "20": "#817c9c",
+        "21": "#f5f5f7"
+      },
       "selection_bg": "#e0def4",
       "selection_fg": "#232136"
     },
@@ -22111,9 +23119,16 @@
       ],
       "cursor_bg": "#383838",
       "cursor_border": "#383838",
-      "cursor_fg": "#383838",
+      "cursor_fg": "#f8f8f8",
       "foreground": "#383838",
-      "indexed": {},
+      "indexed": {
+        "16": "#ffaa61",
+        "17": "#d2b2a0",
+        "18": "#e8e8e8",
+        "19": "#d8d8d8",
+        "20": "#585858",
+        "21": "#282828"
+      },
       "selection_bg": "#383838",
       "selection_fg": "#f8f8f8"
     },
@@ -22190,9 +23205,16 @@
       ],
       "cursor_bg": "#564448",
       "cursor_border": "#564448",
-      "cursor_fg": "#564448",
+      "cursor_fg": "#feedf3",
       "foreground": "#564448",
-      "indexed": {},
+      "indexed": {
+        "16": "#f6661e",
+        "17": "#ba0d35",
+        "18": "#f8e2e7",
+        "19": "#e0ccd1",
+        "20": "#665055",
+        "21": "#42383a"
+      },
       "selection_bg": "#564448",
       "selection_fg": "#feedf3"
     },
@@ -22230,9 +23252,16 @@
       ],
       "cursor_bg": "#a89984",
       "cursor_border": "#a89984",
-      "cursor_fg": "#a89984",
+      "cursor_fg": "#282c34",
       "foreground": "#a89984",
-      "indexed": {},
+      "indexed": {
+        "16": "#a07e3b",
+        "17": "#a87322",
+        "18": "#2c323b",
+        "19": "#3e4451",
+        "20": "#928374",
+        "21": "#d5c4a1"
+      },
       "selection_bg": "#a89984",
       "selection_fg": "#282c34"
     },
@@ -22624,9 +23653,16 @@
       ],
       "cursor_bg": "#d6d6d6",
       "cursor_border": "#d6d6d6",
-      "cursor_fg": "#d6d6d6",
+      "cursor_fg": "#151718",
       "foreground": "#d6d6d6",
-      "indexed": {},
+      "indexed": {
+        "16": "#db7b55",
+        "17": "#8a553f",
+        "18": "#282a2b",
+        "19": "#3b758c",
+        "20": "#43a5d5",
+        "21": "#eeeeee"
+      },
       "selection_bg": "#d6d6d6",
       "selection_fg": "#151718"
     },
@@ -22699,9 +23735,16 @@
       ],
       "cursor_bg": "#c7c7c7",
       "cursor_border": "#c7c7c7",
-      "cursor_fg": "#c7c7c7",
+      "cursor_fg": "#1e1e3f",
       "foreground": "#c7c7c7",
-      "indexed": {},
+      "indexed": {
+        "16": "#f92a1c",
+        "17": "#79e8fb",
+        "18": "#43d426",
+        "19": "#f1d000",
+        "20": "#6871ff",
+        "21": "#ff77ff"
+      },
       "selection_bg": "#c7c7c7",
       "selection_fg": "#1e1e3f"
     },
@@ -22817,9 +23860,16 @@
       ],
       "cursor_bg": "#102015",
       "cursor_border": "#102015",
-      "cursor_fg": "#102015",
+      "cursor_fg": "#f9f9f9",
       "foreground": "#102015",
-      "indexed": {},
+      "indexed": {
+        "16": "#e09448",
+        "17": "#69542d",
+        "18": "#e0e0e0",
+        "19": "#ababab",
+        "20": "#343434",
+        "21": "#040404"
+      },
       "selection_bg": "#102015",
       "selection_fg": "#f9f9f9"
     },
@@ -22999,9 +24049,16 @@
       ],
       "cursor_bg": "#c7dbdd",
       "cursor_border": "#c7dbdd",
-      "cursor_fg": "#c7dbdd",
+      "cursor_fg": "#0e3c46",
       "foreground": "#c7dbdd",
-      "indexed": {},
+      "indexed": {
+        "16": "#fcab74",
+        "17": "#9b647b",
+        "18": "#1d494e",
+        "19": "#2a5054",
+        "20": "#9dc8cd",
+        "21": "#cbf2f7"
+      },
       "selection_bg": "#c7dbdd",
       "selection_fg": "#0e3c46"
     },
@@ -23039,9 +24096,16 @@
       ],
       "cursor_bg": "#385156",
       "cursor_border": "#385156",
-      "cursor_fg": "#385156",
+      "cursor_fg": "#e9f1ef",
       "foreground": "#385156",
-      "indexed": {},
+      "indexed": {
+        "16": "#d27f46",
+        "17": "#865369",
+        "18": "#ccd4d3",
+        "19": "#90b7b6",
+        "20": "#4b5b5f",
+        "21": "#0e3c46"
+      },
       "selection_bg": "#385156",
       "selection_fg": "#e9f1ef"
     },
@@ -23307,9 +24371,16 @@
       ],
       "cursor_bg": "#e2e4e5",
       "cursor_border": "#e2e4e5",
-      "cursor_fg": "#e2e4e5",
+      "cursor_fg": "#282a36",
       "foreground": "#e2e4e5",
-      "indexed": {},
+      "indexed": {
+        "16": "#ff9f43",
+        "17": "#b2643c",
+        "18": "#34353e",
+        "19": "#43454f",
+        "20": "#a5a5a9",
+        "21": "#eff0eb"
+      },
       "selection_bg": "#e2e4e5",
       "selection_fg": "#282a36"
     },
@@ -23423,9 +24494,16 @@
       ],
       "cursor_bg": "#a6afb8",
       "cursor_border": "#a6afb8",
-      "cursor_fg": "#a6afb8",
+      "cursor_fg": "#18262f",
       "foreground": "#a6afb8",
-      "indexed": {},
+      "indexed": {
+        "16": "#e66b2b",
+        "17": "#d73c9a",
+        "18": "#222e38",
+        "19": "#586875",
+        "20": "#85939e",
+        "21": "#e8e9ed"
+      },
       "selection_bg": "#a6afb8",
       "selection_fg": "#18262f"
     },
@@ -23463,9 +24541,16 @@
       ],
       "cursor_bg": "#586875",
       "cursor_border": "#586875",
-      "cursor_fg": "#586875",
+      "cursor_fg": "#f5f7fa",
       "foreground": "#586875",
-      "indexed": {},
+      "indexed": {
+        "16": "#e66b2b",
+        "17": "#d73c9a",
+        "18": "#e8e9ed",
+        "19": "#a6afb8",
+        "20": "#667581",
+        "21": "#222e38"
+      },
       "selection_bg": "#586875",
       "selection_fg": "#f5f7fa"
     },
@@ -23580,9 +24665,16 @@
       ],
       "cursor_bg": "#93a1a1",
       "cursor_border": "#93a1a1",
-      "cursor_fg": "#93a1a1",
+      "cursor_fg": "#002b36",
       "foreground": "#93a1a1",
-      "indexed": {},
+      "indexed": {
+        "16": "#cb4b16",
+        "17": "#d33682",
+        "18": "#073642",
+        "19": "#586e75",
+        "20": "#839496",
+        "21": "#eee8d5"
+      },
       "selection_bg": "#93a1a1",
       "selection_fg": "#002b36"
     },
@@ -23704,9 +24796,16 @@
       ],
       "cursor_bg": "#586e75",
       "cursor_border": "#586e75",
-      "cursor_fg": "#586e75",
+      "cursor_fg": "#fdf6e3",
       "foreground": "#586e75",
-      "indexed": {},
+      "indexed": {
+        "16": "#cb4b16",
+        "17": "#d33682",
+        "18": "#eee8d5",
+        "19": "#93a1a1",
+        "20": "#657b83",
+        "21": "#073642"
+      },
       "selection_bg": "#586e75",
       "selection_fg": "#fdf6e3"
     },
@@ -24015,9 +25114,16 @@
       ],
       "cursor_bg": "#a3a3a3",
       "cursor_border": "#a3a3a3",
-      "cursor_fg": "#a3a3a3",
+      "cursor_fg": "#1f2022",
       "foreground": "#a3a3a3",
-      "indexed": {},
+      "indexed": {
+        "16": "#ffa500",
+        "17": "#b03060",
+        "18": "#282828",
+        "19": "#444155",
+        "20": "#b8b8b8",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#a3a3a3",
       "selection_fg": "#1f2022"
     },
@@ -24433,9 +25539,16 @@
       ],
       "cursor_bg": "#736e55",
       "cursor_border": "#736e55",
-      "cursor_fg": "#736e55",
+      "cursor_fg": "#1c1810",
       "foreground": "#736e55",
-      "indexed": {},
+      "indexed": {
+        "16": "#fba11b",
+        "17": "#f69be7",
+        "18": "#2a261c",
+        "19": "#3a3527",
+        "20": "#5f5b45",
+        "21": "#bab696"
+      },
       "selection_bg": "#736e55",
       "selection_fg": "#1c1810"
     },
@@ -24473,9 +25586,16 @@
       ],
       "cursor_bg": "#d0d0d0",
       "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
+      "cursor_fg": "#151515",
       "foreground": "#d0d0d0",
-      "indexed": {},
+      "indexed": {
+        "16": "#fd8900",
+        "17": "#cc6633",
+        "18": "#202020",
+        "19": "#303030",
+        "20": "#b0b0b0",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#d0d0d0",
       "selection_fg": "#151515"
     },
@@ -24513,9 +25633,16 @@
       ],
       "cursor_bg": "#101010",
       "cursor_border": "#101010",
-      "cursor_fg": "#101010",
+      "cursor_fg": "#ffffff",
       "foreground": "#101010",
-      "indexed": {},
+      "indexed": {
+        "16": "#fd8900",
+        "17": "#cc6633",
+        "18": "#e0e0e0",
+        "19": "#d0d0d0",
+        "20": "#000000",
+        "21": "#151515"
+      },
       "selection_bg": "#101010",
       "selection_fg": "#ffffff"
     },
@@ -24778,9 +25905,16 @@
       ],
       "cursor_bg": "#c1c3c4",
       "cursor_border": "#c1c3c4",
-      "cursor_fg": "#c1c3c4",
+      "cursor_fg": "#050608",
       "foreground": "#c1c3c4",
-      "indexed": {},
+      "indexed": {
+        "16": "#ea770d",
+        "17": "#cd6320",
+        "18": "#1a1b1c",
+        "19": "#28292a",
+        "20": "#a3a5a6",
+        "21": "#cfd1d2"
+      },
       "selection_bg": "#c1c3c4",
       "selection_fg": "#050608"
     },
@@ -24818,9 +25952,16 @@
       ],
       "cursor_bg": "#28292a",
       "cursor_border": "#28292a",
-      "cursor_fg": "#28292a",
+      "cursor_fg": "#dddfe0",
       "foreground": "#28292a",
-      "indexed": {},
+      "indexed": {
+        "16": "#ea770d",
+        "17": "#cd6320",
+        "18": "#cfd1d2",
+        "19": "#c1c3c4",
+        "20": "#474849",
+        "21": "#1a1b1c"
+      },
       "selection_bg": "#28292a",
       "selection_fg": "#dddfe0"
     },
@@ -25049,9 +26190,16 @@
       ],
       "cursor_bg": "#d3d7cf",
       "cursor_border": "#d3d7cf",
-      "cursor_fg": "#d3d7cf",
+      "cursor_fg": "#2e3436",
       "foreground": "#d3d7cf",
-      "indexed": {},
+      "indexed": {
+        "16": "#ef2929",
+        "17": "#34e2e2",
+        "18": "#8ae234",
+        "19": "#fce94f",
+        "20": "#729fcf",
+        "21": "#ad7fa8"
+      },
       "selection_bg": "#d3d7cf",
       "selection_fg": "#2e3436"
     },
@@ -25311,9 +26459,16 @@
       ],
       "cursor_bg": "#eeeeee",
       "cursor_border": "#eeeeee",
-      "cursor_fg": "#eeeeee",
+      "cursor_fg": "#282828",
       "foreground": "#eeeeee",
-      "indexed": {},
+      "indexed": {
+        "16": "#dc9656",
+        "17": "#a16946",
+        "18": "#383838",
+        "19": "#484848",
+        "20": "#b8b8b8",
+        "21": "#e8e8e8"
+      },
       "selection_bg": "#eeeeee",
       "selection_fg": "#282828"
     },
@@ -26764,9 +27919,16 @@
       ],
       "cursor_bg": "#a7a7a7",
       "cursor_border": "#a7a7a7",
-      "cursor_fg": "#a7a7a7",
+      "cursor_fg": "#1e1e1e",
       "foreground": "#a7a7a7",
-      "indexed": {},
+      "indexed": {
+        "16": "#cda869",
+        "17": "#9b703f",
+        "18": "#323537",
+        "19": "#464b50",
+        "20": "#838184",
+        "21": "#c3c3c3"
+      },
       "selection_bg": "#a7a7a7",
       "selection_fg": "#1e1e1e"
     },
@@ -27037,9 +28199,16 @@
       ],
       "cursor_bg": "#bcbabe",
       "cursor_border": "#bcbabe",
-      "cursor_fg": "#bcbabe",
+      "cursor_fg": "#2e2a31",
       "foreground": "#bcbabe",
-      "indexed": {},
+      "indexed": {
+        "16": "#d65407",
+        "17": "#c720ca",
+        "18": "#4a464d",
+        "19": "#666369",
+        "20": "#9f9da2",
+        "21": "#d8d7da"
+      },
       "selection_bg": "#bcbabe",
       "selection_fg": "#2e2a31"
     },
@@ -27077,9 +28246,16 @@
       ],
       "cursor_bg": "#6c696e",
       "cursor_border": "#6c696e",
-      "cursor_fg": "#6c696e",
+      "cursor_fg": "#ffffff",
       "foreground": "#6c696e",
-      "indexed": {},
+      "indexed": {
+        "16": "#d65407",
+        "17": "#e013d0",
+        "18": "#e1e1e2",
+        "19": "#c4c3c5",
+        "20": "#89878b",
+        "21": "#4f4b51"
+      },
       "selection_bg": "#6c696e",
       "selection_fg": "#ffffff"
     },
@@ -27117,9 +28293,16 @@
       ],
       "cursor_bg": "#c3c2c4",
       "cursor_border": "#c3c2c4",
-      "cursor_fg": "#c3c2c4",
+      "cursor_fg": "#2e2a31",
       "foreground": "#c3c2c4",
-      "indexed": {},
+      "indexed": {
+        "16": "#d65407",
+        "17": "#d41acd",
+        "18": "#4b484e",
+        "19": "#69666b",
+        "20": "#a5a3a6",
+        "21": "#e1e0e1"
+      },
       "selection_bg": "#c3c2c4",
       "selection_fg": "#2e2a31"
     },
@@ -27418,9 +28601,16 @@
       ],
       "cursor_bg": "#555e70",
       "cursor_border": "#555e70",
-      "cursor_fg": "#555e70",
+      "cursor_fg": "#1b1d24",
       "foreground": "#555e70",
-      "indexed": {},
+      "indexed": {
+        "16": "#f67544",
+        "17": "#ff00aa",
+        "18": "#282b36",
+        "19": "#2f303d",
+        "20": "#3f4859",
+        "21": "#b2bfd9"
+      },
       "selection_bg": "#555e70",
       "selection_fg": "#1b1d24"
     },
@@ -27458,9 +28648,16 @@
       ],
       "cursor_bg": "#8b9cbe",
       "cursor_border": "#8b9cbe",
-      "cursor_fg": "#8b9cbe",
+      "cursor_fg": "#17191e",
       "foreground": "#8b9cbe",
-      "indexed": {},
+      "indexed": {
+        "16": "#85ffe0",
+        "17": "#ff3d81",
+        "18": "#22262d",
+        "19": "#3c3f4c",
+        "20": "#555e70",
+        "21": "#b2bfd9"
+      },
       "selection_bg": "#8b9cbe",
       "selection_fg": "#17191e"
     },
@@ -27794,9 +28991,16 @@
       ],
       "cursor_bg": "#5b778c",
       "cursor_border": "#5b778c",
-      "cursor_fg": "#5b778c",
+      "cursor_fg": "#041523",
       "foreground": "#5b778c",
-      "indexed": {},
+      "indexed": {
+        "16": "#9198a3",
+        "17": "#977d7c",
+        "18": "#122339",
+        "19": "#003552",
+        "20": "#6b6977",
+        "21": "#333238"
+      },
       "selection_bg": "#5b778c",
       "selection_fg": "#041523"
     },
@@ -28064,9 +29268,16 @@
       ],
       "cursor_bg": "#cccccc",
       "cursor_border": "#cccccc",
-      "cursor_fg": "#cccccc",
+      "cursor_fg": "#0c0c0c",
       "foreground": "#cccccc",
-      "indexed": {},
+      "indexed": {
+        "16": "#c19c00",
+        "17": "#13a10e",
+        "18": "#2f2f2f",
+        "19": "#535353",
+        "20": "#b9b9b9",
+        "21": "#dfdfdf"
+      },
       "selection_bg": "#cccccc",
       "selection_fg": "#0c0c0c"
     },
@@ -28104,9 +29315,16 @@
       ],
       "cursor_bg": "#767676",
       "cursor_border": "#767676",
-      "cursor_fg": "#767676",
+      "cursor_fg": "#f2f2f2",
       "foreground": "#767676",
-      "indexed": {},
+      "indexed": {
+        "16": "#f9f1a5",
+        "17": "#16c60c",
+        "18": "#e5e5e5",
+        "19": "#d9d9d9",
+        "20": "#ababab",
+        "21": "#414141"
+      },
       "selection_bg": "#767676",
       "selection_fg": "#f2f2f2"
     },
@@ -28144,9 +29362,16 @@
       ],
       "cursor_bg": "#a8a8a8",
       "cursor_border": "#a8a8a8",
-      "cursor_fg": "#a8a8a8",
+      "cursor_fg": "#000000",
       "foreground": "#a8a8a8",
-      "indexed": {},
+      "indexed": {
+        "16": "#a85400",
+        "17": "#00a800",
+        "18": "#1c1c1c",
+        "19": "#383838",
+        "20": "#7e7e7e",
+        "21": "#d2d2d2"
+      },
       "selection_bg": "#a8a8a8",
       "selection_fg": "#000000"
     },
@@ -28184,9 +29409,16 @@
       ],
       "cursor_bg": "#545454",
       "cursor_border": "#545454",
-      "cursor_fg": "#545454",
+      "cursor_fg": "#fcfcfc",
       "foreground": "#545454",
-      "indexed": {},
+      "indexed": {
+        "16": "#fcfc54",
+        "17": "#54fc54",
+        "18": "#e0e0e0",
+        "19": "#c4c4c4",
+        "20": "#7e7e7e",
+        "21": "#2a2a2a"
+      },
       "selection_bg": "#545454",
       "selection_fg": "#fcfcfc"
     },
@@ -28224,9 +29456,16 @@
       ],
       "cursor_bg": "#c0c0c0",
       "cursor_border": "#c0c0c0",
-      "cursor_fg": "#c0c0c0",
+      "cursor_fg": "#000000",
       "foreground": "#c0c0c0",
-      "indexed": {},
+      "indexed": {
+        "16": "#808000",
+        "17": "#008000",
+        "18": "#1c1c1c",
+        "19": "#383838",
+        "20": "#a2a2a2",
+        "21": "#dedede"
+      },
       "selection_bg": "#c0c0c0",
       "selection_fg": "#000000"
     },
@@ -28264,9 +29503,16 @@
       ],
       "cursor_bg": "#545454",
       "cursor_border": "#545454",
-      "cursor_fg": "#545454",
+      "cursor_fg": "#fcfcfc",
       "foreground": "#545454",
-      "indexed": {},
+      "indexed": {
+        "16": "#fcfc54",
+        "17": "#54fc54",
+        "18": "#e8e8e8",
+        "19": "#d4d4d4",
+        "20": "#7e7e7e",
+        "21": "#2a2a2a"
+      },
       "selection_bg": "#545454",
       "selection_fg": "#fcfcfc"
     },
@@ -28304,9 +29550,16 @@
       ],
       "cursor_bg": "#c0c0c0",
       "cursor_border": "#c0c0c0",
-      "cursor_fg": "#c0c0c0",
+      "cursor_fg": "#000000",
       "foreground": "#c0c0c0",
-      "indexed": {},
+      "indexed": {
+        "16": "#808000",
+        "17": "#008000",
+        "18": "#2a2a2a",
+        "19": "#555555",
+        "20": "#a1a1a1",
+        "21": "#e0e0e0"
+      },
       "selection_bg": "#c0c0c0",
       "selection_fg": "#000000"
     },
@@ -28344,9 +29597,16 @@
       ],
       "cursor_bg": "#808080",
       "cursor_border": "#808080",
-      "cursor_fg": "#808080",
+      "cursor_fg": "#ffffff",
       "foreground": "#808080",
-      "indexed": {},
+      "indexed": {
+        "16": "#ffff00",
+        "17": "#00ff00",
+        "18": "#eaeaea",
+        "19": "#d5d5d5",
+        "20": "#a0a0a0",
+        "21": "#404040"
+      },
       "selection_bg": "#808080",
       "selection_fg": "#ffffff"
     },
@@ -28423,9 +29683,16 @@
       ],
       "cursor_bg": "#cabcb1",
       "cursor_border": "#cabcb1",
-      "cursor_fg": "#cabcb1",
+      "cursor_fg": "#231e18",
       "foreground": "#cabcb1",
-      "indexed": {},
+      "indexed": {
+        "16": "#ca7f32",
+        "17": "#b49368",
+        "18": "#302b25",
+        "19": "#48413a",
+        "20": "#b4a490",
+        "21": "#d7c8bc"
+      },
       "selection_bg": "#cabcb1",
       "selection_fg": "#231e18"
     },
@@ -28609,9 +29876,16 @@
       ],
       "cursor_bg": "#939599",
       "cursor_border": "#939599",
-      "cursor_fg": "#939599",
+      "cursor_fg": "#282b35",
       "foreground": "#939599",
-      "indexed": {},
+      "indexed": {
+        "16": "#786dc5",
+        "17": "#c77c48",
+        "18": "#3d4048",
+        "19": "#53555d",
+        "20": "#7e8086",
+        "21": "#a9aaae"
+      },
       "selection_bg": "#939599",
       "selection_fg": "#282b35"
     },
@@ -28846,9 +30120,16 @@
       ],
       "cursor_bg": "#dcdccc",
       "cursor_border": "#dcdccc",
-      "cursor_fg": "#dcdccc",
+      "cursor_fg": "#383838",
       "foreground": "#dcdccc",
-      "indexed": {},
+      "indexed": {
+        "16": "#dfaf8f",
+        "17": "#000000",
+        "18": "#404040",
+        "19": "#606060",
+        "20": "#808080",
+        "21": "#c0c0c0"
+      },
       "selection_bg": "#dcdccc",
       "selection_fg": "#383838"
     },
