@@ -2990,7 +2990,7 @@ impl super::TermWindow {
                                 pane: params.pane,
                             });
 
-                            if glyph_color == bg_color {
+                            if glyph_color == bg_color || cluster.attrs.invisible() {
                                 // Essentially invisible: don't render it, as anti-aliasing
                                 // can cause a ghostly outline of the invisible glyph to appear.
                                 continue;

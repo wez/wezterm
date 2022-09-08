@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
   [#2491](https://github.com/wez/wezterm/pull/2492)
 * Panic when processing a sixel with inconsistent width information
   [#2500](https://github.com/wez/wezterm/issues/2500)
+* Cells with the invisible/hidden attribute are now invisible
 
 ### 20220905-102802-7d4b8249
 
