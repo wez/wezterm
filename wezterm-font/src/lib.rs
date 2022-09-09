@@ -95,14 +95,20 @@ impl LoadedFont {
     }
 
     fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
+        let has_last_resort_font = cfg!(any(test, feature = "vendor-last-resort"));
+
         let mut loaded = false;
         {
             let mut handles = self.handles.borrow_mut();
             for h in extra_handles {
                 if !handles.iter().any(|existing| *existing == h) {
-                    let idx = handles.len() - 1;
-                    handles.insert(idx, h);
-                    self.rasterizers.borrow_mut().remove(&idx);
+                    if has_last_resort_font {
+                        let idx = handles.len() - 1;
+                        handles.insert(idx, h);
+                        self.rasterizers.borrow_mut().remove(&idx);
+                    } else {
+                        handles.push(h);
+                    }
                     loaded = true;
                 }
             }
@@ -415,7 +421,7 @@ impl FallbackResolveInfo {
                 let url = "https://wezfurlong.org/wezterm/config/fonts.html";
                 log::warn!(
                     "No fonts contain glyphs for these codepoints: {}.\n\
-                     Placeholder 'Last Resort' glyphs are being displayed instead.\n\
+                     Placeholder glyphs are being displayed instead.\n\
                      You may wish to install additional fonts, or adjust your\n\
                      configuration so that it can find them.\n\
                      {} has more information about configuring fonts.\n\

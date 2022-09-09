@@ -10,7 +10,6 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Range;
 use termwiz::cell::{unicode_column_width, Presentation};
-use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::Direction;
 
@@ -74,12 +73,6 @@ pub struct HarfbuzzShaper {
     metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
     features: Vec<harfbuzz::hb_feature_t>,
     lang: harfbuzz::hb_language_t,
-}
-
-#[derive(Error, Debug)]
-#[error("No more fallbacks while shaping {}", .text.escape_unicode())]
-struct NoMoreFallbacksError {
-    text: String,
 }
 
 /// Make a string holding a set of unicode replacement
@@ -223,11 +216,17 @@ impl HarfbuzzShaper {
 
         let shaped_any;
 
+        // We set this to true when we've run out of fallback fonts
+        // to try, including any potential last resort font.
+        // In that case, we accept shaper info with codepoint==0 and
+        // will use the notdef glyph from the base font.
+        let mut no_more_fallbacks = false;
+
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
                     // Ignore presentation if we've reached the last resort font
-                    if font_idx + 1 < self.fonts.len() {
+                    if !no_more_fallbacks && font_idx + 1 < self.fonts.len() {
                         if let Some(p) = presentation {
                             if pair.presentation != p {
                                 log::trace!(
@@ -272,18 +271,50 @@ impl HarfbuzzShaper {
                 }
                 None => {
                     // Note: since we added a last resort font, this case
-                    // shouldn't ever get hit in practice
+                    // shouldn't ever get hit in practice, but if the last
+                    // resort font wasn't bundled and isn't installed,
+                    // we may land here.
                     for c in s.chars() {
                         no_glyphs.push(c);
                     }
-                    return Err(NoMoreFallbacksError {
-                        text: s.to_string(),
+
+                    if presentation.is_some() {
+                        log::debug!("last resort, but no last resort font, retry shape with no presentation");
+                        // We hit the last resort and we have an explicit presentation.
+                        // This is a little awkward; we want to record the missing
+                        // glyphs so that we can resolve them async, but we also
+                        // want to try the current set of fonts without forcing
+                        // the presentation match as we might find the results
+                        // that way.
+                        // Let's restart the shape but pretend that no specific
+                        // presentation was used.
+                        // We'll probably match the emoji presentation for something,
+                        // but might potentially discover the text presentation for
+                        // that glyph in a fallback font and swap it out a little
+                        // later after a flash of showing the emoji one.
+                        return self.do_shape(
+                            0,
+                            s,
+                            font_size,
+                            dpi,
+                            no_glyphs,
+                            None,
+                            direction,
+                            range,
+                            presentation_width,
+                        );
                     }
-                    .into());
+
+                    // One more go around to pick up the base font and
+                    // accept using the notdef glyph from that.
+                    no_more_fallbacks = true;
+                    font_idx = 0;
+                    continue;
                 }
             }
         }
 
+        #[cfg(any(test, feature = "vendor-last-resort"))]
         if font_idx > 0 && font_idx + 1 == self.fonts.len() {
             // We are the last resort font, so each codepoint is considered
             // to be worthy of a fallback lookup
@@ -292,7 +323,7 @@ impl HarfbuzzShaper {
             }
 
             if presentation.is_some() {
-                log::debug!("hit last resort, retry shape with no presentation, starting");
+                log::debug!("hit last resort, retry shape with no presentation");
                 // We hit the last resort and we have an explicit presentation.
                 // This is a little awkward; we want to record the missing
                 // glyphs so that we can resolve them async, but we also
@@ -405,14 +436,14 @@ impl HarfbuzzShaper {
                 y_offset: pos.y_offset,
             };
 
-            if info.codepoint == 0 {
+            if info.codepoint == 0 && !no_more_fallbacks {
                 cluster_info.incomplete = true;
             }
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
                 // Don't fragment runs of unresolved codepoints; they could be a sequence
                 // that shapes together in a fallback font.
-                if info.codepoint == 0 {
+                if info.codepoint == 0 && !no_more_fallbacks {
                     let prior = cluster.last_mut().unwrap();
                     // This logic essentially merges `info` into `prior` by
                     // extending the length of prior by `info`.

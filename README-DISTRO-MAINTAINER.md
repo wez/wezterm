@@ -55,6 +55,35 @@ It has the following effects:
 
 * `check_for_updates` will default to `false`
 
+### Un-bundling vendored fonts
+
+By default, wezterm will compile in a handful of fonts in order to provide a
+consistent out of the box experience on all platforms with minimal installation
+hassle.
+
+If your distribution offers those fonts as installable packages, then it is
+recommended that you skip compiling in that font by disabling the associated
+feature:
+
+* `vendor-last-resort-font` - causes
+  [LastResortHE-Regular.ttf](https://github.com/unicode-org/last-resort-font)
+  to be compiled in and used as a last resort font (you probably do NOT want to
+  install this font globally).
+* `vendor-nerd-font-symbols-font` - causes [Symbols Nerd Font
+  Mono](https://github.com/ryanoasis/nerd-fonts/blob/master/patched-fonts/NerdFontsSymbolsOnly/complete/Symbols-1000-em%20Nerd%20Font%20Complete%20Mono.ttf)
+  to be compiled in.
+* `vendor-jetbrains-font` - causes `JetBrains Mono` to be compiled in
+* `vendor-roboto-font` - causes `Roboto` to be compiled in
+* `vendor-noto-emoji-font` - causes `Noto Color Emoji` to be compiled in.
+* `vendored-fonts` - causes all of the above `vendor-*-font` features to be enabled
+
+Note that wezterm requires at least the following fonts to be available, either
+on the system or built-in, in its default configuration, in order to start
+correctly:
+
+* `JetBrains Mono`
+* `Roboto`
+
 If there are other behaviors that you'd like to change from the default, please
 raise issue(s) for them so that we can figure out how to make it easier for you
 to maintain your wezterm package.
@@ -65,6 +94,6 @@ If your distro doesn't include any support for Wayland, you will need to
 disable that feature when you build wezterm:
 
 ```
-cargo build --release -p wezterm-gui --no-default-features --features distro-defaults
+cargo build --release -p wezterm-gui --no-default-features --features distro-defaults,vendored-fonts
 ```
 

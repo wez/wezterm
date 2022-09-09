@@ -694,54 +694,68 @@ impl ParsedFont {
 /// sane fallback fonts.
 /// This function loads those.
 pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Result<()> {
+    #[allow(unused_macros)]
     macro_rules! font {
         ($font:literal) => {
             (include_bytes!($font) as &'static [u8], $font)
         };
     }
     let lib = crate::ftwrap::Library::new()?;
-    for (data, name) in &[
-        font!("../../assets/fonts/JetBrainsMono-BoldItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Bold.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraBoldItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraLightItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Italic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-LightItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Light.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-MediumItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Medium.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Regular.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ThinItalic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Thin.ttf"),
-        font!("../../assets/fonts/Roboto-Black.ttf"),
-        font!("../../assets/fonts/Roboto-BlackItalic.ttf"),
-        font!("../../assets/fonts/Roboto-Bold.ttf"),
-        font!("../../assets/fonts/Roboto-BoldItalic.ttf"),
-        font!("../../assets/fonts/Roboto-Italic.ttf"),
-        font!("../../assets/fonts/Roboto-Light.ttf"),
-        font!("../../assets/fonts/Roboto-LightItalic.ttf"),
-        font!("../../assets/fonts/Roboto-Medium.ttf"),
-        font!("../../assets/fonts/Roboto-MediumItalic.ttf"),
-        font!("../../assets/fonts/Roboto-Regular.ttf"),
-        font!("../../assets/fonts/Roboto-Thin.ttf"),
-        font!("../../assets/fonts/Roboto-ThinItalic.ttf"),
-        font!("../../assets/fonts/NotoColorEmoji.ttf"),
-        font!("../../assets/fonts/Symbols-Nerd-Font-Mono.ttf"),
-        font!("../../assets/fonts/LastResortHE-Regular.ttf"),
-    ] {
-        let locator = FontDataHandle {
-            source: FontDataSource::BuiltIn { data, name },
-            index: 0,
-            variation: 0,
-            origin: FontOrigin::BuiltIn,
-            coverage: None,
-        };
-        let face = lib.face_from_locator(&locator)?;
-        let mut parsed = ParsedFont::from_face(&face, locator)?;
-        parsed.is_built_in_fallback = true;
-        font_info.push(parsed);
+
+    let built_ins: &[&[(&[u8], &str)]] = &[
+        #[cfg(any(test, feature = "vendor-jetbrains"))]
+        &[
+            font!("../../assets/fonts/JetBrainsMono-BoldItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Bold.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-ExtraBoldItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-ExtraLightItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Italic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-LightItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Light.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-MediumItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Medium.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Regular.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-ThinItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-Thin.ttf"),
+        ],
+        #[cfg(any(test, feature = "vendor-roboto"))]
+        &[
+            font!("../../assets/fonts/Roboto-Black.ttf"),
+            font!("../../assets/fonts/Roboto-BlackItalic.ttf"),
+            font!("../../assets/fonts/Roboto-Bold.ttf"),
+            font!("../../assets/fonts/Roboto-BoldItalic.ttf"),
+            font!("../../assets/fonts/Roboto-Italic.ttf"),
+            font!("../../assets/fonts/Roboto-Light.ttf"),
+            font!("../../assets/fonts/Roboto-LightItalic.ttf"),
+            font!("../../assets/fonts/Roboto-Medium.ttf"),
+            font!("../../assets/fonts/Roboto-MediumItalic.ttf"),
+            font!("../../assets/fonts/Roboto-Regular.ttf"),
+            font!("../../assets/fonts/Roboto-Thin.ttf"),
+            font!("../../assets/fonts/Roboto-ThinItalic.ttf"),
+        ],
+        #[cfg(any(test, feature = "vendor-noto-emoji"))]
+        &[font!("../../assets/fonts/NotoColorEmoji.ttf")],
+        #[cfg(any(test, feature = "vendor-nerd-font-symbols"))]
+        &[font!("../../assets/fonts/Symbols-Nerd-Font-Mono.ttf")],
+        #[cfg(any(test, feature = "vendor-last-resort"))]
+        &[font!("../../assets/fonts/LastResortHE-Regular.ttf")],
+    ];
+    for bundle in built_ins {
+        for (data, name) in bundle.iter() {
+            let locator = FontDataHandle {
+                source: FontDataSource::BuiltIn { data, name },
+                index: 0,
+                variation: 0,
+                origin: FontOrigin::BuiltIn,
+                coverage: None,
+            };
+            let face = lib.face_from_locator(&locator)?;
+            let mut parsed = ParsedFont::from_face(&face, locator)?;
+            parsed.is_built_in_fallback = true;
+            font_info.push(parsed);
+        }
     }
 
     Ok(())
