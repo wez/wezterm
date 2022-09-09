@@ -244,6 +244,32 @@ gentoo_deps() {
   done
 }
 
+void_deps() {
+  XBPS="$SUDO xbps-install"
+  $XBPS -S \
+    'base-devel' \
+    'cargo' \
+    'cmake' \
+    'fontconfig' \
+    'git' \
+    'hicolor-icon-theme' \
+    'libX11' \
+    'libxkbcommon-x11' \
+    'pkgconf' \
+    'python3' \
+    'rust' \
+    'wayland' \
+    'xcb-util' \
+    'xcb-util-image' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+
+  if test_flag; then
+    $XBPS -S \
+      'openssh'
+  fi
+}
+
 fallback_method() {
   if test -e /etc/alpine-release; then
     alpine_deps
@@ -304,6 +330,9 @@ case $ID in
   ;;
   gentoo)
     gentoo_deps
+  ;;
+  void)
+    void_deps
   ;;
   *)
     echo "Couldn't find OS by ID, found ID: $ID"
