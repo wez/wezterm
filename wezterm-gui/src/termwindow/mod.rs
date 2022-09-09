@@ -703,23 +703,27 @@ impl TermWindow {
             shape_cache: RefCell::new(LfuCache::new(
                 "shape_cache.hit.rate",
                 "shape_cache.miss.rate",
-                1024,
+                |config| config.shape_cache_size,
+                &config,
             )),
             line_state_cache: RefCell::new(LfuCacheU64::new(
                 "line_state_cache.hit.rate",
                 "line_state_cache.miss.rate",
-                1024,
+                |config| config.line_state_cache_size,
+                &config,
             )),
             next_line_state_id: 0,
             line_quad_cache: RefCell::new(LfuCache::new(
                 "line_quad_cache.hit.rate",
                 "line_quad_cache.miss.rate",
-                1024,
+                |config| config.line_quad_cache_size,
+                &config,
             )),
             line_to_ele_shape_cache: RefCell::new(LfuCache::new(
                 "line_to_ele_shape_cache.hit.rate",
                 "line_to_ele_shape_cache.miss.rate",
-                1024,
+                |config| config.line_to_ele_shape_cache_size,
+                &config,
             )),
             last_status_call: Instant::now(),
             cursor_blink_state: RefCell::new(ColorEase::new(
@@ -1536,12 +1540,22 @@ impl TermWindow {
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_generation += 1;
-        self.shape_cache.borrow_mut().clear();
+        {
+            let mut shape_cache = self.shape_cache.borrow_mut();
+            shape_cache.update_config(&config);
+            shape_cache.clear();
+        }
+        self.line_state_cache.borrow_mut().update_config(&config);
+        self.line_quad_cache.borrow_mut().update_config(&config);
+        self.line_to_ele_shape_cache
+            .borrow_mut()
+            .update_config(&config);
         self.fancy_tab_bar.take();
         self.invalidate_fancy_tab_bar();
         self.invalidate_modal();
         self.input_map = InputMap::new(&config);
         self.leader_is_down = None;
+        self.render_state.as_mut().map(|rs| rs.config_changed());
         let dimensions = self.dimensions;
 
         if let Err(err) = self.fonts.config_changed(&config) {

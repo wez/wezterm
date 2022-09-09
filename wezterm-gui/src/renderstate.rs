@@ -129,9 +129,9 @@ pub struct RenderLayer {
 impl RenderLayer {
     pub fn new(context: &Rc<GliumContext>, num_quads: usize, zindex: i8) -> anyhow::Result<Self> {
         let vb = [
-            Self::compute_vertices(context, 128)?,
+            Self::compute_vertices(context, 32)?,
             Self::compute_vertices(context, num_quads)?,
-            Self::compute_vertices(context, 128)?,
+            Self::compute_vertices(context, 32)?,
         ];
 
         Ok(Self {
@@ -168,6 +168,11 @@ impl RenderLayer {
         num_quads: usize,
     ) -> anyhow::Result<TripleVertexBuffer> {
         let verts = vec![Vertex::default(); num_quads * VERTICES_PER_CELL];
+        log::trace!(
+            "compute_vertices num_quads={}, allocated {} bytes",
+            num_quads,
+            verts.len() * std::mem::size_of::<Vertex>()
+        );
         let mut indices = vec![];
         indices.reserve(num_quads * INDICES_PER_CELL);
 
@@ -294,9 +299,9 @@ impl RenderState {
         for layer in self.layers.borrow().iter() {
             for vb_idx in 0..3 {
                 if let Some(need_quads) = layer.need_more_quads(vb_idx) {
-                    // Round up to next multiple of 1024 that is >=
+                    // Round up to next multiple of 128 that is >=
                     // the number of needed quads for this frame
-                    let num_quads = (need_quads + 1023) & !1023;
+                    let num_quads = (need_quads + 127) & !127;
                     layer.reallocate_quads(vb_idx, num_quads).with_context(|| {
                         format!(
                             "Failed to allocate {} quads (needed {})",
@@ -353,6 +358,10 @@ impl RenderState {
             ),
             format!("#version {}\n{}", version, include_str!("glyph-frag.glsl")),
         )
+    }
+
+    pub fn config_changed(&mut self) {
+        self.glyph_cache.borrow_mut().config_changed();
     }
 
     pub fn recreate_texture_atlas(

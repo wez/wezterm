@@ -243,6 +243,8 @@ impl DecodedImage {
     }
 }
 
+/// A number of items here are HashMaps rather than LfuCaches;
+/// eviction is managed by recreating Self when the Atlas is filled
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
@@ -266,7 +268,8 @@ impl GlyphCache<ImageTexture> {
             image_cache: LfuCacheU64::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
-                256,
+                |config| config.glyph_cache_image_cache_size,
+                &fonts.config(),
             ),
             frame_cache: HashMap::new(),
             atlas,
@@ -316,7 +319,8 @@ impl GlyphCache<SrgbTexture2d> {
             image_cache: LfuCacheU64::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
-                256, // FIXME: make configurable
+                |config| config.glyph_cache_image_cache_size,
+                &fonts.config(),
             ),
             frame_cache: HashMap::new(),
             atlas,
@@ -393,6 +397,11 @@ impl<T: Texture2d> GlyphCache<T> {
         };
         self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
+    }
+
+    pub fn config_changed(&mut self) {
+        let config = self.fonts.config();
+        self.image_cache.update_config(&config);
     }
 
     /// Perform the load and render of a glyph

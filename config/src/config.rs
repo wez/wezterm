@@ -644,6 +644,17 @@ pub struct Config {
     #[dynamic(default = "default_max_fps")]
     pub max_fps: u8,
 
+    #[dynamic(default = "default_shape_cache_size")]
+    pub shape_cache_size: usize,
+    #[dynamic(default = "default_line_state_cache_size")]
+    pub line_state_cache_size: usize,
+    #[dynamic(default = "default_line_quad_cache_size")]
+    pub line_quad_cache_size: usize,
+    #[dynamic(default = "default_line_to_ele_shape_cache_size")]
+    pub line_to_ele_shape_cache_size: usize,
+    #[dynamic(default = "default_glyph_cache_image_cache_size")]
+    pub glyph_cache_image_cache_size: usize,
+
     #[dynamic(default)]
     pub visual_bell: VisualBell,
 
@@ -1596,6 +1607,26 @@ impl DroppedFileQuoting {
             Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
         }
     }
+}
+
+fn default_glyph_cache_image_cache_size() -> usize {
+    256
+}
+
+fn default_shape_cache_size() -> usize {
+    1024
+}
+
+fn default_line_state_cache_size() -> usize {
+    1024
+}
+
+fn default_line_quad_cache_size() -> usize {
+    1024
+}
+
+fn default_line_to_ele_shape_cache_size() -> usize {
+    1024
 }
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use cache_advisor::CacheAdvisor;
+use config::ConfigHandle;
 use fnv::FnvHashMap;
 use std::borrow::Borrow;
 use std::cmp::Eq;
@@ -10,6 +11,8 @@ use std::hash::Hash;
 /// are evicted from the temporary cache before the main cache.
 /// Frequently used items are promoted from temporary to main cache.
 const ENTRY_PERCENT: u8 = 20;
+
+pub type CapFunc = fn(&ConfigHandle) -> usize;
 
 /// A cache using a Least-Frequently-Used eviction policy.
 /// If K is u64 you should use LfuCacheU64 instead as it has
@@ -22,10 +25,17 @@ pub struct LfuCache<K, V> {
     next_id: u64,
     advisor: CacheAdvisor,
     cap: usize,
+    cap_func: CapFunc,
 }
 
 impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
-    pub fn new(hit: &'static str, miss: &'static str, cap: usize) -> Self {
+    pub fn new(
+        hit: &'static str,
+        miss: &'static str,
+        cap_func: CapFunc,
+        config: &ConfigHandle,
+    ) -> Self {
+        let cap = cap_func(config);
         Self {
             hit,
             miss,
@@ -34,6 +44,7 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
             advisor: CacheAdvisor::new(cap, ENTRY_PERCENT),
             next_id: 0,
             cap,
+            cap_func,
         }
     }
 
@@ -41,8 +52,17 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
         self.map.len()
     }
 
+    pub fn update_config(&mut self, config: &ConfigHandle) {
+        let new_cap = (self.cap_func)(config);
+        if new_cap != self.cap {
+            self.cap = new_cap;
+            self.clear();
+        }
+    }
+
     pub fn clear(&mut self) {
         self.map.clear();
+        self.key_to_id.clear();
         self.advisor = CacheAdvisor::new(self.cap, ENTRY_PERCENT);
     }
 
@@ -101,21 +121,37 @@ pub struct LfuCacheU64<V> {
     map: FnvHashMap<u64, V>,
     advisor: CacheAdvisor,
     cap: usize,
+    cap_func: CapFunc,
 }
 
 impl<V> LfuCacheU64<V> {
-    pub fn new(hit: &'static str, miss: &'static str, cap: usize) -> Self {
+    pub fn new(
+        hit: &'static str,
+        miss: &'static str,
+        cap_func: CapFunc,
+        config: &ConfigHandle,
+    ) -> Self {
+        let cap = cap_func(config);
         Self {
             hit,
             miss,
             map: FnvHashMap::default(),
             advisor: CacheAdvisor::new(cap, ENTRY_PERCENT),
             cap,
+            cap_func,
         }
     }
 
     pub fn len(&self) -> usize {
         self.map.len()
+    }
+
+    pub fn update_config(&mut self, config: &ConfigHandle) {
+        let new_cap = (self.cap_func)(config);
+        if new_cap != self.cap {
+            self.cap = new_cap;
+            self.clear();
+        }
     }
 
     pub fn clear(&mut self) {
