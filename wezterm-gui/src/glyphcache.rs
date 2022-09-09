@@ -2,9 +2,7 @@ use super::utilsprites::RenderMetrics;
 use crate::cache::LfuCacheU64;
 use crate::customglyph::*;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
-#[cfg(test)]
-use ::window::bitmaps::ImageTexture;
-use ::window::bitmaps::{BitmapImage, Image, Texture2d};
+use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
@@ -257,7 +255,6 @@ pub struct GlyphCache<T: Texture2d> {
     pub color: HashMap<(RgbColor, NotNan<f32>), Sprite<T>>,
 }
 
-#[cfg(test)]
 impl GlyphCache<ImageTexture> {
     pub fn new_in_memory(fonts: &Rc<FontConfiguration>, size: usize) -> anyhow::Result<Self> {
         let surface = Rc::new(ImageTexture::new(size, size));

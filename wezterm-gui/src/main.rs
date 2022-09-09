@@ -1,11 +1,12 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
+use crate::glyphcache::GlyphCache;
 use ::window::*;
 use anyhow::{anyhow, Context};
 use clap::{Parser, ValueHint};
 use config::keyassignment::SpawnCommand;
-use config::{AllowSquareGlyphOverflow, ConfigHandle, SshDomain, SshMultiplexing};
+use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
@@ -782,10 +783,12 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     // a fully baked GUI environment running
     config::assign_error_callback(|err| eprintln!("{}", err));
 
-    let font_config = wezterm_font::FontConfiguration::new(
+    let font_config = Rc::new(wezterm_font::FontConfiguration::new(
         Some(config.clone()),
         config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
-    )?;
+    )?);
+
+    let render_metrics = crate::utilsprites::RenderMetrics::new(&font_config)?;
 
     let bidi_hint = if config.bidi_enabled {
         Some(config.bidi_direction)
@@ -807,6 +810,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         );
         let cell_clusters = line.cluster(bidi_hint);
         let ft_lib = wezterm_font::ftwrap::Library::new()?;
+
+        let mut glyph_cache = GlyphCache::new_in_memory(&font_config, 256)?;
 
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
@@ -839,8 +844,6 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     byte_lens.push(len);
                 }
             }
-            let base_metrics = font.metrics();
-
             println!("{:?}", cluster.direction);
 
             while let Some(info) = iter.next() {
@@ -883,51 +886,21 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     })
                     .unwrap_or_else(String::new);
 
-                let rasterized = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
-
-                let idx_metrics = font.metrics_for_idx(info.font_idx)?;
-
-                // Maximum width allowed for this glyph based on its unicode width and
-                // the dimensions of a cell
-                let max_pixel_width =
-                    base_metrics.cell_width.get() * (info.num_cells.max(1) as f64 + 0.25);
-                let aspect = (idx_metrics.cell_width / idx_metrics.cell_height).get();
-                // 0.7 is used for this as that is ~ the threshold for \u24e9 on a mac,
-                // which is looks squareish and for which it is desirable to allow to
-                // overflow.  0.5 is the typical monospace font aspect ratio.
-                let is_square_or_wide = aspect >= 0.7;
-                let allow_width_overflow = if is_square_or_wide {
-                    match config.allow_square_glyphs_to_overflow_width {
-                        AllowSquareGlyphOverflow::Never => false,
-                        AllowSquareGlyphOverflow::Always => true,
-                        AllowSquareGlyphOverflow::WhenFollowedBySpace => followed_by_space,
-                    }
-                } else {
-                    false
-                };
-
-                let scale = if !idx_metrics.is_scaled {
-                    // A bitmap font that isn't scaled to the requested height.
-                    let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
-                    let y_scaled_width = y_scale * rasterized.width as f64;
-
-                    if allow_width_overflow || y_scaled_width <= max_pixel_width {
-                        // prefer height-wise scaling
-                        y_scale
-                    } else {
-                        // otherwise just make it fit the width
-                        max_pixel_width / rasterized.width as f64
-                    }
-                } else {
-                    1.0
-                };
+                let cached_glyph = glyph_cache.cached_glyph(
+                    &info,
+                    &style,
+                    followed_by_space,
+                    &font,
+                    &render_metrics,
+                    info.num_cells,
+                )?;
 
                 println!(
                     "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={}{:<4} {}\n{:38}{}",
                     info.cluster,
                     text,
                     escaped,
-                    info.x_advance.get() * scale,
+                    cached_glyph.x_advance.get(),
                     info.num_cells,
                     glyph_name,
                     info.glyph_pos,
@@ -937,42 +910,38 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 );
 
                 if cmd.rasterize_ascii {
-                    let image = Image::with_rgba32(
-                        rasterized.width,
-                        rasterized.height,
-                        4 * rasterized.width,
-                        &rasterized.data,
-                    );
-
-                    let image = if scale != 1.0 {
-                        image.scale_by(scale)
-                    } else {
-                        image
-                    };
-
-                    let mut x = 0;
                     let mut glyph = String::new();
-                    let (width, _height) = image.image_dimensions();
-                    for rgba in image.pixel_data_slice().chunks(4) {
-                        if let [r, g, b, a] = rgba {
-                            // Use regular RGB for other terminals, but then
-                            // set RGBA for wezterm
-                            glyph.push_str(&format!(
+
+                    if let Some(texture) = &cached_glyph.texture {
+                        for y in texture.coords.min_y()..texture.coords.max_y() {
+                            for &px in texture.texture.image.borrow().horizontal_pixel_range(
+                                texture.coords.min_x() as usize,
+                                texture.coords.max_x() as usize,
+                                y as usize,
+                            ) {
+                                let px = u32::from_be(px);
+                                let (b, g, r, a) = (
+                                    (px >> 8) as u8,
+                                    (px >> 16) as u8,
+                                    (px >> 24) as u8,
+                                    (px & 0xff) as u8,
+                                );
+                                // Use regular RGB for other terminals, but then
+                                // set RGBA for wezterm
+                                glyph.push_str(&format!(
                                 "\x1b[38:2::{r}:{g}:{b}m\x1b[38:6::{r}:{g}:{b}:{a}m\u{2588}\x1b[0m"
                             ));
-                            x += 1;
-                            if x >= width {
-                                x = 0;
-                                glyph.push('\n');
                             }
+                            glyph.push('\n');
                         }
                     }
+
                     println!(
                         "bearing: x={} y={}, offset: x={} y={}",
-                        rasterized.bearing_x.get() * scale,
-                        rasterized.bearing_y.get() * scale,
-                        info.x_offset.get() * scale,
-                        info.y_offset.get() * scale,
+                        cached_glyph.bearing_x.get(),
+                        cached_glyph.bearing_y.get(),
+                        cached_glyph.x_offset.get(),
+                        cached_glyph.y_offset.get(),
                     );
                     println!("{glyph}");
                 }
