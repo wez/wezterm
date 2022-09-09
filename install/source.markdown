@@ -49,7 +49,7 @@ If your distribution has X11 but not Wayland, then you can build WezTerm without
 Wayland support by changing the `build` invocation:
 
 ```bash
-cargo build --release --no-default-features
+cargo build --release --no-default-features vendored-fonts
 ```
 
 Building without X11 is not supported.

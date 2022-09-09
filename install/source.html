@@ -178,7 +178,7 @@ take a closer look at the instructions!</strong></p>
 <p>By default, support for both X11 and Wayland is included on Unix systems.
 If your distribution has X11 but not Wayland, then you can build WezTerm without
 Wayland support by changing the <code>build</code> invocation:</p>
-<pre><code class="language-bash">cargo build --release --no-default-features
+<pre><code class="language-bash">cargo build --release --no-default-features vendored-fonts
 </code></pre>
 <p>Building without X11 is not supported.</p>
 
