@@ -1,11 +1,11 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::surface::line::CellRef;
+use finl_unicode::grapheme_clusters::Graphemes;
 use fixedbitset::FixedBitSet;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryInto;
 use std::num::NonZeroU8;
-use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -166,7 +166,7 @@ impl ClusteredLine {
         let mut clusters = self.clusters.iter();
         let cluster = clusters.next();
         ClusterLineCellIter {
-            graphemes: self.text.graphemes(true),
+            graphemes: Graphemes::new(&self.text),
             clusters,
             cluster,
             idx: 0,
@@ -307,7 +307,7 @@ impl ClusteredLine {
 }
 
 pub(crate) struct ClusterLineCellIter<'a> {
-    graphemes: unicode_segmentation::Graphemes<'a>,
+    graphemes: Graphemes<'a>,
     clusters: std::slice::Iter<'a, Cluster>,
     cluster: Option<&'a Cluster>,
     idx: usize,

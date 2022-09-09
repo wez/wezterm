@@ -11,11 +11,11 @@ use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
 use anyhow::anyhow;
 use config::{Dimension, DimensionContext};
+use finl_unicode::grapheme_clusters::Graphemes;
 use std::cell::RefCell;
 use std::rc::Rc;
 use termwiz::cell::{grapheme_column_width, Presentation};
 use termwiz::surface::Line;
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_font::units::PixelUnit;
 use wezterm_font::LoadedFont;
 use wezterm_term::color::{ColorAttribute, ColorPalette};
@@ -583,7 +583,7 @@ impl super::TermWindow {
 
                 for info in infos {
                     let cell_start = &s[info.cluster as usize..];
-                    let mut iter = cell_start.graphemes(true).peekable();
+                    let mut iter = Graphemes::new(cell_start).peekable();
                     let grapheme = iter
                         .next()
                         .ok_or_else(|| anyhow!("info.cluster didn't map into string"))?;

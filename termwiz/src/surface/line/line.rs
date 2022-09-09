@@ -7,6 +7,7 @@ use crate::surface::line::linebits::LineBits;
 use crate::surface::line::storage::{CellStorage, VisibleCellIter};
 use crate::surface::line::vecstorage::{VecStorage, VecStorageIter};
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
+use finl_unicode::grapheme_clusters::Graphemes;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use siphasher::sip128::{Hasher128, SipHasher};
@@ -15,7 +16,6 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, Weak};
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::{Direction, ParagraphDirectionHint};
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
@@ -137,7 +137,7 @@ impl Line {
     ) -> Line {
         let mut cells = Vec::new();
 
-        for sub in s.graphemes(true) {
+        for sub in Graphemes::new(s) {
             let cell = Cell::new_grapheme(sub, attrs.clone(), unicode_version);
             let width = cell.width();
             cells.push(cell);
@@ -850,7 +850,7 @@ impl Line {
         attr: CellAttributes,
         seqno: SequenceNo,
     ) {
-        for (i, c) in text.graphemes(true).enumerate() {
+        for (i, c) in Graphemes::new(text).enumerate() {
             let cell = Cell::new_grapheme(c, attr.clone(), None);
             let width = cell.width();
             self.set_cell(i + start_idx, cell, seqno);

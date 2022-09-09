@@ -3,6 +3,7 @@ use crate::terminalstate::{
     default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
 };
 use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex, DCS, ST};
+use finl_unicode::grapheme_clusters::Graphemes;
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
@@ -126,7 +127,7 @@ impl<'a> Performer<'a> {
             p.as_str()
         };
 
-        for g in unicode_segmentation::UnicodeSegmentation::graphemes(text, true) {
+        for g in Graphemes::new(text) {
             let g = self.remap_grapheme(g);
 
             let print_width = grapheme_column_width(g, Some(self.unicode_version));

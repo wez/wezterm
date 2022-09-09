@@ -17,6 +17,7 @@ config = { path = "../config" }
 crossbeam = "0.8"
 downcast-rs = "1.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
+finl_unicode = "1.0.2"
 hostname = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
@@ -40,7 +41,6 @@ termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.15"
 thiserror = "1.0"
-unicode-segmentation = "1.8"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }

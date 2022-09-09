@@ -1393,6 +1393,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "finl_unicode"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69152938fc3cf544c50065ed78d321d0c5bf3433344f227eb2323bcf78370d34"
+
+[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2628,6 +2634,7 @@ dependencies = [
  "crossbeam",
  "downcast-rs",
  "filedescriptor",
+ "finl_unicode",
  "flume",
  "hostname",
  "k9",
@@ -2654,7 +2661,6 @@ dependencies = [
  "termwiz-funcs",
  "textwrap 0.15.0",
  "thiserror",
- "unicode-segmentation",
  "url",
  "wezterm-dynamic",
  "wezterm-ssh",
@@ -4650,6 +4656,7 @@ dependencies = [
  "criterion",
  "env_logger",
  "filedescriptor",
+ "finl_unicode",
  "fixedbitset",
  "fnv",
  "hex",
@@ -4691,11 +4698,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "config",
+ "finl_unicode",
  "lazy_static",
  "luahelper",
  "terminfo",
  "termwiz",
- "unicode-segmentation",
  "wezterm-dynamic",
 ]
 
@@ -5488,6 +5495,7 @@ dependencies = [
  "enum-display-derive",
  "env_logger",
  "euclid",
+ "finl_unicode",
  "fontconfig",
  "freetype",
  "harfbuzz",
@@ -5500,7 +5508,6 @@ dependencies = [
  "rangeset",
  "termwiz",
  "thiserror",
- "unicode-segmentation",
  "walkdir",
  "wezterm-bidi",
  "wezterm-color-types",
@@ -5533,6 +5540,7 @@ dependencies = [
  "euclid",
  "fastrand",
  "filedescriptor",
+ "finl_unicode",
  "fnv",
  "frecency",
  "futures",
@@ -5701,6 +5709,7 @@ dependencies = [
  "bitflags",
  "csscolorparser",
  "env_logger",
+ "finl_unicode",
  "hex",
  "image",
  "k9",
@@ -5714,7 +5723,6 @@ dependencies = [
  "terminfo",
  "termwiz",
  "unicode-normalization",
- "unicode-segmentation",
  "url",
  "wezterm-bidi",
  "wezterm-dynamic",

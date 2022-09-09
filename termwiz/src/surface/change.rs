@@ -2,10 +2,10 @@ use crate::cell::{unicode_column_width, AttributeChange, CellAttributes};
 use crate::color::ColorAttribute;
 pub use crate::image::{ImageData, TextureCoordinate};
 use crate::surface::{CursorShape, CursorVisibility, Position};
+use finl_unicode::grapheme_clusters::Graphemes;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use unicode_segmentation::UnicodeSegmentation;
 
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
@@ -190,7 +190,7 @@ impl ChangeSequence {
             | Change::Title(_)
             | Change::ClearToEndOfScreen(_) => {}
             Change::Text(t) => {
-                for g in t.as_str().graphemes(true) {
+                for g in Graphemes::new(t.as_str()) {
                     if self.cursor_x == self.screen_cols {
                         self.cursor_y += 1;
                         self.cursor_x = 0;

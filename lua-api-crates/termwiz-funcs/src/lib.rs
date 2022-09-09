@@ -1,5 +1,6 @@
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Lua, ToLua};
+use finl_unicode::grapheme_clusters::Graphemes;
 use luahelper::impl_lua_conversion_dynamic;
 use std::str::FromStr;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
@@ -8,7 +9,6 @@ use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, SrgbaTuple};
 use termwiz::input::Modifiers;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::change::Change;
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
@@ -170,7 +170,8 @@ pub fn pad_left(mut result: String, width: usize) -> String {
 pub fn truncate_left(s: &str, max_width: usize) -> String {
     let mut result = vec![];
     let mut len = 0;
-    for g in s.graphemes(true).rev() {
+    let graphemes: Vec<_> = Graphemes::new(s).collect();
+    for &g in graphemes.iter().rev() {
         let g_len = grapheme_column_width(g, None);
         if g_len + len > max_width {
             break;
@@ -186,7 +187,7 @@ pub fn truncate_left(s: &str, max_width: usize) -> String {
 pub fn truncate_right(s: &str, max_width: usize) -> String {
     let mut result = String::new();
     let mut len = 0;
-    for g in s.graphemes(true) {
+    for g in Graphemes::new(s) {
         let g_len = grapheme_column_width(g, None);
         if g_len + len > max_width {
             break;

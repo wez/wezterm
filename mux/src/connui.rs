@@ -1,6 +1,7 @@
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use finl_unicode::grapheme_clusters::Graphemes;
 use promise::spawn::block_on;
 use promise::Promise;
 use std::sync::Mutex;
@@ -9,7 +10,6 @@ use termwiz::cell::{unicode_column_width, CellAttributes};
 use termwiz::lineedit::*;
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::*;
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_term::TerminalSize;
 
 #[derive(Default)]
@@ -146,7 +146,7 @@ impl ConnectionUIImpl {
             let mut reversed_string = String::new();
             let mut default_string = String::new();
             let mut col = 0;
-            for grapheme in message.graphemes(true) {
+            for grapheme in Graphemes::new(&message) {
                 // Once we've passed the elapsed column, full up the string
                 // that we'll render with default attributes instead.
                 if col > prog_width {

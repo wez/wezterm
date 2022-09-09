@@ -19,6 +19,7 @@ config = { path = "../config" }
 encoding_rs = "0.8"
 enum-display-derive = "0.1"
 euclid = "0.22"
+finl_unicode = "1.0.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"
@@ -29,7 +30,6 @@ ordered-float = "3.0"
 rangeset = { path = "../rangeset" }
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
-unicode-segmentation = "1.8"
 walkdir = "2"
 wezterm-color-types = { path = "../color-types" }
 wezterm-input-types = { path = "../wezterm-input-types" }

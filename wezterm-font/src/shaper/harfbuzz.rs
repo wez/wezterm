@@ -4,13 +4,13 @@ use crate::units::*;
 use crate::{ftwrap, hbwrap as harfbuzz};
 use anyhow::{anyhow, Context};
 use config::ConfigHandle;
+use finl_unicode::grapheme_clusters::Graphemes;
 use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Range;
 use termwiz::cell::{unicode_column_width, Presentation};
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_bidi::Direction;
 
 // Changing these will switch to using harfbuzz's opentype functions.
@@ -80,7 +80,7 @@ pub struct HarfbuzzShaper {
 /// original string.  That isn't perfect, but it should
 /// be good enough to indicate that something isn't right.
 fn make_question_string(s: &str) -> String {
-    let len = s.graphemes(true).count();
+    let len = Graphemes::new(s).count();
     let mut result = String::new();
     let c = if !is_question_string(s) {
         std::char::REPLACEMENT_CHARACTER

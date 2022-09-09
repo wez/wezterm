@@ -1,5 +1,6 @@
 use crate::termwindow::{PaneInformation, TabInformation, UIItem, UIItemType};
 use config::{ConfigHandle, TabBarColors};
+use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
 use termwiz::cell::{unicode_column_width, Cell, CellAttributes};
 use termwiz::color::ColorSpec;
@@ -401,7 +402,7 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     let mut print_buffer = String::new();
 
     fn flush_print(buf: &mut String, cells: &mut Vec<Cell>, pen: &CellAttributes) {
-        for g in unicode_segmentation::UnicodeSegmentation::graphemes(buf.as_str(), true) {
+        for g in Graphemes::new(buf.as_str()) {
             let cell = Cell::new_grapheme(g, pen.clone(), None);
             let width = cell.width();
             cells.push(cell);

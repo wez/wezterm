@@ -2,12 +2,12 @@ use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
 use crate::surface::line::CellRef;
+use finl_unicode::grapheme_clusters::Graphemes;
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cmp::min;
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub mod change;
@@ -407,7 +407,7 @@ impl Surface {
     }
 
     fn print_text(&mut self, text: &str) {
-        for g in UnicodeSegmentation::graphemes(text, true) {
+        for g in Graphemes::new(text) {
             if g == "\r\n" {
                 self.xpos = 0;
                 let new_y = self.ypos + 1;

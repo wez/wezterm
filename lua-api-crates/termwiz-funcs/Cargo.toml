@@ -8,9 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 config = { path = "../../config" }
+finl_unicode = "1.0.2"
 terminfo = "0.7"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 luahelper = { path = "../../luahelper" }
 termwiz = { path = "../../termwiz", features=["use_serde"] }
-unicode-segmentation = "1.8"
 lazy_static = "1.4"

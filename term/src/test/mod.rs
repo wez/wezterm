@@ -1177,8 +1177,8 @@ fn test_1573() {
     let recomposed: String = sequence.nfc().collect();
     assert_eq!(recomposed, "\u{d55c}");
 
-    use unicode_segmentation::UnicodeSegmentation;
-    let graphemes: Vec<_> = sequence.graphemes(true).collect();
+    use finl_unicode::grapheme_clusters::Graphemes;
+    let graphemes: Vec<_> = Graphemes::new(sequence).collect();
     assert_eq!(graphemes, vec![sequence]);
 }
 

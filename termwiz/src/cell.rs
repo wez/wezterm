@@ -5,6 +5,7 @@ use crate::emoji_variation::WCWIDTH_TABLE;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 use crate::widechar_width::WcWidth;
+use finl_unicode::grapheme_clusters::Graphemes;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::hash::{Hash, Hasher};
@@ -922,8 +923,7 @@ pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion {
 /// Calls through to `grapheme_column_width` for each grapheme
 /// and sums up the length.
 pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
-    use unicode_segmentation::UnicodeSegmentation;
-    s.graphemes(true)
+    Graphemes::new(s)
         .map(|g| grapheme_column_width(g, version))
         .sum()
 }
@@ -1023,7 +1023,6 @@ pub enum AttributeChange {
 #[cfg(test)]
 mod test {
     use super::*;
-    use unicode_segmentation::UnicodeSegmentation;
 
     #[test]
     fn teeny_string() {
@@ -1135,7 +1134,7 @@ mod test {
         let x_ideographic_space_x = "x\u{3000}x";
         assert_eq!(unicode_column_width(x_ideographic_space_x, None), 4);
         assert_eq!(
-            x_ideographic_space_x.graphemes(true).collect::<Vec<_>>(),
+            Graphemes::new(x_ideographic_space_x).collect::<Vec<_>>(),
             vec!["x".to_string(), "\u{3000}".to_string(), "x".to_string()],
         );
 
@@ -1155,21 +1154,17 @@ mod test {
         assert_eq!(unicode_column_width(victory_hand, None), 1);
 
         assert_eq!(
-            victory_hand_text_presentation
-                .graphemes(true)
-                .collect::<Vec<_>>(),
+            Graphemes::new(victory_hand_text_presentation).collect::<Vec<_>>(),
             vec![victory_hand_text_presentation.to_string()]
         );
         assert_eq!(
-            victory_hand.graphemes(true).collect::<Vec<_>>(),
+            Graphemes::new(victory_hand).collect::<Vec<_>>(),
             vec![victory_hand.to_string()]
         );
 
         let copyright_emoji_presentation = "\u{00A9}\u{FE0F}";
         assert_eq!(
-            copyright_emoji_presentation
-                .graphemes(true)
-                .collect::<Vec<_>>(),
+            Graphemes::new(copyright_emoji_presentation).collect::<Vec<_>>(),
             vec![copyright_emoji_presentation.to_string()]
         );
         assert_eq!(unicode_column_width(copyright_emoji_presentation, None), 2);
@@ -1180,9 +1175,7 @@ mod test {
 
         let copyright_text_presentation = "\u{00A9}";
         assert_eq!(
-            copyright_text_presentation
-                .graphemes(true)
-                .collect::<Vec<_>>(),
+            Graphemes::new(copyright_text_presentation).collect::<Vec<_>>(),
             vec![copyright_text_presentation.to_string()]
         );
         assert_eq!(unicode_column_width(copyright_text_presentation, None), 1);
@@ -1202,11 +1195,11 @@ mod test {
         assert_eq!(unicode_column_width(raised_fist_text, None), 2);
 
         assert_eq!(
-            raised_fist_text.graphemes(true).collect::<Vec<_>>(),
+            Graphemes::new(raised_fist_text).collect::<Vec<_>>(),
             vec![raised_fist_text.to_string()]
         );
         assert_eq!(
-            raised_fist.graphemes(true).collect::<Vec<_>>(),
+            Graphemes::new(raised_fist).collect::<Vec<_>>(),
             vec![raised_fist.to_string()]
         );
     }
