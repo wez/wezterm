@@ -795,14 +795,16 @@ mod test {
     fn checksum_area() {
         assert_eq!(
             round_trip_parse("\x1b[1;2;3;4;5;6*y"),
-            vec![Action::CSI(CSI::Window(Box::new(Window::ChecksumRectangularArea {
-                request_id: 1,
-                page_number: 2,
-                top: OneBased::new(3),
-                left: OneBased::new(4),
-                bottom: OneBased::new(5),
-                right: OneBased::new(6),
-            })))]
+            vec![Action::CSI(CSI::Window(Box::new(
+                Window::ChecksumRectangularArea {
+                    request_id: 1,
+                    page_number: 2,
+                    top: OneBased::new(3),
+                    left: OneBased::new(4),
+                    bottom: OneBased::new(5),
+                    right: OneBased::new(6),
+                }
+            )))]
         );
     }
 

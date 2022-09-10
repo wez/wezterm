@@ -2882,10 +2882,12 @@ mod test {
         );
         assert_eq!(
             parse('t', &[6, 15, 7], "\x1b[6;15;7t"),
-            vec![CSI::Window(Box::new(Window::ReportCellSizePixelsResponse {
-                width: Some(7),
-                height: Some(15)
-            }))]
+            vec![CSI::Window(Box::new(
+                Window::ReportCellSizePixelsResponse {
+                    width: Some(7),
+                    height: Some(15)
+                }
+            ))]
         );
     }
 
