@@ -1865,7 +1865,7 @@ impl TerminalState {
                 let height = Some(screen.physical_rows as i64);
                 let width = Some(screen.physical_cols as i64);
 
-                let response = Window::ResizeWindowCells { width, height };
+                let response = Box::new(Window::ResizeWindowCells { width, height });
                 write!(self.writer, "{}", CSI::Window(response)).ok();
                 self.writer.flush().ok();
             }
@@ -1874,19 +1874,19 @@ impl TerminalState {
                 let screen = self.screen();
                 let height = screen.physical_rows;
                 let width = screen.physical_cols;
-                let response = Window::ReportCellSizePixelsResponse {
+                let response = Box::new(Window::ReportCellSizePixelsResponse {
                     width: Some((self.pixel_width / width) as i64),
                     height: Some((self.pixel_height / height) as i64),
-                };
+                });
                 write!(self.writer, "{}", CSI::Window(response)).ok();
                 self.writer.flush().ok();
             }
 
             Window::ReportTextAreaSizePixels => {
-                let response = Window::ResizeWindowPixels {
+                let response = Box::new(Window::ResizeWindowPixels {
                     width: Some(self.pixel_width as i64),
                     height: Some(self.pixel_height as i64),
-                };
+                });
                 write!(self.writer, "{}", CSI::Window(response)).ok();
                 self.writer.flush().ok();
             }

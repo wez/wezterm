@@ -40,18 +40,18 @@ pub enum Action {
     Esc(Esc),
     Sixel(Box<Sixel>),
     /// A list of termcap, terminfo names for which the application
-    /// whats information
+    /// wants information
     XtGetTcap(Vec<String>),
-    KittyImage(KittyImage),
+    KittyImage(Box<KittyImage>),
 }
 
 #[cfg(all(test, target_pointer_width = "64"))]
 #[test]
 fn action_size() {
-    assert_eq!(std::mem::size_of::<Action>(), 184);
+    assert_eq!(std::mem::size_of::<Action>(), 40);
     assert_eq!(std::mem::size_of::<DeviceControlMode>(), 16);
     assert_eq!(std::mem::size_of::<ControlCode>(), 1);
-    assert_eq!(std::mem::size_of::<CSI>(), 48);
+    assert_eq!(std::mem::size_of::<CSI>(), 32);
     assert_eq!(std::mem::size_of::<Esc>(), 4);
 }
 

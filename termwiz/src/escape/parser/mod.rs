@@ -215,7 +215,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 
     fn apc_dispatch(&mut self, data: Vec<u8>) {
         if let Some(img) = super::KittyImage::parse_apc(&data) {
-            (self.callback)(Action::KittyImage(img))
+            (self.callback)(Action::KittyImage(Box::new(img)))
         } else {
             log::trace!("Ignoring APC data: {:?}", String::from_utf8_lossy(&data));
         }
@@ -787,7 +787,7 @@ mod test {
     fn window() {
         assert_eq!(
             round_trip_parse("\x1b[22;2t"),
-            vec![Action::CSI(CSI::Window(Window::PushWindowTitle))]
+            vec![Action::CSI(CSI::Window(Box::new(Window::PushWindowTitle)))]
         );
     }
 
@@ -795,14 +795,14 @@ mod test {
     fn checksum_area() {
         assert_eq!(
             round_trip_parse("\x1b[1;2;3;4;5;6*y"),
-            vec![Action::CSI(CSI::Window(Window::ChecksumRectangularArea {
+            vec![Action::CSI(CSI::Window(Box::new(Window::ChecksumRectangularArea {
                 request_id: 1,
                 page_number: 2,
                 top: OneBased::new(3),
                 left: OneBased::new(4),
                 bottom: OneBased::new(5),
                 right: OneBased::new(6),
-            }))]
+            })))]
         );
     }
 
@@ -868,7 +868,7 @@ mod test {
         assert_eq!(
             round_trip_parse("\x1b_Gf=24,s=10,v=20;aGVsbG8=\x1b\\"),
             vec![
-                Action::KittyImage(KittyImage::TransmitData {
+                Action::KittyImage(Box::new(KittyImage::TransmitData {
                     transmit: KittyImageTransmit {
                         format: Some(KittyImageFormat::Rgb),
                         data: KittyImageData::Direct("aGVsbG8=".to_string()),
@@ -880,7 +880,7 @@ mod test {
                         more_data_follows: false,
                     },
                     verbosity: KittyImageVerbosity::Verbose,
-                }),
+                })),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
         );
@@ -891,7 +891,7 @@ mod test {
                 "\x1b_Ga=q,i=1,s=1,v=1;YWJjZA==\x1b\\"
             ),
             vec![
-                Action::KittyImage(KittyImage::Query {
+                Action::KittyImage(Box::new(KittyImage::Query {
                     transmit: KittyImageTransmit {
                         format: None,
                         data: KittyImageData::Direct("YWJjZA==".to_string()),
@@ -902,7 +902,7 @@ mod test {
                         compression: KittyImageCompression::None,
                         more_data_follows: false,
                     },
-                }),
+                })),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
         );
@@ -912,7 +912,7 @@ mod test {
                 "\x1b_Ga=q,i=2,s=1,t=f,v=1;L3Zhci90bXAvdG1wdGYxd3E4Ym4=\x1b\\"
             ),
             vec![
-                Action::KittyImage(KittyImage::Query {
+                Action::KittyImage(Box::new(KittyImage::Query {
                     transmit: KittyImageTransmit {
                         format: None,
                         data: KittyImageData::File {
@@ -927,7 +927,7 @@ mod test {
                         compression: KittyImageCompression::None,
                         more_data_follows: false,
                     },
-                }),
+                })),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
         );

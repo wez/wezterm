@@ -26,7 +26,7 @@ pub enum CSI {
 
     Mouse(MouseReport),
 
-    Window(Window),
+    Window(Box<Window>),
 
     Keyboard(Keyboard),
 
@@ -37,6 +37,19 @@ pub enum CSI {
     /// large, so it is boxed and kept outside of the enum
     /// body to help reduce space usage in the common cases.
     Unspecified(Box<Unspecified>),
+}
+
+#[cfg(all(test, target_pointer_width = "64"))]
+#[test]
+fn csi_size() {
+    assert_eq!(std::mem::size_of::<Sgr>(), 24);
+    assert_eq!(std::mem::size_of::<Cursor>(), 12);
+    assert_eq!(std::mem::size_of::<Edit>(), 8);
+    assert_eq!(std::mem::size_of::<Mode>(), 24);
+    assert_eq!(std::mem::size_of::<MouseReport>(), 8);
+    assert_eq!(std::mem::size_of::<Window>(), 40);
+    assert_eq!(std::mem::size_of::<Keyboard>(), 8);
+    assert_eq!(std::mem::size_of::<CSI>(), 32);
 }
 
 bitflags::bitflags! {
@@ -1830,7 +1843,7 @@ impl<'a> CSIParser<'a> {
                 'n' => self.dsr(params),
                 'r' => self.decstbm(params),
                 's' => self.decslrm(params),
-                't' => self.window(params).map(CSI::Window),
+                't' => self.window(params).map(|p| CSI::Window(Box::new(p))),
                 'u' => noparams!(Cursor, RestoreCursor, params),
                 'x' => self
                     .req_terminal_parameters(params)
@@ -1915,14 +1928,14 @@ impl<'a> CSIParser<'a> {
         let left = OneBased::from_optional_esc_param(params.get(3))?;
         let bottom = OneBased::from_optional_esc_param(params.get(4))?;
         let right = OneBased::from_optional_esc_param(params.get(5))?;
-        Ok(CSI::Window(Window::ChecksumRectangularArea {
+        Ok(CSI::Window(Box::new(Window::ChecksumRectangularArea {
             request_id,
             page_number,
             top,
             left,
             bottom,
             right,
-        }))
+        })))
     }
 
     fn dsr(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
@@ -2865,14 +2878,14 @@ mod test {
     fn window() {
         assert_eq!(
             parse('t', &[6], "\x1b[6t"),
-            vec![CSI::Window(Window::LowerWindow)]
+            vec![CSI::Window(Box::new(Window::LowerWindow))]
         );
         assert_eq!(
             parse('t', &[6, 15, 7], "\x1b[6;15;7t"),
-            vec![CSI::Window(Window::ReportCellSizePixelsResponse {
+            vec![CSI::Window(Box::new(Window::ReportCellSizePixelsResponse {
                 width: Some(7),
                 height: Some(15)
-            })]
+            }))]
         );
     }
 

@@ -234,7 +234,7 @@ impl<'a> Performer<'a> {
             Action::XtGetTcap(names) => self.xt_get_tcap(names),
             Action::KittyImage(img) => {
                 self.flush_print();
-                if let Err(err) = self.kitty_img(img) {
+                if let Err(err) = self.kitty_img(*img) {
                     log::error!("kitty_img: {:#}", err);
                 }
             }
@@ -446,7 +446,7 @@ impl<'a> Performer<'a> {
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),
             CSI::Device(dev) => self.state.perform_device(*dev),
             CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
-            CSI::Window(window) => self.state.perform_csi_window(window),
+            CSI::Window(window) => self.state.perform_csi_window(*window),
             CSI::SelectCharacterPath(CharacterPath::ImplementationDefault, _) => {
                 self.state.bidi_hint.take();
             }
