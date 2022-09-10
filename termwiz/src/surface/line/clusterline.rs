@@ -3,13 +3,14 @@ use crate::surface::line::CellRef;
 use fixedbitset::FixedBitSet;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::convert::TryInto;
 use std::num::NonZeroU8;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 struct Cluster {
-    cell_width: usize,
+    cell_width: u16,
     attrs: CellAttributes,
 }
 
@@ -29,7 +30,8 @@ pub(crate) struct ClusteredLine {
     )]
     is_double_wide: Option<Box<FixedBitSet>>,
     clusters: Vec<Cluster>,
-    len: usize,
+    /// Length, measured in cells
+    len: u16,
     last_cell_width: Option<NonZeroU8>,
 }
 
@@ -115,18 +117,18 @@ impl ClusteredLine {
 
             last_cluster = match last_cluster.take() {
                 None => Some(Cluster {
-                    cell_width: cell.width(),
+                    cell_width: cell.width() as u16,
                     attrs: cell.attrs().clone(),
                 }),
                 Some(cluster) if cluster.attrs != *cell.attrs() => {
                     clusters.push(cluster);
                     Some(Cluster {
-                        cell_width: cell.width(),
+                        cell_width: cell.width() as u16,
                         attrs: cell.attrs().clone(),
                     })
                 }
                 Some(mut cluster) => {
-                    cluster.cell_width += cell.width();
+                    cluster.cell_width += cell.width() as u16;
                     Some(cluster)
                 }
             };
@@ -144,13 +146,13 @@ impl ClusteredLine {
                 None
             },
             clusters,
-            len,
+            len: len.try_into().unwrap(),
             last_cell_width,
         }
     }
 
     pub fn len(&self) -> usize {
-        self.len
+        self.len as usize
     }
 
     fn is_double_wide(&self, cell_index: usize) -> bool {
@@ -178,11 +180,12 @@ impl ClusteredLine {
             Some(cluster) => cluster.attrs != attrs,
             None => true,
         };
-        let new_cell_index = self.len;
+        let new_cell_index = self.len as usize;
+        let cell_width = cell_width as u16;
         if new_cluster {
             self.clusters.push(Cluster { attrs, cell_width });
         } else if let Some(cluster) = self.clusters.last_mut() {
-            cluster.cell_width += cell_width;
+            cluster.cell_width += cell_width as u16;
         }
         self.text.push_str(text);
 
@@ -210,8 +213,8 @@ impl ClusteredLine {
             Some(cluster) => cluster.attrs != *cell.attrs(),
             None => true,
         };
-        let new_cell_index = self.len;
-        let cell_width = cell.width();
+        let new_cell_index = self.len as usize;
+        let cell_width = cell.width() as u16;
         if new_cluster {
             self.clusters.push(Cluster {
                 attrs: (*cell.attrs()).clone(),
@@ -283,7 +286,7 @@ impl ClusteredLine {
 
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
         if let Some(width) = self.compute_last_cell_width() {
-            let width = width.get() as usize;
+            let width = width.get() as u16;
             if let Some(last_cluster) = self.clusters.last_mut() {
                 let mut attrs = last_cluster.attrs.clone();
                 attrs.set_wrapped(wrapped);
@@ -328,7 +331,7 @@ impl<'a> Iterator for ClusterLineCellIter<'a> {
         self.cluster_total += width;
         let attrs = &self.cluster.as_ref()?.attrs;
 
-        if self.cluster_total >= self.cluster.as_ref()?.cell_width {
+        if self.cluster_total >= self.cluster.as_ref()?.cell_width as usize {
             self.cluster = self.clusters.next();
             self.cluster_total = 0;
         }
@@ -349,7 +352,7 @@ mod test {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn memory_usage() {
-        assert_eq!(std::mem::size_of::<ClusteredLine>(), 72);
+        assert_eq!(std::mem::size_of::<ClusteredLine>(), 64);
         assert_eq!(std::mem::size_of::<String>(), 24);
         assert_eq!(std::mem::size_of::<Vec<Cluster>>(), 24);
         assert_eq!(std::mem::size_of::<Option<Box<FixedBitSet>>>(), 8);
