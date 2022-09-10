@@ -2357,7 +2357,6 @@ impl super::TermWindow {
                 style_params.style,
                 &cluster,
                 &gl_state,
-                params.line,
                 None,
                 &self.render_metrics,
             )?;
@@ -2480,16 +2479,16 @@ impl super::TermWindow {
             composition_width = unicode_column_width(composing, None);
         }
 
+        let cursor_cell = if params.stable_line_idx == Some(params.cursor.y) {
+            params.line.get_cell(params.cursor.x)
+        } else {
+            None
+        };
+
         let cursor_range = if composition_width > 0 {
             params.cursor.x..params.cursor.x + composition_width
         } else if params.stable_line_idx == Some(params.cursor.y) {
-            params.cursor.x
-                ..params.cursor.x
-                    + params
-                        .line
-                        .get_cell(params.cursor.x)
-                        .map(|c| c.width())
-                        .unwrap_or(1)
+            params.cursor.x..params.cursor.x + cursor_cell.as_ref().map(|c| c.width()).unwrap_or(1)
         } else {
             0..0
         };
@@ -2685,7 +2684,7 @@ impl super::TermWindow {
 
         // Consider cursor
         if !cursor_range.is_empty() {
-            let (fg_color, bg_color) = if let Some(c) = params.line.get_cell(cursor_range.start) {
+            let (fg_color, bg_color) = if let Some(c) = &cursor_cell {
                 let attrs = c.attrs();
 
                 let bg_color = params.palette.resolve_bg(attrs.background()).to_linear();
@@ -2737,9 +2736,8 @@ impl super::TermWindow {
                 let mut draw_basic = true;
 
                 if params.password_input {
-                    let attrs = params
-                        .line
-                        .get_cell(cursor_range.start)
+                    let attrs = cursor_cell
+                        .as_ref()
                         .map(|cell| cell.attrs().clone())
                         .unwrap_or_else(|| CellAttributes::blank());
 
@@ -2859,19 +2857,17 @@ impl super::TermWindow {
                             * height_scale;
 
                     if self.config.custom_block_glyphs {
-                        if let Some(cell) = params.line.get_cell(visual_cell_idx) {
-                            if let Some(block) = BlockKey::from_cell_iter(cell) {
-                                texture.replace(
-                                    gl_state
-                                        .glyph_cache
-                                        .borrow_mut()
-                                        .cached_block(block, &params.render_metrics)?,
-                                );
-                                // Custom glyphs don't have the same offsets as computed
-                                // by the shaper, and are rendered relative to the cell
-                                // top left, rather than the baseline.
-                                top = 0.;
-                            }
+                        if let Some(block) = &info.block_key {
+                            texture.replace(
+                                gl_state
+                                    .glyph_cache
+                                    .borrow_mut()
+                                    .cached_block(*block, &params.render_metrics)?,
+                            );
+                            // Custom glyphs don't have the same offsets as computed
+                            // by the shaper, and are rendered relative to the cell
+                            // top left, rather than the baseline.
+                            top = 0.;
                         }
                     }
 
@@ -3093,8 +3089,7 @@ impl super::TermWindow {
         let fa_lock = "\u{f023}";
         let line = Line::from_text(fa_lock, attrs, 0, None);
         let cluster = line.cluster(None);
-        let shape_info =
-            self.cached_cluster_shape(style, &cluster[0], gl_state, &line, font, metrics)?;
+        let shape_info = self.cached_cluster_shape(style, &cluster[0], gl_state, font, metrics)?;
         Ok(Rc::clone(&shape_info[0].glyph))
     }
 
@@ -3399,8 +3394,6 @@ impl super::TermWindow {
 
     fn glyph_infos_to_glyphs(
         &self,
-        cluster: &CellCluster,
-        line: &Line,
         style: &TextStyle,
         glyph_cache: &mut GlyphCache<SrgbTexture2d>,
         infos: &[GlyphInfo],
@@ -3408,33 +3401,30 @@ impl super::TermWindow {
         metrics: &RenderMetrics,
     ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
         let mut glyphs = Vec::with_capacity(infos.len());
-        for info in infos {
-            let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
-
+        let mut iter = infos.iter().peekable();
+        while let Some(info) = iter.next() {
             if self.config.custom_block_glyphs {
-                if let Some(cell) = line.get_cell(cell_idx) {
-                    if BlockKey::from_cell_iter(cell).is_some() {
-                        // Don't bother rendering the glyph from the font, as it can
-                        // have incorrect advance metrics.
-                        // Instead, just use our pixel-perfect cell metrics
-                        glyphs.push(Rc::new(CachedGlyph {
-                            brightness_adjust: 1.0,
-                            has_color: false,
-                            texture: None,
-                            x_advance: PixelLength::new(metrics.cell_size.width as f64),
-                            x_offset: PixelLength::zero(),
-                            y_offset: PixelLength::zero(),
-                            bearing_x: PixelLength::zero(),
-                            bearing_y: PixelLength::zero(),
-                            scale: 1.0,
-                        }));
-                        continue;
-                    }
+                if info.only_char.and_then(BlockKey::from_char).is_some() {
+                    // Don't bother rendering the glyph from the font, as it can
+                    // have incorrect advance metrics.
+                    // Instead, just use our pixel-perfect cell metrics
+                    glyphs.push(Rc::new(CachedGlyph {
+                        brightness_adjust: 1.0,
+                        has_color: false,
+                        texture: None,
+                        x_advance: PixelLength::new(metrics.cell_size.width as f64),
+                        x_offset: PixelLength::zero(),
+                        y_offset: PixelLength::zero(),
+                        bearing_x: PixelLength::zero(),
+                        bearing_y: PixelLength::zero(),
+                        scale: 1.0,
+                    }));
+                    continue;
                 }
             }
 
-            let followed_by_space = match line.get_cell(cell_idx + 1) {
-                Some(cell) => cell.str() == " ",
+            let followed_by_space = match iter.peek() {
+                Some(next_info) => next_info.is_space,
                 None => false,
             };
 
@@ -3456,7 +3446,6 @@ impl super::TermWindow {
         style: &TextStyle,
         cluster: &CellCluster,
         gl_state: &RenderState,
-        line: &Line,
         font: Option<&Rc<LoadedFont>>,
         metrics: &RenderMetrics,
     ) -> anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>> {
@@ -3488,8 +3477,6 @@ impl super::TermWindow {
                 ) {
                     Ok(info) => {
                         let glyphs = self.glyph_infos_to_glyphs(
-                            cluster,
-                            line,
                             &style,
                             &mut gl_state.glyph_cache.borrow_mut(),
                             &info,

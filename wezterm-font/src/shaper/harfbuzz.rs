@@ -34,11 +34,23 @@ struct Info {
     y_offset: harfbuzz::hb_position_t,
 }
 
+fn get_only_char(s: &str) -> Option<char> {
+    let mut chars = s.chars();
+    let first_char = chars.next()?;
+    if chars.next().is_some() {
+        None
+    } else {
+        Some(first_char)
+    }
+}
+
 fn make_glyphinfo(text: &str, num_cells: u8, font_idx: usize, info: &Info) -> GlyphInfo {
     let is_space = text == " ";
+    let only_char = get_only_char(text);
     GlyphInfo {
         #[cfg(any(debug_assertions, test))]
         text: text.into(),
+        only_char,
         is_space,
         num_cells,
         font_idx,
@@ -806,6 +818,9 @@ mod test {
 [
     GlyphInfo {
         text: "a",
+        only_char: Some(
+            'a',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -818,6 +833,9 @@ mod test {
     },
     GlyphInfo {
         text: "b",
+        only_char: Some(
+            'b',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 1,
@@ -830,6 +848,9 @@ mod test {
     },
     GlyphInfo {
         text: "c",
+        only_char: Some(
+            'c',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 2,
@@ -865,6 +886,9 @@ mod test {
 [
     GlyphInfo {
         text: "<",
+        only_char: Some(
+            '<',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -902,6 +926,9 @@ mod test {
 [
     GlyphInfo {
         text: "<",
+        only_char: Some(
+            '<',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -914,6 +941,9 @@ mod test {
     },
     GlyphInfo {
         text: "-",
+        only_char: Some(
+            '-',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 1,
@@ -949,6 +979,9 @@ mod test {
 [
     GlyphInfo {
         text: "<",
+        only_char: Some(
+            '<',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -961,6 +994,9 @@ mod test {
     },
     GlyphInfo {
         text: "-",
+        only_char: Some(
+            '-',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 1,
@@ -973,6 +1009,9 @@ mod test {
     },
     GlyphInfo {
         text: "-",
+        only_char: Some(
+            '-',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 2,
@@ -1009,6 +1048,9 @@ mod test {
 [
     GlyphInfo {
         text: "x",
+        only_char: Some(
+            'x',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -1021,6 +1063,9 @@ mod test {
     },
     GlyphInfo {
         text: " ",
+        only_char: Some(
+            ' ',
+        ),
         is_space: true,
         num_cells: 1,
         cluster: 1,
@@ -1033,6 +1078,9 @@ mod test {
     },
     GlyphInfo {
         text: "x",
+        only_char: Some(
+            'x',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 2,
@@ -1069,6 +1117,9 @@ mod test {
 [
     GlyphInfo {
         text: "x",
+        only_char: Some(
+            'x',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 0,
@@ -1081,6 +1132,9 @@ mod test {
     },
     GlyphInfo {
         text: "\u{3000}",
+        only_char: Some(
+            '\u{3000}',
+        ),
         is_space: false,
         num_cells: 2,
         cluster: 1,
@@ -1093,6 +1147,9 @@ mod test {
     },
     GlyphInfo {
         text: "x",
+        only_char: Some(
+            'x',
+        ),
         is_space: false,
         num_cells: 1,
         cluster: 4,

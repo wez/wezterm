@@ -1,3 +1,4 @@
+use crate::customglyph::BlockKey;
 use crate::glyphcache::CachedGlyph;
 use ::window::bitmaps::Texture2d;
 use config::TextStyle;
@@ -28,6 +29,7 @@ where
 {
     pub glyph: Rc<CachedGlyph<T>>,
     pub pos: GlyphPosition,
+    pub block_key: Option<BlockKey>,
 }
 
 impl<T> ShapedInfo<T>
@@ -53,6 +55,7 @@ where
                     bearing_x: glyph.bearing_x.get() as f32,
                 },
                 glyph: Rc::clone(glyph),
+                block_key: info.only_char.and_then(BlockKey::from_char),
             });
         }
         pos

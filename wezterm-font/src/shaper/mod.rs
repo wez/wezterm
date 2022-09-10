@@ -13,6 +13,8 @@ pub struct GlyphInfo {
     /// We only retain text in debug mode for diagnostic purposes
     #[cfg(any(debug_assertions, test))]
     pub text: String,
+    /// If text is comprised of a single char, this is it
+    pub only_char: Option<char>,
     pub is_space: bool,
     /// Number of cells occupied by this single glyph.
     /// This accounts for eg: the shaper combining adjacent graphemes
