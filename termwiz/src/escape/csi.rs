@@ -1367,6 +1367,16 @@ pub enum Sgr {
     Overline(bool),
 }
 
+#[cfg(all(test, target_pointer_width = "64"))]
+#[test]
+fn sgr_size() {
+    assert_eq!(std::mem::size_of::<Intensity>(), 2);
+    assert_eq!(std::mem::size_of::<Underline>(), 2);
+    assert_eq!(std::mem::size_of::<ColorSpec>(), 20);
+    assert_eq!(std::mem::size_of::<Blink>(), 2);
+    assert_eq!(std::mem::size_of::<Font>(), 2);
+}
+
 impl Display for Sgr {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         macro_rules! code {
