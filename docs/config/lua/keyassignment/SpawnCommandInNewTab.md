@@ -9,7 +9,7 @@ local wezterm = require 'wezterm'
 
 return {
   keys = {
-    -- CMD-y starts `top` in a new window
+    -- CMD-y starts `top` in a new tab
     {
       key = 'y',
       mods = 'CMD',
