@@ -18,6 +18,12 @@ As features stabilize some brief notes about them will accumulate here.
 * [normalize_to_nfc](config/lua/config/normalize_to_nfc.md) option to normalize
   terminal output to Unicode NFC prior to applying it to the terminal model.
   [#2482](https://github.com/wez/wezterm/issues/2482)
+* [cursor_thickness](config/lua/config/cursor_thickness.md),
+  [underline_thickness](config/lua/config/underline_thickness.md),
+  [underline_position](config/lua/config/underline_position.md) and
+  [strikethrough_position](config/lua/config/strikethrough_position.md) options
+  to fine tune appearance. [#2505](https://github.com/wez/wezterm/issues/2505)
+  [#2326](https://github.com/wez/wezterm/issues/2326)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

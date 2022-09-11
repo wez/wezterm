@@ -2,6 +2,7 @@ use crate::glyphcache::{GlyphCache, SizedBlockKey};
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::Sprite;
 use ::window::color::{LinearRgba, SrgbaPixel};
+use config::DimensionContext;
 use std::ops::Range;
 use termwiz::surface::CursorShape;
 use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
@@ -3707,7 +3708,14 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(sprite.clone());
         }
 
-        let metrics = metrics.scale_cell_width(width as f64);
+        let mut metrics = metrics.scale_cell_width(width as f64);
+        if let Some(d) = &self.fonts.config().cursor_thickness {
+            metrics.underline_height = d.evaluate_as_pixels(DimensionContext {
+                dpi: self.fonts.get_dpi() as f32,
+                pixel_max: metrics.underline_height as f32,
+                pixel_cell: metrics.cell_size.height as f32,
+            }) as isize;
+        }
 
         let mut buffer = Image::new(
             metrics.cell_size.width as usize,

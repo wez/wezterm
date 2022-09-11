@@ -4,6 +4,7 @@ use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect, Size};
 use anyhow::Context;
+use config::DimensionContext;
 use std::rc::Rc;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, FontMetrics};
@@ -84,14 +85,41 @@ impl RenderMetrics {
         // such that we are horizontally centered.
         let line_height_y_adjust = (cell_height as f64 - metrics.cell_height.get().ceil()) / 2.;
 
-        let underline_height = metrics.underline_thickness.get().round().max(1.) as isize;
+        let config = fonts.config();
+        let underline_height = match &config.underline_thickness {
+            None => metrics.underline_thickness.get().round().max(1.) as isize,
+            Some(d) => d
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: fonts.get_dpi() as f32,
+                    pixel_max: metrics.underline_thickness.get() as f32,
+                    pixel_cell: cell_height as f32,
+                })
+                .max(1.) as isize,
+        };
 
-        let descender_row = (cell_height as f64
-            + (metrics.descender - metrics.underline_position).get()
+        let underline_position = match &config.underline_position {
+            None => metrics.underline_position.get(),
+            Some(d) => d.evaluate_as_pixels(DimensionContext {
+                dpi: fonts.get_dpi() as f32,
+                pixel_max: metrics.underline_position.get() as f32,
+                pixel_cell: cell_height as f32,
+            }) as f64,
+        };
+
+        let descender_row = (cell_height as f64 + (metrics.descender.get() - underline_position)
             - line_height_y_adjust) as isize;
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
-        let strike_row = descender_row / 2;
+        let strike_row = match &config.strikethrough_position {
+            None => descender_row / 2,
+            Some(d) => d
+                .evaluate_as_pixels(DimensionContext {
+                    dpi: fonts.get_dpi() as f32,
+                    pixel_max: descender_row as f32 / 2.,
+                    pixel_cell: cell_height as f32,
+                })
+                .round() as isize,
+        };
 
         Ok(Self {
             descender: metrics.descender - PixelLength::new(line_height_y_adjust),

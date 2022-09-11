@@ -248,7 +248,7 @@ impl DecodedImage {
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
-    fonts: Rc<FontConfiguration>,
+    pub fonts: Rc<FontConfiguration>,
     pub image_cache: LfuCacheU64<DecodedImage>,
     frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
@@ -402,6 +402,7 @@ impl<T: Texture2d> GlyphCache<T> {
     pub fn config_changed(&mut self) {
         let config = self.fonts.config();
         self.image_cache.update_config(&config);
+        self.cursor_glyphs.clear();
     }
 
     /// Perform the load and render of a glyph
@@ -783,7 +784,8 @@ impl<T: Texture2d> GlyphCache<T> {
                 metrics.cell_size.height - (cell_rect.origin.y + metrics.descender_row);
 
             let half_height = (wave_height as f32 / 4.).max(1.);
-            let y = (cell_rect.origin.y + metrics.descender_row) as usize - half_height as usize;
+            let y = ((cell_rect.origin.y + metrics.descender_row) as usize)
+                .saturating_sub(half_height as usize);
 
             fn add(x: usize, y: usize, val: u8, max_y: usize, buffer: &mut Image) {
                 let y = y.min(max_y);
@@ -800,8 +802,20 @@ impl<T: Texture2d> GlyphCache<T> {
 
                 for row in 0..metrics.underline_height as usize {
                     let value = (255. * (vertical - v1).abs()) as u8;
-                    add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
-                    add(x, row + y + v2 as usize, value, max_y, buffer);
+                    add(
+                        x,
+                        row.saturating_add(y).saturating_add(v1 as usize),
+                        255u8.saturating_sub(value),
+                        max_y,
+                        buffer,
+                    );
+                    add(
+                        x,
+                        row.saturating_add(y).saturating_add(v2 as usize),
+                        value,
+                        max_y,
+                        buffer,
+                    );
                 }
             }
         };
