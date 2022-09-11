@@ -1,6 +1,5 @@
 //! GuiWin represents a Gui TermWindow (as opposed to a Mux window) in lua code
 use super::luaerr;
-use super::pane::PaneObject;
 use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, KeyAssignment};
@@ -9,6 +8,7 @@ use mlua::{UserData, UserDataMethods};
 use mux::pane::PaneId;
 use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
+use mux_lua::MuxPane;
 use termwiz::cell::CellAttributes;
 use termwiz::surface::{Change, Line};
 use termwiz_funcs::new_wezterm_terminfo_renderer;
@@ -122,10 +122,10 @@ impl UserData for GuiWin {
         });
         methods.add_async_method(
             "get_selection_text_for_pane",
-            |_, this, pane: PaneObject| async move {
+            |_, this, pane: MuxPane| async move {
                 let (tx, rx) = smol::channel::bounded(1);
                 this.window.notify(TermWindowNotif::GetSelectionForPane {
-                    pane_id: pane.pane,
+                    pane_id: pane.0,
                     tx,
                 });
                 let text = rx
@@ -148,9 +148,9 @@ impl UserData for GuiWin {
         });
         methods.add_method(
             "perform_action",
-            |_, this, (assignment, pane): (KeyAssignment, PaneObject)| {
+            |_, this, (assignment, pane): (KeyAssignment, MuxPane)| {
                 this.window.notify(TermWindowNotif::PerformAssignment {
-                    pane_id: pane.pane,
+                    pane_id: pane.0,
                     assignment,
                 });
                 Ok(())
@@ -249,9 +249,9 @@ impl UserData for GuiWin {
         );
         methods.add_async_method(
             "get_selection_escapes_for_pane",
-            |_, this, pane: PaneObject| async move {
+            |_, this, pane: MuxPane| async move {
                 let (tx, rx) = smol::channel::bounded(1);
-                let pane_id = pane.pane;
+                let pane_id = pane.0;
                 this.window
                     .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                         fn do_it(

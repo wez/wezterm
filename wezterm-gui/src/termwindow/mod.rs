@@ -12,7 +12,6 @@ use crate::overlay::{
     QuickSelectOverlay,
 };
 use crate::scripting::guiwin::GuiWin;
-use crate::scripting::pane::PaneObject;
 use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
@@ -46,6 +45,7 @@ use mux::tab::{
 };
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
+use mux_lua::MuxPane;
 use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
@@ -1333,14 +1333,14 @@ impl TermWindow {
                 None => return,
             },
         };
-        let pane = PaneObject::new(&pane);
+        let pane = MuxPane(pane.pane_id());
         let name = name.to_string();
 
         async fn do_event(
             lua: Option<Rc<mlua::Lua>>,
             name: String,
             window: GuiWin,
-            pane: PaneObject,
+            pane: MuxPane,
         ) -> anyhow::Result<()> {
             let again = if let Some(lua) = lua {
                 let args = lua.pack_multi((window.clone(), pane))?;
@@ -1647,7 +1647,7 @@ impl TermWindow {
     fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
         let window = GuiWin::new(self);
         let pane = match Mux::get().expect("on main thread").get_pane(pane_id) {
-            Some(pane) => PaneObject::new(&pane),
+            Some(pane) => mux_lua::MuxPane(pane.pane_id()),
             None => return,
         };
 
@@ -1656,7 +1656,7 @@ impl TermWindow {
             name: String,
             value: String,
             window: GuiWin,
-            pane: PaneObject,
+            pane: MuxPane,
         ) -> anyhow::Result<()> {
             if let Some(lua) = lua {
                 let args = lua.pack_multi((window.clone(), pane, name, value))?;
@@ -2729,12 +2729,12 @@ impl TermWindow {
         // handler that can bypass the normal `open::that` functionality.
         if let Some(link) = self.current_highlight.as_ref().cloned() {
             let window = GuiWin::new(self);
-            let pane = PaneObject::new(pane);
+            let pane = MuxPane(pane.pane_id());
 
             async fn open_uri(
                 lua: Option<Rc<mlua::Lua>>,
                 window: GuiWin,
-                pane: PaneObject,
+                pane: MuxPane,
                 link: String,
             ) -> anyhow::Result<()> {
                 let default_click = match lua {

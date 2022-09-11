@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use wezterm_dynamic::ToDynamic;
 
 pub mod guiwin;
-pub mod pane;
 
 fn luaerr(err: anyhow::Error) -> mlua::Error {
     mlua::Error::external(err)
