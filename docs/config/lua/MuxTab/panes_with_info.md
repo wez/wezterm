@@ -16,6 +16,6 @@ Each element is a lua table with the following fields:
 * `height` - The height of this pane in cells
 * `pixel_width` - The width of this pane in pixels
 * `pixel_height` - The height of this pane in pixels
-* `pane` - The [MuxPane](../MuxPane/index.md) object
+* `pane` - The [Pane](../pane/index.md) object
 
 

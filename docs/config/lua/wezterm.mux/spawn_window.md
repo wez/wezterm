@@ -3,7 +3,7 @@
 *Since: 20220624-141144-bd1b7c5d*
 
 Spawns a program into a new window, returning the [MuxTab](../MuxTab/index.md),
-[MuxPane](../MuxPane/index.md) and [MuxWindow](../mux-window/index.md) objects
+[Pane](../pane/index.md) and [MuxWindow](../mux-window/index.md) objects
 associated with it:
 
 ```lua

@@ -3,7 +3,7 @@
 *Since: 20220624-141144-bd1b7c5d*
 
 Splits `pane` and spawns a program into the split, returning the
-`MuxPane` object associated with it:
+`Pane` object associated with it:
 
 ```lua
 local new_pane = pane:split {}
