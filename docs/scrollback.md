@@ -89,7 +89,7 @@ When the search overlay is active the behavior of wezterm changes:
 
 *Since: 20220624-141144-bd1b7c5d*
 
-The key assignments for copy mode are specified by the `search_mode` [Key Table](config/key-tables.md).
+The key assignments for search mode are specified by the `search_mode` [Key Table](config/key-tables.md).
 
 You may use
 [wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
