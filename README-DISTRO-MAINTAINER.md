@@ -65,10 +65,6 @@ If your distribution offers those fonts as installable packages, then it is
 recommended that you skip compiling in that font by disabling the associated
 feature:
 
-* `vendor-last-resort-font` - causes
-  [LastResortHE-Regular.ttf](https://github.com/unicode-org/last-resort-font)
-  to be compiled in and used as a last resort font (you probably do NOT want to
-  install this font globally).
 * `vendor-nerd-font-symbols-font` - causes [Symbols Nerd Font
   Mono](https://github.com/ryanoasis/nerd-fonts/blob/master/patched-fonts/NerdFontsSymbolsOnly/complete/Symbols-1000-em%20Nerd%20Font%20Complete%20Mono.ttf)
   to be compiled in.

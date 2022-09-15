@@ -11,7 +11,6 @@ vendor-jetbrains = []
 vendor-roboto = []
 vendor-noto-emoji = []
 vendor-nerd-font-symbols = []
-vendor-last-resort = []
 
 [dependencies]
 anyhow = "1.0"

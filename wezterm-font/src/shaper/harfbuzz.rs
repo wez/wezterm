@@ -228,8 +228,7 @@ impl HarfbuzzShaper {
 
         let shaped_any;
 
-        // We set this to true when we've run out of fallback fonts
-        // to try, including any potential last resort font.
+        // We set this to true when we've run out of fallback fonts to try.
         // In that case, we accept shaper info with codepoint==0 and
         // will use the notdef glyph from the base font.
         let mut no_more_fallbacks = false;
@@ -237,19 +236,16 @@ impl HarfbuzzShaper {
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
-                    // Ignore presentation if we've reached the last resort font
-                    if !no_more_fallbacks && font_idx + 1 < self.fonts.len() {
-                        if let Some(p) = presentation {
-                            if pair.presentation != p {
-                                log::trace!(
-                                    "wanted presentation is {p:?} != font \
+                    if let Some(p) = presentation {
+                        if pair.presentation != p {
+                            log::trace!(
+                                "wanted presentation is {p:?} != font \
                                      presentation {:?} so skip \
                                      font_idx={font_idx}",
-                                    pair.presentation
-                                );
-                                font_idx += 1;
-                                continue;
-                            }
+                                pair.presentation
+                            );
+                            font_idx += 1;
+                            continue;
                         }
                     }
                     let point_size = font_size * self.handles[font_idx].scale.unwrap_or(1.);
@@ -282,17 +278,15 @@ impl HarfbuzzShaper {
                     break;
                 }
                 None => {
-                    // Note: since we added a last resort font, this case
-                    // shouldn't ever get hit in practice, but if the last
-                    // resort font wasn't bundled and isn't installed,
-                    // we may land here.
                     for c in s.chars() {
                         no_glyphs.push(c);
                     }
 
                     if presentation.is_some() {
-                        log::debug!("last resort, but no last resort font, retry shape with no presentation");
-                        // We hit the last resort and we have an explicit presentation.
+                        log::debug!(
+                            "Ran out of fallback options, retry shape with no presentation"
+                        );
+                        // Ran out of fallbacks and we have an explicit presentation.
                         // This is a little awkward; we want to record the missing
                         // glyphs so that we can resolve them async, but we also
                         // want to try the current set of fonts without forcing
@@ -323,42 +317,6 @@ impl HarfbuzzShaper {
                     font_idx = 0;
                     continue;
                 }
-            }
-        }
-
-        #[cfg(any(test, feature = "vendor-last-resort"))]
-        if font_idx > 0 && font_idx + 1 == self.fonts.len() {
-            // We are the last resort font, so each codepoint is considered
-            // to be worthy of a fallback lookup
-            for c in s.chars() {
-                no_glyphs.push(c);
-            }
-
-            if presentation.is_some() {
-                log::debug!("hit last resort, retry shape with no presentation");
-                // We hit the last resort and we have an explicit presentation.
-                // This is a little awkward; we want to record the missing
-                // glyphs so that we can resolve them async, but we also
-                // want to try the current set of fonts without forcing
-                // the presentation match as we might find the results
-                // that way.
-                // Let's restart the shape but pretend that no specific
-                // presentation was used.
-                // We'll probably match the emoji presentation for something,
-                // but might potentially discover the text presentation for
-                // that glyph in a fallback font and swap it out a little
-                // later after a flash of showing the emoji one.
-                return self.do_shape(
-                    0,
-                    s,
-                    font_size,
-                    dpi,
-                    no_glyphs,
-                    None,
-                    direction,
-                    range,
-                    presentation_width,
-                );
             }
         }
 

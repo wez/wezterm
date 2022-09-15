@@ -95,20 +95,12 @@ impl LoadedFont {
     }
 
     fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
-        let has_last_resort_font = cfg!(any(test, feature = "vendor-last-resort"));
-
         let mut loaded = false;
         {
             let mut handles = self.handles.borrow_mut();
             for h in extra_handles {
                 if !handles.iter().any(|existing| *existing == h) {
-                    if has_last_resort_font {
-                        let idx = handles.len() - 1;
-                        handles.insert(idx, h);
-                        self.rasterizers.borrow_mut().remove(&idx);
-                    } else {
-                        handles.push(h);
-                    }
+                    handles.push(h);
                     loaded = true;
                 }
             }

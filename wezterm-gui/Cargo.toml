@@ -12,13 +12,11 @@ resolver = "2"
 default = ["vendored-fonts", "wayland"]
 wayland = ["window/wayland"]
 distro-defaults = ["config/distro-defaults"]
-vendor-last-resort-font = ["wezterm-font/vendor-last-resort"]
 vendor-nerd-font-symbols-font = ["wezterm-font/vendor-nerd-font-symbols"]
 vendor-jetbrains-font = ["wezterm-font/vendor-jetbrains"]
 vendor-roboto-font = ["wezterm-font/vendor-roboto"]
 vendor-noto-emoji-font = ["wezterm-font/vendor-noto-emoji"]
 vendored-fonts = [
-  "vendor-last-resort-font",
   "vendor-nerd-font-symbols-font",
   "vendor-jetbrains-font",
   "vendor-roboto-font",

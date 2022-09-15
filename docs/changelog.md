@@ -45,6 +45,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2500](https://github.com/wez/wezterm/issues/2500)
 * Cells with the invisible/hidden attribute are now invisible
 
+#### Changed
+* Removed Last Resort fallback font
+
 ### 20220905-102802-7d4b8249
 
 #### New
