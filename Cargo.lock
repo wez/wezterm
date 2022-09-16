@@ -1385,9 +1385,9 @@ dependencies = [
 
 [[package]]
 name = "finl_unicode"
-version = "1.0.2"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69152938fc3cf544c50065ed78d321d0c5bf3433344f227eb2323bcf78370d34"
+checksum = "c7a5bc434676f696758465b59d15977aeda4943ed39cb6ae54db012e1d09dee8"
 
 [[package]]
 name = "fixedbitset"
