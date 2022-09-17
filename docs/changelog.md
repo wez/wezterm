@@ -48,6 +48,9 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 * Removed Last Resort fallback font
 
+#### Updated
+* Bundled Nerd Font Symbols font to v2.2.2
+
 ### 20220905-102802-7d4b8249
 
 #### New
