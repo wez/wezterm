@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum, ValueHint};
 use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
-use config::keyassignment::SpawnTabDomain;
+use config::keyassignment::{SpawnTabDomain, PaneDirection};
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
@@ -367,6 +367,25 @@ Outputs the pane-id for the newly created pane on success"
         /// The text to send. If omitted, will read the text from stdin.
         text: Option<String>,
     },
+
+    #[clap(name = "activate-pane-direction", rename_all = "kebab")]
+    ActivatePaneDirection {
+        /// Activate the pane to the left of the current pane
+        #[clap(long, conflicts_with_all=&["right", "up", "down"])]
+        left: bool,
+
+        /// Activate the pane to the right of the current pane
+        #[clap(long, conflicts_with_all=&["left", "up", "down"])]
+        right: bool,
+
+        /// Activate the pane above the current pane
+        #[clap(long, conflicts_with_all=&["left", "right", "down"])]
+        up: bool,
+
+        /// Activate the pane below the current pane
+        #[clap(long, conflicts_with_all=&["left", "right", "up"])]
+        down: bool,
+    }
 }
 
 use termwiz::escape::osc::{
@@ -1143,6 +1162,25 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
         CliSubCommand::TlsCreds => {
             let creds = client.get_tls_creds().await?;
             codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
+        }
+        CliSubCommand::ActivatePaneDirection { left, right, up, down } => {
+            let pane_id = resolve_pane_id(&client, None).await?;
+            let direction = if left {
+                PaneDirection::Left
+            } else if right {
+                PaneDirection::Right
+            } else if up {
+                PaneDirection::Up
+            } else if down {
+                PaneDirection::Down
+            } else {
+                PaneDirection::Next
+            };
+            client.activate_pane_direction(codec::ActivatePaneDirection {
+                pane_id,
+                direction,
+
+            }).await?;
         }
     }
     Ok(())

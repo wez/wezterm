@@ -12,6 +12,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
 use anyhow::{bail, Context as _, Error};
+use config::keyassignment::PaneDirection;
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -464,6 +465,7 @@ pdu! {
     GetImageCellResponse: 47,
     MovePaneToNewTab: 48,
     MovePaneToNewTabResponse: 49,
+    ActivatePaneDirection: 50,
 }
 
 impl Pdu {
@@ -765,6 +767,12 @@ pub struct SetPaneZoomed {
     pub containing_tab_id: TabId,
     pub pane_id: PaneId,
     pub zoomed: bool,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ActivatePaneDirection {
+    pub pane_id: PaneId,
+    pub direction: PaneDirection,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

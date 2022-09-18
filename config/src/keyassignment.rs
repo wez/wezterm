@@ -249,7 +249,7 @@ impl SpawnCommand {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, FromDynamic, ToDynamic)]
 pub enum PaneDirection {
     Up,
     Down,

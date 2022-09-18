@@ -460,6 +460,29 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::ActivatePaneDirection(ActivatePaneDirection {
+                pane_id,
+                direction,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let (_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.activate_pane_direction(direction);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::Resize(Resize {
                 containing_tab_id,
                 pane_id,
