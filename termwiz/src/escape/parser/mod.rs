@@ -998,9 +998,9 @@ mod test {
                 Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                     DecPrivateModeCode::AnyEventMouse,
                 )))),
-                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
-                    DecPrivateMode::Unspecified(1005)
-                ))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::Utf8Mouse
+                )))),
                 Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                     DecPrivateModeCode::SGRMouse,
                 )))),

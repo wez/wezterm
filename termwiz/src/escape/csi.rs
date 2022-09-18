@@ -821,6 +821,7 @@ pub enum DecPrivateModeCode {
     AnyEventMouse = 1003,
     /// Enable FocusIn/FocusOut events
     FocusTracking = 1004,
+    Utf8Mouse = 1005,
     /// Use extended coordinate system in mouse reporting.  Does not
     /// enable mouse reporting itself, it just controls how reports
     /// will be encoded.
@@ -829,6 +830,10 @@ pub enum DecPrivateModeCode {
     /// not enable mouse reporting itself, it just controls how
     /// reports will be encoded.
     SGRPixelsMouse = 1016,
+
+    XTermMetaSendsEscape = 1036,
+    XTermAltSendsEscape = 1039,
+
     /// Save cursor as in DECSC
     SaveCursor = 1048,
     ClearAndEnableAlternateScreen = 1049,
@@ -840,6 +845,8 @@ pub enum DecPrivateModeCode {
 
     /// <https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036>
     SynchronizedOutput = 2026,
+
+    MinTTYApplicationEscapeKeyMode = 7727,
 
     /// xterm: adjust cursor positioning after emitting sixel
     SixelScrollsRight = 8452,

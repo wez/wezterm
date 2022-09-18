@@ -1800,6 +1800,30 @@ impl TerminalState {
                 log::warn!("save/restore dec mode {:?} unimplemented", n)
             }
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::MinTTYApplicationEscapeKeyMode,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::MinTTYApplicationEscapeKeyMode,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermMetaSendsEscape,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermMetaSendsEscape,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermAltSendsEscape,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermAltSendsEscape,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {}
+
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(_))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(_))
             | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(_))
