@@ -94,7 +94,7 @@ impl CopyOverlay {
         term_window: &TermWindow,
         pane: &Rc<dyn Pane>,
         params: CopyModeParams,
-    ) -> Rc<dyn Pane> {
+    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mut cursor = pane.get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
         cursor.visibility = CursorVisibility::Visible;
@@ -102,9 +102,12 @@ impl CopyOverlay {
         let (_domain, _window, tab_id) = mux::Mux::get()
             .expect("called on main thread")
             .resolve_pane_id(pane.pane_id())
-            .expect("pane to have a containing tab");
+            .ok_or_else(|| anyhow::anyhow!("no tab contains the current pane"))?;
 
-        let window = term_window.window.clone().unwrap();
+        let window = term_window
+            .window
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("failed to clone window handle"))?;
         let dims = pane.get_dimensions();
         let mut render = CopyRenderable {
             cursor,
@@ -141,10 +144,10 @@ impl CopyOverlay {
         render.dirty_results.add(search_row);
         render.update_search();
 
-        Rc::new(CopyOverlay {
+        Ok(Rc::new(CopyOverlay {
             delegate: Rc::clone(pane),
             render: RefCell::new(render),
-        })
+        }))
     }
 
     pub fn get_params(&self) -> CopyModeParams {

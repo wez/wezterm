@@ -45,6 +45,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Panic when processing a sixel with inconsistent width information
   [#2500](https://github.com/wez/wezterm/issues/2500)
 * Cells with the invisible/hidden attribute are now invisible
+* Panic when trying to activate the search overlay when the launcher menu is
+  active [#2529](https://github.com/wez/wezterm/issues/2529)
 
 #### Changed
 * Removed Last Resort fallback font
