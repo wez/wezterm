@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
   [strikethrough_position](config/lua/config/strikethrough_position.md) options
   to fine tune appearance. [#2505](https://github.com/wez/wezterm/issues/2505)
   [#2326](https://github.com/wez/wezterm/issues/2326)
+* Preliminary support for `modifyOtherKeys` keyboard encoding [#2527](https://github.com/wez/wezterm/issues/2527)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

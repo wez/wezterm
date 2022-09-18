@@ -33,6 +33,7 @@ pub struct KeyCodeEncodeModes {
     pub encoding: KeyboardEncoding,
     pub application_cursor_keys: bool,
     pub newline_mode: bool,
+    pub modify_other_keys: Option<i64>,
 }
 
 #[cfg(windows)]
@@ -506,12 +507,15 @@ impl KeyCode {
                     && mods.contains(Modifiers::CTRL)
                     && modes.encoding == KeyboardEncoding::CsiU =>
             {
-                csi_u_encode(&mut buf, c, mods, modes.encoding)?;
+                csi_u_encode(&mut buf, c, mods, &modes)?;
             }
             Char(c) if c.is_ascii_uppercase() && mods.contains(Modifiers::CTRL) => {
-                csi_u_encode(&mut buf, c, mods, modes.encoding)?;
+                csi_u_encode(&mut buf, c, mods, &modes)?;
             }
 
+            Char(c) if mods.contains(Modifiers::CTRL) && modes.modify_other_keys == Some(2) => {
+                csi_u_encode(&mut buf, c, mods, &modes)?;
+            }
             Char(c) if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() => {
                 let c = ctrl_mapping(c).unwrap();
                 if mods.contains(Modifiers::ALT) {
@@ -533,17 +537,30 @@ impl KeyCode {
                 buf.push(c);
             }
 
-            Enter | Escape | Backspace => {
+            Backspace => {
+                // Backspace sends the default VERASE which is confusingly
+                // the DEL ascii codepoint rather than BS.
+                // We only send BS when CTRL is held.
+                if mods.contains(Modifiers::CTRL) {
+                    csi_u_encode(&mut buf, '\x08', mods, &modes)?;
+                } else if mods.contains(Modifiers::SHIFT) {
+                    csi_u_encode(&mut buf, '\x7f', mods, &modes)?;
+                } else {
+                    if mods.contains(Modifiers::ALT) {
+                        buf.push(0x1b as char);
+                    }
+                    buf.push('\x7f');
+                }
+            }
+
+            Enter | Escape => {
                 let c = match key {
                     Enter => '\r',
                     Escape => '\x1b',
-                    // Backspace sends the default VERASE which is confusingly
-                    // the DEL ascii codepoint
-                    Backspace => '\x7f',
                     _ => unreachable!(),
                 };
                 if mods.contains(Modifiers::SHIFT) || mods.contains(Modifiers::CTRL) {
-                    csi_u_encode(&mut buf, c, mods, modes.encoding)?;
+                    csi_u_encode(&mut buf, c, mods, &modes)?;
                 } else {
                     if mods.contains(Modifiers::ALT) {
                         buf.push(0x1b as char);
@@ -553,6 +570,10 @@ impl KeyCode {
                         buf.push(0x0a as char);
                     }
                 }
+            }
+
+            Tab if !mods.is_empty() && modes.modify_other_keys.is_some() => {
+                csi_u_encode(&mut buf, '\t', mods, &modes)?;
             }
 
             Tab => {
@@ -575,7 +596,7 @@ impl KeyCode {
                 if mods.is_empty() {
                     buf.push(c);
                 } else {
-                    csi_u_encode(&mut buf, c, mods, modes.encoding)?;
+                    csi_u_encode(&mut buf, c, mods, &modes)?;
                 }
             }
 
@@ -800,21 +821,34 @@ fn csi_u_encode(
     buf: &mut String,
     c: char,
     mods: Modifiers,
-    encoding: KeyboardEncoding,
+    modes: &KeyCodeEncodeModes,
 ) -> Result<()> {
-    if encoding == KeyboardEncoding::CsiU && is_ascii(c) {
+    if modes.encoding == KeyboardEncoding::CsiU && is_ascii(c) {
         write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
-    } else {
-        let c = if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() {
-            ctrl_mapping(c).unwrap()
-        } else {
-            c
-        };
-        if mods.contains(Modifiers::ALT) {
-            buf.push(0x1b as char);
-        }
-        write!(buf, "{}", c)?;
+        return Ok(());
     }
+
+    // <https://invisible-island.net/xterm/modified-keys.html>
+    match (c, modes.modify_other_keys) {
+        ('c' | 'd' | '\x1b' | '\x7f' | '\x08', Some(1)) => {
+            // Exclude well-known keys from modifyOtherKeys mode 1
+        }
+        (c, Some(_)) => {
+            write!(buf, "\x1b[27;{};{}~", 1 + encode_modifiers(mods), c as u32)?;
+            return Ok(());
+        }
+        _ => {}
+    }
+
+    let c = if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() {
+        ctrl_mapping(c).unwrap()
+    } else {
+        c
+    };
+    if mods.contains(Modifiers::ALT) {
+        buf.push(0x1b as char);
+    }
+    write!(buf, "{}", c)?;
     Ok(())
 }
 
@@ -1149,10 +1183,10 @@ impl InputParser {
             );
         }
 
-        // `CSI u` encodings for the ascii range;
-        // see http://www.leonerd.org.uk/hacks/fixterms/
         for c in 0..=0x7fu8 {
             for (suffix, modifiers) in modifier_combos {
+                // `CSI u` encodings for the ascii range;
+                // see http://www.leonerd.org.uk/hacks/fixterms/
                 let key = format!("\x1b[{}{}u", c, suffix);
                 map.insert(
                     key,
@@ -1161,6 +1195,24 @@ impl InputParser {
                         modifiers: *modifiers,
                     }),
                 );
+
+                if !suffix.is_empty() {
+                    // xterm modifyOtherKeys sequences
+                    let key = format!("\x1b[27{};{}~", suffix, c);
+                    map.insert(
+                        key,
+                        InputEvent::Key(KeyEvent {
+                            key: match c {
+                                8 | 0x7f => KeyCode::Backspace,
+                                0x1b => KeyCode::Escape,
+                                9 => KeyCode::Tab,
+                                10 | 13 => KeyCode::Enter,
+                                _ => KeyCode::Char(c as char),
+                            },
+                            modifiers: *modifiers,
+                        }),
+                    );
+                }
             }
         }
 
@@ -1772,11 +1824,146 @@ mod test {
     }
 
     #[test]
+    fn modify_other_keys_parse() {
+        let mut p = InputParser::new();
+        let inputs =
+            p.parse_as_vec(b"\x1b[27;5;13~\x1b[27;5;9~\x1b[27;6;8~\x1b[27;2;127~\x1b[27;6;27~");
+        assert_eq!(
+            vec![
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Enter,
+                    modifiers: Modifiers::CTRL,
+                }),
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Tab,
+                    modifiers: Modifiers::CTRL,
+                }),
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Backspace,
+                    modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+                }),
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Backspace,
+                    modifiers: Modifiers::SHIFT,
+                }),
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+                }),
+            ],
+            inputs
+        );
+    }
+
+    #[test]
+    fn modify_other_keys_encode() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Xterm,
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+        let mode_1 = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Xterm,
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: Some(1),
+        };
+        let mode_2 = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Xterm,
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: Some(2),
+        };
+
+        assert_eq!(
+            KeyCode::Enter.encode(Modifiers::CTRL, mode, true).unwrap(),
+            "\r".to_string()
+        );
+        assert_eq!(
+            KeyCode::Enter
+                .encode(Modifiers::CTRL, mode_1, true)
+                .unwrap(),
+            "\x1b[27;5;13~".to_string()
+        );
+        assert_eq!(
+            KeyCode::Enter
+                .encode(Modifiers::CTRL | Modifiers::SHIFT, mode_1, true)
+                .unwrap(),
+            "\x1b[27;6;13~".to_string()
+        );
+
+        // This case is not conformant with xterm!
+        // xterm just returns tab for CTRL-Tab when modify_other_keys
+        // is not set.
+        assert_eq!(
+            KeyCode::Tab.encode(Modifiers::CTRL, mode, true).unwrap(),
+            "\x1b[9;5u".to_string()
+        );
+        assert_eq!(
+            KeyCode::Tab.encode(Modifiers::CTRL, mode_1, true).unwrap(),
+            "\x1b[27;5;9~".to_string()
+        );
+        assert_eq!(
+            KeyCode::Tab
+                .encode(Modifiers::CTRL | Modifiers::SHIFT, mode_1, true)
+                .unwrap(),
+            "\x1b[27;6;9~".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Char('c')
+                .encode(Modifiers::CTRL, mode, true)
+                .unwrap(),
+            "\x03".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('c')
+                .encode(Modifiers::CTRL, mode_1, true)
+                .unwrap(),
+            "\x03".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('c')
+                .encode(Modifiers::CTRL, mode_2, true)
+                .unwrap(),
+            "\x1b[27;5;99~".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Char('1')
+                .encode(Modifiers::CTRL, mode, true)
+                .unwrap(),
+            "1".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('1')
+                .encode(Modifiers::CTRL, mode_2, true)
+                .unwrap(),
+            "\x1b[27;5;49~".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Char(',')
+                .encode(Modifiers::CTRL, mode, true)
+                .unwrap(),
+            ",".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char(',')
+                .encode(Modifiers::CTRL, mode_2, true)
+                .unwrap(),
+            "\x1b[27;5;44~".to_string()
+        );
+    }
+
+    #[test]
     fn encode_issue_892() {
         let mode = KeyCodeEncodeModes {
             encoding: KeyboardEncoding::Xterm,
             newline_mode: false,
             application_cursor_keys: false,
+            modify_other_keys: None,
         };
 
         assert_eq!(
