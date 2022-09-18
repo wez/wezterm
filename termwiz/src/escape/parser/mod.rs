@@ -781,6 +781,13 @@ mod test {
                 value: Some(2),
             }))]
         );
+        assert_eq!(
+            round_trip_parse("\x1b[>4;m"),
+            vec![Action::CSI(CSI::Mode(Mode::XtermKeyMode {
+                resource: XtermKeyModifierResource::OtherKeys,
+                value: None,
+            }))]
+        );
     }
 
     #[test]

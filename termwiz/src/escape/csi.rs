@@ -755,6 +755,8 @@ impl Display for Mode {
                 )?;
                 if let Some(value) = value {
                     write!(f, ";{}", value)?;
+                } else {
+                    write!(f, ";")?;
                 }
                 write!(f, "m")
             }
@@ -2006,6 +2008,18 @@ impl<'a> CSIParser<'a> {
                     CSI::Mode(Mode::XtermKeyMode {
                         resource,
                         value: Some(b.as_integer().ok_or_else(|| ())?),
+                    }),
+                ))
+            }
+            [CsiParam::P(b'>'), a, CsiParam::P(b';')] => {
+                let resource = XtermKeyModifierResource::parse(a.as_integer().ok_or_else(|| ())?)
+                    .ok_or_else(|| ())?;
+                Ok(self.advance_by(
+                    3,
+                    params,
+                    CSI::Mode(Mode::XtermKeyMode {
+                        resource,
+                        value: None,
                     }),
                 ))
             }
