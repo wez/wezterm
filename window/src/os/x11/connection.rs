@@ -11,7 +11,7 @@ use mio::event::Source;
 use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Registry, Token};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -48,6 +48,8 @@ pub struct XConnection {
     pub atom_net_wm_name: Atom,
     pub atom_net_wm_icon: Atom,
     pub atom_net_move_resize_window: Atom,
+    pub atom_net_wm_moveresize: Atom,
+    pub atom_net_supported: Atom,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::x::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
@@ -58,6 +60,7 @@ pub struct XConnection {
     pub(crate) ime_process_event_result: RefCell<anyhow::Result<()>>,
     pub(crate) has_randr: bool,
     pub(crate) atom_names: RefCell<HashMap<Atom, String>>,
+    pub(crate) supported: RefCell<HashSet<Atom>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -345,6 +348,21 @@ impl XConnection {
 
         let dpi = compute_default_dpi(&self.xrm.borrow(), &self.xsettings.borrow());
         *self.default_dpi.borrow_mut() = dpi;
+        self.update_net_supported();
+    }
+
+    fn update_net_supported(&self) {
+        if let Ok(reply) = self.send_and_wait_request(&xcb::x::GetProperty {
+            delete: false,
+            window: self.root,
+            property: self.atom_net_supported,
+            r#type: xcb::x::ATOM_ATOM,
+            long_offset: 0,
+            long_length: 1024,
+        }) {
+            let supported: HashSet<Atom> = reply.value::<Atom>().iter().copied().collect();
+            *self.supported.borrow_mut() = supported;
+        }
     }
 
     pub(crate) fn advise_of_appearance_change(&self, appearance: crate::Appearance) {
@@ -509,6 +527,8 @@ impl XConnection {
         let atom_net_wm_name = Self::intern_atom(&conn, "_NET_WM_NAME")?;
         let atom_net_wm_icon = Self::intern_atom(&conn, "_NET_WM_ICON")?;
         let atom_net_move_resize_window = Self::intern_atom(&conn, "_NET_MOVERESIZE_WINDOW")?;
+        let atom_net_wm_moveresize = Self::intern_atom(&conn, "_NET_WM_MOVERESIZE")?;
+        let atom_net_supported = Self::intern_atom(&conn, "_NET_SUPPORTED")?;
 
         let has_randr = conn.active_extensions().any(|e| e == xcb::Extension::RandR);
 
@@ -614,6 +634,8 @@ impl XConnection {
             atom_net_wm_pid,
             atom_net_wm_name,
             atom_net_move_resize_window,
+            atom_net_wm_moveresize,
+            atom_net_supported,
             atom_net_wm_icon,
             keyboard,
             kbd_ev,
@@ -629,6 +651,7 @@ impl XConnection {
             ime_process_event_result: RefCell::new(Ok(())),
             has_randr,
             atom_names: RefCell::new(HashMap::new()),
+            supported: RefCell::new(HashSet::new()),
         });
 
         {
@@ -683,6 +706,8 @@ impl XConnection {
                     }
                 });
         }
+
+        conn.update_net_supported();
 
         Ok(conn)
     }

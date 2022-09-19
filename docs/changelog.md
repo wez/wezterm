@@ -50,6 +50,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * Removed Last Resort fallback font
+* X11: use `_NET_WM_MOVERESIZE` to drag by tab bar, when supported by the WM
+  [#2530](https://github.com/wez/wezterm/issues/2530)
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2
