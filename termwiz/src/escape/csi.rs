@@ -1,5 +1,5 @@
 use super::OneBased;
-use crate::cell::{Blink, Intensity, Underline};
+use crate::cell::{Blink, Intensity, Underline, VerticalAlign};
 use crate::color::{AnsiColor, ColorSpec, RgbColor, SrgbaTuple};
 use crate::input::{Modifiers, MouseButtons};
 use num_derive::*;
@@ -1374,15 +1374,16 @@ pub enum Sgr {
     Foreground(ColorSpec),
     Background(ColorSpec),
     Overline(bool),
+    VerticalAlign(VerticalAlign),
 }
 
 #[cfg(all(test, target_pointer_width = "64"))]
 #[test]
 fn sgr_size() {
-    assert_eq!(std::mem::size_of::<Intensity>(), 2);
-    assert_eq!(std::mem::size_of::<Underline>(), 2);
+    assert_eq!(std::mem::size_of::<Intensity>(), 1);
+    assert_eq!(std::mem::size_of::<Underline>(), 1);
     assert_eq!(std::mem::size_of::<ColorSpec>(), 20);
-    assert_eq!(std::mem::size_of::<Blink>(), 2);
+    assert_eq!(std::mem::size_of::<Blink>(), 1);
     assert_eq!(std::mem::size_of::<Font>(), 2);
 }
 
@@ -1430,6 +1431,9 @@ impl Display for Sgr {
             Sgr::StrikeThrough(false) => code!(StrikeThroughOff),
             Sgr::Overline(true) => code!(OverlineOn),
             Sgr::Overline(false) => code!(OverlineOff),
+            Sgr::VerticalAlign(VerticalAlign::BaseLine) => code!(VerticalAlignBaseLine),
+            Sgr::VerticalAlign(VerticalAlign::SuperScript) => code!(VerticalAlignSuperScript),
+            Sgr::VerticalAlign(VerticalAlign::SubScript) => code!(VerticalAlignSubScript),
             Sgr::Font(Font::Default) => code!(DefaultFont),
             Sgr::Font(Font::Alternate(1)) => code!(AltFont1),
             Sgr::Font(Font::Alternate(2)) => code!(AltFont2),
@@ -2483,6 +2487,15 @@ impl<'a> CSIParser<'a> {
                         SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
                         SgrCode::ItalicOn => one!(Sgr::Italic(true)),
                         SgrCode::ItalicOff => one!(Sgr::Italic(false)),
+                        SgrCode::VerticalAlignSuperScript => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::SuperScript))
+                        }
+                        SgrCode::VerticalAlignSubScript => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::SubScript))
+                        }
+                        SgrCode::VerticalAlignBaseLine => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::BaseLine))
+                        }
                         SgrCode::ForegroundColor => {
                             self.parse_sgr_color(params).map(Sgr::Foreground)
                         }
@@ -2642,6 +2655,10 @@ pub enum SgrCode {
 
     UnderlineColor = 58,
     ResetUnderlineColor = 59,
+
+    VerticalAlignSuperScript = 73,
+    VerticalAlignSubScript = 74,
+    VerticalAlignBaseLine = 75,
 
     ForegroundBrightBlack = 90,
     ForegroundBrightRed = 91,

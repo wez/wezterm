@@ -2523,6 +2523,9 @@ impl TerminalState {
             Sgr::Overline(overline) => {
                 self.pen.set_overline(overline);
             }
+            Sgr::VerticalAlign(align) => {
+                self.pen.set_vertical_align(align);
+            }
             Sgr::Blink(blink) => {
                 self.pen.set_blink(blink);
             }

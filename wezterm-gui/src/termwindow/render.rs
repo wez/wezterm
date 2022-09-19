@@ -2806,6 +2806,15 @@ impl super::TermWindow {
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
             let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
+            let valign_adjust = match cluster.attrs.vertical_align() {
+                termwiz::cell::VerticalAlign::BaseLine => 0.,
+                termwiz::cell::VerticalAlign::SuperScript => {
+                    params.render_metrics.cell_size.height as f32 * -0.25
+                }
+                termwiz::cell::VerticalAlign::SubScript => {
+                    params.render_metrics.cell_size.height as f32 * 0.25
+                }
+            };
 
             // TODO: remember logical/visual mapping for selection
             #[allow(unused_variables)]
@@ -2851,8 +2860,9 @@ impl super::TermWindow {
                 {
                     // First, resolve this glyph to a texture
                     let mut texture = glyph.texture.as_ref().cloned();
+
                     let mut top = cell_height
-                        + (params.render_metrics.descender.get() as f32
+                        + (params.render_metrics.descender.get() as f32 + valign_adjust
                             - (glyph.y_offset + glyph.bearing_y).get() as f32)
                             * height_scale;
 
