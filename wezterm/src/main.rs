@@ -368,23 +368,12 @@ Outputs the pane-id for the newly created pane on success"
         text: Option<String>,
     },
 
+    /// Activate an adjacent pane in the specified direction.
     #[clap(name = "activate-pane-direction", rename_all = "kebab")]
     ActivatePaneDirection {
-        /// Activate the pane to the left of the current pane
-        #[clap(long, conflicts_with_all=&["right", "up", "down"])]
-        left: bool,
-
-        /// Activate the pane to the right of the current pane
-        #[clap(long, conflicts_with_all=&["left", "up", "down"])]
-        right: bool,
-
-        /// Activate the pane above the current pane
-        #[clap(long, conflicts_with_all=&["left", "right", "down"])]
-        up: bool,
-
-        /// Activate the pane below the current pane
-        #[clap(long, conflicts_with_all=&["left", "right", "up"])]
-        down: bool,
+        /// The direction to switch to.
+        #[clap(parse(try_from_str = PaneDirection::direction_from_str))]
+        direction: PaneDirection,
     }
 }
 
@@ -1163,19 +1152,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             let creds = client.get_tls_creds().await?;
             codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
         }
-        CliSubCommand::ActivatePaneDirection { left, right, up, down } => {
+        CliSubCommand::ActivatePaneDirection { direction } => {
             let pane_id = resolve_pane_id(&client, None).await?;
-            let direction = if left {
-                PaneDirection::Left
-            } else if right {
-                PaneDirection::Right
-            } else if up {
-                PaneDirection::Up
-            } else if down {
-                PaneDirection::Down
-            } else {
-                PaneDirection::Next
-            };
             client.activate_pane_direction(codec::ActivatePaneDirection {
                 pane_id,
                 direction,
