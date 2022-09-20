@@ -331,7 +331,7 @@ fn derive_enum(input: &DeriveInput, enumeration: &DataEnum) -> Result<TokenStrea
             }
 
             impl #ident {
-                fn variants() -> &'static [&'static str] {
+                pub fn variants() -> &'static [&'static str] {
                     &[
                         #( #variant_names, )*
                     ]

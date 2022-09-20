@@ -188,6 +188,13 @@ _arguments "${_arguments_options[@]}" \
 '::text -- The text to send. If omitted, will read the text from stdin:' \
 && ret=0
 ;;
+(activate-pane-direction)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':direction -- The direction to switch to:(Up Down Left Right Next Prev)' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 '*::subcommand -- The subcommand whose help message to display:' \
@@ -266,6 +273,11 @@ _wezterm_commands() {
     )
     _describe -t commands 'wezterm commands' commands "$@"
 }
+(( $+functions[_wezterm__cli__activate-pane-direction_commands] )) ||
+_wezterm__cli__activate-pane-direction_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli activate-pane-direction commands' commands "$@"
+}
 (( $+functions[_wezterm__cli_commands] )) ||
 _wezterm__cli_commands() {
     local commands; commands=(
@@ -279,6 +291,7 @@ Outputs the pane-id for the newly created pane on success' \
 'spawn:Spawn a command into a new window or tab
 Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
+'activate-pane-direction:Activate an adjacent pane in the specified direction' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"

@@ -372,7 +372,8 @@ Outputs the pane-id for the newly created pane on success"
     #[clap(name = "activate-pane-direction", rename_all = "kebab")]
     ActivatePaneDirection {
         /// The direction to switch to.
-        #[clap(parse(try_from_str = PaneDirection::direction_from_str))]
+        #[clap(parse(try_from_str = PaneDirection::direction_from_str),
+          possible_values=PaneDirection::variants())]
         direction: PaneDirection,
     },
 }

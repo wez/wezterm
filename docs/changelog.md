@@ -27,6 +27,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Preliminary support for `modifyOtherKeys` keyboard encoding
   [#2527](https://github.com/wez/wezterm/issues/2527)
 * Superscript and subscript text attributes via SGR 73 and SGR 74
+* [wezterm cli activate-pane-direction](cli/cli/activate-pane-direction.md)
+  command. Thanks to [@abusch](https://github.com/abusch)!
+  [#2526](https://github.com/wez/wezterm/pull/2526)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

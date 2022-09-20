@@ -12,6 +12,9 @@ _wezterm() {
             "$1")
                 cmd="wezterm"
                 ;;
+            activate-pane-direction)
+                cmd+="__activate__pane__direction"
+                ;;
             cli)
                 cmd+="__cli"
                 ;;
@@ -104,7 +107,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli)
-            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text help"
+            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text activate-pane-direction help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -114,6 +117,20 @@ _wezterm() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__cli__activate__pane__direction)
+            opts="-h --help Up Down Left Right Next Prev"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 *)
                     COMPREPLY=()
                     ;;
