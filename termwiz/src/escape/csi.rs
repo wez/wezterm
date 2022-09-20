@@ -2446,7 +2446,10 @@ impl<'a> CSIParser<'a> {
         } else {
             for p in params {
                 match p {
-                    CsiParam::P(b';') | CsiParam::P(b':') | CsiParam::Integer(_) => {}
+                    CsiParam::P(b';')
+                    | CsiParam::P(b':')
+                    | CsiParam::P(b'?')
+                    | CsiParam::Integer(_) => {}
                     _ => return Err(()),
                 }
             }
@@ -2457,12 +2460,45 @@ impl<'a> CSIParser<'a> {
                     Ok(self.advance_by(1, params, $t))
                 };
             }
+            // Consume two parameters and return the parsed result
+            macro_rules! two {
+                ($t:expr) => {
+                    Ok(self.advance_by(2, params, $t))
+                };
+            }
 
             match &params[0] {
                 CsiParam::P(b';') => {
                     // Starting with an empty item is equivalent to a reset
                     self.advance_by(1, params, Ok(Sgr::Reset))
                 }
+
+                // There are a small number of DEC private SGR parameters that
+                // have equivalents in the normal SGR space.
+                // We're simply inlining recognizing them here, and mapping them
+                // to those SGR equivalents. That makes parsing "lossy" in the
+                // sense that the original sequence is lost, but semantically,
+                // the result is the same.
+                // These codes are taken from the "SGR" section of
+                // "Digital ANSI-Compliant Printing Protocol
+                // Level 2 Programming Reference Manual"
+                // on page 7-78.
+                // <https://vaxhaven.com/images/f/f7/EK-PPLV2-PM-B01.pdf>
+                CsiParam::P(b'?') if params.len() > 1 => match &params[1] {
+                    CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
+                        None => Err(()),
+                        Some(code) => match code {
+                            0 => two!(Sgr::Reset),
+                            4 => two!(Sgr::VerticalAlign(VerticalAlign::SuperScript)),
+                            5 => two!(Sgr::VerticalAlign(VerticalAlign::SubScript)),
+                            6 => two!(Sgr::Overline(true)),
+                            24 => two!(Sgr::VerticalAlign(VerticalAlign::BaseLine)),
+                            26 => two!(Sgr::Overline(false)),
+                            _ => Err(()),
+                        },
+                    },
+                    _ => Err(()),
+                },
                 CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
