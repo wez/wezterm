@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum, ValueHint};
 use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
-use config::keyassignment::{SpawnTabDomain, PaneDirection};
+use config::keyassignment::{PaneDirection, SpawnTabDomain};
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
@@ -374,7 +374,7 @@ Outputs the pane-id for the newly created pane on success"
         /// The direction to switch to.
         #[clap(parse(try_from_str = PaneDirection::direction_from_str))]
         direction: PaneDirection,
-    }
+    },
 }
 
 use termwiz::escape::osc::{
@@ -1154,11 +1154,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
         }
         CliSubCommand::ActivatePaneDirection { direction } => {
             let pane_id = resolve_pane_id(&client, None).await?;
-            client.activate_pane_direction(codec::ActivatePaneDirection {
-                pane_id,
-                direction,
-
-            }).await?;
+            client
+                .activate_pane_direction(codec::ActivatePaneDirection { pane_id, direction })
+                .await?;
         }
     }
     Ok(())

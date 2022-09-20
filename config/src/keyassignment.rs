@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::PathBuf;
-use wezterm_dynamic::{FromDynamic, ToDynamic, Value, FromDynamicOptions};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
 use wezterm_term::SemanticType;
@@ -263,12 +263,18 @@ impl PaneDirection {
     pub fn direction_from_str(arg: &str) -> Result<PaneDirection, String> {
         for candidate in PaneDirection::variants() {
             if candidate.to_lowercase() == arg.to_lowercase() {
-                if let Ok(direction) = PaneDirection::from_dynamic(&Value::String(candidate.to_string()), FromDynamicOptions::default()) {
+                if let Ok(direction) = PaneDirection::from_dynamic(
+                    &Value::String(candidate.to_string()),
+                    FromDynamicOptions::default(),
+                ) {
                     return Ok(direction);
                 }
             }
         }
-        Err(format!("invalid direction {arg}, possible values are {:?}", PaneDirection::variants()))
+        Err(format!(
+            "invalid direction {arg}, possible values are {:?}",
+            PaneDirection::variants()
+        ))
     }
 }
 

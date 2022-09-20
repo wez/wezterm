@@ -460,10 +460,7 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::ActivatePaneDirection(ActivatePaneDirection {
-                pane_id,
-                direction,
-            }) => {
+            Pdu::ActivatePaneDirection(ActivatePaneDirection { pane_id, direction }) => {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
