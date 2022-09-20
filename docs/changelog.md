@@ -24,7 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
   [strikethrough_position](config/lua/config/strikethrough_position.md) options
   to fine tune appearance. [#2505](https://github.com/wez/wezterm/issues/2505)
   [#2326](https://github.com/wez/wezterm/issues/2326)
-* Preliminary support for `modifyOtherKeys` keyboard encoding
+* Support for `modifyOtherKeys` keyboard encoding
   [#2527](https://github.com/wez/wezterm/issues/2527)
 * Superscript and subscript text attributes via SGR 73 and SGR 74
 * [wezterm cli activate-pane-direction](cli/cli/activate-pane-direction.md)

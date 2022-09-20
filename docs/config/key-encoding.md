@@ -15,6 +15,22 @@ That scheme has worked well for quite some time, but has some ambiguity due
 to the way that the Control modifier "shifts" the ASCII representation of
 keypresses like `Control-I` to be ASCII Tab, as an example.
 
+## xterm `modifyOtherKeys`
+
+*Since: nightly builds only*
+
+When wezterm receives the sequence `CSI >4;Nm`, where `N` is `0`, `1` or `2`,
+the keyboard encoding is changed according to
+[modifyOtherKeys](https://invisible-island.net/xterm/manpage/xterm.html#VT100-Widget-Resources:modifyOtherKeys),
+which causes certain modified keys to be encoded as [described in xterms
+docs](https://invisible-island.net/xterm/modified-keys.html), making it
+possible for applications to distinguish between the modified and unmodified
+key presses.
+
+Note that [enable_csi_u_key_encoding](lua/config/enable_csi_u_key_encoding.md)
+and [allow_win32_input_mode](lua/config/allow_win32_input_mode.md) both take
+precedence over this behavior.
+
 ## CSI-u/fixterms/libtickit
 
 [Fix Keyboard Input on Terminals](http://www.leonerd.org.uk/hacks/fixterms/) is
