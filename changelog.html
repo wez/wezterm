@@ -193,6 +193,9 @@ active <a href="https://github.com/wez/wezterm/issues/2529">#2529</a></li>
 <li>Removed Last Resort fallback font</li>
 <li>X11: use <code>_NET_WM_MOVERESIZE</code> to drag by tab bar, when supported by the WM
 <a href="https://github.com/wez/wezterm/issues/2530">#2530</a></li>
+<li><code>tab:panes()</code> and <code>tab:panes_with_info()</code> now return the full list of panes
+in the tab regardless of whether a pane was zoomed. Previously, if a pane was
+zoomed, only that pane would be returned by those methods.</li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
