@@ -54,6 +54,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Removed Last Resort fallback font
 * X11: use `_NET_WM_MOVERESIZE` to drag by tab bar, when supported by the WM
   [#2530](https://github.com/wez/wezterm/issues/2530)
+* `tab:panes()` and `tab:panes_with_info()` now return the full list of panes
+  in the tab regardless of whether a pane was zoomed. Previously, if a pane was
+  zoomed, only that pane would be returned by those methods.
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2

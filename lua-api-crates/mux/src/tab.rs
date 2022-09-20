@@ -45,7 +45,7 @@ impl UserData for MuxTab {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
             Ok(tab
-                .iter_panes()
+                .iter_panes_ignoring_zoom()
                 .into_iter()
                 .map(|info| MuxPane(info.pane.pane_id()))
                 .collect::<Vec<MuxPane>>())
@@ -63,7 +63,7 @@ impl UserData for MuxTab {
             let tab = this.resolve(&mux)?;
 
             let result = lua.create_table()?;
-            for (idx, pos) in tab.iter_panes().into_iter().enumerate() {
+            for (idx, pos) in tab.iter_panes_ignoring_zoom().into_iter().enumerate() {
                 let info = MuxPaneInfo {
                     index: pos.index,
                     is_active: pos.is_active,
