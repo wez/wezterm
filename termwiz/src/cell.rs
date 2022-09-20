@@ -43,7 +43,7 @@ impl Into<ColorAttribute> for SmallColor {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Eq, PartialEq)]
 pub struct CellAttributes {
-    attributes: u16,
+    attributes: u32,
     /// The foreground color
     foreground: SmallColor,
     /// The background color
@@ -127,12 +127,12 @@ macro_rules! bitfield {
 
     ($getter:ident, $setter:ident, $bitmask:expr, $bitshift:expr) => {
         #[inline]
-        pub fn $getter(&self) -> u16 {
+        pub fn $getter(&self) -> u32 {
             (self.attributes >> $bitshift) & $bitmask
         }
 
         #[inline]
-        pub fn $setter(&mut self, value: u16) -> &mut Self {
+        pub fn $setter(&mut self, value: u32) -> &mut Self {
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
@@ -143,12 +143,12 @@ macro_rules! bitfield {
     ($getter:ident, $setter:ident, $enum:ident, $bitmask:expr, $bitshift:expr) => {
         #[inline]
         pub fn $getter(&self) -> $enum {
-            unsafe { mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u16) }
+            unsafe { mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u8) }
         }
 
         #[inline]
         pub fn $setter(&mut self, value: $enum) -> &mut Self {
-            let value = value as u16;
+            let value = value as u32;
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
@@ -164,7 +164,7 @@ macro_rules! bitfield {
 /// by the shell or application that the user is interacting with.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FromDynamic, ToDynamic)]
-#[repr(u16)]
+#[repr(u8)]
 pub enum SemanticType {
     Output = 0,
     Input = 1,
@@ -183,7 +183,7 @@ impl Default for SemanticType {
 /// as a dimmer color variant.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
-#[repr(u16)]
+#[repr(u8)]
 pub enum Intensity {
     Normal = 0,
     Bold = 1,
@@ -199,7 +199,7 @@ impl Default for Intensity {
 /// Specify just how underlined you want your `Cell` to be
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
-#[repr(u16)]
+#[repr(u8)]
 pub enum Underline {
     /// The cell is not underlined
     None = 0,
@@ -233,7 +233,7 @@ impl Into<bool> for Underline {
 /// Specify whether you want to slowly or rapidly annoy your users
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
-#[repr(u16)]
+#[repr(u8)]
 pub enum Blink {
     None = 0,
     Slow = 1,
@@ -247,6 +247,15 @@ impl Into<bool> for Blink {
     fn into(self) -> bool {
         self != Blink::None
     }
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[repr(u8)]
+pub enum VerticalAlign {
+    BaseLine = 0,
+    SuperScript = 1,
+    SubScript = 2,
 }
 
 impl Default for CellAttributes {
@@ -266,6 +275,7 @@ impl CellAttributes {
     bitfield!(wrapped, set_wrapped, 11);
     bitfield!(overline, set_overline, 12);
     bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13);
+    bitfield!(vertical_align, set_vertical_align, VerticalAlign, 0b11, 15);
 
     pub const fn blank() -> Self {
         Self {

@@ -74,7 +74,14 @@ pub(crate) struct XWindowInner {
     paint_throttled: bool,
     pending: Vec<WindowEvent>,
     sure_about_geometry: bool,
+    current_mouse_event: Option<MouseEvent>,
+    window_drag_position: Option<ScreenPoint>,
+    dragging: bool,
 }
+
+/// <https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html#idm46409506331616>
+const _NET_WM_MOVERESIZE_MOVE: u32 = 8;
+const _NET_WM_MOVERESIZE_CANCEL: u32 = 11;
 
 impl Drop for XWindowInner {
     fn drop(&mut self) {
@@ -155,7 +162,28 @@ impl XWindowInner {
         self.queue_pending(WindowEvent::NeedRepaint);
     }
 
+    fn cancel_drag(&mut self) -> bool {
+        if self.dragging {
+            log::debug!("cancel_drag");
+            self.net_wm_moveresize(0, 0, _NET_WM_MOVERESIZE_CANCEL, 0);
+            self.dragging = false;
+            if let Some(event) = self.current_mouse_event.take() {
+                self.do_mouse_event(MouseEvent {
+                    kind: MouseEventKind::Release(MousePress::Left),
+                    ..event
+                })
+                .ok();
+            }
+            return true;
+        }
+        false
+    }
+
     fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
+        if self.cancel_drag() {
+            return Ok(());
+        }
+        self.current_mouse_event.replace(event.clone());
         self.events.dispatch(WindowEvent::MouseEvent(event));
         Ok(())
     }
@@ -325,6 +353,11 @@ impl XWindowInner {
         state: xcb::x::KeyButMask,
     ) -> anyhow::Result<()> {
         self.copy_and_paste.time = time;
+
+        if self.cancel_drag() {
+            log::debug!("cancel drag due to button {detail} {state:?}");
+            return Ok(());
+        }
 
         let kind = match detail {
             b @ 1..=3 => {
@@ -1066,6 +1099,9 @@ impl XWindow {
                 invalidated: false,
                 pending: vec![],
                 sure_about_geometry: false,
+                current_mouse_event: None,
+                window_drag_position: None,
+                dragging: false,
             }))
         };
 
@@ -1219,7 +1255,72 @@ impl XWindowInner {
         let _ = self.adjust_decorations(config.window_decorations);
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) {
+    fn net_wm_moveresize(&mut self, x_root: u32, y_root: u32, direction: u32, button: u32) {
+        let source_indication = 1;
+        let conn = self.conn();
+
+        if !conn
+            .supported
+            .borrow()
+            .contains(&conn.atom_net_wm_moveresize)
+        {
+            log::debug!("WM doesn't support _NET_WM_MOVERESIZE");
+            return;
+        }
+
+        log::debug!("net_wm_moveresize {x_root},{y_root} direction={direction} button={button}");
+
+        if direction != _NET_WM_MOVERESIZE_CANCEL {
+            // Tell the server to ungrab. Even though we haven't explicitly
+            // grabbed it in our application code, there's an implicit grab
+            // as part of a mouse drag and the moveresize will do nothing
+            // if we don't ungrab it.
+            conn.send_request_no_reply_log(&xcb::x::UngrabPointer {
+                time: self.copy_and_paste.time,
+            });
+            // Flag to ourselves that we are dragging.
+            // This is also used to gate the fallback of calling
+            // set_window_position in case the WM doesn't support
+            // _NET_WM_MOVERESIZE and we returned early above.
+            self.dragging = true;
+        }
+
+        conn.send_request_no_reply_log(&xcb::x::SendEvent {
+            propagate: true,
+            destination: xcb::x::SendEventDest::Window(conn.root),
+            event_mask: xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
+                | xcb::x::EventMask::SUBSTRUCTURE_NOTIFY,
+            event: &xcb::x::ClientMessageEvent::new(
+                self.window_id,
+                conn.atom_net_wm_moveresize,
+                xcb::x::ClientMessageData::Data32([
+                    x_root,
+                    y_root,
+                    direction,
+                    button,
+                    source_indication,
+                ]),
+            ),
+        });
+        conn.flush().context("flush moveresize").ok();
+    }
+
+    fn request_drag_move(&mut self) -> anyhow::Result<()> {
+        let pos = self.window_drag_position.unwrap_or_default();
+
+        let x_root = pos.x as u32;
+        let y_root = pos.y as u32;
+        let button = 1; // Left
+
+        self.net_wm_moveresize(x_root, y_root, _NET_WM_MOVERESIZE_MOVE, button);
+        Ok(())
+    }
+
+    fn set_window_position(&mut self, coords: ScreenPoint) {
+        if self.dragging {
+            return;
+        }
+
         // We ask the window manager to move the window for us so that
         // we don't have to deal with adjusting for the frame size.
         // Note that neither this technique or the configure_window
@@ -1489,6 +1590,20 @@ impl WindowOps for XWindow {
                         xcb::x::ConfigWindow::Height(height as u32),
                     ],
                 });
+            Ok(())
+        });
+    }
+
+    fn request_drag_move(&self) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.request_drag_move()?;
+            Ok(())
+        });
+    }
+
+    fn set_window_drag_position(&self, coords: ScreenPoint) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.window_drag_position.replace(coords);
             Ok(())
         });
     }

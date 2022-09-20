@@ -610,7 +610,7 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 42,
+        glyph_idx: 51,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,

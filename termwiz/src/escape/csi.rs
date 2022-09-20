@@ -1,5 +1,5 @@
 use super::OneBased;
-use crate::cell::{Blink, Intensity, Underline};
+use crate::cell::{Blink, Intensity, Underline, VerticalAlign};
 use crate::color::{AnsiColor, ColorSpec, RgbColor, SrgbaTuple};
 use crate::input::{Modifiers, MouseButtons};
 use num_derive::*;
@@ -755,6 +755,8 @@ impl Display for Mode {
                 )?;
                 if let Some(value) = value {
                     write!(f, ";{}", value)?;
+                } else {
+                    write!(f, ";")?;
                 }
                 write!(f, "m")
             }
@@ -819,6 +821,7 @@ pub enum DecPrivateModeCode {
     AnyEventMouse = 1003,
     /// Enable FocusIn/FocusOut events
     FocusTracking = 1004,
+    Utf8Mouse = 1005,
     /// Use extended coordinate system in mouse reporting.  Does not
     /// enable mouse reporting itself, it just controls how reports
     /// will be encoded.
@@ -827,6 +830,10 @@ pub enum DecPrivateModeCode {
     /// not enable mouse reporting itself, it just controls how
     /// reports will be encoded.
     SGRPixelsMouse = 1016,
+
+    XTermMetaSendsEscape = 1036,
+    XTermAltSendsEscape = 1039,
+
     /// Save cursor as in DECSC
     SaveCursor = 1048,
     ClearAndEnableAlternateScreen = 1049,
@@ -838,6 +845,8 @@ pub enum DecPrivateModeCode {
 
     /// <https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036>
     SynchronizedOutput = 2026,
+
+    MinTTYApplicationEscapeKeyMode = 7727,
 
     /// xterm: adjust cursor positioning after emitting sixel
     SixelScrollsRight = 8452,
@@ -1365,15 +1374,16 @@ pub enum Sgr {
     Foreground(ColorSpec),
     Background(ColorSpec),
     Overline(bool),
+    VerticalAlign(VerticalAlign),
 }
 
 #[cfg(all(test, target_pointer_width = "64"))]
 #[test]
 fn sgr_size() {
-    assert_eq!(std::mem::size_of::<Intensity>(), 2);
-    assert_eq!(std::mem::size_of::<Underline>(), 2);
+    assert_eq!(std::mem::size_of::<Intensity>(), 1);
+    assert_eq!(std::mem::size_of::<Underline>(), 1);
     assert_eq!(std::mem::size_of::<ColorSpec>(), 20);
-    assert_eq!(std::mem::size_of::<Blink>(), 2);
+    assert_eq!(std::mem::size_of::<Blink>(), 1);
     assert_eq!(std::mem::size_of::<Font>(), 2);
 }
 
@@ -1421,6 +1431,9 @@ impl Display for Sgr {
             Sgr::StrikeThrough(false) => code!(StrikeThroughOff),
             Sgr::Overline(true) => code!(OverlineOn),
             Sgr::Overline(false) => code!(OverlineOff),
+            Sgr::VerticalAlign(VerticalAlign::BaseLine) => code!(VerticalAlignBaseLine),
+            Sgr::VerticalAlign(VerticalAlign::SuperScript) => code!(VerticalAlignSuperScript),
+            Sgr::VerticalAlign(VerticalAlign::SubScript) => code!(VerticalAlignSubScript),
             Sgr::Font(Font::Default) => code!(DefaultFont),
             Sgr::Font(Font::Alternate(1)) => code!(AltFont1),
             Sgr::Font(Font::Alternate(2)) => code!(AltFont2),
@@ -2009,6 +2022,18 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
+            [CsiParam::P(b'>'), a, CsiParam::P(b';')] => {
+                let resource = XtermKeyModifierResource::parse(a.as_integer().ok_or_else(|| ())?)
+                    .ok_or_else(|| ())?;
+                Ok(self.advance_by(
+                    3,
+                    params,
+                    CSI::Mode(Mode::XtermKeyMode {
+                        resource,
+                        value: None,
+                    }),
+                ))
+            }
             [CsiParam::P(b'>'), p] => {
                 let resource = XtermKeyModifierResource::parse(p.as_integer().ok_or_else(|| ())?)
                     .ok_or_else(|| ())?;
@@ -2421,7 +2446,10 @@ impl<'a> CSIParser<'a> {
         } else {
             for p in params {
                 match p {
-                    CsiParam::P(b';') | CsiParam::P(b':') | CsiParam::Integer(_) => {}
+                    CsiParam::P(b';')
+                    | CsiParam::P(b':')
+                    | CsiParam::P(b'?')
+                    | CsiParam::Integer(_) => {}
                     _ => return Err(()),
                 }
             }
@@ -2432,12 +2460,45 @@ impl<'a> CSIParser<'a> {
                     Ok(self.advance_by(1, params, $t))
                 };
             }
+            // Consume two parameters and return the parsed result
+            macro_rules! two {
+                ($t:expr) => {
+                    Ok(self.advance_by(2, params, $t))
+                };
+            }
 
             match &params[0] {
                 CsiParam::P(b';') => {
                     // Starting with an empty item is equivalent to a reset
                     self.advance_by(1, params, Ok(Sgr::Reset))
                 }
+
+                // There are a small number of DEC private SGR parameters that
+                // have equivalents in the normal SGR space.
+                // We're simply inlining recognizing them here, and mapping them
+                // to those SGR equivalents. That makes parsing "lossy" in the
+                // sense that the original sequence is lost, but semantically,
+                // the result is the same.
+                // These codes are taken from the "SGR" section of
+                // "Digital ANSI-Compliant Printing Protocol
+                // Level 2 Programming Reference Manual"
+                // on page 7-78.
+                // <https://vaxhaven.com/images/f/f7/EK-PPLV2-PM-B01.pdf>
+                CsiParam::P(b'?') if params.len() > 1 => match &params[1] {
+                    CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
+                        None => Err(()),
+                        Some(code) => match code {
+                            0 => two!(Sgr::Reset),
+                            4 => two!(Sgr::VerticalAlign(VerticalAlign::SuperScript)),
+                            5 => two!(Sgr::VerticalAlign(VerticalAlign::SubScript)),
+                            6 => two!(Sgr::Overline(true)),
+                            24 => two!(Sgr::VerticalAlign(VerticalAlign::BaseLine)),
+                            26 => two!(Sgr::Overline(false)),
+                            _ => Err(()),
+                        },
+                    },
+                    _ => Err(()),
+                },
                 CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
@@ -2462,6 +2523,15 @@ impl<'a> CSIParser<'a> {
                         SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
                         SgrCode::ItalicOn => one!(Sgr::Italic(true)),
                         SgrCode::ItalicOff => one!(Sgr::Italic(false)),
+                        SgrCode::VerticalAlignSuperScript => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::SuperScript))
+                        }
+                        SgrCode::VerticalAlignSubScript => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::SubScript))
+                        }
+                        SgrCode::VerticalAlignBaseLine => {
+                            one!(Sgr::VerticalAlign(VerticalAlign::BaseLine))
+                        }
                         SgrCode::ForegroundColor => {
                             self.parse_sgr_color(params).map(Sgr::Foreground)
                         }
@@ -2621,6 +2691,10 @@ pub enum SgrCode {
 
     UnderlineColor = 58,
     ResetUnderlineColor = 59,
+
+    VerticalAlignSuperScript = 73,
+    VerticalAlignSubScript = 74,
+    VerticalAlignBaseLine = 75,
 
     ForegroundBrightBlack = 90,
     ForegroundBrightRed = 91,

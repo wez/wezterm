@@ -91,6 +91,7 @@ impl ConnectionOps for Connection {
             let appearance: id = msg_send![self.ns_app, effectiveAppearance];
             nsstring_to_str(msg_send![appearance, name])
         };
+        log::debug!("NSAppearanceName is {name}");
         match name {
             "NSAppearanceNameVibrantDark" | "NSAppearanceNameDarkAqua" => Appearance::Dark,
             "NSAppearanceNameVibrantLight" | "NSAppearanceNameAqua" => Appearance::Light,
@@ -98,7 +99,10 @@ impl ConnectionOps for Connection {
             | "NSAppearanceNameAccessibilityHighContrastAqua" => Appearance::LightHighContrast,
             "NSAppearanceNameAccessibilityHighContrastVibrantDark"
             | "NSAppearanceNameAccessibilityHighContrastDarkAqua" => Appearance::DarkHighContrast,
-            _ => Appearance::Light,
+            _ => {
+                log::warn!("Unknown NSAppearanceName {name}, assume Light");
+                Appearance::Light
+            }
         }
     }
 

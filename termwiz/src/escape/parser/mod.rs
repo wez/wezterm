@@ -338,7 +338,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cell::{Intensity, Underline};
+    use crate::cell::{Intensity, Underline, VerticalAlign};
     use crate::color::ColorSpec;
     use crate::escape::csi::{
         CharacterPath, DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtSmGraphics,
@@ -781,6 +781,13 @@ mod test {
                 value: Some(2),
             }))]
         );
+        assert_eq!(
+            round_trip_parse("\x1b[>4;m"),
+            vec![Action::CSI(CSI::Mode(Mode::XtermKeyMode {
+                resource: XtermKeyModifierResource::OtherKeys,
+                value: None,
+            }))]
+        );
     }
 
     #[test]
@@ -936,6 +943,40 @@ mod test {
     }
 
     #[test]
+    fn dec_private_sgr() {
+        assert_eq!(
+            parse_as("\x1b[?0m", "\x1b[0m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::Reset))]
+        );
+        assert_eq!(
+            parse_as("\x1b[?4m", "\x1b[73m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::VerticalAlign(
+                VerticalAlign::SuperScript
+            )))]
+        );
+        assert_eq!(
+            parse_as("\x1b[?5m", "\x1b[74m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::VerticalAlign(
+                VerticalAlign::SubScript
+            )))]
+        );
+        assert_eq!(
+            parse_as("\x1b[?24m", "\x1b[75m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::VerticalAlign(
+                VerticalAlign::BaseLine
+            )))]
+        );
+        assert_eq!(
+            parse_as("\x1b[?6m", "\x1b[53m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::Overline(true)))]
+        );
+        assert_eq!(
+            parse_as("\x1b[?26m", "\x1b[55m"),
+            vec![Action::CSI(CSI::Sgr(Sgr::Overline(false)))]
+        );
+    }
+
+    #[test]
     fn decset() {
         assert_eq!(
             round_trip_parse("\x1b[?23434h"),
@@ -991,9 +1032,9 @@ mod test {
                 Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                     DecPrivateModeCode::AnyEventMouse,
                 )))),
-                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
-                    DecPrivateMode::Unspecified(1005)
-                ))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::Utf8Mouse
+                )))),
                 Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                     DecPrivateModeCode::SGRMouse,
                 )))),

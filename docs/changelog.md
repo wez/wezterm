@@ -24,6 +24,9 @@ As features stabilize some brief notes about them will accumulate here.
   [strikethrough_position](config/lua/config/strikethrough_position.md) options
   to fine tune appearance. [#2505](https://github.com/wez/wezterm/issues/2505)
   [#2326](https://github.com/wez/wezterm/issues/2326)
+* Preliminary support for `modifyOtherKeys` keyboard encoding
+  [#2527](https://github.com/wez/wezterm/issues/2527)
+* Superscript and subscript text attributes via SGR 73 and SGR 74
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
@@ -44,9 +47,16 @@ As features stabilize some brief notes about them will accumulate here.
 * Panic when processing a sixel with inconsistent width information
   [#2500](https://github.com/wez/wezterm/issues/2500)
 * Cells with the invisible/hidden attribute are now invisible
+* Panic when trying to activate the search overlay when the launcher menu is
+  active [#2529](https://github.com/wez/wezterm/issues/2529)
 
 #### Changed
 * Removed Last Resort fallback font
+* X11: use `_NET_WM_MOVERESIZE` to drag by tab bar, when supported by the WM
+  [#2530](https://github.com/wez/wezterm/issues/2530)
+
+#### Updated
+* Bundled Nerd Font Symbols font to v2.2.2
 
 ### 20220905-102802-7d4b8249
 

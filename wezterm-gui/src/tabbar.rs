@@ -445,6 +445,9 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
                         Sgr::Overline(o) => {
                             pen.set_overline(o);
                         }
+                        Sgr::VerticalAlign(o) => {
+                            pen.set_vertical_align(o);
+                        }
                         Sgr::Blink(b) => {
                             pen.set_blink(b);
                         }

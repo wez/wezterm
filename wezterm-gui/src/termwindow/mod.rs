@@ -2452,7 +2452,7 @@ impl TermWindow {
                                 pattern: self.resolve_search_pattern(pattern.clone(), &pane),
                                 editing_search: true,
                             },
-                        );
+                        )?;
                         self.assign_overlay_for_pane(pane.pane_id(), search);
                     }
                     self.pane_state(pane.pane_id())
@@ -2501,7 +2501,7 @@ impl TermWindow {
                                 pattern: MuxPattern::default(),
                                 editing_search: false,
                             },
-                        );
+                        )?;
                         self.assign_overlay_for_pane(pane.pane_id(), copy);
                     }
                     self.pane_state(pane.pane_id())

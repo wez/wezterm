@@ -14,7 +14,7 @@ use termwiz::cell::UnicodeVersion;
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
-    XtSmGraphicsAction, XtSmGraphicsItem, XtSmGraphicsStatus,
+    XtSmGraphicsAction, XtSmGraphicsItem, XtSmGraphicsStatus, XtermKeyModifierResource,
 };
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::image::ImageData;
@@ -285,6 +285,7 @@ pub struct TerminalState {
     /// designated as cursor keys.  This includes various navigation
     /// keys.  The code in key_down() is responsible for interpreting this.
     application_cursor_keys: bool,
+    modify_other_keys: Option<i64>,
 
     dec_ansi_mode: bool,
 
@@ -522,6 +523,7 @@ impl TerminalState {
             dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
+            modify_other_keys: None,
             dec_ansi_mode: false,
             sixel_display_mode: false,
             use_private_color_registers_for_each_graphic: false,
@@ -1206,6 +1208,7 @@ impl TerminalState {
                 // setting for dec_auto_wrap, so we do too
                 self.dec_auto_wrap = true;
                 self.application_cursor_keys = false;
+                self.modify_other_keys = None;
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
@@ -1797,6 +1800,30 @@ impl TerminalState {
                 log::warn!("save/restore dec mode {:?} unimplemented", n)
             }
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::MinTTYApplicationEscapeKeyMode,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::MinTTYApplicationEscapeKeyMode,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermMetaSendsEscape,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermMetaSendsEscape,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermAltSendsEscape,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::XTermAltSendsEscape,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {}
+
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(_))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(_))
             | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(_))
@@ -1806,6 +1833,17 @@ impl TerminalState {
 
             mode @ Mode::SetMode(_) | mode @ Mode::ResetMode(_) => {
                 log::warn!("unhandled {:?}", mode);
+            }
+
+            Mode::XtermKeyMode {
+                resource: XtermKeyModifierResource::OtherKeys,
+                value,
+            } => {
+                self.modify_other_keys = match value {
+                    Some(0) => None,
+                    _ => value,
+                };
+                log::debug!("XtermKeyMode OtherKeys -> {:?}", self.modify_other_keys);
             }
 
             Mode::XtermKeyMode { resource, value } => {
@@ -2484,6 +2522,9 @@ impl TerminalState {
             }
             Sgr::Overline(overline) => {
                 self.pen.set_overline(overline);
+            }
+            Sgr::VerticalAlign(align) => {
+                self.pen.set_vertical_align(align);
             }
             Sgr::Blink(blink) => {
                 self.pen.set_blink(blink);
