@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum, ValueHint};
 use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
-use config::keyassignment::SpawnTabDomain;
+use config::keyassignment::{PaneDirection, SpawnTabDomain};
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
@@ -366,6 +366,14 @@ Outputs the pane-id for the newly created pane on success"
 
         /// The text to send. If omitted, will read the text from stdin.
         text: Option<String>,
+    },
+
+    /// Activate an adjacent pane in the specified direction.
+    #[clap(name = "activate-pane-direction", rename_all = "kebab")]
+    ActivatePaneDirection {
+        /// The direction to switch to.
+        #[clap(parse(try_from_str = PaneDirection::direction_from_str))]
+        direction: PaneDirection,
     },
 }
 
@@ -1143,6 +1151,12 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
         CliSubCommand::TlsCreds => {
             let creds = client.get_tls_creds().await?;
             codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
+        }
+        CliSubCommand::ActivatePaneDirection { direction } => {
+            let pane_id = resolve_pane_id(&client, None).await?;
+            client
+                .activate_pane_direction(codec::ActivatePaneDirection { pane_id, direction })
+                .await?;
         }
     }
     Ok(())

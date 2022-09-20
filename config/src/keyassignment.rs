@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::PathBuf;
-use wezterm_dynamic::{FromDynamic, ToDynamic};
+use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
 use wezterm_term::SemanticType;
@@ -249,7 +249,7 @@ impl SpawnCommand {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, FromDynamic, ToDynamic)]
 pub enum PaneDirection {
     Up,
     Down,
@@ -257,6 +257,25 @@ pub enum PaneDirection {
     Right,
     Next,
     Prev,
+}
+
+impl PaneDirection {
+    pub fn direction_from_str(arg: &str) -> Result<PaneDirection, String> {
+        for candidate in PaneDirection::variants() {
+            if candidate.to_lowercase() == arg.to_lowercase() {
+                if let Ok(direction) = PaneDirection::from_dynamic(
+                    &Value::String(candidate.to_string()),
+                    FromDynamicOptions::default(),
+                ) {
+                    return Ok(direction);
+                }
+            }
+        }
+        Err(format!(
+            "invalid direction {arg}, possible values are {:?}",
+            PaneDirection::variants()
+        ))
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
