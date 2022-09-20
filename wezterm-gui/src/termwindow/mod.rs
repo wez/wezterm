@@ -37,7 +37,7 @@ use config::{
     WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
-use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern};
+use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{
     PositionedPane, PositionedSplit, SplitDirection, SplitRequest, SplitSize as MuxSplitSize, Tab,
@@ -2189,17 +2189,18 @@ impl TermWindow {
         &mut self,
         pane: &Rc<dyn Pane>,
         assignment: &KeyAssignment,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<PerformAssignmentResult> {
         use KeyAssignment::*;
 
         if let Some(modal) = self.get_modal() {
             if modal.perform_assignment(assignment, self) {
-                return Ok(());
+                return Ok(PerformAssignmentResult::Handled);
             }
         }
 
-        if pane.perform_assignment(assignment) {
-            return Ok(());
+        match pane.perform_assignment(assignment) {
+            PerformAssignmentResult::Unhandled => {}
+            result => return Ok(result),
         }
 
         let window = self.window.as_ref().map(|w| w.clone());
@@ -2522,7 +2523,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
 
                 let tab_id = tab.tab_id();
@@ -2535,7 +2536,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
 
                 let tab_id = tab.tab_id();
@@ -2551,7 +2552,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
 
                 let tab_id = tab.tab_id();
@@ -2564,7 +2565,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
                 tab.toggle_zoom();
             }
@@ -2572,7 +2573,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
                 tab.set_zoomed(*zoomed);
             }
@@ -2669,7 +2670,7 @@ impl TermWindow {
                 let mux = Mux::get().unwrap();
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return Ok(()),
+                    None => return Ok(PerformAssignmentResult::Handled),
                 };
                 match direction {
                     RotationDirection::Clockwise => tab.rotate_clockwise(),
@@ -2691,7 +2692,7 @@ impl TermWindow {
                                     "Invalid direction {:?} for SplitPane",
                                     split.direction
                                 );
-                                return Ok(());
+                                return Ok(PerformAssignmentResult::Handled);
                             }
                         },
                         target_is_second: match split.direction {
@@ -2716,7 +2717,7 @@ impl TermWindow {
                 self.modal.borrow_mut().replace(Rc::new(modal));
             }
         };
-        Ok(())
+        Ok(PerformAssignmentResult::Handled)
     }
 
     fn do_open_link_at_mouse_cursor(&self, pane: &Rc<dyn Pane>) {

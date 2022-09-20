@@ -6,7 +6,8 @@ use config::keyassignment::{
 };
 use mux::domain::DomainId;
 use mux::pane::{
-    ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines,
+    ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, PerformAssignmentResult,
+    SearchResult, WithPaneLines,
 };
 use mux::renderable::*;
 use mux::tab::TabId;
@@ -40,6 +41,19 @@ pub struct CopyOverlay {
     render: RefCell<CopyRenderable>,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct PendingJump {
+    forward: bool,
+    prev_char: bool,
+}
+
+#[derive(Copy, Clone, Debug)]
+struct Jump {
+    forward: bool,
+    prev_char: bool,
+    target: char,
+}
+
 struct CopyRenderable {
     cursor: StableCursorPosition,
     delegate: Rc<dyn Pane>,
@@ -65,6 +79,8 @@ struct CopyRenderable {
     /// Used to debounce queries while the user is typing
     typing_cookie: usize,
     searching: Option<Searching>,
+    pending_jump: Option<PendingJump>,
+    last_jump: Option<Jump>,
 }
 
 struct Searching {
@@ -138,6 +154,8 @@ impl CopyOverlay {
             selection_mode: SelectionMode::Cell,
             typing_cookie: 0,
             searching: None,
+            pending_jump: None,
+            last_jump: None,
         };
 
         let search_row = render.compute_search_row();
@@ -905,6 +923,70 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    fn perform_jump(&mut self, jump: Jump) {
+        let y = self.cursor.y;
+        let (_top, lines) = self.delegate.get_lines(y..y + 1);
+        let target_str = jump.target.to_string();
+        if let Some(line) = lines.get(0) {
+            // Find the indices of cells with a matching target
+            let mut candidates: Vec<usize> = line
+                .visible_cells()
+                .filter_map(|cell| {
+                    if cell.str() == &target_str {
+                        Some(cell.cell_index())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if !jump.forward {
+                candidates.reverse();
+            }
+
+            // Find the target that matches the jump
+            let target = candidates
+                .iter()
+                .find(|&&idx| {
+                    if jump.forward {
+                        idx > self.cursor.x
+                    } else {
+                        idx < self.cursor.x
+                    }
+                })
+                .copied();
+
+            if let Some(target) = target {
+                // We'll select the target cell index, or the cell
+                // before/after depending on the prev_char and direction
+                let target = match (jump.prev_char, jump.forward) {
+                    (false, true | false) => target,
+                    (true, true) => target.saturating_sub(1),
+                    (true, false) => target.saturating_add(1),
+                };
+
+                self.cursor.x = target;
+                self.select_to_cursor_pos();
+            }
+        }
+    }
+
+    fn jump(&mut self, forward: bool, prev_char: bool) {
+        self.pending_jump
+            .replace(PendingJump { forward, prev_char });
+        // FIXME: replace copy_mode key table with something
+        // that won't intercept some chars
+    }
+
+    fn jump_again(&mut self, reverse: bool) {
+        if let Some(mut jump) = self.last_jump {
+            if reverse {
+                jump.forward = !jump.forward;
+            }
+            self.perform_jump(jump);
+        }
+    }
+
     fn set_selection_mode(&mut self, mode: &Option<SelectionMode>) {
         match mode {
             None => self.clear_selection_mode(),
@@ -965,6 +1047,28 @@ impl Pane for CopyOverlay {
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         let mut render = self.render.borrow_mut();
+        if let Some(jump) = render.pending_jump.take() {
+            match (key, mods) {
+                (KeyCode::Char(c), KeyModifiers::NONE)
+                | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
+                    let jump = Jump {
+                        forward: jump.forward,
+                        prev_char: jump.prev_char,
+                        target: c,
+                    };
+                    render.last_jump.replace(jump);
+                    render.perform_jump(jump);
+                }
+                _ => {
+                    self.delegate
+                        .perform_actions(vec![termwiz::escape::Action::Control(
+                            termwiz::escape::ControlCode::Bell,
+                        )]);
+                }
+            }
+            return Ok(());
+        }
+
         if render.editing_search {
             match (key, mods) {
                 (KeyCode::Char(c), KeyModifiers::NONE)
@@ -985,11 +1089,16 @@ impl Pane for CopyOverlay {
         Ok(())
     }
 
-    fn perform_assignment(&self, assignment: &KeyAssignment) -> bool {
+    fn perform_assignment(&self, assignment: &KeyAssignment) -> PerformAssignmentResult {
         use CopyModeAssignment::*;
+        let mut render = self.render.borrow_mut();
+        if render.pending_jump.is_some() {
+            // Block key assignments until key_down is called
+            // and resolves the next state
+            return PerformAssignmentResult::BlockAssignmentAndRouteToKeyDown;
+        }
         match assignment {
             KeyAssignment::CopyMode(assignment) => {
-                let mut render = self.render.borrow_mut();
                 match assignment {
                     MoveToViewportBottom => render.move_to_viewport_bottom(),
                     MoveToViewportTop => render.move_to_viewport_top(),
@@ -1025,10 +1134,14 @@ impl Pane for CopyOverlay {
                     MoveForwardSemanticZone => render.move_by_zone(1, None),
                     MoveBackwardZoneOfType(zone_type) => render.move_by_zone(-1, Some(*zone_type)),
                     MoveForwardZoneOfType(zone_type) => render.move_by_zone(1, Some(*zone_type)),
+                    JumpForward { prev_char } => render.jump(true, *prev_char),
+                    JumpBackward { prev_char } => render.jump(false, *prev_char),
+                    JumpAgain => render.jump_again(false),
+                    JumpReverse => render.jump_again(true),
                 }
-                true
+                PerformAssignmentResult::Handled
             }
-            _ => false,
+            _ => PerformAssignmentResult::Unhandled,
         }
     }
 
@@ -1652,6 +1765,46 @@ pub fn copy_key_table() -> KeyTable {
                 KeyAssignment::CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection),
                 KeyAssignment::CopyMode(CopyModeAssignment::Close),
             ]),
+        ),
+        (
+            WKeyCode::Char(';'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpAgain),
+        ),
+        (
+            WKeyCode::Char(','),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpReverse),
+        ),
+        (
+            WKeyCode::Char('F'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpBackward { prev_char: false }),
+        ),
+        (
+            WKeyCode::Char('F'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpBackward { prev_char: false }),
+        ),
+        (
+            WKeyCode::Char('T'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpBackward { prev_char: true }),
+        ),
+        (
+            WKeyCode::Char('T'),
+            Modifiers::SHIFT,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpBackward { prev_char: true }),
+        ),
+        (
+            WKeyCode::Char('f'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpForward { prev_char: false }),
+        ),
+        (
+            WKeyCode::Char('t'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::JumpForward { prev_char: true }),
         ),
     ] {
         table.insert((key, mods), KeyTableEntry { action });

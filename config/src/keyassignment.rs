@@ -599,6 +599,10 @@ pub enum CopyModeAssignment {
     MoveForwardSemanticZone,
     MoveBackwardZoneOfType(SemanticType),
     MoveForwardZoneOfType(SemanticType),
+    JumpForward { prev_char: bool },
+    JumpBackward { prev_char: bool },
+    JumpAgain,
+    JumpReverse,
 }
 
 pub type KeyTable = HashMap<(KeyCode, Modifiers), KeyTableEntry>;

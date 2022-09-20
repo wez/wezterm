@@ -2,7 +2,7 @@ use crate::termwindow::InputMap;
 use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
 use anyhow::Context;
 use config::keyassignment::KeyTableEntry;
-use mux::pane::Pane;
+use mux::pane::{Pane, PerformAssignmentResult};
 use smol::Timer;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -280,16 +280,23 @@ impl super::TermWindow {
                 }
 
                 self.key_table_state.did_process_key();
-                self.perform_key_assignment(&pane, &entry.action).ok();
-                context.invalidate();
+                let handled = match self.perform_key_assignment(&pane, &entry.action) {
+                    Ok(PerformAssignmentResult::Handled) => true,
+                    Err(_) => true,
+                    Ok(_) => false,
+                };
 
-                if leader_active {
-                    // A successful leader key-lookup cancels the leader
-                    // virtual modifier state
-                    self.leader_done();
+                if handled {
+                    context.invalidate();
+
+                    if leader_active {
+                        // A successful leader key-lookup cancels the leader
+                        // virtual modifier state
+                        self.leader_done();
+                    }
+
+                    return true;
                 }
-
-                return true;
             }
         }
 

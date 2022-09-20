@@ -28,6 +28,18 @@ pub fn alloc_pane_id() -> PaneId {
     PANE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PerformAssignmentResult {
+    /// Continue search for handler
+    Unhandled,
+    /// Found handler and acted upon the action
+    Handled,
+    /// Do not perform assignment, but instead treat the key event
+    /// as though there was no assignment and run it as a key_down
+    /// event.
+    BlockAssignmentAndRouteToKeyDown,
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SearchResult {
     pub start_y: StableRowIndex,
@@ -251,8 +263,8 @@ pub trait Pane: Downcast {
     fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
-    fn perform_assignment(&self, _assignment: &KeyAssignment) -> bool {
-        false
+    fn perform_assignment(&self, _assignment: &KeyAssignment) -> PerformAssignmentResult {
+        PerformAssignmentResult::Unhandled
     }
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn perform_actions(&self, _actions: Vec<termwiz::escape::Action>) {}
