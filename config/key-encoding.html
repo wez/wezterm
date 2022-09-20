@@ -151,6 +151,18 @@ hardware of the 1980's.</p>
 <p>That scheme has worked well for quite some time, but has some ambiguity due
 to the way that the Control modifier &quot;shifts&quot; the ASCII representation of
 keypresses like <code>Control-I</code> to be ASCII Tab, as an example.</p>
+<h2 id="xterm-modifyotherkeys"><a class="header" href="#xterm-modifyotherkeys">xterm <code>modifyOtherKeys</code></a></h2>
+<p><em>Since: nightly builds only</em></p>
+<p>When wezterm receives the sequence <code>CSI &gt;4;Nm</code>, where <code>N</code> is <code>0</code>, <code>1</code> or <code>2</code>,
+the keyboard encoding is changed according to
+<a href="https://invisible-island.net/xterm/manpage/xterm.html#VT100-Widget-Resources:modifyOtherKeys">modifyOtherKeys</a>,
+which causes certain modified keys to be encoded as <a href="https://invisible-island.net/xterm/modified-keys.html">described in xterms
+docs</a>, making it
+possible for applications to distinguish between the modified and unmodified
+key presses.</p>
+<p>Note that <a href="lua/config/enable_csi_u_key_encoding.html">enable_csi_u_key_encoding</a>
+and <a href="lua/config/allow_win32_input_mode.html">allow_win32_input_mode</a> both take
+precedence over this behavior.</p>
 <h2 id="csi-ufixtermslibtickit"><a class="header" href="#csi-ufixtermslibtickit">CSI-u/fixterms/libtickit</a></h2>
 <p><a href="http://www.leonerd.org.uk/hacks/fixterms/">Fix Keyboard Input on Terminals</a> is
 an attempt at resolving the ambiguous encoding and doing a better job at
