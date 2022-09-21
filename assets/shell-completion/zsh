@@ -80,9 +80,10 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (ls-fonts)
 _arguments "${_arguments_options[@]}" \
-'(--list-system)--text=[Explain which fonts are used to render the supplied text string]:TEXT: ' \
+'(--list-system --codepoints)--text=[Explain which fonts are used to render the supplied text string]:TEXT: ' \
+'(--list-system)--codepoints=[Explain which fonts are used to render the specified unicode code point sequence. Code points are comma separated hex values]:CODEPOINTS: ' \
 '--list-system[Whether to list all fonts available to the system]' \
-'--rasterize-ascii[Show rasterized glyphs for the text in --text using ascii blocks]' \
+'--rasterize-ascii[Show rasterized glyphs for the text in --text or --codepoints using ascii blocks]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0

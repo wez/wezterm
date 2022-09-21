@@ -331,10 +331,14 @@ pub struct LsFontsCommand {
     pub list_system: bool,
 
     /// Explain which fonts are used to render the supplied text string
-    #[clap(long = "text", conflicts_with = "list-system")]
+    #[clap(long = "text", conflicts_with_all = &["list-system", "codepoints"])]
     pub text: Option<String>,
 
-    /// Show rasterized glyphs for the text in --text using ascii blocks.
+    /// Explain which fonts are used to render the specified unicode code point sequence. Code points are comma separated hex values.
+    #[clap(long, conflicts_with = "list-system")]
+    pub codepoints: Option<String>,
+
+    /// Show rasterized glyphs for the text in --text or --codepoints using ascii blocks.
     #[clap(long, requires = "text")]
     pub rasterize_ascii: bool,
 }

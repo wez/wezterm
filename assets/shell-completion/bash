@@ -391,13 +391,17 @@ _wezterm() {
             return 0
             ;;
         wezterm__ls__fonts)
-            opts="-h --list-system --text --rasterize-ascii --help"
+            opts="-h --list-system --text --codepoints --rasterize-ascii --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --text)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --codepoints)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

@@ -801,7 +801,23 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         ambiguous_are_wide: config.treat_east_asian_ambiguous_width_as_wide,
     };
 
-    if let Some(text) = &cmd.text {
+    let text = match (&cmd.text, &cmd.codepoints) {
+        (Some(text), _) => Some(text.to_string()),
+        (_, Some(codepoints)) => {
+            let mut s = String::new();
+            for cp in codepoints.split(",") {
+                let cp = u32::from_str_radix(cp, 16)
+                    .with_context(|| format!("{cp} is not a hex number"))?;
+                let c = char::from_u32(cp)
+                    .ok_or_else(|| anyhow!("{cp} is not a valid unicode codepoint value"))?;
+                s.push(c);
+            }
+            Some(s)
+        }
+        _ => None,
+    };
+
+    if let Some(text) = &text {
         let line = Line::from_text(
             text,
             &CellAttributes::default(),
