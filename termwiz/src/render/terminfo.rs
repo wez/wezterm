@@ -50,13 +50,18 @@ impl TerminfoRenderer {
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cognitive_complexity))]
     fn flush_pending_attr<W: RenderTty + Write>(&mut self, out: &mut W) -> Result<()> {
         macro_rules! attr_on {
-            ($cap:ident, $sgr:expr) => {
-                if let Some(attr) = self.get_capability::<cap::$cap>() {
+            ($cap:ident, $sgr:expr) => {{
+                let cap = if self.caps.force_terminfo_render_to_use_ansi_sgr() {
+                    None
+                } else {
+                    self.get_capability::<cap::$cap>()
+                };
+                if let Some(attr) = cap {
                     attr.expand().to(out.by_ref())?;
                 } else {
                     write!(out, "{}", CSI::Sgr($sgr))?;
                 }
-            };
+            }};
             ($sgr:expr) => {
                 write!(out, "{}", CSI::Sgr($sgr))?;
             };
@@ -71,8 +76,13 @@ impl TerminfoRenderer {
                 current_foreground = ColorAttribute::Default;
                 current_background = ColorAttribute::Default;
 
+                let sgr = if self.caps.force_terminfo_render_to_use_ansi_sgr() {
+                    None
+                } else {
+                    self.get_capability::<cap::SetAttributes>()
+                };
                 // The SetAttributes capability can only handle single underline and slow blink.
-                if let Some(sgr) = self.get_capability::<cap::SetAttributes>() {
+                if let Some(sgr) = sgr {
                     sgr.expand()
                         .bold(attr.intensity() == Intensity::Bold)
                         .dim(attr.intensity() == Intensity::Half)
@@ -706,10 +716,14 @@ mod test {
 
     /// Return Capabilities loaded from the included xterm terminfo data
     fn xterm_terminfo() -> Capabilities {
+        xterm_terminfo_with_hints(ProbeHints::default())
+    }
+
+    fn xterm_terminfo_with_hints(hints: ProbeHints) -> Capabilities {
         // Load our own compiled data so that the tests have an
         // environment that doesn't vary machine by machine.
         let data = include_bytes!("../../data/xterm-256color");
-        Capabilities::new_with_hints(ProbeHints::default().terminfo_db(Some(
+        Capabilities::new_with_hints(hints.terminfo_db(Some(
             terminfo::Database::from_buffer(data.as_ref()).unwrap(),
         )))
         .unwrap()
@@ -912,6 +926,37 @@ mod test {
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .clone()
+        );
+    }
+
+    #[test]
+    // Sanity that force_terminfo_render_to_use_ansi_sgr does something.
+    fn bold_text_force_ansi_sgr() {
+        let mut out = FakeTerm::new(xterm_terminfo_with_hints(
+            ProbeHints::default().force_terminfo_render_to_use_ansi_sgr(Some(true)),
+        ));
+        out.render(&[
+            Change::Text("not ".into()),
+            AttributeChange::Intensity(Intensity::Bold).into(),
+            Change::Text("foo".into()),
+        ])
+        .unwrap();
+
+        let result = out.parse();
+        assert_eq!(
+            result,
+            vec![
+                // Same as bold_text() above, but without the "(B" from srg/sgr0.
+                Action::Print('n'),
+                Action::Print('o'),
+                Action::Print('t'),
+                Action::Print(' '),
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
+                Action::Print('f'),
+                Action::Print('o'),
+                Action::Print('o'),
+            ],
         );
     }
 

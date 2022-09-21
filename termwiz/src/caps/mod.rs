@@ -107,6 +107,13 @@ builder! {
 
         /// Whether mouse support is present and should be used
         mouse_reporting: Option<bool>,
+
+        /// When true, rather than using the terminfo `sgr` or `sgr0` entries,
+        /// assume that the terminal is ANSI/ECMA-48 compliant for the
+        /// common SGR attributes of bold, dim, reverse, underline, blink,
+        /// invisible and reset, and directly emit those sequences.
+        /// This can improve rendered text compatibility with pagers.
+        force_terminfo_render_to_use_ansi_sgr: Option<bool>,
     }
 }
 
@@ -154,6 +161,7 @@ pub struct Capabilities {
     terminfo_db: Option<terminfo::Database>,
     bracketed_paste: bool,
     mouse_reporting: bool,
+    force_terminfo_render_to_use_ansi_sgr: bool,
 }
 
 impl Capabilities {
@@ -282,6 +290,9 @@ impl Capabilities {
         let bracketed_paste = hints.bracketed_paste.unwrap_or(true);
         let mouse_reporting = hints.mouse_reporting.unwrap_or(true);
 
+        let force_terminfo_render_to_use_ansi_sgr =
+            hints.force_terminfo_render_to_use_ansi_sgr.unwrap_or(false);
+
         Ok(Self {
             color_level,
             sixel,
@@ -291,6 +302,7 @@ impl Capabilities {
             terminfo_db,
             bracketed_paste,
             mouse_reporting,
+            force_terminfo_render_to_use_ansi_sgr,
         })
     }
 
@@ -335,6 +347,12 @@ impl Capabilities {
     /// Whether mouse reporting is supported
     pub fn mouse_reporting(&self) -> bool {
         self.mouse_reporting
+    }
+
+    /// Whether to emit standard ANSI/ECMA-48 codes, overriding any
+    /// SGR terminfo capabilities.
+    pub fn force_terminfo_render_to_use_ansi_sgr(&self) -> bool {
+        self.force_terminfo_render_to_use_ansi_sgr
     }
 }
 
