@@ -974,8 +974,6 @@ impl CopyRenderable {
     fn jump(&mut self, forward: bool, prev_char: bool) {
         self.pending_jump
             .replace(PendingJump { forward, prev_char });
-        // FIXME: replace copy_mode key table with something
-        // that won't intercept some chars
     }
 
     fn jump_again(&mut self, reverse: bool) {
