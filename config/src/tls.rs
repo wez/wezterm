@@ -85,6 +85,13 @@ pub struct TlsDomainClient {
 
     /// The path to the wezterm binary on the remote host
     pub remote_wezterm_path: Option<String>,
+
+    /// Show time since last response when waiting for a response.
+    /// It is recommended to use
+    /// <https://wezfurlong.org/wezterm/config/lua/pane/get_metadata.html#since_last_response_ms>
+    /// instead.
+    #[dynamic(default)]
+    pub overlay_lag_indicator: bool,
 }
 
 impl TlsDomainClient {

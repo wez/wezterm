@@ -69,6 +69,12 @@ As features stabilize some brief notes about them will accumulate here.
   zoomed, only that pane would be returned by those methods.
 * macOS: CTRL-modified keys are now routed to the IME
   [#2435](https://github.com/wez/wezterm/pull/2435)
+* multiplexer: The lag indicator that gets overlaid on the pane content
+  when waiting a long time for a response now defaults to disabled.  It is
+  recommended that you [put it into your status
+  bar](config/lua/pane/get_metadata.md), but you may re-enable the old way
+  using `overlay_lag_indicator = true` in the appropriate domain
+  configuration.
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2

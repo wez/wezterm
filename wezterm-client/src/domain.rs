@@ -24,6 +24,7 @@ pub struct ClientInner {
     pub local_domain_id: DomainId,
     pub remote_domain_id: DomainId,
     pub local_echo_threshold_ms: Option<u64>,
+    pub overlay_lag_indicator: bool,
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
     remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
@@ -139,6 +140,14 @@ impl ClientDomainConfig {
         }
     }
 
+    pub fn overlay_lag_indicator(&self) -> bool {
+        match self {
+            ClientDomainConfig::Unix(unix) => unix.overlay_lag_indicator,
+            ClientDomainConfig::Tls(tls) => tls.overlay_lag_indicator,
+            ClientDomainConfig::Ssh(ssh) => ssh.overlay_lag_indicator,
+        }
+    }
+
     pub fn label(&self) -> String {
         match self {
             ClientDomainConfig::Unix(unix) => format!("unix mux {}", unix.socket_path().display()),
@@ -167,6 +176,7 @@ impl ClientInner {
         local_domain_id: DomainId,
         client: Client,
         local_echo_threshold_ms: Option<u64>,
+        overlay_lag_indicator: bool,
     ) -> Self {
         // Assumption: that the domain id on the other end is
         // always the first created default domain.  In the future
@@ -178,6 +188,7 @@ impl ClientInner {
             local_domain_id,
             remote_domain_id,
             local_echo_threshold_ms,
+            overlay_lag_indicator,
             remote_to_local_window: Mutex::new(HashMap::new()),
             remote_to_local_tab: Mutex::new(HashMap::new()),
             remote_to_local_pane: Mutex::new(HashMap::new()),
@@ -457,8 +468,14 @@ impl ClientDomain {
             .downcast_ref::<Self>()
             .ok_or_else(|| anyhow!("domain {} is not a ClientDomain", domain_id))?;
         let threshold = domain.config.local_echo_threshold_ms();
+        let overlay_lag_indicator = domain.config.overlay_lag_indicator();
 
-        let inner = Arc::new(ClientInner::new(domain_id, client, threshold));
+        let inner = Arc::new(ClientInner::new(
+            domain_id,
+            client,
+            threshold,
+            overlay_lag_indicator,
+        ));
         *domain.inner.borrow_mut() = Some(Arc::clone(&inner));
 
         Self::process_pane_list(inner, panes, primary_window_id)?;

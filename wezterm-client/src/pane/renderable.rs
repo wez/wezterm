@@ -753,7 +753,7 @@ impl RenderableState {
                 }
             };
 
-            if idx == inner.dimensions.physical_top {
+            if inner.client.overlay_lag_indicator && idx == inner.dimensions.physical_top {
                 if inner.is_tardy() {
                     let status = format!(
                         "wezterm: {:.0?}⏳since last response",

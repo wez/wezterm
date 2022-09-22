@@ -53,6 +53,13 @@ pub struct UnixDomain {
     /// Don't use default_local_echo_threshold_ms() here to
     /// disable the predictive echo for Unix domains by default.
     pub local_echo_threshold_ms: Option<u64>,
+
+    /// Show time since last response when waiting for a response.
+    /// It is recommended to use
+    /// <https://wezfurlong.org/wezterm/config/lua/pane/get_metadata.html#since_last_response_ms>
+    /// instead.
+    #[dynamic(default)]
+    pub overlay_lag_indicator: bool,
 }
 
 impl Default for UnixDomain {
@@ -68,6 +75,7 @@ impl Default for UnixDomain {
             write_timeout: default_write_timeout(),
             local_echo_threshold_ms: None,
             proxy_command: None,
+            overlay_lag_indicator: false,
         }
     }
 }

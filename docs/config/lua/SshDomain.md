@@ -130,3 +130,13 @@ return {
   },
 }
 ```
+
+*Since: nightly builds only*
+
+The lag indicator now defaults to disabled. It is recommended to display
+the lag information in your status bar using [this
+example](pane/get_metadata.md).
+
+If you prefer to have the information overlaid on the content area, then
+you can set `overlay_lag_indicator = true`, but note that I'd like to
+remove that functionality in the future.
