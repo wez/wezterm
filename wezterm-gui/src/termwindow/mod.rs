@@ -1266,7 +1266,7 @@ impl TermWindow {
                 let mux = Mux::get().expect("mux is calling us");
                 if mux.get_window(mux_window_id).is_none() {
                     // Something inconsistent: cancel subscription
-                    log::error!(
+                    log::debug!(
                         "PaneOutput: wanted mux_window_id={} from mux, but \
                          was not found, cancel mux subscription",
                         mux_window_id
