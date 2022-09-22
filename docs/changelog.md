@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Improved
+* Reduced CPU and RAM utilization, reduced overhead of parsing output and
+  rendering to the GPU.
+
 #### New
 * [wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
   and [wezterm.gui.default_keys](config/lua/wezterm.gui/default_keys.md) for
