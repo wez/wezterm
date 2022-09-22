@@ -923,7 +923,7 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
-    fn perform_jump(&mut self, jump: Jump) {
+    fn perform_jump(&mut self, jump: Jump, repeat: bool) {
         let y = self.cursor.y;
         let (_top, lines) = self.delegate.get_lines(y..y + 1);
         let target_str = jump.target.to_string();
@@ -946,7 +946,7 @@ impl CopyRenderable {
 
             // Adjust cursor cutoff so that we don't end up matching
             // the current cursor position for the prev_char cases
-            let cursor_x = match (jump.prev_char, jump.forward) {
+            let cursor_x = match (jump.prev_char && repeat, jump.forward) {
                 (false, _) => self.cursor.x,
                 (true, true) => self.cursor.x.saturating_add(1),
                 (true, false) => self.cursor.x.saturating_sub(1),
@@ -989,7 +989,7 @@ impl CopyRenderable {
             if reverse {
                 jump.forward = !jump.forward;
             }
-            self.perform_jump(jump);
+            self.perform_jump(jump, true);
         }
     }
 
@@ -1063,7 +1063,7 @@ impl Pane for CopyOverlay {
                         target: c,
                     };
                     render.last_jump.replace(jump);
-                    render.perform_jump(jump);
+                    render.perform_jump(jump, false);
                 }
                 _ => {
                     self.delegate
