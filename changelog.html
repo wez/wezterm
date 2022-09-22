@@ -209,6 +209,12 @@ in the tab regardless of whether a pane was zoomed. Previously, if a pane was
 zoomed, only that pane would be returned by those methods.</li>
 <li>macOS: CTRL-modified keys are now routed to the IME
 <a href="https://github.com/wez/wezterm/pull/2435">#2435</a></li>
+<li>multiplexer: The lag indicator that gets overlaid on the pane content
+when waiting a long time for a response now defaults to disabled.  It is
+recommended that you <a href="config/lua/pane/get_metadata.html">put it into your status
+bar</a>, but you may re-enable the old way
+using <code>overlay_lag_indicator = true</code> in the appropriate domain
+configuration.</li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
