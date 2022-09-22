@@ -1597,6 +1597,8 @@ impl WindowView {
             | "moveUpAndModifySelection:"
             | "moveDown:"
             | "moveDownAndModifySelection:"
+            | "moveToBeginningOfParagraph:"
+            | "moveToEndOfParagraph:"
             | "insertTab:"
             | "insertBacktab:"
             | "insertNewline:"
@@ -2226,21 +2228,18 @@ impl WindowView {
         };
 
         let alt_mods = Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT;
-        let only_alt = (modifiers & alt_mods) == Modifiers::ALT;
         let only_left_alt = (modifiers & alt_mods) == (Modifiers::LEFT_ALT | Modifiers::ALT);
         let only_right_alt = (modifiers & alt_mods) == (Modifiers::RIGHT_ALT | Modifiers::ALT);
 
         // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
         // when `use_ime` is true.
         let forward_to_ime = {
-            if modifiers.is_empty() || modifiers == Modifiers::SHIFT {
-                true
-            } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
+            if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
                 false
             } else if only_right_alt && !send_composed_key_when_right_alt_is_pressed {
                 false
             } else {
-                only_alt
+                true
             }
         };
 

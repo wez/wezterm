@@ -67,6 +67,8 @@ As features stabilize some brief notes about them will accumulate here.
 * `tab:panes()` and `tab:panes_with_info()` now return the full list of panes
   in the tab regardless of whether a pane was zoomed. Previously, if a pane was
   zoomed, only that pane would be returned by those methods.
+* macOS: CTRL-modified keys are now routed to the IME
+  [#2435](https://github.com/wez/wezterm/pull/2435)
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2
