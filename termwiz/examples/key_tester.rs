@@ -4,7 +4,7 @@ use termwiz::terminal::{new_terminal, Terminal};
 use termwiz::Error;
 
 const CTRL_C: KeyEvent = KeyEvent {
-    key: KeyCode::Char('C'),
+    key: KeyCode::Char('c'),
     modifiers: Modifiers::CTRL,
 };
 

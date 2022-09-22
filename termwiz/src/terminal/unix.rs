@@ -18,7 +18,7 @@ use termios::{
 };
 
 use crate::caps::Capabilities;
-use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
+use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, XtermKeyModifierResource, CSI};
 use crate::input::{InputEvent, InputParser};
 use crate::render::terminfo::TerminfoRenderer;
 use crate::surface::Change;
@@ -98,6 +98,17 @@ impl TtyWriteHandle {
             self.write_buffer.clear();
         }
         Ok(())
+    }
+
+    fn modify_other_keys(&mut self, level: i64) -> std::io::Result<()> {
+        write!(
+            self,
+            "{}",
+            CSI::Mode(Mode::XtermKeyMode {
+                resource: XtermKeyModifierResource::OtherKeys,
+                value: Some(level),
+            })
+        )
     }
 }
 
@@ -323,12 +334,14 @@ impl Terminal for UnixTerminal {
             decset!(AnyEventMouse);
             decset!(SGRMouse);
         }
+        self.write.modify_other_keys(2)?;
         self.write.flush()?;
 
         Ok(())
     }
 
     fn set_cooked_mode(&mut self) -> Result<()> {
+        self.write.modify_other_keys(1)?;
         self.write
             .set_termios(&self.saved_termios, SetAttributeWhen::Now)
     }
@@ -515,6 +528,7 @@ impl Drop for UnixTerminal {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
         }
+        self.write.modify_other_keys(0).unwrap();
         self.exit_alternate_screen().unwrap();
         self.write.flush().unwrap();
 

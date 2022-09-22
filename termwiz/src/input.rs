@@ -1167,7 +1167,7 @@ impl InputParser {
             map.insert(
                 &ctrl,
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char(alpha as char),
+                    key: KeyCode::Char((alpha as char).to_ascii_lowercase()),
                     modifiers: Modifiers::CTRL,
                 }),
             );
@@ -1414,6 +1414,13 @@ impl InputParser {
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Tab,
                 modifiers: Modifiers::NONE,
+            }),
+        );
+        map.insert(
+            b"\x1b[Z",
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Tab,
+                modifiers: Modifiers::SHIFT,
             }),
         );
 
@@ -1724,7 +1731,7 @@ mod test {
             vec![
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::CTRL,
-                    key: KeyCode::Char('C'),
+                    key: KeyCode::Char('c'),
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::ALT,
