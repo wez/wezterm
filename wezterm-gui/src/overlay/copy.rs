@@ -944,14 +944,22 @@ impl CopyRenderable {
                 candidates.reverse();
             }
 
+            // Adjust cursor cutoff so that we don't end up matching
+            // the current cursor position for the prev_char cases
+            let cursor_x = match (jump.prev_char, jump.forward) {
+                (false, _) => self.cursor.x,
+                (true, true) => self.cursor.x.saturating_add(1),
+                (true, false) => self.cursor.x.saturating_sub(1),
+            };
+
             // Find the target that matches the jump
             let target = candidates
                 .iter()
                 .find(|&&idx| {
                     if jump.forward {
-                        idx > self.cursor.x
+                        idx > cursor_x
                     } else {
-                        idx < self.cursor.x
+                        idx < cursor_x
                     }
                 })
                 .copied();
