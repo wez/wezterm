@@ -351,7 +351,7 @@ pub struct TermWindow {
     pub config_overrides: wezterm_dynamic::Value,
     os_parameters: Option<parameters::Parameters>,
     /// When we most recently received keyboard focus
-    focused: Option<Instant>,
+    pub focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
     /// Window dimensions and dpi
     pub dimensions: Dimensions,
@@ -525,6 +525,8 @@ impl TermWindow {
         if let Some(pane) = self.get_active_pane_or_overlay() {
             pane.focus_changed(focused);
         }
+
+        self.update_title();
     }
 
     fn created(

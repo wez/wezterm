@@ -34,6 +34,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm cli activate-pane-direction](cli/cli/activate-pane-direction.md)
   command. Thanks to [@abusch](https://github.com/abusch)!
   [#2526](https://github.com/wez/wezterm/pull/2526)
+* [window:is_focused()](config/lua/window/is_focused.md) method for testing
+  whether a GUI window has focus.
+  [#2537](https://github.com/wez/wezterm/discussions/2537)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
