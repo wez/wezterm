@@ -723,6 +723,7 @@ dependencies = [
  "toml",
  "umask",
  "wezterm-bidi",
+ "wezterm-config-derive",
  "wezterm-dynamic",
  "wezterm-input-types",
  "wezterm-term",
@@ -5442,6 +5443,15 @@ dependencies = [
  "lazy_static",
  "serde",
  "wezterm-dynamic",
+]
+
+[[package]]
+name = "wezterm-config-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

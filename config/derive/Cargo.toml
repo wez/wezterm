@@ -1,0 +1,15 @@
+[package]
+name = "wezterm-config-derive"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/wez/wezterm"
+description = "derive config metadata"
+license = "MIT"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0.2"
+syn = "1.0"

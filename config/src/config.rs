@@ -38,11 +38,12 @@ use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
+use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_input_types::{Modifiers, WindowDecorations};
 use wezterm_term::TerminalSize;
 
-#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, FromDynamic, ToDynamic, ConfigMeta)]
 pub struct Config {
     /// The font size, measured in points
     #[dynamic(default = "default_font_size")]

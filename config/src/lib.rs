@@ -30,6 +30,7 @@ mod frontend;
 pub mod keyassignment;
 mod keys;
 pub mod lua;
+pub mod meta;
 mod scheme_data;
 mod ssh;
 mod terminal;
