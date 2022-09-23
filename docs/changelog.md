@@ -59,6 +59,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Cells with the invisible/hidden attribute are now invisible
 * Panic when trying to activate the search overlay when the launcher menu is
   active [#2529](https://github.com/wez/wezterm/issues/2529)
+* Overlays did not see config overrides set via `window:set_config_overrides`
+  [#2544](https://github.com/wez/wezterm/issues/2544)
 
 #### Changed
 * Removed Last Resort fallback font

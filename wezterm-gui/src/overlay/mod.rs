@@ -4,7 +4,8 @@ use mux::tab::{Tab, TabId};
 use mux::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
 use std::rc::Rc;
-use wezterm_term::TerminalSize;
+use std::sync::Arc;
+use wezterm_term::{TerminalConfiguration, TerminalSize};
 
 pub mod confirm_close_pane;
 pub mod copy;
@@ -34,7 +35,9 @@ where
 {
     let tab_id = tab.tab_id();
     let tab_size = tab.get_size();
-    let (tw_term, tw_tab) = allocate(tab_size);
+    let term_config: Arc<dyn TerminalConfiguration + Send + Sync> =
+        Arc::new(config::TermConfig::with_config(term_window.config.clone()));
+    let (tw_term, tw_tab) = allocate(tab_size, term_config);
 
     let window = term_window.window.clone().unwrap();
 
@@ -70,7 +73,9 @@ where
         pixel_height: term_window.render_metrics.cell_size.height as usize * dims.viewport_rows,
         dpi: dims.dpi,
     };
-    let (tw_term, tw_tab) = allocate(size);
+    let term_config: Arc<dyn TerminalConfiguration + Send + Sync> =
+        Arc::new(config::TermConfig::with_config(term_window.config.clone()));
+    let (tw_term, tw_tab) = allocate(size, term_config);
 
     let window = term_window.window.clone().unwrap();
 

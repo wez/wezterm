@@ -97,12 +97,13 @@ impl TermWizTerminalPane {
         size: TerminalSize,
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
+        term_config: Option<Arc<dyn TerminalConfiguration + Send + Sync>>,
     ) -> Self {
         let pane_id = alloc_pane_id();
 
         let terminal = RefCell::new(wezterm_term::Terminal::new(
             size,
-            std::sync::Arc::new(config::TermConfig::new()),
+            term_config.unwrap_or_else(|| Arc::new(config::TermConfig::new())),
             "WezTerm",
             config::wezterm_version(),
             Box::new(Vec::new()), // FIXME: connect to something?
@@ -431,7 +432,10 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-pub fn allocate(size: TerminalSize) -> (TermWizTerminal, Rc<dyn Pane>) {
+pub fn allocate(
+    size: TerminalSize,
+    config: Arc<dyn TerminalConfiguration + Send + Sync>,
+) -> (TermWizTerminal, Rc<dyn Pane>) {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
 
     let (input_tx, input_rx) = channel();
@@ -454,7 +458,7 @@ pub fn allocate(size: TerminalSize) -> (TermWizTerminal, Rc<dyn Pane>) {
     };
 
     let domain_id = 0;
-    let pane = TermWizTerminalPane::new(domain_id, size, input_tx, render_pipe.read);
+    let pane = TermWizTerminalPane::new(domain_id, size, input_tx, render_pipe.read, Some(config));
 
     // Add the tab to the mux so that the output is processed
     let pane: Rc<dyn Pane> = Rc::new(pane);
@@ -478,6 +482,7 @@ pub async fn run<
     size: TerminalSize,
     window_id: Option<WindowId>,
     f: F,
+    term_config: Option<Arc<dyn TerminalConfiguration + Send + Sync>>,
 ) -> anyhow::Result<T> {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
     let render_rx = render_pipe.read;
@@ -506,6 +511,7 @@ pub async fn run<
         render_rx: FileDescriptor,
         size: TerminalSize,
         window_id: Option<WindowId>,
+        term_config: Option<Arc<dyn TerminalConfiguration + Send + Sync>>,
     ) -> anyhow::Result<(PaneId, WindowId)> {
         let mux = Mux::get().unwrap();
 
@@ -522,7 +528,8 @@ pub async fn run<
             }
         };
 
-        let pane = TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx);
+        let pane =
+            TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx, term_config);
         let pane: Rc<dyn Pane> = Rc::new(pane);
 
         let tab = Rc::new(Tab::new(&size));
@@ -541,7 +548,7 @@ pub async fn run<
     }
 
     let (pane_id, window_id) = promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, size, window_id).await
+        register_tab(input_tx, render_rx, size, window_id, term_config).await
     })
     .await?;
 
