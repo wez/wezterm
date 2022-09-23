@@ -1484,7 +1484,7 @@ impl Tab {
     }
 
     pub fn can_close_without_prompting(&self, reason: CloseReason) -> bool {
-        let panes = self.iter_panes();
+        let panes = self.iter_panes_ignoring_zoom();
         for pos in &panes {
             if !pos.pane.can_close_without_prompting(reason) {
                 return false;
@@ -1511,7 +1511,7 @@ impl Tab {
             return Some(Rc::clone(zoomed));
         }
 
-        self.iter_panes()
+        self.iter_panes_ignoring_zoom()
             .iter()
             .nth(*self.active.borrow())
             .map(|p| Rc::clone(&p.pane))
@@ -1524,7 +1524,7 @@ impl Tab {
 
     pub fn set_active_pane(&self, pane: &Rc<dyn Pane>) {
         if let Some(item) = self
-            .iter_panes()
+            .iter_panes_ignoring_zoom()
             .iter()
             .find(|p| p.pane.pane_id() == pane.pane_id())
         {

@@ -685,9 +685,10 @@ impl Mux {
         }
 
         let mut pane_ids = vec![];
-        for pos in tab.iter_panes() {
+        for pos in tab.iter_panes_ignoring_zoom() {
             pane_ids.push(pos.pane.pane_id());
         }
+        log::debug!("panes to remove: {pane_ids:?}");
         for pane_id in pane_ids {
             self.remove_pane_internal(pane_id);
         }
@@ -893,7 +894,7 @@ impl Mux {
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
         for tab in self.tabs.borrow().values() {
-            for p in tab.iter_panes() {
+            for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {
                     ids = Some((tab.tab_id(), p.pane.domain_id()));
                     break;

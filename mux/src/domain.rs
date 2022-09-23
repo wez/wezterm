@@ -82,7 +82,7 @@ pub trait Domain: Downcast {
         };
 
         let pane_index = match tab
-            .iter_panes()
+            .iter_panes_ignoring_zoom()
             .iter()
             .find(|p| p.pane.pane_id() == pane_id)
         {

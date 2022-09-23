@@ -61,6 +61,9 @@ As features stabilize some brief notes about them will accumulate here.
   active [#2529](https://github.com/wez/wezterm/issues/2529)
 * Overlays did not see config overrides set via `window:set_config_overrides`
   [#2544](https://github.com/wez/wezterm/issues/2544)
+* Closing a window while tab had a zoomed pane would leave the other panes
+  untouched and wezterm would linger in the background
+  [#2548](https://github.com/wez/wezterm/issues/2548)
 
 #### Changed
 * Removed Last Resort fallback font
