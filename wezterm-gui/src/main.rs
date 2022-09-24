@@ -1,6 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
+use crate::customglyph::BlockKey;
 use crate::glyphcache::GlyphCache;
 use ::window::*;
 use anyhow::{anyhow, Context};
@@ -884,23 +885,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
 
                 let parsed = &handles[info.font_idx];
                 let escaped = format!("{}", text.escape_unicode());
-                if config.custom_block_glyphs {
-                    if let Some(block) = customglyph::BlockKey::from_str(&text) {
-                        println!(
-                            "{:2} {:4} {:12} drawn by wezterm because custom_block_glyphs=true: {:?}",
-                            info.cluster, text, escaped, block
-                        );
-                        continue;
-                    }
-                }
-
-                let glyph_name = faces[info.font_idx]
-                    .as_ref()
-                    .and_then(|face| {
-                        face.get_glyph_name(info.glyph_pos)
-                            .map(|name| format!("{},", name))
-                    })
-                    .unwrap_or_else(String::new);
+                let mut is_custom = false;
 
                 let cached_glyph = glyph_cache.cached_glyph(
                     &info,
@@ -911,19 +896,42 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     info.num_cells,
                 )?;
 
-                println!(
-                    "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={}{:<4} {}\n{:38}{}",
-                    info.cluster,
-                    text,
-                    escaped,
-                    cached_glyph.x_advance.get(),
-                    info.num_cells,
-                    glyph_name,
-                    info.glyph_pos,
-                    parsed.lua_name(),
-                    "",
-                    parsed.handle.diagnostic_string()
-                );
+                let mut texture = cached_glyph.texture.clone();
+
+                if config.custom_block_glyphs {
+                    if let Some(block) = info.only_char.and_then(BlockKey::from_char) {
+                        texture.replace(glyph_cache.cached_block(block, &render_metrics)?);
+                        println!(
+                            "{:2} {:4} {:12} drawn by wezterm because custom_block_glyphs=true: {:?}",
+                            info.cluster, text, escaped, block
+                        );
+                        is_custom = true;
+                    }
+                }
+
+                if !is_custom {
+                    let glyph_name = faces[info.font_idx]
+                        .as_ref()
+                        .and_then(|face| {
+                            face.get_glyph_name(info.glyph_pos)
+                                .map(|name| format!("{},", name))
+                        })
+                        .unwrap_or_else(String::new);
+
+                    println!(
+                        "{:2} {:4} {:12} x_adv={:<2} cells={:<2} glyph={}{:<4} {}\n{:38}{}",
+                        info.cluster,
+                        text,
+                        escaped,
+                        cached_glyph.x_advance.get(),
+                        info.num_cells,
+                        glyph_name,
+                        info.glyph_pos,
+                        parsed.lua_name(),
+                        "",
+                        parsed.handle.diagnostic_string()
+                    );
+                }
 
                 if cmd.rasterize_ascii {
                     let mut glyph = String::new();
@@ -952,13 +960,15 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                         }
                     }
 
-                    println!(
-                        "bearing: x={} y={}, offset: x={} y={}",
-                        cached_glyph.bearing_x.get(),
-                        cached_glyph.bearing_y.get(),
-                        cached_glyph.x_offset.get(),
-                        cached_glyph.y_offset.get(),
-                    );
+                    if !is_custom {
+                        println!(
+                            "bearing: x={} y={}, offset: x={} y={}",
+                            cached_glyph.bearing_x.get(),
+                            cached_glyph.bearing_y.get(),
+                            cached_glyph.x_offset.get(),
+                            cached_glyph.y_offset.get(),
+                        );
+                    }
                     println!("{glyph}");
                 }
             }
