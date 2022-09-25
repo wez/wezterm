@@ -195,7 +195,7 @@ pub trait TerminalConfiguration: std::fmt::Debug {
 
     /// Whether to normalize incoming text runs to
     /// canonical NFC unicode representation
-    fn normalize_to_nfc(&self) -> bool {
+    fn normalize_output_to_unicode_nfc(&self) -> bool {
         false
     }
 

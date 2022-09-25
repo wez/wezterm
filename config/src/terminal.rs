@@ -97,8 +97,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().debug_key_events
     }
 
-    fn normalize_to_nfc(&self) -> bool {
-        self.configuration().normalize_to_nfc
+    fn normalize_output_to_unicode_nfc(&self) -> bool {
+        self.configuration().normalize_output_to_unicode_nfc
     }
 
     fn bidi_mode(&self) -> BidiMode {

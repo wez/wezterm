@@ -19,9 +19,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
   and [wezterm.gui.default_keys](config/lua/wezterm.gui/default_keys.md) for
   more conveniently copying and extending the default configuration.
-* [normalize_to_nfc](config/lua/config/normalize_to_nfc.md) option to normalize
-  terminal output to Unicode NFC prior to applying it to the terminal model.
-  [#2482](https://github.com/wez/wezterm/issues/2482)
+* [normalize_output_to_unicode_nfc](config/lua/config/normalize_output_to_unicode_nfc.md)
+  option to normalize terminal output to Unicode NFC prior to applying it to
+  the terminal model.  [#2482](https://github.com/wez/wezterm/issues/2482)
 * [cursor_thickness](config/lua/config/cursor_thickness.md),
   [underline_thickness](config/lua/config/underline_thickness.md),
   [underline_position](config/lua/config/underline_position.md) and

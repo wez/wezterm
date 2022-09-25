@@ -119,7 +119,8 @@ impl<'a> Performer<'a> {
         let seqno = self.seqno;
         let mut p = std::mem::take(&mut self.print);
         let normalized: String;
-        let text = if self.config.normalize_to_nfc() && is_nfc_quick(p.chars()) != IsNormalized::Yes
+        let text = if self.config.normalize_output_to_unicode_nfc()
+            && is_nfc_quick(p.chars()) != IsNormalized::Yes
         {
             normalized = p.as_str().nfc().collect();
             normalized.as_str()
