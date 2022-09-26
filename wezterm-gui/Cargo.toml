@@ -63,7 +63,7 @@ mlua = {version="0.8.3", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 open = "3.0"
-ordered-float = "3.0"
+ordered-float = "3.1"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 pulldown-cmark = "0.9"
