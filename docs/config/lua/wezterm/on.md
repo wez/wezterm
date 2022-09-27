@@ -1,28 +1,29 @@
 # `wezterm.on(event_name, callback)`
 
-*Since: 20201031-154415-9614e117*
+_Since: 20201031-154415-9614e117_
 
 This function follows the html/javascript naming for defining event handlers.
 
 `wezterm.on` causes your specified `callback` to be called when `event_name`
-is emitted.  Events can be emitted by wezterm itself, or through code/configuration
+is emitted. Events can be emitted by wezterm itself, or through code/configuration
 that you specify.
 
 `wezterm.on` can register multiple callbacks for the same event; internally
-an ordered list of callbacks is maintained for each event.  When the event
+an ordered list of callbacks is maintained for each event. When the event
 is emitted, each of the registered callbacks is called in the order that
 they were registered.
 
 The callback will receive the following parameters:
+
 - a [`window` object](../window/index.md) that represents the active gui window.
 - a [`pane` object](../pane/index.md) that represents the active pane.
 
 If a callback returns `false` it will prevent any callbacks that were registered
-after it from being triggered for the current event.  Some events have
+after it from being triggered for the current event. Some events have
 a defined default action; returning `false` will prevent that default action
 from being taken for the current event.
 
-There is no way to de-register an event handler.  However, since the Lua
+There is no way to de-register an event handler. However, since the Lua
 state is built from scratch when the configuration is reloaded, simply
 reloading the configuration will clear any existing event handlers.
 
@@ -36,7 +37,7 @@ events.
 ## Custom Events
 
 You may register handlers for arbitrary events for which wezterm itself
-has no special knowledge.  It is recommended that you avoid event names
+has no special knowledge. It is recommended that you avoid event names
 that are likely to be used future versions of wezterm in order to avoid
 unexpected behavior if/when those names might be used in future.
 
@@ -68,10 +69,10 @@ wezterm.on('trigger-vim-with-visible-text', function(window, pane)
   f:flush()
   f:close()
 
-  -- Open a new window running vim and tell it to open the file
+  -- Open a new window running vim and tell it to open the file and go to the last line
   window:perform_action(
     act.SpawnCommandInNewWindow {
-      args = { 'vim', name },
+      args = { 'vim', '+', name },
     },
     pane
   )
