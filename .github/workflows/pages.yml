@@ -35,7 +35,7 @@ jobs:
           key: ${{ runner.os }}-cargo-mdbook-${{ hashFiles('.github/workflows/pages.yml') }}
       - name: Install mdBook
         run: |
-          (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "^0.4" --locked))
+          (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "0.4.21" --locked))
       - name: Install mdBook linkcheck
         run: |
           (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
