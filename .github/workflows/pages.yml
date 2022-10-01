@@ -20,11 +20,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Install Rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-          source $HOME/.cargo/env
-          rustup update stable
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          # pinned on 1.63 because of breakage:
+          # https://github.com/rust-lang/mdBook/issues/1860
+          # https://github.com/badboy/mdbook-mermaid/pull/23
+          # https://github.com/Michael-F-Bryan/mdbook-linkcheck/issues/73
+          toolchain: "1.63"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - uses: actions/cache@v3
         with:
           path: |
@@ -36,9 +44,9 @@ jobs:
       - name: Install mdBook
         run: |
           (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "0.4.21" --locked))
-      #- name: Install mdBook linkcheck
-      # run: |
-      #   (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
+      - name: Install mdBook linkcheck
+       run: |
+         (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
       - name: Install mdBook mermaid
         run: |
           (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid --locked))
