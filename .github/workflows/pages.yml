@@ -28,7 +28,8 @@ jobs:
           # https://github.com/rust-lang/mdBook/issues/1860
           # https://github.com/badboy/mdbook-mermaid/pull/23
           # https://github.com/Michael-F-Bryan/mdbook-linkcheck/issues/73
-          toolchain: "1.63"
+          toolchain: "1.63.0"
+          default: true
           override: true
           components: "rustfmt"
         env:
