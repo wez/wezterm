@@ -45,7 +45,7 @@ jobs:
         run: |
           (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "0.4.21" --locked))
       - name: Install mdBook linkcheck
-       run: |
+        run: |
          (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
       - name: Install mdBook mermaid
         run: |
