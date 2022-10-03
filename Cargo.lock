@@ -532,13 +532,28 @@ checksum = "86447ad904c7fb335a790c9d7fe3d0d971dc523b8ccd1561a520de9a85302750"
 dependencies = [
  "atty",
  "bitflags",
- "clap_derive",
- "clap_lex",
+ "clap_derive 3.2.18",
+ "clap_lex 0.2.4",
  "indexmap",
  "once_cell",
  "strsim",
  "termcolor",
  "textwrap 0.15.1",
+]
+
+[[package]]
+name = "clap"
+version = "4.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5840cd9093aabeabf7fd932754c435b7674520fc3ddc935c397837050f0f1e4b"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_derive 4.0.8",
+ "clap_lex 0.3.0",
+ "once_cell",
+ "strsim",
+ "termcolor",
 ]
 
 [[package]]
@@ -574,10 +589,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_derive"
+version = "4.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92289ffc6fb4a85d85c246ddb874c05a87a2e540fb6ad52f7ca07c8c1e1840b1"
+dependencies = [
+ "heck",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "clap_lex"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
+dependencies = [
+ "os_str_bytes",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d4198f73e42b4936b35b5bb248d81d2b595ecb170da0bac7655c54eedfa8da8"
 dependencies = [
  "os_str_bytes",
 ]
@@ -4481,7 +4518,7 @@ checksum = "9df65f20698aeed245efdde3628a6b559ea1239bbb871af1b6e3b58c413b2bd1"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 3.2.22",
+ "clap 4.0.8",
  "termwiz",
 ]
 
@@ -5358,7 +5395,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "clap 3.2.22",
+ "clap 4.0.8",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -5519,7 +5556,7 @@ dependencies = [
  "cache-advisor",
  "cc",
  "chrono",
- "clap 3.2.22",
+ "clap 4.0.8",
  "codec",
  "colorgrad",
  "config",
@@ -5617,7 +5654,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
- "clap 3.2.22",
+ "clap 4.0.8",
  "config",
  "env-bootstrap",
  "libc",
@@ -5669,7 +5706,7 @@ dependencies = [
  "base64",
  "bitflags",
  "camino",
- "clap 3.2.22",
+ "clap 4.0.8",
  "dirs-next",
  "env_logger",
  "filedescriptor",
