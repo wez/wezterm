@@ -24,4 +24,4 @@ opt-level = 3
 split-debuginfo = "unpacked"
 
 [patch.crates-io]
-xcb = {version="1.1.1", git="https://github.com/wez/rust-xcb", branch="ffi"}
+xcb = {version="1.1.1", git="https://github.com/rust-x-bindings/rust-xcb", rev="a85a4cf8937898b1da972367df4648143ede38ea"}
