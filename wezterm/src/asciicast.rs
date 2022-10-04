@@ -337,7 +337,7 @@ enum Message {
 
 #[derive(Debug, Parser, Clone)]
 pub struct RecordCommand {
-    #[clap(parse(from_os_str))]
+    #[arg(value_parser)]
     prog: Vec<OsString>,
 }
 
@@ -478,7 +478,7 @@ impl RecordCommand {
 #[derive(Debug, Parser, Clone)]
 pub struct PlayCommand {
     /// Explain what is being sent/received
-    #[clap(long)]
+    #[arg(long)]
     explain: bool,
 
     cast_file: PathBuf,

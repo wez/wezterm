@@ -14,47 +14,47 @@ use wezterm_gui_subcommands::*;
 mod daemonize;
 
 #[derive(Debug, Parser)]
-#[clap(
+#[command(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
     version = config::wezterm_version(),
     trailing_var_arg = true,
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[clap(name = "skip-config", short = 'n')]
+    #[arg(long, short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
     /// configuration file resolution
-    #[clap(
-        long = "config-file",
-        parse(from_os_str),
-        conflicts_with = "skip-config",
+    #[arg(
+        long,
+        value_parser,
+        conflicts_with = "skip_config",
         value_hint=ValueHint::FilePath,
     )]
     config_file: Option<OsString>,
 
     /// Override specific configuration values
-    #[clap(
+    #[arg(
         long = "config",
         name = "name=value",
-        parse(try_from_str = name_equals_value),
+        value_parser=clap::builder::ValueParser::new(name_equals_value),
         number_of_values = 1)]
     config_override: Vec<(String, String)>,
 
     /// Detach from the foreground and become a background process
-    #[clap(long = "daemonize")]
+    #[arg(long = "daemonize")]
     daemonize: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
+    #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+    #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     prog: Vec<OsString>,
 }
 

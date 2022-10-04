@@ -5,6 +5,7 @@ use crate::customglyph::BlockKey;
 use crate::glyphcache::GlyphCache;
 use ::window::*;
 use anyhow::{anyhow, Context};
+use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
 use config::keyassignment::SpawnCommand;
 use config::{ConfigHandle, SshDomain, SshMultiplexing};
@@ -55,64 +56,64 @@ pub use selection::SelectionMode;
 pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DATA};
 
 #[derive(Debug, Parser)]
-#[clap(
+#[command(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
     version = config::wezterm_version()
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[clap(name = "skip-config", short = 'n')]
+    #[arg(name = "skip-config", short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
     /// configuration file resolution
-    #[clap(
+    #[arg(
         long = "config-file",
-        parse(from_os_str),
+        value_parser,
         conflicts_with = "skip-config",
         value_hint=ValueHint::FilePath,
     )]
     config_file: Option<OsString>,
 
     /// Override specific configuration values
-    #[clap(
+    #[arg(
         long = "config",
         name = "name=value",
-        parse(try_from_str = name_equals_value),
+        value_parser=ValueParser::new(name_equals_value),
         number_of_values = 1)]
     config_override: Vec<(String, String)>,
 
     /// On Windows, whether to attempt to attach to the parent
     /// process console to display logging output
-    #[clap(long = "attach-parent-console")]
+    #[arg(long = "attach-parent-console")]
     #[allow(dead_code)]
     attach_parent_console: bool,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     cmd: Option<SubCommand>,
 }
 
 #[derive(Debug, Parser, Clone)]
 enum SubCommand {
-    #[clap(
+    #[command(
         name = "start",
         about = "Start the GUI, optionally running an alternative program"
     )]
     Start(StartCommand),
 
-    #[clap(name = "ssh", about = "Establish an ssh session")]
+    #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
-    #[clap(name = "serial", about = "Open a serial port")]
+    #[command(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[clap(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[command(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
 
-    #[clap(name = "ls-fonts", about = "Display information about fonts")]
+    #[command(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
 
-    #[clap(name = "show-keys", about = "Show key assignments")]
+    #[command(name = "show-keys", about = "Show key assignments")]
     ShowKeys(ShowKeysCommand),
 }
 

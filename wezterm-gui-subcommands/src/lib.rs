@@ -1,3 +1,4 @@
+use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
 use config::{Dimension, GeometryOrigin, SshParameters};
 use std::ffi::OsString;
@@ -143,23 +144,23 @@ mod test {
 }
 
 #[derive(Debug, Parser, Default, Clone)]
-#[clap(trailing_var_arg = true)]
+#[command(trailing_var_arg = true)]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
-    #[clap(long = "no-auto-connect")]
+    #[arg(long = "no-auto-connect")]
     pub no_auto_connect: bool,
 
     /// If enabled, don't try to ask an existing wezterm GUI instance
     /// to start the command.  Instead, always start the GUI in this
     /// invocation of wezterm so that you can wait for the command
     /// to complete by waiting for this wezterm process to finish.
-    #[clap(long = "always-new-process")]
+    #[arg(long = "always-new-process")]
     pub always_new_process: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
-    #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
+    #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
     pub cwd: Option<OsString>,
 
     /// Override the default windowing system class.
@@ -169,12 +170,12 @@ pub struct StartCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[clap(long = "class")]
+    #[arg(long = "class")]
     pub class: Option<String>,
 
     /// Override the default workspace with the provided name.
     /// The default is "default".
-    #[clap(long = "workspace")]
+    #[arg(long = "workspace")]
     pub workspace: Option<String>,
 
     /// Override the position for the initial window launched by this process.
@@ -184,18 +185,18 @@ pub struct StartCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[clap(long, verbatim_doc_comment)]
+    #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+    #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     pub prog: Vec<OsString>,
 }
 
 #[derive(Debug, Parser, Clone)]
-#[clap(trailing_var_arg = true)]
+#[command(trailing_var_arg = true)]
 pub struct SshCommand {
     /// Specifies the remote system using the form:
     /// `[username@]host[:port]`.
@@ -214,18 +215,18 @@ pub struct SshCommand {
     /// For example:
     ///
     /// `wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host`
-    #[clap(
+    #[arg(
         long = "ssh-option",
         short = 'o',
         name = "name=value",
-        parse(try_from_str = name_equals_value),
+        value_parser=ValueParser::new(name_equals_value),
         number_of_values = 1)]
     pub config_override: Vec<(String, String)>,
 
     /// Enable verbose ssh protocol tracing.
     /// The trace information is printed to the stderr stream of
     /// the process.
-    #[clap(short = 'v')]
+    #[arg(short = 'v')]
     pub verbose: bool,
 
     /// Override the default windowing system class.
@@ -235,7 +236,7 @@ pub struct SshCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[clap(long = "class")]
+    #[arg(long = "class")]
     pub class: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -244,20 +245,20 @@ pub struct SshCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[clap(long, verbatim_doc_comment)]
+    #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+    #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     pub prog: Vec<OsString>,
 }
 
 #[derive(Debug, Parser, Clone)]
 pub struct SerialCommand {
     /// Set the baud rate.  The default is 9600 baud.
-    #[clap(long = "baud")]
+    #[arg(long = "baud")]
     pub baud: Option<usize>,
 
     /// Override the default windowing system class.
@@ -267,7 +268,7 @@ pub struct SerialCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[clap(long = "class")]
+    #[arg(long = "class")]
     pub class: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -276,18 +277,18 @@ pub struct SerialCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[clap(long, verbatim_doc_comment)]
+    #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Specifies the serial device name.
     /// On Windows systems this can be a name like `COM0`.
     /// On posix systems this will be something like `/dev/ttyUSB0`
-    #[clap(parse(from_os_str))]
+    #[arg(value_parser)]
     pub port: OsString,
 }
 
 #[derive(Debug, Parser, Clone)]
-#[clap(trailing_var_arg = true)]
+#[command(trailing_var_arg = true)]
 pub struct ConnectCommand {
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
@@ -300,12 +301,12 @@ pub struct ConnectCommand {
     /// This changes the class for all windows spawned by this
     /// instance of wezterm, including error, update and ssh
     /// authentication dialogs.
-    #[clap(long = "class")]
+    #[arg(long = "class")]
     pub class: Option<String>,
 
     /// Override the default workspace with the provided name.
     /// The default is "default".
-    #[clap(long = "workspace")]
+    #[arg(long = "workspace")]
     pub workspace: Option<String>,
     /// Override the position for the initial window launched by this process.
     ///
@@ -314,41 +315,41 @@ pub struct ConnectCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
-    #[clap(long, verbatim_doc_comment)]
+    #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
-    #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+    #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     pub prog: Vec<OsString>,
 }
 
 #[derive(Debug, Parser, Clone)]
 pub struct LsFontsCommand {
     /// Whether to list all fonts available to the system
-    #[clap(long = "list-system")]
+    #[arg(long)]
     pub list_system: bool,
 
     /// Explain which fonts are used to render the supplied text string
-    #[clap(long = "text", conflicts_with_all = &["list-system", "codepoints"])]
+    #[arg(long = "text", conflicts_with_all = &["list_system", "codepoints"])]
     pub text: Option<String>,
 
     /// Explain which fonts are used to render the specified unicode code point sequence. Code points are comma separated hex values.
-    #[clap(long, conflicts_with = "list-system")]
+    #[arg(long, conflicts_with = "list_system")]
     pub codepoints: Option<String>,
 
     /// Show rasterized glyphs for the text in --text or --codepoints using ascii blocks.
-    #[clap(long, requires = "text")]
+    #[arg(long, requires = "text")]
     pub rasterize_ascii: bool,
 }
 
 #[derive(Debug, Parser, Clone)]
 pub struct ShowKeysCommand {
     /// Show the keys as lua config statements
-    #[clap(long)]
+    #[arg(long)]
     pub lua: bool,
     /// In lua mode, show only the named key table
-    #[clap(long)]
+    #[arg(long)]
     pub key_table: Option<String>,
 }

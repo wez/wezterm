@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
+use clap::builder::{PossibleValue, ValueParser};
 use clap::{Parser, ValueEnum, ValueHint};
 use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
 use config::keyassignment::{PaneDirection, SpawnTabDomain};
@@ -25,34 +26,34 @@ mod asciicast;
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 
 #[derive(Debug, Parser)]
-#[clap(
+#[command(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
     version = wezterm_version()
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[clap(name = "skip-config", short = 'n')]
+    #[arg(long, short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
     /// configuration file resolution
-    #[clap(
-        long = "config-file",
-        parse(from_os_str),
-        conflicts_with = "skip-config",
+    #[arg(
+        long,
+        value_parser,
+        conflicts_with = "skip_config",
         value_hint=ValueHint::FilePath
     )]
     config_file: Option<OsString>,
 
     /// Override specific configuration values
-    #[clap(
+    #[arg(
         long = "config",
         name = "name=value",
-        parse(try_from_str = name_equals_value),
+        value_parser=ValueParser::new(name_equals_value),
         number_of_values = 1)]
     config_override: Vec<(String, String)>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     cmd: Option<SubCommand>,
 }
 
@@ -92,51 +93,51 @@ impl CompletionGenerator for Shell {
 
 #[derive(Debug, Parser, Clone)]
 enum SubCommand {
-    #[clap(
+    #[command(
         name = "start",
         about = "Start the GUI, optionally running an alternative program"
     )]
     Start(StartCommand),
 
-    #[clap(name = "ssh", about = "Establish an ssh session")]
+    #[command(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
-    #[clap(name = "serial", about = "Open a serial port")]
+    #[command(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[clap(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[command(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
 
-    #[clap(name = "ls-fonts", about = "Display information about fonts")]
+    #[command(name = "ls-fonts", about = "Display information about fonts")]
     LsFonts(LsFontsCommand),
 
-    #[clap(name = "show-keys", about = "Show key assignments")]
+    #[command(name = "show-keys", about = "Show key assignments")]
     ShowKeys(ShowKeysCommand),
 
-    #[clap(name = "cli", about = "Interact with experimental mux server")]
+    #[command(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
 
-    #[clap(name = "imgcat", about = "Output an image to the terminal")]
+    #[command(name = "imgcat", about = "Output an image to the terminal")]
     ImageCat(ImgCatCommand),
 
-    #[clap(
+    #[command(
         name = "set-working-directory",
         about = "Advise the terminal of the current working directory by \
                  emitting an OSC 7 escape sequence"
     )]
     SetCwd(SetCwdCommand),
 
-    #[clap(name = "record", about = "Record a terminal session as an asciicast")]
+    #[command(name = "record", about = "Record a terminal session as an asciicast")]
     Record(asciicast::RecordCommand),
 
-    #[clap(name = "replay", about = "Replay an asciicast terminal session")]
+    #[command(name = "replay", about = "Replay an asciicast terminal session")]
     Replay(asciicast::PlayCommand),
 
     /// Generate shell completion information
-    #[clap(name = "shell-completion")]
+    #[command(name = "shell-completion")]
     ShellCompletion {
         /// Which shell to generate for
-        #[clap(long, value_parser)]
+        #[arg(long, value_parser)]
         shell: Shell,
     },
 }
@@ -144,31 +145,31 @@ enum SubCommand {
 #[derive(Debug, Parser, Clone)]
 struct CliCommand {
     /// Don't automatically start the server
-    #[clap(long = "no-auto-start")]
+    #[arg(long = "no-auto-start")]
     no_auto_start: bool,
 
     /// Prefer connecting to a background mux server.
     /// The default is to prefer connecting to a running
     /// wezterm gui instance
-    #[clap(long = "prefer-mux")]
+    #[arg(long = "prefer-mux")]
     prefer_mux: bool,
 
     /// When connecting to a gui instance, if you started the
     /// gui with `--class SOMETHING`, you should also pass
     /// that same value here in order for the client to find
     /// the correct gui instance.
-    #[clap(long = "class")]
+    #[arg(long = "class")]
     class: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     sub: CliSubCommand,
 }
 
 #[derive(Debug, Parser, Clone, Copy)]
 enum CliOutputFormatKind {
-    #[clap(name = "table", about = "multi line space separated table")]
+    #[command(name = "table", about = "multi line space separated table")]
     Table,
-    #[clap(name = "json", about = "JSON format")]
+    #[command(name = "json", about = "JSON format")]
     Json,
 }
 
@@ -187,25 +188,25 @@ impl std::str::FromStr for CliOutputFormatKind {
 struct CliOutputFormat {
     /// Controls the output format.
     /// "table" and "json" are possible formats.
-    #[clap(long = "format", default_value = "table")]
+    #[arg(long = "format", default_value = "table")]
     format: CliOutputFormatKind,
 }
 
 #[derive(Debug, Parser, Clone)]
 enum CliSubCommand {
-    #[clap(name = "list", about = "list windows, tabs and panes")]
+    #[command(name = "list", about = "list windows, tabs and panes")]
     List(CliOutputFormat),
 
-    #[clap(name = "list-clients", about = "list clients")]
+    #[command(name = "list-clients", about = "list clients")]
     ListClients(CliOutputFormat),
 
-    #[clap(name = "proxy", about = "start rpc proxy pipe")]
+    #[command(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
 
-    #[clap(name = "tlscreds", about = "obtain tls credentials")]
+    #[command(name = "tlscreds", about = "obtain tls credentials")]
     TlsCreds,
 
-    #[clap(
+    #[command(
         name = "move-pane-to-new-tab",
         rename_all = "kebab",
         about = "Move a pane into a new tab"
@@ -214,28 +215,28 @@ enum CliSubCommand {
         /// Specify the pane that should be moved.
         /// The default is to use the current pane based on the
         /// environment variable WEZTERM_PANE.
-        #[clap(long)]
+        #[arg(long)]
         pane_id: Option<PaneId>,
 
         /// Specify the window into which the new tab will be
         /// created.
         /// If omitted, the window associated with the current
         /// pane is used.
-        #[clap(long)]
+        #[arg(long)]
         window_id: Option<WindowId>,
 
         /// Create tab in a new window, rather than the window
         /// currently containing the pane.
-        #[clap(long, conflicts_with = "window-id")]
+        #[arg(long, conflicts_with = "window_id")]
         new_window: bool,
 
         /// If creating a new window, override the default workspace name
         /// with the provided name.  The default name is "default".
-        #[clap(long)]
+        #[arg(long)]
         workspace: Option<String>,
     },
 
-    #[clap(
+    #[command(
         name = "split-pane",
         rename_all = "kebab",
         trailing_var_arg = true,
@@ -246,63 +247,63 @@ Outputs the pane-id for the newly created pane on success"
         /// Specify the pane that should be split.
         /// The default is to use the current pane based on the
         /// environment variable WEZTERM_PANE.
-        #[clap(long)]
+        #[arg(long)]
         pane_id: Option<PaneId>,
 
         /// Equivalent to `--right`. If neither this nor any other direction
         /// is specified, the default is equivalent to `--bottom`.
-        #[clap(long, conflicts_with_all=&["left", "right", "top", "bottom"])]
+        #[arg(long, conflicts_with_all=&["left", "right", "top", "bottom"])]
         horizontal: bool,
 
         /// Split horizontally, with the new pane on the left
-        #[clap(long, conflicts_with_all=&["right", "top", "bottom"])]
+        #[arg(long, conflicts_with_all=&["right", "top", "bottom"])]
         left: bool,
 
         /// Split horizontally, with the new pane on the right
-        #[clap(long, conflicts_with_all=&["left", "top", "bottom"])]
+        #[arg(long, conflicts_with_all=&["left", "top", "bottom"])]
         right: bool,
 
         /// Split vertically, with the new pane on the top
-        #[clap(long, conflicts_with_all=&["left", "right", "bottom"])]
+        #[arg(long, conflicts_with_all=&["left", "right", "bottom"])]
         top: bool,
 
         /// Split vertically, with the new pane on the bottom
-        #[clap(long, conflicts_with_all=&["left", "right", "top"])]
+        #[arg(long, conflicts_with_all=&["left", "right", "top"])]
         bottom: bool,
 
         /// Rather than splitting the active pane, split the entire
         /// window.
-        #[clap(long)]
+        #[arg(long)]
         top_level: bool,
 
         /// The number of cells that the new split should have.
         /// If omitted, 50% of the available space is used.
-        #[clap(long)]
+        #[arg(long)]
         cells: Option<usize>,
 
         /// Specify the number of cells that the new split should
         /// have, expressed as a percentage of the available space.
-        #[clap(long, conflicts_with = "cells")]
+        #[arg(long, conflicts_with = "cells")]
         percent: Option<u8>,
 
         /// Specify the current working directory for the initially
         /// spawned program
-        #[clap(long, parse(from_os_str), value_hint=ValueHint::DirPath)]
+        #[arg(long, value_parser, value_hint=ValueHint::DirPath)]
         cwd: Option<OsString>,
 
         /// Instead of spawning a new command, move the specified
         /// pane into the newly created split.
-        #[clap(long, conflicts_with_all=&["cwd", "prog"])]
+        #[arg(long, conflicts_with_all=&["cwd", "prog"])]
         move_pane_id: Option<PaneId>,
 
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
         /// as if it were a login shell.
-        #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+        #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
         prog: Vec<OsString>,
     },
 
-    #[clap(
+    #[command(
         name = "spawn",
         trailing_var_arg = true,
         about = "Spawn a command into a new window or tab
@@ -314,54 +315,54 @@ Outputs the pane-id for the newly created pane on success"
         /// environment variable WEZTERM_PANE.
         /// The pane is used to determine the current domain
         /// and window.
-        #[clap(long = "pane-id")]
+        #[arg(long)]
         pane_id: Option<PaneId>,
 
-        #[clap(long = "domain-name")]
+        #[arg(long)]
         domain_name: Option<String>,
 
         /// Specify the window into which to spawn a tab.
         /// If omitted, the window associated with the current
         /// pane is used.
         /// Cannot be used with `--workspace` or `--new-window`.
-        #[clap(long = "window-id", conflicts_with_all=&["workspace", "new-window"])]
+        #[arg(long, conflicts_with_all=&["workspace", "new_window"])]
         window_id: Option<WindowId>,
 
         /// Spawn into a new window, rather than a new tab.
-        #[clap(long = "new-window")]
+        #[arg(long)]
         new_window: bool,
 
         /// Specify the current working directory for the initially
         /// spawned program
-        #[clap(long = "cwd", parse(from_os_str), value_hint=ValueHint::DirPath)]
+        #[arg(long, value_parser, value_hint=ValueHint::DirPath)]
         cwd: Option<OsString>,
 
         /// When creating a new window, override the default workspace name
         /// with the provided name.  The default name is "default".
         /// Requires `--new-window`.
-        #[clap(long = "workspace", requires = "new-window")]
+        #[arg(long, requires = "new_window")]
         workspace: Option<String>,
 
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm cli spawn -- bash -l` will spawn bash
         /// as if it were a login shell.
-        #[clap(parse(from_os_str), value_hint=ValueHint::CommandWithArguments, multiple_values=true)]
+        #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
         prog: Vec<OsString>,
     },
 
     /// Send text to a pane as though it were pasted.
     /// If bracketed paste mode is enabled in the pane, then the
     /// text will be sent as a bracketed paste.
-    #[clap(name = "send-text", rename_all = "kebab")]
+    #[command(name = "send-text", rename_all = "kebab")]
     SendText {
         /// Specify the target pane.
         /// The default is to use the current pane based on the
         /// environment variable WEZTERM_PANE.
-        #[clap(long)]
+        #[arg(long)]
         pane_id: Option<PaneId>,
 
         /// Send the text directly, rather than as a bracketed paste.
-        #[clap(long)]
+        #[arg(long)]
         no_paste: bool,
 
         /// The text to send. If omitted, will read the text from stdin.
@@ -369,13 +370,40 @@ Outputs the pane-id for the newly created pane on success"
     },
 
     /// Activate an adjacent pane in the specified direction.
-    #[clap(name = "activate-pane-direction", rename_all = "kebab")]
+    #[command(name = "activate-pane-direction", rename_all = "kebab")]
     ActivatePaneDirection {
         /// The direction to switch to.
-        #[clap(parse(try_from_str = PaneDirection::direction_from_str),
-          possible_values=PaneDirection::variants())]
+        #[arg(value_parser=PaneDirectionParser{})]
         direction: PaneDirection,
     },
+}
+
+#[derive(Clone, Copy)]
+struct PaneDirectionParser {}
+
+impl clap::builder::TypedValueParser for PaneDirectionParser {
+    type Value = PaneDirection;
+
+    fn parse_ref(
+        &self,
+        _cmd: &clap::Command,
+        _arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        use clap::error::*;
+
+        let value = value
+            .to_str()
+            .ok_or_else(|| Error::raw(ErrorKind::InvalidUtf8, "value must be a utf8 string\n"))?;
+        PaneDirection::direction_from_str(value)
+            .map_err(|e| Error::raw(ErrorKind::InvalidValue, format!("{e}\n")))
+    }
+
+    fn possible_values(&self) -> Option<Box<dyn Iterator<Item = PossibleValue>>> {
+        Some(Box::new(
+            PaneDirection::variants().iter().map(PossibleValue::new),
+        ))
+    }
 }
 
 use termwiz::escape::osc::{
@@ -388,21 +416,21 @@ struct ImgCatCommand {
     /// an appropriate size.  You may also use an integer value `N` to specify the
     /// number of cells, or `Npx` to specify the number of pixels, or `N%` to
     /// size relative to the terminal width.
-    #[clap(long = "width")]
+    #[arg(long = "width")]
     width: Option<ITermDimension>,
     /// Specify the display height; defaults to "auto" which automatically selects
     /// an appropriate size.  You may also use an integer value `N` to specify the
     /// number of cells, or `Npx` to specify the number of pixels, or `N%` to
     /// size relative to the terminal height.
-    #[clap(long = "height")]
+    #[arg(long = "height")]
     height: Option<ITermDimension>,
     /// Do not respect the aspect ratio.  The default is to respect the aspect
     /// ratio
-    #[clap(long = "no-preserve-aspect-ratio")]
+    #[arg(long = "no-preserve-aspect-ratio")]
     no_preserve_aspect_ratio: bool,
     /// The name of the image file to be displayed.
     /// If omitted, will attempt to read it from stdin.
-    #[clap(parse(from_os_str), value_hint=ValueHint::FilePath)]
+    #[arg(value_parser, value_hint=ValueHint::FilePath)]
     file_name: Option<OsString>,
 }
 
@@ -440,12 +468,12 @@ impl ImgCatCommand {
 struct SetCwdCommand {
     /// The directory to specify.
     /// If omitted, will use the current directory of the process itself.
-    #[clap(parse(from_os_str), value_hint=ValueHint::DirPath)]
+    #[arg(value_parser, value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
     /// The hostname to use in the constructed file:// URL.
     /// If omitted, the system hostname will be used.
-    #[clap(parse(from_os_str), value_hint=ValueHint::Hostname)]
+    #[arg(value_parser, value_hint=ValueHint::Hostname)]
     host: Option<OsString>,
 }
 
