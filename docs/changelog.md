@@ -64,6 +64,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Closing a window while tab had a zoomed pane would leave the other panes
   untouched and wezterm would linger in the background
   [#2548](https://github.com/wez/wezterm/issues/2548)
+* CharSelect panic when pressing enter when no matches were found
+  [#2580](https://github.com/wez/wezterm/issues/2580)
 
 #### Changed
 * Removed Last Resort fallback font

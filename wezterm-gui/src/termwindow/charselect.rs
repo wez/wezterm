@@ -599,11 +599,13 @@ impl Modal for CharSelector {
             (KeyCode::Enter, KeyModifiers::NONE) => {
                 // Enter the selected character to the current pane
                 let selected_idx = *self.selected_row.borrow();
-                let alias_idx = self
-                    .matches
-                    .borrow()
-                    .as_ref()
-                    .map_or(selected_idx, |m| m.matches[selected_idx]);
+                let alias_idx = match self.matches.borrow().as_ref() {
+                    None => return Ok(()),
+                    Some(results) => match results.matches.get(selected_idx) {
+                        Some(i) => *i,
+                        None => return Ok(()),
+                    }
+                };
                 let item = &self.aliases[alias_idx];
                 if let Err(err) = save_recent(item) {
                     log::error!("Error while saving recents: {err:#}");
