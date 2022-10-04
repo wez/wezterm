@@ -247,22 +247,19 @@ gentoo_deps() {
 void_deps() {
   XBPS="$SUDO xbps-install"
   $XBPS -S \
-    'base-devel' \
-    'cargo' \
-    'cmake' \
-    'fontconfig' \
-    'git' \
-    'hicolor-icon-theme' \
-    'libX11' \
-    'libxkbcommon-x11' \
+    'gcc' \
     'pkgconf' \
-    'python3' \
-    'rust' \
-    'wayland' \
-    'xcb-util' \
-    'xcb-util-image' \
-    'xcb-util-keysyms' \
-    'xcb-util-wm'
+    'fontconfig-devel' \
+    'openssl-devel' \
+    'wayland-devel' \
+    'libX11-devel' \
+    'libxkbcommon-devel' \
+    'xcb-util-devel' \
+    'xcb-util-image-devel'
+
+  if ! test_cmd 'cargo'; then
+    $XBPS -S 'cargo'
+  fi
 
   if test_flag; then
     $XBPS -S \
