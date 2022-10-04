@@ -1197,9 +1197,12 @@ dependencies = [
 
 [[package]]
 name = "emojis"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fdc0036e5881a30eec779c55ac7b4bf54eedc3c72ddc8d02c2a580c43b1c9ba"
+checksum = "7a650f1b7e0c13cc2906512fcc18d08c5c8390f54c5f0a9accc954fc70aa89cc"
+dependencies = [
+ "phf 0.11.1",
+]
 
 [[package]]
 name = "encoding_rs"
