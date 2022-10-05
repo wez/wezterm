@@ -604,7 +604,7 @@ impl Modal for CharSelector {
                     Some(results) => match results.matches.get(selected_idx) {
                         Some(i) => *i,
                         None => return Ok(()),
-                    }
+                    },
                 };
                 let item = &self.aliases[alias_idx];
                 if let Err(err) = save_recent(item) {
