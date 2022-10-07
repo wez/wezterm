@@ -3,7 +3,7 @@
 #![allow(clippy::new_without_default)]
 use crate::color::ColorAttribute;
 use crate::input::InputEvent;
-use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
+use crate::surface::{Change, CursorShape, CursorVisibility, Position, SequenceNo, Surface};
 use crate::Result;
 use fnv::FnvHasher;
 use std::collections::{HashMap, VecDeque};
@@ -24,6 +24,7 @@ pub struct CursorShapeAndPosition {
     pub shape: CursorShape,
     pub coords: ParentRelativeCoords,
     pub color: ColorAttribute,
+    pub visibility: CursorVisibility,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -458,6 +459,7 @@ impl<'widget> Ui<'widget> {
             screen.add_changes(vec![
                 Change::CursorShape(cursor.shape),
                 Change::CursorColor(cursor.color),
+                Change::CursorVisibility(cursor.visibility),
                 Change::CursorPosition {
                     x: Position::Absolute(coords.x),
                     y: Position::Absolute(coords.y),
@@ -510,5 +512,29 @@ impl<'widget> Ui<'widget> {
     ) -> ParentRelativeCoords {
         let (x, y) = self.coord_walk(widget, coords.x, coords.y, |a, b| a - b);
         ParentRelativeCoords { x, y }
+    }
+}
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct CursorHider {}
+
+    impl Widget for CursorHider {
+        fn render(&mut self, args: &mut RenderArgs) {
+            args.cursor.visibility = CursorVisibility::Hidden;
+        }
+    }
+
+    #[test]
+    fn hide_cursor() {
+        let mut ui = Ui::new();
+
+        ui.set_root(CursorHider {});
+
+        let mut surface = Surface::new(10, 10);
+        assert_eq!(CursorVisibility::Visible, surface.cursor_visibility());
+        ui.render_to_screen(&mut surface).unwrap();
+        assert_eq!(CursorVisibility::Hidden, surface.cursor_visibility());
     }
 }
