@@ -66,6 +66,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2548](https://github.com/wez/wezterm/issues/2548)
 * CharSelect panic when pressing enter when no matches were found
   [#2580](https://github.com/wez/wezterm/issues/2580)
+* Panic when setting `initial_rows` or `initial_cols` to `0`
+  [2593](https://github.com/wez/wezterm/issues/2593)
 
 #### Changed
 * Removed Last Resort fallback font

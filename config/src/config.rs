@@ -181,7 +181,7 @@ pub struct Config {
     pub set_environment_variables: HashMap<String, String>,
 
     /// Specifies the height of a new window, expressed in character cells.
-    #[dynamic(default = "default_initial_rows")]
+    #[dynamic(default = "default_initial_rows", validate = "validate_row_or_col")]
     pub initial_rows: u16,
 
     #[dynamic(default = "default_true")]
@@ -190,7 +190,7 @@ pub struct Config {
     pub enable_kitty_keyboard: bool,
 
     /// Specifies the width of a new window, expressed in character cells
-    #[dynamic(default = "default_initial_cols")]
+    #[dynamic(default = "default_initial_cols", validate = "validate_row_or_col")]
     pub initial_cols: u16,
 
     #[dynamic(default = "default_hyperlink_rules")]
@@ -1653,6 +1653,14 @@ pub enum ImePreeditRendering {
 impl Default for ImePreeditRendering {
     fn default() -> Self {
         ImePreeditRendering::Builtin
+    }
+}
+
+fn validate_row_or_col(value: u16) -> Result<(), String> {
+    if value < 1 {
+        Err("initial_cols and initial_rows must be non-zero".to_string())
+    } else {
+        Ok(())
     }
 }
 
