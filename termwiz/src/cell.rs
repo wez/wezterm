@@ -532,6 +532,42 @@ impl CellAttributes {
             .map(|fat| fat.underline_color)
             .unwrap_or(ColorAttribute::Default)
     }
+
+    pub fn apply_change(&mut self, change: &AttributeChange) {
+        use AttributeChange::*;
+        match change {
+            Intensity(value) => {
+                self.set_intensity(*value);
+            }
+            Underline(value) => {
+                self.set_underline(*value);
+            }
+            Italic(value) => {
+                self.set_italic(*value);
+            }
+            Blink(value) => {
+                self.set_blink(*value);
+            }
+            Reverse(value) => {
+                self.set_reverse(*value);
+            }
+            StrikeThrough(value) => {
+                self.set_strikethrough(*value);
+            }
+            Invisible(value) => {
+                self.set_invisible(*value);
+            }
+            Foreground(value) => {
+                self.set_foreground(*value);
+            }
+            Background(value) => {
+                self.set_background(*value);
+            }
+            Hyperlink(value) => {
+                self.set_hyperlink(value.clone());
+            }
+        }
+    }
 }
 
 #[cfg(feature = "use_serde")]
