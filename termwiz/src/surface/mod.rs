@@ -1,4 +1,4 @@
-use crate::cell::{AttributeChange, Cell, CellAttributes};
+use crate::cell::{Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
 use crate::surface::line::CellRef;
@@ -285,7 +285,7 @@ impl Surface {
         match change {
             Change::AllAttributes(attr) => self.attributes = attr.clone(),
             Change::Text(text) => self.print_text(text),
-            Change::Attribute(change) => self.change_attribute(change),
+            Change::Attribute(change) => self.attributes.apply_change(change),
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
             Change::ClearScreen(color) => self.clear_screen(*color),
             Change::ClearToEndOfLine(color) => self.clear_eol(*color),
@@ -458,42 +458,6 @@ impl Surface {
             // wrapping until the next printed character, otherwise
             // we'll eagerly scroll when we reach the right margin.
             self.xpos += width;
-        }
-    }
-
-    fn change_attribute(&mut self, change: &AttributeChange) {
-        use crate::cell::AttributeChange::*;
-        match change {
-            Intensity(value) => {
-                self.attributes.set_intensity(*value);
-            }
-            Underline(value) => {
-                self.attributes.set_underline(*value);
-            }
-            Italic(value) => {
-                self.attributes.set_italic(*value);
-            }
-            Blink(value) => {
-                self.attributes.set_blink(*value);
-            }
-            Reverse(value) => {
-                self.attributes.set_reverse(*value);
-            }
-            StrikeThrough(value) => {
-                self.attributes.set_strikethrough(*value);
-            }
-            Invisible(value) => {
-                self.attributes.set_invisible(*value);
-            }
-            Foreground(value) => {
-                self.attributes.set_foreground(*value);
-            }
-            Background(value) => {
-                self.attributes.set_background(*value);
-            }
-            Hyperlink(value) => {
-                self.attributes.set_hyperlink(value.clone());
-            }
         }
     }
 
@@ -873,7 +837,7 @@ fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usiz
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cell::Intensity;
+    use crate::cell::{AttributeChange, Intensity};
     use crate::color::AnsiColor;
     use crate::image::ImageData;
     use std::sync::Arc;
