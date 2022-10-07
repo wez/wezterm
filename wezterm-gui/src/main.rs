@@ -563,7 +563,7 @@ impl Publish {
                         Ok(res) => {
                             log::info!(
                                 "Spawned your command via the existing GUI instance. \
-                             Use --always-new-process if you do not want this behavior. \
+                             Use wezterm start --always-new-process if you do not want this behavior. \
                              Result={:?}",
                                 res
                             );
