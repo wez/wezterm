@@ -37,6 +37,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:is_focused()](config/lua/window/is_focused.md) method for testing
   whether a GUI window has focus.
   [#2537](https://github.com/wez/wezterm/discussions/2537)
+* [window-focus-changed](config/lua/window-events/window-focus-changed.md)
+  event.
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

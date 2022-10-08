@@ -527,6 +527,7 @@ impl TermWindow {
         }
 
         self.update_title();
+        self.emit_window_event("window-focus-changed", None);
     }
 
     fn created(

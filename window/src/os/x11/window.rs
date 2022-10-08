@@ -266,7 +266,12 @@ impl XWindowInner {
                         .conn()
                         .send_and_wait_request(&xcb::x::GetInputFocus {})?;
                     let focused = focus.focus() == self.window_id;
-                    log::trace!("Do I have focus? {}", focused);
+                    log::trace!(
+                        "Do I {:?} have focus? result={}, I thought {:?}",
+                        self.window_id,
+                        focused,
+                        self.has_focus
+                    );
                     if Some(focused) != self.has_focus {
                         self.has_focus.replace(focused);
                         self.events.dispatch(WindowEvent::FocusChanged(focused));
