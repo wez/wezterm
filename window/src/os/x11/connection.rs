@@ -502,6 +502,7 @@ impl XConnection {
                 xcb::Extension::Present,
                 xcb::Extension::RandR,
                 xcb::Extension::Render,
+                xcb::Extension::Dri2,
             ],
         )?;
         conn.set_event_queue_owner(xcb::EventQueueOwner::Xcb);
