@@ -531,6 +531,8 @@ pub enum KeyAssignment {
     SplitPane(SplitPane),
     PaneSelect(PaneSelectArguments),
     CharSelect(CharSelectArguments),
+
+    ResetTerminal,
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

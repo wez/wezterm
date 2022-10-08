@@ -15,4 +15,5 @@ log = "0.4"
 luahelper = { path = "../../luahelper" }
 portable-pty = { path = "../../pty" }
 smol = "1.2"
+termwiz = { path = "../../termwiz" }
 mux = { path = "../../mux" }

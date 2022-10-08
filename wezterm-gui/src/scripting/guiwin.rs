@@ -244,6 +244,25 @@ impl UserData for GuiWin {
 
             Ok(result)
         });
+        methods.add_async_method("active_pane", |_, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(
+                        term_window
+                            .get_active_pane_or_overlay()
+                            .map(|pane| MuxPane(pane.pane_id())),
+                    )
+                    .ok();
+                })));
+            let result = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok(result)
+        });
         methods.add_method("active_workspace", |_, _, _: ()| {
             let mux = Mux::get()
                 .ok_or_else(|| anyhow::anyhow!("must be called on main thread"))

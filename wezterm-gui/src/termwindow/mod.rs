@@ -2719,6 +2719,11 @@ impl TermWindow {
                 let modal = crate::termwindow::charselect::CharSelector::new(self, args);
                 self.modal.borrow_mut().replace(Rc::new(modal));
             }
+            ResetTerminal => {
+                pane.perform_actions(vec![termwiz::escape::Action::Esc(
+                    termwiz::escape::Esc::Code(termwiz::escape::EscCode::FullReset),
+                )]);
+            }
         };
         Ok(PerformAssignmentResult::Handled)
     }
@@ -2953,7 +2958,7 @@ impl TermWindow {
     /// then that will be returned instead.  Otherwise, if the pane has
     /// an active overlay (such as search or copy mode) then that will
     /// be returned.
-    fn get_active_pane_or_overlay(&self) -> Option<Rc<dyn Pane>> {
+    pub fn get_active_pane_or_overlay(&self) -> Option<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,

@@ -196,6 +196,18 @@ impl UserData for MuxPane {
                 None => Ok("".to_string()),
             }
         });
+
+        methods.add_method("inject_output", |_, this, text: String| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+
+            let mut parser = termwiz::escape::parser::Parser::new();
+            let mut actions = vec![];
+            parser.parse(text.as_bytes(), |action| actions.push(action));
+
+            pane.perform_actions(actions);
+            Ok(())
+        });
     }
 }
 

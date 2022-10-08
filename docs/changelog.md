@@ -39,6 +39,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2537](https://github.com/wez/wezterm/discussions/2537)
 * [window-focus-changed](config/lua/window-events/window-focus-changed.md)
   event.
+* [pane:inject_output](config/lua/pane/inject_output.md) method
+* [ResetTerminal](config/lua/keyassignment/ResetTerminal.md) key assignment
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

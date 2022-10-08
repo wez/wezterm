@@ -2662,6 +2662,7 @@ dependencies = [
  "mux",
  "portable-pty",
  "smol",
+ "termwiz",
  "wezterm-dynamic",
  "wezterm-term",
 ]
