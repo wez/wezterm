@@ -526,9 +526,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.0.9"
+version = "4.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30607dd93c420c6f1f80b544be522a0238a7db35e6a12968d28910983fee0df0"
+checksum = "4ed45cc2c62a3eff523e718d8576ba762c83a3146151093283ac62ae11933a73"
 dependencies = [
  "atty",
  "bitflags",
@@ -545,7 +545,7 @@ version = "4.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11cba7abac9b56dfe2f035098cdb3a43946f276e6db83b72c4e692343f9aab9a"
 dependencies = [
- "clap 4.0.9",
+ "clap 4.0.11",
 ]
 
 [[package]]
@@ -554,15 +554,15 @@ version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf2fc15aa585faf3c59b96c40923b2f4d119c710a84e8a81251eed54ba75335c"
 dependencies = [
- "clap 4.0.9",
+ "clap 4.0.11",
  "clap_complete",
 ]
 
 [[package]]
 name = "clap_derive"
-version = "4.0.9"
+version = "4.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4a307492e1a34939f79d3b6b9650bd2b971513cd775436bf2b78defeb5af00b"
+checksum = "db342ce9fda24fb191e2ed4e102055a4d381c1086a06630174cd8da8d5d917ce"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -4481,7 +4481,7 @@ checksum = "9df65f20698aeed245efdde3628a6b559ea1239bbb871af1b6e3b58c413b2bd1"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 4.0.9",
+ "clap 4.0.11",
  "termwiz",
 ]
 
@@ -5357,7 +5357,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "clap 4.0.9",
+ "clap 4.0.11",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -5518,7 +5518,7 @@ dependencies = [
  "cache-advisor",
  "cc",
  "chrono",
- "clap 4.0.9",
+ "clap 4.0.11",
  "codec",
  "colorgrad",
  "config",
@@ -5595,7 +5595,7 @@ name = "wezterm-gui-subcommands"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.0.9",
+ "clap 4.0.11",
  "config",
 ]
 
@@ -5616,7 +5616,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
- "clap 4.0.9",
+ "clap 4.0.11",
  "config",
  "env-bootstrap",
  "libc",
@@ -5668,7 +5668,7 @@ dependencies = [
  "base64",
  "bitflags",
  "camino",
- "clap 4.0.9",
+ "clap 4.0.11",
  "dirs-next",
  "env_logger",
  "filedescriptor",
