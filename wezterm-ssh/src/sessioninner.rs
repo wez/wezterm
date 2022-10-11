@@ -203,7 +203,8 @@ impl SessionInner {
             sess.set_option(libssh_rs::SshOption::BindAddress(bind_addr.to_string()))?;
         }
 
-        sess.connect()?;
+        sess.connect()
+            .with_context(|| format!("Connecting to {hostname}:{port}"))?;
 
         let banner = sess.get_server_banner()?;
         self.tx_event
