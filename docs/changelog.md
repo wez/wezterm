@@ -41,6 +41,8 @@ As features stabilize some brief notes about them will accumulate here.
   event.
 * [pane:inject_output](config/lua/pane/inject_output.md) method
 * [ResetTerminal](config/lua/keyassignment/ResetTerminal.md) key assignment
+* Support for Utf8 mouse reporting (DECSET 1005).
+  [#2613](https://github.com/wez/wezterm/issues/2613)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

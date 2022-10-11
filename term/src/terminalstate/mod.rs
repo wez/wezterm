@@ -55,6 +55,7 @@ pub(crate) enum CharSet {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum MouseEncoding {
     X10,
+    Utf8,
     SGR,
     SgrPixels,
 }
@@ -1760,6 +1761,25 @@ impl TerminalState {
                 );
             }
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {
+                self.mouse_encoding = MouseEncoding::Utf8;
+                self.last_mouse_move.take();
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {
+                self.mouse_encoding = MouseEncoding::X10;
+                self.last_mouse_move.take();
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    match self.mouse_encoding {
+                        MouseEncoding::Utf8 => true,
+                        _ => false,
+                    },
+                );
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::SixelScrollsRight,
             )) => {
@@ -1820,9 +1840,6 @@ impl TerminalState {
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::XTermAltSendsEscape,
             )) => {}
-
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Utf8Mouse)) => {}
 
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(_))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(_))

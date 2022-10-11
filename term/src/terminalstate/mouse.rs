@@ -4,15 +4,38 @@ use crate::TerminalState;
 use anyhow::bail;
 
 impl TerminalState {
-    /// Encode a coordinate value using X10 encoding.
-    /// X10 has a theoretical maximum coordinate value of 255-33, but
-    /// because we emit UTF-8 we are effectively capped at the maximum
-    /// single byte character value of 127, with coordinates capping
-    /// out at 127-33.
-    /// This isn't "fixable" in X10 encoding, applications should
-    /// use the superior SGR mouse encoding scheme instead.
-    fn legacy_mouse_coord(position: i64) -> char {
-        position.max(0).saturating_add(1 + 32).min(127) as u8 as char
+    /// Encode a coordinate value using X10 encoding or Utf8 encoding.
+    /// Out of bounds coords are reported as the 0 byte value.
+    fn encode_coord(&self, value: i64, dest: &mut Vec<u8>) {
+        // Convert to 1-based and offset into the printable character range
+        let value = value + 1 + 32;
+        if self.mouse_encoding == MouseEncoding::Utf8 {
+            if value < 0x800 {
+                let mut utf8 = [0; 2];
+                dest.extend_from_slice(
+                    (char::from_u32(value as u32).unwrap())
+                        .encode_utf8(&mut utf8)
+                        .as_bytes(),
+                );
+            } else {
+                // out of range
+                dest.push(0);
+            }
+        } else if value < 0x100 {
+            dest.push(value as u8);
+        } else {
+            // out of range
+            dest.push(0);
+        }
+    }
+
+    fn encode_x10_or_utf8(&mut self, event: MouseEvent, button: i8) -> anyhow::Result<()> {
+        let mut buf = vec![b'\x1b', b'[', b'M', (32 + button) as u8];
+        self.encode_coord(event.x as i64, &mut buf);
+        self.encode_coord(event.y, &mut buf);
+        self.writer.write(&buf)?;
+        self.writer.flush()?;
+        Ok(())
     }
 
     fn mouse_report_button_number(&self, event: &MouseEvent) -> (i8, MouseButton) {
@@ -76,14 +99,7 @@ impl TerminalState {
             )?;
             self.writer.flush()?;
         } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
-            write!(
-                self.writer,
-                "\x1b[M{}{}{}",
-                (32 + button) as u8 as char,
-                Self::legacy_mouse_coord(event.x as i64),
-                Self::legacy_mouse_coord(event.y),
-            )?;
-            self.writer.flush()?;
+            self.encode_x10_or_utf8(event, button)?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
             for _ in 0..self.config.alternate_buffer_wheel_scroll_speed() {
@@ -132,14 +148,7 @@ impl TerminalState {
             )?;
             self.writer.flush()?;
         } else {
-            write!(
-                self.writer,
-                "\x1b[M{}{}{}",
-                (32 + button) as u8 as char,
-                Self::legacy_mouse_coord(event.x as i64),
-                Self::legacy_mouse_coord(event.y),
-            )?;
-            self.writer.flush()?;
+            self.encode_x10_or_utf8(event, button)?;
         }
 
         Ok(())
@@ -176,14 +185,7 @@ impl TerminalState {
                     self.writer.flush()?;
                 } else {
                     let release_button = 3;
-                    write!(
-                        self.writer,
-                        "\x1b[M{}{}{}",
-                        (32 + release_button) as u8 as char,
-                        Self::legacy_mouse_coord(event.x as i64),
-                        Self::legacy_mouse_coord(event.y),
-                    )?;
-                    self.writer.flush()?;
+                    self.encode_x10_or_utf8(event, release_button)?;
                 }
             }
         }
@@ -242,14 +244,7 @@ impl TerminalState {
                 )?;
                 self.writer.flush()?;
             } else {
-                write!(
-                    self.writer,
-                    "\x1b[M{}{}{}",
-                    (32 + button) as u8 as char,
-                    Self::legacy_mouse_coord(event.x as i64),
-                    Self::legacy_mouse_coord(event.y),
-                )?;
-                self.writer.flush()?;
+                self.encode_x10_or_utf8(event, button)?;
             }
         }
         Ok(())
