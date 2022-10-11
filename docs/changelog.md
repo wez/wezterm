@@ -81,6 +81,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Creating tabs in a multiplexing domain could fail after previously closing
   all tabs connected to that domain in that window
   [#2614](https://github.com/wez/wezterm/issues/2614)
+* CharSelect now uppercases hex digit input for better compatibility with
+  QMK-based keyboards that send eg: `CTRL-SHIFT-U e 1 <ENTER>`.
+  [#2581](https://github.com/wez/wezterm/issues/2581)
 
 #### Changed
 * Removed Last Resort fallback font
