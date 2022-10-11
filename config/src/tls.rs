@@ -1,3 +1,4 @@
+use crate::config::validate_domain_name;
 use crate::*;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
@@ -29,6 +30,7 @@ pub struct TlsDomainServer {
 pub struct TlsDomainClient {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
+    #[dynamic(validate = "validate_domain_name")]
     pub name: String,
 
     /// If set, use ssh to connect, start the server, and obtain

@@ -1,3 +1,4 @@
+use crate::config::validate_domain_name;
 use crate::*;
 use std::fmt::Display;
 use std::str::FromStr;
@@ -49,6 +50,7 @@ impl Default for Shell {
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
+    #[dynamic(validate = "validate_domain_name")]
     pub name: String,
 
     /// identifies the host:port pair of the remote server.

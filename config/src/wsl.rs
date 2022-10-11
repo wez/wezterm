@@ -1,3 +1,4 @@
+use crate::config::validate_domain_name;
 use crate::*;
 use luahelper::impl_lua_conversion_dynamic;
 use std::collections::HashMap;
@@ -5,6 +6,7 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 #[derive(Default, Debug, Clone, FromDynamic, ToDynamic)]
 pub struct WslDomain {
+    #[dynamic(validate = "validate_domain_name")]
     pub name: String,
     pub distribution: Option<String>,
     pub username: Option<String>,

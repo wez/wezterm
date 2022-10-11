@@ -1,3 +1,4 @@
+use crate::config::validate_domain_name;
 use crate::*;
 use std::path::PathBuf;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
@@ -8,6 +9,7 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 pub struct UnixDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
+    #[dynamic(validate = "validate_domain_name")]
     pub name: String,
 
     /// The path to the socket.  If unspecified, a resonable default
@@ -104,6 +106,7 @@ impl UnixDomain {
 
     pub fn default_unix_domains() -> Vec<Self> {
         vec![UnixDomain {
+            name: "unix".to_string(),
             read_timeout: default_read_timeout(),
             write_timeout: default_read_timeout(),
             ..Default::default()

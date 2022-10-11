@@ -112,7 +112,7 @@ impl<'a> FieldInfo<'a> {
         };
         let validate_value = if let Some(validator) = &self.validate {
             quote!(
-                #validator(value).map_err(|msg| {
+                #validator(&value).map_err(|msg| {
                     wezterm_dynamic::Error::ErrorInField{
                         type_name: #struct_name,
                         field_name: #name,

@@ -284,6 +284,8 @@ fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     // problems earlier than we use them.
     let _ = cfg.key_bindings();
 
+    cfg.check_consistency()?;
+
     Ok(cfg)
 }
 

@@ -842,6 +842,7 @@ impl Config {
                 p.display()
             )
         })?;
+        cfg.check_consistency()?;
 
         // Compute but discard the key bindings here so that we raise any
         // problems earlier than we use them.
@@ -912,6 +913,44 @@ impl Config {
             config = chunk.eval()?;
         }
         Ok(config)
+    }
+
+    /// Check for logical conflicts in the config
+    pub fn check_consistency(&self) -> anyhow::Result<()> {
+        self.check_domain_consistency()?;
+        Ok(())
+    }
+
+    fn check_domain_consistency(&self) -> anyhow::Result<()> {
+        let mut domains = HashMap::new();
+
+        let mut check_domain = |name: &str, kind: &str| {
+            if let Some(exists) = domains.get(name) {
+                anyhow::bail!(
+                    "{kind} with name \"{name}\" conflicts with \
+                     another existing {exists} with the same name"
+                );
+            }
+            domains.insert(name.to_string(), kind.to_string());
+            Ok(())
+        };
+
+        for d in &self.unix_domains {
+            check_domain(&d.name, "unix domain")?;
+        }
+        for d in &self.ssh_domains {
+            check_domain(&d.name, "ssh domain")?;
+        }
+        for d in &self.exec_domains {
+            check_domain(&d.name, "exec domain")?;
+        }
+        for d in &self.wsl_domains {
+            check_domain(&d.name, "wsl domain")?;
+        }
+        for d in &self.tls_clients {
+            check_domain(&d.name, "tls domain")?;
+        }
+        Ok(())
     }
 
     pub fn default_config() -> Self {
@@ -1656,19 +1695,31 @@ impl Default for ImePreeditRendering {
     }
 }
 
-fn validate_row_or_col(value: u16) -> Result<(), String> {
-    if value < 1 {
+fn validate_row_or_col(value: &u16) -> Result<(), String> {
+    if *value < 1 {
         Err("initial_cols and initial_rows must be non-zero".to_string())
     } else {
         Ok(())
     }
 }
 
-fn validate_line_height(value: f64) -> Result<(), String> {
-    if value <= 0.0 {
+fn validate_line_height(value: &f64) -> Result<(), String> {
+    if *value <= 0.0 {
         Err(format!(
             "Illegal value {value} for line_height; it must be positive and greater than zero!"
         ))
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
+    if name == "local" {
+        Err(format!(
+            "\"{name}\" is a built-in domain and cannot be redefined"
+        ))
+    } else if name == "" {
+        Err("the empty string is an invalid domain name".to_string())
     } else {
         Ok(())
     }
