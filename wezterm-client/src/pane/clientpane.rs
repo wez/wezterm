@@ -168,6 +168,8 @@ impl ClientPane {
                 self.renderable.borrow().inner.borrow_mut().dead = true;
                 let mux = Mux::get().unwrap();
                 mux.prune_dead_windows();
+
+                self.client.expire_stale_mappings();
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };

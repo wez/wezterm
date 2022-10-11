@@ -78,6 +78,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2559](https://github.com/wez/wezterm/issues/2559)
 * Missing validation of conflicting domain names
   [#2618](https://github.com/wez/wezterm/issues/2618)
+* Creating tabs in a multiplexing domain could fail after previously closing
+  all tabs connected to that domain in that window
+  [#2614](https://github.com/wez/wezterm/issues/2614)
 
 #### Changed
 * Removed Last Resort fallback font

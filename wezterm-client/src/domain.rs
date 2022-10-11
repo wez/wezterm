@@ -37,6 +37,51 @@ impl ClientInner {
         map.get(&remote_window_id).cloned()
     }
 
+    pub(crate) fn expire_stale_mappings(&self) {
+        let mux = Mux::get().unwrap();
+
+        self.remote_to_local_pane
+            .lock()
+            .unwrap()
+            .retain(|_remote_pane_id, local_pane_id| mux.get_pane(*local_pane_id).is_some());
+
+        self.remote_to_local_tab
+            .lock()
+            .unwrap()
+            .retain(
+                |_remote_tab_id, local_tab_id| match mux.get_tab(*local_tab_id) {
+                    Some(tab) => {
+                        for pos in tab.iter_panes_ignoring_zoom() {
+                            if pos.pane.domain_id() == self.local_domain_id {
+                                return true;
+                            }
+                        }
+                        false
+                    }
+                    None => false,
+                },
+            );
+
+        self.remote_to_local_window
+            .lock()
+            .unwrap()
+            .retain(
+                |_remote_window_id, local_window_id| match mux.get_window(*local_window_id) {
+                    Some(w) => {
+                        for tab in w.iter() {
+                            for pos in tab.iter_panes_ignoring_zoom() {
+                                if pos.pane.domain_id() == self.local_domain_id {
+                                    return true;
+                                }
+                            }
+                        }
+                        false
+                    }
+                    None => false,
+                },
+            );
+    }
+
     fn record_remote_to_local_window_mapping(
         &self,
         remote_window_id: WindowId,
