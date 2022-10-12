@@ -133,7 +133,8 @@ impl ClientInner {
 
     pub fn remove_old_tab_mapping(&self, remote_tab_id: TabId) {
         let mut tab_map = self.remote_to_local_tab.lock().unwrap();
-        tab_map.remove(&remote_tab_id);
+        let old = tab_map.remove(&remote_tab_id);
+        log::trace!("remove_old_tab_mapping: {remote_tab_id} -> {old:?}");
     }
 
     fn record_remote_to_local_tab_mapping(&self, remote_tab_id: TabId, local_tab_id: TabId) {
@@ -148,12 +149,7 @@ impl ClientInner {
 
     pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
         let map = self.remote_to_local_tab.lock().unwrap();
-        for (remote, local) in map.iter() {
-            if *remote == remote_tab_id {
-                return Some(*local);
-            }
-        }
-        None
+        map.get(&remote_tab_id).copied()
     }
 
     pub fn is_local(&self) -> bool {
@@ -401,6 +397,11 @@ impl ClientDomain {
                             // We likely decided that we hit EOF on the tab and
                             // removed it from the mux.  Let's add it back, but
                             // with a new id.
+                            log::trace!(
+                                "we had remote_to_local_tab_id mapping of \
+                                 {remote_tab_id} -> {tab_id}, but the local \
+                                 tab is not in the mux, make a new tab"
+                            );
                             inner.remove_old_tab_mapping(remote_tab_id);
                             tab = Rc::new(Tab::new(&root_size));
                             inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
@@ -475,7 +476,11 @@ impl ClientDomain {
                     ) == workspace.as_deref()
                     {
                         // Yes! We can use this window
-                        log::debug!("adding {} as tab to {}", remote_window_id, local_window_id);
+                        log::debug!(
+                            "adding remote window {} as tab to local window {}",
+                            remote_window_id,
+                            local_window_id
+                        );
                         inner.record_remote_to_local_window_mapping(
                             remote_window_id,
                             local_window_id,
