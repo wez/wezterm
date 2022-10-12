@@ -49,13 +49,19 @@ impl ClientInner {
             .lock()
             .unwrap()
             .retain(
-                |_remote_tab_id, local_tab_id| match mux.get_tab(*local_tab_id) {
+                |remote_tab_id, local_tab_id| match mux.get_tab(*local_tab_id) {
                     Some(tab) => {
                         for pos in tab.iter_panes_ignoring_zoom() {
                             if pos.pane.domain_id() == self.local_domain_id {
                                 return true;
                             }
                         }
+                        log::trace!(
+                            "expire_stale_mappings: domain: {}. will remove \
+                            {remote_tab_id} -> {local_tab_id} tab mapping \
+                            because tab contains no panes from this domain",
+                            self.local_domain_id,
+                        );
                         false
                     }
                     None => false,
@@ -139,11 +145,13 @@ impl ClientInner {
 
     fn record_remote_to_local_tab_mapping(&self, remote_tab_id: TabId, local_tab_id: TabId) {
         let mut map = self.remote_to_local_tab.lock().unwrap();
-        map.insert(remote_tab_id, local_tab_id);
+        let prior = map.insert(remote_tab_id, local_tab_id);
         log::trace!(
-            "record_remote_to_local_tab_mapping: {} -> {}",
+            "record_remote_to_local_tab_mapping: {} -> {} \
+             (prior={prior:?}, domain={})",
             remote_tab_id,
-            local_tab_id
+            local_tab_id,
+            self.local_domain_id,
         );
     }
 
@@ -379,7 +387,11 @@ impl ClientDomain {
         mut primary_window_id: Option<WindowId>,
     ) -> anyhow::Result<()> {
         let mux = Mux::get().expect("to be called on main thread");
-        log::debug!("ListPanes result {:#?}", panes);
+        log::debug!(
+            "domain {}: ListPanes result {:#?}",
+            inner.local_domain_id,
+            panes
+        );
 
         for tabroot in panes.tabs {
             let root_size = match tabroot.root_size() {
@@ -414,7 +426,7 @@ impl ClientDomain {
                     inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                 }
 
-                log::debug!("tree: {:#?}", tabroot);
+                log::debug!("domain: {} tree: {:#?}", inner.local_domain_id, tabroot);
                 let mut workspace = None;
                 tab.sync_with_pane_tree(root_size, tabroot, |entry| {
                     workspace.replace(entry.workspace.clone());
@@ -446,7 +458,8 @@ impl ClientDomain {
                             &entry.title,
                         ));
                         log::debug!(
-                            "attaching to remote pane {:?} -> local pane_id {}",
+                            "domain: {} attaching to remote pane {:?} -> local pane_id {}",
+                            inner.local_domain_id,
                             entry,
                             pane.pane_id()
                         );
@@ -459,7 +472,11 @@ impl ClientDomain {
                     let mut window = mux
                         .get_window_mut(local_window_id)
                         .expect("no such window!?");
-                    log::debug!("adding tab to existing local window {}", local_window_id);
+                    log::debug!(
+                        "domain: {} adding tab to existing local window {}",
+                        inner.local_domain_id,
+                        local_window_id
+                    );
                     if window.idx_by_id(tab.tab_id()).is_none() {
                         window.push(&tab);
                     }
