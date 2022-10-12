@@ -8,6 +8,21 @@ use crate::surface::SEQ_ZERO;
 use k9::assert_equal as assert_eq;
 use std::sync::Arc;
 
+/// There are 4 double-wide graphemes that occupy 2 cells each.
+/// When we join the lines, we must preserve the invisible blank
+/// that is part of the grapheme otherwise our metrics will be
+/// wrong.
+/// <https://github.com/wez/wezterm/issues/2568>
+#[test]
+fn append_line() {
+    let mut line1: Line = "0123456789".into();
+    let line2: Line = "グループaa".into();
+
+    line1.append_line(line2, SEQ_ZERO);
+
+    assert_eq!(line1.len(), 20);
+}
+
 #[test]
 fn hyperlinks() {
     let text = "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com";

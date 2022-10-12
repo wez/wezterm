@@ -87,6 +87,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Multiple active multiplexer client domain connections could result
   in showing duplicate tabs in a window
   [#2616](https://github.com/wez/wezterm/issues/2616)
+* Incorrect line width when applying hyperlink rules to a wrapped line
+  containing double-wide cells.
+  [#2568](https://github.com/wez/wezterm/issues/2568)
 
 #### Changed
 * Removed Last Resort fallback font
