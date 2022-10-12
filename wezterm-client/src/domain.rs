@@ -122,6 +122,9 @@ impl ClientInner {
         let mux = Mux::get().unwrap();
 
         for pane in mux.iter_panes() {
+            if pane.domain_id() != self.local_domain_id {
+                continue;
+            }
             if let Some(pane) = pane.downcast_ref::<ClientPane>() {
                 if pane.remote_pane_id() == remote_pane_id {
                     let local_pane_id = pane.pane_id();

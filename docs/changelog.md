@@ -84,6 +84,9 @@ As features stabilize some brief notes about them will accumulate here.
 * CharSelect now uppercases hex digit input for better compatibility with
   QMK-based keyboards that send eg: `CTRL-SHIFT-U e 1 <ENTER>`.
   [#2581](https://github.com/wez/wezterm/issues/2581)
+* Multiple active multiplexer client domain connections could result
+  in showing duplicate tabs in a window
+  [#2616](https://github.com/wez/wezterm/issues/2616)
 
 #### Changed
 * Removed Last Resort fallback font
