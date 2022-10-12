@@ -1097,7 +1097,7 @@ impl Line {
             CellStorage::V(cells) => {
                 for cell in other.visible_cells() {
                     cells.push(cell.as_cell());
-                    for _ in 1.. cell.width() {
+                    for _ in 1..cell.width() {
                         cells.push(Cell::new(' ', cell.attrs().clone()));
                     }
                 }
