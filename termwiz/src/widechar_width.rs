@@ -1481,6 +1481,9 @@ impl WcWidth {
             return Self::Two;
         }
         if in_table(&AMBIGUOUS_TABLE, c) {
+            if c == 0x2014 || c == 0x2015 {
+                return Self::Two;
+            }
             return Self::Ambiguous;
         }
         if in_table(&UNASSIGNED_TABLE, c) {
@@ -1610,5 +1613,7 @@ mod test {
         assert_eq!(WcWidth::from_char('\u{2716}'), WcWidth::One);
         assert_eq!(WcWidth::from_char('\u{270a}'), WcWidth::WidenedIn9);
         assert_eq!(WcWidth::from_char('\u{3fffd}'), WcWidth::Two);
+        assert_eq!(WcWidth::from_char('\u{2014}'), WcWidth::Two);
+        assert_eq!(WcWidth::from_char('\u{2015}'), WcWidth::Two);
     }
 }
