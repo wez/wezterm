@@ -92,6 +92,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2568](https://github.com/wez/wezterm/issues/2568)
 * Incorrect shaping for U+28 U+FF9F
   [#2572](https://github.com/wez/wezterm/issues/2572)
+* Panic when hitting enter in launcher menu when no fuzzy results match
+  [#2629](https://github.com/wez/wezterm/issues/2629)
 
 #### Changed
 * Removed Last Resort fallback font

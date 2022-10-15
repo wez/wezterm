@@ -411,12 +411,17 @@ impl LauncherState {
         term.render(&changes)
     }
 
-    fn launch(&self, active_idx: usize) {
-        let assignment = self.filtered_entries[active_idx].action.clone();
-        self.window.notify(TermWindowNotif::PerformAssignment {
-            pane_id: self.pane_id,
-            assignment,
-        });
+    fn launch(&self, active_idx: usize) -> bool {
+        if let Some(entry) = self.filtered_entries.get(active_idx) {
+            let assignment = entry.action.clone();
+            self.window.notify(TermWindowNotif::PerformAssignment {
+                pane_id: self.pane_id,
+                assignment,
+            });
+            true
+        } else {
+            false
+        }
     }
 
     fn move_up(&mut self) {
@@ -440,8 +445,9 @@ impl LauncherState {
                     key: KeyCode::Char(c),
                     ..
                 }) if !self.filtering && c >= '1' && c <= '9' => {
-                    self.launch(self.top_row + (c as u32 - '1' as u32) as usize);
-                    break;
+                    if self.launch(self.top_row + (c as u32 - '1' as u32) as usize) {
+                        break;
+                    }
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('j'),
@@ -538,8 +544,9 @@ impl LauncherState {
                         self.active_idx = self.top_row + y as usize - 1;
 
                         if mouse_buttons == MouseButtons::LEFT {
-                            self.launch(self.active_idx);
-                            break;
+                            if self.launch(self.active_idx) {
+                                break;
+                            }
                         }
                     }
                     if mouse_buttons != MouseButtons::NONE {
@@ -551,8 +558,9 @@ impl LauncherState {
                     key: KeyCode::Enter,
                     ..
                 }) => {
-                    self.launch(self.active_idx);
-                    break;
+                    if self.launch(self.active_idx) {
+                        break;
+                    }
                 }
                 InputEvent::Resized { rows, .. } => {
                     self.max_items = rows.saturating_sub(ROW_OVERHEAD);
