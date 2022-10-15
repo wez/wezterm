@@ -94,6 +94,10 @@ As features stabilize some brief notes about them will accumulate here.
   [#2572](https://github.com/wez/wezterm/issues/2572)
 * Panic when hitting enter in launcher menu when no fuzzy results match
   [#2629](https://github.com/wez/wezterm/issues/2629)
+* Default `CTRL-SHIFT-<NUM>` assignments didn't work on Windows and X11
+  systems when `key_map_preference = "Mapped"`
+  [#2623](https://github.com/wez/wezterm/issues/2623)
+
 
 #### Changed
 * Removed Last Resort fallback font

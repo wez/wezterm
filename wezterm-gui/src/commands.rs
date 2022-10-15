@@ -30,8 +30,16 @@ pub enum ArgType {
 /// a handful of default assignments in the command DEFS below.
 fn us_layout_shift(s: &str) -> String {
     match s {
-        "0" => ")".to_string(),
+        "1" => "!".to_string(),
+        "2" => "@".to_string(),
+        "3" => "#".to_string(),
+        "4" => "$".to_string(),
         "5" => "%".to_string(),
+        "6" => "^".to_string(),
+        "7" => "&".to_string(),
+        "8" => "*".to_string(),
+        "9" => "(".to_string(),
+        "0" => ")".to_string(),
         "[" => "{".to_string(),
         "]" => "}".to_string(),
         "=" => "+".to_string(),
