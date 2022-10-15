@@ -4739,7 +4739,6 @@ dependencies = [
  "base64",
  "bitflags",
  "cassowary",
- "cfg-if 1.0.0",
  "criterion",
  "env_logger",
  "filedescriptor",

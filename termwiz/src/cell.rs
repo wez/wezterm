@@ -590,7 +590,7 @@ where
     s.serialize(serializer)
 }
 
-/// TeenyString encodes string storage in a single machine word.
+/// TeenyString encodes string storage in a single u64.
 /// The scheme is simple but effective: strings that encode into a
 /// byte slice that is 1 less byte than the machine word size can
 /// be encoded directly into the usize bits stored in the struct.
@@ -603,60 +603,40 @@ where
 /// calling grapheme_column_width; if it is set, then the TeenyString
 /// has length 2, otherwise, it has length 1 (we don't allow zero-length
 /// strings).
-struct TeenyString(usize);
+struct TeenyString(u64);
 struct TeenyStringHeap {
     bytes: Vec<u8>,
     width: usize,
 }
 
 impl TeenyString {
-    const fn marker_mask() -> usize {
+    const fn marker_mask() -> u64 {
         if cfg!(target_endian = "little") {
-            cfg_if::cfg_if! {
-                if #[cfg(target_pointer_width = "64")] {
-                    0x80000000_00000000
-                } else if #[cfg(target_pointer_width = "32")] {
-                    0x80000000
-                } else if #[cfg(target_pointer_width = "16")] {
-                    0x8000
-                } else {
-                    panic!("unsupported target");
-                }
-            }
+            0x80000000_00000000
         } else {
             0x1
         }
     }
 
-    const fn double_wide_mask() -> usize {
+    const fn double_wide_mask() -> u64 {
         if cfg!(target_endian = "little") {
-            cfg_if::cfg_if! {
-                if #[cfg(target_pointer_width = "64")] {
-                    0xc0000000_00000000
-                } else if #[cfg(target_pointer_width = "32")] {
-                    0xc0000000
-                } else if #[cfg(target_pointer_width = "16")] {
-                    0xc000
-                } else {
-                    panic!("unsupported target");
-                }
-            }
+            0xc0000000_00000000
         } else {
             0x3
         }
     }
 
-    const fn is_marker_bit_set(word: usize) -> bool {
+    const fn is_marker_bit_set(word: u64) -> bool {
         let mask = Self::marker_mask();
         word & mask == mask
     }
 
-    const fn is_double_width(word: usize) -> bool {
+    const fn is_double_width(word: u64) -> bool {
         let mask = Self::double_wide_mask();
         word & mask == mask
     }
 
-    const fn set_marker_bit(word: usize, width: usize) -> usize {
+    const fn set_marker_bit(word: u64, width: usize) -> u64 {
         if width > 1 {
             word | Self::double_wide_mask()
         } else {
@@ -689,18 +669,18 @@ impl TeenyString {
         let len = bytes.len();
         let width = width.unwrap_or_else(|| grapheme_column_width(s, unicode_version));
 
-        if len < std::mem::size_of::<usize>() {
+        if len < std::mem::size_of::<u64>() {
             debug_assert!(width < 3);
 
-            let mut word = 0usize;
+            let mut word = 0u64;
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     bytes.as_ptr(),
-                    &mut word as *mut usize as *mut u8,
+                    &mut word as *mut u64 as *mut u8,
                     len,
                 );
             }
-            let word = Self::set_marker_bit(word, width);
+            let word = Self::set_marker_bit(word as u64, width);
             Self(word)
         } else {
             let vec = Box::new(TeenyStringHeap {
@@ -708,35 +688,15 @@ impl TeenyString {
                 width,
             });
             let ptr = Box::into_raw(vec);
-            Self(ptr as usize)
+            Self(ptr as u64)
         }
     }
 
     pub const fn space() -> Self {
         Self(if cfg!(target_endian = "little") {
-            cfg_if::cfg_if! {
-                if #[cfg(target_pointer_width = "64")] {
-                    0x80000000_00000020
-                } else if #[cfg(target_pointer_width = "32")] {
-                    0x80000020
-                } else if #[cfg(target_pointer_width = "16")] {
-                    0x8020
-                } else {
-                    panic!("unsupported target");
-                }
-            }
+            0x80000000_00000020
         } else {
-            cfg_if::cfg_if! {
-                if #[cfg(target_pointer_width = "64")] {
-                    0x20000000_00000001
-                } else if #[cfg(target_pointer_width = "32")] {
-                    0x20000001
-                } else if #[cfg(target_pointer_width = "16")] {
-                    0x2001
-                } else {
-                    panic!("unsupported target");
-                }
-            }
+            0x20000000_00000001
         })
     }
 
@@ -753,7 +713,7 @@ impl TeenyString {
                 1
             }
         } else {
-            let heap = self.0 as *const usize as *const TeenyStringHeap;
+            let heap = self.0 as *const u64 as *const TeenyStringHeap;
             unsafe { (*heap).width }
         }
     }
@@ -766,17 +726,17 @@ impl TeenyString {
 
     pub fn as_bytes(&self) -> &[u8] {
         if Self::is_marker_bit_set(self.0) {
-            let bytes = &self.0 as *const usize as *const u8;
+            let bytes = &self.0 as *const u64 as *const u8;
             let bytes =
-                unsafe { std::slice::from_raw_parts(bytes, std::mem::size_of::<usize>() - 1) };
+                unsafe { std::slice::from_raw_parts(bytes, std::mem::size_of::<u64>() - 1) };
             let len = bytes
                 .iter()
                 .position(|&b| b == 0)
-                .unwrap_or(std::mem::size_of::<usize>() - 1);
+                .unwrap_or(std::mem::size_of::<u64>() - 1);
 
             &bytes[0..len]
         } else {
-            let heap = self.0 as *const usize as *const TeenyStringHeap;
+            let heap = self.0 as *const u64 as *const TeenyStringHeap;
             unsafe { (*heap).bytes.as_slice() }
         }
     }
@@ -1072,6 +1032,11 @@ mod test {
 
     #[test]
     fn teeny_string() {
+        assert!(
+            std::mem::size_of::<usize>() <= std::mem::size_of::<u64>(),
+            "if a pointer doesn't fit in u64 then we need to change TeenyString"
+        );
+
         let s = TeenyString::from_char('a');
         assert_eq!(s.as_bytes(), &[b'a']);
 
