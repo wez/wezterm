@@ -83,6 +83,7 @@ pub struct FontMetrics {
     pub force_y_adjust: PixelLength,
 }
 
+#[derive(Debug)]
 pub struct PresentationWidth<'a> {
     cluster: &'a CellCluster,
 }
@@ -105,6 +106,10 @@ impl<'a> PresentationWidth<'a> {
             width += self.cluster.byte_to_cell_width(byte_idx);
         }
         width
+    }
+
+    pub fn byte_to_cell_idx(&self, start_byte: usize) -> usize {
+        self.cluster.byte_to_cell_idx(start_byte)
     }
 }
 

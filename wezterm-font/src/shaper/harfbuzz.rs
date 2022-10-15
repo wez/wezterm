@@ -345,59 +345,144 @@ impl HarfbuzzShaper {
         //   byte ranges.
         // * Then distribute the glyphs across that cell width when assigning them
         //   to a GlyphInfo.
+        //
+        // A further complication is that the shaper may cluster in surprising ways.
+        // For example, the sequence "\u{28}\u{ff9f}" is a single grapheme with
+        // width of 2 cells, but harfbuzz returns that as two different clusters.
+        //
+        // In situations where we know better (eg: when we have presentation_width)
+        // we can fixup the cluster information to be based on the cell index for
+        // the harfbuzz byte start.
+        // <https://github.com/wez/wezterm/issues/2572>
 
         #[derive(Debug)]
         struct ClusterInfo {
             start: usize,
             byte_len: usize,
             cell_width: u8,
-            indices: Vec<usize>,
             incomplete: bool,
         }
-        let mut cluster_info: HashMap<usize, ClusterInfo> = HashMap::new();
 
-        {
-            for (info_idx, info) in hb_infos.iter().enumerate() {
-                let entry = cluster_info
-                    .entry(info.cluster as usize)
-                    .or_insert_with(|| ClusterInfo {
-                        start: info.cluster as usize,
-                        byte_len: 0,
-                        cell_width: 0,
-                        indices: vec![],
+        #[derive(Default, Debug)]
+        struct ClusterResolver<'a> {
+            map: HashMap<usize, ClusterInfo>,
+            presentation_width: Option<&'a PresentationWidth<'a>>,
+            start_by_cell_idx: HashMap<usize, usize>,
+        }
+
+        impl<'a> ClusterResolver<'a> {
+            pub fn build(
+                &mut self,
+                hb_infos: &[harfbuzz::hb_glyph_info_t],
+                s: &str,
+                range: &Range<usize>,
+            ) {
+                #[derive(PartialOrd, Ord, Eq, PartialEq, Copy, Clone)]
+                struct Item {
+                    cell_idx: Option<usize>,
+                    start: usize,
+                }
+
+                let mut map = HashMap::new();
+
+                for info in hb_infos.iter() {
+                    let start = info.cluster as usize;
+
+                    // Collect the cell index, which is the "true cluster"
+                    // position from our perspective: the start of the grapheme
+                    let cell_idx = match self.presentation_width {
+                        Some(pw) => {
+                            let cell_idx = pw.byte_to_cell_idx(start);
+
+                            let entry = self.start_by_cell_idx.entry(cell_idx).or_insert(start);
+                            *entry = (*entry).min(start);
+
+                            Some(cell_idx)
+                        }
+                        None => None,
+                    };
+
+                    map.entry(start).or_insert_with(|| Item { start, cell_idx });
+                }
+
+                let mut cluster_starts: Vec<Item> = map.into_iter().map(|(_, item)| item).collect();
+                cluster_starts.sort();
+
+                // If we have multiple entries with the same starting cell index,
+                // remove the duplicates.  Don't do this for `None` as that will
+                // falsely remove valid cluster locations in the case where
+                // we have no presentation_width information.
+                cluster_starts.dedup_by(|a, b| match (a.cell_idx, b.cell_idx) {
+                    (Some(a), Some(b)) => a == b,
+                    _ => false,
+                });
+
+                let mut iter = cluster_starts.iter().peekable();
+                while let Some(item) = iter.next().copied() {
+                    let start = item.start;
+                    let next_start = iter.peek().map(|&&s| s.start).unwrap_or(range.end);
+                    let byte_len = next_start - start;
+                    let cell_width = match self.presentation_width {
+                        Some(p) => p.num_cells(start..next_start),
+                        None => unicode_column_width(&s[start..next_start], None) as u8,
+                    };
+                    self.map.entry(start).or_insert_with(|| ClusterInfo {
+                        start,
+                        byte_len,
+                        cell_width,
                         incomplete: false,
                     });
-                entry.indices.push(info_idx);
+                }
             }
 
-            let mut cluster_starts: Vec<usize> = cluster_info.keys().copied().collect();
-            cluster_starts.sort();
+            pub fn get_mut(&mut self, start: usize) -> Option<&mut ClusterInfo> {
+                match self.presentation_width {
+                    Some(pw) => {
+                        let cell_idx = pw.byte_to_cell_idx(start);
+                        let actual_start = self.start_by_cell_idx.get(&cell_idx)?;
+                        self.map.get_mut(&actual_start)
+                    }
+                    None => self.map.get_mut(&start),
+                }
+            }
 
-            let mut iter = cluster_starts.iter().peekable();
-            while let Some(start) = iter.next().copied() {
-                let start = start as usize;
-                let next_start = iter.peek().map(|&&s| s).unwrap_or(range.end);
-                let byte_len = next_start - start;
-                let cell_width = match presentation_width {
-                    Some(p) => p.num_cells(start..next_start),
-                    None => unicode_column_width(&s[start..next_start], None) as u8,
-                };
-                cluster_info.entry(start).and_modify(|e| {
-                    e.byte_len = byte_len;
-                    e.cell_width = cell_width;
-                });
+            pub fn get(&self, start: usize) -> Option<&ClusterInfo> {
+                match self.presentation_width {
+                    Some(pw) => {
+                        let cell_idx = pw.byte_to_cell_idx(start);
+                        let actual_start = self.start_by_cell_idx.get(&cell_idx)?;
+                        self.map.get(&actual_start)
+                    }
+                    None => self.map.get(&start),
+                }
             }
         }
+
+        let mut cluster_resolver = ClusterResolver {
+            presentation_width,
+            ..Default::default()
+        };
+
+        cluster_resolver.build(hb_infos, s, &range);
+        log::debug!("cluster_resolver: {cluster_resolver:#?}");
 
         let mut info_iter = hb_infos.iter().zip(positions.iter()).peekable();
         while let Some((info, pos)) = info_iter.next() {
-            let cluster_info = cluster_info
-                .get_mut(&(info.cluster as usize))
-                .expect("assigned above");
+            let cluster_info = match cluster_resolver.get_mut(info.cluster as usize) {
+                Some(i) => i,
+                None => panic!(
+                    "expected cluster info.cluster {} to be in cluster_resolver",
+                    info.cluster
+                ),
+            };
             let len = cluster_info.byte_len;
 
             let mut info = Info {
-                cluster: info.cluster as usize,
+                // Take care to use our adjusted cluster_info.start rather
+                // than the info.cluster value, otherwise the combination
+                // of info.cluster + info.len will be out of bounds later
+                // in this code
+                cluster: cluster_info.start,
                 len,
                 codepoint: info.codepoint,
                 x_advance: pos.x_advance,
@@ -405,6 +490,7 @@ impl HarfbuzzShaper {
                 x_offset: pos.x_offset,
                 y_offset: pos.y_offset,
             };
+            log::debug!("hb info.cluster {} -> {info:?}", info.cluster);
 
             if info.codepoint == 0 && !no_more_fallbacks {
                 cluster_info.incomplete = true;
@@ -419,7 +505,7 @@ impl HarfbuzzShaper {
                     // extending the length of prior by `info`.
                     // We can only do that if they are contiguous.
                     // Take care, as the shaper may have re-ordered things!
-                    if prior.codepoint == 0 {
+                    if prior.codepoint == 0 || prior.cluster == info.cluster {
                         if prior.cluster + prior.len == info.cluster {
                             // Coalesce with prior
                             prior.len += info.len;
@@ -453,13 +539,14 @@ impl HarfbuzzShaper {
             info_clusters.push(vec![info]);
         }
         //  log::error!("do_shape: font_idx={} {:?} {:#?}", font_idx, &s[range.clone()], info_clusters);
-        // log::info!("cluster_info: {:#?}", cluster_info);
-        // log::info!("info_clusters: {:#?}", info_clusters);
+        log::debug!("font_idx={font_idx} info_clusters: {:#?}", info_clusters);
 
         let mut direct_clusters = 0;
 
         for infos in &info_clusters {
-            let cluster_info = cluster_info.get(&infos[0].cluster).expect("assigned above");
+            let cluster_info = cluster_resolver
+                .get(infos[0].cluster)
+                .expect("assigned above");
             let sub_range = cluster_info.start..cluster_info.start + cluster_info.byte_len;
             let substr = &s[sub_range.clone()];
 

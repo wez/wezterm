@@ -90,6 +90,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Incorrect line width when applying hyperlink rules to a wrapped line
   containing double-wide cells.
   [#2568](https://github.com/wez/wezterm/issues/2568)
+* Incorrect shaping for U+28 U+FF9F
+  [#2572](https://github.com/wez/wezterm/issues/2572)
 
 #### Changed
 * Removed Last Resort fallback font
