@@ -430,6 +430,7 @@ impl crate::TermWindow {
 
         let pixel_width = self.dimensions.pixel_width as f32;
         let pixel_height = self.dimensions.pixel_height as f32;
+        let pixel_aspect = pixel_width / pixel_height;
 
         let tex_width = sprite.coords.width() as f32;
         let tex_height = sprite.coords.height() as f32;
@@ -474,23 +475,10 @@ impl crate::TermWindow {
         };
 
         // Compute the smallest aspect-preserved size that will fit the space
-        let (min_aspect_width, min_aspect_height) = if aspect >= 1.0 {
-            // Width is the longest side
-            if tex_height > pixel_height {
-                (
-                    (tex_width * pixel_height / tex_height).floor(),
-                    pixel_height,
-                )
-            } else {
-                (tex_width, tex_height)
-            }
+        let (min_aspect_width, min_aspect_height) = if pixel_aspect > aspect {
+            (pixel_width, (pixel_width / aspect).floor())
         } else {
-            // Height is the longest side
-            if tex_width > pixel_width {
-                (pixel_width, (tex_height * pixel_width / tex_width).floor())
-            } else {
-                (tex_width, tex_height)
-            }
+            ((pixel_height * aspect).floor(), pixel_height)
         };
 
         let width = match layer.def.width {
