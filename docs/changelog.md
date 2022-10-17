@@ -97,6 +97,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Default `CTRL-SHIFT-<NUM>` assignments didn't work on Windows and X11
   systems when `key_map_preference = "Mapped"`
   [#2623](https://github.com/wez/wezterm/issues/2623)
+* Panic when calling `window:set_workspace` when the default domain is a
+  multiplexer domain.
+  [#2638](https://github.com/wez/wezterm/issues/2638)
 
 
 #### Changed

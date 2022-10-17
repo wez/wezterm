@@ -271,30 +271,44 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
         Some(domain) => domain,
         None => return false,
     };
-    let domain = match domain.downcast_ref::<ClientDomain>() {
-        Some(domain) => domain,
-        None => return false,
-    };
+    if domain.downcast_ref::<ClientDomain>().is_none() {
+        return false;
+    }
     match notif {
         MuxNotification::ActiveWorkspaceChanged(_client_id) => {
             // TODO: advice remote host of interesting workspaces
         }
         MuxNotification::WindowWorkspaceChanged(window_id) => {
-            if let Some(remote_window_id) = domain.local_to_remote_window_id(window_id) {
-                if let Some(workspace) = mux
-                    .get_window(window_id)
-                    .map(|w| w.get_workspace().to_string())
-                {
-                    let request = codec::SetWindowWorkspace {
-                        window_id: remote_window_id,
-                        workspace,
-                    };
-                    promise::spawn::spawn_into_main_thread(async move {
-                        let _ = update_remote_workspace(local_domain_id, request).await;
-                    })
-                    .detach();
+            // Mux::get_window() may trigger a borrow error if called
+            // immediately; defer the bulk of this work.
+            // <https://github.com/wez/wezterm/issues/2638>
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().expect("called by mux");
+                let domain = match mux.get_domain(local_domain_id) {
+                    Some(domain) => domain,
+                    None => return,
+                };
+                let domain = match domain.downcast_ref::<ClientDomain>() {
+                    Some(domain) => domain,
+                    None => return,
+                };
+                if let Some(remote_window_id) = domain.local_to_remote_window_id(window_id) {
+                    if let Some(workspace) = mux
+                        .get_window(window_id)
+                        .map(|w| w.get_workspace().to_string())
+                    {
+                        promise::spawn::spawn_into_main_thread(async move {
+                            let request = codec::SetWindowWorkspace {
+                                window_id: remote_window_id,
+                                workspace,
+                            };
+                            let _ = update_remote_workspace(local_domain_id, request).await;
+                        })
+                        .detach();
+                    }
                 }
-            }
+            })
+            .detach();
         }
         _ => {}
     }
