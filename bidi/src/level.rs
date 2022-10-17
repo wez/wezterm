@@ -7,7 +7,7 @@ use crate::NO_LEVEL;
 pub const MAX_DEPTH: usize = 125;
 
 #[derive(Default, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Level(pub(crate) i8);
+pub struct Level(pub i8);
 
 impl Level {
     pub fn direction(self) -> Direction {
