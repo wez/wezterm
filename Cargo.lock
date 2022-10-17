@@ -687,9 +687,9 @@ dependencies = [
 
 [[package]]
 name = "colorgrad"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a2d16665305bc62a863baa4005b1074f77e7f2f65e0805734b4df6b854cd66e"
+checksum = "6a5f405d474b9d05e0a093d3120e77e9bf26461b57a84b40aa2a221ac5617fb6"
 dependencies = [
  "csscolorparser",
 ]
