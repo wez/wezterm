@@ -306,6 +306,11 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                         })
                         .detach();
                     }
+                } else {
+                    log::warn!(
+                        "local window id {window_id} has no known remote window \
+                        id while reconciling a local WindowWorkspaceChanged event"
+                    );
                 }
             })
             .detach();
