@@ -260,6 +260,15 @@ async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
         set_window_position(pos.clone());
     }
 
+    let unix_socket_path =
+        config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
+    std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
+
+    let should_publish = false;
+    if let Err(err) = spawn_mux_server(unix_socket_path, should_publish) {
+        log::warn!("{:#}", err);
+    }
+
     let domain = Mux::get()
         .unwrap()
         .get_domain_by_name(&opts.domain_name)
