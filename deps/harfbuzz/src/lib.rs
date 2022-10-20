@@ -6,6 +6,12 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub type __int8_t = ::std::os::raw::c_schar;
+pub type __uint8_t = ::std::os::raw::c_uchar;
+pub type __int16_t = ::std::os::raw::c_short;
+pub type __uint16_t = ::std::os::raw::c_ushort;
+pub type __int32_t = ::std::os::raw::c_int;
+pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -939,6 +945,9 @@ extern "C" {
         tag: hb_tag_t,
         blob: *mut hb_blob_t,
     ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_face_builder_sort_tables(face: *mut hb_face_t, tags: *const hb_tag_t);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3402,6 +3411,14 @@ extern "C" {
         range_start: *mut ::std::os::raw::c_uint,
         range_end: *mut ::std::os::raw::c_uint,
     ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_ot_layout_lookup_get_optical_bound(
+        font: *mut hb_font_t,
+        lookup_index: ::std::os::raw::c_uint,
+        direction: hb_direction_t,
+        glyph: hb_codepoint_t,
+    ) -> hb_position_t;
 }
 extern "C" {
     pub fn hb_ot_layout_feature_get_name_ids(

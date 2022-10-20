@@ -120,7 +120,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2
-* Bundled harfbuzz to 5.2.0
+* Bundled harfbuzz to 5.3.1
 
 ### 20220905-102802-7d4b8249
 
