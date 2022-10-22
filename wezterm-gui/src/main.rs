@@ -15,7 +15,9 @@ use mux::ssh::RemoteSshDomain;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::env::current_dir;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -693,7 +695,11 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
             config.default_cwd.as_ref(),
         )?;
         if let Some(cwd) = &opts.cwd {
-            builder.cwd(cwd);
+            builder.cwd(if cwd.is_relative() {
+                current_dir()?.join(cwd).into_os_string().into()
+            } else {
+                Cow::Borrowed(cwd.as_ref())
+            });
         }
         Some(builder)
     } else {

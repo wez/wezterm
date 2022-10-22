@@ -2,6 +2,7 @@ use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
 use config::{Dimension, GeometryOrigin, SshParameters};
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
@@ -161,7 +162,7 @@ pub struct StartCommand {
     /// Specify the current working directory for the initially
     /// spawned program
     #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
-    pub cwd: Option<OsString>,
+    pub cwd: Option<PathBuf>,
 
     /// Dummy argument that consumes "-e" and does nothing.
     /// This is meant as a compatibility layer for supporting the
