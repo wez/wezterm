@@ -2892,7 +2892,7 @@ impl super::TermWindow {
                             };
 
                         if pos_x > params.pixel_width {
-                            log::info!("breaking on overflow {} > {}", pos_x, params.pixel_width);
+                            log::trace!("breaking on overflow {} > {}", pos_x, params.pixel_width);
                             break;
                         }
                         let pos_x = pos_x + params.left_pixel_x;
