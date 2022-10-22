@@ -26,9 +26,9 @@ jobs:
       - name: "Seed GITHUB_PATH to work around possible @action/core bug"
         shell: bash
         run: 'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH'
-      - name: "Install lsb-release & util-linux"
+      - name: "Install util-linux"
         shell: bash
-        run: "zypper install -y lsb-release util-linux"
+        run: "zypper install -y util-linux"
       - name: "Install git"
         shell: bash
         run: "zypper install -y git"

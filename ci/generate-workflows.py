@@ -675,8 +675,8 @@ cargo build --all --release""",
                         f'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH',
                     ),
                     RunStep(
-                        "Install lsb-release & util-linux",
-                        "zypper install -y lsb-release util-linux",
+                        "Install util-linux",
+                        "zypper install -y util-linux",
                     ),
                 ]
         if self.container:
