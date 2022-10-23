@@ -1586,41 +1586,10 @@ impl WindowView {
         let selector = format!("{:?}", a_selector);
         log::trace!("do_command_by_selector {:?}", selector);
 
-        match selector.as_ref() {
-            "scrollToBeginningOfDocument:"
-            | "scrollToEndOfDocument:"
-            | "scrollPageUp:"
-            | "scrollPageDown:"
-            | "moveLeft:"
-            | "moveRight:"
-            | "moveUp:"
-            | "moveUpAndModifySelection:"
-            | "moveDown:"
-            | "moveDownAndModifySelection:"
-            | "moveToBeginningOfParagraph:"
-            | "moveToEndOfParagraph:"
-            | "insertTab:"
-            | "insertBacktab:"
-            | "insertNewline:"
-            | "cancelOperation:"
-            | "deleteBackward:"
-            | "deleteForward:"
-            | "noop:" => {
-                if let Some(myself) = Self::get_this(this) {
-                    let mut inner = myself.inner.borrow_mut();
-                    inner.ime_state = ImeDisposition::Continue;
-                    inner.ime_last_event.take();
-                }
-            }
-            _ => {
-                log::warn!("UNHANDLED: IME: do_command_by_selector: {:?}", selector);
-                if let Some(myself) = Self::get_this(this) {
-                    // Speculatively allow passing it through
-                    let mut inner = myself.inner.borrow_mut();
-                    inner.ime_state = ImeDisposition::Continue;
-                    inner.ime_last_event.take();
-                }
-            }
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner.ime_state = ImeDisposition::Continue;
+            inner.ime_last_event.take();
         }
     }
 
