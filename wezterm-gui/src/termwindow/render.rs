@@ -1624,7 +1624,7 @@ impl super::TermWindow {
             pos.pane
                 .apply_hyperlinks(stable_range.clone(), &self.config.hyperlink_rules);
 
-            struct LineRender<'a> {
+            struct LineRender<'a, 'b> {
                 term_window: &'a mut super::TermWindow,
                 selrange: Option<SelectionRange>,
                 rectangular: bool,
@@ -1646,7 +1646,7 @@ impl super::TermWindow {
                 white_space: TextureRect,
                 filled_box: TextureRect,
                 window_is_transparent: bool,
-                layers: HeapQuadAllocator,
+                layers: &'a mut TripleLayerQuadAllocator<'b>,
                 error: Option<anyhow::Error>,
             }
 
@@ -1676,11 +1676,11 @@ impl super::TermWindow {
                 white_space,
                 filled_box,
                 window_is_transparent,
-                layers: HeapQuadAllocator::default(),
+                layers,
                 error: None,
             };
 
-            impl<'a> LineRender<'a> {
+            impl<'a, 'b> LineRender<'a, 'b> {
                 fn render_line(
                     &mut self,
                     stable_top: StableRowIndex,
@@ -1763,9 +1763,7 @@ impl super::TermWindow {
                             false
                         };
                         if !expired && !hover_changed {
-                            cached_quad
-                                .layers
-                                .apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
+                            cached_quad.layers.apply_to(self.layers)?;
                             self.term_window.update_next_frame_time(cached_quad.expires);
                             return Ok(());
                         }
@@ -1832,7 +1830,7 @@ impl super::TermWindow {
                     let expires = self.term_window.has_animation.borrow().as_ref().cloned();
                     self.term_window.update_next_frame_time(next_due);
 
-                    buf.apply_to(&mut TripleLayerQuadAllocator::Heap(&mut self.layers))?;
+                    buf.apply_to(self.layers)?;
 
                     let quad_value = LineQuadCacheValue {
                         layers: buf,
@@ -1855,7 +1853,7 @@ impl super::TermWindow {
                 }
             }
 
-            impl<'a> WithPaneLines for LineRender<'a> {
+            impl<'a, 'b> WithPaneLines for LineRender<'a, 'b> {
                 fn with_lines_mut(&mut self, stable_top: StableRowIndex, lines: &mut [&mut Line]) {
                     for (line_idx, line) in lines.iter().enumerate() {
                         if let Err(err) = self.render_line(stable_top, line_idx, line) {
@@ -1870,7 +1868,6 @@ impl super::TermWindow {
             if let Some(error) = render.error.take() {
                 return Err(error);
             }
-            render.layers.apply_to(layers)?;
         }
 
         /*
@@ -1880,11 +1877,6 @@ impl super::TermWindow {
         */
         metrics::histogram!("paint_pane_opengl.lines", start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());
-
-        let start = Instant::now();
-        drop(layers);
-        metrics::histogram!("paint_pane_opengl.drop.quads", start.elapsed());
-        log::trace!("quad drop elapsed {:?}", start.elapsed());
 
         Ok(())
     }
