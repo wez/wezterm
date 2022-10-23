@@ -590,6 +590,8 @@ pub enum CopyModeAssignment {
     MoveDown,
     PageUp,
     PageDown,
+    HalfPageUp,
+    HalfPageDown,
     Close,
     PriorMatch,
     NextMatch,
