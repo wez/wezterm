@@ -422,6 +422,7 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
         }
         match action {
             Action::Print(c) => print_buffer.push(c),
+            Action::PrintString(s) => print_buffer.push_str(&s),
             Action::Control(c) => {
                 flush_print(&mut print_buffer, &mut cells, &pen);
                 match c {

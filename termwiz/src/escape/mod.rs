@@ -28,6 +28,8 @@ use vtparse::CsiParam;
 pub enum Action {
     /// Send a single printable character to the display
     Print(char),
+    /// Send a string of printable characters to the display.
+    PrintString(String),
     /// A C0 or C1 control code
     Control(ControlCode),
     /// Device control.  This is uncommon wrt. terminal emulation.
@@ -43,6 +45,32 @@ pub enum Action {
     /// wants information
     XtGetTcap(Vec<String>),
     KittyImage(Box<KittyImage>),
+}
+
+impl Action {
+    /// Append this `Action` to a `Vec<Action>`.
+    /// If this `Action` is `Print` and the last element is `Print` or
+    /// `PrintString` then the elements are combined into `PrintString`
+    /// to reduce heap utilization.
+    pub fn append_to(self, dest: &mut Vec<Self>) {
+        if let Action::Print(c) = &self {
+            match dest.last_mut() {
+                Some(Action::PrintString(s)) => {
+                    s.push(*c);
+                    return;
+                }
+                Some(Action::Print(prior)) => {
+                    let mut s = prior.to_string();
+                    dest.pop();
+                    s.push(*c);
+                    dest.push(Action::PrintString(s));
+                    return;
+                }
+                _ => {}
+            }
+        }
+        dest.push(self);
+    }
 }
 
 #[cfg(all(test, target_pointer_width = "64"))]
@@ -61,6 +89,7 @@ impl Display for Action {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
             Action::Print(c) => write!(f, "{}", c),
+            Action::PrintString(s) => write!(f, "{}", s),
             Action::Control(c) => f.write_char(*c as u8 as char),
             Action::DeviceControl(c) => c.fmt(f),
             Action::OperatingSystemCommand(osc) => osc.fmt(f),

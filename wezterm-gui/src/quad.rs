@@ -179,6 +179,24 @@ impl TripleLayerQuadAllocatorTrait for HeapQuadAllocator {
         };
 
         let idx = verts.len();
+        /* Explicitly manage growth when needed.
+         * Experiments have shown that relying on the default exponential
+         * growth of the underlying Vec can waste 40%-75% of the capacity,
+         * and since HeapQuadAllocators are cached, that
+         * causes a lot of the heap to be wasted.
+         * Here we use exponential growth until we reach 64 and then
+         * increment by 64.
+         * This strikes a reasonable balance with exponential growth;
+         * the default 80x24 size terminal tends to peak out around 640
+         * elements which has a similar number of allocation steps to
+         * exponential growth while not wasting as much for cases that
+         * use less memory and that would otherwise get rounded up
+         * to the same peak.
+         * May potentially be worth a config option to tune this increment.
+         */
+        if idx >= verts.capacity() {
+            verts.reserve_exact(verts.capacity().next_power_of_two().min(64));
+        }
         verts.resize_with(verts.len() + VERTICES_PER_CELL, Vertex::default);
 
         Ok(Quad {

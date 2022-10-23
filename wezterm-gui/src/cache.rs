@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use cache_advisor::CacheAdvisor;
 use config::ConfigHandle;
 use fnv::FnvHashMap;
 use std::borrow::Borrow;
@@ -14,18 +13,51 @@ const ENTRY_PERCENT: u8 = 20;
 
 pub type CapFunc = fn(&ConfigHandle) -> usize;
 
+struct ValueWithFreq<V> {
+    value: V,
+    freq: u16,
+}
+
+impl<'a, V: 'a> ValueWithFreq<V> {
+    /// A very basic LFU algorithm.
+    /// If we have a known latest key, just return it.
+    /// Otherwise, find the key with the lowest freq by simply
+    /// iterating the entire cache.
+    /// For large cache sizes, this isn't great.
+    pub fn lfu<K: Clone + 'a>(
+        latest: &mut Option<K>,
+        iter: impl Iterator<Item = (&'a K, &'a ValueWithFreq<V>)>,
+    ) -> Option<K> {
+        if let Some(key) = latest.take() {
+            return Some(key);
+        }
+        let mut lfu = None;
+        for (k, ValueWithFreq { freq, .. }) in iter {
+            if let Some((other_key, other_freq)) = lfu.take() {
+                if freq < other_freq {
+                    lfu.replace((k, freq));
+                } else {
+                    lfu.replace((other_key, other_freq));
+                }
+            } else {
+                lfu.replace((k, freq));
+            }
+        }
+
+        lfu.map(|(k, _)| k.clone())
+    }
+}
+
 /// A cache using a Least-Frequently-Used eviction policy.
 /// If K is u64 you should use LfuCacheU64 instead as it has
 /// less overhead.
 pub struct LfuCache<K, V> {
     hit: &'static str,
     miss: &'static str,
-    key_to_id: HashMap<K, u64>,
-    map: FnvHashMap<u64, (K, V)>,
-    next_id: u64,
-    advisor: CacheAdvisor,
+    map: HashMap<K, ValueWithFreq<V>>,
     cap: usize,
     cap_func: CapFunc,
+    latest: Option<K>,
 }
 
 impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
@@ -39,12 +71,10 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
         Self {
             hit,
             miss,
-            key_to_id: HashMap::with_capacity(cap),
-            map: FnvHashMap::default(),
-            advisor: CacheAdvisor::new(cap, ENTRY_PERCENT),
-            next_id: 0,
+            map: HashMap::with_capacity(cap),
             cap,
             cap_func,
+            latest: None,
         }
     }
 
@@ -56,22 +86,12 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
         let new_cap = (self.cap_func)(config);
         if new_cap != self.cap {
             self.cap = new_cap;
-            self.clear();
+            self.map = HashMap::with_capacity(new_cap);
         }
     }
 
     pub fn clear(&mut self) {
         self.map.clear();
-        self.key_to_id.clear();
-        self.advisor = CacheAdvisor::new(self.cap, ENTRY_PERCENT);
-    }
-
-    fn process_evictions(&mut self, evict: &[(u64, usize)]) {
-        for (evict_id, _cost) in evict {
-            if let Some((evict_key, _v)) = self.map.remove(&evict_id) {
-                self.key_to_id.remove(&evict_key);
-            }
-        }
     }
 
     pub fn get<'a, Q: ?Sized>(&'a mut self, k: &Q) -> Option<&'a V>
@@ -79,37 +99,36 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
         K: Borrow<Q>,
         Q: Hash + Eq,
     {
-        let id = match self.key_to_id.get(k) {
-            Some(id) => *id,
+        match self.map.get_mut(k) {
             None => {
-                metrics::histogram!(self.miss, 1.0);
-                return None;
+                metrics::histogram!(self.miss, 1.);
+                None
             }
-        };
-
-        let evict = self.advisor.accessed(id, 1);
-        self.process_evictions(&evict);
-
-        metrics::histogram!(self.hit, 1.);
-
-        self.map.get(&id).map(|(_k, v)| v)
+            Some(ValueWithFreq { value, freq }) => {
+                metrics::histogram!(self.hit, 1.);
+                *freq = freq.saturating_add(1);
+                match &self.latest {
+                    Some(latest) if latest.borrow() == k => {
+                        self.latest.take();
+                    }
+                    _ => {}
+                }
+                Some(value)
+            }
+        }
     }
 
     pub fn put(&mut self, k: K, v: V) -> Option<V> {
-        let id = match self.key_to_id.get(&k) {
-            Some(id) => *id,
-            None => {
-                let id = self.next_id;
-                self.next_id += 1;
-                self.key_to_id.insert(k.clone(), id);
-                id
+        let prior = self.map.remove(&k);
+        if self.map.len() >= self.cap {
+            let lfu = ValueWithFreq::lfu(&mut self.latest, self.map.iter());
+            if let Some(key) = lfu {
+                self.map.remove(&key);
             }
-        };
-
-        let evict = self.advisor.accessed(id, 1);
-        self.process_evictions(&evict);
-
-        self.map.insert(id, (k, v)).map(|(_k, v)| v)
+        }
+        self.latest.replace(k.clone());
+        self.map.insert(k, ValueWithFreq { value: v, freq: 0 });
+        prior.map(|ent| ent.value)
     }
 }
 
@@ -118,10 +137,10 @@ impl<K: Hash + Eq + Clone, V> LfuCache<K, V> {
 pub struct LfuCacheU64<V> {
     hit: &'static str,
     miss: &'static str,
-    map: FnvHashMap<u64, V>,
-    advisor: CacheAdvisor,
+    map: FnvHashMap<u64, ValueWithFreq<V>>,
     cap: usize,
     cap_func: CapFunc,
+    latest: Option<u64>,
 }
 
 impl<V> LfuCacheU64<V> {
@@ -136,9 +155,9 @@ impl<V> LfuCacheU64<V> {
             hit,
             miss,
             map: FnvHashMap::default(),
-            advisor: CacheAdvisor::new(cap, ENTRY_PERCENT),
             cap,
             cap_func,
+            latest: None,
         }
     }
 
@@ -150,46 +169,64 @@ impl<V> LfuCacheU64<V> {
         let new_cap = (self.cap_func)(config);
         if new_cap != self.cap {
             self.cap = new_cap;
-            self.clear();
+            self.map = FnvHashMap::default();
         }
     }
 
     pub fn clear(&mut self) {
         self.map.clear();
-        self.advisor = CacheAdvisor::new(self.cap, ENTRY_PERCENT);
-    }
-
-    fn process_evictions(&mut self, evict: &[(u64, usize)]) {
-        for (evict_id, _cost) in evict {
-            self.map.remove(&evict_id);
-        }
     }
 
     pub fn get(&mut self, id: &u64) -> Option<&V> {
-        if !self.map.contains_key(&id) {
-            metrics::histogram!(self.miss, 1.0);
-            return None;
+        match self.map.get_mut(&id) {
+            None => {
+                metrics::histogram!(self.miss, 1.0);
+                None
+            }
+            Some(ValueWithFreq { value, freq }) => {
+                metrics::histogram!(self.hit, 1.);
+                *freq = freq.saturating_add(1);
+                match &self.latest {
+                    Some(latest) if latest == id => {
+                        self.latest.take();
+                    }
+                    _ => {}
+                }
+                Some(value)
+            }
         }
-        let evict = self.advisor.accessed(*id, 1);
-        self.process_evictions(&evict);
-        metrics::histogram!(self.hit, 1.);
-        self.map.get(&id)
     }
 
     pub fn get_mut(&mut self, id: &u64) -> Option<&mut V> {
-        if !self.map.contains_key(&id) {
-            metrics::histogram!(self.miss, 1.0);
-            return None;
+        match self.map.get_mut(&id) {
+            None => {
+                metrics::histogram!(self.miss, 1.0);
+                None
+            }
+            Some(ValueWithFreq { value, freq }) => {
+                metrics::histogram!(self.hit, 1.);
+                *freq = freq.saturating_add(1);
+                match &self.latest {
+                    Some(latest) if latest == id => {
+                        self.latest.take();
+                    }
+                    _ => {}
+                }
+                Some(value)
+            }
         }
-        let evict = self.advisor.accessed(*id, 1);
-        self.process_evictions(&evict);
-        metrics::histogram!(self.hit, 1.);
-        self.map.get_mut(&id)
     }
 
     pub fn put(&mut self, id: u64, v: V) -> Option<V> {
-        let evict = self.advisor.accessed(id, 1);
-        self.process_evictions(&evict);
-        self.map.insert(id, v)
+        let prior = self.map.remove(&id);
+        if self.map.len() >= self.cap {
+            let lfu = ValueWithFreq::lfu(&mut self.latest, self.map.iter());
+            if let Some(key) = lfu {
+                self.map.remove(&key);
+            }
+        }
+        self.latest.replace(id);
+        self.map.insert(id, ValueWithFreq { value: v, freq: 0 });
+        prior.map(|ent| ent.value)
     }
 }

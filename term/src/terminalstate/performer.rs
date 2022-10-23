@@ -227,6 +227,11 @@ impl<'a> Performer<'a> {
         }
         match action {
             Action::Print(c) => self.print(c),
+            Action::PrintString(s) => {
+                for c in s.chars() {
+                    self.print(c)
+                }
+            }
             Action::Control(code) => self.control(code),
             Action::DeviceControl(ctrl) => self.device_control(ctrl),
             Action::OperatingSystemCommand(osc) => self.osc_dispatch(*osc),

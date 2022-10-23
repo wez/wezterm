@@ -171,7 +171,7 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
                         }
                         _ => {}
                     };
-                    actions.push(action);
+                    action.append_to(&mut actions);
 
                     if flush && !actions.is_empty() {
                         send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
