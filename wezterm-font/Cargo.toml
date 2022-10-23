@@ -18,7 +18,7 @@ config = { path = "../config" }
 encoding_rs = "0.8"
 enum-display-derive = "0.1"
 euclid = "0.22"
-finl_unicode = "1.1"
+finl_unicode = "1.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"
