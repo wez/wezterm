@@ -64,8 +64,10 @@ reassignable.
 | Move to bottom of viewport     | `L` |
 | Move up one screen             | `PageUp` |
 |                                | `CTRL-b` |
+| Move up half a screen          | `CTRL-u` |
 | Move down one screen           | `PageDown` |
 |                                | `CTRL-f`   |
+| Move down half a screen        | `CTRL-d` |
 | Move to other end of the selection| `o` |
 | Move to other end of the selection horizontally| `O` (useful in Rectangular mode) |
 
