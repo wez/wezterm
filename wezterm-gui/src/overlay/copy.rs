@@ -565,13 +565,31 @@ impl CopyRenderable {
 
     fn page_up(&mut self) {
         let dims = self.dimensions();
-        self.cursor.y -= dims.dims.viewport_rows as isize;
-        self.select_to_cursor_pos();
+        self.page_up_by_rows(dims.dims.viewport_rows as isize);
     }
 
     fn page_down(&mut self) {
         let dims = self.dimensions();
-        self.cursor.y += dims.dims.viewport_rows as isize;
+        self.page_down_by_rows(dims.dims.viewport_rows as isize);
+    }
+
+    fn half_page_up(&mut self) {
+        let dims = self.dimensions();
+        self.page_up_by_rows((dims.dims.viewport_rows / 2) as isize);
+    }
+
+    fn half_page_down(&mut self) {
+        let dims = self.dimensions();
+        self.page_down_by_rows((dims.dims.viewport_rows / 2) as isize);
+    }
+
+    fn page_up_by_rows(&mut self, rows: isize ) {
+        self.cursor.y -= rows;
+        self.select_to_cursor_pos();
+    }
+
+    fn page_down_by_rows(&mut self, rows: isize ) {
+        self.cursor.y += rows;
         self.select_to_cursor_pos();
     }
 
@@ -1125,6 +1143,8 @@ impl Pane for CopyOverlay {
                     MoveDown => render.move_down_single_row(),
                     PageUp => render.page_up(),
                     PageDown => render.page_down(),
+                    HalfPageUp => render.half_page_up(),
+                    HalfPageDown => render.half_page_down(),
                     Close => render.close(),
                     PriorMatch => render.prior_match(),
                     NextMatch => render.next_match(),
@@ -1748,6 +1768,16 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('f'),
             Modifiers::CTRL,
             KeyAssignment::CopyMode(CopyModeAssignment::PageDown),
+        ),
+        (
+            WKeyCode::Char('u'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::HalfPageUp),
+        ),
+        (
+            WKeyCode::Char('d'),
+            Modifiers::CTRL,
+            KeyAssignment::CopyMode(CopyModeAssignment::HalfPageDown),
         ),
         (
             WKeyCode::Char('o'),
