@@ -77,7 +77,7 @@ tabout = { path = "../tabout" }
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
-textwrap = "0.15"
+textwrap = "0.16"
 thiserror = "1.0"
 tiny-skia = "0.8"
 umask = { path = "../umask" }
