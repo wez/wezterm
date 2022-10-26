@@ -163,6 +163,18 @@ pub struct StartCommand {
     #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
     pub cwd: Option<OsString>,
 
+    /// Dummy argument that consumes "-e" and does nothing.
+    /// This is meant as a compatibility layer for supporting the
+    /// widely adopted standard of passing the command to execute
+    /// to the terminal via a "-e" option.
+    /// This works because we then treat the remaining cmdline as
+    /// trailing options, that will automatically be parsed via the
+    /// existing "prog" option.
+    /// This option exists only as a fallback. It is recommended to pass
+    /// the command as a normal trailing command instead if possible.
+    #[arg(short = 'e', hide = true)]
+    pub _cmd: bool,
+
     /// Override the default windowing system class.
     /// The default is "org.wezfurlong.wezterm".
     /// Under X11 and Windows this changes the window class.
