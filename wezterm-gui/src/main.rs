@@ -143,6 +143,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         position: opts.position,
         workspace: None,
         prog: opts.prog.clone(),
+        ..Default::default()
     };
 
     let cmd = if !opts.prog.is_empty() {
