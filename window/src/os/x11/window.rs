@@ -11,8 +11,7 @@ use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
-use raw_window_handle::unix::XcbHandle;
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, XcbWindowHandle};
 use std::any::Any;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
@@ -102,11 +101,10 @@ impl Drop for XWindowInner {
 
 unsafe impl HasRawWindowHandle for XWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
-        RawWindowHandle::Xcb(XcbHandle {
-            window: self.window_id.resource_id(),
-            connection: self.conn.upgrade().unwrap().get_raw_conn() as *mut _,
-            ..XcbHandle::empty()
-        })
+        let mut handle = XcbWindowHandle::empty();
+        handle.window = self.window_id.resource_id();
+        handle.visual_id = self.conn.upgrade().unwrap().visual;
+        RawWindowHandle::Xcb(handle)
     }
 }
 

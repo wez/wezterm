@@ -36,8 +36,7 @@ use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
-use raw_window_handle::macos::MacOSHandle;
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{AppKitWindowHandle, HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -574,11 +573,10 @@ impl Window {
 
 unsafe impl HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> RawWindowHandle {
-        RawWindowHandle::MacOS(MacOSHandle {
-            ns_window: self.ns_window as *mut _,
-            ns_view: self.ns_view as *mut _,
-            ..MacOSHandle::empty()
-        })
+        let mut handle = AppKitWindowHandle::empty();
+        handle.ns_window = self.ns_window as *mut _;
+        handle.ns_view = self.ns_view as *mut _;
+        RawWindowHandle::AppKit(handle)
     }
 }
 
@@ -739,7 +737,7 @@ impl WindowOps for Window {
         // We only need this for non-native full screen mode.
 
         let native_full_screen = match raw {
-            RawWindowHandle::MacOS(raw) => {
+            RawWindowHandle::AppKit(raw) => {
                 let style_mask = unsafe { NSWindow::styleMask(raw.ns_window as *mut Object) };
                 style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
             }
