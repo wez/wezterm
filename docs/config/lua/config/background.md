@@ -75,6 +75,39 @@ A source can be one of the following:
   are the same as those allowed for [window_background_gradient](window_background_gradient.md).
 * `{Color="black"}` - generate an image with the specified color.
 
+#### Notice: Color and Gradient
+
+Please note that the current implementation of `Color` and `Gradient` sources do not support the use of `Contain` or `Cover` for its height and width. 
+
+Instead, use specific values. For example:
+
+```lua
+return {
+  background = {
+    {
+      source = { Color = '#1F1F28' },
+      -- In this case, we're using '100%' for height and width to fill entire viewport
+      height = '100%',
+      width = '100%'
+    },
+    {
+      source = {
+        -- Gradient example taken from 
+        -- https://wezfurlong.org/wezterm/config/lua/config/window_background_gradient.html#linear-gradient
+        Gradient = {
+          colors = { '#EEBD89', '#D13ABD' },
+          orientation = { Linear = { angle = -45.0 } }, 
+        },
+      },
+      height = '100%',
+      width = '100%',
+      -- Setting the opacity to 0.8 to darken gradient with color from layer underneath
+      opacity = 0.8
+    },
+  },
+}
+```
+
 ## Relationship with other config options
 
 Specifying the following options:
