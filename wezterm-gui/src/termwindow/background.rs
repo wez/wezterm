@@ -266,11 +266,11 @@ fn load_background_layer(
         BackgroundSource::Gradient(g) => {
             let mut width = match layer.width {
                 BackgroundSize::Dimension(d) => d.evaluate_as_pixels(h_context),
-                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+                unsup => anyhow::bail!("{:?} not yet implemented for Gradient. Use specific values (e.g. '100%') instead", unsup),
             } as u32;
             let mut height = match layer.height {
                 BackgroundSize::Dimension(d) => d.evaluate_as_pixels(v_context),
-                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+                unsup => anyhow::bail!("{:?} not yet implemented for Gradient. Use specific values (e.g. '100%') instead", unsup),
             } as u32;
 
             if matches!(g.orientation, GradientOrientation::Radial { .. }) {
@@ -292,11 +292,17 @@ fn load_background_layer(
             // It's not ideal.
             let width = match layer.width {
                 BackgroundSize::Dimension(d) => d.evaluate_as_pixels(h_context),
-                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+                unsup => anyhow::bail!(
+                    "{:?} not yet implemented for Color. Use specific values (e.g. '100%') instead",
+                    unsup
+                ),
             } as u32;
             let height = match layer.height {
                 BackgroundSize::Dimension(d) => d.evaluate_as_pixels(v_context),
-                unsup => anyhow::bail!("{:?} not yet implemented", unsup),
+                unsup => anyhow::bail!(
+                    "{:?} not yet implemented for Color. Use specific values (e.g. '100%') instead",
+                    unsup
+                ),
             } as u32;
 
             let size = width.min(height);
