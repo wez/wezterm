@@ -255,7 +255,7 @@ impl KittyImageData {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn read_shared_memory_data(
     name: &str,
     data_offset: Option<u32>,
@@ -299,6 +299,15 @@ fn read_shared_memory_data(
         );
     }
     Ok(data)
+}
+
+#[cfg(all(unix, target_os = "android"))]
+fn read_shared_memory_data(
+    _name: &str,
+    _data_offset: Option<u32>,
+    _data_size: Option<u32>,
+) -> std::result::Result<std::vec::Vec<u8>, std::io::Error> {
+    Err(std::io::ErrorKind::Unsupported.into())
 }
 
 #[cfg(windows)]
