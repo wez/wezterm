@@ -103,6 +103,10 @@ wezterm.on('update-right-status', function(window, pane)
   -- How many cells have been formatted
   local num_cells = 0
 
+  -- Insert initial left arrow
+  table.insert(elements, { Foreground = { Color = colors[1] } })
+  table.insert(elements, { Text = SOLID_LEFT_ARROW })
+
   -- Translate a cell into elements
   function push(text, is_last)
     local cell_no = num_cells + 1
