@@ -2704,9 +2704,9 @@ dependencies = [
 
 [[package]]
 name = "native-tls"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd7e2f3618557f980e0b17e8856252eee3c97fa12c54dff0ca290fb6266ca4a9"
+checksum = "07226173c32f2926027b63cce4bcd8076c3552846cbe7925f3aaffeac0a3b92e"
 dependencies = [
  "lazy_static",
  "libc",
@@ -3042,9 +3042,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-src"
-version = "300.0.9+3.0.5"
+version = "300.0.11+3.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df52116687e2d276515a1cbf0b84d2fb646f519aebe65d2fa82f28c5d078f174"
+checksum = "181e2429088818099075f6ccf30e6d096a513c46e7e0b946a4dde055c35cb17a"
 dependencies = [
  "cc",
 ]
