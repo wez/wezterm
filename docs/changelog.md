@@ -117,6 +117,12 @@ As features stabilize some brief notes about them will accumulate here.
   bar](config/lua/pane/get_metadata.md), but you may re-enable the old way
   using `overlay_lag_indicator = true` in the appropriate domain
   configuration.
+* Added dummy `-e` command line option to support programs that assume that all
+  terminal emulators support a `-e` option. Thanks to
+  [@vimpostor](https://github.com/vimpostor)!.
+  [#2670](https://github.com/wez/wezterm/pull/2670)
+  [#2622](https://github.com/wez/wezterm/issues/2622)
+  [#2271](https://github.com/wez/wezterm/issues/2271)
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2
