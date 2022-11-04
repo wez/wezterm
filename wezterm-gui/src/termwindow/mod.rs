@@ -2215,6 +2215,7 @@ impl TermWindow {
                 replace_current,
                 one_shot,
                 until_unknown,
+                prevent_fallback,
             } => {
                 anyhow::ensure!(
                     self.input_map.has_table(name),
@@ -2227,6 +2228,7 @@ impl TermWindow {
                     replace_current: *replace_current,
                     one_shot: *one_shot,
                     until_unknown: *until_unknown,
+                    prevent_fallback: *prevent_fallback,
                 });
                 self.update_title();
             }
@@ -2469,6 +2471,7 @@ impl TermWindow {
                                 replace_current,
                                 one_shot: false,
                                 until_unknown: false,
+                                prevent_fallback: false,
                             });
                         });
                 }
@@ -2518,6 +2521,7 @@ impl TermWindow {
                                 replace_current,
                                 one_shot: false,
                                 until_unknown: false,
+                                prevent_fallback: false,
                             });
                         });
                 }
