@@ -15,7 +15,7 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
         .await
         .map_err(|e| mlua::Error::external(e))?;
     let mut entries = vec![];
-    for entry in dir.next().await {
+    while let Some(entry) = dir.next().await {
         let entry = entry.map_err(|e| mlua::Error::external(e))?;
         if let Some(utf8) = entry.path().to_str() {
             entries.push(utf8.to_string());
