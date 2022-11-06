@@ -21,7 +21,7 @@ graph TD
   E -->|No| F{{"Running on Windows and<br/>wezterm.lua exists in same<br/>dir as wezterm.exe?<br/>(Thumb drive mode)"}}
   F -->|Yes| B
   F -->|No| H{{Is $XDG_CONFIG_HOME<br/>environment set and<br/>wezterm/wezterm.lua<br/>exists inside it?}}
-  H -->|Yes| C
+  H -->|Yes| B
   J --> B
   H -->|No| K{{Does $HOME/.config/wezterm/wezterm.lua exist?}}
   K -->|Yes| B
@@ -33,7 +33,7 @@ failed to parse, wezterm would treat it as though it didn't exist and continue
 to try other candidate file locations. In all current versions of wezterm, an
 error will be shown and the default configuration will be used instead.
 
-Note that on Windows, to support uses that carry their wezterm application and
+Note that on Windows, to support users that carry their wezterm application and
 configuration around on a thumb drive, wezterm will look for the config file in
 the same location as wezterm.exe.  That is shown in the chart above as thumb
 drive mode.
