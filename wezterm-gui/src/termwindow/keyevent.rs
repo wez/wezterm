@@ -93,11 +93,12 @@ impl KeyTableState {
         self.stack.last().map(|entry| entry.name.as_str())
     }
 
-    pub fn lookup_key(
+    fn lookup_key(
         &mut self,
         input_map: &InputMap,
         key: &KeyCode,
         mods: Modifiers,
+        only_key_bindings: OnlyKeyBindings,
     ) -> Option<(KeyTableEntry, Option<String>)> {
         while self.process_expiration() {}
 
@@ -121,15 +122,20 @@ impl KeyTableState {
             }
 
             if stack_entry.prevent_fallback {
-                // We can't simply return None for this case, as there
-                // may be later phases of key lookup.
-                // Instead, we synthesize a Nop and return that.
-                result = Some((
-                    KeyTableEntry {
-                        action: KeyAssignment::Nop,
-                    },
-                    Some(name.to_string()),
-                ));
+                // If we've passed the key-bindings-only phase, then we want
+                // to prevent the default action of passing the key through.
+                // Prior to that, we mustn't prevent subsequent phases.
+                if only_key_bindings == OnlyKeyBindings::No {
+                    result = Some((
+                        KeyTableEntry {
+                            action: KeyAssignment::Nop,
+                        },
+                        Some(name.to_string()),
+                    ));
+                }
+
+                // Whether we explicitly map Nop or not, prevent looking
+                // in later key tables on the stack.
                 break;
             }
         }
@@ -226,19 +232,21 @@ impl super::TermWindow {
         pane: &Rc<dyn Pane>,
         keycode: &KeyCode,
         mods: Modifiers,
+        only_key_bindings: OnlyKeyBindings,
     ) -> Option<(KeyTableEntry, Option<String>)> {
         if let Some(overlay) = self.pane_state(pane.pane_id()).overlay.as_mut() {
-            if let Some((entry, table_name)) =
-                overlay
-                    .key_table_state
-                    .lookup_key(&self.input_map, keycode, mods)
-            {
+            if let Some((entry, table_name)) = overlay.key_table_state.lookup_key(
+                &self.input_map,
+                keycode,
+                mods,
+                only_key_bindings,
+            ) {
                 return Some((entry, table_name.map(|s| s.to_string())));
             }
         }
         if let Some((entry, table_name)) =
             self.key_table_state
-                .lookup_key(&self.input_map, keycode, mods)
+                .lookup_key(&self.input_map, keycode, mods, only_key_bindings)
         {
             return Some((entry, table_name.map(|s| s.to_string())));
         }
@@ -279,9 +287,12 @@ impl super::TermWindow {
         }
 
         if is_down {
-            if let Some((entry, table_name)) =
-                self.lookup_key(pane, &keycode, raw_modifiers | leader_mod)
-            {
+            if let Some((entry, table_name)) = self.lookup_key(
+                pane,
+                &keycode,
+                raw_modifiers | leader_mod,
+                only_key_bindings,
+            ) {
                 if self.config.debug_key_events {
                     log::info!(
                         "{}{:?} {:?} -> perform {:?}",
