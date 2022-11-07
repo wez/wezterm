@@ -415,6 +415,28 @@ impl super::TermWindow {
                     }
                     context.request_drag_move();
                 }
+                TabBarItem::WindowHideButton => {
+                    if let Some(ref window) = self.window {
+                        window.hide();
+                    }
+                }
+                TabBarItem::WindowMaximizeButton => {
+                    if let Some(ref window) = self.window {
+                        let maximized = self
+                            .window_state
+                            .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                        if maximized {
+                            window.restore();
+                        } else {
+                            window.maximize();
+                        }
+                    }
+                }
+                TabBarItem::WindowCloseButton => {
+                    if let Some(ref window) = self.window {
+                        self.close_requested(&window.clone());
+                    }
+                }
             },
             WMEK::Press(MousePress::Middle) => match item {
                 TabBarItem::Tab { tab_idx, .. } => {
@@ -423,7 +445,10 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. }
                 | TabBarItem::None
                 | TabBarItem::LeftStatus
-                | TabBarItem::RightStatus => {}
+                | TabBarItem::RightStatus
+                | TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => {}
             },
             WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab { .. } => {
@@ -432,7 +457,12 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.show_launcher();
                 }
-                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {}
+                TabBarItem::None
+                | TabBarItem::LeftStatus
+                | TabBarItem::RightStatus
+                | TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => {}
             },
             WMEK::Move => match item {
                 TabBarItem::None => {

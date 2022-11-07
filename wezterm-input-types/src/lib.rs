@@ -1275,6 +1275,7 @@ bitflags! {
     pub struct WindowDecorations: u8 {
         const TITLE = 1;
         const RESIZE = 2;
+        const FANCY = 4;
         const NONE = 0;
     }
 }
@@ -1291,6 +1292,8 @@ impl TryFrom<String> for WindowDecorations {
                 flags = Self::NONE;
             } else if ele == "RESIZE" {
                 flags |= Self::RESIZE;
+            } else if ele == "FANCY" {
+                flags |= Self::FANCY;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }
