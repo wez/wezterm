@@ -12,8 +12,19 @@
 #       function to a block or underline.
 # Se resets the cursor style to the terminal power-on default.
 # Smulx defines kitty style underline escape sequence support
+#
+# hs, dsl, fsl, tsl are used by nvim to amend the "status line".
+# These are not normally present for xterm and have assumed values
+# when TERM==xterm. When using this terminfo file that assumption is not
+# true and that functionality is broken.
+# We follow the foot's terminfo settings for these, based on
+# https://codeberg.org/dnkl/foot/pulls/243/files
+# although we use OSC 0 for the title rather than OSC 2.
+# https://github.com/neovim/neovim/issues/20706
+# https://github.com/wez/wezterm/issues/2635
 wezterm|Wez's terminal emulator,
   Tc,
+  hs,
   sitm=\E[3m, ritm=\E[23m,
   Cr=\E]112\007, Cs=\E]12;%p1%s\007, Ms=\E]52;%p1%s;%p2%s\007, Se=\E[2\sq,
   Ss=\E[%p1%d\sq,
@@ -30,8 +41,9 @@ wezterm|Wez's terminal emulator,
 	cud=\E[%p1%dB, cud1=\n, cuf=\E[%p1%dC, cuf1=\E[C,
 	cup=\E[%i%p1%d;%p2%dH, cuu=\E[%p1%dA, cuu1=\E[A,
 	cvvis=\E[?12;25h, dch=\E[%p1%dP, dch1=\E[P, dim=\E[2m,
-	dl=\E[%p1%dM, dl1=\E[M, ech=\E[%p1%dX, ed=\E[J, el=\E[K,
-	el1=\E[1K, flash=\E[?5h$<100/>\E[?5l, home=\E[H,
+	dl=\E[%p1%dM, dl1=\E[M, dsl=\E]2;\E\\,
+	ech=\E[%p1%dX, ed=\E[J, el=\E[K,
+	el1=\E[1K, flash=\E[?5h$<100/>\E[?5l, fsl=\E\\, home=\E[H,
 	hpa=\E[%i%p1%dG, ht=^I, hts=\EH, ich=\E[%p1%d@,
 	il=\E[%p1%dL, il1=\E[L, ind=\n, indn=\E[%p1%dS,
 	initc=\E]4;%p1%d;rgb\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\E\\,
@@ -71,7 +83,7 @@ wezterm|Wez's terminal emulator,
 	sgr0=\E(B\E[m, sitm=\E[3m, smacs=\E(0, smam=\E[?7h,
 	smcup=\E[?1049h\E[22;0;0t, smir=\E[4h, smkx=\E[?1h\E=,
 	smm=\E[?1034h, smso=\E[7m, smul=\E[4m, smxx=\E[9m,
-	tbc=\E[3g, u6=\E[%i%d;%dR, u7=\E[6n, u8=\E[?%[;0123456789]c,
+	tbc=\E[3g, tsl=\E]0;, u6=\E[%i%d;%dR, u7=\E[6n, u8=\E[?%[;0123456789]c,
 	u9=\E[c, vpa=\E[%i%p1%dd, XM=\E[?1003;1006%?%p1%{1}%=%th%el%;,
 	kmous=\E[<, XM=\E[?1006;1000%?%p1%{1}%=%th%el%;,
 	xm=\E[<%i%p3%d;%p1%d;%p2%d;%?%p4%tM%em%;,
