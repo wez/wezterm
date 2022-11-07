@@ -520,6 +520,8 @@ pub enum KeyAssignment {
         one_shot: bool,
         #[dynamic(default)]
         until_unknown: bool,
+        #[dynamic(default)]
+        prevent_fallback: bool,
     },
     PopKeyTable,
     ClearKeyTableStack,

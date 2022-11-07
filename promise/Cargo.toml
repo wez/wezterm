@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 async-task = "4.0"
-async-std = "1.4"
 async-executor = "1.4"
+async-io = "1.10"
 anyhow = "1.0"
 thiserror = "1.0"
 lazy_static = "1.4"

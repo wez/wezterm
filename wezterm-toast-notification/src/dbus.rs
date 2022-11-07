@@ -157,7 +157,7 @@ pub fn show_notif(notif: ToastNotification) -> Result<(), Box<dyn std::error::Er
     // Run this in a separate thread as we don't know if dbus or the notification
     // service on the other end are up, and we'd otherwise block for some time.
     std::thread::spawn(move || {
-        let res = async_std::task::block_on(async move { show_notif_impl(notif).await });
+        let res = async_io::block_on(async move { show_notif_impl(notif).await });
         if let Err(err) = res {
             log::error!("while showing notification: {:#}", err);
         }

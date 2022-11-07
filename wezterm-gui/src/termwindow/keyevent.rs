@@ -1,7 +1,7 @@
 use crate::termwindow::InputMap;
 use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
 use anyhow::Context;
-use config::keyassignment::KeyTableEntry;
+use config::keyassignment::{KeyAssignment, KeyTableEntry};
 use mux::pane::{Pane, PerformAssignmentResult};
 use smol::Timer;
 use std::rc::Rc;
@@ -16,6 +16,7 @@ pub struct KeyTableStateEntry {
     /// Whether this activation pops itself after recognizing a key press
     one_shot: bool,
     until_unknown: bool,
+    prevent_fallback: bool,
     /// The timeout duration; used when updating the expiration
     timeout_milliseconds: Option<u64>,
 }
@@ -27,6 +28,7 @@ pub struct KeyTableArgs<'a> {
     pub replace_current: bool,
     pub one_shot: bool,
     pub until_unknown: bool,
+    pub prevent_fallback: bool,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -46,6 +48,7 @@ impl KeyTableState {
                 .map(|ms| Instant::now() + Duration::from_millis(ms)),
             one_shot: args.one_shot,
             until_unknown: args.until_unknown,
+            prevent_fallback: args.prevent_fallback,
             timeout_milliseconds: args.timeout_milliseconds,
         });
     }
@@ -115,6 +118,19 @@ impl KeyTableState {
 
             if stack_entry.until_unknown {
                 pop_count += 1;
+            }
+
+            if stack_entry.prevent_fallback {
+                // We can't simply return None for this case, as there
+                // may be later phases of key lookup.
+                // Instead, we synthesize a Nop and return that.
+                result = Some((
+                    KeyTableEntry {
+                        action: KeyAssignment::Nop,
+                    },
+                    Some(name.to_string()),
+                ));
+                break;
             }
         }
 
