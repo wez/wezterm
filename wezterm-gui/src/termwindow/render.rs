@@ -145,6 +145,36 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
+const HIDE_BUTTON: &[Poly] = &[Poly {
+    path: &[
+        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Outline,
+}];
+
+const MAXIMIZE_BUTTON: &[Poly] = &[Poly {
+    path: &[
+        // PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Outline,
+}];
+
+fn poly_for_window_button(window_button: TabBarItem) -> &'static [Poly] {
+    match window_button {
+        TabBarItem::WindowHideButton => HIDE_BUTTON,
+        TabBarItem::WindowMaximizeButton => MAXIMIZE_BUTTON,
+        TabBarItem::WindowCloseButton => X_BUTTON,
+        _ => unreachable!(),
+    }
+}
+
 /// The data that we associate with a line; we use this to cache it shape hash
 #[derive(Debug)]
 pub struct CachedLineState {
@@ -805,6 +835,45 @@ impl super::TermWindow {
                                 .into(),
                         })
                     }),
+                TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => Element::new(
+                    &font,
+                    ElementContent::Poly {
+                        line_width: metrics.underline_height.max(2),
+                        poly: SizedPoly {
+                            poly: poly_for_window_button(item.item.clone()),
+                            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+                            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+                        },
+                    },
+                )
+                .zindex(1)
+                .vertical_align(VerticalAlign::Middle)
+                .item_type(UIItemType::TabBar(item.item.clone()))
+                .margin(BoxDimension {
+                    left: Dimension::Cells(0.),
+                    right: Dimension::Cells(0.),
+                    top: Dimension::Cells(0.),
+                    bottom: Dimension::Cells(0.),
+                })
+                .padding(BoxDimension {
+                    left: Dimension::Cells(1.0),
+                    right: Dimension::Cells(1.0),
+                    top: Dimension::Cells(0.6),
+                    bottom: Dimension::Cells(0.6),
+                })
+                // .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .colors(ElementColors {
+                    border: BorderColor::default(),
+                    bg: new_tab.bg_color.to_linear().into(),
+                    text: new_tab.fg_color.to_linear().into(),
+                })
+                .hover_colors(Some(ElementColors {
+                    border: BorderColor::default(),
+                    bg: new_tab_hover.bg_color.to_linear().into(),
+                    text: new_tab_hover.fg_color.to_linear().into(),
+                })),
             }
         };
 
@@ -823,6 +892,12 @@ impl super::TermWindow {
             match item.item {
                 TabBarItem::LeftStatus => left_status.push(item_to_elem(item)),
                 TabBarItem::None | TabBarItem::RightStatus => right_eles.push(item_to_elem(item)),
+                TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => {
+                    // TODO: Window buttons can be placed either at left and right
+                    right_eles.push(item_to_elem(item))
+                }
                 TabBarItem::Tab { tab_idx, active } => {
                     let mut elem = item_to_elem(item);
                     elem.max_width = Some(Dimension::Pixels(max_tab_width));

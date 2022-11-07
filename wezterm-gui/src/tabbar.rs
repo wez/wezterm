@@ -24,6 +24,9 @@ pub enum TabBarItem {
     RightStatus,
     Tab { tab_idx: usize, active: bool },
     NewTabButton,
+    WindowHideButton,
+    WindowMaximizeButton,
+    WindowCloseButton,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -218,6 +221,61 @@ impl TabBarState {
             },
         );
 
+        let fancy_window_decorations = config
+            .window_decorations
+            .contains(window::WindowDecorations::FANCY);
+
+        let window_hide = parse_status_text(
+            &config.tab_bar_style.window_hide,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_attrs.clone()
+            },
+        );
+        let window_hide_hover = parse_status_text(
+            &config.tab_bar_style.window_hide_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_hover_attrs.clone()
+            },
+        );
+
+        let window_maximize = parse_status_text(
+            &config.tab_bar_style.window_maximize,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_attrs.clone()
+            },
+        );
+        let window_maximize_hover = parse_status_text(
+            &config.tab_bar_style.window_maximize_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_hover_attrs.clone()
+            },
+        );
+
+        let window_close = parse_status_text(
+            &config.tab_bar_style.window_close,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_attrs.clone()
+            },
+        );
+        let window_close_hover = parse_status_text(
+            &config.tab_bar_style.window_close_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_hover_attrs.clone()
+            },
+        );
+
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
         // Where the `+` sign will spawn a new tab (or show a context
@@ -358,6 +416,17 @@ impl TabBarState {
             x += width;
         }
 
+        // Reserve place for buttons
+        let title_width = if fancy_window_decorations {
+            let hide_len = window_hide.len().max(window_hide_hover.len());
+            let maximize_len = window_maximize.len().max(window_maximize_hover.len());
+            let close_len = window_close.len().max(window_close_hover.len());
+
+            title_width.saturating_sub(hide_len + maximize_len + close_len)
+        } else {
+            title_width
+        };
+
         let status_space_available = title_width.saturating_sub(x);
 
         let mut right_status_line = parse_status_text(right_status, black_cell.attrs().clone());
@@ -375,6 +444,85 @@ impl TabBarState {
         line.append_line(right_status_line, SEQ_ZERO);
         while line.len() < title_width {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
+        }
+
+        if fancy_window_decorations {
+            x = title_width;
+
+            // Window hide button
+            {
+                let hover = is_tab_hover(mouse_x, x, window_hide_hover.len());
+
+                let window_hide_button = if hover {
+                    &window_hide_hover
+                } else {
+                    &window_hide
+                };
+
+                let button_start = x;
+                let width = window_hide_button.len();
+
+                line.append_line(window_hide_button.clone(), SEQ_ZERO);
+
+                items.push(TabEntry {
+                    item: TabBarItem::WindowHideButton,
+                    title: window_hide_button.clone(),
+                    x: button_start,
+                    width,
+                });
+
+                x += width;
+            }
+
+            // Window maximize button
+            {
+                let hover = is_tab_hover(mouse_x, x, window_maximize_hover.len());
+
+                let window_maximize_button = if hover {
+                    &window_maximize_hover
+                } else {
+                    &window_maximize
+                };
+
+                let button_start = x;
+                let width = window_maximize_button.len();
+
+                line.append_line(window_maximize_button.clone(), SEQ_ZERO);
+
+                items.push(TabEntry {
+                    item: TabBarItem::WindowMaximizeButton,
+                    title: window_maximize_button.clone(),
+                    x: button_start,
+                    width,
+                });
+
+                x += width;
+            }
+
+            // Window close button
+            {
+                let hover = is_tab_hover(mouse_x, x, window_close_hover.len());
+
+                let window_close_button = if hover {
+                    &window_close_hover
+                } else {
+                    &window_close
+                };
+
+                let button_start = x;
+                let width = window_close_button.len();
+
+                line.append_line(window_close_button.clone(), SEQ_ZERO);
+
+                items.push(TabEntry {
+                    item: TabBarItem::WindowCloseButton,
+                    title: window_close_button.clone(),
+                    x: button_start,
+                    width,
+                });
+
+                // x += width;
+            }
         }
 
         Self { line, items }

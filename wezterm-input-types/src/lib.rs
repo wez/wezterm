@@ -1390,6 +1390,7 @@ bitflags! {
         // so that we effective have Option<bool>
         const MACOS_FORCE_DISABLE_SHADOW = 4;
         const MACOS_FORCE_ENABLE_SHADOW = 4|8;
+        const FANCY = 16;
     }
 }
 
@@ -1401,6 +1402,9 @@ impl Into<String> for &WindowDecorations {
         }
         if self.contains(WindowDecorations::RESIZE) {
             s.push("RESIZE");
+        }
+        if self.contains(WindowDecorations::FANCY) {
+            s.push("FANCY");
         }
         if self.contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW) {
             s.push("MACOS_FORCE_ENABLE_SHADOW");
@@ -1431,6 +1435,8 @@ impl TryFrom<String> for WindowDecorations {
                 flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
             } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
                 flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
+            } else if ele == "FANCY" {
+                flags |= Self::FANCY;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }

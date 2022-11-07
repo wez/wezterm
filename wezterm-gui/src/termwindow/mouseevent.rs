@@ -478,6 +478,28 @@ impl super::TermWindow {
                     }
                     context.request_drag_move();
                 }
+                TabBarItem::WindowHideButton => {
+                    if let Some(ref window) = self.window {
+                        window.hide();
+                    }
+                }
+                TabBarItem::WindowMaximizeButton => {
+                    if let Some(ref window) = self.window {
+                        let maximized = self
+                            .window_state
+                            .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                        if maximized {
+                            window.restore();
+                        } else {
+                            window.maximize();
+                        }
+                    }
+                }
+                TabBarItem::WindowCloseButton => {
+                    if let Some(ref window) = self.window {
+                        self.close_requested(&window.clone());
+                    }
+                }
             },
             WMEK::Press(MousePress::Middle) => match item {
                 TabBarItem::Tab { tab_idx, .. } => {
@@ -486,7 +508,12 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Middle);
                 }
-                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {}
+                TabBarItem::None
+                | TabBarItem::LeftStatus
+                | TabBarItem::RightStatus
+                | TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => {}
             },
             WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab { .. } => {
@@ -495,13 +522,22 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Right);
                 }
-                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {}
+                TabBarItem::None
+                | TabBarItem::LeftStatus
+                | TabBarItem::RightStatus
+                | TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton => {}
             },
             WMEK::Move => match item {
                 TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
                     context.set_window_drag_position(event.screen_coords);
                 }
-                TabBarItem::Tab { .. } | TabBarItem::NewTabButton { .. } => {}
+                TabBarItem::WindowHideButton
+                | TabBarItem::WindowMaximizeButton
+                | TabBarItem::WindowCloseButton
+                | TabBarItem::Tab { .. }
+                | TabBarItem::NewTabButton { .. } => {}
             },
             WMEK::VertWheel(n) => {
                 if self.config.mouse_wheel_scrolls_tabs {
