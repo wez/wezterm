@@ -100,6 +100,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Panic when calling `window:set_workspace` when the default domain is a
   multiplexer domain.
   [#2638](https://github.com/wez/wezterm/issues/2638)
+* nvim's `title` and `titlestring` options don't work when `TERM=wezterm`.
+  [#2112](https://github.com/wez/wezterm/issues/2112)
 
 
 #### Changed
