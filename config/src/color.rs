@@ -534,11 +534,12 @@ fn default_active_tab() -> TabBarColor {
 }
 
 // Colors for window buttons
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn default_window_button_color() -> TabBarColor {
     default_inactive_tab()
 }
-#[cfg(not(windows))]
+
+#[cfg(not(any(windows, target_os = "linux")))]
 fn default_window_button_hover_color() -> TabBarColor {
     default_inactive_tab_hover()
 }
@@ -591,6 +592,25 @@ fn default_window_button_hover_color() -> TabBarColor {
 fn default_window_close_hover_color() -> TabBarColor {
     TabBarColor {
         bg_color: (0xFF, 0x00, 0x00).into(),
+        fg_color: (0xFF, 0xFF, 0xFF).into(),
+        ..TabBarColor::default()
+    }
+}
+
+// Linux dependend colors for window buttons
+#[cfg(target_os = "linux")]
+fn default_window_button_color() -> TabBarColor {
+    TabBarColor {
+        bg_color: (0x45, 0x45, 0x45).into(),
+        fg_color: (0xFF, 0xFF, 0xFF).into(),
+        ..TabBarColor::default()
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn default_window_button_hover_color() -> TabBarColor {
+    TabBarColor {
+        bg_color: (0x4F, 0x4F, 0x4F).into(),
         fg_color: (0xFF, 0xFF, 0xFF).into(),
         ..TabBarColor::default()
     }
