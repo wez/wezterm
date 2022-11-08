@@ -276,6 +276,12 @@ fn window_button_element(
 
     let poly = if cfg!(windows) {
         window_buttons::windows::sized_poly(poly)
+    } else if cfg!(macos) {
+        SizedPoly {
+            poly: &[],
+            width: Dimension::Pixels(13.),
+            height: Dimension::Pixels(13.),
+        }
     } else {
         SizedPoly {
             poly,
@@ -313,6 +319,45 @@ fn window_button_element(
                 top: Dimension::Points(10. * scale),
                 bottom: Dimension::Points(10. * scale),
             })
+    } else if cfg!(macos) {
+        element
+            .zindex(1)
+            .vertical_align(VerticalAlign::Middle)
+            .padding(BoxDimension {
+                left: Dimension::default(),
+                right: Dimension::default(),
+                top: Dimension::default(),
+                bottom: Dimension::default(),
+            })
+            .border(BoxDimension::new(Dimension::Pixels(1.)))
+            .border_corners(Some(Corners {
+                top_left: SizedPoly {
+                    width: Dimension::Pixels(8.),
+                    height: Dimension::Pixels(8.),
+                    poly: TOP_LEFT_ROUNDED_CORNER,
+                },
+                top_right: SizedPoly {
+                    width: Dimension::Pixels(8.),
+                    height: Dimension::Pixels(8.),
+                    poly: TOP_RIGHT_ROUNDED_CORNER,
+                },
+                bottom_left: SizedPoly {
+                    width: Dimension::Pixels(8.),
+                    height: Dimension::Pixels(8.),
+                    poly: BOTTOM_LEFT_ROUNDED_CORNER,
+                },
+                bottom_right: SizedPoly {
+                    width: Dimension::Pixels(8.),
+                    height: Dimension::Pixels(8.),
+                    poly: BOTTOM_RIGHT_ROUNDED_CORNER,
+                },
+            }))
+            .margin(BoxDimension {
+                left: Dimension::Cells(0.5),
+                right: Dimension::Cells(0.5),
+                top: Dimension::Cells(0.5),
+                bottom: Dimension::Cells(0.5),
+            })
     } else {
         element
             .zindex(1)
@@ -343,12 +388,12 @@ fn window_button_element(
     let element = element
         .item_type(UIItemType::TabBar(window_button))
         .colors(ElementColors {
-            border: BorderColor::default(),
+            border: BorderColor::new(color.bg_color.to_linear()),
             bg: color.bg_color.to_linear().into(),
             text: color.fg_color.to_linear().into(),
         })
         .hover_colors(Some(ElementColors {
-            border: BorderColor::default(),
+            border: BorderColor::new(hover_colors.bg_color.to_linear()),
             bg: hover_colors.bg_color.to_linear().into(),
             text: hover_colors.fg_color.to_linear().into(),
         }));
