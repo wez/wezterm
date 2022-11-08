@@ -249,6 +249,7 @@ fn window_button_element(
     is_maximized: bool,
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
+    colors: &TabBarColors,
 ) -> Element {
     let poly = if cfg!(windows) {
         use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
@@ -296,7 +297,7 @@ fn window_button_element(
         },
     );
 
-    if cfg!(windows) {
+    let element = if cfg!(windows) {
         let left_padding = match window_button {
             TabBarItem::WindowHideButton => 17.0,
             _ => 18.0,
@@ -328,7 +329,31 @@ fn window_button_element(
                 top: Dimension::Cells(0.6),
                 bottom: Dimension::Cells(0.6),
             })
-    }
+    };
+
+    let (color, hover_colors) = match window_button {
+        TabBarItem::WindowHideButton => (colors.window_hide(), colors.window_hide_hover()),
+        TabBarItem::WindowMaximizeButton => {
+            (colors.window_maximize(), colors.window_maximize_hover())
+        }
+        TabBarItem::WindowCloseButton => (colors.window_close(), colors.window_close_hover()),
+        _ => unreachable!(),
+    };
+
+    let element = element
+        .item_type(UIItemType::TabBar(window_button))
+        .colors(ElementColors {
+            border: BorderColor::default(),
+            bg: color.bg_color.to_linear().into(),
+            text: color.fg_color.to_linear().into(),
+        })
+        .hover_colors(Some(ElementColors {
+            border: BorderColor::default(),
+            bg: hover_colors.bg_color.to_linear().into(),
+            text: hover_colors.fg_color.to_linear().into(),
+        }));
+
+    element
 }
 
 /// The data that we associate with a line; we use this to cache it shape hash
@@ -998,18 +1023,8 @@ impl super::TermWindow {
                     self.window_state.contains(window::WindowState::MAXIMIZED),
                     &font,
                     &metrics,
-                )
-                .item_type(UIItemType::TabBar(item.item.clone()))
-                .colors(ElementColors {
-                    border: BorderColor::default(),
-                    bg: new_tab.bg_color.to_linear().into(),
-                    text: new_tab.fg_color.to_linear().into(),
-                })
-                .hover_colors(Some(ElementColors {
-                    border: BorderColor::default(),
-                    bg: new_tab_hover.bg_color.to_linear().into(),
-                    text: new_tab_hover.fg_color.to_linear().into(),
-                })),
+                    &colors,
+                ),
             }
         };
 
