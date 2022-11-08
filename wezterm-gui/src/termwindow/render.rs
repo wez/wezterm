@@ -156,7 +156,6 @@ const HIDE_BUTTON: &[Poly] = &[Poly {
 
 const MAXIMIZE_BUTTON: &[Poly] = &[Poly {
     path: &[
-        // PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
         PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
         PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
         PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
@@ -166,12 +165,169 @@ const MAXIMIZE_BUTTON: &[Poly] = &[Poly {
     style: PolyStyle::Outline,
 }];
 
-fn poly_for_window_button(window_button: TabBarItem) -> &'static [Poly] {
+mod window_buttons {
+    use super::*;
+    pub(super) mod windows {
+        use super::*;
+        pub const CLOSE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::OutlineThin,
+        }];
+
+        pub const HIDE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(6, 10)),
+                PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(6, 10)),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::OutlineThin,
+        }];
+
+        pub const MAXIMIZE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::MoveTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(1, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(9, 10), BlockCoord::Frac(1, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(10, 10), BlockCoord::Frac(2, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(10, 10), BlockCoord::Frac(9, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(9, 10), BlockCoord::Frac(10, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(10, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(1, 10), BlockCoord::Frac(9, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(1, 10), BlockCoord::Frac(2, 10)),
+                PolyCommand::LineTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(1, 10)),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::OutlineThin,
+        }];
+
+        pub const RESTORE: &[Poly] = &[
+            Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(5, 20), BlockCoord::Frac(1, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(8, 10), BlockCoord::Frac(1, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(10, 10), BlockCoord::Frac(3, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(10, 10), BlockCoord::Frac(15, 20)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::OutlineThin,
+            },
+            Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(3, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(7, 10), BlockCoord::Frac(3, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(8, 10), BlockCoord::Frac(4, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(8, 10), BlockCoord::Frac(9, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(7, 10), BlockCoord::Frac(10, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(10, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 10), BlockCoord::Frac(9, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 10), BlockCoord::Frac(4, 10)),
+                    PolyCommand::LineTo(BlockCoord::Frac(2, 10), BlockCoord::Frac(3, 10)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::OutlineThin,
+            },
+        ];
+
+        pub fn sized_poly(poly: &'static [Poly]) -> SizedPoly {
+            let scale = 72.0 / 96.0;
+            let size = Dimension::Points(10. * scale);
+            SizedPoly {
+                poly,
+                width: size,
+                height: size,
+            }
+        }
+    }
+}
+
+fn window_button_element(
+    window_button: TabBarItem,
+    is_maximized: bool,
+    font: &Rc<LoadedFont>,
+    metrics: &RenderMetrics,
+) -> Element {
+    let poly = if cfg!(windows) {
+        use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+        match window_button {
+            TabBarItem::WindowHideButton => HIDE,
+            TabBarItem::WindowMaximizeButton => {
+                if is_maximized {
+                    RESTORE
+                } else {
+                    MAXIMIZE
+                }
+            }
+            TabBarItem::WindowCloseButton => CLOSE,
+            _ => unreachable!(),
+        }
+    } else {
+        match window_button {
+            TabBarItem::WindowHideButton => HIDE_BUTTON,
+            TabBarItem::WindowMaximizeButton => MAXIMIZE_BUTTON,
+            TabBarItem::WindowCloseButton => X_BUTTON,
+            _ => unreachable!(),
+        }
+    };
+
+    let poly = if cfg!(windows) {
+        window_buttons::windows::sized_poly(poly)
+    } else {
+        SizedPoly {
+            poly,
+            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
+        }
+    };
+
     match window_button {
-        TabBarItem::WindowHideButton => HIDE_BUTTON,
-        TabBarItem::WindowMaximizeButton => MAXIMIZE_BUTTON,
-        TabBarItem::WindowCloseButton => X_BUTTON,
-        _ => unreachable!(),
+        TabBarItem::WindowHideButton => log::debug!("BTN"),
+        _ => {}
+    }
+
+    let element = Element::new(
+        &font,
+        ElementContent::Poly {
+            line_width: metrics.underline_height.max(2),
+            poly,
+        },
+    );
+
+    if cfg!(windows) {
+        let left_padding = match window_button {
+            TabBarItem::WindowHideButton => 17.0,
+            _ => 18.0,
+        };
+        let scale = 72.0 / 96.0;
+
+        element
+            .zindex(1)
+            .vertical_align(VerticalAlign::Middle)
+            .padding(BoxDimension {
+                left: Dimension::Points(left_padding * scale),
+                right: Dimension::Points(18. * scale),
+                top: Dimension::Points(10. * scale),
+                bottom: Dimension::Points(10. * scale),
+            })
+    } else {
+        element
+            .zindex(1)
+            .vertical_align(VerticalAlign::Middle)
+            .margin(BoxDimension {
+                left: Dimension::Cells(0.),
+                right: Dimension::Cells(0.),
+                top: Dimension::Cells(0.),
+                bottom: Dimension::Cells(0.),
+            })
+            .padding(BoxDimension {
+                left: Dimension::Cells(1.0),
+                right: Dimension::Cells(1.0),
+                top: Dimension::Cells(0.6),
+                bottom: Dimension::Cells(0.6),
+            })
     }
 }
 
@@ -837,33 +993,13 @@ impl super::TermWindow {
                     }),
                 TabBarItem::WindowHideButton
                 | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton => Element::new(
+                | TabBarItem::WindowCloseButton => window_button_element(
+                    item.item.clone(),
+                    self.window_state.contains(window::WindowState::MAXIMIZED),
                     &font,
-                    ElementContent::Poly {
-                        line_width: metrics.underline_height.max(2),
-                        poly: SizedPoly {
-                            poly: poly_for_window_button(item.item.clone()),
-                            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
-                            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
-                        },
-                    },
+                    &metrics,
                 )
-                .zindex(1)
-                .vertical_align(VerticalAlign::Middle)
                 .item_type(UIItemType::TabBar(item.item.clone()))
-                .margin(BoxDimension {
-                    left: Dimension::Cells(0.),
-                    right: Dimension::Cells(0.),
-                    top: Dimension::Cells(0.),
-                    bottom: Dimension::Cells(0.),
-                })
-                .padding(BoxDimension {
-                    left: Dimension::Cells(1.0),
-                    right: Dimension::Cells(1.0),
-                    top: Dimension::Cells(0.6),
-                    bottom: Dimension::Cells(0.6),
-                })
-                // .border(BoxDimension::new(Dimension::Pixels(1.)))
                 .colors(ElementColors {
                     border: BorderColor::default(),
                     bg: new_tab.bg_color.to_linear().into(),

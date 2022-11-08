@@ -1037,7 +1037,9 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
 
-    if !(wparam == 1 && inner.config.window_decorations == WindowDecorations::RESIZE) {
+    if !(wparam == 1 && (inner.config.window_decorations == WindowDecorations::RESIZE)
+        || (inner.config.window_decorations == WindowDecorations::FANCY))
+    {
         return None;
     }
 
@@ -1077,12 +1079,29 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     Some(0)
 }
 
+unsafe fn maximize_button_coords(
+    hwnd: HWND,
+) -> euclid::Point2D<isize, wezterm_input_types::PixelUnit> {
+    let mut client_rect = RECT::default();
+    GetClientRect(hwnd, &mut client_rect);
+
+    let scale = GetDpiForWindow(hwnd) as f64 / 96.0;
+
+    let mut coords = mouse_coords(0);
+
+    coords.x = client_rect.right as isize - (60.0 * scale) as isize;
+    coords.y = 5;
+
+    coords
+}
+
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
 
-    if inner.config.window_decorations != WindowDecorations::RESIZE {
-        return None;
+    match inner.config.window_decorations {
+        WindowDecorations::FANCY | WindowDecorations::RESIZE => {}
+        _ => return None,
     }
 
     // Let the default procedure handle resizing areas
@@ -1150,6 +1169,21 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     if let Some(coords) = inner.window_drag_position {
         if coords == screen_point && inner.saved_placement.is_none() {
             return Some(HTCAPTION);
+        }
+    }
+
+    if inner.config.window_decorations == WindowDecorations::FANCY && inner.config.use_fancy_tab_bar
+    {
+        let scale = GetDpiForWindow(inner.hwnd.0) as f64 / 96.0;
+        let button_height = (30.0 * scale) as isize;
+        if cursor_point.y >= client_rect.top as isize
+            && cursor_point.y < client_rect.top as isize + button_height
+        {
+            let btn_width = (45.0 * scale) as isize;
+            let maximize_btn_pos = (client_rect.right as isize).saturating_sub(btn_width * 2);
+            if cursor_point.x >= maximize_btn_pos && cursor_point.x < maximize_btn_pos + btn_width {
+                return Some(HTMAXBUTTON);
+            }
         }
     }
 
@@ -1522,6 +1556,48 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     Some(0)
 }
 
+unsafe fn nc_mouse_button(
+    hwnd: HWND,
+    msg: UINT,
+    wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd)?;
+    // To support dragging the window, capture when the left
+    // button goes down and release when it goes up.
+    // Without this, the drag state can be confused when dragging
+    // the mouse up outside of the client area.
+
+    if msg == WM_LBUTTONDOWN {
+        SetCapture(hwnd);
+    } else if msg == WM_LBUTTONUP {
+        ReleaseCapture();
+    }
+
+    if wparam != HTMAXBUTTON as _ {
+        return None;
+    }
+
+    let (modifiers, mouse_buttons) = mods_and_buttons(0);
+    let coords = maximize_button_coords(hwnd);
+
+    let event = MouseEvent {
+        kind: match msg {
+            WM_NCLBUTTONDOWN | WM_NCLBUTTONDBLCLK => MouseEventKind::Press(MousePress::Left),
+            _ => return None,
+        },
+        coords,
+        screen_coords: client_to_screen(hwnd, coords),
+        mouse_buttons,
+        modifiers,
+    };
+    inner
+        .borrow_mut()
+        .events
+        .dispatch(WindowEvent::MouseEvent(event));
+    Some(0)
+}
+
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
@@ -1550,6 +1626,49 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     };
 
     inner.events.dispatch(WindowEvent::MouseEvent(event));
+    Some(0)
+}
+
+unsafe fn nc_mouse_move(
+    hwnd: HWND,
+    _msg: UINT,
+    wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    let inner = rc_from_hwnd(hwnd)?;
+    let mut inner = inner.borrow_mut();
+
+    if !inner.track_mouse_leave {
+        inner.track_mouse_leave = true;
+
+        let mut trk = TRACKMOUSEEVENT {
+            cbSize: std::mem::size_of::<TRACKMOUSEEVENT>() as u32,
+            dwFlags: TME_LEAVE | TME_NONCLIENT,
+            hwndTrack: hwnd,
+            dwHoverTime: 0,
+        };
+
+        inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
+    }
+
+    if wparam != HTMAXBUTTON as _ {
+        return None;
+    }
+
+    let (modifiers, mouse_buttons) = mods_and_buttons(0);
+    let coords = maximize_button_coords(hwnd);
+
+    let event = MouseEvent {
+        kind: MouseEventKind::Move,
+        coords,
+        screen_coords: client_to_screen(hwnd, coords),
+        mouse_buttons,
+        modifiers,
+    };
+
+    inner.events.dispatch(WindowEvent::MouseEvent(event));
+    inner.events.dispatch(WindowEvent::NeedRepaint);
+
     Some(0)
 }
 
@@ -2574,7 +2693,30 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             }
             None
         }
-        _ => None,
+        _ => {
+            if matches!(
+                msg,
+                WM_NCMOUSEMOVE | WM_NCMOUSELEAVE | WM_NCLBUTTONDOWN | WM_NCLBUTTONDBLCLK
+            ) {
+                let inner = rc_from_hwnd(hwnd)?;
+                let inner = inner.borrow();
+                let use_shap_layouts = inner.config.window_decorations == WindowDecorations::FANCY
+                    && inner.config.use_fancy_tab_bar;
+                std::mem::drop(inner);
+                if use_shap_layouts {
+                    return match msg {
+                        WM_NCMOUSEMOVE => nc_mouse_move(hwnd, msg, wparam, lparam),
+                        WM_NCMOUSELEAVE => mouse_leave(hwnd, msg, wparam, lparam),
+                        WM_NCLBUTTONDOWN | WM_NCLBUTTONDBLCLK => {
+                            nc_mouse_button(hwnd, msg, wparam, lparam)
+                        }
+                        _ => None,
+                    };
+                }
+            }
+
+            None
+        }
     }
 }
 

@@ -520,8 +520,6 @@ impl TabBarState {
                     x: button_start,
                     width,
                 });
-
-                // x += width;
             }
         }
 

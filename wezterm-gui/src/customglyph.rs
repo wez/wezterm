@@ -208,6 +208,7 @@ impl PolyCommand {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum PolyStyle {
     Fill,
+    OutlineThin,
     // A line with the thickness as underlines
     Outline,
     // A line with twice the thickness of underlines
@@ -221,11 +222,13 @@ impl PolyStyle {
                 pixmap.fill_path(path, paint, FillRule::Winding, Transform::identity(), None);
             }
 
-            PolyStyle::Outline | PolyStyle::OutlineHeavy => {
+            PolyStyle::OutlineThin | PolyStyle::Outline | PolyStyle::OutlineHeavy => {
                 let mut stroke = Stroke::default();
                 stroke.width = width;
                 if self == PolyStyle::OutlineHeavy {
                     stroke.width *= 3.0; // NOTE: Using 2.0, the difference is almost invisible
+                } else if self == PolyStyle::OutlineThin {
+                    stroke.width = 1.2;
                 }
                 pixmap.stroke_path(path, paint, &stroke, Transform::identity(), None);
             }
