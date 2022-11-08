@@ -242,6 +242,60 @@ mod window_buttons {
             }
         }
     }
+
+    pub(super) mod gnome {
+        use super::*;
+        pub const CLOSE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::Outline,
+        }];
+
+        pub const HIDE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(15, 16)),
+                PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(15, 16)),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::Outline,
+        }];
+
+        pub const MAXIMIZE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::LineTo(BlockCoord::Frac(1, 16), BlockCoord::Frac(15, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(15, 16), BlockCoord::Frac(15, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(15, 16), BlockCoord::Frac(1, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(1, 16), BlockCoord::Frac(1, 16)),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::Outline,
+        }];
+
+        pub const RESTORE: &[Poly] = &[Poly {
+            path: &[
+                PolyCommand::MoveTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(3, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(13, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(13, 16), BlockCoord::Frac(13, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(13, 16), BlockCoord::Frac(3, 16)),
+                PolyCommand::LineTo(BlockCoord::Frac(3, 16), BlockCoord::Frac(3, 16)),
+            ],
+            intensity: BlockAlpha::Full,
+            style: PolyStyle::Outline,
+        }];
+
+        pub fn sized_poly(poly: &'static [Poly]) -> SizedPoly {
+            let size = Dimension::Pixels(8.);
+            SizedPoly {
+                poly,
+                width: size,
+                height: size,
+            }
+        }
+    }
 }
 
 fn window_button_element(
@@ -265,6 +319,20 @@ fn window_button_element(
             TabBarItem::WindowCloseButton => CLOSE,
             _ => unreachable!(),
         }
+    } else if cfg!(target_os = "linux") {
+        use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+        match window_button {
+            TabBarItem::WindowHideButton => HIDE,
+            TabBarItem::WindowMaximizeButton => {
+                if is_maximized {
+                    RESTORE
+                } else {
+                    MAXIMIZE
+                }
+            }
+            TabBarItem::WindowCloseButton => CLOSE,
+            _ => unreachable!(),
+        }
     } else {
         match window_button {
             TabBarItem::WindowHideButton => HIDE_BUTTON,
@@ -276,6 +344,8 @@ fn window_button_element(
 
     let poly = if cfg!(windows) {
         window_buttons::windows::sized_poly(poly)
+    } else if cfg!(target_os = "linux") {
+        window_buttons::gnome::sized_poly(poly)
     } else if cfg!(macos) {
         SizedPoly {
             poly: &[],
@@ -318,6 +388,45 @@ fn window_button_element(
                 right: Dimension::Points(18. * scale),
                 top: Dimension::Points(10. * scale),
                 bottom: Dimension::Points(10. * scale),
+            })
+    } else if cfg!(target_os = "linux") {
+        element
+            .zindex(1)
+            .vertical_align(VerticalAlign::Middle)
+            .padding(BoxDimension {
+                left: Dimension::Pixels(7.),
+                right: Dimension::Pixels(7.),
+                top: Dimension::Pixels(7.),
+                bottom: Dimension::Pixels(7.),
+            })
+            .border(BoxDimension::new(Dimension::Pixels(1.)))
+            .border_corners(Some(Corners {
+                top_left: SizedPoly {
+                    width: Dimension::Pixels(14.),
+                    height: Dimension::Pixels(14.),
+                    poly: TOP_LEFT_ROUNDED_CORNER,
+                },
+                top_right: SizedPoly {
+                    width: Dimension::Pixels(14.),
+                    height: Dimension::Pixels(14.),
+                    poly: TOP_RIGHT_ROUNDED_CORNER,
+                },
+                bottom_left: SizedPoly {
+                    width: Dimension::Pixels(14.),
+                    height: Dimension::Pixels(14.),
+                    poly: BOTTOM_LEFT_ROUNDED_CORNER,
+                },
+                bottom_right: SizedPoly {
+                    width: Dimension::Pixels(14.),
+                    height: Dimension::Pixels(14.),
+                    poly: BOTTOM_RIGHT_ROUNDED_CORNER,
+                },
+            }))
+            .margin(BoxDimension {
+                left: Dimension::Pixels(7.),
+                right: Dimension::Pixels(7.),
+                top: Dimension::Pixels(7.),
+                bottom: Dimension::Pixels(7.),
             })
     } else if cfg!(macos) {
         element
