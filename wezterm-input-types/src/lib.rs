@@ -1455,6 +1455,10 @@ impl Default for WindowDecorations {
 pub struct FancyWindowDecorations {
     #[dynamic(default)]
     pub is_left: bool,
+    #[dynamic(default)]
+    pub remove_hide_button: bool,
+    #[dynamic(default)]
+    pub remove_maximize_button: bool,
 }
 
 /// Map c to its Ctrl equivalent.
