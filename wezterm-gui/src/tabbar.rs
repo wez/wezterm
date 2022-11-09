@@ -241,7 +241,13 @@ impl TabBarState {
             },
         );
 
-        let button_order = if config.fancy_window_decorations.is_left {
+        let window::FancyWindowDecorations {
+            is_left,
+            remove_hide_button,
+            remove_maximize_button,
+        } = config.fancy_window_decorations;
+
+        let button_order = if is_left {
             ['X', '.', '-']
         } else {
             ['.', '-', 'X']
@@ -250,7 +256,7 @@ impl TabBarState {
         for button in button_order {
             let (title, item) = match button {
                 // Window hide button
-                '.' => {
+                '.' if !remove_hide_button => {
                     let hover = is_tab_hover(mouse_x, *x, window_hide_hover.len());
 
                     let window_hide_button = if hover {
@@ -261,7 +267,7 @@ impl TabBarState {
 
                     (window_hide_button, TabBarItem::WindowHideButton)
                 }
-                '-' => {
+                '-' if !remove_maximize_button => {
                     // Window maximize button
                     let hover = is_tab_hover(mouse_x, *x, window_maximize_hover.len());
 
@@ -285,7 +291,7 @@ impl TabBarState {
 
                     (window_close_button, TabBarItem::WindowCloseButton)
                 }
-                _ => unreachable!(),
+                _ => continue,
             };
 
             // let button_start = *x;
