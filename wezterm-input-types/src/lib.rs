@@ -1451,6 +1451,12 @@ impl Default for WindowDecorations {
     }
 }
 
+#[derive(Debug, Default, FromDynamic, ToDynamic, Clone)]
+pub struct FancyWindowDecorations {
+    #[dynamic(default)]
+    pub is_left: bool,
+}
+
 /// Map c to its Ctrl equivalent.
 /// In theory, this mapping is simply translating alpha characters
 /// to upper case and then masking them by 0x1f, but xterm inherits

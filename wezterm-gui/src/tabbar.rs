@@ -182,6 +182,128 @@ impl TabBarState {
         &self.items
     }
 
+    fn fancy_window_decorations(
+        mouse_x: Option<usize>,
+        x: &mut usize,
+        config: &ConfigHandle,
+        items: &mut Vec<TabEntry>,
+        line: &mut Line,
+        colors: &TabBarColors,
+    ) {
+        let window_hide = parse_status_text(
+            &config.tab_bar_style.window_hide,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_hide().as_cell_attributes()
+            },
+        );
+        let window_hide_hover = parse_status_text(
+            &config.tab_bar_style.window_hide_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_hide_hover().as_cell_attributes()
+            },
+        );
+
+        let window_maximize = parse_status_text(
+            &config.tab_bar_style.window_maximize,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_maximize().as_cell_attributes()
+            },
+        );
+        let window_maximize_hover = parse_status_text(
+            &config.tab_bar_style.window_maximize_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_maximize_hover().as_cell_attributes()
+            },
+        );
+
+        let window_close = parse_status_text(
+            &config.tab_bar_style.window_close,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_close().as_cell_attributes()
+            },
+        );
+        let window_close_hover = parse_status_text(
+            &config.tab_bar_style.window_close_hover,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                colors.window_close_hover().as_cell_attributes()
+            },
+        );
+
+        let button_order = if config.fancy_window_decorations.is_left {
+            ['X', '.', '-']
+        } else {
+            ['.', '-', 'X']
+        };
+
+        for button in button_order {
+            let (title, item) = match button {
+                // Window hide button
+                '.' => {
+                    let hover = is_tab_hover(mouse_x, *x, window_hide_hover.len());
+
+                    let window_hide_button = if hover {
+                        &window_hide_hover
+                    } else {
+                        &window_hide
+                    };
+
+                    (window_hide_button, TabBarItem::WindowHideButton)
+                }
+                '-' => {
+                    // Window maximize button
+                    let hover = is_tab_hover(mouse_x, *x, window_maximize_hover.len());
+
+                    let window_maximize_button = if hover {
+                        &window_maximize_hover
+                    } else {
+                        &window_maximize
+                    };
+
+                    (window_maximize_button, TabBarItem::WindowMaximizeButton)
+                }
+                'X' => {
+                    // Window close button
+                    let hover = is_tab_hover(mouse_x, *x, window_close_hover.len());
+
+                    let window_close_button = if hover {
+                        &window_close_hover
+                    } else {
+                        &window_close
+                    };
+
+                    (window_close_button, TabBarItem::WindowCloseButton)
+                }
+                _ => unreachable!(),
+            };
+
+            // let button_start = *x;
+            let width = title.len();
+
+            line.append_line(title.to_owned(), SEQ_ZERO);
+
+            items.push(TabEntry {
+                item,
+                title: title.to_owned(),
+                x: *x,
+                width,
+            });
+
+            *x += width;
+        }
+    }
+
     /// Build a new tab bar from the current state
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
@@ -224,57 +346,6 @@ impl TabBarState {
         let fancy_window_decorations = config
             .window_decorations
             .contains(window::WindowDecorations::FANCY);
-
-        let window_hide = parse_status_text(
-            &config.tab_bar_style.window_hide,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_attrs.clone()
-            },
-        );
-        let window_hide_hover = parse_status_text(
-            &config.tab_bar_style.window_hide_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_hover_attrs.clone()
-            },
-        );
-
-        let window_maximize = parse_status_text(
-            &config.tab_bar_style.window_maximize,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_attrs.clone()
-            },
-        );
-        let window_maximize_hover = parse_status_text(
-            &config.tab_bar_style.window_maximize_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_hover_attrs.clone()
-            },
-        );
-
-        let window_close = parse_status_text(
-            &config.tab_bar_style.window_close,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_attrs.clone()
-            },
-        );
-        let window_close_hover = parse_status_text(
-            &config.tab_bar_style.window_close_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_hover_attrs.clone()
-            },
-        );
 
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
@@ -322,6 +393,10 @@ impl TabBarState {
 
         let mut x = 0;
         let mut items = vec![];
+
+        if fancy_window_decorations && config.fancy_window_decorations.is_left {
+            Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
+        }
 
         let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
@@ -417,7 +492,31 @@ impl TabBarState {
         }
 
         // Reserve place for buttons
-        let title_width = if fancy_window_decorations {
+        let title_width = if fancy_window_decorations && !config.fancy_window_decorations.is_left {
+            let window_hide =
+                parse_status_text(&config.tab_bar_style.window_hide, CellAttributes::default());
+            let window_hide_hover = parse_status_text(
+                &config.tab_bar_style.window_hide_hover,
+                CellAttributes::default(),
+            );
+
+            let window_maximize = parse_status_text(
+                &config.tab_bar_style.window_maximize,
+                CellAttributes::default(),
+            );
+            let window_maximize_hover = parse_status_text(
+                &config.tab_bar_style.window_maximize_hover,
+                CellAttributes::default(),
+            );
+            let window_close = parse_status_text(
+                &config.tab_bar_style.window_close,
+                CellAttributes::default(),
+            );
+            let window_close_hover = parse_status_text(
+                &config.tab_bar_style.window_close_hover,
+                CellAttributes::default(),
+            );
+
             let hide_len = window_hide.len().max(window_hide_hover.len());
             let maximize_len = window_maximize.len().max(window_maximize_hover.len());
             let close_len = window_close.len().max(window_close_hover.len());
@@ -446,81 +545,9 @@ impl TabBarState {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
-        if fancy_window_decorations {
+        if fancy_window_decorations && !config.fancy_window_decorations.is_left {
             x = title_width;
-
-            // Window hide button
-            {
-                let hover = is_tab_hover(mouse_x, x, window_hide_hover.len());
-
-                let window_hide_button = if hover {
-                    &window_hide_hover
-                } else {
-                    &window_hide
-                };
-
-                let button_start = x;
-                let width = window_hide_button.len();
-
-                line.append_line(window_hide_button.clone(), SEQ_ZERO);
-
-                items.push(TabEntry {
-                    item: TabBarItem::WindowHideButton,
-                    title: window_hide_button.clone(),
-                    x: button_start,
-                    width,
-                });
-
-                x += width;
-            }
-
-            // Window maximize button
-            {
-                let hover = is_tab_hover(mouse_x, x, window_maximize_hover.len());
-
-                let window_maximize_button = if hover {
-                    &window_maximize_hover
-                } else {
-                    &window_maximize
-                };
-
-                let button_start = x;
-                let width = window_maximize_button.len();
-
-                line.append_line(window_maximize_button.clone(), SEQ_ZERO);
-
-                items.push(TabEntry {
-                    item: TabBarItem::WindowMaximizeButton,
-                    title: window_maximize_button.clone(),
-                    x: button_start,
-                    width,
-                });
-
-                x += width;
-            }
-
-            // Window close button
-            {
-                let hover = is_tab_hover(mouse_x, x, window_close_hover.len());
-
-                let window_close_button = if hover {
-                    &window_close_hover
-                } else {
-                    &window_close
-                };
-
-                let button_start = x;
-                let width = window_close_button.len();
-
-                line.append_line(window_close_button.clone(), SEQ_ZERO);
-
-                items.push(TabEntry {
-                    item: TabBarItem::WindowCloseButton,
-                    title: window_close_button.clone(),
-                    x: button_start,
-                    width,
-                });
-            }
+            Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
         Self { line, items }

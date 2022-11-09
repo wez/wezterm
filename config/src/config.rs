@@ -41,7 +41,9 @@ use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_input_types::{Modifiers, UIKeyCapRendering, WindowDecorations};
+use wezterm_input_types::{
+    FancyWindowDecorations, Modifiers, UIKeyCapRendering, WindowDecorations,
+};
 use wezterm_term::TerminalSize;
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic, ConfigMeta)]
@@ -79,6 +81,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub log_unknown_escape_sequences: bool,
+
+    #[dynamic(default)]
+    pub fancy_window_decorations: FancyWindowDecorations,
 
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.

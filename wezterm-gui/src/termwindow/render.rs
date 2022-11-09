@@ -1052,6 +1052,7 @@ impl super::TermWindow {
                     text: new_tab_hover.fg_color.to_linear().into(),
                 })),
                 TabBarItem::Tab { active, .. } if active => element
+                    .vertical_align(VerticalAlign::Bottom)
                     .item_type(UIItemType::TabBar(item.item.clone()))
                     .margin(BoxDimension {
                         left: Dimension::Cells(0.),
@@ -1096,6 +1097,7 @@ impl super::TermWindow {
                             .into(),
                     }),
                 TabBarItem::Tab { .. } => element
+                    .vertical_align(VerticalAlign::Bottom)
                     .item_type(UIItemType::TabBar(item.item.clone()))
                     .margin(BoxDimension {
                         left: Dimension::Cells(0.),
@@ -1200,8 +1202,11 @@ impl super::TermWindow {
                 TabBarItem::WindowHideButton
                 | TabBarItem::WindowMaximizeButton
                 | TabBarItem::WindowCloseButton => {
-                    // TODO: Window buttons can be placed either at left and right
-                    right_eles.push(item_to_elem(item))
+                    if self.config.fancy_window_decorations.is_left {
+                        left_eles.push(item_to_elem(item))
+                    } else {
+                        right_eles.push(item_to_elem(item))
+                    }
                 }
                 TabBarItem::Tab { tab_idx, active } => {
                     let mut elem = item_to_elem(item);
@@ -1285,12 +1290,18 @@ impl super::TermWindow {
             );
         }
 
+        let window_buttons_at_left = self.config.window_decorations
+            == window::WindowDecorations::FANCY
+            && self.config.fancy_window_decorations.is_left;
+
+        let left_padding = if window_buttons_at_left { 0.0 } else { 0.5 };
+
         children.push(
             Element::new(&font, ElementContent::Children(left_eles))
                 .vertical_align(VerticalAlign::Bottom)
                 .colors(bar_colors.clone())
                 .padding(BoxDimension {
-                    left: Dimension::Cells(0.5),
+                    left: Dimension::Cells(left_padding),
                     right: Dimension::Cells(0.),
                     top: Dimension::Cells(0.),
                     bottom: Dimension::Cells(0.),
