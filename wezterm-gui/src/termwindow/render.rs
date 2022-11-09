@@ -304,66 +304,58 @@ fn window_button_element(
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     colors: &TabBarColors,
+    style: window::FancyWindowDecorationsStyle,
 ) -> Element {
-    let poly = if cfg!(windows) {
-        use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
-        match window_button {
-            TabBarItem::WindowHideButton => HIDE,
-            TabBarItem::WindowMaximizeButton => {
-                if is_maximized {
-                    RESTORE
-                } else {
-                    MAXIMIZE
+    use window::FancyWindowDecorationsStyle as Style;
+
+    let poly = match style {
+        Style::Windows => {
+            use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+            match window_button {
+                TabBarItem::WindowHideButton => HIDE,
+                TabBarItem::WindowMaximizeButton => {
+                    if is_maximized {
+                        RESTORE
+                    } else {
+                        MAXIMIZE
+                    }
                 }
+                TabBarItem::WindowCloseButton => CLOSE,
+                _ => unreachable!(),
             }
-            TabBarItem::WindowCloseButton => CLOSE,
-            _ => unreachable!(),
         }
-    } else if cfg!(target_os = "linux") {
-        use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
-        match window_button {
-            TabBarItem::WindowHideButton => HIDE,
-            TabBarItem::WindowMaximizeButton => {
-                if is_maximized {
-                    RESTORE
-                } else {
-                    MAXIMIZE
+        Style::Gnome => {
+            use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+            match window_button {
+                TabBarItem::WindowHideButton => HIDE,
+                TabBarItem::WindowMaximizeButton => {
+                    if is_maximized {
+                        RESTORE
+                    } else {
+                        MAXIMIZE
+                    }
                 }
+                TabBarItem::WindowCloseButton => CLOSE,
+                _ => unreachable!(),
             }
-            TabBarItem::WindowCloseButton => CLOSE,
-            _ => unreachable!(),
         }
-    } else {
-        match window_button {
+        Style::MacOs => match window_button {
             TabBarItem::WindowHideButton => HIDE_BUTTON,
             TabBarItem::WindowMaximizeButton => MAXIMIZE_BUTTON,
             TabBarItem::WindowCloseButton => X_BUTTON,
             _ => unreachable!(),
-        }
+        },
     };
 
-    let poly = if cfg!(windows) {
-        window_buttons::windows::sized_poly(poly)
-    } else if cfg!(target_os = "linux") {
-        window_buttons::gnome::sized_poly(poly)
-    } else if cfg!(macos) {
-        SizedPoly {
+    let poly = match style {
+        Style::Windows => window_buttons::windows::sized_poly(poly),
+        Style::Gnome => window_buttons::gnome::sized_poly(poly),
+        Style::MacOs => SizedPoly {
             poly: &[],
             width: Dimension::Pixels(13.),
             height: Dimension::Pixels(13.),
-        }
-    } else {
-        SizedPoly {
-            poly,
-            width: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
-            height: Dimension::Pixels(metrics.cell_size.height as f32 / 2.),
-        }
+        },
     };
-
-    match window_button {
-        TabBarItem::WindowHideButton => log::debug!("BTN"),
-        _ => {}
-    }
 
     let element = Element::new(
         &font,
@@ -373,24 +365,25 @@ fn window_button_element(
         },
     );
 
-    let element = if cfg!(windows) {
-        let left_padding = match window_button {
-            TabBarItem::WindowHideButton => 17.0,
-            _ => 18.0,
-        };
-        let scale = 72.0 / 96.0;
+    let element = match style {
+        Style::Windows => {
+            let left_padding = match window_button {
+                TabBarItem::WindowHideButton => 17.0,
+                _ => 18.0,
+            };
+            let scale = 72.0 / 96.0;
 
-        element
-            .zindex(1)
-            .vertical_align(VerticalAlign::Middle)
-            .padding(BoxDimension {
-                left: Dimension::Points(left_padding * scale),
-                right: Dimension::Points(18. * scale),
-                top: Dimension::Points(10. * scale),
-                bottom: Dimension::Points(10. * scale),
-            })
-    } else if cfg!(target_os = "linux") {
-        element
+            element
+                .zindex(1)
+                .vertical_align(VerticalAlign::Middle)
+                .padding(BoxDimension {
+                    left: Dimension::Points(left_padding * scale),
+                    right: Dimension::Points(18. * scale),
+                    top: Dimension::Points(10. * scale),
+                    bottom: Dimension::Points(10. * scale),
+                })
+        }
+        Style::Gnome => element
             .zindex(1)
             .vertical_align(VerticalAlign::Middle)
             .padding(BoxDimension {
@@ -427,9 +420,9 @@ fn window_button_element(
                 right: Dimension::Pixels(7.),
                 top: Dimension::Pixels(7.),
                 bottom: Dimension::Pixels(7.),
-            })
-    } else if cfg!(macos) {
-        element
+            }),
+
+        Style::MacOs => element
             .zindex(1)
             .vertical_align(VerticalAlign::Middle)
             .padding(BoxDimension {
@@ -466,23 +459,7 @@ fn window_button_element(
                 right: Dimension::Cells(0.5),
                 top: Dimension::Cells(0.5),
                 bottom: Dimension::Cells(0.5),
-            })
-    } else {
-        element
-            .zindex(1)
-            .vertical_align(VerticalAlign::Middle)
-            .margin(BoxDimension {
-                left: Dimension::Cells(0.),
-                right: Dimension::Cells(0.),
-                top: Dimension::Cells(0.),
-                bottom: Dimension::Cells(0.),
-            })
-            .padding(BoxDimension {
-                left: Dimension::Cells(1.0),
-                right: Dimension::Cells(1.0),
-                top: Dimension::Cells(0.6),
-                bottom: Dimension::Cells(0.6),
-            })
+            }),
     };
 
     let (color, hover_colors) = match window_button {
@@ -1180,6 +1157,7 @@ impl super::TermWindow {
                     &font,
                     &metrics,
                     &colors,
+                    self.config.fancy_window_decorations.style,
                 ),
             }
         };

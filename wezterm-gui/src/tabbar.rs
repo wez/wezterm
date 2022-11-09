@@ -245,6 +245,7 @@ impl TabBarState {
             is_left,
             remove_hide_button,
             remove_maximize_button,
+            ..
         } = config.fancy_window_decorations;
 
         let button_order = if is_left {

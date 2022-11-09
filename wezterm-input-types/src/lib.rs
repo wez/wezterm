@@ -1451,7 +1451,7 @@ impl Default for WindowDecorations {
     }
 }
 
-#[derive(Debug, Default, FromDynamic, ToDynamic, Clone)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone)]
 pub struct FancyWindowDecorations {
     #[dynamic(default)]
     pub is_left: bool,
@@ -1459,6 +1459,84 @@ pub struct FancyWindowDecorations {
     pub remove_hide_button: bool,
     #[dynamic(default)]
     pub remove_maximize_button: bool,
+    #[dynamic(default)]
+    pub style: FancyWindowDecorationsStyle,
+}
+
+#[cfg(not(target_os = "macos"))]
+impl Default for FancyWindowDecorations {
+    fn default() -> Self {
+        FancyWindowDecorations {
+            is_left: false,
+            remove_hide_button: false,
+            remove_maximize_button: false,
+            style: Default::default(),
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl Default for FancyWindowDecorations {
+    fn default() -> Self {
+        FancyWindowDecorations {
+            is_left: true,
+            remove_hide_button: false,
+            remove_maximize_button: false,
+            style: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, FromDynamic, ToDynamic, Clone, Copy)]
+#[dynamic(try_from = "String")]
+pub enum FancyWindowDecorationsStyle {
+    Windows,
+    MacOs,
+    Gnome,
+}
+
+#[cfg(any(windows, target_os = "freebsd"))]
+impl Default for FancyWindowDecorationsStyle {
+    fn default() -> Self {
+        Self::Windows
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Default for FancyWindowDecorationsStyle {
+    fn default() -> Self {
+        Self::Gnome
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl Default for FancyWindowDecorationsStyle {
+    fn default() -> Self {
+        Self::MacOs
+    }
+}
+
+impl Into<String> for FancyWindowDecorationsStyle {
+    fn into(self) -> String {
+        match self {
+            Self::Windows => "windows",
+            Self::MacOs => "macos",
+            Self::Gnome => "gnome",
+        }
+        .to_string()
+    }
+}
+
+impl TryFrom<String> for FancyWindowDecorationsStyle {
+    type Error = String;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "windows" => Ok(Self::Windows),
+            "macos" => Ok(Self::MacOs),
+            "gnome" => Ok(Self::Gnome),
+            _ => Err(format!("invalid fancy_window_decoratins.style {}", value)),
+        }
+    }
 }
 
 /// Map c to its Ctrl equivalent.
