@@ -369,6 +369,20 @@ Outputs the pane-id for the newly created pane on success"
         text: Option<String>,
     },
 
+    /// Gets the text from a pane.
+    #[command(name = "get-text", rename_all = "kebab")]
+    GetText {
+        /// Specify the target pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[arg(long)]
+        pane_id: PaneId,
+
+        /// Number of lines to return.
+        #[arg(long, default_value = "500")]
+        lines: isize,
+    },
+
     /// Activate an adjacent pane in the specified direction.
     #[command(name = "activate-pane-direction", rename_all = "kebab")]
     ActivatePaneDirection {
@@ -1049,6 +1063,21 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
             log::debug!("{:?}", spawned);
             println!("{}", spawned.pane_id);
+        }
+        CliSubCommand::GetText { pane_id, lines } => {
+            let lines = client
+                .get_lines(codec::GetLines {
+                    pane_id: pane_id.into(),
+                    lines: vec![0..lines],
+                })
+                .await?;
+            lines
+                .lines
+                .extract_data()
+                .0
+                .iter()
+                .map(|c| c.1.as_str())
+                .for_each(|line| println!("{line}"))
         }
         CliSubCommand::SendText {
             pane_id,
