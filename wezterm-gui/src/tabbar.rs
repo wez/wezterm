@@ -182,6 +182,8 @@ impl TabBarState {
         &self.items
     }
 
+    // MacOS uses native buttons.
+    #[cfg(not(target_os = "macos"))]
     fn fancy_window_decorations(
         mouse_x: Option<usize>,
         x: &mut usize,
@@ -406,6 +408,7 @@ impl TabBarState {
         let mut x = 0;
         let mut items = vec![];
 
+        #[cfg(not(target_os = "macos"))]
         if fancy_window_decorations && config.fancy_window_decorations.is_left && !cfg!(widnows) {
             Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
@@ -415,6 +418,14 @@ impl TabBarState {
                 .set_background(ColorSpec::TrueColor(*colors.background()))
                 .clone(),
         );
+
+        #[cfg(target_os = "macos")]
+        if fancy_window_decorations && config.use_fancy_tab_bar == false {
+            for _ in 0..10 as usize {
+                line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
+                x += 1;
+            }
+        }
 
         let left_status_line = parse_status_text(left_status, black_cell.attrs().clone());
         if left_status_line.len() > 0 {
@@ -504,6 +515,7 @@ impl TabBarState {
         }
 
         // Reserve place for buttons
+        #[cfg(not(target_os = "macos"))]
         let title_width = if fancy_window_decorations
             && !config.fancy_window_decorations.is_left
             && !cfg!(target_os = "macos")
@@ -560,10 +572,8 @@ impl TabBarState {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
-        if fancy_window_decorations
-            && !config.fancy_window_decorations.is_left
-            && !cfg!(target_os = "macos")
-        {
+        #[cfg(not(target_os = "macos"))]
+        if fancy_window_decorations && !config.fancy_window_decorations.is_left {
             x = title_width;
             Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }

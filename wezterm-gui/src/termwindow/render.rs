@@ -308,8 +308,8 @@ fn window_button_element(
 ) -> Element {
     use window::FancyWindowDecorationsStyle as Style;
 
-    #[cfg(any(windows, targer_os = "macos"))]
-    let style = Style::default();
+    #[cfg(windows)]
+    let style = Style::Windows;
 
     let poly = match style {
         Style::Windows => {
@@ -1276,16 +1276,28 @@ impl super::TermWindow {
         let window_buttons_at_left = self.config.window_decorations
             == window::WindowDecorations::FANCY
             && (self.config.fancy_window_decorations.is_left
-                || cfg!(target_os = "macos") && cfg!(not(windows)));
+                || (cfg!(target_os = "macos")) && cfg!(not(windows)));
 
-        let left_padding = if window_buttons_at_left { 0.0 } else { 0.5 };
+        let left_padding = if window_buttons_at_left {
+            if cfg!(target_os = "macos") {
+                if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
+                    Dimension::Pixels(70.0)
+                } else {
+                    Dimension::Cells(0.5)
+                }
+            } else {
+                Dimension::Pixels(0.0)
+            }
+        } else {
+            Dimension::Cells(0.5)
+        };
 
         children.push(
             Element::new(&font, ElementContent::Children(left_eles))
                 .vertical_align(VerticalAlign::Bottom)
                 .colors(bar_colors.clone())
                 .padding(BoxDimension {
-                    left: Dimension::Cells(left_padding),
+                    left: left_padding,
                     right: Dimension::Cells(0.),
                     top: Dimension::Cells(0.),
                     bottom: Dimension::Cells(0.),

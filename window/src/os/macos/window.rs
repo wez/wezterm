@@ -1229,7 +1229,9 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
     unsafe {
         window.setStyleMask_(mask);
 
-        let hidden = if decorations.contains(WindowDecorations::TITLE) {
+        let hidden = if decorations.contains(WindowDecorations::TITLE)
+            || decorations.contains(WindowDecorations::FANCY)
+        {
             NO
         } else {
             YES
@@ -1250,7 +1252,11 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
         } else {
             appkit::NSWindowTitleVisibility::NSWindowTitleHidden
         });
-        window.setTitlebarAppearsTransparent_(hidden);
+        if decorations == WindowDecorations::FANCY {
+            window.setTitlebarAppearsTransparent_(YES);
+        } else {
+            window.setTitlebarAppearsTransparent_(hidden);
+        }
     }
 }
 
@@ -1264,7 +1270,7 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
-    } else if decorations == WindowDecorations::RESIZE {
+    } else if decorations == WindowDecorations::RESIZE || decorations == WindowDecorations::FANCY {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
