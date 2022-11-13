@@ -105,6 +105,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2638](https://github.com/wez/wezterm/issues/2638)
 * nvim's `title` and `titlestring` options don't work when `TERM=wezterm`.
   [#2112](https://github.com/wez/wezterm/issues/2112)
+* Horizontal wheel scrolling generated incorrect mouse events
+  [#2649](https://github.com/wez/wezterm/issues/2649)
 
 
 #### Changed

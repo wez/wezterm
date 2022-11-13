@@ -33,6 +33,7 @@ impl TerminalState {
         let mut buf = vec![b'\x1b', b'[', b'M', (32 + button) as u8];
         self.encode_coord(event.x as i64, &mut buf);
         self.encode_coord(event.y, &mut buf);
+        log::trace!("{event:?} {buf:?}");
         self.writer.write(&buf)?;
         self.writer.flush()?;
         Ok(())
@@ -75,6 +76,12 @@ impl TerminalState {
         if self.mouse_encoding == MouseEncoding::SGR
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
         {
+            log::trace!(
+                "wheel {event:?} ESC [<{};{};{}M",
+                button,
+                event.x + 1,
+                event.y + 1
+            );
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
@@ -88,6 +95,14 @@ impl TerminalState {
         {
             let height = self.screen.physical_rows as usize;
             let width = self.screen.physical_cols as usize;
+            log::trace!(
+                "wheel {event:?} ESC [<{};{};{}M",
+                button,
+                (event.x * (self.pixel_width / width)) + event.x_pixel_offset.max(0) as usize + 1,
+                (event.y as usize * (self.pixel_height / height))
+                    + event.y_pixel_offset.max(0) as usize
+                    + 1
+            );
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
@@ -126,6 +141,12 @@ impl TerminalState {
         }
 
         if self.mouse_encoding == MouseEncoding::SGR {
+            log::trace!(
+                "press {event:?} ESC [<{};{};{}M",
+                button,
+                event.x + 1,
+                event.y + 1
+            );
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
@@ -137,6 +158,14 @@ impl TerminalState {
         } else if self.mouse_encoding == MouseEncoding::SgrPixels {
             let height = self.screen.physical_rows as usize;
             let width = self.screen.physical_cols as usize;
+            log::trace!(
+                "press {event:?} ESC [<{};{};{}M",
+                button,
+                (event.x * (self.pixel_width / width)) + event.x_pixel_offset.max(0) as usize + 1,
+                (event.y as usize * (self.pixel_height / height))
+                    + event.y_pixel_offset.max(0) as usize
+                    + 1
+            );
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
@@ -160,6 +189,12 @@ impl TerminalState {
             self.current_mouse_buttons.retain(|&b| b != button);
             if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
                 if self.mouse_encoding == MouseEncoding::SGR {
+                    log::trace!(
+                        "release {event:?} ESC [<{};{};{}m",
+                        release_button,
+                        event.x + 1,
+                        event.y + 1
+                    );
                     write!(
                         self.writer,
                         "\x1b[<{};{};{}m",
@@ -171,6 +206,16 @@ impl TerminalState {
                 } else if self.mouse_encoding == MouseEncoding::SgrPixels {
                     let height = self.screen.physical_rows as usize;
                     let width = self.screen.physical_cols as usize;
+                    log::trace!(
+                        "release {event:?} ESC [<{};{};{}m",
+                        release_button,
+                        (event.x * (self.pixel_width / width))
+                            + event.x_pixel_offset.max(0) as usize
+                            + 1,
+                        (event.y as usize * (self.pixel_height / height))
+                            + event.y_pixel_offset.max(0) as usize
+                            + 1
+                    );
                     write!(
                         self.writer,
                         "\x1b[<{};{};{}m",
@@ -220,6 +265,12 @@ impl TerminalState {
             let button = 32 + button;
 
             if self.mouse_encoding == MouseEncoding::SGR {
+                log::trace!(
+                    "move {event:?} ESC [<{};{};{}M",
+                    button,
+                    event.x + 1,
+                    event.y + 1
+                );
                 write!(
                     self.writer,
                     "\x1b[<{};{};{}M",
@@ -231,6 +282,16 @@ impl TerminalState {
             } else if self.mouse_encoding == MouseEncoding::SgrPixels {
                 let height = self.screen.physical_rows as usize;
                 let width = self.screen.physical_cols as usize;
+                log::trace!(
+                    "move {event:?} ESC [<{};{};{}M",
+                    button,
+                    (event.x * (self.pixel_width / width))
+                        + event.x_pixel_offset.max(0) as usize
+                        + 1,
+                    (event.y as usize * (self.pixel_height / height))
+                        + event.y_pixel_offset.max(0) as usize
+                        + 1
+                );
                 write!(
                     self.writer,
                     "\x1b[<{};{};{}M",
@@ -274,6 +335,14 @@ impl TerminalState {
                 button: MouseButton::WheelDown(_),
                 ..
             } => self.mouse_wheel(event),
+            MouseEvent {
+                kind: MouseEventKind::Press | MouseEventKind::Release,
+                button: MouseButton::None,
+                ..
+            } => {
+                // Horizontal wheel not plumbed to anything useful
+                Ok(())
+            }
             MouseEvent {
                 kind: MouseEventKind::Press,
                 ..
