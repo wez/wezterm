@@ -43,6 +43,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [ResetTerminal](config/lua/keyassignment/ResetTerminal.md) key assignment
 * Support for Utf8 mouse reporting (DECSET 1005).
   [#2613](https://github.com/wez/wezterm/issues/2613)
+* [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md) now also
+  supports `prevent_fallback = true` as a parameter.
+  [#2702](https://github.com/wez/wezterm/issues/2702)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
