@@ -159,7 +159,6 @@ pub struct LineQuadCacheKey {
     pub shape_generation: usize,
     pub quad_generation: usize,
     /// Only set if cursor.y == stable_row
-    /// Tuple is (cursor_x, compose-text)
     pub composing: Option<String>,
     pub selection: Range<usize>,
     pub shape_hash: [u8; 16],
@@ -170,7 +169,7 @@ pub struct LineQuadCacheKey {
     pub pane_is_active: bool,
     /// A cursor position with the y value fixed at 0.
     /// Only is_some() if the y value matches this row.
-    pub cursor: Option<StableCursorPosition>,
+    pub cursor: Option<CursorProperties>,
     pub reverse_video: bool,
     pub password_input: bool,
 }
@@ -277,12 +276,21 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub password_input: bool,
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct CursorProperties {
+    pub position: StableCursorPosition,
+    pub dead_key_or_leader: bool,
+    pub cursor_is_default_color: bool,
+    pub cursor_fg: LinearRgba,
+    pub cursor_bg: LinearRgba,
+    pub cursor_border_color: LinearRgba,
+}
+
 pub struct ComputeCellFgBgParams<'a> {
     pub selected: bool,
     pub cursor: Option<&'a StableCursorPosition>,
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
-    pub palette: &'a ColorPalette,
     pub is_active_pane: bool,
     pub config: &'a ConfigHandle,
     pub selection_fg: LinearRgba,
@@ -1696,9 +1704,18 @@ impl super::TermWindow {
 
                     let (cursor, composing, password_input) = if self.cursor.y == stable_row {
                         (
-                            Some(StableCursorPosition {
-                                y: 0,
-                                ..*self.cursor
+                            Some(CursorProperties {
+                                position: StableCursorPosition {
+                                    y: 0,
+                                    ..*self.cursor
+                                },
+                                dead_key_or_leader: self.term_window.dead_key_status
+                                    != DeadKeyStatus::None
+                                    || self.term_window.leader_is_active(),
+                                cursor_fg: self.cursor_fg,
+                                cursor_bg: self.cursor_bg,
+                                cursor_border_color: self.cursor_border_color,
+                                cursor_is_default_color: self.cursor_is_default_color,
                             }),
                             if let DeadKeyStatus::Composing(composing) =
                                 &self.term_window.dead_key_status
@@ -2705,7 +2722,6 @@ impl super::TermWindow {
                 selected: false,
                 fg_color,
                 bg_color,
-                palette: params.palette,
                 is_active_pane: params.is_active,
                 config: params.config,
                 selection_fg: params.selection_fg,
@@ -2976,7 +2992,6 @@ impl super::TermWindow {
                                 selected,
                                 fg_color: item.fg_color,
                                 bg_color: item.bg_color,
-                                palette: params.palette,
                                 is_active_pane: params.is_active,
                                 config: params.config,
                                 selection_fg: params.selection_fg,

@@ -727,6 +727,20 @@ impl FromStr for SrgbaTuple {
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct LinearRgba(pub f32, pub f32, pub f32, pub f32);
 
+impl Eq for LinearRgba {}
+
+impl Hash for LinearRgba {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.0.to_ne_bytes().hash(state);
+        self.1.to_ne_bytes().hash(state);
+        self.2.to_ne_bytes().hash(state);
+        self.3.to_ne_bytes().hash(state);
+    }
+}
+
 impl LinearRgba {
     /// Convert SRGBA u8 components to LinearRgba.
     /// Note that alpha in SRGBA colorspace is already linear,

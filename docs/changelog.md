@@ -107,6 +107,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2112](https://github.com/wez/wezterm/issues/2112)
 * Horizontal wheel scrolling generated incorrect mouse events
   [#2649](https://github.com/wez/wezterm/issues/2649)
+* Cursor color changes did not always render
+  [#2708](https://github.com/wez/wezterm/issues/2708)
 
 
 #### Changed
