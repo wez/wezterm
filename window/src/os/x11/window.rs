@@ -951,7 +951,9 @@ impl XWindowInner {
 
         let decorations = if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
             FUNC_ALL
-        } else if decorations == WindowDecorations::RESIZE {
+        } else if decorations == WindowDecorations::RESIZE
+            || decorations == WindowDecorations::FANCY
+        {
             FUNC_RESIZE
         } else if decorations == WindowDecorations::TITLE {
             FUNC_MOVE | FUNC_MINIMIZE | FUNC_MAXIMIZE | FUNC_CLOSE
