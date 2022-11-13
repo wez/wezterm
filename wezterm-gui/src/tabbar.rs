@@ -246,7 +246,12 @@ impl TabBarState {
             remove_hide_button,
             remove_maximize_button,
             ..
-        } = config.fancy_window_decorations;
+        } = if cfg!(any(windows, target_os = "macos")) {
+            // Ignore changes to config on windows and macos
+            window::FancyWindowDecorations::default()
+        } else {
+            config.fancy_window_decorations.clone()
+        };
 
         let button_order = if is_left {
             ['X', '.', '-']
@@ -401,7 +406,7 @@ impl TabBarState {
         let mut x = 0;
         let mut items = vec![];
 
-        if fancy_window_decorations && config.fancy_window_decorations.is_left {
+        if fancy_window_decorations && config.fancy_window_decorations.is_left && !cfg!(widnows) {
             Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
@@ -499,7 +504,10 @@ impl TabBarState {
         }
 
         // Reserve place for buttons
-        let title_width = if fancy_window_decorations && !config.fancy_window_decorations.is_left {
+        let title_width = if fancy_window_decorations
+            && !config.fancy_window_decorations.is_left
+            && !cfg!(target_os = "macos")
+        {
             let window_hide =
                 parse_status_text(&config.tab_bar_style.window_hide, CellAttributes::default());
             let window_hide_hover = parse_status_text(
@@ -552,7 +560,10 @@ impl TabBarState {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
-        if fancy_window_decorations && !config.fancy_window_decorations.is_left {
+        if fancy_window_decorations
+            && !config.fancy_window_decorations.is_left
+            && !cfg!(target_os = "macos")
+        {
             x = title_width;
             Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }

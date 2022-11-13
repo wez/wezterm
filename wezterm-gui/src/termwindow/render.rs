@@ -308,6 +308,9 @@ fn window_button_element(
 ) -> Element {
     use window::FancyWindowDecorationsStyle as Style;
 
+    #[cfg(any(windows, targer_os = "macos"))]
+    let style = Style::default();
+
     let poly = match style {
         Style::Windows => {
             use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
@@ -1180,7 +1183,9 @@ impl super::TermWindow {
                 TabBarItem::WindowHideButton
                 | TabBarItem::WindowMaximizeButton
                 | TabBarItem::WindowCloseButton => {
-                    if self.config.fancy_window_decorations.is_left {
+                    if (self.config.fancy_window_decorations.is_left || cfg!(target_os = "macos"))
+                        && cfg!(not(windows))
+                    {
                         left_eles.push(item_to_elem(item))
                     } else {
                         right_eles.push(item_to_elem(item))
@@ -1270,7 +1275,8 @@ impl super::TermWindow {
 
         let window_buttons_at_left = self.config.window_decorations
             == window::WindowDecorations::FANCY
-            && self.config.fancy_window_decorations.is_left;
+            && (self.config.fancy_window_decorations.is_left
+                || cfg!(target_os = "macos") && cfg!(not(windows)));
 
         let left_padding = if window_buttons_at_left { 0.0 } else { 0.5 };
 
