@@ -76,6 +76,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_decorations: WindowDecorations,
 
+    /// Controls window buttons position and style
+    /// for fancy window decorations.
+    /// Has no effect on macOS or Windows.
     #[dynamic(default)]
     pub fancy_window_decorations: FancyWindowDecorations,
 
