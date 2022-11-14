@@ -302,7 +302,6 @@ impl TabBarState {
                 _ => continue,
             };
 
-            // let button_start = *x;
             let width = title.len();
 
             line.append_line(title.to_owned(), SEQ_ZERO);
