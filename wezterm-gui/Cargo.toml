@@ -22,6 +22,8 @@ vendored-fonts = [
   "vendor-roboto-font",
   "vendor-noto-emoji-font"
 ]
+dhat-heap = ["dhat"]    # if you are doing heap profiling
+dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 
 [build-dependencies]
 anyhow = "1.0"
@@ -39,6 +41,7 @@ codec = { path = "../codec" }
 colorgrad = "0.6"
 config = { path = "../config" }
 downcast-rs = "1.0"
+dhat = {version="0.3", optional=true}
 dirs-next = "2.0"
 emojis = "0.5"
 env-bootstrap = { path = "../env-bootstrap" }

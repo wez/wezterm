@@ -1,4 +1,5 @@
 .DS_Store
+dhat-heap.json
 /docs/_site
 /PKGBUILD
 /WezTerm*.zip

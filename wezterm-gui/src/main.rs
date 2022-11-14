@@ -51,6 +51,10 @@ mod uniforms;
 mod update;
 mod utilsprites;
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 pub use selection::SelectionMode;
 pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DATA};
 
@@ -755,6 +759,9 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
 }
 
 fn main() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     config::designate_this_as_the_main_thread();
     config::assign_error_callback(mux::connui::show_configuration_error_message);
     notify_on_panic();
