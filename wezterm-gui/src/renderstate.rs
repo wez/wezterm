@@ -44,10 +44,6 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
         Ok(quad)
     }
 
-    fn vertices(&self) -> &[Vertex] {
-        &self.mapping[0..*self.next]
-    }
-
     fn extend_with(&mut self, vertices: &[Vertex]) {
         let idx = *self.next;
         // idx and next are number of quads, so divide by number of vertices
@@ -215,9 +211,7 @@ impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
         self.0[layer_num].allocate()
     }
-    fn vertices(&self, layer_num: usize) -> &[Vertex] {
-        self.0[layer_num].vertices()
-    }
+
     fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
         self.0[layer_num].extend_with(vertices)
     }
