@@ -1491,11 +1491,10 @@ impl Default for FancyWindowDecorations {
 #[dynamic(try_from = "String")]
 pub enum FancyWindowDecorationsStyle {
     Windows,
-    MacOs,
     Gnome,
 }
 
-#[cfg(any(windows, target_os = "freebsd"))]
+#[cfg(not(target_os = "linux"))]
 impl Default for FancyWindowDecorationsStyle {
     fn default() -> Self {
         Self::Windows
@@ -1509,18 +1508,10 @@ impl Default for FancyWindowDecorationsStyle {
     }
 }
 
-#[cfg(target_os = "macos")]
-impl Default for FancyWindowDecorationsStyle {
-    fn default() -> Self {
-        Self::MacOs
-    }
-}
-
 impl Into<String> for FancyWindowDecorationsStyle {
     fn into(self) -> String {
         match self {
             Self::Windows => "windows",
-            Self::MacOs => "macos",
             Self::Gnome => "gnome",
         }
         .to_string()
@@ -1532,7 +1523,6 @@ impl TryFrom<String> for FancyWindowDecorationsStyle {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.to_lowercase().as_str() {
             "windows" => Ok(Self::Windows),
-            "macos" => Ok(Self::MacOs),
             "gnome" => Ok(Self::Gnome),
             _ => Err(format!("invalid fancy_window_decoratins.style {}", value)),
         }

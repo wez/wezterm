@@ -145,26 +145,6 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
-const HIDE_BUTTON: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
-        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-    ],
-    intensity: BlockAlpha::Full,
-    style: PolyStyle::Outline,
-}];
-
-const MAXIMIZE_BUTTON: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
-        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
-    ],
-    intensity: BlockAlpha::Full,
-    style: PolyStyle::Outline,
-}];
-
 mod window_buttons {
     use super::*;
     pub(super) mod windows {
@@ -342,22 +322,11 @@ fn window_button_element(
                 _ => unreachable!(),
             }
         }
-        Style::MacOs => match window_button {
-            TabBarItem::WindowHideButton => HIDE_BUTTON,
-            TabBarItem::WindowMaximizeButton => MAXIMIZE_BUTTON,
-            TabBarItem::WindowCloseButton => X_BUTTON,
-            _ => unreachable!(),
-        },
     };
 
     let poly = match style {
         Style::Windows => window_buttons::windows::sized_poly(poly),
         Style::Gnome => window_buttons::gnome::sized_poly(poly),
-        Style::MacOs => SizedPoly {
-            poly: &[],
-            width: Dimension::Pixels(13.),
-            height: Dimension::Pixels(13.),
-        },
     };
 
     let element = Element::new(
@@ -423,45 +392,6 @@ fn window_button_element(
                 right: Dimension::Pixels(7.),
                 top: Dimension::Pixels(7.),
                 bottom: Dimension::Pixels(7.),
-            }),
-
-        Style::MacOs => element
-            .zindex(1)
-            .vertical_align(VerticalAlign::Middle)
-            .padding(BoxDimension {
-                left: Dimension::default(),
-                right: Dimension::default(),
-                top: Dimension::default(),
-                bottom: Dimension::default(),
-            })
-            .border(BoxDimension::new(Dimension::Pixels(1.)))
-            .border_corners(Some(Corners {
-                top_left: SizedPoly {
-                    width: Dimension::Pixels(8.),
-                    height: Dimension::Pixels(8.),
-                    poly: TOP_LEFT_ROUNDED_CORNER,
-                },
-                top_right: SizedPoly {
-                    width: Dimension::Pixels(8.),
-                    height: Dimension::Pixels(8.),
-                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                },
-                bottom_left: SizedPoly {
-                    width: Dimension::Pixels(8.),
-                    height: Dimension::Pixels(8.),
-                    poly: BOTTOM_LEFT_ROUNDED_CORNER,
-                },
-                bottom_right: SizedPoly {
-                    width: Dimension::Pixels(8.),
-                    height: Dimension::Pixels(8.),
-                    poly: BOTTOM_RIGHT_ROUNDED_CORNER,
-                },
-            }))
-            .margin(BoxDimension {
-                left: Dimension::Cells(0.5),
-                right: Dimension::Cells(0.5),
-                top: Dimension::Cells(0.5),
-                bottom: Dimension::Cells(0.5),
             }),
     };
 
@@ -1183,9 +1113,7 @@ impl super::TermWindow {
                 TabBarItem::WindowHideButton
                 | TabBarItem::WindowMaximizeButton
                 | TabBarItem::WindowCloseButton => {
-                    if (self.config.fancy_window_decorations.is_left || cfg!(target_os = "macos"))
-                        && cfg!(not(windows))
-                    {
+                    if self.config.fancy_window_decorations.is_left && cfg!(not(windows)) {
                         left_eles.push(item_to_elem(item))
                     } else {
                         right_eles.push(item_to_elem(item))
