@@ -146,7 +146,6 @@ wish to use one of these AUR options:
 
 |What                 |Where|
 |---------------------|-|
-|Nightly Binaries     |<https://aur.archlinux.org/packages/wezterm-nightly-bin/>|
 |Build from source    |<https://aur.archlinux.org/packages/wezterm-git/>|
 
 ## Alpine Linux
