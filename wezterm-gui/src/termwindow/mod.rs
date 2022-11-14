@@ -1,7 +1,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::cache::*;
 use crate::colorease::ColorEase;
 use crate::frontend::{front_end, try_front_end};
 use crate::glium::texture::SrgbTexture2d;
@@ -36,6 +35,7 @@ use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, TermConfig,
     WindowCloseConfirmation,
 };
+use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
 use mux::pane::{CloseReason, Pane, PaneId, Pattern as MuxPattern, PerformAssignmentResult};
 use mux::renderable::RenderableDimensions;

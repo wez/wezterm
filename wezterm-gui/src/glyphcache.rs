@@ -1,5 +1,4 @@
 use super::utilsprites::RenderMetrics;
-use crate::cache::LfuCacheU64;
 use crate::customglyph::*;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
@@ -11,6 +10,7 @@ use ::window::{glium, Point, Rect};
 use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
+use lfucache::LfuCacheU64;
 use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::convert::TryInto;

@@ -1,15 +1,9 @@
-#![allow(dead_code)]
 use config::ConfigHandle;
 use fnv::FnvHashMap;
 use std::borrow::Borrow;
 use std::cmp::Eq;
 use std::collections::HashMap;
 use std::hash::Hash;
-
-/// Use ENTRY_PERCENT of the capacity as the "temporary cache"; entries
-/// are evicted from the temporary cache before the main cache.
-/// Frequently used items are promoted from temporary to main cache.
-const ENTRY_PERCENT: u8 = 20;
 
 pub type CapFunc = fn(&ConfigHandle) -> usize;
 

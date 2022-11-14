@@ -28,7 +28,6 @@ use wezterm_font::shaper::PresentationWidth;
 use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
 
-mod cache;
 mod colorease;
 mod commands;
 mod customglyph;
