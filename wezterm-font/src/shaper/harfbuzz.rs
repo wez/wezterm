@@ -661,8 +661,7 @@ impl FontShaper for HarfbuzzShaper {
         let range = range.unwrap_or_else(|| 0..text.len());
 
         log::trace!(
-            "shape byte_len={} `{}` with presentation={presentation:?}",
-            text.len(),
+            "shape {range:?} `{}` with presentation={presentation:?}",
             text.escape_debug()
         );
         let start = std::time::Instant::now();

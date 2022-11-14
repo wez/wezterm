@@ -12,6 +12,7 @@ use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use lfucache::LfuCacheU64;
 use ordered_float::NotNan;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -198,8 +199,8 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
 
 #[derive(Debug)]
 pub struct DecodedImage {
-    frame_start: Instant,
-    current_frame: usize,
+    frame_start: RefCell<Instant>,
+    current_frame: RefCell<usize>,
     image: Arc<ImageData>,
 }
 
@@ -208,8 +209,8 @@ impl DecodedImage {
         // A single black pixel
         let image = ImageData::with_data(ImageDataType::new_single_frame(1, 1, vec![0, 0, 0, 0]));
         Self {
-            frame_start: Instant::now(),
-            current_frame: 0,
+            frame_start: RefCell::new(Instant::now()),
+            current_frame: RefCell::new(0),
             image: Arc::new(image),
         }
     }
@@ -228,15 +229,15 @@ impl DecodedImage {
                     0
                 };
                 Self {
-                    frame_start: Instant::now(),
-                    current_frame,
+                    frame_start: RefCell::new(Instant::now()),
+                    current_frame: RefCell::new(current_frame),
                     image: Arc::clone(image_data),
                 }
             }
 
             _ => Self {
-                frame_start: Instant::now(),
-                current_frame: 0,
+                frame_start: RefCell::new(Instant::now()),
+                current_frame: RefCell::new(0),
                 image: Arc::clone(image_data),
             },
         }
@@ -582,12 +583,12 @@ impl<T: Texture2d> GlyphCache<T> {
     fn cached_image_impl(
         frame_cache: &mut HashMap<[u8; 32], Sprite<T>>,
         atlas: &mut Atlas<T>,
-        decoded: &mut DecodedImage,
+        decoded: &DecodedImage,
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
-            current_frame: decoded.current_frame,
+            current_frame: *decoded.current_frame.borrow(),
         };
         match &*handle.h {
             ImageDataType::Rgba8 { hash, .. } => {
@@ -606,28 +607,31 @@ impl<T: Texture2d> GlyphCache<T> {
                 ..
             } => {
                 let mut next = None;
+                let mut decoded_frame_start = decoded.frame_start.borrow_mut();
+                let mut decoded_current_frame = decoded.current_frame.borrow_mut();
                 if frames.len() > 1 {
                     let now = Instant::now();
-                    let mut next_due = decoded.frame_start + durations[decoded.current_frame];
+
+                    let mut next_due = *decoded_frame_start + durations[*decoded_current_frame];
                     if now >= next_due {
                         // Advance to next frame
-                        decoded.current_frame += 1;
-                        if decoded.current_frame >= frames.len() {
-                            decoded.current_frame = 0;
+                        *decoded_current_frame = *decoded_current_frame + 1;
+                        if *decoded_current_frame >= frames.len() {
+                            *decoded_current_frame = 0;
                             // Skip potential 0-duration root frame
                             if durations[0].as_millis() == 0 && frames.len() > 1 {
-                                decoded.current_frame += 1;
+                                *decoded_current_frame = *decoded_current_frame + 1;
                             }
                         }
-                        decoded.frame_start = now;
-                        next_due = decoded.frame_start + durations[decoded.current_frame];
-                        handle.current_frame = decoded.current_frame;
+                        *decoded_frame_start = now;
+                        next_due = *decoded_frame_start + durations[*decoded_current_frame];
+                        handle.current_frame = *decoded_current_frame;
                     }
 
                     next.replace(next_due);
                 }
 
-                let hash = hashes[decoded.current_frame];
+                let hash = hashes[*decoded_current_frame];
 
                 if let Some(sprite) = frame_cache.get(&hash) {
                     return Ok((sprite.clone(), next));
@@ -639,7 +643,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
                 return Ok((
                     sprite,
-                    Some(decoded.frame_start + durations[decoded.current_frame]),
+                    Some(*decoded_frame_start + durations[*decoded_current_frame]),
                 ));
             }
             ImageDataType::EncodedFile(_) => unreachable!(),
@@ -653,16 +657,12 @@ impl<T: Texture2d> GlyphCache<T> {
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let id = image_data.id() as u64;
 
-        if let Some(decoded) = self.image_cache.get_mut(&id) {
+        if let Some(decoded) = self.image_cache.get(&id) {
             Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, decoded, padding)
         } else {
-            let mut decoded = DecodedImage::load(image_data);
-            let res = Self::cached_image_impl(
-                &mut self.frame_cache,
-                &mut self.atlas,
-                &mut decoded,
-                padding,
-            )?;
+            let decoded = DecodedImage::load(image_data);
+            let res =
+                Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, &decoded, padding)?;
             self.image_cache.put(id, decoded);
             Ok(res)
         }
