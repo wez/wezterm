@@ -102,17 +102,29 @@ impl CellCluster {
                         // the terminal is wide and a long series of short lines are printed;
                         // the shaper can cache the few variations of trailing whitespace
                         // and focus on shaping the shorter cluster sequences.
+                        // Or:
+                        // when bidi is disabled, force break on whitespace boundaries.
+                        // This reduces shaping load in the case where is a line is
+                        // updated continually, but only a portion of it changes
+                        // (eg: progress counter).
+                        let was_whitespace = whitespace_run > 0;
                         if cell_str == " " {
                             whitespace_run += 1;
                         } else {
                             whitespace_run = 0;
                             only_whitespace = false;
                         }
-                        if !only_whitespace && whitespace_run > 2 {
+
+                        let force_break = (!only_whitespace && whitespace_run > 2)
+                            || (!only_whitespace && bidi_hint.is_none() && was_whitespace);
+
+                        if force_break {
                             clusters.push(last);
 
                             only_whitespace = cell_str == " ";
-                            whitespace_run = 1;
+                            if whitespace_run > 0 {
+                                whitespace_run = 1;
+                            }
                             Some(CellCluster::new(
                                 hint,
                                 presentation,
