@@ -143,11 +143,21 @@ pub trait TripleLayerQuadAllocatorTrait {
     fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]);
 }
 
+/// We prefer to allocate a quad at a time for HeapQuadAllocator
+/// because we tend to end up with fairly large arrays of Vertex
+/// and the total amount of contiguous memory is in the MB range,
+/// which is a bit gnarly to reallocate, and can waste several MB
+/// in unused capacity
+#[derive(Default)]
+struct BoxedQuad {
+    quad: [Vertex; VERTICES_PER_CELL],
+}
+
 #[derive(Default)]
 pub struct HeapQuadAllocator {
-    layer0: Vec<Vertex>,
-    layer1: Vec<Vertex>,
-    layer2: Vec<Vertex>,
+    layer0: Vec<Box<BoxedQuad>>,
+    layer1: Vec<Box<BoxedQuad>>,
+    layer2: Vec<Box<BoxedQuad>>,
 }
 
 impl std::fmt::Debug for HeapQuadAllocator {
@@ -159,8 +169,10 @@ impl std::fmt::Debug for HeapQuadAllocator {
 impl HeapQuadAllocator {
     pub fn apply_to(&self, other: &mut TripleLayerQuadAllocator) -> anyhow::Result<()> {
         let start = std::time::Instant::now();
-        for (layer_num, verts) in [(0, &self.layer0), (1, &self.layer1), (2, &self.layer2)] {
-            other.extend_with(layer_num, verts);
+        for (layer_num, quads) in [(0, &self.layer0), (1, &self.layer1), (2, &self.layer2)] {
+            for quad in quads {
+                other.extend_with(layer_num, &quad.quad);
+            }
         }
         metrics::histogram!("quad_buffer_apply", start.elapsed());
         Ok(())
@@ -169,47 +181,42 @@ impl HeapQuadAllocator {
 
 impl TripleLayerQuadAllocatorTrait for HeapQuadAllocator {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
-        let verts = match layer_num {
+        let quads = match layer_num {
             0 => &mut self.layer0,
             1 => &mut self.layer1,
             2 => &mut self.layer2,
             _ => unreachable!(),
         };
 
-        let idx = verts.len();
-        /* Explicitly manage growth when needed.
-         * Experiments have shown that relying on the default exponential
-         * growth of the underlying Vec can waste 40%-75% of the capacity,
-         * and since HeapQuadAllocators are cached, that
-         * causes a lot of the heap to be wasted.
-         * Here we use exponential growth until we reach 64 and then
-         * increment by 64.
-         * This strikes a reasonable balance with exponential growth;
-         * the default 80x24 size terminal tends to peak out around 640
-         * elements which has a similar number of allocation steps to
-         * exponential growth while not wasting as much for cases that
-         * use less memory and that would otherwise get rounded up
-         * to the same peak.
-         * May potentially be worth a config option to tune this increment.
-         */
-        if idx >= verts.capacity() {
-            verts.reserve_exact(verts.capacity().next_power_of_two().min(64));
-        }
-        verts.resize_with(verts.len() + VERTICES_PER_CELL, Vertex::default);
+        quads.push(Box::new(BoxedQuad::default()));
 
         Ok(Quad {
-            vert: &mut verts[idx..idx + VERTICES_PER_CELL],
+            vert: &mut quads.last_mut().unwrap().quad,
         })
     }
 
     fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
-        let verts = match layer_num {
+        if vertices.is_empty() {
+            return;
+        }
+
+        let dest_quads = match layer_num {
             0 => &mut self.layer0,
             1 => &mut self.layer1,
             2 => &mut self.layer2,
             _ => unreachable!(),
         };
-        verts.extend_from_slice(vertices);
+
+        // This is logically equivalent to
+        // https://doc.rust-lang.org/std/primitive.slice.html#method.as_chunks_unchecked
+        // which is currently nightly-only
+        assert_eq!(vertices.len() % VERTICES_PER_CELL, 0);
+        let src_quads: &[[Vertex; VERTICES_PER_CELL]] =
+            unsafe { std::slice::from_raw_parts(vertices.as_ptr().cast(), vertices.len() / 4) };
+
+        for quad in src_quads {
+            dest_quads.push(Box::new(BoxedQuad { quad: *quad }));
+        }
     }
 }
 
