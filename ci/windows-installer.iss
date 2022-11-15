@@ -10,8 +10,8 @@
 
 [Setup]
 AppId={{BCF6F0DA-5B9A-408D-8562-F680AE6E1EAF}
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64 arm64
+ArchitecturesInstallIn64BitMode=x64 arm64
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -75,6 +75,54 @@ Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here\command";
 [Code]
 { https://stackoverflow.com/a/46609047/149111 }
 const EnvironmentKey = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment';
+
+const IMAGE_FILE_MACHINE_AMD64 = $8664;
+
+function GetMachineTypeAttributes(
+    Machine: Word; var MachineTypeAttributes: Integer): HRESULT;
+  external 'GetMachineTypeAttributes@Kernel32.dll stdcall delayload';
+
+function IsSupportedArch(): Boolean;
+var
+  Version: TWindowsVersion;
+  MachineTypeAttributes: Integer;
+  Arch: TSetupProcessorArchitecture;
+begin
+  GetWindowsVersionEx(Version);
+  // Use capability detection if available. GetMachineTypeAttributes is
+  // available starting Build 22000
+  if Version.Build >= 22000 then
+  begin
+    OleCheck(
+      GetMachineTypeAttributes(IMAGE_FILE_MACHINE_AMD64, MachineTypeAttributes)
+    );
+    Result := MachineTypeAttributes <> 0;
+  end
+  else
+  begin
+    // If capability detection is not available, then we rely on build number.
+    // x64 emulation on arm64 is available starting build 21277 so both x64 and
+    // arm64 will work
+    if Version.Build >= 21277 then
+    begin
+      Result := True;
+    end
+    else
+    begin
+      // If we're here, it means we're on a build between 17763 and 21277
+      // because Inno will check MinVersion 10.0.17763 and arch will be x64 or
+      // arm64. Only x64 is supported in this build range
+      Arch := ProcessorArchitecture;
+      Result := Arch = paX64;
+    end
+  end;
+end;
+
+<event('InitializeSetup')>
+function InitializeSetupCheckArchitecture(): Boolean;
+begin
+  Result := IsSupportedArch();
+end;
 
 procedure EnvAddPath(instlPath: string);
 var
