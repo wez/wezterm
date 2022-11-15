@@ -622,14 +622,12 @@ impl CursorInfo {
     }
 }
 
-/// The index.theme file looks something like this:
-///
-/// ```
-/// [Icon Theme]
-/// Inherits=Adwaita
-/// ```
-///
-/// This function extracts the inherited theme name from it.
+// The index.theme file looks something like this:
+//
+// [Icon Theme]
+// Inherits=Adwaita
+//
+// This function extracts the inherited theme name from it.
 fn extract_inherited_theme_name(p: PathBuf) -> Option<String> {
     let data = std::fs::read_to_string(&p).ok()?;
     log::trace!("Parsing {p:?} to determine inheritance");
