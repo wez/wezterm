@@ -135,6 +135,11 @@ As features stabilize some brief notes about them will accumulate here.
   [#2670](https://github.com/wez/wezterm/pull/2670)
   [#2622](https://github.com/wez/wezterm/issues/2622)
   [#2271](https://github.com/wez/wezterm/issues/2271)
+* Windows: installer no longer prevents installing the x64 binary on arm64 systems.
+  The x64 executable is installed and run via emulation.
+  Thanks to [@xeysz](https://github.com/xeysz)!
+  [#2746](https://github.com/wez/wezterm/pull/2746)
+  [#2667](https://github.com/wez/wezterm/issues/2667)
 
 #### Updated
 * Bundled Nerd Font Symbols font to v2.2.2
