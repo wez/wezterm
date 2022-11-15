@@ -267,9 +267,25 @@ impl Element {
     }
 
     pub fn with_line(font: &Rc<LoadedFont>, line: &Line, palette: &ColorPalette) -> Self {
-        let mut content = vec![];
+        let mut content: Vec<Element> = vec![];
+        let mut prior_attr = None;
 
         for cluster in line.cluster(None) {
+            // Clustering may introduce cluster boundaries when the text hasn't actually
+            // changed style. Undo that here.
+            // There's still an issue where the style does actually change and we
+            // subsequently don't clip the element.
+            // <https://github.com/wez/wezterm/issues/2560>
+            if let Some(prior) = content.last_mut() {
+                let (fg, bg) = prior_attr.as_ref().unwrap();
+                if cluster.attrs.background() == *bg && cluster.attrs.foreground() == *fg {
+                    if let ElementContent::Text(t) = &mut prior.content {
+                        t.push_str(&cluster.text);
+                        continue;
+                    }
+                }
+            }
+
             let child =
                 Element::new(font, ElementContent::Text(cluster.text)).colors(ElementColors {
                     border: BorderColor::default(),
@@ -292,6 +308,7 @@ impl Element {
                 });
 
             content.push(child);
+            prior_attr.replace((cluster.attrs.foreground(), cluster.attrs.background()));
         }
 
         Self::new(font, ElementContent::Children(content))
