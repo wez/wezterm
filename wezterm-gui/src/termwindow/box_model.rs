@@ -2,7 +2,7 @@
 use crate::color::LinearRgba;
 use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
-use crate::quad::{Quad, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
+use crate::quad::{QuadImpl, QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
 use crate::termwindow::{
     BorrowedLayers, ColorEase, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
     UIItemType,
@@ -204,7 +204,7 @@ struct ResolvedColor {
 }
 
 impl ResolvedColor {
-    fn apply(&self, quad: &mut Quad) {
+    fn apply(&self, quad: &mut QuadImpl) {
         quad.set_fg_color(self.color);
         quad.set_alt_color_and_mix_value(self.alt_color, self.mix_value);
     }

@@ -4,7 +4,8 @@ use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::{
-    HeapQuadAllocator, Quad, QuadAllocator, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait,
+    HeapQuadAllocator, QuadAllocator, QuadImpl, QuadTrait, TripleLayerQuadAllocator,
+    TripleLayerQuadAllocatorTrait,
 };
 use crate::renderstate::BorrowedLayers;
 use crate::selection::SelectionRange;
@@ -500,7 +501,7 @@ impl super::TermWindow {
         layer_num: usize,
         rect: RectF,
         color: LinearRgba,
-    ) -> anyhow::Result<Quad<'a>> {
+    ) -> anyhow::Result<QuadImpl<'a>> {
         let mut quad = layers.allocate(layer_num)?;
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
         let top_offset = self.dimensions.pixel_height as f32 / 2.;
@@ -527,7 +528,7 @@ impl super::TermWindow {
         underline_height: IntPixelLength,
         cell_size: SizeF,
         color: LinearRgba,
-    ) -> anyhow::Result<Quad<'a>> {
+    ) -> anyhow::Result<QuadImpl<'a>> {
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
         let top_offset = self.dimensions.pixel_height as f32 / 2.;
         let gl_state = self.render_state.as_ref().unwrap();

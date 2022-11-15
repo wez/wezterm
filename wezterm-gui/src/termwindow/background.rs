@@ -1,5 +1,5 @@
 use crate::color::LinearRgba;
-use crate::quad::QuadAllocator;
+use crate::quad::{QuadAllocator, QuadTrait};
 use crate::termwindow::RenderState;
 use crate::utilsprites::RenderMetrics;
 use crate::Dimensions;

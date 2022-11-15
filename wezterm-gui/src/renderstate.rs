@@ -21,7 +21,7 @@ pub struct MappedQuads<'a> {
 }
 
 impl<'a> QuadAllocator for MappedQuads<'a> {
-    fn allocate<'b>(&'b mut self) -> anyhow::Result<Quad<'b>> {
+    fn allocate<'b>(&'b mut self) -> anyhow::Result<QuadImpl<'b>> {
         let idx = *self.next;
         *self.next += 1;
         let idx = if idx >= self.capacity {
@@ -41,7 +41,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 
         quad.set_has_color(false);
 
-        Ok(quad)
+        Ok(QuadImpl::Vert(quad))
     }
 
     fn extend_with(&mut self, vertices: &[Vertex]) {
@@ -208,7 +208,7 @@ impl RenderLayer {
 pub struct BorrowedLayers<'a>(pub [MappedQuads<'a>; 3]);
 
 impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
-    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<Quad> {
+    fn allocate(&mut self, layer_num: usize) -> anyhow::Result<QuadImpl> {
         self.0[layer_num].allocate()
     }
 

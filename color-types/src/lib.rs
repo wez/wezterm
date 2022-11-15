@@ -741,6 +741,12 @@ impl Hash for LinearRgba {
     }
 }
 
+impl From<(f32, f32, f32, f32)> for LinearRgba {
+    fn from((r, g, b, a): (f32, f32, f32, f32)) -> Self {
+        Self(r, g, b, a)
+    }
+}
+
 impl LinearRgba {
     /// Convert SRGBA u8 components to LinearRgba.
     /// Note that alpha in SRGBA colorspace is already linear,
