@@ -109,6 +109,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2649](https://github.com/wez/wezterm/issues/2649)
 * Cursor color changes did not always render
   [#2708](https://github.com/wez/wezterm/issues/2708)
+* Unable to set cursor on Wayland/X11
+  [#2687](https://github.com/wez/wezterm/issues/2687)
+  [#2743](https://github.com/wez/wezterm/issues/2743)
 
 
 #### Changed

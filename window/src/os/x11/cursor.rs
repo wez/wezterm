@@ -3,7 +3,7 @@ use crate::x11::XConnection;
 use crate::MouseCursor;
 use anyhow::{ensure, Context};
 use config::ConfigHandle;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::ffi::OsStr;
 use std::io::prelude::*;
@@ -321,26 +321,48 @@ impl CursorInfo {
             MouseCursor::SizeLeftRight => &["sb_h_double_arrow"],
         };
 
-        for dir in &self.icon_path {
-            for name in names {
-                let candidate = dir.join(theme).join("cursors").join(name);
-                log::trace!("candidate for {:?} is {:?}", cursor, candidate);
-                if let Ok(file) = std::fs::File::open(&candidate) {
-                    match self.parse_cursor_file(conn, file) {
-                        Ok(cursor_id) => {
-                            self.cursors.insert(
-                                cursor,
-                                XcbCursor {
-                                    id: cursor_id,
-                                    conn: Rc::downgrade(&conn),
-                                },
-                            );
+        let mut theme_list = vec![theme.to_string()];
+        let mut visited = HashSet::new();
 
-                            log::trace!("{:?} resolved to {:?}", cursor, candidate);
-                            return Some(cursor_id);
+        while !theme_list.is_empty() {
+            let theme = theme_list.remove(0);
+            if visited.contains(&theme) {
+                continue;
+            }
+
+            visited.insert(theme.clone());
+
+            for dir in &self.icon_path {
+                for name in names {
+                    let candidate = dir.join(&theme).join("cursors").join(name);
+                    log::trace!(
+                        "candidate for theme={theme} {:?} is {:?}",
+                        cursor,
+                        candidate
+                    );
+                    if let Ok(file) = std::fs::File::open(&candidate) {
+                        match self.parse_cursor_file(conn, file) {
+                            Ok(cursor_id) => {
+                                self.cursors.insert(
+                                    cursor,
+                                    XcbCursor {
+                                        id: cursor_id,
+                                        conn: Rc::downgrade(&conn),
+                                    },
+                                );
+
+                                log::trace!("{:?} resolved to {:?}", cursor, candidate);
+                                return Some(cursor_id);
+                            }
+                            Err(err) => log::error!("{:#}", err),
                         }
-                        Err(err) => log::error!("{:#}", err),
                     }
+                }
+
+                let theme_index = dir.join(&theme).join("index.theme");
+                if let Some(inherited) = extract_inherited_theme_name(theme_index) {
+                    log::trace!("theme {theme} inherits from theme {inherited}");
+                    theme_list.push(inherited);
                 }
             }
         }
@@ -598,4 +620,38 @@ impl CursorInfo {
 
         Ok(cursor_id)
     }
+}
+
+/// The index.theme file looks something like this:
+///
+/// ```
+/// [Icon Theme]
+/// Inherits=Adwaita
+/// ```
+///
+/// This function extracts the inherited theme name from it.
+fn extract_inherited_theme_name(p: PathBuf) -> Option<String> {
+    let data = std::fs::read_to_string(&p).ok()?;
+    log::trace!("Parsing {p:?} to determine inheritance");
+    for line in data.lines() {
+        let fields: Vec<&str> = line.splitn(2, '=').collect();
+        if fields.len() == 2 {
+            let key = fields[0].trim();
+            if key == "Inherits" {
+                fn separator(c: char) -> bool {
+                    c.is_whitespace() || c == ';' || c == ','
+                }
+
+                return Some(
+                    fields[1]
+                        .trim()
+                        .chars()
+                        .skip_while(|&c| separator(c))
+                        .take_while(|&c| !separator(c))
+                        .collect(),
+                );
+            }
+        }
+    }
+    None
 }
