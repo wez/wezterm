@@ -1984,7 +1984,7 @@ impl super::TermWindow {
                 let vb = &layer.vb.borrow()[idx];
                 let (vertex_count, index_count) = vb.vertex_index_count();
                 if vertex_count > 0 {
-                    let vertices = vb.current_vb();
+                    let vertices = vb.current_vb_mut();
                     let subpixel_aa = use_subpixel && idx == 1;
 
                     let mut uniforms = UniformBuilder::default();
@@ -2137,14 +2137,8 @@ impl super::TermWindow {
         let layer = gl_state.layer_for_zindex(0)?;
         let vbs = layer.vb.borrow();
         let vb = [&vbs[0], &vbs[1], &vbs[2]];
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ]));
+        let mut layers =
+            TripleLayerQuadAllocator::Gpu(BorrowedLayers([vb[0].map(), vb[1].map(), vb[2].map()]));
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 

@@ -815,14 +815,8 @@ impl super::TermWindow {
         let layer = gl_state.layer_for_zindex(element.zindex)?;
         let vbs = layer.vb.borrow();
         let vb = [&vbs[0], &vbs[1], &vbs[2]];
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = TripleLayerQuadAllocator::Gpu(BorrowedLayers([
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ]));
+        let mut layers =
+            TripleLayerQuadAllocator::Gpu(BorrowedLayers([vb[0].map(), vb[1].map(), vb[2].map()]));
 
         let colors = match &element.hover_colors {
             Some(hc) => {
@@ -913,9 +907,6 @@ impl super::TermWindow {
             }
             ComputedElementContent::Children(kids) => {
                 drop(layers);
-                drop(vb_mut0);
-                drop(vb_mut1);
-                drop(vb_mut2);
 
                 for kid in kids {
                     self.render_element(kid, gl_state, Some(colors))?;

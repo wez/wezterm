@@ -3,20 +3,30 @@ use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
-use ::window::glium::buffer::Mapping;
+use ::window::glium::buffer::{BufferMutSlice, Mapping};
 use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
 use ::window::*;
 use anyhow::Context;
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
 const INDICES_PER_CELL: usize = 6;
 
 pub struct MappedQuads<'a> {
-    mapping: Mapping<'a, [Vertex]>,
+    mapping: GliumMappedVertexBuffer,
     next: RefMut<'a, usize>,
     capacity: usize,
+}
+
+/// This is a self-referential struct, but since those are not possible
+/// to create safely in unstable rust, we transmute the lifetimes away
+/// to static and store the owner (RefMut) and the derived Mapping object
+/// in this struct
+pub struct GliumMappedVertexBuffer {
+    mapping: Mapping<'static, [Vertex]>,
+    // Drop the owner after the mapping
+    _owner: RefMut<'static, VertexBuffer<Vertex>>,
 }
 
 impl<'a> QuadAllocator for MappedQuads<'a> {
@@ -35,7 +45,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 
         let idx = idx * VERTICES_PER_CELL;
         let mut quad = Quad {
-            vert: &mut self.mapping[idx..idx + VERTICES_PER_CELL],
+            vert: &mut self.mapping.mapping[idx..idx + VERTICES_PER_CELL],
         };
 
         quad.set_has_color(false);
@@ -53,7 +63,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
         let idx = idx * VERTICES_PER_CELL;
         let len = self.capacity * VERTICES_PER_CELL;
         if idx + vertices.len() < len {
-            self.mapping[idx..idx + vertices.len()].copy_from_slice(vertices);
+            self.mapping.mapping[idx..idx + vertices.len()].copy_from_slice(vertices);
         }
     }
 }
@@ -85,19 +95,36 @@ impl TripleVertexBuffer {
         (num_quads * VERTICES_PER_CELL, num_quads * INDICES_PER_CELL)
     }
 
-    pub fn map<'a>(&'a self, bufs: &'a mut RefMut<VertexBuffer<Vertex>>) -> MappedQuads<'a> {
-        let mapping = bufs.slice_mut(..).expect("to map vertex buffer").map();
+    pub fn map(&self) -> MappedQuads {
+        // To map the vertex buffer, we need to hold a mutable reference to
+        // the buffer and hold the mapping object alive for the duration
+        // of the access.  Rust doesn't allow us to create a struct that
+        // holds both of those things, because one references the other
+        // and it doesn't permit self-referential structs.
+        // We use the very blunt instrument "transmute" to force Rust to
+        // treat the lifetimes of both of these things as static, which
+        // we can then store in the same struct.
+        // This is "safe" because we carry them around together and ensure
+        // that the owner is dropped after the derived data.
+        let mapping = unsafe {
+            let mut bufs: RefMut<'static, VertexBuffer<Vertex>> =
+                std::mem::transmute(self.current_vb_mut());
+            let buf_slice: BufferMutSlice<'static, [Vertex]> =
+                std::mem::transmute(bufs.slice_mut(..).expect("to map vertex buffer"));
+
+            let mapping = buf_slice.map();
+
+            GliumMappedVertexBuffer {
+                _owner: bufs,
+                mapping,
+            }
+        };
+
         MappedQuads {
             mapping,
             next: self.next_quad.borrow_mut(),
             capacity: self.capacity,
         }
-    }
-
-    pub fn current_vb(&self) -> Ref<VertexBuffer<Vertex>> {
-        let index = *self.index.borrow();
-        let bufs = self.bufs.borrow();
-        Ref::map(bufs, |bufs| &bufs[index])
     }
 
     pub fn current_vb_mut(&self) -> RefMut<VertexBuffer<Vertex>> {
