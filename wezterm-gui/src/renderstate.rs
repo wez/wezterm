@@ -7,7 +7,7 @@ use ::window::glium::buffer::{BufferMutSlice, Mapping};
 use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
 use ::window::*;
 use anyhow::Context;
-use std::cell::{RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
@@ -169,6 +169,23 @@ impl RenderLayer {
         }
     }
 
+    pub fn quad_allocator(&self) -> TripleLayerQuadAllocator {
+        // We're creating a self-referential struct here to manage the lifetimes
+        // of these related items.  The transmutes are safe because we're only
+        // transmuting the lifetimes (not the types), and we're keeping hold
+        // of the owner in the returned struct.
+        unsafe {
+            let vbs: Ref<'static, [TripleVertexBuffer; 3]> = std::mem::transmute(self.vb.borrow());
+            let layer0: MappedQuads<'static> = std::mem::transmute(vbs[0].map());
+            let layer1: MappedQuads<'static> = std::mem::transmute(vbs[1].map());
+            let layer2: MappedQuads<'static> = std::mem::transmute(vbs[2].map());
+            TripleLayerQuadAllocator::Gpu(BorrowedLayers {
+                layers: [layer0, layer1, layer2],
+                _owner: vbs,
+            })
+        }
+    }
+
     pub fn need_more_quads(&self, vb_idx: usize) -> Option<usize> {
         self.vb.borrow()[vb_idx].need_more_quads()
     }
@@ -231,15 +248,20 @@ impl RenderLayer {
     }
 }
 
-pub struct BorrowedLayers<'a>(pub [MappedQuads<'a>; 3]);
+pub struct BorrowedLayers {
+    pub layers: [MappedQuads<'static>; 3],
 
-impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
+    // layers references _owner, so it must be dropped after layers.
+    _owner: Ref<'static, [TripleVertexBuffer; 3]>,
+}
+
+impl TripleLayerQuadAllocatorTrait for BorrowedLayers {
     fn allocate(&mut self, layer_num: usize) -> anyhow::Result<QuadImpl> {
-        self.0[layer_num].allocate()
+        self.layers[layer_num].allocate()
     }
 
     fn extend_with(&mut self, layer_num: usize, vertices: &[Vertex]) {
-        self.0[layer_num].extend_with(vertices)
+        self.layers[layer_num].extend_with(vertices)
     }
 }
 

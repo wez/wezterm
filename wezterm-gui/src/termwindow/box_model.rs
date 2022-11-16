@@ -4,7 +4,7 @@ use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
 use crate::quad::{QuadImpl, QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
 use crate::termwindow::{
-    BorrowedLayers, ColorEase, MouseCapture, RenderState, TermWindowNotif, UIItem, UIItemType,
+    ColorEase, MouseCapture, RenderState, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
@@ -813,10 +813,7 @@ impl super::TermWindow {
         inherited_colors: Option<&ElementColors>,
     ) -> anyhow::Result<()> {
         let layer = gl_state.layer_for_zindex(element.zindex)?;
-        let vbs = layer.vb.borrow();
-        let vb = [&vbs[0], &vbs[1], &vbs[2]];
-        let mut layers =
-            TripleLayerQuadAllocator::Gpu(BorrowedLayers([vb[0].map(), vb[1].map(), vb[2].map()]));
+        let mut layers = layer.quad_allocator();
 
         let colors = match &element.hover_colors {
             Some(hc) => {

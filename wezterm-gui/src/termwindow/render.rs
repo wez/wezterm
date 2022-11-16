@@ -6,7 +6,6 @@ use crate::quad::{
     HeapQuadAllocator, QuadAllocator, QuadImpl, QuadTrait, TripleLayerQuadAllocator,
     TripleLayerQuadAllocatorTrait,
 };
-use crate::renderstate::BorrowedLayers;
 use crate::selection::SelectionRange;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
@@ -2135,10 +2134,7 @@ impl super::TermWindow {
         let start = Instant::now();
         let gl_state = self.render_state.as_ref().unwrap();
         let layer = gl_state.layer_for_zindex(0)?;
-        let vbs = layer.vb.borrow();
-        let vb = [&vbs[0], &vbs[1], &vbs[2]];
-        let mut layers =
-            TripleLayerQuadAllocator::Gpu(BorrowedLayers([vb[0].map(), vb[1].map(), vb[2].map()]));
+        let mut layers = layer.quad_allocator();
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
