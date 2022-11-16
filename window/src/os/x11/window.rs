@@ -11,7 +11,10 @@ use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, XcbWindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle, XcbDisplayHandle,
+    XcbWindowHandle,
+};
 use std::any::Any;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
@@ -99,11 +102,23 @@ impl Drop for XWindowInner {
     }
 }
 
+unsafe impl HasRawDisplayHandle for XWindowInner {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = XcbDisplayHandle::empty();
+        if let Some(conn) = self.conn.upgrade() {
+            handle.connection = conn.conn.get_raw_conn() as _;
+            handle.screen = conn.screen_num;
+        }
+
+        RawDisplayHandle::Xcb(handle)
+    }
+}
+
 unsafe impl HasRawWindowHandle for XWindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = XcbWindowHandle::empty();
         handle.window = self.window_id.resource_id();
-        handle.visual_id = self.conn.upgrade().unwrap().visual;
+        handle.visual_id = self.conn.upgrade().unwrap().visual.visual_id();
         RawWindowHandle::Xcb(handle)
     }
 }
@@ -1467,6 +1482,19 @@ impl XWindowInner {
         })?;
 
         Ok(())
+    }
+}
+
+unsafe impl HasRawDisplayHandle for XWindow {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let conn = Connection::get()
+            .expect("raw_window_handle only callable on main thread")
+            .x11();
+        let mut handle = XcbDisplayHandle::empty();
+        handle.connection = conn.get_raw_conn() as _;
+        handle.screen = conn.screen_num;
+
+        RawDisplayHandle::Xcb(handle)
     }
 }
 

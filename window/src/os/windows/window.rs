@@ -12,7 +12,10 @@ use async_trait::async_trait;
 use config::{ConfigHandle, ImePreeditRendering};
 use lazy_static::lazy_static;
 use promise::Future;
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, Win32WindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
+    WindowsDisplayHandle,
+};
 use shared_library::shared_library;
 use std::any::Any;
 use std::cell::RefCell;
@@ -177,11 +180,17 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
     }
 }
 
+unsafe impl HasRawDisplayHandle for WindowInner {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
+    }
+}
+
 unsafe impl HasRawWindowHandle for WindowInner {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let mut handle = Win32WindowHandle::empty();
         handle.hwnd = self.hwnd.0 as *mut _;
-        handle.hinstance = unsafe { GetModuleHandleW(null()) };
+        handle.hinstance = unsafe { GetModuleHandleW(null()) } as _;
         RawWindowHandle::Win32(handle)
     }
 }
@@ -649,6 +658,12 @@ impl WindowInner {
                 .detach();
             }
         }
+    }
+}
+
+unsafe impl HasRawDisplayHandle for Window {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
     }
 }
 

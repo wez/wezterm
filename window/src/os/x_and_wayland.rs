@@ -15,7 +15,9 @@ use crate::{
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
 use std::any::Any;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -189,6 +191,16 @@ impl Window {
                 event_handler,
             )
             .await
+    }
+}
+
+unsafe impl HasRawDisplayHandle for Window {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        match self {
+            Self::X11(x) => x.raw_display_handle(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.raw_display_handle(),
+        }
     }
 }
 

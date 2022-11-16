@@ -14,6 +14,8 @@ pub mod os;
 pub mod screen;
 mod spawn;
 
+pub use raw_window_handle;
+
 #[cfg(target_os = "macos")]
 pub(crate) const DEFAULT_DPI: f64 = 72.0;
 #[cfg(not(target_os = "macos"))]

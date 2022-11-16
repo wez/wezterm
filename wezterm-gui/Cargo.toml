@@ -35,6 +35,7 @@ cc = "1.0"
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.3"
+bytemuck = { version="1.4", features=["derive"]}
 chrono = {version="0.4", features=["unstable-locales"]}
 clap = {version="4.0", features=["derive"]}
 codec = { path = "../codec" }
@@ -98,6 +99,7 @@ wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
+wgpu = "0.14"
 window = { path = "../window" }
 window-funcs = { path = "../lua-api-crates/window-funcs" }
 

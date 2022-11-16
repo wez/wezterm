@@ -74,6 +74,7 @@ impl Pane for LocalPane {
     }
 
     fn get_metadata(&self) -> Value {
+        #[allow(unused_mut)]
         let mut map: BTreeMap<Value, Value> = BTreeMap::new();
 
         #[cfg(unix)]

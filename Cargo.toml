@@ -21,7 +21,8 @@ opt-level = 3
 
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
-split-debuginfo = "unpacked"
+# Disabled because it breaks builds on Windows
+#split-debuginfo = "unpacked"
 
 [patch.crates-io]
 xcb = {version="1.1.1", git="https://github.com/rust-x-bindings/rust-xcb", rev="a85a4cf8937898b1da972367df4648143ede38ea"}

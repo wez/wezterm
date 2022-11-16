@@ -16,7 +16,10 @@ use async_trait::async_trait;
 use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, WaylandWindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WaylandDisplayHandle, WaylandWindowHandle,
+};
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
@@ -386,6 +389,15 @@ impl WaylandWindow {
         wait_configure.recv().await?;
 
         Ok(window_handle)
+    }
+}
+
+unsafe impl HasRawDisplayHandle for WaylandWindowInner {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = WaylandDisplayHandle::empty();
+        let conn = WaylandConnection::get().unwrap().wayland();
+        handle.display = conn.display.borrow().c_ptr() as _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 
@@ -804,6 +816,15 @@ impl WaylandWindowInner {
         self.frame_callback.replace(callback);
 
         Ok(())
+    }
+}
+
+unsafe impl HasRawDisplayHandle for WaylandWindow {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        let mut handle = WaylandDisplayHandle::empty();
+        let conn = WaylandConnection::get().unwrap().wayland();
+        handle.display = conn.display.borrow().c_ptr() as _;
+        RawDisplayHandle::Wayland(handle)
     }
 }
 

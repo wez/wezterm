@@ -36,7 +36,10 @@ use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
-use raw_window_handle::{AppKitWindowHandle, HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{
+    AppKitDisplayHandle, AppKitWindowHandle, HasRawDisplayHandle, HasRawWindowHandle,
+    RawDisplayHandle, RawWindowHandle,
+};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -568,6 +571,12 @@ impl Window {
 
             Ok(window_handle)
         }
+    }
+}
+
+unsafe impl HasRawDisplayHandle for Window {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        RawDisplayHandle::AppKit(AppKitDisplayHandle::empty())
     }
 }
 
@@ -2501,9 +2510,23 @@ impl WindowView {
         }
     }
 
+    extern "C" fn update_layer(view: &mut Object, sel: Sel) {
+        log::info!("update_layer called");
+    }
+
+    extern "C" fn wants_update_layer(view: &mut Object, sel: Sel) -> BOOL {
+        log::info!("wants_update_layer called");
+        YES
+    }
+
+    extern "C" fn display_layer(view: &mut Object, sel: Sel, _layer_id: id) {
+        log::info!("display_layer");
+    }
+
     extern "C" fn draw_rect(view: &mut Object, sel: Sel, _dirty_rect: NSRect) {
         if let Some(this) = Self::get_this(view) {
             let mut inner = this.inner.borrow_mut();
+            log::info!("draw_rect called");
 
             if inner.screen_changed {
                 // If the screen resolution changed (which can also
@@ -2625,6 +2648,8 @@ impl WindowView {
             Protocol::get("NSTextInputClient").expect("failed to get NSTextInputClient protocol"),
         );
 
+        cls.add_protocol(Protocol::get("CALayerDelegate").expect("CALayerDelegate not defined"));
+
         unsafe {
             cls.add_method(
                 sel!(dealloc),
@@ -2644,6 +2669,21 @@ impl WindowView {
             cls.add_method(
                 sel!(drawRect:),
                 Self::draw_rect as extern "C" fn(&mut Object, Sel, NSRect),
+            );
+
+            cls.add_method(
+                sel!(updateLayer),
+                Self::update_layer as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(wantsUpdateLayer),
+                Self::wants_update_layer as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(displayLayer:),
+                Self::display_layer as extern "C" fn(&mut Object, Sel, id),
             );
 
             cls.add_method(

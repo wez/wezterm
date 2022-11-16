@@ -24,6 +24,7 @@ use crate::termwindow::render::{
     CachedLineState, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
     LineToElementShapeItem,
 };
+use crate::termwindow::webgpu::WebGpuState;
 use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
@@ -32,8 +33,8 @@ use config::keyassignment::{
     QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
-    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, TermConfig,
-    WindowCloseConfirmation,
+    configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
+    TermConfig, WindowCloseConfirmation,
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
@@ -77,6 +78,7 @@ mod render;
 pub mod resize;
 mod selection;
 pub mod spawn;
+pub mod webgpu;
 use prevcursor::PrevCursorPos;
 use spawn::SpawnWhere;
 
@@ -439,6 +441,7 @@ pub struct TermWindow {
     pub fps: f32,
 
     gl: Option<Rc<glium::backend::Context>>,
+    webgpu: Option<WebGpuState>,
     config_subscription: Option<config::ConfigSubscription>,
 }
 
@@ -557,10 +560,6 @@ impl TermWindow {
             }
         }
 
-        self.load_os_parameters();
-
-        window.show();
-
         if self.render_state.is_none() {
             panic!("No OpenGL");
         }
@@ -667,6 +666,7 @@ impl TermWindow {
             config_subscription: None,
             os_parameters: None,
             gl: None,
+            webgpu: None,
             window: None,
             window_background,
             config: config.clone(),
@@ -812,11 +812,18 @@ impl TermWindow {
             }
         });
 
-        let gl = window.enable_opengl().await?;
+        let gl = match config.front_end {
+            FrontEndSelection::WebGpu => None,
+            _ => Some(window.enable_opengl().await?),
+        };
+
         {
             let mut myself = tw.borrow_mut();
+            let webgpu = match config.front_end {
+                FrontEndSelection::WebGpu => Some(WebGpuState::new(&window, dimensions).await?),
+                _ => None,
+            };
             myself.config_subscription.replace(config_subscription);
-            myself.gl.replace(Rc::clone(&gl));
             if config.use_resize_increments {
                 window.set_resize_increments(
                     myself.render_metrics.cell_size.width as u16,
@@ -824,7 +831,16 @@ impl TermWindow {
                 );
             }
 
-            myself.created(&window, Rc::clone(&gl))?;
+            if let Some(gl) = gl {
+                myself.gl.replace(Rc::clone(&gl));
+                myself.created(&window, Rc::clone(&gl))?;
+            }
+            myself.webgpu = webgpu;
+            myself.load_os_parameters();
+            window.show();
+            if myself.webgpu.is_some() {
+                log::info!("using webgpu");
+            }
             myself.subscribe_to_pane_updates();
             myself.emit_window_event("window-config-reloaded", None);
             myself.emit_status_event();
@@ -841,6 +857,7 @@ impl TermWindow {
         event: WindowEvent,
         window: &Window,
     ) -> anyhow::Result<bool> {
+        log::debug!("{event:?}");
         match event {
             WindowEvent::Destroyed => Ok(false),
             WindowEvent::CloseRequested => {
@@ -900,6 +917,7 @@ impl TermWindow {
                 window.invalidate();
                 Ok(true)
             }
+            WindowEvent::NeedRepaint if self.webgpu.is_some() => self.do_paint_webgpu(window),
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {
@@ -952,6 +970,67 @@ impl TermWindow {
 
         self.paint_impl(&mut frame);
         window.finish_frame(frame).is_ok()
+    }
+
+    fn do_paint_webgpu(&mut self, window: &Window) -> anyhow::Result<bool> {
+        self.webgpu.as_mut().unwrap().resize(self.dimensions);
+        match self.do_paint_webgpu_impl(window) {
+            Ok(ok) => Ok(ok),
+            Err(err) => {
+                match err.downcast_ref::<wgpu::SurfaceError>() {
+                    Some(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                        self.webgpu.as_mut().unwrap().resize(self.dimensions);
+                        return self.do_paint_webgpu_impl(window);
+                    }
+                    _ => {}
+                }
+                Err(err)
+            }
+        }
+    }
+
+    fn do_paint_webgpu_impl(&mut self, window: &Window) -> anyhow::Result<bool> {
+        let webgpu = self.webgpu.as_mut().unwrap();
+
+        let output = webgpu.surface.get_current_texture()?;
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = webgpu
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            render_pass.set_pipeline(&webgpu.render_pipeline);
+            render_pass.set_vertex_buffer(0, webgpu.vertex_buffer.slice(..));
+            render_pass.draw(0..webgpu.num_vertices, 0..1);
+        }
+
+        // submit will accept anything that implements IntoIter
+        webgpu.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(true)
     }
 
     fn dispatch_notif(&mut self, notif: TermWindowNotif, window: &Window) -> anyhow::Result<()> {
