@@ -747,6 +747,18 @@ impl From<(f32, f32, f32, f32)> for LinearRgba {
     }
 }
 
+impl From<[f32; 4]> for LinearRgba {
+    fn from([r, g, b, a]: [f32; 4]) -> Self {
+        Self(r, g, b, a)
+    }
+}
+
+impl Into<[f32; 4]> for LinearRgba {
+    fn into(self) -> [f32; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
+}
+
 impl LinearRgba {
     /// Convert SRGBA u8 components to LinearRgba.
     /// Note that alpha in SRGBA colorspace is already linear,

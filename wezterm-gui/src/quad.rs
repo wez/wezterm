@@ -15,15 +15,16 @@ pub const V_TOP_RIGHT: usize = 1;
 pub const V_BOT_LEFT: usize = 2;
 pub const V_BOT_RIGHT: usize = 3;
 
-#[derive(Copy, Clone, Default)]
+#[repr(C)]
+#[derive(Copy, Clone, Default, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     // Physical position of the corner of the character cell
-    pub position: (f32, f32),
+    pub position: [f32; 2],
     // glyph texture
-    pub tex: (f32, f32),
-    pub fg_color: (f32, f32, f32, f32),
-    pub alt_color: (f32, f32, f32, f32),
-    pub hsv: (f32, f32, f32),
+    pub tex: [f32; 2],
+    pub fg_color: [f32; 4],
+    pub alt_color: [f32; 4],
+    pub hsv: [f32; 3],
     // We use a float for this because I can't get
     // bool or integer values to work:
     // "bool can't be an in in the vertex shader"
@@ -141,10 +142,10 @@ pub struct Quad<'a> {
 
 impl<'a> QuadTrait for Quad<'a> {
     fn set_texture_discrete(&mut self, x1: f32, x2: f32, y1: f32, y2: f32) {
-        self.vert[V_TOP_LEFT].tex = (x1, y1);
-        self.vert[V_TOP_RIGHT].tex = (x2, y1);
-        self.vert[V_BOT_LEFT].tex = (x1, y2);
-        self.vert[V_BOT_RIGHT].tex = (x2, y2);
+        self.vert[V_TOP_LEFT].tex = [x1, y1];
+        self.vert[V_TOP_RIGHT].tex = [x2, y1];
+        self.vert[V_BOT_LEFT].tex = [x1, y2];
+        self.vert[V_BOT_RIGHT].tex = [x2, y2];
     }
 
     fn set_has_color_impl(&mut self, has_color: f32) {
@@ -155,7 +156,7 @@ impl<'a> QuadTrait for Quad<'a> {
 
     fn set_fg_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
-            v.fg_color = color.tuple();
+            v.fg_color = color.into();
         }
         self.set_alt_color_and_mix_value(color, 0.);
     }
@@ -163,25 +164,25 @@ impl<'a> QuadTrait for Quad<'a> {
     /// Must be called after set_fg_color
     fn set_alt_color_and_mix_value(&mut self, color: LinearRgba, mix_value: f32) {
         for v in self.vert.iter_mut() {
-            v.alt_color = color.tuple();
+            v.alt_color = color.into();
             v.mix_value = mix_value;
         }
     }
 
     fn set_hsv(&mut self, hsv: Option<HsbTransform>) {
-        let s = hsv
+        let (h, s, v) = hsv
             .map(|t| (t.hue, t.saturation, t.brightness))
             .unwrap_or((1., 1., 1.));
-        for v in self.vert.iter_mut() {
-            v.hsv = s;
+        for vert in self.vert.iter_mut() {
+            vert.hsv = [h, s, v];
         }
     }
 
     fn set_position(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
-        self.vert[V_TOP_LEFT].position = (left, top);
-        self.vert[V_TOP_RIGHT].position = (right, top);
-        self.vert[V_BOT_LEFT].position = (left, bottom);
-        self.vert[V_BOT_RIGHT].position = (right, bottom);
+        self.vert[V_TOP_LEFT].position = [left, top];
+        self.vert[V_TOP_RIGHT].position = [right, top];
+        self.vert[V_BOT_LEFT].position = [left, bottom];
+        self.vert[V_BOT_RIGHT].position = [right, bottom];
     }
 }
 
@@ -203,10 +204,10 @@ pub trait TripleLayerQuadAllocatorTrait {
 #[derive(Default)]
 pub struct BoxedQuad {
     position: (f32, f32, f32, f32),
-    fg_color: (f32, f32, f32, f32),
-    alt_color: (f32, f32, f32, f32),
+    fg_color: [f32; 4],
+    alt_color: [f32; 4],
     tex: (f32, f32, f32, f32),
-    hsv: (f32, f32, f32),
+    hsv: [f32; 3],
     has_color: f32,
     mix_value: f32,
 }
@@ -221,16 +222,17 @@ impl QuadTrait for BoxedQuad {
     }
 
     fn set_fg_color(&mut self, color: LinearRgba) {
-        self.fg_color = color.tuple();
+        self.fg_color = color.into();
     }
     fn set_alt_color_and_mix_value(&mut self, color: LinearRgba, mix_value: f32) {
-        self.alt_color = color.tuple();
+        self.alt_color = color.into();
         self.mix_value = mix_value;
     }
     fn set_hsv(&mut self, hsv: Option<HsbTransform>) {
-        self.hsv = hsv
+        let (h, s, v) = hsv
             .map(|t| (t.hue, t.saturation, t.brightness))
             .unwrap_or((1., 1., 1.));
+        self.hsv = [h, s, v];
     }
 
     fn set_position(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
@@ -240,11 +242,11 @@ impl QuadTrait for BoxedQuad {
 
 impl BoxedQuad {
     fn from_vertices(verts: &[Vertex; VERTICES_PER_CELL]) -> Self {
-        let (x1, y1) = verts[V_TOP_LEFT].tex;
-        let (x2, y2) = verts[V_BOT_RIGHT].tex;
+        let [x1, y1] = verts[V_TOP_LEFT].tex;
+        let [x2, y2] = verts[V_BOT_RIGHT].tex;
 
-        let (left, top) = verts[V_TOP_LEFT].position;
-        let (right, bottom) = verts[V_BOT_RIGHT].position;
+        let [left, top] = verts[V_TOP_LEFT].position;
+        let [right, bottom] = verts[V_BOT_RIGHT].position;
         Self {
             tex: (x1, x2, y1, y2),
             position: (left, top, right, bottom),
@@ -267,13 +269,18 @@ impl BoxedQuad {
         quad.set_position(left, top, right, bottom);
 
         quad.set_has_color_impl(self.has_color);
-        let (hue, saturation, brightness) = self.hsv;
+        let [hue, saturation, brightness] = self.hsv;
         quad.set_hsv(Some(HsbTransform {
             hue,
             saturation,
             brightness,
         }));
-        quad.set_fg_color(self.fg_color.into());
+        quad.set_fg_color(LinearRgba::with_components(
+            self.fg_color[0],
+            self.fg_color[1],
+            self.fg_color[2],
+            self.fg_color[3],
+        ));
         quad.set_alt_color_and_mix_value(self.alt_color.into(), self.mix_value);
 
         vert
