@@ -954,26 +954,29 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     let mut glyph = String::new();
 
                     if let Some(texture) = &cached_glyph.texture {
-                        for y in texture.coords.min_y()..texture.coords.max_y() {
-                            for &px in texture.texture.image.borrow().horizontal_pixel_range(
-                                texture.coords.min_x() as usize,
-                                texture.coords.max_x() as usize,
-                                y as usize,
-                            ) {
-                                let px = u32::from_be(px);
-                                let (b, g, r, a) = (
-                                    (px >> 8) as u8,
-                                    (px >> 16) as u8,
-                                    (px >> 24) as u8,
-                                    (px & 0xff) as u8,
-                                );
-                                // Use regular RGB for other terminals, but then
-                                // set RGBA for wezterm
-                                glyph.push_str(&format!(
+                        use window::bitmaps::ImageTexture;
+                        if let Some(tex) = texture.texture.downcast_ref::<ImageTexture>() {
+                            for y in texture.coords.min_y()..texture.coords.max_y() {
+                                for &px in tex.image.borrow().horizontal_pixel_range(
+                                    texture.coords.min_x() as usize,
+                                    texture.coords.max_x() as usize,
+                                    y as usize,
+                                ) {
+                                    let px = u32::from_be(px);
+                                    let (b, g, r, a) = (
+                                        (px >> 8) as u8,
+                                        (px >> 16) as u8,
+                                        (px >> 24) as u8,
+                                        (px & 0xff) as u8,
+                                    );
+                                    // Use regular RGB for other terminals, but then
+                                    // set RGBA for wezterm
+                                    glyph.push_str(&format!(
                                 "\x1b[38:2::{r}:{g}:{b}m\x1b[38:6::{r}:{g}:{b}:{a}m\u{2588}\x1b[0m"
                             ));
+                                }
+                                glyph.push('\n');
                             }
-                            glyph.push('\n');
                         }
                     }
 

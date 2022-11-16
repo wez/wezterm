@@ -7,7 +7,6 @@ use std::ops::Range;
 use termwiz::surface::CursorShape;
 use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
 use wezterm_font::units::{IntPixelLength, PixelLength};
-use window::bitmaps::Texture2d;
 use window::{BitmapImage, Image, Point, Rect, Size};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -3660,7 +3659,7 @@ impl BlockKey {
     }
 }
 
-impl<T: Texture2d> GlyphCache<T> {
+impl GlyphCache {
     fn draw_polys(
         &mut self,
         metrics: &RenderMetrics,
@@ -3703,7 +3702,7 @@ impl<T: Texture2d> GlyphCache<T> {
         shape: Option<CursorShape>,
         metrics: &RenderMetrics,
         width: u8,
-    ) -> anyhow::Result<Sprite<T>> {
+    ) -> anyhow::Result<Sprite> {
         if let Some(sprite) = self.cursor_glyphs.get(&(shape, width)) {
             return Ok(sprite.clone());
         }
@@ -3789,7 +3788,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         render_metrics: &RenderMetrics,
         key: SizedBlockKey,
-    ) -> anyhow::Result<Sprite<T>> {
+    ) -> anyhow::Result<Sprite> {
         let metrics = match &key.block {
             BlockKey::PolyWithCustomMetrics {
                 underline_height,

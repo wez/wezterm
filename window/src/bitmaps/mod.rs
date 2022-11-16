@@ -1,5 +1,6 @@
 use crate::color::{LinearRgba, SrgbaPixel};
 use crate::{Point, Rect, Size};
+use downcast_rs::{impl_downcast, Downcast};
 use glium::texture::SrgbTexture2d;
 use std::cell::RefCell;
 
@@ -12,7 +13,7 @@ pub type TextureSize = euclid::Size2D<f32, TextureUnit>;
 
 /// Represents a big endian bgra32 bitmap that may not be present
 /// in local RAM, but may be addressable in eg: video RAM
-pub trait Texture2d {
+pub trait Texture2d: Downcast {
     /// Copy the bits from the source bitmap to the texture at the location
     /// specified by the rectangle.
     /// The dimensions of the rectangle must match the source image
@@ -40,6 +41,7 @@ pub trait Texture2d {
         )
     }
 }
+impl_downcast!(Texture2d);
 
 impl Texture2d for SrgbTexture2d {
     fn write(&self, rect: Rect, im: &dyn BitmapImage) {

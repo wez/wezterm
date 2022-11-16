@@ -1,6 +1,6 @@
 use super::glyphcache::GlyphCache;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
-use ::window::bitmaps::{BitmapImage, Image, Texture2d};
+use ::window::bitmaps::{BitmapImage, Image};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect, Size};
 use anyhow::Context;
@@ -132,14 +132,14 @@ impl RenderMetrics {
     }
 }
 
-pub struct UtilSprites<T: Texture2d> {
-    pub white_space: Sprite<T>,
-    pub filled_box: Sprite<T>,
+pub struct UtilSprites {
+    pub white_space: Sprite,
+    pub filled_box: Sprite,
 }
 
-impl<T: Texture2d> UtilSprites<T> {
+impl UtilSprites {
     pub fn new(
-        glyph_cache: &mut GlyphCache<T>,
+        glyph_cache: &mut GlyphCache,
         metrics: &RenderMetrics,
     ) -> Result<Self, OutOfTextureSpace> {
         let mut buffer = Image::new(

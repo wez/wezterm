@@ -1,6 +1,5 @@
 use crate::customglyph::BlockKey;
 use crate::glyphcache::CachedGlyph;
-use ::window::bitmaps::Texture2d;
 use config::TextStyle;
 use std::rc::Rc;
 use wezterm_font::shaper::GlyphInfo;
@@ -22,25 +21,17 @@ pub struct GlyphPosition {
 }
 
 #[derive(Debug)]
-pub struct ShapedInfo<T>
-where
-    T: Texture2d,
-    T: std::fmt::Debug,
-{
-    pub glyph: Rc<CachedGlyph<T>>,
+pub struct ShapedInfo {
+    pub glyph: Rc<CachedGlyph>,
     pub pos: GlyphPosition,
     pub block_key: Option<BlockKey>,
 }
 
-impl<T> ShapedInfo<T>
-where
-    T: Texture2d,
-    T: std::fmt::Debug,
-{
+impl ShapedInfo {
     /// Process the results from the shaper, stitching together glyph
     /// and positioning information
-    pub fn process(infos: &[GlyphInfo], glyphs: &[Rc<CachedGlyph<T>>]) -> Vec<ShapedInfo<T>> {
-        let mut pos: Vec<ShapedInfo<T>> = Vec::with_capacity(infos.len());
+    pub fn process(infos: &[GlyphInfo], glyphs: &[Rc<CachedGlyph>]) -> Vec<ShapedInfo> {
+        let mut pos: Vec<ShapedInfo> = Vec::with_capacity(infos.len());
 
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
             pos.push(ShapedInfo {
@@ -123,7 +114,6 @@ impl<'a> std::hash::Hash for (dyn ShapeCacheKeyTrait + 'a) {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::glyphcache::GlyphCache;
     use crate::shapecache::{GlyphPosition, ShapedInfo};
     use crate::utilsprites::RenderMetrics;
@@ -135,17 +125,13 @@ mod test {
     use wezterm_font::shaper::PresentationWidth;
     use wezterm_font::{FontConfiguration, LoadedFont};
 
-    fn cluster_and_shape<T>(
+    fn cluster_and_shape(
         render_metrics: &RenderMetrics,
-        glyph_cache: &mut GlyphCache<T>,
+        glyph_cache: &mut GlyphCache,
         style: &TextStyle,
         font: &Rc<LoadedFont>,
         text: &str,
-    ) -> Vec<GlyphPosition>
-    where
-        T: Texture2d,
-        T: std::fmt::Debug,
-    {
+    ) -> Vec<GlyphPosition> {
         let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO, None);
         eprintln!("{:?}", line);
         let mut all_infos = vec![];

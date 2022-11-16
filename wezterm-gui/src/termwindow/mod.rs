@@ -3,7 +3,6 @@ use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::colorease::ColorEase;
 use crate::frontend::{front_end, try_front_end};
-use crate::glium::texture::SrgbTexture2d;
 use crate::inputmap::InputMap;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
@@ -404,8 +403,7 @@ pub struct TermWindow {
 
     quad_generation: usize,
     shape_generation: usize,
-    shape_cache:
-        RefCell<LfuCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
+    shape_cache: RefCell<LfuCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo>>>>>,
     line_to_ele_shape_cache: RefCell<LfuCache<LineToEleShapeCacheKey, LineToElementShapeItem>>,
 
     line_state_cache: RefCell<LfuCacheU64<Arc<CachedLineState>>>,

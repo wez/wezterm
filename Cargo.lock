@@ -6200,6 +6200,7 @@ dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
  "dirs-next",
+ "downcast-rs",
  "euclid",
  "filedescriptor",
  "futures-util",

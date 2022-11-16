@@ -4,8 +4,7 @@ use crate::customglyph::{BlockKey, Poly};
 use crate::glyphcache::CachedGlyph;
 use crate::quad::{QuadImpl, QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
 use crate::termwindow::{
-    BorrowedLayers, ColorEase, MouseCapture, RenderState, SrgbTexture2d, TermWindowNotif, UIItem,
-    UIItemType,
+    BorrowedLayers, ColorEase, MouseCapture, RenderState, TermWindowNotif, UIItem, UIItemType,
 };
 use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
@@ -486,8 +485,8 @@ pub enum ComputedElementContent {
 
 #[derive(Debug, Clone)]
 pub enum ElementCell {
-    Sprite(Sprite<SrgbTexture2d>),
-    Glyph(Rc<CachedGlyph<SrgbTexture2d>>),
+    Sprite(Sprite),
+    Glyph(Rc<CachedGlyph>),
 }
 
 struct Rects {

@@ -4,7 +4,6 @@ use super::utilsprites::{RenderMetrics, UtilSprites};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::Mapping;
-use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
 use ::window::*;
 use anyhow::Context;
@@ -219,8 +218,8 @@ impl<'a> TripleLayerQuadAllocatorTrait for BorrowedLayers<'a> {
 
 pub struct RenderState {
     pub context: Rc<GliumContext>,
-    pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
-    pub util_sprites: UtilSprites<SrgbTexture2d>,
+    pub glyph_cache: RefCell<GlyphCache>,
+    pub util_sprites: UtilSprites,
     pub glyph_prog: glium::Program,
     pub layers: RefCell<Vec<Rc<RenderLayer>>>,
 }

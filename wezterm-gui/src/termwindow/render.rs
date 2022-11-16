@@ -1,7 +1,6 @@
 use super::box_model::*;
 use crate::colorease::{ColorEase, ColorEaseUniform};
 use crate::customglyph::{BlockKey, *};
-use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::{
     HeapQuadAllocator, QuadAllocator, QuadImpl, QuadTrait, TripleLayerQuadAllocator,
@@ -49,7 +48,6 @@ use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
-use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
 
 pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
@@ -222,7 +220,7 @@ pub struct LineToElementShape {
     pub underline_color: LinearRgba,
     pub x_pos: f32,
     pub pixel_width: f32,
-    pub glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
+    pub glyph_info: Rc<Vec<ShapedInfo>>,
     pub cluster: CellCluster,
 }
 
@@ -1900,8 +1898,11 @@ impl super::TermWindow {
     }
 
     fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
+        use crate::glium::texture::SrgbTexture2d;
         let gl_state = self.render_state.as_ref().unwrap();
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
+        let tex = tex.downcast_ref::<SrgbTexture2d>().unwrap();
+
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
             -(self.dimensions.pixel_width as f32) / 2.0,
             self.dimensions.pixel_width as f32 / 2.0,
@@ -3103,7 +3104,7 @@ impl super::TermWindow {
         font: Option<&Rc<LoadedFont>>,
         gl_state: &RenderState,
         metrics: &RenderMetrics,
-    ) -> anyhow::Result<Rc<CachedGlyph<SrgbTexture2d>>> {
+    ) -> anyhow::Result<Rc<CachedGlyph>> {
         let fa_lock = "\u{f023}";
         let line = Line::from_text(fa_lock, attrs, 0, None);
         let cluster = line.cluster(None);
@@ -3413,11 +3414,11 @@ impl super::TermWindow {
     fn glyph_infos_to_glyphs(
         &self,
         style: &TextStyle,
-        glyph_cache: &mut GlyphCache<SrgbTexture2d>,
+        glyph_cache: &mut GlyphCache,
         infos: &[GlyphInfo],
         font: &Rc<LoadedFont>,
         metrics: &RenderMetrics,
-    ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
+    ) -> anyhow::Result<Vec<Rc<CachedGlyph>>> {
         let mut glyphs = Vec::with_capacity(infos.len());
         let mut iter = infos.iter().peekable();
         while let Some(info) = iter.next() {
@@ -3466,7 +3467,7 @@ impl super::TermWindow {
         gl_state: &RenderState,
         font: Option<&Rc<LoadedFont>>,
         metrics: &RenderMetrics,
-    ) -> anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>> {
+    ) -> anyhow::Result<Rc<Vec<ShapedInfo>>> {
         let shape_resolve_start = Instant::now();
         let key = BorrowedShapeCacheKey {
             style,
@@ -3532,7 +3533,7 @@ impl super::TermWindow {
     fn lookup_cached_shape(
         &self,
         key: &dyn ShapeCacheKeyTrait,
-    ) -> Option<anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>> {
+    ) -> Option<anyhow::Result<Rc<Vec<ShapedInfo>>>> {
         match self.shape_cache.borrow_mut().get(key) {
             Some(Ok(info)) => Some(Ok(Rc::clone(info))),
             Some(Err(err)) => Some(Err(anyhow!("cached shaper error: {}", err))),

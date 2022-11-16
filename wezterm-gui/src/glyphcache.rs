@@ -134,7 +134,7 @@ impl<'a> std::hash::Hash for (dyn GlyphKeyTrait + 'a) {
 
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
-pub struct CachedGlyph<T: Texture2d> {
+pub struct CachedGlyph {
     pub has_color: bool,
     pub brightness_adjust: f32,
     pub x_offset: PixelLength,
@@ -142,11 +142,11 @@ pub struct CachedGlyph<T: Texture2d> {
     pub x_advance: PixelLength,
     pub bearing_x: PixelLength,
     pub bearing_y: PixelLength,
-    pub texture: Option<Sprite<T>>,
+    pub texture: Option<Sprite>,
     pub scale: f64,
 }
 
-impl<T: Texture2d> std::fmt::Debug for CachedGlyph<T> {
+impl std::fmt::Debug for CachedGlyph {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         fmt.debug_struct("CachedGlyph")
             .field("has_color", &self.has_color)
@@ -247,21 +247,21 @@ impl DecodedImage {
 
 /// A number of items here are HashMaps rather than LfuCaches;
 /// eviction is managed by recreating Self when the Atlas is filled
-pub struct GlyphCache<T: Texture2d> {
-    glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
-    pub atlas: Atlas<T>,
+pub struct GlyphCache {
+    glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph>>,
+    pub atlas: Atlas,
     pub fonts: Rc<FontConfiguration>,
     pub image_cache: LfuCacheU64<DecodedImage>,
-    frame_cache: HashMap<[u8; 32], Sprite<T>>,
-    line_glyphs: HashMap<LineKey, Sprite<T>>,
-    pub block_glyphs: HashMap<SizedBlockKey, Sprite<T>>,
-    pub cursor_glyphs: HashMap<(Option<CursorShape>, u8), Sprite<T>>,
-    pub color: HashMap<(RgbColor, NotNan<f32>), Sprite<T>>,
+    frame_cache: HashMap<[u8; 32], Sprite>,
+    line_glyphs: HashMap<LineKey, Sprite>,
+    pub block_glyphs: HashMap<SizedBlockKey, Sprite>,
+    pub cursor_glyphs: HashMap<(Option<CursorShape>, u8), Sprite>,
+    pub color: HashMap<(RgbColor, NotNan<f32>), Sprite>,
 }
 
-impl GlyphCache<ImageTexture> {
+impl GlyphCache {
     pub fn new_in_memory(fonts: &Rc<FontConfiguration>, size: usize) -> anyhow::Result<Self> {
-        let surface = Rc::new(ImageTexture::new(size, size));
+        let surface: Rc<dyn Texture2d> = Rc::new(ImageTexture::new(size, size));
         let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
 
         Ok(Self {
@@ -283,13 +283,14 @@ impl GlyphCache<ImageTexture> {
     }
 }
 
-impl GlyphCache<WebGpuTexture> {
+impl GlyphCache {
     pub fn new_webgpu(
         state: &WebGpuState,
         fonts: &Rc<FontConfiguration>,
         size: usize,
     ) -> anyhow::Result<Self> {
-        let texture = Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
+        let texture: Rc<dyn Texture2d> =
+            Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
         let atlas = Atlas::new(&texture).expect("failed to create new texture atlas");
 
         Ok(Self {
@@ -311,7 +312,7 @@ impl GlyphCache<WebGpuTexture> {
     }
 }
 
-impl GlyphCache<SrgbTexture2d> {
+impl GlyphCache {
     pub fn new_gl(
         backend: &Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
@@ -334,7 +335,7 @@ impl GlyphCache<SrgbTexture2d> {
                 caps.max_texture_size
             );
         }
-        let surface = Rc::new(SrgbTexture2d::empty_with_format(
+        let surface: Rc<dyn Texture2d> = Rc::new(SrgbTexture2d::empty_with_format(
             backend,
             glium::texture::SrgbFormat::U8U8U8U8,
             glium::texture::MipmapsOption::NoMipmap,
@@ -362,7 +363,7 @@ impl GlyphCache<SrgbTexture2d> {
     }
 }
 
-impl<T: Texture2d> GlyphCache<T> {
+impl GlyphCache {
     /// Resolve a glyph from the cache, rendering the glyph on-demand if
     /// the cache doesn't already hold the desired glyph.
     pub fn cached_glyph(
@@ -373,7 +374,7 @@ impl<T: Texture2d> GlyphCache<T> {
         font: &Rc<LoadedFont>,
         metrics: &RenderMetrics,
         num_cells: u8,
-    ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
+    ) -> anyhow::Result<Rc<CachedGlyph>> {
         let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
@@ -443,7 +444,7 @@ impl<T: Texture2d> GlyphCache<T> {
         font: &Rc<LoadedFont>,
         followed_by_space: bool,
         num_cells: u8,
-    ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
+    ) -> anyhow::Result<Rc<CachedGlyph>> {
         let base_metrics;
         let idx_metrics;
         let brightness_adjust;
@@ -610,11 +611,11 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 
     fn cached_image_impl(
-        frame_cache: &mut HashMap<[u8; 32], Sprite<T>>,
-        atlas: &mut Atlas<T>,
+        frame_cache: &mut HashMap<[u8; 32], Sprite>,
+        atlas: &mut Atlas,
         decoded: &DecodedImage,
         padding: Option<usize>,
-    ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
+    ) -> anyhow::Result<(Sprite, Option<Instant>)> {
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
             current_frame: *decoded.current_frame.borrow(),
@@ -683,7 +684,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
-    ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
+    ) -> anyhow::Result<(Sprite, Option<Instant>)> {
         let id = image_data.id() as u64;
 
         if let Some(decoded) = self.image_cache.get(&id) {
@@ -697,7 +698,7 @@ impl<T: Texture2d> GlyphCache<T> {
         }
     }
 
-    pub fn cached_color(&mut self, color: RgbColor, alpha: f32) -> anyhow::Result<Sprite<T>> {
+    pub fn cached_color(&mut self, color: RgbColor, alpha: f32) -> anyhow::Result<Sprite> {
         let key = (color, NotNan::new(alpha).unwrap());
 
         if let Some(s) = self.color.get(&key) {
@@ -722,7 +723,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         block: BlockKey,
         metrics: &RenderMetrics,
-    ) -> anyhow::Result<Sprite<T>> {
+    ) -> anyhow::Result<Sprite> {
         let key = SizedBlockKey {
             block,
             size: metrics.into(),
@@ -733,7 +734,7 @@ impl<T: Texture2d> GlyphCache<T> {
         self.block_sprite(metrics, key)
     }
 
-    fn line_sprite(&mut self, key: LineKey, metrics: &RenderMetrics) -> anyhow::Result<Sprite<T>> {
+    fn line_sprite(&mut self, key: LineKey, metrics: &RenderMetrics) -> anyhow::Result<Sprite> {
         let mut buffer = Image::new(
             metrics.cell_size.width as usize,
             metrics.cell_size.height as usize,
@@ -936,7 +937,7 @@ impl<T: Texture2d> GlyphCache<T> {
         underline: Underline,
         overline: bool,
         metrics: &RenderMetrics,
-    ) -> anyhow::Result<Sprite<T>> {
+    ) -> anyhow::Result<Sprite> {
         let effective_underline = match (is_highlited_hyperlink, underline) {
             (true, Underline::None) => Underline::Single,
             (true, Underline::Single) => Underline::Double,
