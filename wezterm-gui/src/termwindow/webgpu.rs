@@ -1,9 +1,12 @@
 use anyhow::anyhow;
+use std::num::NonZeroU32;
+use std::sync::Arc;
 use wgpu::util::DeviceExt;
+use window::bitmaps::Texture2d;
 use window::raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
-use window::{Dimensions, Window};
+use window::{BitmapImage, Dimensions, Rect, Window};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -43,7 +46,7 @@ const VERTICES: &[Vertex] = &[
 pub struct WebGpuState {
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
+    pub queue: Arc<wgpu::Queue>,
     pub config: wgpu::SurfaceConfiguration,
     pub dimensions: Dimensions,
     pub render_pipeline: wgpu::RenderPipeline,
@@ -75,6 +78,79 @@ unsafe impl HasRawWindowHandle for RawHandlePair {
 unsafe impl HasRawDisplayHandle for RawHandlePair {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         self.display
+    }
+}
+
+pub struct WebGpuTexture {
+    texture: wgpu::Texture,
+    width: u32,
+    height: u32,
+    queue: Arc<wgpu::Queue>,
+}
+
+impl Texture2d for WebGpuTexture {
+    fn write(&self, rect: Rect, im: &dyn BitmapImage) {
+        let (im_width, im_height) = im.image_dimensions();
+
+        self.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: rect.min_x() as u32,
+                    y: rect.min_y() as u32,
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            im.pixel_data_slice(),
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: NonZeroU32::new(im_width as u32 * 4),
+                rows_per_image: NonZeroU32::new(im_height as u32),
+            },
+            wgpu::Extent3d {
+                width: im_width as u32,
+                height: im_height as u32,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+
+    fn read(&self, _rect: Rect, _im: &mut dyn BitmapImage) {
+        unimplemented!();
+    }
+
+    fn width(&self) -> usize {
+        self.width as usize
+    }
+
+    fn height(&self) -> usize {
+        self.height as usize
+    }
+}
+
+impl WebGpuTexture {
+    pub fn new(width: u32, height: u32, state: &WebGpuState) -> Self {
+        let texture = state.device.create_texture(&wgpu::TextureDescriptor {
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            label: Some("Texture Atlas"),
+        });
+        Self {
+            texture,
+            width,
+            height,
+            queue: Arc::clone(&state.queue),
+        }
     }
 }
 
@@ -112,6 +188,8 @@ impl WebGpuState {
                 None, // Trace path
             )
             .await?;
+
+        let queue = Arc::new(queue);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,

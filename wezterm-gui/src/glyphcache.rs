@@ -1,5 +1,6 @@
 use super::utilsprites::RenderMetrics;
 use crate::customglyph::*;
+use crate::termwindow::webgpu::{WebGpuState, WebGpuTexture};
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
@@ -262,6 +263,34 @@ impl GlyphCache<ImageTexture> {
     pub fn new_in_memory(fonts: &Rc<FontConfiguration>, size: usize) -> anyhow::Result<Self> {
         let surface = Rc::new(ImageTexture::new(size, size));
         let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
+
+        Ok(Self {
+            fonts: Rc::clone(fonts),
+            glyph_cache: HashMap::new(),
+            image_cache: LfuCacheU64::new(
+                "glyph_cache.image_cache.hit.rate",
+                "glyph_cache.image_cache.miss.rate",
+                |config| config.glyph_cache_image_cache_size,
+                &fonts.config(),
+            ),
+            frame_cache: HashMap::new(),
+            atlas,
+            line_glyphs: HashMap::new(),
+            block_glyphs: HashMap::new(),
+            cursor_glyphs: HashMap::new(),
+            color: HashMap::new(),
+        })
+    }
+}
+
+impl GlyphCache<WebGpuTexture> {
+    pub fn new_webgpu(
+        state: &WebGpuState,
+        fonts: &Rc<FontConfiguration>,
+        size: usize,
+    ) -> anyhow::Result<Self> {
+        let texture = Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
+        let atlas = Atlas::new(&texture).expect("failed to create new texture atlas");
 
         Ok(Self {
             fonts: Rc::clone(fonts),
