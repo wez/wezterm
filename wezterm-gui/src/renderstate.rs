@@ -1,6 +1,7 @@
 use super::glyphcache::GlyphCache;
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
+use crate::termwindow::webgpu::WebGpuState;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::{BufferMutSlice, Mapping};
@@ -10,13 +11,86 @@ use anyhow::Context;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
+use wgpu::util::DeviceExt;
 
 const INDICES_PER_CELL: usize = 6;
 
+enum MappedVertexBuffer {
+    Glium(GliumMappedVertexBuffer),
+    WebGpu(WebGpuMappedVertexBuffer),
+}
+
+impl MappedVertexBuffer {
+    fn slice_mut(&mut self, range: std::ops::Range<usize>) -> &mut [Vertex] {
+        match self {
+            Self::Glium(g) => &mut g.mapping[range],
+            Self::WebGpu(g) => {
+                let mapping: &mut [Vertex] = bytemuck::cast_slice_mut(&mut g.mapping);
+                &mut mapping[range]
+            }
+        }
+    }
+}
+
 pub struct MappedQuads<'a> {
-    mapping: GliumMappedVertexBuffer,
+    mapping: MappedVertexBuffer,
     next: RefMut<'a, usize>,
     capacity: usize,
+}
+
+pub struct WebGpuMappedVertexBuffer {
+    mapping: wgpu::BufferViewMut<'static>,
+    // Owner mapping, must be dropped after mapping
+    _slice: wgpu::BufferSlice<'static>,
+}
+
+pub struct WebGpuVertexBuffer {
+    buf: wgpu::Buffer,
+}
+
+impl WebGpuVertexBuffer {
+    pub fn new(num_vertices: usize, state: &WebGpuState) -> Self {
+        Self {
+            buf: state.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Vertex Buffer"),
+                size: (num_vertices * std::mem::size_of::<Vertex>()) as wgpu::BufferAddress,
+                usage: wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: true,
+            }),
+        }
+    }
+
+    pub fn map(&self) -> WebGpuMappedVertexBuffer {
+        unsafe {
+            let slice: wgpu::BufferSlice<'static> = std::mem::transmute(self.buf.slice(..));
+            let mapping = slice.get_mapped_range_mut();
+
+            WebGpuMappedVertexBuffer {
+                mapping,
+                _slice: slice,
+            }
+        }
+    }
+}
+
+pub struct WebGpuIndexBuffer {
+    buf: wgpu::Buffer,
+    num_indices: usize,
+}
+
+impl WebGpuIndexBuffer {
+    pub fn new(indices: &[u32], state: &WebGpuState) -> Self {
+        Self {
+            buf: state
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Index Buffer"),
+                    usage: wgpu::BufferUsages::INDEX,
+                    contents: bytemuck::cast_slice(indices),
+                }),
+            num_indices: indices.len(),
+        }
+    }
 }
 
 /// This is a self-referential struct, but since those are not possible
@@ -45,7 +119,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 
         let idx = idx * VERTICES_PER_CELL;
         let mut quad = Quad {
-            vert: &mut self.mapping.mapping[idx..idx + VERTICES_PER_CELL],
+            vert: self.mapping.slice_mut(idx..idx + VERTICES_PER_CELL),
         };
 
         quad.set_has_color(false);
@@ -63,7 +137,9 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
         let idx = idx * VERTICES_PER_CELL;
         let len = self.capacity * VERTICES_PER_CELL;
         if idx + vertices.len() < len {
-            self.mapping.mapping[idx..idx + vertices.len()].copy_from_slice(vertices);
+            self.mapping
+                .slice_mut(idx..idx + vertices.len())
+                .copy_from_slice(vertices);
         }
     }
 }
@@ -121,7 +197,7 @@ impl TripleVertexBuffer {
         };
 
         MappedQuads {
-            mapping,
+            mapping: MappedVertexBuffer::Glium(mapping),
             next: self.next_quad.borrow_mut(),
             capacity: self.capacity,
         }
