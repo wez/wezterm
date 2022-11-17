@@ -439,7 +439,7 @@ pub struct TermWindow {
     pub fps: f32,
 
     gl: Option<Rc<glium::backend::Context>>,
-    webgpu: Option<WebGpuState>,
+    webgpu: Option<Rc<WebGpuState>>,
     config_subscription: Option<config::ConfigSubscription>,
 }
 
@@ -818,7 +818,9 @@ impl TermWindow {
         {
             let mut myself = tw.borrow_mut();
             let webgpu = match config.front_end {
-                FrontEndSelection::WebGpu => Some(WebGpuState::new(&window, dimensions).await?),
+                FrontEndSelection::WebGpu => {
+                    Some(Rc::new(WebGpuState::new(&window, dimensions).await?))
+                }
                 _ => None,
             };
             myself.config_subscription.replace(config_subscription);

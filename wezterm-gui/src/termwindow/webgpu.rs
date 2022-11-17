@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -47,8 +48,8 @@ pub struct WebGpuState {
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: Arc<wgpu::Queue>,
-    pub config: wgpu::SurfaceConfiguration,
-    pub dimensions: Dimensions,
+    pub config: RefCell<wgpu::SurfaceConfiguration>,
+    pub dimensions: RefCell<Dimensions>,
     pub render_pipeline: wgpu::RenderPipeline,
     pub vertex_buffer: wgpu::Buffer,
     pub num_vertices: u32,
@@ -259,8 +260,8 @@ impl WebGpuState {
             surface,
             device,
             queue,
-            config,
-            dimensions,
+            config: RefCell::new(config),
+            dimensions: RefCell::new(dimensions),
             render_pipeline,
             vertex_buffer,
             num_vertices: VERTICES.len() as u32,
@@ -269,7 +270,7 @@ impl WebGpuState {
     }
 
     #[allow(unused_mut)]
-    pub fn resize(&mut self, mut dims: Dimensions) {
+    pub fn resize(&self, mut dims: Dimensions) {
         // During a live resize on Windows, the Dimensions that we're processing may be
         // lagging behind the true client size. We have to take the very latest value
         // from the window or else the underlying driver will raise an error about
@@ -285,12 +286,13 @@ impl WebGpuState {
             _ => {}
         }
 
-        if dims == self.dimensions {
+        if dims == *self.dimensions.borrow() {
             return;
         }
-        self.dimensions = dims;
-        self.config.width = dims.pixel_width as u32;
-        self.config.height = dims.pixel_height as u32;
-        self.surface.configure(&self.device, &self.config);
+        *self.dimensions.borrow_mut() = dims;
+        let mut config = self.config.borrow_mut();
+        config.width = dims.pixel_width as u32;
+        config.height = dims.pixel_height as u32;
+        self.surface.configure(&self.device, &config);
     }
 }
