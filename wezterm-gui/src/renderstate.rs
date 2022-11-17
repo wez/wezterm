@@ -5,7 +5,7 @@ use crate::termwindow::webgpu::WebGpuState;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::{BufferMutSlice, Mapping};
-use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
+use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer as GliumVertexBuffer};
 use ::window::*;
 use anyhow::Context;
 use std::cell::{Ref, RefCell, RefMut};
@@ -14,6 +14,20 @@ use wezterm_font::FontConfiguration;
 use wgpu::util::DeviceExt;
 
 const INDICES_PER_CELL: usize = 6;
+
+pub enum VertexBuffer {
+    Glium(GliumVertexBuffer<Vertex>),
+    WebGpu(WebGpuVertexBuffer),
+}
+
+impl VertexBuffer {
+    pub fn glium(&self) -> &GliumVertexBuffer<Vertex> {
+        match self {
+            Self::Glium(g) => g,
+            _ => unreachable!(),
+        }
+    }
+}
 
 enum MappedVertexBuffer {
     Glium(GliumMappedVertexBuffer),
@@ -100,7 +114,7 @@ impl WebGpuIndexBuffer {
 pub struct GliumMappedVertexBuffer {
     mapping: Mapping<'static, [Vertex]>,
     // Drop the owner after the mapping
-    _owner: RefMut<'static, VertexBuffer<Vertex>>,
+    _owner: RefMut<'static, GliumVertexBuffer<Vertex>>,
 }
 
 impl<'a> QuadAllocator for MappedQuads<'a> {
@@ -146,7 +160,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 
 pub struct TripleVertexBuffer {
     pub index: RefCell<usize>,
-    pub bufs: RefCell<[VertexBuffer<Vertex>; 3]>,
+    pub bufs: RefCell<[VertexBuffer; 3]>,
     pub indices: IndexBuffer<u32>,
     pub capacity: usize,
     pub next_quad: RefCell<usize>,
@@ -183,7 +197,7 @@ impl TripleVertexBuffer {
         // This is "safe" because we carry them around together and ensure
         // that the owner is dropped after the derived data.
         let mapping = unsafe {
-            let mut bufs: RefMut<'static, VertexBuffer<Vertex>> =
+            let mut bufs: RefMut<'static, GliumVertexBuffer<Vertex>> =
                 std::mem::transmute(self.current_vb_mut());
             let buf_slice: BufferMutSlice<'static, [Vertex]> =
                 std::mem::transmute(bufs.slice_mut(..).expect("to map vertex buffer"));
@@ -203,7 +217,7 @@ impl TripleVertexBuffer {
         }
     }
 
-    pub fn current_vb_mut(&self) -> RefMut<VertexBuffer<Vertex>> {
+    pub fn current_vb_mut(&self) -> RefMut<VertexBuffer> {
         let index = *self.index.borrow();
         let bufs = self.bufs.borrow_mut();
         RefMut::map(bufs, |bufs| &mut bufs[index])
@@ -307,9 +321,9 @@ impl RenderLayer {
         let buffer = TripleVertexBuffer {
             index: RefCell::new(0),
             bufs: RefCell::new([
-                VertexBuffer::dynamic(context, &verts)?,
-                VertexBuffer::dynamic(context, &verts)?,
-                VertexBuffer::dynamic(context, &verts)?,
+                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
+                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
+                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
             ]),
             capacity: num_quads,
             indices: IndexBuffer::new(

@@ -1999,7 +1999,7 @@ impl super::TermWindow {
                     uniforms.add_struct("rapid_blink", &rapid_blink);
 
                     frame.draw(
-                        vertices.slice(0..vertex_count).unwrap(),
+                        vertices.glium().slice(0..vertex_count).unwrap(),
                         vb.indices.slice(0..index_count).unwrap(),
                         &gl_state.glyph_prog,
                         &uniforms,
