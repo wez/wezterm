@@ -5,7 +5,9 @@ use crate::termwindow::webgpu::WebGpuState;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::{BufferMutSlice, Mapping};
-use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer as GliumVertexBuffer};
+use ::window::glium::{
+    CapabilitiesSource, IndexBuffer as GliumIndexBuffer, VertexBuffer as GliumVertexBuffer,
+};
 use ::window::*;
 use anyhow::Context;
 use std::cell::{Ref, RefCell, RefMut};
@@ -14,6 +16,20 @@ use wezterm_font::FontConfiguration;
 use wgpu::util::DeviceExt;
 
 const INDICES_PER_CELL: usize = 6;
+
+pub enum IndexBuffer {
+    Glium(GliumIndexBuffer<u32>),
+    WebGpu(WebGpuIndexBuffer),
+}
+
+impl IndexBuffer {
+    pub fn glium(&self) -> &GliumIndexBuffer<u32> {
+        match self {
+            Self::Glium(g) => g,
+            _ => unreachable!(),
+        }
+    }
+}
 
 pub enum VertexBuffer {
     Glium(GliumVertexBuffer<Vertex>),
@@ -161,7 +177,7 @@ impl<'a> QuadAllocator for MappedQuads<'a> {
 pub struct TripleVertexBuffer {
     pub index: RefCell<usize>,
     pub bufs: RefCell<[VertexBuffer; 3]>,
-    pub indices: IndexBuffer<u32>,
+    pub indices: IndexBuffer,
     pub capacity: usize,
     pub next_quad: RefCell<usize>,
 }
@@ -326,11 +342,11 @@ impl RenderLayer {
                 VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
             ]),
             capacity: num_quads,
-            indices: IndexBuffer::new(
+            indices: IndexBuffer::Glium(GliumIndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,
                 &indices,
-            )?,
+            )?),
             next_quad: RefCell::new(0),
         };
 

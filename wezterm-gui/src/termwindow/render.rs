@@ -2000,7 +2000,7 @@ impl super::TermWindow {
 
                     frame.draw(
                         vertices.glium().slice(0..vertex_count).unwrap(),
-                        vb.indices.slice(0..index_count).unwrap(),
+                        vb.indices.glium().slice(0..index_count).unwrap(),
                         &gl_state.glyph_prog,
                         &uniforms,
                         if subpixel_aa {
