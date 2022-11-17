@@ -2,8 +2,7 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::parameters::{self, Parameters};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, IntegratedTitleButton,
-    IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle, KeyCode, KeyEvent, Modifiers,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
@@ -862,6 +861,12 @@ impl WindowOps for Window {
         });
     }
 
+    fn hover_maximize_button(&self) {
+        unsafe {
+            MAXBTN_HOVERED = true;
+        }
+    }
+
     fn set_window_position(&self, coords: ScreenPoint) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
@@ -1083,6 +1088,8 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     Some(0)
 }
 
+static mut MAXBTN_HOVERED: bool = false;
+
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
@@ -1160,29 +1167,10 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         }
     }
 
-    // When you can predict maximize button position
-    let use_snap_layouts = !*IS_WIN10
-        && inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
-        && inner.config.integrated_title_button_style == IntegratedTitleButtonStyle::Windows
-        && inner.config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
-        && matches!(
-            &inner.config.integrated_title_buttons[..],
-            &[.., IntegratedTitleButton::Maximize, _]
-        )
-        && inner.config.use_fancy_tab_bar;
-
-    if use_snap_layouts {
-        let scale = GetDpiForWindow(inner.hwnd.0) as f64 / 96.0;
-        let button_height = (30.0 * scale) as isize;
-        if cursor_point.y >= client_rect.top as isize
-            && cursor_point.y < client_rect.top as isize + button_height
-        {
-            let btn_width = (45.0 * scale) as isize;
-            let maximize_btn_pos = (client_rect.right as isize).saturating_sub(btn_width * 2);
-            if cursor_point.x >= maximize_btn_pos && cursor_point.x < maximize_btn_pos + btn_width {
-                return Some(HTMAXBUTTON);
-            }
-        }
+    let use_snap_layouts = !*IS_WIN10;
+    if use_snap_layouts && MAXBTN_HOVERED {
+        MAXBTN_HOVERED = false;
+        return Some(HTMAXBUTTON);
     }
 
     Some(HTCLIENT)
@@ -2697,21 +2685,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 msg,
                 WM_NCMOUSEMOVE | WM_NCMOUSELEAVE | WM_NCLBUTTONDOWN | WM_NCLBUTTONDBLCLK
             ) {
-                let inner = rc_from_hwnd(hwnd)?;
-                let inner = inner.borrow();
-                // When you can predict maximize button position
-                let use_snap_layouts = !*IS_WIN10
-                    && inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
-                    && inner.config.integrated_title_button_style
-                        == IntegratedTitleButtonStyle::Windows
-                    && inner.config.integrated_title_button_alignment
-                        == IntegratedTitleButtonAlignment::Right
-                    && matches!(
-                        &inner.config.integrated_title_buttons[..],
-                        &[.., IntegratedTitleButton::Maximize, _]
-                    )
-                    && inner.config.use_fancy_tab_bar;
-                std::mem::drop(inner);
+                let use_snap_layouts = !*IS_WIN10;
                 if use_snap_layouts {
                     return match msg {
                         WM_NCMOUSEMOVE => nc_mouse_move(hwnd, msg, wparam, lparam),
