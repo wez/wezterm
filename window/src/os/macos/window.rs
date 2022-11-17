@@ -1119,7 +1119,7 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
         window.setStyleMask_(mask);
 
         let hidden = if decorations.contains(WindowDecorations::TITLE)
-            || decorations.contains(WindowDecorations::FANCY)
+            || decorations.contains(WindowDecorations::INTEGRATED_BUTTONS)
         {
             NO
         } else {
@@ -1141,7 +1141,7 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
         } else {
             appkit::NSWindowTitleVisibility::NSWindowTitleHidden
         });
-        if decorations == WindowDecorations::FANCY {
+        if decorations == WindowDecorations::INTEGRATED_BUTTONS {
             window.setTitlebarAppearsTransparent_(YES);
         } else {
             window.setTitlebarAppearsTransparent_(hidden);
@@ -1155,7 +1155,7 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
-    } else if decorations == WindowDecorations::RESIZE || decorations == WindowDecorations::FANCY {
+    } else if decorations == WindowDecorations::RESIZE || decorations == WindowDecorations::INTEGRATED_BUTTONS {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
             | NSWindowStyleMask::NSMiniaturizableWindowMask

@@ -40,7 +40,10 @@ use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_input_types::{FancyWindowDecorations, Modifiers, WindowDecorations};
+use wezterm_input_types::{
+    IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle, Modifiers,
+    WindowDecorations,
+};
 use wezterm_term::TerminalSize;
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic, ConfigMeta)]
@@ -76,11 +79,14 @@ pub struct Config {
     #[dynamic(default)]
     pub window_decorations: WindowDecorations,
 
-    /// Controls window buttons position and style
-    /// for fancy window decorations.
-    /// Has no effect on macOS or Windows.
+    #[dynamic(default = "default_integrated_title_buttons")]
+    pub integrated_title_buttons: Vec<IntegratedTitleButton>,
+
     #[dynamic(default)]
-    pub fancy_window_decorations: FancyWindowDecorations,
+    pub integrated_title_button_alignment: IntegratedTitleButtonAlignment,
+
+    #[dynamic(default)]
+    pub integrated_title_button_style: IntegratedTitleButtonStyle,
 
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
@@ -1305,6 +1311,11 @@ fn default_pane_select_bg_color() -> RgbaColor {
 
 fn default_pane_select_font_size() -> f64 {
     36.0
+}
+
+fn default_integrated_title_buttons() -> Vec<IntegratedTitleButton> {
+    use IntegratedTitleButton::*;
+    vec![Hide, Maximize, Close]
 }
 
 fn default_char_select_font_size() -> f64 {
