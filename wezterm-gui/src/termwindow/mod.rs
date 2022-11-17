@@ -531,30 +531,23 @@ impl TermWindow {
         self.emit_window_event("window-focus-changed", None);
     }
 
-    fn created(
-        &mut self,
-        window: &Window,
-        ctx: std::rc::Rc<glium::backend::Context>,
-    ) -> anyhow::Result<()> {
+    fn created(&mut self, window: &Window, ctx: RenderContext) -> anyhow::Result<()> {
         self.render_state = None;
 
+        let render_info = ctx.renderer_info();
+        self.opengl_info.replace(render_info.clone());
+
         match RenderState::new(ctx, &self.fonts, &self.render_metrics, ATLAS_SIZE) {
-            Ok(gl) => {
-                self.opengl_info.replace(format!(
-                    "{} {}",
-                    gl.context.get_opengl_renderer_string(),
-                    gl.context.get_opengl_version_string()
-                ));
+            Ok(render_state) => {
                 log::debug!(
-                    "OpenGL initialized! {} {} wezterm version: {}",
-                    gl.context.get_opengl_renderer_string(),
-                    gl.context.get_opengl_version_string(),
+                    "OpenGL initialized! {} wezterm version: {}",
+                    render_info,
                     config::wezterm_version(),
                 );
-                self.render_state.replace(gl);
+                self.render_state.replace(render_state);
             }
             Err(err) => {
-                log::error!("failed to create OpenGLRenderState: {}", err);
+                log::error!("failed to create RenderState: {}", err);
             }
         }
 
@@ -833,14 +826,14 @@ impl TermWindow {
 
             if let Some(gl) = gl {
                 myself.gl.replace(Rc::clone(&gl));
-                myself.created(&window, Rc::clone(&gl))?;
+                myself.created(&window, RenderContext::Glium(Rc::clone(&gl)))?;
             }
-            myself.webgpu = webgpu;
+            if let Some(webgpu) = webgpu {
+                myself.webgpu.replace(Rc::clone(&webgpu));
+                myself.created(&window, RenderContext::WebGpu(Rc::clone(&webgpu)))?;
+            }
             myself.load_os_parameters();
             window.show();
-            if myself.webgpu.is_some() {
-                log::info!("using webgpu");
-            }
             myself.subscribe_to_pane_updates();
             myself.emit_window_event("window-config-reloaded", None);
             myself.emit_status_event();

@@ -1,21 +1,16 @@
 use super::utilsprites::RenderMetrics;
 use crate::customglyph::*;
-use crate::termwindow::webgpu::{WebGpuState, WebGpuTexture};
+use crate::renderstate::RenderContext;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
-use ::window::glium::backend::Context as GliumContext;
-use ::window::glium::texture::SrgbTexture2d;
-use ::window::glium::CapabilitiesSource;
-use ::window::{glium, Point, Rect};
-use anyhow::Context;
+use ::window::{Point, Rect};
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use lfucache::LfuCacheU64;
 use ordered_float::NotNan;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
@@ -284,64 +279,12 @@ impl GlyphCache {
 }
 
 impl GlyphCache {
-    pub fn new_webgpu(
-        state: &WebGpuState,
-        fonts: &Rc<FontConfiguration>,
-        size: usize,
-    ) -> anyhow::Result<Self> {
-        let texture: Rc<dyn Texture2d> =
-            Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
-        let atlas = Atlas::new(&texture).expect("failed to create new texture atlas");
-
-        Ok(Self {
-            fonts: Rc::clone(fonts),
-            glyph_cache: HashMap::new(),
-            image_cache: LfuCacheU64::new(
-                "glyph_cache.image_cache.hit.rate",
-                "glyph_cache.image_cache.miss.rate",
-                |config| config.glyph_cache_image_cache_size,
-                &fonts.config(),
-            ),
-            frame_cache: HashMap::new(),
-            atlas,
-            line_glyphs: HashMap::new(),
-            block_glyphs: HashMap::new(),
-            cursor_glyphs: HashMap::new(),
-            color: HashMap::new(),
-        })
-    }
-}
-
-impl GlyphCache {
     pub fn new_gl(
-        backend: &Rc<GliumContext>,
+        backend: &RenderContext,
         fonts: &Rc<FontConfiguration>,
         size: usize,
     ) -> anyhow::Result<Self> {
-        let caps = backend.get_capabilities();
-        // You'd hope that allocating a texture would automatically
-        // include this check, but it doesn't, and instead, the texture
-        // silently fails to bind when attempting to render into it later.
-        // So! We check and raise here for ourselves!
-        let max_texture_size: usize = caps
-            .max_texture_size
-            .try_into()
-            .context("represent Capabilities.max_texture_size as usize")?;
-        if size > max_texture_size {
-            anyhow::bail!(
-                "Cannot use a texture of size {} as it is larger \
-                 than the max {} supported by your GPU",
-                size,
-                caps.max_texture_size
-            );
-        }
-        let surface: Rc<dyn Texture2d> = Rc::new(SrgbTexture2d::empty_with_format(
-            backend,
-            glium::texture::SrgbFormat::U8U8U8U8,
-            glium::texture::MipmapsOption::NoMipmap,
-            size as u32,
-            size as u32,
-        )?);
+        let surface = backend.allocate_texture_atlas(size)?;
         let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
 
         Ok(Self {

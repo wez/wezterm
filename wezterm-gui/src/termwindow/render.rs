@@ -2001,7 +2001,7 @@ impl super::TermWindow {
                     frame.draw(
                         vertices.glium().slice(0..vertex_count).unwrap(),
                         vb.indices.glium().slice(0..index_count).unwrap(),
-                        &gl_state.glyph_prog,
+                        gl_state.glyph_prog.as_ref().unwrap(),
                         &uniforms,
                         if subpixel_aa {
                             &dual_source_blending

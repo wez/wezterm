@@ -1,7 +1,7 @@
 use super::glyphcache::GlyphCache;
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
-use crate::termwindow::webgpu::WebGpuState;
+use crate::termwindow::webgpu::{WebGpuState, WebGpuTexture};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::{BufferMutSlice, Mapping};
@@ -11,11 +11,107 @@ use ::window::glium::{
 use ::window::*;
 use anyhow::Context;
 use std::cell::{Ref, RefCell, RefMut};
+use std::convert::TryInto;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 use wgpu::util::DeviceExt;
+use window::bitmaps::Texture2d;
 
 const INDICES_PER_CELL: usize = 6;
+
+#[derive(Clone)]
+pub enum RenderContext {
+    Glium(Rc<GliumContext>),
+    WebGpu(Rc<WebGpuState>),
+}
+
+impl RenderContext {
+    pub fn allocate_index_buffer(&self, indices: &[u32]) -> anyhow::Result<IndexBuffer> {
+        match self {
+            Self::Glium(context) => Ok(IndexBuffer::Glium(GliumIndexBuffer::new(
+                context,
+                glium::index::PrimitiveType::TrianglesList,
+                indices,
+            )?)),
+            Self::WebGpu(state) => Ok(IndexBuffer::WebGpu(WebGpuIndexBuffer::new(indices, state))),
+        }
+    }
+
+    pub fn allocate_vertex_buffer_initializer(&self, num_quads: usize) -> Vec<Vertex> {
+        match self {
+            Self::Glium(_) => {
+                vec![Vertex::default(); num_quads * VERTICES_PER_CELL]
+            }
+            Self::WebGpu(_) => vec![],
+        }
+    }
+
+    pub fn allocate_vertex_buffer(
+        &self,
+        num_quads: usize,
+        initializer: &[Vertex],
+    ) -> anyhow::Result<VertexBuffer> {
+        match self {
+            Self::Glium(context) => Ok(VertexBuffer::Glium(GliumVertexBuffer::dynamic(
+                context,
+                initializer,
+            )?)),
+            Self::WebGpu(state) => Ok(VertexBuffer::WebGpu(WebGpuVertexBuffer::new(
+                num_quads * VERTICES_PER_CELL,
+                state,
+            ))),
+        }
+    }
+
+    pub fn allocate_texture_atlas(&self, size: usize) -> anyhow::Result<Rc<dyn Texture2d>> {
+        match self {
+            Self::Glium(context) => {
+                let caps = context.get_capabilities();
+                // You'd hope that allocating a texture would automatically
+                // include this check, but it doesn't, and instead, the texture
+                // silently fails to bind when attempting to render into it later.
+                // So! We check and raise here for ourselves!
+                let max_texture_size: usize = caps
+                    .max_texture_size
+                    .try_into()
+                    .context("represent Capabilities.max_texture_size as usize")?;
+                if size > max_texture_size {
+                    anyhow::bail!(
+                        "Cannot use a texture of size {} as it is larger \
+                 than the max {} supported by your GPU",
+                        size,
+                        caps.max_texture_size
+                    );
+                }
+                use crate::glium::texture::SrgbTexture2d;
+                let surface: Rc<dyn Texture2d> = Rc::new(SrgbTexture2d::empty_with_format(
+                    context,
+                    glium::texture::SrgbFormat::U8U8U8U8,
+                    glium::texture::MipmapsOption::NoMipmap,
+                    size as u32,
+                    size as u32,
+                )?);
+                Ok(surface)
+            }
+            Self::WebGpu(state) => {
+                let texture: Rc<dyn Texture2d> =
+                    Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
+                Ok(texture)
+            }
+        }
+    }
+
+    pub fn renderer_info(&self) -> String {
+        match self {
+            Self::Glium(ctx) => format!(
+                "{} {}",
+                ctx.get_opengl_renderer_string(),
+                ctx.get_opengl_version_string()
+            ),
+            Self::WebGpu(_) => "WebGPU".to_string(),
+        }
+    }
+}
 
 pub enum IndexBuffer {
     Glium(GliumIndexBuffer<u32>),
@@ -250,12 +346,12 @@ impl TripleVertexBuffer {
 
 pub struct RenderLayer {
     pub vb: RefCell<[TripleVertexBuffer; 3]>,
-    context: Rc<GliumContext>,
+    context: RenderContext,
     zindex: i8,
 }
 
 impl RenderLayer {
-    pub fn new(context: &Rc<GliumContext>, num_quads: usize, zindex: i8) -> anyhow::Result<Self> {
+    pub fn new(context: &RenderContext, num_quads: usize, zindex: i8) -> anyhow::Result<Self> {
         let vb = [
             Self::compute_vertices(context, 32)?,
             Self::compute_vertices(context, num_quads)?,
@@ -263,7 +359,7 @@ impl RenderLayer {
         ];
 
         Ok(Self {
-            context: Rc::clone(context),
+            context: context.clone(),
             vb: RefCell::new(vb),
             zindex,
         })
@@ -309,10 +405,10 @@ impl RenderLayer {
     /// to a changed cell when we need to repaint the screen, and then just
     /// let the GPU figure out the rest.
     fn compute_vertices(
-        context: &Rc<GliumContext>,
+        context: &RenderContext,
         num_quads: usize,
     ) -> anyhow::Result<TripleVertexBuffer> {
-        let verts = vec![Vertex::default(); num_quads * VERTICES_PER_CELL];
+        let verts = context.allocate_vertex_buffer_initializer(num_quads);
         log::trace!(
             "compute_vertices num_quads={}, allocated {} bytes",
             num_quads,
@@ -337,16 +433,12 @@ impl RenderLayer {
         let buffer = TripleVertexBuffer {
             index: RefCell::new(0),
             bufs: RefCell::new([
-                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
-                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
-                VertexBuffer::Glium(GliumVertexBuffer::dynamic(context, &verts)?),
+                context.allocate_vertex_buffer(num_quads, &verts)?,
+                context.allocate_vertex_buffer(num_quads, &verts)?,
+                context.allocate_vertex_buffer(num_quads, &verts)?,
             ]),
             capacity: num_quads,
-            indices: IndexBuffer::Glium(GliumIndexBuffer::new(
-                context,
-                glium::index::PrimitiveType::TrianglesList,
-                &indices,
-            )?),
+            indices: context.allocate_index_buffer(&indices)?,
             next_quad: RefCell::new(0),
         };
 
@@ -372,16 +464,16 @@ impl TripleLayerQuadAllocatorTrait for BorrowedLayers {
 }
 
 pub struct RenderState {
-    pub context: Rc<GliumContext>,
+    pub context: RenderContext,
     pub glyph_cache: RefCell<GlyphCache>,
     pub util_sprites: UtilSprites,
-    pub glyph_prog: glium::Program,
+    pub glyph_prog: Option<glium::Program>,
     pub layers: RefCell<Vec<Rc<RenderLayer>>>,
 }
 
 impl RenderState {
     pub fn new(
-        context: Rc<GliumContext>,
+        context: RenderContext,
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
         mut atlas_size: usize,
@@ -391,7 +483,12 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
+                    let glyph_prog = match &context {
+                        RenderContext::Glium(context) => {
+                            Some(Self::compile_prog(&context, Self::glyph_shader)?)
+                        }
+                        RenderContext::WebGpu(_) => None,
+                    };
 
                     let main_layer = Rc::new(RenderLayer::new(&context, 1024, 0)?);
 
