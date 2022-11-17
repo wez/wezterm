@@ -461,6 +461,11 @@ impl super::TermWindow {
                 TabBarItem::None => {
                     context.set_window_drag_position(event.screen_coords);
                 }
+                TabBarItem::WindowButton(window::IntegratedTitleButton::Maximize) => {
+                    if let Some(ref window) = self.window {
+                        window.hover_maximize_button();
+                    }
+                }
                 _ => {}
             },
             WMEK::VertWheel(n) => {
