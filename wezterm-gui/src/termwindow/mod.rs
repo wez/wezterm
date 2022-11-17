@@ -531,7 +531,7 @@ impl TermWindow {
         self.emit_window_event("window-focus-changed", None);
     }
 
-    fn created(&mut self, window: &Window, ctx: RenderContext) -> anyhow::Result<()> {
+    fn created(&mut self, ctx: RenderContext) -> anyhow::Result<()> {
         self.render_state = None;
 
         let render_info = ctx.renderer_info();
@@ -826,11 +826,11 @@ impl TermWindow {
 
             if let Some(gl) = gl {
                 myself.gl.replace(Rc::clone(&gl));
-                myself.created(&window, RenderContext::Glium(Rc::clone(&gl)))?;
+                myself.created(RenderContext::Glium(Rc::clone(&gl)))?;
             }
             if let Some(webgpu) = webgpu {
                 myself.webgpu.replace(Rc::clone(&webgpu));
-                myself.created(&window, RenderContext::WebGpu(Rc::clone(&webgpu)))?;
+                myself.created(RenderContext::WebGpu(Rc::clone(&webgpu)))?;
             }
             myself.load_os_parameters();
             window.show();
@@ -910,7 +910,7 @@ impl TermWindow {
                 window.invalidate();
                 Ok(true)
             }
-            WindowEvent::NeedRepaint if self.webgpu.is_some() => self.do_paint_webgpu(window),
+            WindowEvent::NeedRepaint if self.webgpu.is_some() => self.do_paint_webgpu(),
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {
@@ -964,15 +964,15 @@ impl TermWindow {
         window.finish_frame(frame).is_ok()
     }
 
-    fn do_paint_webgpu(&mut self, window: &Window) -> anyhow::Result<bool> {
+    fn do_paint_webgpu(&mut self) -> anyhow::Result<bool> {
         self.webgpu.as_mut().unwrap().resize(self.dimensions);
-        match self.do_paint_webgpu_impl(window) {
+        match self.do_paint_webgpu_impl() {
             Ok(ok) => Ok(ok),
             Err(err) => {
                 match err.downcast_ref::<wgpu::SurfaceError>() {
                     Some(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                         self.webgpu.as_mut().unwrap().resize(self.dimensions);
-                        return self.do_paint_webgpu_impl(window);
+                        return self.do_paint_webgpu_impl();
                     }
                     _ => {}
                 }
@@ -981,7 +981,7 @@ impl TermWindow {
         }
     }
 
-    fn do_paint_webgpu_impl(&mut self, window: &Window) -> anyhow::Result<bool> {
+    fn do_paint_webgpu_impl(&mut self) -> anyhow::Result<bool> {
         self.paint_impl(&mut RenderFrame::WebGpu);
         Ok(true)
     }

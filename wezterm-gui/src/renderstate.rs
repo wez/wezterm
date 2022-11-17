@@ -130,6 +130,12 @@ impl IndexBuffer {
             _ => unreachable!(),
         }
     }
+    pub fn webgpu(&self) -> &WebGpuIndexBuffer {
+        match self {
+            Self::WebGpu(g) => g,
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub enum VertexBuffer {
@@ -141,6 +147,18 @@ impl VertexBuffer {
     pub fn glium(&self) -> &GliumVertexBuffer<Vertex> {
         match self {
             Self::Glium(g) => g,
+            _ => unreachable!(),
+        }
+    }
+    pub fn webgpu(&self) -> &WebGpuVertexBuffer {
+        match self {
+            Self::WebGpu(g) => g,
+            _ => unreachable!(),
+        }
+    }
+    pub fn webgpu_mut(&mut self) -> &mut WebGpuVertexBuffer {
+        match self {
+            Self::WebGpu(g) => g,
             _ => unreachable!(),
         }
     }
@@ -177,10 +195,19 @@ pub struct WebGpuMappedVertexBuffer {
 
 pub struct WebGpuVertexBuffer {
     buf: wgpu::Buffer,
+    num_vertices: usize,
+    state: Rc<WebGpuState>,
+}
+
+impl std::ops::Deref for WebGpuVertexBuffer {
+    type Target = wgpu::Buffer;
+    fn deref(&self) -> &Self::Target {
+        &self.buf
+    }
 }
 
 impl WebGpuVertexBuffer {
-    pub fn new(num_vertices: usize, state: &WebGpuState) -> Self {
+    pub fn new(num_vertices: usize, state: &Rc<WebGpuState>) -> Self {
         Self {
             buf: state.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Vertex Buffer"),
@@ -188,6 +215,8 @@ impl WebGpuVertexBuffer {
                 usage: wgpu::BufferUsages::VERTEX,
                 mapped_at_creation: true,
             }),
+            num_vertices,
+            state: Rc::clone(state),
         }
     }
 
@@ -202,11 +231,28 @@ impl WebGpuVertexBuffer {
             }
         }
     }
+
+    pub fn recreate(&mut self) -> wgpu::Buffer {
+        let mut new_buf = self.state.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vertex Buffer"),
+            size: (self.num_vertices * std::mem::size_of::<Vertex>()) as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::VERTEX,
+            mapped_at_creation: true,
+        });
+        std::mem::swap(&mut new_buf, &mut self.buf);
+        new_buf
+    }
 }
 
 pub struct WebGpuIndexBuffer {
     buf: wgpu::Buffer,
-    num_indices: usize,
+}
+
+impl std::ops::Deref for WebGpuIndexBuffer {
+    type Target = wgpu::Buffer;
+    fn deref(&self) -> &Self::Target {
+        &self.buf
+    }
 }
 
 impl WebGpuIndexBuffer {
@@ -219,7 +265,6 @@ impl WebGpuIndexBuffer {
                     usage: wgpu::BufferUsages::INDEX,
                     contents: bytemuck::cast_slice(indices),
                 }),
-            num_indices: indices.len(),
         }
     }
 }

@@ -44,6 +44,26 @@ pub struct Vertex {
     Vertex, position, tex, fg_color, alt_color, hsv, has_color, mix_value
 );
 
+impl Vertex {
+    const ATTRIBS: [wgpu::VertexAttribute; 7] = wgpu::vertex_attr_array![
+    0 => Float32x2,
+    1 => Float32x2,
+    2 => Float32x4,
+    3 => Float32x4,
+    4 => Float32x3,
+    5 => Float32,
+    6 => Float32,
+    ];
+
+    pub fn desc() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBS,
+        }
+    }
+}
+
 pub trait QuadTrait {
     /// Assign the texture coordinates
     fn set_texture(&mut self, coords: TextureRect) {
