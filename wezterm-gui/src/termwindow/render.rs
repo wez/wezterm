@@ -10,7 +10,8 @@ use crate::selection::SelectionRange;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
-    BorrowedShapeCacheKey, RenderState, ScrollHit, ShapedInfo, TermWindowNotif, UIItem, UIItemType,
+    BorrowedShapeCacheKey, RenderFrame, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
+    UIItem, UIItemType,
 };
 use crate::uniforms::UniformBuilder;
 use crate::utilsprites::RenderMetrics;
@@ -327,7 +328,7 @@ pub struct ClusterStyleCache<'a> {
 }
 
 impl super::TermWindow {
-    pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
+    pub fn paint_impl(&mut self, frame: &mut RenderFrame) {
         self.num_frames += 1;
         // If nothing on screen needs animating, then we can avoid
         // invalidating as frequently
@@ -346,8 +347,6 @@ impl super::TermWindow {
                 self.last_fps_check_time = start;
             }
         }
-
-        frame.clear_color(0., 0., 0., 0.);
 
         'pass: for pass in 0.. {
             match self.paint_opengl_pass() {
@@ -1896,11 +1895,65 @@ impl super::TermWindow {
         Ok(())
     }
 
-    fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
-        use crate::glium::texture::SrgbTexture2d;
+    fn call_draw(&mut self, frame: &mut RenderFrame) -> anyhow::Result<()> {
+        match frame {
+            RenderFrame::Glium(ref mut frame) => self.call_draw_glium(frame),
+            RenderFrame::WebGpu => self.call_draw_webgpu(),
+        }
+    }
+
+    fn call_draw_webgpu(&mut self) -> anyhow::Result<()> {
+        let webgpu = self.webgpu.as_mut().unwrap();
+
+        let output = webgpu.surface.get_current_texture()?;
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = webgpu
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            render_pass.set_pipeline(&webgpu.render_pipeline);
+            render_pass.set_vertex_buffer(0, webgpu.vertex_buffer.slice(..));
+            render_pass.draw(0..webgpu.num_vertices, 0..1);
+        }
+
+        // submit will accept anything that implements IntoIter
+        webgpu.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
+    }
+
+    fn call_draw_glium(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
+        use window::glium::texture::SrgbTexture2d;
+
         let gl_state = self.render_state.as_ref().unwrap();
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let tex = tex.downcast_ref::<SrgbTexture2d>().unwrap();
+
+        frame.clear_color(0., 0., 0., 0.);
 
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
             -(self.dimensions.pixel_width as f32) / 2.0,

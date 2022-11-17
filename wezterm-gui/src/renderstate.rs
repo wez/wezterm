@@ -25,6 +25,11 @@ pub enum RenderContext {
     WebGpu(Rc<WebGpuState>),
 }
 
+pub enum RenderFrame<'a> {
+    Glium(&'a mut glium::Frame),
+    WebGpu,
+}
+
 impl RenderContext {
     pub fn allocate_index_buffer(&self, indices: &[u32]) -> anyhow::Result<IndexBuffer> {
         match self {
