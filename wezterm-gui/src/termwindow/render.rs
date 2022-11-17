@@ -290,9 +290,6 @@ fn window_button_element(
     use window::IntegratedTitleButtonStyle as Style;
     use IntegratedTitleButton as Button;
 
-    #[cfg(windows)]
-    let style = Style::Windows;
-
     let poly = match style {
         Style::Windows => {
             use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
@@ -1109,7 +1106,6 @@ impl super::TermWindow {
                 TabBarItem::WindowButton(_) => {
                     if self.config.integrated_title_button_alignment
                         == IntegratedTitleButtonAlignment::Left
-                        && cfg!(not(windows))
                     {
                         left_eles.push(item_to_elem(item))
                     } else {
@@ -1202,7 +1198,7 @@ impl super::TermWindow {
             == window::WindowDecorations::INTEGRATED_BUTTONS
             && (self.config.integrated_title_button_alignment
                 == IntegratedTitleButtonAlignment::Left
-                || (cfg!(target_os = "macos")) && cfg!(not(windows)));
+                || (cfg!(target_os = "macos")));
 
         let left_padding = if window_buttons_at_left {
             if cfg!(target_os = "macos") {

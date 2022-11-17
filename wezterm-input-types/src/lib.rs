@@ -1465,7 +1465,7 @@ pub enum IntegratedTitleButtonAlignment {
     Left,
 }
 
-#[derive(Debug, Default, FromDynamic, ToDynamic, Clone, Copy)]
+#[derive(Debug, Default, FromDynamic, ToDynamic, PartialEq, Eq, Clone, Copy)]
 pub enum IntegratedTitleButtonStyle {
     #[default]
     Windows,

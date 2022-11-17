@@ -2,7 +2,8 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::parameters::{self, Parameters};
 use crate::{
-    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, IntegratedTitleButton,
+    IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
@@ -1037,8 +1038,11 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
 
-    if !(wparam == 1 && (inner.config.window_decorations == WindowDecorations::RESIZE)
-        || (inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS))
+    if !(wparam == 1
+        && (matches!(
+            inner.config.window_decorations,
+            WindowDecorations::RESIZE | WindowDecorations::INTEGRATED_BUTTONS
+        )))
     {
         return None;
     }
@@ -1077,22 +1081,6 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     }
 
     Some(0)
-}
-
-unsafe fn maximize_button_coords(
-    hwnd: HWND,
-) -> euclid::Point2D<isize, wezterm_input_types::PixelUnit> {
-    let mut client_rect = RECT::default();
-    GetClientRect(hwnd, &mut client_rect);
-
-    let scale = GetDpiForWindow(hwnd) as f64 / 96.0;
-
-    let mut coords = mouse_coords(0);
-
-    coords.x = client_rect.right as isize - (60.0 * scale) as isize;
-    coords.y = 5;
-
-    coords
 }
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
@@ -1172,9 +1160,18 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         }
     }
 
-    if inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
-        && inner.config.use_fancy_tab_bar
-    {
+    // When you can predict maximize button position
+    let use_snap_layouts = !*IS_WIN10
+        && inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
+        && inner.config.integrated_title_button_style == IntegratedTitleButtonStyle::Windows
+        && inner.config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
+        && matches!(
+            &inner.config.integrated_title_buttons[..],
+            &[.., IntegratedTitleButton::Maximize, _]
+        )
+        && inner.config.use_fancy_tab_bar;
+
+    if use_snap_layouts {
         let scale = GetDpiForWindow(inner.hwnd.0) as f64 / 96.0;
         let button_height = (30.0 * scale) as isize;
         if cursor_point.y >= client_rect.top as isize
@@ -1484,6 +1481,12 @@ fn mouse_coords(lparam: LPARAM) -> Point {
     Point::new(point.x as _, point.y as _)
 }
 
+fn nc_mouse_coords(hwnd: HWND, lparam: LPARAM) -> Point {
+    let point = MAKEPOINTS(lparam as _);
+    let point = ScreenPoint::new(point.x as _, point.y as _);
+    screen_to_client(hwnd, point)
+}
+
 fn screen_to_client(hwnd: HWND, point: ScreenPoint) -> Point {
     let mut point = POINT {
         x: point.x.try_into().unwrap(),
@@ -1561,7 +1564,7 @@ unsafe fn nc_mouse_button(
     hwnd: HWND,
     msg: UINT,
     wparam: WPARAM,
-    _lparam: LPARAM,
+    lparam: LPARAM,
 ) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     // To support dragging the window, capture when the left
@@ -1580,7 +1583,7 @@ unsafe fn nc_mouse_button(
     }
 
     let (modifiers, mouse_buttons) = mods_and_buttons(0);
-    let coords = maximize_button_coords(hwnd);
+    let coords = nc_mouse_coords(hwnd, lparam);
 
     let event = MouseEvent {
         kind: match msg {
@@ -1630,12 +1633,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     Some(0)
 }
 
-unsafe fn nc_mouse_move(
-    hwnd: HWND,
-    _msg: UINT,
-    wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
+unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let mut inner = inner.borrow_mut();
 
@@ -1657,7 +1655,7 @@ unsafe fn nc_mouse_move(
     }
 
     let (modifiers, mouse_buttons) = mods_and_buttons(0);
-    let coords = maximize_button_coords(hwnd);
+    let coords = nc_mouse_coords(hwnd, lparam);
 
     let event = MouseEvent {
         kind: MouseEventKind::Move,
@@ -2701,11 +2699,20 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             ) {
                 let inner = rc_from_hwnd(hwnd)?;
                 let inner = inner.borrow();
-                let use_shap_layouts = inner.config.window_decorations
-                    == WindowDecorations::INTEGRATED_BUTTONS
+                // When you can predict maximize button position
+                let use_snap_layouts = !*IS_WIN10
+                    && inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
+                    && inner.config.integrated_title_button_style
+                        == IntegratedTitleButtonStyle::Windows
+                    && inner.config.integrated_title_button_alignment
+                        == IntegratedTitleButtonAlignment::Right
+                    && matches!(
+                        &inner.config.integrated_title_buttons[..],
+                        &[.., IntegratedTitleButton::Maximize, _]
+                    )
                     && inner.config.use_fancy_tab_bar;
                 std::mem::drop(inner);
-                if use_shap_layouts {
+                if use_snap_layouts {
                     return match msg {
                         WM_NCMOUSEMOVE => nc_mouse_move(hwnd, msg, wparam, lparam),
                         WM_NCMOUSELEAVE => mouse_leave(hwnd, msg, wparam, lparam),

@@ -383,7 +383,6 @@ impl TabBarState {
         #[cfg(not(target_os = "macos"))]
         if use_integrated_title_buttons
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
-            && !cfg!(widnows)
         {
             Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
