@@ -478,26 +478,23 @@ impl super::TermWindow {
                     }
                     context.request_drag_move();
                 }
-                TabBarItem::WindowHideButton => {
+                TabBarItem::WindowButton(button) => {
+                    use window::IntegratedTitleButton as Button;
                     if let Some(ref window) = self.window {
-                        window.hide();
-                    }
-                }
-                TabBarItem::WindowMaximizeButton => {
-                    if let Some(ref window) = self.window {
-                        let maximized = self
-                            .window_state
-                            .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
-                        if maximized {
-                            window.restore();
-                        } else {
-                            window.maximize();
+                        match button {
+                            Button::Hide => window.hide(),
+                            Button::Maximize => {
+                                let maximized = self
+                                    .window_state
+                                    .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                                if maximized {
+                                    window.restore();
+                                } else {
+                                    window.maximize();
+                                }
+                            }
+                            Button::Close => self.close_requested(&window.clone()),
                         }
-                    }
-                }
-                TabBarItem::WindowCloseButton => {
-                    if let Some(ref window) = self.window {
-                        self.close_requested(&window.clone());
                     }
                 }
             },
@@ -511,9 +508,7 @@ impl super::TermWindow {
                 TabBarItem::None
                 | TabBarItem::LeftStatus
                 | TabBarItem::RightStatus
-                | TabBarItem::WindowHideButton
-                | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton => {}
+                | TabBarItem::WindowButton(_) => {}
             },
             WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab { .. } => {
@@ -525,17 +520,13 @@ impl super::TermWindow {
                 TabBarItem::None
                 | TabBarItem::LeftStatus
                 | TabBarItem::RightStatus
-                | TabBarItem::WindowHideButton
-                | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton => {}
+                | TabBarItem::WindowButton(_) => {}
             },
             WMEK::Move => match item {
                 TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
                     context.set_window_drag_position(event.screen_coords);
                 }
-                TabBarItem::WindowHideButton
-                | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton
+                TabBarItem::WindowButton(_)
                 | TabBarItem::Tab { .. }
                 | TabBarItem::NewTabButton { .. } => {}
             },

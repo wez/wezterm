@@ -10,6 +10,9 @@ use termwiz::escape::{Action, ControlCode, CSI};
 use termwiz::surface::SEQ_ZERO;
 use termwiz_funcs::{format_as_escapes, FormatItem};
 use wezterm_term::Line;
+use window::IntegratedTitleButton;
+#[cfg(not(target_os = "macos"))]
+use window::IntegratedTitleButtonAlignment;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabBarState {
@@ -24,9 +27,7 @@ pub enum TabBarItem {
     RightStatus,
     Tab { tab_idx: usize, active: bool },
     NewTabButton,
-    WindowHideButton,
-    WindowMaximizeButton,
-    WindowCloseButton,
+    WindowButton(IntegratedTitleButton),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -184,7 +185,7 @@ impl TabBarState {
 
     // MacOS uses native buttons.
     #[cfg(not(target_os = "macos"))]
-    fn fancy_window_decorations(
+    fn integrated_title_buttons(
         mouse_x: Option<usize>,
         x: &mut usize,
         config: &ConfigHandle,
@@ -243,71 +244,43 @@ impl TabBarState {
             },
         );
 
-        let window::FancyWindowDecorations {
-            is_left,
-            remove_hide_button,
-            remove_maximize_button,
-            ..
-        } = if cfg!(any(windows, target_os = "macos")) {
-            // Ignore changes to config on windows and macos
-            window::FancyWindowDecorations::default()
-        } else {
-            config.fancy_window_decorations.clone()
-        };
-
-        let button_order = if is_left {
-            ['X', '.', '-']
-        } else {
-            ['.', '-', 'X']
-        };
-
-        for button in button_order {
-            let (title, item) = match button {
-                // Window hide button
-                '.' if !remove_hide_button => {
+        for button in &config.integrated_title_buttons {
+            use IntegratedTitleButton as Button;
+            let title = match button {
+                Button::Hide => {
                     let hover = is_tab_hover(mouse_x, *x, window_hide_hover.len());
 
-                    let window_hide_button = if hover {
+                    if hover {
                         &window_hide_hover
                     } else {
                         &window_hide
-                    };
-
-                    (window_hide_button, TabBarItem::WindowHideButton)
+                    }
                 }
-                '-' if !remove_maximize_button => {
-                    // Window maximize button
+                Button::Maximize => {
                     let hover = is_tab_hover(mouse_x, *x, window_maximize_hover.len());
 
-                    let window_maximize_button = if hover {
+                    if hover {
                         &window_maximize_hover
                     } else {
                         &window_maximize
-                    };
-
-                    (window_maximize_button, TabBarItem::WindowMaximizeButton)
+                    }
                 }
-                'X' => {
-                    // Window close button
+                Button::Close => {
                     let hover = is_tab_hover(mouse_x, *x, window_close_hover.len());
 
-                    let window_close_button = if hover {
+                    if hover {
                         &window_close_hover
                     } else {
                         &window_close
-                    };
-
-                    (window_close_button, TabBarItem::WindowCloseButton)
+                    }
                 }
-                _ => continue,
             };
-
-            let width = title.len();
 
             line.append_line(title.to_owned(), SEQ_ZERO);
 
+            let width = title.len();
             items.push(TabEntry {
-                item,
+                item: TabBarItem::WindowButton(*button),
                 title: title.to_owned(),
                 x: *x,
                 width,
@@ -356,9 +329,9 @@ impl TabBarState {
             },
         );
 
-        let fancy_window_decorations = config
+        let use_integrated_title_buttons = config
             .window_decorations
-            .contains(window::WindowDecorations::FANCY);
+            .contains(window::WindowDecorations::INTEGRATED_BUTTONS);
 
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
@@ -408,8 +381,11 @@ impl TabBarState {
         let mut items = vec![];
 
         #[cfg(not(target_os = "macos"))]
-        if fancy_window_decorations && config.fancy_window_decorations.is_left && !cfg!(widnows) {
-            Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
+        if use_integrated_title_buttons
+            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
+            && !cfg!(widnows)
+        {
+            Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
         let black_cell = Cell::blank_with_attrs(
@@ -419,7 +395,7 @@ impl TabBarState {
         );
 
         #[cfg(target_os = "macos")]
-        if fancy_window_decorations && config.use_fancy_tab_bar == false {
+        if use_integrated_title_buttons && config.use_fancy_tab_bar == false {
             for _ in 0..10 as usize {
                 line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
                 x += 1;
@@ -513,10 +489,10 @@ impl TabBarState {
             x += width;
         }
 
-        // Reserve place for buttons
+        // Reserve place for integrated title buttons
         #[cfg(not(target_os = "macos"))]
-        let title_width = if fancy_window_decorations
-            && !config.fancy_window_decorations.is_left
+        let title_width = if use_integrated_title_buttons
+            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
             && !cfg!(target_os = "macos")
         {
             let window_hide =
@@ -547,7 +523,18 @@ impl TabBarState {
             let maximize_len = window_maximize.len().max(window_maximize_hover.len());
             let close_len = window_close.len().max(window_close_hover.len());
 
-            title_width.saturating_sub(hide_len + maximize_len + close_len)
+            let mut width_to_reserve = 0;
+            for button in &config.integrated_title_buttons {
+                use IntegratedTitleButton as Button;
+                let button_len = match button {
+                    Button::Hide => hide_len,
+                    Button::Maximize => maximize_len,
+                    Button::Close => close_len,
+                };
+                width_to_reserve += button_len;
+            }
+
+            title_width.saturating_sub(width_to_reserve)
         } else {
             title_width
         };
@@ -572,9 +559,11 @@ impl TabBarState {
         }
 
         #[cfg(not(target_os = "macos"))]
-        if fancy_window_decorations && !config.fancy_window_decorations.is_left {
+        if use_integrated_title_buttons
+            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
+        {
             x = title_width;
-            Self::fancy_window_decorations(mouse_x, &mut x, config, &mut items, &mut line, &colors);
+            Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
         Self { line, items }

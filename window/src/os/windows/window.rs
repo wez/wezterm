@@ -1038,7 +1038,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     let inner = inner.borrow_mut();
 
     if !(wparam == 1 && (inner.config.window_decorations == WindowDecorations::RESIZE)
-        || (inner.config.window_decorations == WindowDecorations::FANCY))
+        || (inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS))
     {
         return None;
     }
@@ -1100,7 +1100,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let inner = inner.borrow_mut();
 
     match inner.config.window_decorations {
-        WindowDecorations::FANCY | WindowDecorations::RESIZE => {}
+        WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE => {}
         _ => return None,
     }
 
@@ -1172,7 +1172,8 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         }
     }
 
-    if inner.config.window_decorations == WindowDecorations::FANCY && inner.config.use_fancy_tab_bar
+    if inner.config.window_decorations == WindowDecorations::INTEGRATED_BUTTONS
+        && inner.config.use_fancy_tab_bar
     {
         let scale = GetDpiForWindow(inner.hwnd.0) as f64 / 96.0;
         let button_height = (30.0 * scale) as isize;
@@ -2700,7 +2701,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             ) {
                 let inner = rc_from_hwnd(hwnd)?;
                 let inner = inner.borrow();
-                let use_shap_layouts = inner.config.window_decorations == WindowDecorations::FANCY
+                let use_shap_layouts = inner.config.window_decorations
+                    == WindowDecorations::INTEGRATED_BUTTONS
                     && inner.config.use_fancy_tab_bar;
                 std::mem::drop(inner);
                 if use_shap_layouts {

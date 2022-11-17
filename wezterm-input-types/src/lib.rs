@@ -1390,7 +1390,7 @@ bitflags! {
         // so that we effective have Option<bool>
         const MACOS_FORCE_DISABLE_SHADOW = 4;
         const MACOS_FORCE_ENABLE_SHADOW = 4|8;
-        const FANCY = 16;
+        const INTEGRATED_BUTTONS = 16;
     }
 }
 
@@ -1403,8 +1403,8 @@ impl Into<String> for &WindowDecorations {
         if self.contains(WindowDecorations::RESIZE) {
             s.push("RESIZE");
         }
-        if self.contains(WindowDecorations::FANCY) {
-            s.push("FANCY");
+        if self.contains(WindowDecorations::INTEGRATED_BUTTONS) {
+            s.push("INTEGRATED_BUTTONS");
         }
         if self.contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW) {
             s.push("MACOS_FORCE_ENABLE_SHADOW");
@@ -1435,8 +1435,8 @@ impl TryFrom<String> for WindowDecorations {
                 flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
             } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
                 flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
-            } else if ele == "FANCY" {
-                flags |= Self::FANCY;
+            } else if ele == "INTEGRATED_BUTTONS" {
+                flags |= Self::INTEGRATED_BUTTONS;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }
@@ -1451,82 +1451,25 @@ impl Default for WindowDecorations {
     }
 }
 
-#[derive(Debug, FromDynamic, ToDynamic, Clone)]
-pub struct FancyWindowDecorations {
-    #[dynamic(default)]
-    pub is_left: bool,
-    #[dynamic(default)]
-    pub remove_hide_button: bool,
-    #[dynamic(default)]
-    pub remove_maximize_button: bool,
-    #[dynamic(default)]
-    pub style: FancyWindowDecorationsStyle,
+#[derive(Debug, FromDynamic, ToDynamic, PartialEq, Eq, Clone, Copy)]
+pub enum IntegratedTitleButton {
+    Hide,
+    Maximize,
+    Close,
 }
 
-#[cfg(not(target_os = "macos"))]
-impl Default for FancyWindowDecorations {
-    fn default() -> Self {
-        FancyWindowDecorations {
-            is_left: false,
-            remove_hide_button: false,
-            remove_maximize_button: false,
-            style: Default::default(),
-        }
-    }
+#[derive(Debug, Default, FromDynamic, ToDynamic, PartialEq, Eq, Clone, Copy)]
+pub enum IntegratedTitleButtonAlignment {
+    #[default]
+    Right,
+    Left,
 }
 
-#[cfg(target_os = "macos")]
-impl Default for FancyWindowDecorations {
-    fn default() -> Self {
-        FancyWindowDecorations {
-            is_left: true,
-            remove_hide_button: false,
-            remove_maximize_button: false,
-            style: Default::default(),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, FromDynamic, ToDynamic, Clone, Copy)]
-#[dynamic(try_from = "String")]
-pub enum FancyWindowDecorationsStyle {
+#[derive(Debug, Default, FromDynamic, ToDynamic, Clone, Copy)]
+pub enum IntegratedTitleButtonStyle {
+    #[default]
     Windows,
     Gnome,
-}
-
-#[cfg(not(target_os = "linux"))]
-impl Default for FancyWindowDecorationsStyle {
-    fn default() -> Self {
-        Self::Windows
-    }
-}
-
-#[cfg(target_os = "linux")]
-impl Default for FancyWindowDecorationsStyle {
-    fn default() -> Self {
-        Self::Gnome
-    }
-}
-
-impl Into<String> for FancyWindowDecorationsStyle {
-    fn into(self) -> String {
-        match self {
-            Self::Windows => "windows",
-            Self::Gnome => "gnome",
-        }
-        .to_string()
-    }
-}
-
-impl TryFrom<String> for FancyWindowDecorationsStyle {
-    type Error = String;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
-            "windows" => Ok(Self::Windows),
-            "gnome" => Ok(Self::Gnome),
-            _ => Err(format!("invalid fancy_window_decoratins.style {}", value)),
-        }
-    }
 }
 
 /// Map c to its Ctrl equivalent.

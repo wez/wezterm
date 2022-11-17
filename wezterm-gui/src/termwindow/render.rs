@@ -50,6 +50,7 @@ use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::color::LinearRgba;
+use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment};
 
 pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
     path: &[
@@ -279,14 +280,15 @@ mod window_buttons {
 }
 
 fn window_button_element(
-    window_button: TabBarItem,
+    window_button: IntegratedTitleButton,
     is_maximized: bool,
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     colors: &TabBarColors,
-    style: window::FancyWindowDecorationsStyle,
+    style: window::IntegratedTitleButtonStyle,
 ) -> Element {
-    use window::FancyWindowDecorationsStyle as Style;
+    use window::IntegratedTitleButtonStyle as Style;
+    use IntegratedTitleButton as Button;
 
     #[cfg(windows)]
     let style = Style::Windows;
@@ -295,31 +297,30 @@ fn window_button_element(
         Style::Windows => {
             use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
             match window_button {
-                TabBarItem::WindowHideButton => HIDE,
-                TabBarItem::WindowMaximizeButton => {
+                Button::Hide => HIDE,
+                Button::Maximize => {
                     if is_maximized {
                         RESTORE
                     } else {
                         MAXIMIZE
                     }
                 }
-                TabBarItem::WindowCloseButton => CLOSE,
-                _ => unreachable!(),
+                Button::Close => CLOSE,
             }
         }
+
         Style::Gnome => {
             use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
             match window_button {
-                TabBarItem::WindowHideButton => HIDE,
-                TabBarItem::WindowMaximizeButton => {
+                Button::Hide => HIDE,
+                Button::Maximize => {
                     if is_maximized {
                         RESTORE
                     } else {
                         MAXIMIZE
                     }
                 }
-                TabBarItem::WindowCloseButton => CLOSE,
-                _ => unreachable!(),
+                Button::Close => CLOSE,
             }
         }
     };
@@ -340,7 +341,7 @@ fn window_button_element(
     let element = match style {
         Style::Windows => {
             let left_padding = match window_button {
-                TabBarItem::WindowHideButton => 17.0,
+                Button::Hide => 17.0,
                 _ => 18.0,
             };
             let scale = 72.0 / 96.0;
@@ -396,16 +397,13 @@ fn window_button_element(
     };
 
     let (color, hover_colors) = match window_button {
-        TabBarItem::WindowHideButton => (colors.window_hide(), colors.window_hide_hover()),
-        TabBarItem::WindowMaximizeButton => {
-            (colors.window_maximize(), colors.window_maximize_hover())
-        }
-        TabBarItem::WindowCloseButton => (colors.window_close(), colors.window_close_hover()),
-        _ => unreachable!(),
+        Button::Hide => (colors.window_hide(), colors.window_hide_hover()),
+        Button::Maximize => (colors.window_maximize(), colors.window_maximize_hover()),
+        Button::Close => (colors.window_close(), colors.window_close_hover()),
     };
 
     let element = element
-        .item_type(UIItemType::TabBar(window_button))
+        .item_type(UIItemType::TabBar(TabBarItem::WindowButton(window_button)))
         .colors(ElementColors {
             border: BorderColor::new(color.bg_color.to_linear()),
             bg: color.bg_color.to_linear().into(),
@@ -1082,15 +1080,13 @@ impl super::TermWindow {
                                 .into(),
                         })
                     }),
-                TabBarItem::WindowHideButton
-                | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton => window_button_element(
-                    item.item.clone(),
+                TabBarItem::WindowButton(button) => window_button_element(
+                    button,
                     self.window_state.contains(window::WindowState::MAXIMIZED),
                     &font,
                     &metrics,
                     &colors,
-                    self.config.fancy_window_decorations.style,
+                    self.config.integrated_title_button_style,
                 ),
             }
         };
@@ -1110,10 +1106,11 @@ impl super::TermWindow {
             match item.item {
                 TabBarItem::LeftStatus => left_status.push(item_to_elem(item)),
                 TabBarItem::None | TabBarItem::RightStatus => right_eles.push(item_to_elem(item)),
-                TabBarItem::WindowHideButton
-                | TabBarItem::WindowMaximizeButton
-                | TabBarItem::WindowCloseButton => {
-                    if self.config.fancy_window_decorations.is_left && cfg!(not(windows)) {
+                TabBarItem::WindowButton(_) => {
+                    if self.config.integrated_title_button_alignment
+                        == IntegratedTitleButtonAlignment::Left
+                        && cfg!(not(windows))
+                    {
                         left_eles.push(item_to_elem(item))
                     } else {
                         right_eles.push(item_to_elem(item))
@@ -1202,8 +1199,9 @@ impl super::TermWindow {
         }
 
         let window_buttons_at_left = self.config.window_decorations
-            == window::WindowDecorations::FANCY
-            && (self.config.fancy_window_decorations.is_left
+            == window::WindowDecorations::INTEGRATED_BUTTONS
+            && (self.config.integrated_title_button_alignment
+                == IntegratedTitleButtonAlignment::Left
                 || (cfg!(target_os = "macos")) && cfg!(not(windows)));
 
         let left_padding = if window_buttons_at_left {
