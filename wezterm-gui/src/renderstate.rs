@@ -193,7 +193,7 @@ impl WebGpuVertexBuffer {
 
     pub fn map(&self) -> WebGpuMappedVertexBuffer {
         unsafe {
-            let slice: wgpu::BufferSlice<'static> = std::mem::transmute(self.buf.slice(..));
+            let slice = self.buf.slice(..).extend_lifetime();
             let mapping = slice.get_mapped_range_mut();
 
             WebGpuMappedVertexBuffer {
@@ -231,7 +231,7 @@ impl WebGpuIndexBuffer {
 pub struct GliumMappedVertexBuffer {
     mapping: Mapping<'static, [Vertex]>,
     // Drop the owner after the mapping
-    _owner: RefMut<'static, GliumVertexBuffer<Vertex>>,
+    _owner: RefMut<'static, VertexBuffer>,
 }
 
 impl<'a> QuadAllocator for MappedQuads<'a> {
@@ -283,6 +283,53 @@ pub struct TripleVertexBuffer {
     pub next_quad: RefCell<usize>,
 }
 
+/// A trait to avoid broadly-scoped transmutes; we only want to
+/// transmute to extend a lifetime to static, and not to change
+/// the underlying type.
+/// These ExtendStatic trait impls constrain the transmutes in that way,
+/// so that the type checker can still catch issues.
+unsafe trait ExtendStatic {
+    type T;
+    unsafe fn extend_lifetime(self) -> Self::T;
+}
+
+unsafe impl<'a, T: 'static> ExtendStatic for Ref<'a, T> {
+    type T = Ref<'static, T>;
+    unsafe fn extend_lifetime(self) -> Self::T {
+        std::mem::transmute(self)
+    }
+}
+
+unsafe impl<'a, T: 'static> ExtendStatic for RefMut<'a, T> {
+    type T = RefMut<'static, T>;
+    unsafe fn extend_lifetime(self) -> Self::T {
+        std::mem::transmute(self)
+    }
+}
+
+unsafe impl<'a> ExtendStatic for wgpu::BufferSlice<'a> {
+    type T = wgpu::BufferSlice<'static>;
+    unsafe fn extend_lifetime(self) -> Self::T {
+        std::mem::transmute(self)
+    }
+}
+
+unsafe impl<'a> ExtendStatic for MappedQuads<'a> {
+    type T = MappedQuads<'static>;
+    unsafe fn extend_lifetime(self) -> Self::T {
+        std::mem::transmute(self)
+    }
+}
+
+unsafe impl<'a, T: ?Sized + ::window::glium::buffer::Content + 'static> ExtendStatic
+    for BufferMutSlice<'a, T>
+{
+    type T = BufferMutSlice<'static, T>;
+    unsafe fn extend_lifetime(self) -> Self::T {
+        std::mem::transmute(self)
+    }
+}
+
 impl TripleVertexBuffer {
     pub fn clear_quad_allocation(&self) {
         *self.next_quad.borrow_mut() = 0;
@@ -303,6 +350,8 @@ impl TripleVertexBuffer {
     }
 
     pub fn map(&self) -> MappedQuads {
+        let mut bufs = self.current_vb_mut();
+
         // To map the vertex buffer, we need to hold a mutable reference to
         // the buffer and hold the mapping object alive for the duration
         // of the access.  Rust doesn't allow us to create a struct that
@@ -313,31 +362,34 @@ impl TripleVertexBuffer {
         // we can then store in the same struct.
         // This is "safe" because we carry them around together and ensure
         // that the owner is dropped after the derived data.
-        let mapping = unsafe {
-            let mut bufs: RefMut<'static, GliumVertexBuffer<Vertex>> =
-                std::mem::transmute(self.current_vb_mut());
-            let buf_slice: BufferMutSlice<'static, [Vertex]> =
-                std::mem::transmute(bufs.slice_mut(..).expect("to map vertex buffer"));
+        let mapping = match &mut *bufs {
+            VertexBuffer::Glium(vb) => {
+                let buf_slice = unsafe {
+                    vb.slice_mut(..)
+                        .expect("to map vertex buffer")
+                        .extend_lifetime()
+                };
+                let mapping = buf_slice.map();
 
-            let mapping = buf_slice.map();
-
-            GliumMappedVertexBuffer {
-                _owner: bufs,
-                mapping,
+                MappedVertexBuffer::Glium(GliumMappedVertexBuffer {
+                    _owner: bufs,
+                    mapping,
+                })
             }
+            VertexBuffer::WebGpu(vb) => MappedVertexBuffer::WebGpu(vb.map()),
         };
 
         MappedQuads {
-            mapping: MappedVertexBuffer::Glium(mapping),
+            mapping,
             next: self.next_quad.borrow_mut(),
             capacity: self.capacity,
         }
     }
 
-    pub fn current_vb_mut(&self) -> RefMut<VertexBuffer> {
+    pub fn current_vb_mut(&self) -> RefMut<'static, VertexBuffer> {
         let index = *self.index.borrow();
         let bufs = self.bufs.borrow_mut();
-        RefMut::map(bufs, |bufs| &mut bufs[index])
+        unsafe { RefMut::map(bufs, |bufs| &mut bufs[index]).extend_lifetime() }
     }
 
     pub fn next_index(&self) {
@@ -382,10 +434,10 @@ impl RenderLayer {
         // transmuting the lifetimes (not the types), and we're keeping hold
         // of the owner in the returned struct.
         unsafe {
-            let vbs: Ref<'static, [TripleVertexBuffer; 3]> = std::mem::transmute(self.vb.borrow());
-            let layer0: MappedQuads<'static> = std::mem::transmute(vbs[0].map());
-            let layer1: MappedQuads<'static> = std::mem::transmute(vbs[1].map());
-            let layer2: MappedQuads<'static> = std::mem::transmute(vbs[2].map());
+            let vbs = self.vb.borrow().extend_lifetime();
+            let layer0 = vbs[0].map().extend_lifetime();
+            let layer1 = vbs[1].map().extend_lifetime();
+            let layer2 = vbs[2].map().extend_lifetime();
             TripleLayerQuadAllocator::Gpu(BorrowedLayers {
                 layers: [layer0, layer1, layer2],
                 _owner: vbs,
