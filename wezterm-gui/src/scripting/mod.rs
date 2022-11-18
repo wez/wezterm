@@ -3,7 +3,7 @@ use crate::inputmap::InputMap;
 use config::keyassignment::KeyTable;
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua};
-use config::{DeferredKeyCode, Key, KeyNoAction};
+use config::{DeferredKeyCode, GpuInfo, Key, KeyNoAction};
 use luahelper::dynamic_to_lua_value;
 use mux::window::WindowId as MuxWindowId;
 use std::collections::HashMap;
@@ -66,6 +66,22 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
                 tables.insert(k.to_string(), keys);
             }
             dynamic_to_lua_value(lua, tables.to_dynamic())
+        })?,
+    )?;
+
+    window_mod.set(
+        "enumerate_gpus",
+        lua.create_function(|_, _: ()| {
+            let backends = wgpu::Backends::all();
+            let instance = wgpu::Instance::new(backends);
+            let gpus: Vec<GpuInfo> = instance
+                .enumerate_adapters(backends)
+                .map(|adapter| {
+                    let info = adapter.get_info();
+                    crate::termwindow::webgpu::adapter_info_to_gpu_info(info)
+                })
+                .collect();
+            Ok(gpus)
         })?,
     )?;
 

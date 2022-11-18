@@ -1,5 +1,6 @@
 use crate::quad::Vertex;
 use anyhow::anyhow;
+use config::{ConfigHandle, GpuInfo, WebGpuPowerPreference};
 use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::sync::Arc;
@@ -141,24 +142,114 @@ impl WebGpuTexture {
     }
 }
 
+pub fn adapter_info_to_gpu_info(info: wgpu::AdapterInfo) -> GpuInfo {
+    GpuInfo {
+        name: info.name,
+        vendor: Some(info.vendor),
+        device: Some(info.device),
+        device_type: format!("{:?}", info.device_type),
+        driver: if info.driver.is_empty() {
+            None
+        } else {
+            Some(info.driver)
+        },
+        driver_info: if info.driver_info.is_empty() {
+            None
+        } else {
+            Some(info.driver_info)
+        },
+        backend: format!("{:?}", info.backend),
+    }
+}
+
 impl WebGpuState {
-    pub async fn new(window: &Window, dimensions: Dimensions) -> anyhow::Result<Self> {
+    pub async fn new(
+        window: &Window,
+        dimensions: Dimensions,
+        config: &ConfigHandle,
+    ) -> anyhow::Result<Self> {
         let handle = RawHandlePair::new(window);
-        Self::new_impl(handle, dimensions).await
+        Self::new_impl(handle, dimensions, config).await
     }
 
-    pub async fn new_impl(handle: RawHandlePair, dimensions: Dimensions) -> anyhow::Result<Self> {
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
+    pub async fn new_impl(
+        handle: RawHandlePair,
+        dimensions: Dimensions,
+        config: &ConfigHandle,
+    ) -> anyhow::Result<Self> {
+        let backends = wgpu::Backends::all();
+        let instance = wgpu::Instance::new(backends);
         let surface = unsafe { instance.create_surface(&handle) };
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .ok_or_else(|| anyhow!("no matching adapter found"))?;
 
+        let mut adapter: Option<wgpu::Adapter> = None;
+
+        if let Some(preference) = &config.webgpu_preferred_adapter {
+            for a in instance.enumerate_adapters(backends) {
+                if !a.is_surface_supported(&surface) {
+                    let info = adapter_info_to_gpu_info(a.get_info());
+                    log::warn!("{} is not compatible with surface", info.to_string());
+                    continue;
+                }
+
+                let info = a.get_info();
+
+                if preference.name != info.name {
+                    continue;
+                }
+
+                if preference.device_type != format!("{:?}", info.device_type) {
+                    continue;
+                }
+
+                if preference.backend != format!("{:?}", info.backend) {
+                    continue;
+                }
+
+                if let Some(driver) = &preference.driver {
+                    if *driver != info.driver {
+                        continue;
+                    }
+                }
+                if let Some(vendor) = &preference.vendor {
+                    if *vendor != info.vendor {
+                        continue;
+                    }
+                }
+                if let Some(device) = &preference.device {
+                    if *device != info.device {
+                        continue;
+                    }
+                }
+
+                adapter.replace(a);
+                break;
+            }
+
+            if adapter.is_none() {
+                log::warn!(
+                    "Your webgpu preferred adapter '{}' was either not \
+                     found or is not compatible with your display",
+                    preference.to_string()
+                );
+            }
+        }
+
+        if adapter.is_none() {
+            adapter = instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: match config.webgpu_power_preference {
+                        WebGpuPowerPreference::HighPerformance => {
+                            wgpu::PowerPreference::HighPerformance
+                        }
+                        WebGpuPowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+                    },
+                    compatible_surface: Some(&surface),
+                    force_fallback_adapter: config.webgpu_force_fallback_adapater,
+                })
+                .await;
+        }
+
+        let adapter = adapter.ok_or_else(|| anyhow!("no matching adapter found"))?;
         let adapter_info = adapter.get_info();
         log::trace!("Using adapter: {adapter_info:?}");
 

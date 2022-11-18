@@ -1,7 +1,7 @@
 use super::glyphcache::GlyphCache;
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
-use crate::termwindow::webgpu::{WebGpuState, WebGpuTexture};
+use crate::termwindow::webgpu::{adapter_info_to_gpu_info, WebGpuState, WebGpuTexture};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::Texture2d;
 use ::window::glium::backend::Context as GliumContext;
@@ -114,11 +114,8 @@ impl RenderContext {
                 ctx.get_opengl_version_string()
             ),
             Self::WebGpu(state) => {
-                let info = &state.adapter_info;
-                format!(
-                    "WebGPU: adapter={}, device_type={:?}, driver={}, driver_info={}, backend={:?}",
-                    info.name, info.device_type, info.driver, info.driver_info, info.backend
-                )
+                let info = adapter_info_to_gpu_info(state.adapter_info.clone());
+                format!("WebGPU: {}", info.to_string())
             }
         }
     }

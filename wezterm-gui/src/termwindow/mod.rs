@@ -811,9 +811,9 @@ impl TermWindow {
         {
             let mut myself = tw.borrow_mut();
             let webgpu = match config.front_end {
-                FrontEndSelection::WebGpu => {
-                    Some(Rc::new(WebGpuState::new(&window, dimensions).await?))
-                }
+                FrontEndSelection::WebGpu => Some(Rc::new(
+                    WebGpuState::new(&window, dimensions, &config).await?,
+                )),
                 _ => None,
             };
             myself.config_subscription.replace(config_subscription);

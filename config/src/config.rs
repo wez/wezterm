@@ -22,8 +22,9 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_true, GpuInfo, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor,
+    WebGpuPowerPreference, CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
+    HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -261,6 +262,18 @@ pub struct Config {
 
     #[dynamic(default)]
     pub front_end: FrontEndSelection,
+
+    /// Whether to select the higher powered discrete GPU when
+    /// the system has a choice of integrated or discrete.
+    /// Defaults to low power.
+    #[dynamic(default)]
+    pub webgpu_power_preference: WebGpuPowerPreference,
+
+    #[dynamic(default)]
+    pub webgpu_force_fallback_adapater: bool,
+
+    #[dynamic(default)]
+    pub webgpu_preferred_adapter: Option<GpuInfo>,
 
     #[dynamic(default = "WslDomain::default_domains")]
     pub wsl_domains: Vec<WslDomain>,
