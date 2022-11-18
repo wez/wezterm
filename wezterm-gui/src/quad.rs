@@ -15,6 +15,19 @@ pub const V_TOP_RIGHT: usize = 1;
 pub const V_BOT_LEFT: usize = 2;
 pub const V_BOT_RIGHT: usize = 3;
 
+/// a regular monochrome text glyph
+const IS_GLYPH: f32 = 0.0;
+/// a color emoji glyph
+const IS_COLOR_EMOJI: f32 = 1.0;
+/// a full color texture attached as the
+/// background image of the window
+const IS_BG_IMAGE: f32 = 2.0;
+/// like 2.0, except that instead of an
+/// image, we use the solid bg color
+const IS_SOLID_COLOR: f32 = 3.0;
+/// Grayscale poly quad for non-aa text render layers
+const IS_GRAY_SCALE: f32 = 4.0;
+
 #[repr(C)]
 #[derive(Copy, Clone, Default, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -25,18 +38,6 @@ pub struct Vertex {
     pub fg_color: [f32; 4],
     pub alt_color: [f32; 4],
     pub hsv: [f32; 3],
-    // We use a float for this because I can't get
-    // bool or integer values to work:
-    // "bool can't be an in in the vertex shader"
-    //
-    // has_color is effectively an enum with these
-    // possible values:
-    // 0.0 -> a regular monochrome text glyph
-    // 1.0 -> a color emoji glyph
-    // 2.0 -> a full color texture attached as the
-    //        background image of the window
-    // 3.0 -> like 2.0, except that instead of an
-    //        image, we use the solid bg color
     pub has_color: f32,
     pub mix_value: f32,
 }
@@ -78,23 +79,23 @@ pub trait QuadTrait {
 
     /// Set the color glyph "flag"
     fn set_has_color(&mut self, has_color: bool) {
-        self.set_has_color_impl(if has_color { 1. } else { 0. });
+        self.set_has_color_impl(if has_color { IS_COLOR_EMOJI } else { IS_GLYPH });
     }
 
     /// Mark as a grayscale polyquad; color and alpha will be
     /// multipled with those in the texture
     fn set_grayscale(&mut self) {
-        self.set_has_color_impl(4.0);
+        self.set_has_color_impl(IS_GRAY_SCALE);
     }
 
     /// Mark this quad as a background image.
     /// Mutually exclusive with set_has_color.
     fn set_is_background_image(&mut self) {
-        self.set_has_color_impl(2.0);
+        self.set_has_color_impl(IS_BG_IMAGE);
     }
 
     fn set_is_background(&mut self) {
-        self.set_has_color_impl(3.0);
+        self.set_has_color_impl(IS_SOLID_COLOR);
     }
 
     fn set_fg_color(&mut self, color: LinearRgba);
