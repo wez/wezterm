@@ -954,7 +954,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     let mut glyph = String::new();
 
                     if let Some(texture) = &cached_glyph.texture {
-                        use window::bitmaps::ImageTexture;
+                        use ::window::bitmaps::ImageTexture;
                         if let Some(tex) = texture.texture.downcast_ref::<ImageTexture>() {
                             for y in texture.coords.min_y()..texture.coords.max_y() {
                                 for &px in tex.image.borrow().horizontal_pixel_range(

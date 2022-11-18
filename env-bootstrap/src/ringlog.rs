@@ -158,8 +158,8 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        RINGS.lock().unwrap().log(record);
         if self.filter.matches(record) {
+            RINGS.lock().unwrap().log(record);
             let ts = Local::now().format("%H:%M:%S%.3f").to_string();
             let level = record.level().as_str();
             let target = record.target().to_string();
@@ -274,6 +274,7 @@ fn setup_pretty() -> (LevelFilter, Logger) {
     let mut filters = FilterBuilder::new();
     for (module, level) in [
         ("wgpu_core", LevelFilter::Error),
+        ("wgpu_hal", LevelFilter::Error),
         ("gfx_backend_metal", LevelFilter::Error),
     ] {
         filters.filter_module(module, level);

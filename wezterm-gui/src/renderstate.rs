@@ -3,6 +3,7 @@ use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
 use crate::termwindow::webgpu::{WebGpuState, WebGpuTexture};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
+use ::window::bitmaps::Texture2d;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::{BufferMutSlice, Mapping};
 use ::window::glium::{
@@ -15,7 +16,6 @@ use std::convert::TryInto;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 use wgpu::util::DeviceExt;
-use window::bitmaps::Texture2d;
 
 const INDICES_PER_CELL: usize = 6;
 
@@ -113,7 +113,13 @@ impl RenderContext {
                 ctx.get_opengl_renderer_string(),
                 ctx.get_opengl_version_string()
             ),
-            Self::WebGpu(_) => "WebGPU".to_string(),
+            Self::WebGpu(state) => {
+                let info = &state.adapter_info;
+                format!(
+                    "WebGPU: adapter={}, device_type={:?}, driver={}, driver_info={}, backend={:?}",
+                    info.name, info.device_type, info.driver, info.driver_info, info.backend
+                )
+            }
         }
     }
 }

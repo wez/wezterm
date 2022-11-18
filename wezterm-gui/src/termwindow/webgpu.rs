@@ -21,6 +21,7 @@ pub struct ShaderUniform {
 }
 
 pub struct WebGpuState {
+    pub adapter_info: wgpu::AdapterInfo,
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: Arc<wgpu::Queue>,
@@ -158,6 +159,9 @@ impl WebGpuState {
             .await
             .ok_or_else(|| anyhow!("no matching adapter found"))?;
 
+        let adapter_info = adapter.get_info();
+        log::trace!("Using adapter: {adapter_info:?}");
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -294,6 +298,7 @@ impl WebGpuState {
         });
 
         Ok(Self {
+            adapter_info,
             surface,
             device,
             queue,
