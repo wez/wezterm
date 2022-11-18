@@ -35,6 +35,8 @@ pub struct Vertex {
     //        background image of the window
     // 3.0 -> like 2.0, except that instead of an
     //        image, we use the solid bg color
+    // 4.0 -> color and alpha will be multipled
+    //        with those in the texture
     pub has_color: f32,
     pub mix_value: f32,
 }

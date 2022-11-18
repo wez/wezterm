@@ -22,8 +22,9 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, CONFIG_DIR,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_true, IntegratedTitleButtonColor, KeyMapPreference, LoadedConfig,
+    MouseEventTriggerMods, RgbaColor, CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES,
+    CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -87,6 +88,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub integrated_title_button_style: IntegratedTitleButtonStyle,
+
+    #[dynamic(default)]
+    pub integrated_title_button_color: IntegratedTitleButtonColor,
 
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
