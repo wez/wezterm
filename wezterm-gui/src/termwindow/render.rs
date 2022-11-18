@@ -53,57 +53,37 @@ use window::color::LinearRgba;
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment};
 
 pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::One),
-        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
-        PolyCommand::QuadTo {
-            control: (BlockCoord::Zero, BlockCoord::Zero),
-            to: (BlockCoord::Zero, BlockCoord::One),
-        },
-        PolyCommand::Close,
-    ],
+    path: &[PolyCommand::PushOval {
+        center: (BlockCoord::One, BlockCoord::One),
+        radiuses: (BlockCoord::One, BlockCoord::One),
+    }],
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
 
 pub const BOTTOM_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
-        PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-        PolyCommand::QuadTo {
-            control: (BlockCoord::Zero, BlockCoord::One),
-            to: (BlockCoord::Zero, BlockCoord::Zero),
-        },
-        PolyCommand::Close,
-    ],
+    path: &[PolyCommand::PushOval {
+        center: (BlockCoord::One, BlockCoord::Zero),
+        radiuses: (BlockCoord::One, BlockCoord::One),
+    }],
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
 
 pub const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
-        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
-        PolyCommand::QuadTo {
-            control: (BlockCoord::One, BlockCoord::Zero),
-            to: (BlockCoord::One, BlockCoord::One),
-        },
-        PolyCommand::Close,
-    ],
+    path: &[PolyCommand::PushOval {
+        center: (BlockCoord::Zero, BlockCoord::One),
+        radiuses: (BlockCoord::One, BlockCoord::One),
+    }],
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
 
 pub const BOTTOM_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[
-        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
-        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-        PolyCommand::QuadTo {
-            control: (BlockCoord::One, BlockCoord::One),
-            to: (BlockCoord::One, BlockCoord::Zero),
-        },
-        PolyCommand::Close,
-    ],
+    path: &[PolyCommand::PushOval {
+        center: (BlockCoord::Zero, BlockCoord::Zero),
+        radiuses: (BlockCoord::One, BlockCoord::One),
+    }],
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
@@ -147,6 +127,28 @@ const PLUS_BUTTON: &[Poly] = &[
 ];
 
 mod window_buttons {
+    pub struct WindowButtonColors {
+        pub(super) colors: ElementColors,
+        pub(super) hover_colors: ElementColors,
+    }
+
+    pub(super) fn auto_button_color(
+        background_lightness: f64,
+        foreground: config::IntegratedTitleButtonColor,
+    ) -> LinearRgba {
+        use config::IntegratedTitleButtonColor as Color;
+        match foreground {
+            Color::Custom(color) => color.to_linear(),
+            Color::Auto => {
+                if background_lightness > 0.5 {
+                    LinearRgba(0.0, 0.0, 0.0, 1.0)
+                } else {
+                    LinearRgba(1.0, 1.0, 1.0, 1.0)
+                }
+            }
+        }
+    }
+
     use super::*;
     pub(super) mod windows {
         use super::*;
@@ -222,6 +224,38 @@ mod window_buttons {
                 height: size,
             }
         }
+
+        pub fn window_button_colors(
+            background_lightness: f64,
+            foreground: config::IntegratedTitleButtonColor,
+            window_button: IntegratedTitleButton,
+        ) -> WindowButtonColors {
+            let foreground = auto_button_color(background_lightness, foreground);
+            let colors = ElementColors {
+                border: BorderColor::new(LinearRgba::TRANSPARENT),
+                bg: LinearRgba::TRANSPARENT.into(),
+                text: foreground.into(),
+            };
+
+            let hover_colors = if window_button == IntegratedTitleButton::Close {
+                ElementColors {
+                    border: BorderColor::new(LinearRgba::TRANSPARENT),
+                    bg: LinearRgba(1.0, 0.0, 0.0, 1.0).into(),
+                    text: LinearRgba(1.0, 1.0, 1.0, 1.0).into(),
+                }
+            } else {
+                ElementColors {
+                    border: BorderColor::new(LinearRgba::TRANSPARENT),
+                    bg: foreground.mul_alpha(0.1).into(),
+                    text: foreground.into(),
+                }
+            };
+
+            WindowButtonColors {
+                colors,
+                hover_colors,
+            }
+        }
     }
 
     pub(super) mod gnome {
@@ -276,6 +310,26 @@ mod window_buttons {
                 height: size,
             }
         }
+
+        pub fn window_button_colors(
+            background_lightness: f64,
+            foreground: config::IntegratedTitleButtonColor,
+            _window_button: IntegratedTitleButton,
+        ) -> WindowButtonColors {
+            let foreground = auto_button_color(background_lightness, foreground);
+            WindowButtonColors {
+                colors: ElementColors {
+                    border: BorderColor::new(foreground.mul_alpha(0.1)),
+                    bg: LinearRgba::TRANSPARENT.into(),
+                    text: foreground.into(),
+                },
+                hover_colors: ElementColors {
+                    border: BorderColor::new(foreground.mul_alpha(0.15)),
+                    bg: LinearRgba::TRANSPARENT.into(),
+                    text: foreground.into(),
+                },
+            }
+        }
     }
 }
 
@@ -285,46 +339,40 @@ fn window_button_element(
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     colors: &TabBarColors,
-    style: window::IntegratedTitleButtonStyle,
+    config: &ConfigHandle,
 ) -> Element {
     use window::IntegratedTitleButtonStyle as Style;
     use IntegratedTitleButton as Button;
 
-    let poly = match style {
-        Style::Windows => {
-            use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
-            match window_button {
-                Button::Hide => HIDE,
-                Button::Maximize => {
-                    if is_maximized {
-                        RESTORE
-                    } else {
-                        MAXIMIZE
-                    }
-                }
-                Button::Close => CLOSE,
-            }
-        }
+    let style = config.integrated_title_button_style;
 
-        Style::Gnome => {
-            use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
-            match window_button {
-                Button::Hide => HIDE,
-                Button::Maximize => {
-                    if is_maximized {
-                        RESTORE
-                    } else {
-                        MAXIMIZE
-                    }
-                }
-                Button::Close => CLOSE,
+    let poly = {
+        let (CLOSE, HIDE, MAXIMIZE, RESTORE) = match style {
+            Style::Windows => {
+                use window_buttons::windows::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+                (CLOSE, HIDE, MAXIMIZE, RESTORE)
             }
-        }
-    };
+            Style::Gnome => {
+                use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
+                (CLOSE, HIDE, MAXIMIZE, RESTORE)
+            }
+        };
+        let poly = match window_button {
+            Button::Hide => HIDE,
+            Button::Maximize => {
+                if is_maximized {
+                    RESTORE
+                } else {
+                    MAXIMIZE
+                }
+            }
+            Button::Close => CLOSE,
+        };
 
-    let poly = match style {
-        Style::Windows => window_buttons::windows::sized_poly(poly),
-        Style::Gnome => window_buttons::gnome::sized_poly(poly),
+        match style {
+            Style::Windows => window_buttons::windows::sized_poly(poly),
+            Style::Gnome => window_buttons::gnome::sized_poly(poly),
+        }
     };
 
     let element = Element::new(
@@ -353,64 +401,74 @@ fn window_button_element(
                     bottom: Dimension::Points(10. * scale),
                 })
         }
-        Style::Gnome => element
-            .zindex(1)
-            .vertical_align(VerticalAlign::Middle)
-            .padding(BoxDimension {
-                left: Dimension::Pixels(7.),
-                right: Dimension::Pixels(7.),
-                top: Dimension::Pixels(7.),
-                bottom: Dimension::Pixels(7.),
-            })
-            .border(BoxDimension::new(Dimension::Pixels(1.)))
-            .border_corners(Some(Corners {
-                top_left: SizedPoly {
-                    width: Dimension::Pixels(14.),
-                    height: Dimension::Pixels(14.),
-                    poly: TOP_LEFT_ROUNDED_CORNER,
-                },
-                top_right: SizedPoly {
-                    width: Dimension::Pixels(14.),
-                    height: Dimension::Pixels(14.),
-                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                },
-                bottom_left: SizedPoly {
-                    width: Dimension::Pixels(14.),
-                    height: Dimension::Pixels(14.),
-                    poly: BOTTOM_LEFT_ROUNDED_CORNER,
-                },
-                bottom_right: SizedPoly {
-                    width: Dimension::Pixels(14.),
-                    height: Dimension::Pixels(14.),
-                    poly: BOTTOM_RIGHT_ROUNDED_CORNER,
-                },
-            }))
-            .margin(BoxDimension {
-                left: Dimension::Pixels(7.),
-                right: Dimension::Pixels(7.),
-                top: Dimension::Pixels(7.),
-                bottom: Dimension::Pixels(7.),
-            }),
+        Style::Gnome => {
+            let border_corners_size = Dimension::Pixels(12.);
+            element
+                .zindex(1)
+                .vertical_align(VerticalAlign::Middle)
+                .padding(BoxDimension {
+                    left: Dimension::Pixels(7.),
+                    right: Dimension::Pixels(7.),
+                    top: Dimension::Pixels(7.),
+                    bottom: Dimension::Pixels(7.),
+                })
+                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .border_corners(Some(Corners {
+                    top_left: SizedPoly {
+                        width: border_corners_size,
+                        height: border_corners_size,
+                        poly: TOP_LEFT_ROUNDED_CORNER,
+                    },
+                    top_right: SizedPoly {
+                        width: border_corners_size,
+                        height: border_corners_size,
+                        poly: TOP_RIGHT_ROUNDED_CORNER,
+                    },
+                    bottom_left: SizedPoly {
+                        width: border_corners_size,
+                        height: border_corners_size,
+                        poly: BOTTOM_LEFT_ROUNDED_CORNER,
+                    },
+                    bottom_right: SizedPoly {
+                        width: border_corners_size,
+                        height: border_corners_size,
+                        poly: BOTTOM_RIGHT_ROUNDED_CORNER,
+                    },
+                }))
+                .margin(BoxDimension {
+                    left: Dimension::Pixels(7.),
+                    right: Dimension::Pixels(7.),
+                    top: Dimension::Pixels(7.),
+                    bottom: Dimension::Pixels(7.),
+                })
+        }
     };
 
-    let (color, hover_colors) = match window_button {
-        Button::Hide => (colors.window_hide(), colors.window_hide_hover()),
-        Button::Maximize => (colors.window_maximize(), colors.window_maximize_hover()),
-        Button::Close => (colors.window_close(), colors.window_close_hover()),
+    let foreground = config.integrated_title_button_color.clone();
+    let background_lightness = {
+        let (r, g, b) = config
+            .window_frame
+            .active_titlebar_bg
+            .to_tuple_rgb8()
+            .clone();
+
+        let max = r.max(g.max(b)) as f64;
+        let min = r.min(g.min(b)) as f64;
+
+        (max + min) / 510.0
     };
+
+    let window_button_colors_fn = match style {
+        Style::Windows => window_buttons::windows::window_button_colors,
+        Style::Gnome => window_buttons::gnome::window_button_colors,
+    };
+
+    let colors = window_button_colors_fn(background_lightness, foreground, window_button);
 
     let element = element
         .item_type(UIItemType::TabBar(TabBarItem::WindowButton(window_button)))
-        .colors(ElementColors {
-            border: BorderColor::new(color.bg_color.to_linear()),
-            bg: color.bg_color.to_linear().into(),
-            text: color.fg_color.to_linear().into(),
-        })
-        .hover_colors(Some(ElementColors {
-            border: BorderColor::new(hover_colors.bg_color.to_linear()),
-            bg: hover_colors.bg_color.to_linear().into(),
-            text: hover_colors.fg_color.to_linear().into(),
-        }));
+        .colors(colors.colors)
+        .hover_colors(Some(colors.hover_colors));
 
     element
 }
@@ -1083,7 +1141,7 @@ impl super::TermWindow {
                     &font,
                     &metrics,
                     &colors,
-                    self.config.integrated_title_button_style,
+                    &self.config,
                 ),
             }
         };

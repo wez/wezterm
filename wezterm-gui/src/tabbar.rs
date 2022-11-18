@@ -193,55 +193,37 @@ impl TabBarState {
         line: &mut Line,
         colors: &TabBarColors,
     ) {
-        let window_hide = parse_status_text(
-            &config.tab_bar_style.window_hide,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_hide().as_cell_attributes()
-            },
-        );
+        let default_cell = if config.use_fancy_tab_bar {
+            CellAttributes::default()
+        } else {
+            colors.new_tab().as_cell_attributes()
+        };
+
+        let default_cell_hover = if config.use_fancy_tab_bar {
+            CellAttributes::default()
+        } else {
+            colors.new_tab_hover().as_cell_attributes()
+        };
+
+        let window_hide =
+            parse_status_text(&config.tab_bar_style.window_hide, default_cell.clone());
         let window_hide_hover = parse_status_text(
             &config.tab_bar_style.window_hide_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_hide_hover().as_cell_attributes()
-            },
+            default_cell_hover.clone(),
         );
 
-        let window_maximize = parse_status_text(
-            &config.tab_bar_style.window_maximize,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_maximize().as_cell_attributes()
-            },
-        );
+        let window_maximize =
+            parse_status_text(&config.tab_bar_style.window_maximize, default_cell.clone());
         let window_maximize_hover = parse_status_text(
             &config.tab_bar_style.window_maximize_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_maximize_hover().as_cell_attributes()
-            },
+            default_cell_hover.clone(),
         );
 
-        let window_close = parse_status_text(
-            &config.tab_bar_style.window_close,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_close().as_cell_attributes()
-            },
-        );
+        let window_close =
+            parse_status_text(&config.tab_bar_style.window_close, default_cell.clone());
         let window_close_hover = parse_status_text(
             &config.tab_bar_style.window_close_hover,
-            if config.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                colors.window_close_hover().as_cell_attributes()
-            },
+            default_cell_hover.clone(),
         );
 
         for button in &config.integrated_title_buttons {

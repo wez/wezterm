@@ -372,24 +372,6 @@ pub struct TabBarColors {
 
     #[dynamic(default)]
     pub inactive_tab_edge_hover: Option<RgbaColor>,
-
-    #[dynamic(default)]
-    pub window_hide: Option<TabBarColor>,
-
-    #[dynamic(default)]
-    pub window_hide_hover: Option<TabBarColor>,
-
-    #[dynamic(default)]
-    pub window_maximize: Option<TabBarColor>,
-
-    #[dynamic(default)]
-    pub window_maximize_hover: Option<TabBarColor>,
-
-    #[dynamic(default)]
-    pub window_close: Option<TabBarColor>,
-
-    #[dynamic(default)]
-    pub window_close_hover: Option<TabBarColor>,
 }
 
 impl TabBarColors {
@@ -433,42 +415,6 @@ impl TabBarColors {
             .unwrap_or_else(default_inactive_tab_edge_hover)
     }
 
-    pub fn window_hide(&self) -> TabBarColor {
-        self.window_hide
-            .clone()
-            .unwrap_or_else(default_window_hide_color)
-    }
-
-    pub fn window_hide_hover(&self) -> TabBarColor {
-        self.window_hide_hover
-            .clone()
-            .unwrap_or_else(default_window_hide_hover_color)
-    }
-
-    pub fn window_maximize(&self) -> TabBarColor {
-        self.window_maximize
-            .clone()
-            .unwrap_or_else(default_window_maximize_color)
-    }
-
-    pub fn window_maximize_hover(&self) -> TabBarColor {
-        self.window_maximize_hover
-            .clone()
-            .unwrap_or_else(default_window_maximize_hover_color)
-    }
-
-    pub fn window_close(&self) -> TabBarColor {
-        self.window_close
-            .clone()
-            .unwrap_or_else(default_window_close_color)
-    }
-
-    pub fn window_close_hover(&self) -> TabBarColor {
-        self.window_close_hover
-            .clone()
-            .unwrap_or_else(default_window_close_hover_color)
-    }
-
     pub fn overlay_with(&self, other: &Self) -> Self {
         macro_rules! overlay {
             ($name:ident) => {
@@ -488,12 +434,35 @@ impl TabBarColors {
             inactive_tab_edge_hover: overlay!(inactive_tab_edge_hover),
             new_tab: overlay!(new_tab),
             new_tab_hover: overlay!(new_tab_hover),
-            window_hide: overlay!(window_hide),
-            window_hide_hover: overlay!(window_hide_hover),
-            window_maximize: overlay!(window_maximize),
-            window_maximize_hover: overlay!(window_maximize_hover),
-            window_close: overlay!(window_close),
-            window_close_hover: overlay!(window_close_hover),
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+#[dynamic(try_from = "String")]
+pub enum IntegratedTitleButtonColor {
+    #[default]
+    Auto,
+    Custom(RgbaColor),
+}
+
+impl Into<String> for IntegratedTitleButtonColor {
+    fn into(self) -> String {
+        match self {
+            Self::Auto => "auto".to_string(),
+            Self::Custom(color) => color.into(),
+        }
+    }
+}
+
+impl TryFrom<String> for IntegratedTitleButtonColor {
+    type Error = <RgbaColor as TryFrom<String>>::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.to_lowercase() == "auto" {
+            Ok(Self::Auto)
+        } else {
+            Ok(Self::Custom(RgbaColor::try_from(value)?))
         }
     }
 }
@@ -529,89 +498,6 @@ fn default_active_tab() -> TabBarColor {
     TabBarColor {
         bg_color: (0x00, 0x00, 0x00).into(),
         fg_color: (0xc0, 0xc0, 0xc0).into(),
-        ..TabBarColor::default()
-    }
-}
-
-// Colors for window buttons
-#[cfg(not(any(windows, target_os = "linux")))]
-fn default_window_button_color() -> TabBarColor {
-    default_inactive_tab()
-}
-
-#[cfg(not(any(windows, target_os = "linux")))]
-fn default_window_button_hover_color() -> TabBarColor {
-    default_inactive_tab_hover()
-}
-
-fn default_window_hide_color() -> TabBarColor {
-    default_window_button_color()
-}
-
-fn default_window_hide_hover_color() -> TabBarColor {
-    default_window_button_hover_color()
-}
-
-fn default_window_maximize_color() -> TabBarColor {
-    default_window_button_color()
-}
-
-fn default_window_maximize_hover_color() -> TabBarColor {
-    default_window_button_hover_color()
-}
-
-fn default_window_close_color() -> TabBarColor {
-    default_window_button_color()
-}
-
-#[cfg(not(windows))]
-fn default_window_close_hover_color() -> TabBarColor {
-    default_window_button_hover_color()
-}
-
-// Windows dependend colors for window buttons
-#[cfg(windows)]
-fn default_window_button_color() -> TabBarColor {
-    TabBarColor {
-        bg_color: (0x33, 0x33, 0x33).into(),
-        fg_color: (0xFF, 0xFF, 0xFF).into(),
-        ..TabBarColor::default()
-    }
-}
-
-#[cfg(windows)]
-fn default_window_button_hover_color() -> TabBarColor {
-    TabBarColor {
-        bg_color: (0x45, 0x45, 0x45).into(),
-        fg_color: (0xFF, 0xFF, 0xFF).into(),
-        ..TabBarColor::default()
-    }
-}
-
-#[cfg(windows)]
-fn default_window_close_hover_color() -> TabBarColor {
-    TabBarColor {
-        bg_color: (0xFF, 0x00, 0x00).into(),
-        fg_color: (0xFF, 0xFF, 0xFF).into(),
-        ..TabBarColor::default()
-    }
-}
-
-// Linux dependend colors for window buttons
-#[cfg(target_os = "linux")]
-fn default_window_button_color() -> TabBarColor {
-    TabBarColor {
-        bg_color: (0x45, 0x45, 0x45).into(),
-        fg_color: (0xFF, 0xFF, 0xFF).into(),
-        ..TabBarColor::default()
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn default_window_button_hover_color() -> TabBarColor {
-    TabBarColor {
-        bg_color: (0x4F, 0x4F, 0x4F).into(),
-        fg_color: (0xFF, 0xFF, 0xFF).into(),
         ..TabBarColor::default()
     }
 }

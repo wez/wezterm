@@ -176,7 +176,14 @@ pub type BlockPoint = (BlockCoord, BlockCoord);
 pub enum PolyCommand {
     MoveTo(BlockCoord, BlockCoord),
     LineTo(BlockCoord, BlockCoord),
-    QuadTo { control: BlockPoint, to: BlockPoint },
+    QuadTo {
+        control: BlockPoint,
+        to: BlockPoint,
+    },
+    PushOval {
+        center: BlockPoint,
+        radiuses: BlockPoint,
+    },
     Close,
 }
 
@@ -200,6 +207,21 @@ impl PolyCommand {
                 x.to_pixel(width, underline_height),
                 y.to_pixel(height, underline_height),
             ),
+            Self::PushOval {
+                center: (x, y),
+                radiuses: (w, h),
+            } => {
+                let x = x.to_pixel(width, underline_height) - width as f32;
+                let y = y.to_pixel(height, underline_height) - height as f32;
+                let w = w.to_pixel(width, underline_height) * 2.0;
+                let h = h.to_pixel(height, underline_height) * 2.0;
+
+                if let Some(oval) = tiny_skia::Rect::from_xywh(x, y, w, h) {
+                    pb.push_oval(oval);
+                } else {
+                    log::error!("Can't push oval, values: {:?}", self);
+                }
+            }
             Self::Close => pb.close(),
         };
     }
