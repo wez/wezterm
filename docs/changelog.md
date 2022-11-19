@@ -118,6 +118,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2705](https://github.com/wez/wezterm/issues/2705)
 * Dragging by retro tab bar left or right status area would jump around erratically.
   [#2758](https://github.com/wez/wezterm/issues/2758)
+* Fixed background `Cover` algorithm. Thanks to
+  [@xiaopengli89](https://github.com/xiaopengli89)!
+  [#2636](https://github.com/wez/wezterm/pull/2636)
 
 
 #### Changed
