@@ -116,6 +116,8 @@ As features stabilize some brief notes about them will accumulate here.
   `SUPER+SHIFT+Page(Up|Down)` instead of the documented
   `CTRL+SHIFT+Page(Up|Down)`
   [#2705](https://github.com/wez/wezterm/issues/2705)
+* Dragging by retro tab bar left or right status area would jump around erratically.
+  [#2758](https://github.com/wez/wezterm/issues/2758)
 
 
 #### Changed

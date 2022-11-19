@@ -435,10 +435,10 @@ impl super::TermWindow {
                 TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {}
             },
             WMEK::Move => match item {
-                TabBarItem::None => {
+                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
                     context.set_window_drag_position(event.screen_coords);
                 }
-                _ => {}
+                TabBarItem::Tab { .. } | TabBarItem::NewTabButton { .. } => {}
             },
             WMEK::VertWheel(n) => {
                 self.activate_tab_relative(if n < 1 { 1 } else { -1 }, true)
