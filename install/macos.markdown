@@ -14,7 +14,12 @@ with support for both Apple Silicon and Intel hardware.
 3. First time around, you may need to right click and select `Open` to allow launching
    the application that your just downloaded from the internet.
 3. Subsequently, a simple double-click will launch the UI
-4. Configuration instructions can be [found here](../config/files.html)
+4. To use wezterm binary from a terminal emulator, like `wezterm ls-fonts` you'll need to add the location to the wezterm binary folder that exists _inside_ the WezTerm.app, to your environment's $PATH value. For example, to add it to your `~/.zshrc` file, and assuming your WezTerm.app was installed to `/Applications`, add:
+```sh
+PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
+export PATH
+```
+5. Configuration instructions can be [found here](../config/files.html)
 
 ## Homebrew
 
@@ -45,3 +50,4 @@ WezTerm is also available via [MacPorts](https://ports.macports.org/port/wezterm
 $ sudo port selfupdate
 $ sudo port install wezterm
 ```
+
