@@ -112,6 +112,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Unable to set cursor on Wayland/X11
   [#2687](https://github.com/wez/wezterm/issues/2687)
   [#2743](https://github.com/wez/wezterm/issues/2743)
+* Default `MoveTabRelative` assignments were incorrectly set to
+  `SUPER+SHIFT+Page(Up|Down)` instead of the documented
+  `CTRL+SHIFT+Page(Up|Down)`
+  [#2705](https://github.com/wez/wezterm/issues/2705)
 
 
 #### Changed

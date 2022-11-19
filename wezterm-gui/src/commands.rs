@@ -500,7 +500,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| {
             exp.push(MoveTabRelative(-1));
         },
-        keys: &[(Modifiers::SUPER.union(Modifiers::SHIFT), "PageUp")],
+        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageUp")],
         args: &[ArgType::ActiveTab],
     },
     CommandDef {
@@ -510,7 +510,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| {
             exp.push(MoveTabRelative(1));
         },
-        keys: &[(Modifiers::SUPER.union(Modifiers::SHIFT), "PageDown")],
+        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageDown")],
         args: &[ArgType::ActiveTab],
     },
     CommandDef {
