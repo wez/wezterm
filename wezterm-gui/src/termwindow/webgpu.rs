@@ -162,6 +162,25 @@ pub fn adapter_info_to_gpu_info(info: wgpu::AdapterInfo) -> GpuInfo {
     }
 }
 
+fn compute_compatibility_list(
+    instance: &wgpu::Instance,
+    backends: wgpu::Backends,
+    surface: &wgpu::Surface,
+) -> Vec<String> {
+    instance
+        .enumerate_adapters(backends)
+        .map(|a| {
+            let info = adapter_info_to_gpu_info(a.get_info());
+            let compatible = a.is_surface_supported(&surface);
+            format!(
+                "{}, compatible={}",
+                info.to_string(),
+                if compatible { "yes" } else { "NO" }
+            )
+        })
+        .collect()
+}
+
 impl WebGpuState {
     pub async fn new(
         window: &Window,
@@ -226,10 +245,12 @@ impl WebGpuState {
             }
 
             if adapter.is_none() {
+                let adapters = compute_compatibility_list(&instance, backends, &surface);
                 log::warn!(
                     "Your webgpu preferred adapter '{}' was either not \
-                     found or is not compatible with your display",
-                    preference.to_string()
+                     found or is not compatible with your display. Available:\n{}",
+                    preference.to_string(),
+                    adapters.join("\n")
                 );
             }
         }
@@ -244,12 +265,19 @@ impl WebGpuState {
                         WebGpuPowerPreference::LowPower => wgpu::PowerPreference::LowPower,
                     },
                     compatible_surface: Some(&surface),
-                    force_fallback_adapter: config.webgpu_force_fallback_adapater,
+                    force_fallback_adapter: config.webgpu_force_fallback_adapter,
                 })
                 .await;
         }
 
-        let adapter = adapter.ok_or_else(|| anyhow!("no matching adapter found"))?;
+        let adapter = adapter.ok_or_else(|| {
+            let adapters = compute_compatibility_list(&instance, backends, &surface);
+            anyhow!(
+                "no compatible adapter found. Available:\n{}",
+                adapters.join("\n")
+            )
+        })?;
+
         let adapter_info = adapter.get_info();
         log::trace!("Using adapter: {adapter_info:?}");
 

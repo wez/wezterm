@@ -270,7 +270,7 @@ pub struct Config {
     pub webgpu_power_preference: WebGpuPowerPreference,
 
     #[dynamic(default)]
-    pub webgpu_force_fallback_adapater: bool,
+    pub webgpu_force_fallback_adapter: bool,
 
     #[dynamic(default)]
     pub webgpu_preferred_adapter: Option<GpuInfo>,
