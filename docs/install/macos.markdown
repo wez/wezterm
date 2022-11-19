@@ -19,7 +19,7 @@ with support for both Apple Silicon and Intel hardware.
 PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
 export PATH
 ```
-6. Configuration instructions can be [found here](../config/files.html)
+5. Configuration instructions can be [found here](../config/files.html)
 
 ## Homebrew
 
