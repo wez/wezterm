@@ -1715,12 +1715,11 @@ impl super::TermWindow {
                                 cursor_border_color: self.cursor_border_color,
                                 cursor_is_default_color: self.cursor_is_default_color,
                             }),
-                            if let DeadKeyStatus::Composing(composing) =
-                                &self.term_window.dead_key_status
-                            {
-                                Some(composing.to_string())
-                            } else {
-                                None
+                            match (self.pos.is_active, &self.term_window.dead_key_status) {
+                                (true, DeadKeyStatus::Composing(composing)) => {
+                                    Some(composing.to_string())
+                                }
+                                _ => None,
                             },
                             if self.term_window.config.detect_password_input {
                                 match self.pos.pane.get_metadata() {
@@ -1790,7 +1789,7 @@ impl super::TermWindow {
                     let shape_key = LineToEleShapeCacheKey {
                         shape_hash,
                         shape_generation: quad_key.shape_generation,
-                        composing: if self.cursor.y == stable_row {
+                        composing: if self.cursor.y == stable_row && self.pos.is_active {
                             if let DeadKeyStatus::Composing(composing) =
                                 &self.term_window.dead_key_status
                             {
@@ -3392,7 +3391,7 @@ impl super::TermWindow {
             let dead_key_or_leader =
                 self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
 
-            if dead_key_or_leader {
+            if dead_key_or_leader && params.is_active_pane {
                 let (fg_color, bg_color) =
                     if self.config.force_reverse_video_cursor && params.cursor_is_default_color {
                         (params.bg_color, params.fg_color)

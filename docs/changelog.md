@@ -129,6 +129,9 @@ As features stabilize some brief notes about them will accumulate here.
   wezterm gui was already running. Thanks to
   [@exactly-one-kas](https://github.com/exactly-one-kas)!
   [#2661](https://github.com/wez/wezterm/pull/2661)
+* IME composition text and cursor color incorrectly applied to all panes rather
+  than just the active pane.
+  [#2569](https://github.com/wez/wezterm/issues/2569)
 
 #### Changed
 * Removed Last Resort fallback font
