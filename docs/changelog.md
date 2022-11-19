@@ -121,7 +121,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed background `Cover` algorithm. Thanks to
   [@xiaopengli89](https://github.com/xiaopengli89)!
   [#2636](https://github.com/wez/wezterm/pull/2636)
-
+* `wezterm start --cwd .` didn't use the cwd of the spawned process when the
+  wezterm gui was already running. Thanks to
+  [@exactly-one-kas](https://github.com/exactly-one-kas)!
+  [#2661](https://github.com/wez/wezterm/pull/2661)
 
 #### Changed
 * Removed Last Resort fallback font
