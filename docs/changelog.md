@@ -46,6 +46,10 @@ As features stabilize some brief notes about them will accumulate here.
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md) now also
   supports `prevent_fallback = true` as a parameter.
   [#2702](https://github.com/wez/wezterm/issues/2702)
+* [show_tabs_in_tab_bar](config/lua/config/show_tabs_in_tab_bar.md) and
+  [show_new_tab_button_in_tab_bar](config/lua/config/show_new_tab_button_in_tab_bar.md)
+  config options to customize the tab bar appearance.
+  [#2082](https://github.com/wez/wezterm/issues/2082)
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.

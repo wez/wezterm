@@ -226,22 +226,26 @@ impl TabBarState {
 
         let mut active_tab_no = 0;
 
-        let tab_titles: Vec<TitleText> = tab_info
-            .iter()
-            .map(|tab| {
-                if tab.is_active {
-                    active_tab_no = tab.tab_index;
-                }
-                compute_tab_title(
-                    tab,
-                    tab_info,
-                    pane_info,
-                    config,
-                    false,
-                    config.tab_max_width,
-                )
-            })
-            .collect();
+        let tab_titles: Vec<TitleText> = if config.show_tabs_in_tab_bar {
+            tab_info
+                .iter()
+                .map(|tab| {
+                    if tab.is_active {
+                        active_tab_no = tab.tab_index;
+                    }
+                    compute_tab_title(
+                        tab,
+                        tab_info,
+                        pane_info,
+                        config,
+                        false,
+                        config.tab_max_width,
+                    )
+                })
+                .collect()
+        } else {
+            vec![]
+        };
         let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
         let number_of_tabs = tab_titles.len();
 
@@ -334,7 +338,7 @@ impl TabBarState {
         }
 
         // New tab button
-        {
+        if config.show_new_tab_button_in_tab_bar {
             let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
 
             let new_tab_button = if hover { &new_tab_hover } else { &new_tab };
