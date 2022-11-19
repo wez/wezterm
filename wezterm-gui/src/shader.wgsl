@@ -14,10 +14,8 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex: vec2<f32>,
     @location(1) fg_color: vec4<f32>,
-    @location(2) alt_color: vec4<f32>,
-    @location(3) hsv: vec3<f32>,
-    @location(4) has_color: f32,
-    @location(5) mix_value: f32,
+    @location(2) hsv: vec3<f32>,
+    @location(3) has_color: f32,
 };
 
 // a regular monochrome text glyph
@@ -80,11 +78,9 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.tex = model.tex;
-    out.fg_color = model.fg_color;
-    out.alt_color = model.alt_color;
     out.hsv = model.hsv;
     out.has_color = model.has_color;
-    out.mix_value = model.mix_value;
+    out.fg_color = mix(model.fg_color, model.alt_color, model.mix_value);
     out.clip_position = uniforms.projection * vec4<f32>(model.position, 0.0, 1.0);
     return out;
 }
@@ -93,8 +89,7 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var fg_color: vec4<f32> = mix(in.fg_color, in.alt_color, in.mix_value);
-  var color: vec4<f32> = fg_color;
+  var color: vec4<f32>;
   var linear_tex: vec4<f32> = textureSample(atlas_linear_tex, atlas_linear_sampler, in.tex);
   var nearest_tex: vec4<f32> = textureSample(atlas_nearest_tex, atlas_nearest_sampler, in.tex);
 
@@ -102,22 +97,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   if in.has_color == IS_SOLID_COLOR {
     // Solid color block
+    color = in.fg_color;
   } else if in.has_color == IS_BG_IMAGE {
     // Window background attachment
     // Apply window_background_image_opacity to the background image
     color = linear_tex;
-    color.a *= fg_color.a;
+    color.a *= in.fg_color.a;
   } else if in.has_color == IS_COLOR_EMOJI {
     // the texture is full color info (eg: color emoji glyph)
     color = nearest_tex;
   } else if in.has_color == IS_GRAY_SCALE {
     // Grayscale poly quad for non-aa text render layers
-    color = fg_color;
+    color = in.fg_color;
     color.a *= nearest_tex.a;
   } else if in.has_color == IS_GLYPH {
     // the texture is the alpha channel/color mask
     // and we need to tint with the fg_color
-    color = fg_color;
+    color = in.fg_color;
     color.a = nearest_tex.a;
     hsv *= uniforms.foreground_text_hsb;
   }
