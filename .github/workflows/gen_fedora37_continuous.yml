@@ -1,14 +1,30 @@
-name: fedora33_tag
+name: fedora37_continuous
 
 on:
+  schedule:
+    - cron: "10 3 * * *"
   push:
-    tags:
-      - "20*"
+    branches:
+      - main
+    paths-ignore:
+      - ".cirrus.yml"
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/verify-pages.yml"
+      - ".github/workflows/no-response.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
+      - "**/*.markdown"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:33"
+    container: "fedora:37"
+    env:
+      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Install config manager"
@@ -49,7 +65,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: "fedora33-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "fedora37-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env PATH=$PATH ./get-deps"
@@ -64,12 +80,13 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora37.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora33"
+          name: "fedora37"
           path: "wezterm-*.rpm"
+          retention-days: 5
 
   upload:
     runs-on: ubuntu-latest
@@ -84,17 +101,12 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "fedora33"
+          name: "fedora37"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Create pre-release"
+      - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
-      - name: "Upload to Tagged Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"
