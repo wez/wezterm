@@ -36,9 +36,19 @@ return {
         mods = 'SHIFT',
         action = act.CopyMode 'MoveToEndOfLineContent',
       },
+      {
+        key = 'End',
+        mods = 'SHIFT',
+        action = act.CopyMode 'MoveToEndOfLineContent',
+      },
       { key = ',', mods = 'NONE', action = act.CopyMode 'JumpReverse' },
       {
         key = '0',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveToStartOfLine',
+      },
+      {
+        key = 'Home',
         mods = 'NONE',
         action = act.CopyMode 'MoveToStartOfLine',
       },
