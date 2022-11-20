@@ -11,6 +11,7 @@ use mux::pane::{
 };
 use mux::renderable::*;
 use mux::tab::TabId;
+use ordered_float::NotNan;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -563,32 +564,9 @@ impl CopyRenderable {
         TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
-    fn page_up(&mut self) {
+    fn move_by_page(&mut self, amount: f64) {
         let dims = self.dimensions();
-        self.page_up_by_rows(dims.dims.viewport_rows as isize);
-    }
-
-    fn page_down(&mut self) {
-        let dims = self.dimensions();
-        self.page_down_by_rows(dims.dims.viewport_rows as isize);
-    }
-
-    fn half_page_up(&mut self) {
-        let dims = self.dimensions();
-        self.page_up_by_rows((dims.dims.viewport_rows / 2) as isize);
-    }
-
-    fn half_page_down(&mut self) {
-        let dims = self.dimensions();
-        self.page_down_by_rows((dims.dims.viewport_rows / 2) as isize);
-    }
-
-    fn page_up_by_rows(&mut self, rows: isize ) {
-        self.cursor.y -= rows;
-        self.select_to_cursor_pos();
-    }
-
-    fn page_down_by_rows(&mut self, rows: isize ) {
+        let rows = (dims.dims.viewport_rows as f64 * amount) as isize;
         self.cursor.y += rows;
         self.select_to_cursor_pos();
     }
@@ -1141,10 +1119,9 @@ impl Pane for CopyOverlay {
                     MoveLeft => render.move_left_single_cell(),
                     MoveUp => render.move_up_single_row(),
                     MoveDown => render.move_down_single_row(),
-                    PageUp => render.page_up(),
-                    PageDown => render.page_down(),
-                    HalfPageUp => render.half_page_up(),
-                    HalfPageDown => render.half_page_down(),
+                    MoveByPage(n) => render.move_by_page(**n),
+                    PageUp => render.move_by_page(-1.0),
+                    PageDown => render.move_by_page(1.0),
                     Close => render.close(),
                     PriorMatch => render.prior_match(),
                     NextMatch => render.next_match(),
@@ -1772,12 +1749,12 @@ pub fn copy_key_table() -> KeyTable {
         (
             WKeyCode::Char('u'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::HalfPageUp),
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveByPage(NotNan::new(-0.5).unwrap())),
         ),
         (
             WKeyCode::Char('d'),
             Modifiers::CTRL,
-            KeyAssignment::CopyMode(CopyModeAssignment::HalfPageDown),
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveByPage(NotNan::new(0.5).unwrap())),
         ),
         (
             WKeyCode::Char('o'),
