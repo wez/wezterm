@@ -1,7 +1,7 @@
 # `Pane` object
 
 ---
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 In previous releases there were separate `MuxPane` and `Pane` objects created
 by the mux and gui layers, respectively. This is no longer the case: there is

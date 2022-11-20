@@ -1,6 +1,6 @@
 # wezterm:is_focused()
 
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 Returns `true` if the window has focus.
 

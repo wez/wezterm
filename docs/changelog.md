@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet!
+
+### 20221119-145034-49b9839f
+
 #### Improved
 * Reduced CPU and RAM utilization, reduced overhead of parsing output and
   rendering to the GPU.

@@ -131,7 +131,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 The lag indicator now defaults to disabled. It is recommended to display
 the lag information in your status bar using [this

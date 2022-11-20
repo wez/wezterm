@@ -21,4 +21,4 @@ The following parameters are possible:
   Use with care: if you haven't defined an explicit
   [PopKeyTable](PopKeyTable.md) assignment in the key table, you can lock
   yourself out of the keyboard and will need to reload the configuration file
-  (eg: by re-saving it) to get back in. (*Since: nightly builds only*)
+  (eg: by re-saving it) to get back in. (*Since: 20221119-145034-49b9839f*)

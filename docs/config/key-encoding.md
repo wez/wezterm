@@ -17,7 +17,7 @@ keypresses like `Control-I` to be ASCII Tab, as an example.
 
 ## xterm `modifyOtherKeys`
 
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 When wezterm receives the sequence `CSI >4;Nm`, where `N` is `0`, `1` or `2`,
 the keyboard encoding is changed according to
