@@ -533,9 +533,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.0.23"
+version = "4.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0eb41c13df48950b20eb4cd0eefa618819469df1bffc49d11e8487c4ba0037e5"
+checksum = "2148adefda54e14492fb9bddcc600b4344c5d1a3123bd666dcb939c6f0e0e57e"
 dependencies = [
  "atty",
  "bitflags",
@@ -552,7 +552,7 @@ version = "4.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96b0fba905b035a30d25c1b585bf1171690712fbb0ad3ac47214963aa4acc36c"
 dependencies = [
- "clap 4.0.23",
+ "clap 4.0.26",
 ]
 
 [[package]]
@@ -561,7 +561,7 @@ version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b36d1abc7184a737efc9f589e6e783e8b56c72e71fca748cf9947ed0a6f46d44"
 dependencies = [
- "clap 4.0.23",
+ "clap 4.0.26",
  "clap_complete",
 ]
 
@@ -4760,7 +4760,7 @@ checksum = "9df65f20698aeed245efdde3628a6b559ea1239bbb871af1b6e3b58c413b2bd1"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 4.0.23",
+ "clap 4.0.26",
  "termwiz",
 ]
 
@@ -5662,7 +5662,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "clap 4.0.23",
+ "clap 4.0.26",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -5824,7 +5824,7 @@ dependencies = [
  "bytemuck",
  "cc",
  "chrono",
- "clap 4.0.23",
+ "clap 4.0.26",
  "codec",
  "colorgrad",
  "config",
@@ -5903,7 +5903,7 @@ name = "wezterm-gui-subcommands"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.0.23",
+ "clap 4.0.26",
  "config",
 ]
 
@@ -5924,7 +5924,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
- "clap 4.0.23",
+ "clap 4.0.26",
  "config",
  "env-bootstrap",
  "libc",
@@ -5976,7 +5976,7 @@ dependencies = [
  "base64",
  "bitflags",
  "camino",
- "clap 4.0.23",
+ "clap 4.0.26",
  "dirs-next",
  "env_logger",
  "filedescriptor",
