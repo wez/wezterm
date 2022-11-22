@@ -488,6 +488,10 @@ return {
 See [Styling Inactive Panes](#style-inactive-panes) for more information
 on hue, saturation, brigthness transformations.
 
+If you'd like to have control over scaling, tiling/repeating, scrolling
+behavior and more, take a look at the more power
+[background](lua/config/background.md) configuration option.
+
 ## Window Background Gradient
 
 *Since: 20210814-124438-54e29167*
