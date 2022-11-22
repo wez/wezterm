@@ -577,9 +577,6 @@ impl TextStyle {
         // Add symbols that many people end up using via patched fonts
         font.push(FontAttributes::new_fallback("Symbols Nerd Font Mono"));
 
-        // And finally, a last resort fallback font
-        font.push(FontAttributes::new_fallback("Last Resort High-Efficiency"));
-
         font
     }
 }

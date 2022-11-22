@@ -112,10 +112,6 @@ wezterm.font_with_fallback({
 
   -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
   "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -129,10 +125,6 @@ wezterm.font_with_fallback({
 
   -- <built-in>, BuiltIn
   "JetBrains Mono",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -146,10 +138,6 @@ wezterm.font_with_fallback({
 
   -- <built-in>, BuiltIn
   "JetBrains Mono",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -163,10 +151,6 @@ wezterm.font_with_fallback({
 
   -- <built-in>, BuiltIn
   "JetBrains Mono",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -180,10 +164,6 @@ wezterm.font_with_fallback({
 
   -- <built-in>, BuiltIn
   "JetBrains Mono",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -197,10 +177,6 @@ wezterm.font_with_fallback({
 
   -- <built-in>, BuiltIn
   "JetBrains Mono",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 ```
 
