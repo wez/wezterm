@@ -147,8 +147,11 @@ least a daily scheduled build) from the <code>main</code> branch.  It <em>may</e
 and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
+<h4 id="new"><a class="header" href="#new">New</a></h4>
 <ul>
-<li>Not yet!</li>
+<li>Copy Mode now supports using <code>CTRL-u</code> and <code>CTRL-d</code> to move by half a page at
+a time. Thanks to <a href="https://github.com/pengux">@pengux</a>!
+<a href="https://github.com/wez/wezterm/pull/2662">#2662</a></li>
 </ul>
 <h3 id="20221119-145034-49b9839f"><a class="header" href="#20221119-145034-49b9839f">20221119-145034-49b9839f</a></h3>
 <h4 id="improved"><a class="header" href="#improved">Improved</a></h4>
@@ -156,7 +159,7 @@ usually the best available version.</p>
 <li>Reduced CPU and RAM utilization, reduced overhead of parsing output and
 rendering to the GPU.</li>
 </ul>
-<h4 id="new"><a class="header" href="#new">New</a></h4>
+<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
 <ul>
 <li><a href="config/lua/wezterm.gui/default_key_tables.html">wezterm.gui.default_key_tables</a>
 and <a href="config/lua/wezterm.gui/default_keys.html">wezterm.gui.default_keys</a> for
@@ -310,7 +313,7 @@ Thanks to <a href="https://github.com/xeysz">@xeysz</a>!
 <li>Bundled harfbuzz to 5.3.1</li>
 </ul>
 <h3 id="20220905-102802-7d4b8249"><a class="header" href="#20220905-102802-7d4b8249">20220905-102802-7d4b8249</a></h3>
-<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
+<h4 id="new-2"><a class="header" href="#new-2">New</a></h4>
 <ul>
 <li><a href="config/lua/config/switch_to_last_active_tab_when_closing_tab.html">switch_to_last_active_tab_when_closing_tab</a>
 option to control behavior when closing the active tab.
@@ -336,7 +339,7 @@ or those set through the registry on Windows. <a href="https://github.com/wez/we
 <li>Fix build on architectures where <code>c_char</code> is <code>u8</code> instead of <code>i8</code>. Thanks to <a href="https://github.com/liushuyu">@liushuyu</a>! <a href="https://github.com/wez/wezterm/pull/2480">#2480</a></li>
 </ul>
 <h3 id="20220903-194523-3bb1ed61"><a class="header" href="#20220903-194523-3bb1ed61">20220903-194523-3bb1ed61</a></h3>
-<h4 id="new-2"><a class="header" href="#new-2">New</a></h4>
+<h4 id="new-3"><a class="header" href="#new-3">New</a></h4>
 <ul>
 <li>Color schemes: <a href="colorschemes/c/index.html#carbonfox">carbonfox</a>, <a href="colorschemes/d/index.html#danqing-light-base16">DanQing Light (base16)</a>, <a href="colorschemes/d/index.html#dracula-official">Dracula (Official)</a>, <a href="colorschemes/p/index.html#poimandres">Poimandres</a>, <a href="colorschemes/p/index.html#poimandres-storm">Poimandres Storm</a>, <a href="colorschemes/s/index.html#sequoia-monochrome">Sequoia Monochrome</a>, <a href="colorschemes/s/index.html#sequoia-moonlight">Sequoia Moonlight</a>, <a href="colorschemes/s/index.html#synthwavealpha">SynthwaveAlpha</a>, <a href="colorschemes/s/index.html#synthwavealpha-gogh">SynthwaveAlpha (Gogh)</a></li>
 <li><a href="config/lua/config/window_frame.html">window_frame</a> now supports setting border size and color <a href="https://github.com/wez/wezterm/issues/2417">#2417</a></li>
@@ -374,7 +377,7 @@ or those set through the registry on Windows. <a href="https://github.com/wez/we
 <li>mouse cursor is now reset to arrow when the mouse leaves the window <a href="https://github.com/wez/wezterm/issues/2471">#2471</a></li>
 </ul>
 <h3 id="20220807-113146-c2fee766"><a class="header" href="#20220807-113146-c2fee766">20220807-113146-c2fee766</a></h3>
-<h4 id="new-3"><a class="header" href="#new-3">New</a></h4>
+<h4 id="new-4"><a class="header" href="#new-4">New</a></h4>
 <ul>
 <li><a href="config/lua/keyassignment/ActivateKeyTable.html">ActivateKeyTable</a> now supports <code>until_unknown=true</code> to implicitly pop the table when a key not defined by that table is pressed. <a href="https://github.com/wez/wezterm/issues/2178">#2178</a></li>
 <li><a href="config/lua/window/copy_to_clipboard.html">window:copy_to_clipboard</a> method for putting arbitrary text into the clipboard/selection.</li>
@@ -455,7 +458,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Bundled harfbuzz to 5.1.0</li>
 </ul>
 <h3 id="20220624-141144-bd1b7c5d"><a class="header" href="#20220624-141144-bd1b7c5d">20220624-141144-bd1b7c5d</a></h3>
-<h4 id="new-4"><a class="header" href="#new-4">New</a></h4>
+<h4 id="new-5"><a class="header" href="#new-5">New</a></h4>
 <ul>
 <li><a href="config/lua/config/background.html">background</a> option for rich background compositing and parallax scrolling effects.</li>
 <li>Added <a href="cli/general.html">docs for the cli</a></li>
@@ -546,7 +549,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Fonts: Codepoints for eg: symbol glyphs that were not explicitly listed in your font fallback list may not be resolved when used in styled (eg: bold) text. <a href="https://github.com/wez/wezterm/issues/1913">#1913</a> <a href="https://github.com/wez/wezterm/issues/2158">#2158</a></li>
 </ul>
 <h3 id="20220408-101518-b908e2dd"><a class="header" href="#20220408-101518-b908e2dd">20220408-101518-b908e2dd</a></h3>
-<h4 id="new-5"><a class="header" href="#new-5">New</a></h4>
+<h4 id="new-6"><a class="header" href="#new-6">New</a></h4>
 <ul>
 <li><a href="config/key-tables.html">Key Tables</a> feature for powerful modal key assignments</li>
 <li><code>wezterm start --position x,y</code>, <code>wezterm start --position displayname:30%,30%</code> option to control starting window position on all systems except for Wayland. See <code>wezterm start --help</code> for more info. <a href="https://github.com/wez/wezterm/issues/1794">#1794</a></li>
@@ -595,7 +598,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Multiplexer render update laggy, especially when using multiple windows. <a href="https://github.com/wez/wezterm/issues/1814">#1814</a> <a href="https://github.com/wez/wezterm/issues/1841">#1841</a></li>
 </ul>
 <h3 id="20220319-142410-0fcdea07"><a class="header" href="#20220319-142410-0fcdea07">20220319-142410-0fcdea07</a></h3>
-<h4 id="new-6"><a class="header" href="#new-6">New</a></h4>
+<h4 id="new-7"><a class="header" href="#new-7">New</a></h4>
 <ul>
 <li><a href="config/lua/window/composition_status.html">window:composition_status()</a> and <a href="config/lua/window/leader_is_active.html">window:leader_is_active()</a> methods that can help populate <a href="config/lua/window/set_right_status.html">window:set_right_status()</a> <a href="https://github.com/wez/wezterm/issues/686">#686</a></li>
 <li>You may now use <code>colors = { compose_cursor = &quot;orange&quot; }</code> to change the cursor color when IME, dead key or leader key composition states are active.</li>
@@ -664,7 +667,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Wayland input handling gets broken after suspend/resume. Thanks to <a href="https://github.com/LawnGnome">@LawnGnome</a>! <a href="https://github.com/wez/wezterm/issues/1497">#1497</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
-<h4 id="new-7"><a class="header" href="#new-7">New</a></h4>
+<h4 id="new-8"><a class="header" href="#new-8">New</a></h4>
 <ul>
 <li>Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting <a href="config/lua/config/use_fancy_tab_bar.html">use_fancy_tab_bar = false</a>.</li>
 <li>Support for the <a href="https://sw.kovidgoyal.net/kitty/graphics-protocol/">Kitty Image Protocol</a> is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing <a href="https://notcurses.com/">notcurses</a> if you want to see what modern terminal graphics can do! <a href="https://github.com/wez/wezterm/issues/986">#986</a></li>
@@ -734,7 +737,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>&quot;Update available&quot; message kept showing even though already running the latest version <a href="https://github.com/wez/wezterm/issues/1365">#1365</a></li>
 </ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
-<h4 id="new-8"><a class="header" href="#new-8">New</a></h4>
+<h4 id="new-9"><a class="header" href="#new-9">New</a></h4>
 <ul>
 <li>X11 now supports IME. It currently defaults to disabled, but you can set <code>use_ime = true</code> in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to <a href="https://github.com/H-M-H">@H-M-H</a> for bringing xcb-imdkit to Rust and implementing this in wezterm! <a href="https://github.com/wez/wezterm/issues/250">#250</a> <a href="https://github.com/wez/wezterm/pull/1043">#1043</a></li>
 <li>it is now possible to define colors in the range 16-255 in <code>colors</code> and color scheme definitions. Thanks to <a href="https://github.com/potamides">@potamides</a>! <a href="https://github.com/wez/wezterm/issues/841">#841</a> <a href="https://github.com/wez/wezterm/pull/1056">#1056</a></li>
