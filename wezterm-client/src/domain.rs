@@ -460,7 +460,7 @@ impl ClientDomain {
                                 // removed it from the mux.  Let's add it back, but
                                 // with a new id.
                                 inner.remove_old_pane_mapping(entry.pane_id);
-                                let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
+                                let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
                                     &inner,
                                     entry.tab_id,
                                     entry.pane_id,
@@ -472,7 +472,7 @@ impl ClientDomain {
                             }
                         }
                     } else {
-                        let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
+                        let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
                             &inner,
                             entry.tab_id,
                             entry.pane_id,
@@ -592,7 +592,7 @@ impl Domain for ClientDomain {
         _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         anyhow::bail!("spawn_pane not implemented for ClientDomain")
     }
 
@@ -623,7 +623,7 @@ impl Domain for ClientDomain {
 
         inner.record_remote_to_local_window_mapping(result.window_id, window);
 
-        let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
             &inner,
             result.tab_id,
             result.pane_id,
@@ -648,7 +648,7 @@ impl Domain for ClientDomain {
         tab_id: TabId,
         pane_id: PaneId,
         split_request: SplitRequest,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -685,7 +685,7 @@ impl Domain for ClientDomain {
             })
             .await?;
 
-        let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(ClientPane::new(
             &inner,
             result.tab_id,
             result.pane_id,
@@ -702,7 +702,7 @@ impl Domain for ClientDomain {
             None => anyhow::bail!("invalid pane id {}", pane_id),
         };
 
-        tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))
             .ok();
 
         mux.add_pane(&pane)?;

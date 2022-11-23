@@ -2,9 +2,10 @@ use crate::tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState};
 use crate::tmux_commands::{Resize, SendKeys};
 use crate::DomainId;
 use filedescriptor::FileDescriptor;
+use parking_lot::{Condvar, Mutex};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty};
 use std::io::{Read, Write};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::Arc;
 
 /// A local tmux pane(tab) based on a tmux pty
 #[derive(Debug)]
@@ -24,11 +25,11 @@ struct TmuxPtyWriter {
 impl Write for TmuxPtyWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let pane_id = {
-            let pane_lock = self.master_pane.lock().unwrap();
+            let pane_lock = self.master_pane.lock();
             pane_lock.pane_id
         };
         log::trace!("pane:{}, content:{:?}", &pane_id, buf);
-        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        let mut cmd_queue = self.cmd_queue.lock();
         cmd_queue.push_back(Box::new(SendKeys {
             pane: pane_id,
             keys: buf.to_vec(),
@@ -45,11 +46,11 @@ impl Write for TmuxPtyWriter {
 impl Write for TmuxPty {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let pane_id = {
-            let pane_lock = self.master_pane.lock().unwrap();
+            let pane_lock = self.master_pane.lock();
             pane_lock.pane_id
         };
         log::trace!("pane:{}, content:{:?}", &pane_id, buf);
-        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        let mut cmd_queue = self.cmd_queue.lock();
         cmd_queue.push_back(Box::new(SendKeys {
             pane: pane_id,
             keys: buf.to_vec(),
@@ -74,10 +75,10 @@ impl Child for TmuxChild {
     }
 
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
-        let (lock, var) = &*self.active_lock;
-        let mut released = lock.lock().unwrap();
+        let &(ref lock, ref var) = &*self.active_lock;
+        let mut released = lock.lock();
         while !*released {
-            released = var.wait(released).unwrap();
+            var.wait(&mut released);
         }
         return Ok(ExitStatus::with_exit_code(0));
     }
@@ -123,14 +124,14 @@ impl ChildKiller for TmuxChild {
 
 impl MasterPty for TmuxPty {
     fn resize(&self, size: portable_pty::PtySize) -> Result<(), anyhow::Error> {
-        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        let mut cmd_queue = self.cmd_queue.lock();
         cmd_queue.push_back(Box::new(Resize { size }));
         TmuxDomainState::schedule_send_next_command(self.domain_id);
         Ok(())
     }
 
     fn get_size(&self) -> Result<portable_pty::PtySize, anyhow::Error> {
-        let pane = self.master_pane.lock().unwrap();
+        let pane = self.master_pane.lock();
         Ok(portable_pty::PtySize {
             rows: pane.pane_height as u16,
             cols: pane.pane_width as u16,

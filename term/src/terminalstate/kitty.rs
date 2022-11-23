@@ -6,6 +6,7 @@ use ::image::{
 };
 use anyhow::Context;
 use std::collections::{HashMap, HashSet};
+use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::escape::apc::{

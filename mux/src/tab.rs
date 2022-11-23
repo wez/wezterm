@@ -10,12 +10,12 @@ use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::rc::Rc;
+use std::sync::Arc;
 use url::Url;
 use wezterm_term::{StableRowIndex, TerminalSize};
 
-pub type Tree = bintree::Tree<Rc<dyn Pane>, SplitDirectionAndSize>;
-pub type Cursor = bintree::Cursor<Rc<dyn Pane>, SplitDirectionAndSize>;
+pub type Tree = bintree::Tree<Arc<dyn Pane>, SplitDirectionAndSize>;
+pub type Cursor = bintree::Cursor<Arc<dyn Pane>, SplitDirectionAndSize>;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
@@ -43,7 +43,7 @@ pub struct Tab {
     pane: RefCell<Option<Tree>>,
     size: RefCell<TerminalSize>,
     active: RefCell<usize>,
-    zoomed: RefCell<Option<Rc<dyn Pane>>>,
+    zoomed: RefCell<Option<Arc<dyn Pane>>>,
     title: RefCell<String>,
     recency: RefCell<Recency>,
 }
@@ -69,7 +69,7 @@ pub struct PositionedPane {
     pub height: usize,
     pub pixel_height: usize,
     /// The pane instance
-    pub pane: Rc<dyn Pane>,
+    pub pane: Arc<dyn Pane>,
 }
 
 impl std::fmt::Debug for PositionedPane {
@@ -199,7 +199,7 @@ pub struct PositionedSplit {
     pub size: usize,
 }
 
-fn is_pane(pane: &Rc<dyn Pane>, other: &Option<&Rc<dyn Pane>>) -> bool {
+fn is_pane(pane: &Arc<dyn Pane>, other: &Option<&Arc<dyn Pane>>) -> bool {
     if let Some(other) = other {
         other.pane_id() == pane.pane_id()
     } else {
@@ -211,8 +211,8 @@ fn pane_tree(
     tree: &Tree,
     tab_id: TabId,
     window_id: WindowId,
-    active: Option<&Rc<dyn Pane>>,
-    zoomed: Option<&Rc<dyn Pane>>,
+    active: Option<&Arc<dyn Pane>>,
+    zoomed: Option<&Arc<dyn Pane>>,
     workspace: &str,
     left_col: usize,
     top_row: usize,
@@ -278,12 +278,12 @@ fn pane_tree(
 
 fn build_from_pane_tree<F>(
     tree: bintree::Tree<PaneEntry, SplitDirectionAndSize>,
-    active: &mut Option<Rc<dyn Pane>>,
-    zoomed: &mut Option<Rc<dyn Pane>>,
+    active: &mut Option<Arc<dyn Pane>>,
+    zoomed: &mut Option<Arc<dyn Pane>>,
     make_pane: &mut F,
 ) -> Tree
 where
-    F: FnMut(PaneEntry) -> Rc<dyn Pane>,
+    F: FnMut(PaneEntry) -> Arc<dyn Pane>,
 {
     match tree {
         bintree::Tree::Empty => Tree::Empty,
@@ -297,10 +297,10 @@ where
             let is_active_pane = entry.is_active_pane;
             let pane = make_pane(entry);
             if is_zoomed_pane {
-                zoomed.replace(Rc::clone(&pane));
+                zoomed.replace(Arc::clone(&pane));
             }
             if is_active_pane {
-                active.replace(Rc::clone(&pane));
+                active.replace(Arc::clone(&pane));
             }
             Tree::Leaf(pane)
         }
@@ -533,7 +533,7 @@ impl Tab {
     /// a new pane, otherwise the pane won't poll/update in the GUI.
     pub fn sync_with_pane_tree<F>(&self, size: TerminalSize, root: PaneNode, mut make_pane: F)
     where
-        F: FnMut(PaneEntry) -> Rc<dyn Pane>,
+        F: FnMut(PaneEntry) -> Arc<dyn Pane>,
     {
         let mut active = None;
         let mut zoomed = None;
@@ -781,7 +781,7 @@ impl Tab {
                     pixel_width: size.pixel_width.into(),
                     height: size.rows.into(),
                     pixel_height: size.pixel_height.into(),
-                    pane: Rc::clone(zoomed),
+                    pane: Arc::clone(zoomed),
                 });
                 return panes;
             }
@@ -813,7 +813,7 @@ impl Tab {
                     }
                 }
 
-                let pane = Rc::clone(cursor.leaf_mut().unwrap());
+                let pane = Arc::clone(cursor.leaf_mut().unwrap());
                 let dims = parent_size.unwrap_or_else(|| *self.size.borrow());
 
                 panes.push(PositionedPane {
@@ -1366,7 +1366,7 @@ impl Tab {
     /// Remove pane from tab.
     /// The pane is still live in the mux; the intent is for the pane to
     /// be added to a different tab.
-    pub fn remove_pane(&self, pane_id: PaneId) -> Option<Rc<dyn Pane>> {
+    pub fn remove_pane(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
         let panes = self.remove_pane_if(|_, pane| pane.pane_id() == pane_id, false);
         for pane in panes {
             return Some(pane);
@@ -1374,9 +1374,9 @@ impl Tab {
         None
     }
 
-    fn remove_pane_if<F>(&self, f: F, kill: bool) -> Vec<Rc<dyn Pane>>
+    fn remove_pane_if<F>(&self, f: F, kill: bool) -> Vec<Arc<dyn Pane>>
     where
-        F: Fn(usize, &Rc<dyn Pane>) -> bool,
+        F: Fn(usize, &Arc<dyn Pane>) -> bool,
     {
         let mut dead_panes = vec![];
         let zoomed_pane = self.zoomed.borrow().as_ref().map(|p| p.pane_id());
@@ -1403,7 +1403,7 @@ impl Tab {
                 };
 
                 if cursor.is_leaf() {
-                    let pane = Rc::clone(cursor.leaf_mut().unwrap());
+                    let pane = Arc::clone(cursor.leaf_mut().unwrap());
                     if f(pane_index, &pane) {
                         removed_indices.push(pane_index);
                         if Some(pane.pane_id()) == zoomed_pane {
@@ -1506,15 +1506,15 @@ impl Tab {
         dead_count == panes.len()
     }
 
-    pub fn get_active_pane(&self) -> Option<Rc<dyn Pane>> {
+    pub fn get_active_pane(&self) -> Option<Arc<dyn Pane>> {
         if let Some(zoomed) = self.zoomed.borrow().as_ref() {
-            return Some(Rc::clone(zoomed));
+            return Some(Arc::clone(zoomed));
         }
 
         self.iter_panes_ignoring_zoom()
             .iter()
             .nth(*self.active.borrow())
-            .map(|p| Rc::clone(&p.pane))
+            .map(|p| Arc::clone(&p.pane))
     }
 
     #[allow(unused)]
@@ -1522,7 +1522,7 @@ impl Tab {
         *self.active.borrow()
     }
 
-    pub fn set_active_pane(&self, pane: &Rc<dyn Pane>) {
+    pub fn set_active_pane(&self, pane: &Arc<dyn Pane>) {
         if let Some(item) = self
             .iter_panes_ignoring_zoom()
             .iter()
@@ -1535,7 +1535,7 @@ impl Tab {
         }
     }
 
-    fn advise_focus_change(&self, prior: Option<Rc<dyn Pane>>) {
+    fn advise_focus_change(&self, prior: Option<Arc<dyn Pane>>) {
         let current = self.get_active_pane();
         match (prior, current) {
             (Some(prior), Some(current)) if prior.pane_id() != current.pane_id() => {
@@ -1564,8 +1564,8 @@ impl Tab {
     /// Assigns the root pane.
     /// This is suitable when creating a new tab and then assigning
     /// the initial pane
-    pub fn assign_pane(&self, pane: &Rc<dyn Pane>) {
-        match Tree::new().cursor().assign_top(Rc::clone(pane)) {
+    pub fn assign_pane(&self, pane: &Arc<dyn Pane>) {
+        match Tree::new().cursor().assign_top(Arc::clone(pane)) {
             Ok(c) => *self.pane.borrow_mut() = Some(c.tree()),
             Err(_) => panic!("tried to assign root pane to non-empty tree"),
         }
@@ -1731,7 +1731,7 @@ impl Tab {
         &self,
         pane_index: usize,
         request: SplitRequest,
-        pane: Rc<dyn Pane>,
+        pane: Arc<dyn Pane>,
     ) -> anyhow::Result<usize> {
         if self.zoomed.borrow().is_some() {
             anyhow::bail!("cannot split while zoomed");
@@ -1786,9 +1786,9 @@ impl Tab {
 
             if request.top_level && !cursor.is_leaf() {
                 let result = if request.target_is_second {
-                    cursor.split_node_and_insert_right(Rc::clone(&pane))
+                    cursor.split_node_and_insert_right(Arc::clone(&pane))
                 } else {
-                    cursor.split_node_and_insert_left(Rc::clone(&pane))
+                    cursor.split_node_and_insert_left(Arc::clone(&pane))
                 };
                 cursor = match result {
                     Ok(c) => {
@@ -1820,7 +1820,7 @@ impl Tab {
                 }
             };
 
-            let existing_pane = Rc::clone(cursor.leaf_mut().unwrap());
+            let existing_pane = Arc::clone(cursor.leaf_mut().unwrap());
 
             let (pane1, pane2) = if request.target_is_second {
                 (existing_pane, pane)
@@ -1965,6 +1965,7 @@ impl Into<String> for SerdeUrl {
 mod test {
     use super::*;
     use crate::renderable::*;
+    use parking_lot::{MappedMutexGuard, Mutex};
     use rangeset::RangeSet;
     use std::ops::Range;
     use termwiz::surface::SequenceNo;
@@ -1974,14 +1975,14 @@ mod test {
 
     struct FakePane {
         id: PaneId,
-        size: RefCell<TerminalSize>,
+        size: Mutex<TerminalSize>,
     }
 
     impl FakePane {
-        fn new(id: PaneId, size: TerminalSize) -> Rc<dyn Pane> {
-            Rc::new(Self {
+        fn new(id: PaneId, size: TerminalSize) -> Arc<dyn Pane> {
+            Arc::new(Self {
                 id,
-                size: RefCell::new(size),
+                size: Mutex::new(size),
             })
         }
     }
@@ -2044,11 +2045,11 @@ mod test {
         fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
             Ok(None)
         }
-        fn writer(&self) -> RefMut<dyn std::io::Write> {
+        fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
             unimplemented!()
         }
         fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
-            *self.size.borrow_mut() = size;
+            *self.size.lock() = size;
             Ok(())
         }
 

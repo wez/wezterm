@@ -540,7 +540,7 @@ impl RenderableInner {
             .get_pane(local_pane_id)
             .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;
         if let Some(client_tab) = pane.downcast_ref::<ClientPane>() {
-            let renderable = client_tab.renderable.borrow_mut();
+            let renderable = client_tab.renderable.lock();
             let mut inner = renderable.inner.borrow_mut();
 
             match result {
@@ -621,7 +621,7 @@ impl RenderableInner {
                 .get_pane(local_pane_id)
                 .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;
             if let Some(client_tab) = tab.downcast_ref::<ClientPane>() {
-                let renderable = client_tab.renderable.borrow_mut();
+                let renderable = client_tab.renderable.lock();
                 let mut inner = renderable.inner.borrow_mut();
 
                 inner.dead = !alive;

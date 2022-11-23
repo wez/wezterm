@@ -9,7 +9,6 @@ use mux::tab::TabId;
 use mux::Mux;
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use termwiz::surface::SequenceNo;
@@ -51,7 +50,7 @@ pub(crate) struct PerPane {
 impl PerPane {
     fn compute_changes(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         force_with_input_serial: Option<InputSerial>,
     ) -> Option<GetPaneRenderChangesResponse> {
         let mut changed = false;
@@ -139,7 +138,7 @@ impl PerPane {
 }
 
 fn maybe_push_pane_changes(
-    pane: &Rc<dyn Pane>,
+    pane: &Arc<dyn Pane>,
     sender: PduSender,
     per_pane: Arc<Mutex<PerPane>>,
 ) -> anyhow::Result<()> {

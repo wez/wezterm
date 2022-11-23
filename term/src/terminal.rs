@@ -10,7 +10,7 @@ pub enum ClipboardSelection {
     PrimarySelection,
 }
 
-pub trait Clipboard {
+pub trait Clipboard: Send + Sync {
     fn set_contents(
         &self,
         selection: ClipboardSelection,
@@ -28,7 +28,7 @@ impl Clipboard for Box<dyn Clipboard> {
     }
 }
 
-pub trait DeviceControlHandler {
+pub trait DeviceControlHandler: Send + Sync {
     fn handle_device_control(&mut self, _control: termwiz::escape::DeviceControlMode);
 }
 
@@ -61,11 +61,11 @@ pub enum Alert {
     OutputSinceFocusLost,
 }
 
-pub trait AlertHandler {
+pub trait AlertHandler: Send + Sync {
     fn alert(&mut self, alert: Alert);
 }
 
-pub trait DownloadHandler {
+pub trait DownloadHandler: Send + Sync {
     fn save_to_downloads(&self, name: Option<String>, data: Vec<u8>);
 }
 
@@ -132,7 +132,7 @@ impl Terminal {
     /// are answerback responses to a number of escape sequences.
     pub fn new(
         size: TerminalSize,
-        config: Arc<dyn TerminalConfiguration>,
+        config: Arc<dyn TerminalConfiguration + Send + Sync>,
         term_program: &str,
         term_version: &str,
         // writing to the writer sends data to input of the pty

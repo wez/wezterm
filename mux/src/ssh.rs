@@ -13,7 +13,6 @@ use smol::channel::{bounded, Receiver as AsyncReceiver};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufWriter, Read, Write};
-use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -560,12 +559,12 @@ impl Domain for RemoteSshDomain {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
         let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
 
-        let pty: Box<dyn portable_pty::MasterPty>;
+        let pty: Box<dyn portable_pty::MasterPty + Send>;
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
@@ -677,7 +676,7 @@ impl Domain for RemoteSshDomain {
             Box::new(writer.clone()),
         );
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
             pane_id,
             terminal,
             child,

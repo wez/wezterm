@@ -131,7 +131,7 @@ impl Default for NewlineCanon {
 /// The configuration can be changed at runtime; provided that the implementation
 /// increments the generation counter appropriately, the changes will be detected
 /// and applied at the next appropriate opportunity.
-pub trait TerminalConfiguration: std::fmt::Debug {
+pub trait TerminalConfiguration: std::fmt::Debug + Send + Sync {
     /// Returns a generation counter for the active
     /// configuration.  If the implementation may be
     /// changed at runtime, it must increment the generation

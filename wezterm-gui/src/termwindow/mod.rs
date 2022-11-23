@@ -176,7 +176,7 @@ pub struct SemanticZoneCache {
 }
 
 pub struct OverlayState {
-    pub pane: Rc<dyn Pane>,
+    pub pane: Arc<dyn Pane>,
     key_table_state: KeyTableState,
 }
 
@@ -1466,7 +1466,7 @@ impl TermWindow {
         }
     }
 
-    fn check_for_dirty_lines_and_invalidate_selection(&mut self, pane: &Rc<dyn Pane>) {
+    fn check_for_dirty_lines_and_invalidate_selection(&mut self, pane: &Arc<dyn Pane>) {
         let dims = pane.get_dimensions();
         let viewport = self
             .get_viewport(pane.pane_id())
@@ -2095,7 +2095,7 @@ impl TermWindow {
     }
 
     /// Returns the Prompt semantic zones
-    fn get_semantic_prompt_zones(&mut self, pane: &Rc<dyn Pane>) -> &[StableRowIndex] {
+    fn get_semantic_prompt_zones(&mut self, pane: &Arc<dyn Pane>) -> &[StableRowIndex] {
         let mut cache = self
             .semantic_zones
             .entry(pane.pane_id())
@@ -2222,7 +2222,7 @@ impl TermWindow {
 
     pub fn perform_key_assignment(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         assignment: &KeyAssignment,
     ) -> anyhow::Result<PerformAssignmentResult> {
         use KeyAssignment::*;
@@ -2764,7 +2764,7 @@ impl TermWindow {
         Ok(PerformAssignmentResult::Handled)
     }
 
-    fn do_open_link_at_mouse_cursor(&self, pane: &Rc<dyn Pane>) {
+    fn do_open_link_at_mouse_cursor(&self, pane: &Arc<dyn Pane>) {
         // They clicked on a link, so let's open it!
         // We need to ensure that we spawn the `open` call outside of the context
         // of our window loop; on Windows it can cause a panic due to
@@ -2967,22 +2967,22 @@ impl TermWindow {
         self.window.as_ref().unwrap().invalidate();
     }
 
-    fn maybe_scroll_to_bottom_for_input(&mut self, pane: &Rc<dyn Pane>) {
+    fn maybe_scroll_to_bottom_for_input(&mut self, pane: &Arc<dyn Pane>) {
         if self.config.scroll_to_bottom_on_input {
             self.scroll_to_bottom(pane);
         }
     }
 
-    fn scroll_to_top(&mut self, pane: &Rc<dyn Pane>) {
+    fn scroll_to_top(&mut self, pane: &Arc<dyn Pane>) {
         let dims = pane.get_dimensions();
         self.set_viewport(pane.pane_id(), Some(dims.scrollback_top), dims);
     }
 
-    fn scroll_to_bottom(&mut self, pane: &Rc<dyn Pane>) {
+    fn scroll_to_bottom(&mut self, pane: &Arc<dyn Pane>) {
         self.pane_state(pane.pane_id()).viewport = None;
     }
 
-    fn get_active_pane_no_overlay(&self) -> Option<Rc<dyn Pane>> {
+    fn get_active_pane_no_overlay(&self) -> Option<Arc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         mux.get_active_tab_for_window(self.mux_window_id)
             .and_then(|tab| tab.get_active_pane())
@@ -2994,7 +2994,7 @@ impl TermWindow {
     /// then that will be returned instead.  Otherwise, if the pane has
     /// an active overlay (such as search or copy mode) then that will
     /// be returned.
-    pub fn get_active_pane_or_overlay(&self) -> Option<Rc<dyn Pane>> {
+    pub fn get_active_pane_or_overlay(&self) -> Option<Arc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -3116,7 +3116,7 @@ impl TermWindow {
             let mut panes = tab.iter_panes();
             for p in &mut panes {
                 if let Some(overlay) = self.pane_state(p.pane.pane_id()).overlay.as_ref() {
-                    p.pane = Rc::clone(&overlay.pane);
+                    p.pane = Arc::clone(&overlay.pane);
                 }
             }
             panes
@@ -3177,7 +3177,7 @@ impl TermWindow {
         window.notify(TermWindowNotif::CancelOverlayForPane(pane_id));
     }
 
-    pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, pane: Rc<dyn Pane>) {
+    pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, pane: Arc<dyn Pane>) {
         self.cancel_overlay_for_pane(pane_id);
         self.pane_state(pane_id).overlay.replace(OverlayState {
             pane,
@@ -3186,7 +3186,7 @@ impl TermWindow {
         self.update_title();
     }
 
-    pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Pane>) {
+    pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Arc<dyn Pane>) {
         self.cancel_overlay_for_tab(tab_id, None);
         self.tab_state(tab_id).overlay.replace(OverlayState {
             pane: overlay,
@@ -3195,7 +3195,7 @@ impl TermWindow {
         self.update_title();
     }
 
-    fn resolve_search_pattern(&self, pattern: Pattern, pane: &Rc<dyn Pane>) -> MuxPattern {
+    fn resolve_search_pattern(&self, pattern: Pattern, pane: &Arc<dyn Pane>) -> MuxPattern {
         match pattern {
             Pattern::CaseSensitiveString(s) => MuxPattern::CaseSensitiveString(s),
             Pattern::CaseInSensitiveString(s) => MuxPattern::CaseInSensitiveString(s),

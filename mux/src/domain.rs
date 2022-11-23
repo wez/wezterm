@@ -74,7 +74,7 @@ pub trait Domain: Downcast {
         tab: TabId,
         pane_id: PaneId,
         split_request: SplitRequest,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_tab(tab) {
             Some(t) => t,
@@ -124,7 +124,7 @@ pub trait Domain: Downcast {
             }
         };
 
-        tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))?;
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
         Ok(pane)
     }
 
@@ -133,7 +133,7 @@ pub trait Domain: Downcast {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>>;
+    ) -> anyhow::Result<Arc<dyn Pane>>;
 
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
@@ -475,7 +475,7 @@ impl Domain for LocalDomain {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
         let cmd = self.build_command(command, command_dir, pane_id).await?;
         let pair = self
@@ -510,7 +510,7 @@ impl Domain for LocalDomain {
             terminal.enable_conpty_quirks();
         }
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
             pane_id,
             terminal,
             child,

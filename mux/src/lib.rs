@@ -82,7 +82,7 @@ static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
-    panes: RefCell<HashMap<PaneId, Rc<dyn Pane>>>,
+    panes: RefCell<HashMap<PaneId, Arc<dyn Pane>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     default_domain: RefCell<Option<Arc<dyn Domain>>>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
@@ -616,15 +616,15 @@ impl Mux {
         res
     }
 
-    pub fn get_pane(&self, pane_id: PaneId) -> Option<Rc<dyn Pane>> {
-        self.panes.borrow().get(&pane_id).map(Rc::clone)
+    pub fn get_pane(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
+        self.panes.borrow().get(&pane_id).map(Arc::clone)
     }
 
     pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_pane(&self, pane: &Rc<dyn Pane>) -> Result<(), Error> {
+    pub fn add_pane(&self, pane: &Arc<dyn Pane>) -> Result<(), Error> {
         if self.panes.borrow().contains_key(&pane.pane_id()) {
             return Ok(());
         }
@@ -639,7 +639,7 @@ impl Mux {
 
         self.panes
             .borrow_mut()
-            .insert(pane.pane_id(), Rc::clone(pane));
+            .insert(pane.pane_id(), Arc::clone(pane));
         let pane_id = pane.pane_id();
         if let Some(reader) = pane.reader()? {
             let banner = self.banner.borrow().clone();
@@ -857,11 +857,11 @@ impl Mux {
         self.is_workspace_empty(&workspace)
     }
 
-    pub fn iter_panes(&self) -> Vec<Rc<dyn Pane>> {
+    pub fn iter_panes(&self) -> Vec<Arc<dyn Pane>> {
         self.panes
             .borrow()
             .iter()
-            .map(|(_, v)| Rc::clone(v))
+            .map(|(_, v)| Arc::clone(v))
             .collect()
     }
 
@@ -965,7 +965,7 @@ impl Mux {
     fn resolve_cwd(
         &self,
         command_dir: Option<String>,
-        pane: Option<Rc<dyn Pane>>,
+        pane: Option<Arc<dyn Pane>>,
     ) -> Option<String> {
         command_dir.or_else(|| {
             match pane {
@@ -1000,7 +1000,7 @@ impl Mux {
         request: SplitRequest,
         source: SplitSource,
         domain: config::keyassignment::SpawnTabDomain,
-    ) -> anyhow::Result<(Rc<dyn Pane>, TerminalSize)> {
+    ) -> anyhow::Result<(Arc<dyn Pane>, TerminalSize)> {
         let (_pane_domain_id, window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
@@ -1024,7 +1024,7 @@ impl Mux {
                 command_dir,
             } => SplitSource::Spawn {
                 command,
-                command_dir: self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane))),
+                command_dir: self.resolve_cwd(command_dir, Some(Arc::clone(&current_pane))),
             },
             other => other,
         };
@@ -1105,7 +1105,7 @@ impl Mux {
         size: TerminalSize,
         current_pane_id: Option<PaneId>,
         workspace_for_new_window: String,
-    ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
+    ) -> anyhow::Result<(Rc<Tab>, Arc<dyn Pane>, WindowId)> {
         let domain = self
             .resolve_spawn_tab_domain(current_pane_id, &domain)
             .context("resolve_spawn_tab_domain")?;

@@ -4,7 +4,7 @@ use anyhow::Context;
 use config::keyassignment::{KeyAssignment, KeyTableEntry};
 use mux::pane::{Pane, PerformAssignmentResult};
 use smol::Timer;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::input::KeyboardEncoding;
 
@@ -218,7 +218,7 @@ enum OnlyKeyBindings {
 }
 
 impl super::TermWindow {
-    fn encode_win32_input(&self, pane: &Rc<dyn Pane>, key: &KeyEvent) -> Option<String> {
+    fn encode_win32_input(&self, pane: &Arc<dyn Pane>, key: &KeyEvent) -> Option<String> {
         if !self.config.allow_win32_input_mode
             || pane.get_keyboard_encoding() != KeyboardEncoding::Win32
         {
@@ -229,7 +229,7 @@ impl super::TermWindow {
 
     fn lookup_key(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         keycode: &KeyCode,
         mods: Modifiers,
         only_key_bindings: OnlyKeyBindings,
@@ -257,7 +257,7 @@ impl super::TermWindow {
 
     fn process_key(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         context: &dyn WindowOps,
         keycode: &KeyCode,
         raw_modifiers: Modifiers,

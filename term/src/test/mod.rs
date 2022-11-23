@@ -9,21 +9,20 @@ mod csi;
 // mod selection; FIXME: port to render layer
 use crate::color::ColorPalette;
 use k9::assert_equal as assert_eq;
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo, SEQ_ZERO};
 
 #[derive(Debug)]
 struct LocalClip {
-    clip: RefCell<Option<String>>,
+    clip: Mutex<Option<String>>,
 }
 
 impl LocalClip {
     fn new() -> Self {
         Self {
-            clip: RefCell::new(None),
+            clip: Mutex::new(None),
         }
     }
 }
@@ -34,7 +33,7 @@ impl Clipboard for LocalClip {
         _selection: ClipboardSelection,
         clip: Option<String>,
     ) -> anyhow::Result<()> {
-        *self.clip.borrow_mut() = clip;
+        *self.clip.lock().unwrap() = clip;
         Ok(())
     }
 }

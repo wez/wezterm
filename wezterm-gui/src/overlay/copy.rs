@@ -12,12 +12,11 @@ use mux::pane::{
 use mux::renderable::*;
 use mux::tab::TabId;
 use ordered_float::NotNan;
+use parking_lot::{MappedMutexGuard, Mutex};
 use rangeset::RangeSet;
-use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Range;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
@@ -38,8 +37,8 @@ lazy_static::lazy_static! {
 const SEARCH_CHUNK_SIZE: StableRowIndex = 1000;
 
 pub struct CopyOverlay {
-    delegate: Rc<dyn Pane>,
-    render: RefCell<CopyRenderable>,
+    delegate: Arc<dyn Pane>,
+    render: Mutex<CopyRenderable>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -57,7 +56,7 @@ struct Jump {
 
 struct CopyRenderable {
     cursor: StableCursorPosition,
-    delegate: Rc<dyn Pane>,
+    delegate: Arc<dyn Pane>,
     start: Option<SelectionCoordinate>,
     selection_mode: SelectionMode,
     viewport: Option<StableRowIndex>,
@@ -109,9 +108,9 @@ pub struct CopyModeParams {
 impl CopyOverlay {
     pub fn with_pane(
         term_window: &TermWindow,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         params: CopyModeParams,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let mut cursor = pane.get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
         cursor.visibility = CursorVisibility::Visible;
@@ -129,7 +128,7 @@ impl CopyOverlay {
         let mut render = CopyRenderable {
             cursor,
             window,
-            delegate: Rc::clone(pane),
+            delegate: Arc::clone(pane),
             start: None,
             viewport: term_window.get_viewport(pane.pane_id()),
             results: vec![],
@@ -143,7 +142,6 @@ impl CopyOverlay {
             pattern: if params.pattern.is_empty() {
                 SAVED_PATTERN
                     .lock()
-                    .unwrap()
                     .get(&tab_id)
                     .map(|p| p.clone())
                     .unwrap_or(params.pattern)
@@ -163,14 +161,14 @@ impl CopyOverlay {
         render.dirty_results.add(search_row);
         render.update_search();
 
-        Ok(Rc::new(CopyOverlay {
-            delegate: Rc::clone(pane),
-            render: RefCell::new(render),
+        Ok(Arc::new(CopyOverlay {
+            delegate: Arc::clone(pane),
+            render: Mutex::new(render),
         }))
     }
 
     pub fn get_params(&self) -> CopyModeParams {
-        let render = self.render.borrow();
+        let render = self.render.lock();
         CopyModeParams {
             pattern: render.pattern.clone(),
             editing_search: render.editing_search,
@@ -178,7 +176,7 @@ impl CopyOverlay {
     }
 
     pub fn apply_params(&self, params: CopyModeParams) {
-        let mut render = self.render.borrow_mut();
+        let mut render = self.render.lock();
         render.editing_search = params.editing_search;
         if render.pattern != params.pattern {
             render.pattern = params.pattern;
@@ -189,7 +187,7 @@ impl CopyOverlay {
     }
 
     pub fn viewport_changed(&self, viewport: Option<StableRowIndex>) {
-        let mut render = self.render.borrow_mut();
+        let mut render = self.render.lock();
         if render.viewport != viewport {
             if let Some(last) = render.last_bar_pos.take() {
                 render.dirty_results.add(last);
@@ -271,7 +269,7 @@ impl CopyRenderable {
                 let state = term_window.pane_state(pane_id);
                 if let Some(overlay) = state.overlay.as_ref() {
                     if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
-                        let mut r = copy_overlay.render.borrow_mut();
+                        let mut r = copy_overlay.render.lock();
                         if cookie == r.typing_cookie {
                             r.update_search();
                         }
@@ -297,7 +295,6 @@ impl CopyRenderable {
 
         SAVED_PATTERN
             .lock()
-            .unwrap()
             .insert(self.tab_id, self.pattern.clone());
 
         let bar_pos = self.compute_search_row();
@@ -305,7 +302,7 @@ impl CopyRenderable {
         self.last_result_seqno = self.delegate.get_current_seqno();
 
         if !self.pattern.is_empty() {
-            let pane: Rc<dyn Pane> = self.delegate.clone();
+            let pane: Arc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             let dims = pane.get_dimensions();
@@ -330,7 +327,7 @@ impl CopyRenderable {
                     let state = term_window.pane_state(pane_id);
                     if let Some(overlay) = state.overlay.as_ref() {
                         if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
-                            let mut r = copy_overlay.render.borrow_mut();
+                            let mut r = copy_overlay.render.lock();
                             r.processed_search_chunk(pattern, results.take().unwrap(), range);
                         }
                     }
@@ -375,7 +372,7 @@ impl CopyRenderable {
         }
 
         // Search next chunk
-        let pane: Rc<dyn Pane> = self.delegate.clone();
+        let pane: Arc<dyn Pane> = self.delegate.clone();
         let window = self.window.clone();
         let end = range.start;
         let range = end
@@ -397,7 +394,7 @@ impl CopyRenderable {
                 let state = term_window.pane_state(pane_id);
                 if let Some(overlay) = state.overlay.as_ref() {
                     if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
-                        let mut r = copy_overlay.render.borrow_mut();
+                        let mut r = copy_overlay.render.lock();
                         r.processed_search_chunk(pattern, results.take().unwrap(), range);
                     }
                 }
@@ -1025,7 +1022,7 @@ impl Pane for CopyOverlay {
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         // paste into the search bar
-        let mut r = self.render.borrow_mut();
+        let mut r = self.render.lock();
         r.pattern.push_str(text);
         r.schedule_update_search();
         Ok(())
@@ -1035,7 +1032,7 @@ impl Pane for CopyOverlay {
         Ok(None)
     }
 
-    fn writer(&self) -> RefMut<dyn std::io::Write> {
+    fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
         self.delegate.writer()
     }
 
@@ -1048,7 +1045,7 @@ impl Pane for CopyOverlay {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
-        let mut render = self.render.borrow_mut();
+        let mut render = self.render.lock();
         if let Some(jump) = render.pending_jump.take() {
             match (key, mods) {
                 (KeyCode::Char(c), KeyModifiers::NONE)
@@ -1093,7 +1090,7 @@ impl Pane for CopyOverlay {
 
     fn perform_assignment(&self, assignment: &KeyAssignment) -> PerformAssignmentResult {
         use CopyModeAssignment::*;
-        let mut render = self.render.borrow_mut();
+        let mut render = self.render.lock();
         if render.pending_jump.is_some() {
             // Block key assignments until key_down is called
             // and resolves the next state
@@ -1190,7 +1187,7 @@ impl Pane for CopyOverlay {
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {
-        let renderer = self.render.borrow();
+        let renderer = self.render.lock();
         if renderer.editing_search {
             // place in the search box
             StableCursorPosition {
@@ -1232,8 +1229,8 @@ impl Pane for CopyOverlay {
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
         // Take care to access self.delegate methods here before we get into
         // calling into its own with_lines_mut to avoid a runtime
-        // borrow erro!
-        let mut renderer = self.render.borrow_mut();
+        // lock erro!
+        let mut renderer = self.render.lock();
         if self.delegate.get_current_seqno() > renderer.last_result_seqno {
             renderer.update_search();
         }
@@ -1351,7 +1348,7 @@ impl Pane for CopyOverlay {
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        let mut renderer = self.render.borrow_mut();
+        let mut renderer = self.render.lock();
         if self.delegate.get_current_seqno() > renderer.last_result_seqno {
             renderer.update_search();
         }

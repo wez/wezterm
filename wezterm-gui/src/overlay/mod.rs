@@ -26,7 +26,7 @@ pub fn start_overlay<T, F>(
     tab: &Rc<Tab>,
     func: F,
 ) -> (
-    Rc<dyn Pane>,
+    Arc<dyn Pane>,
     Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where
@@ -54,10 +54,10 @@ where
 
 pub fn start_overlay_pane<T, F>(
     term_window: &TermWindow,
-    pane: &Rc<dyn Pane>,
+    pane: &Arc<dyn Pane>,
     func: F,
 ) -> (
-    Rc<dyn Pane>,
+    Arc<dyn Pane>,
     Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where
