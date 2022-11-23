@@ -564,6 +564,19 @@ impl Mux {
         subscribers.retain(|_, notify| notify(notification.clone()));
     }
 
+    pub fn notify_from_any_thread(notification: MuxNotification) {
+        if let Some(mux) = Mux::get() {
+            mux.notify(notification)
+        } else {
+            promise::spawn::spawn_into_main_thread(async {
+                if let Some(mux) = Mux::get() {
+                    mux.notify(notification);
+                }
+            })
+            .detach();
+        }
+    }
+
     pub fn default_domain(&self) -> Arc<dyn Domain> {
         self.default_domain
             .borrow()
