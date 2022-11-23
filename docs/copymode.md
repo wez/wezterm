@@ -53,8 +53,10 @@ reassignable.
 |                       | `Shift-Tab`     |
 |                       | `b`             |
 | Move to start of this line     | `0` |
+|                                | `Home` |
 | Move to start of next line     | `Enter` |
 | Move to end of this line       | `$` |
+|                                | `End` |
 | Move to start of indented line | `Alt-m` |
 |                                | `^` |
 | Move to bottom of scrollback   | `G` |
