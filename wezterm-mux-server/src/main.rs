@@ -210,7 +210,7 @@ async fn trigger_mux_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
 }
 
 async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
 
     let domain = mux.default_domain();
 

@@ -45,7 +45,7 @@ impl TermWindow {
                         .as_ref()
                         .map(|overlay| overlay.pane.clone())
                         .or_else(|| {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             mux.get_pane(pane_id)
                         })
                     {

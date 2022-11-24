@@ -22,11 +22,7 @@ impl Window {
             active: 0,
             last_active: None,
             title: String::new(),
-            workspace: workspace.unwrap_or_else(|| {
-                Mux::get()
-                    .expect("Window::new to be called on mux thread")
-                    .active_workspace()
-            }),
+            workspace: workspace.unwrap_or_else(|| Mux::get().active_workspace()),
         }
     }
 
@@ -47,9 +43,7 @@ impl Window {
             return;
         }
         self.workspace = workspace.to_string();
-        if let Some(mux) = Mux::get() {
-            mux.notify(MuxNotification::WindowWorkspaceChanged(self.id));
-        }
+        Mux::get().notify(MuxNotification::WindowWorkspaceChanged(self.id));
     }
 
     pub fn window_id(&self) -> WindowId {
@@ -63,7 +57,7 @@ impl Window {
     }
 
     fn invalidate(&self) {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.notify(MuxNotification::WindowInvalidated(self.id));
     }
 

@@ -159,7 +159,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     };
 
     let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_domain(&dom)?);
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     mux.add_domain(&domain);
     mux.set_default_domain(&domain);
 
@@ -243,7 +243,7 @@ async fn async_run_with_domain_as_default(
     domain: Arc<dyn Domain>,
     cmd: Option<CommandBuilder>,
 ) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     crate::update::load_last_release_info_and_set_banner();
 
     // Allow spawning local commands into new tabs/panes
@@ -276,7 +276,6 @@ async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
     }
 
     let domain = Mux::get()
-        .unwrap()
         .get_domain_by_name(&opts.domain_name)
         .ok_or_else(|| {
             anyhow!(
@@ -315,7 +314,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     cmd: Option<CommandBuilder>,
     is_connecting: bool,
 ) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
 
     let domain = mux.default_domain();
 
@@ -373,7 +372,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 }
 
 fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
 
     for client_config in client_domains(&config) {
         if mux.get_domain_by_name(client_config.name()).is_some() {
@@ -425,7 +424,7 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
 }
 
 async fn connect_to_auto_connect_domains() -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     let domains = mux.iter_domains();
     for dom in domains {
         if let Some(dom) = dom.downcast_ref::<ClientDomain>() {

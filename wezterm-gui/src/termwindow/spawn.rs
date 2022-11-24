@@ -56,7 +56,7 @@ impl super::TermWindow {
         src_window_id: MuxWindowId,
         term_config: Arc<TermConfig>,
     ) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let activity = Activity::new();
 
         let current_pane_id = if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {

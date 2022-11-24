@@ -368,9 +368,7 @@ impl RenderableInner {
             "apply_changes_to_surface: Generate PaneOutput event for local={}",
             self.local_pane_id
         );
-        Mux::get()
-            .unwrap()
-            .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
+        Mux::get().notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
 
         let mut to_fetch = RangeSet::new();
         log::trace!("dirty as of seq {} -> {:?}", delta.seqno, dirty);
@@ -535,7 +533,7 @@ impl RenderableInner {
         to_fetch: RangeSet<StableRowIndex>,
         now: Instant,
     ) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let pane = mux
             .get_pane(local_pane_id)
             .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;
@@ -616,7 +614,7 @@ impl RenderableInner {
                 Err(_) => client.client.is_reconnectable,
             };
 
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             let tab = mux
                 .get_pane(local_pane_id)
                 .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;

@@ -22,8 +22,7 @@ pub use tab::MuxTab;
 pub use window::MuxWindow;
 
 fn get_mux() -> mlua::Result<Arc<Mux>> {
-    Mux::get()
-        .ok_or_else(|| mlua::Error::external("cannot get Mux: not running on the mux thread?"))
+    Mux::try_get().ok_or_else(|| mlua::Error::external("cannot get Mux!?"))
 }
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {

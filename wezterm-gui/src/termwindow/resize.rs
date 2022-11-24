@@ -261,7 +261,7 @@ impl super::TermWindow {
 
         self.terminal_size = size;
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if let Some(window) = mux.get_window(self.mux_window_id) {
             for tab in window.iter() {
                 tab.resize(size);

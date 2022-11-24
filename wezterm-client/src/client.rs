@@ -121,7 +121,7 @@ async fn process_unilateral_inner_async(
     local_domain_id: DomainId,
     decoded: DecodedPdu,
 ) -> anyhow::Result<()> {
-    let mux = match Mux::get() {
+    let mux = match Mux::try_get() {
         Some(mux) => mux,
         None => {
             // This can happen for some client scenarios; it is ok to ignore it.
@@ -196,7 +196,7 @@ fn process_unilateral(
             let window_id = *window_id;
             let workspace = workspace.to_string();
             promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().ok_or_else(|| anyhow!("no more mux"))?;
+                let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
                 let client_domain = mux
                     .get_domain(local_domain_id)
                     .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
@@ -989,7 +989,7 @@ impl Client {
             }
 
             async fn detach(local_domain_id: DomainId) -> anyhow::Result<()> {
-                if let Some(mux) = Mux::get() {
+                if let Some(mux) = Mux::try_get() {
                     let client_domain = mux
                         .get_domain(local_domain_id)
                         .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;

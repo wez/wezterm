@@ -144,7 +144,7 @@ impl PaneSelector {
         pane_index: usize,
         term_window: &mut TermWindow,
     ) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(term_window.mux_window_id) {
             Some(tab) => tab,
             None => return Ok(()),

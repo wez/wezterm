@@ -61,7 +61,7 @@ pub trait Domain: Downcast + Send + Sync {
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
 
@@ -75,7 +75,7 @@ pub trait Domain: Downcast + Send + Sync {
         pane_id: PaneId,
         split_request: SplitRequest,
     ) -> anyhow::Result<Arc<dyn Pane>> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let tab = match mux.get_tab(tab) {
             Some(t) => t,
             None => anyhow::bail!("Invalid tab id {}", tab),
@@ -521,7 +521,7 @@ impl Domain for LocalDomain {
             command_description,
         ));
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_pane(&pane)?;
 
         Ok(pane)

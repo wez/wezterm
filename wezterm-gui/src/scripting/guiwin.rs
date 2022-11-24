@@ -264,8 +264,8 @@ impl UserData for GuiWin {
             Ok(result)
         });
         methods.add_method("active_workspace", |_, _, _: ()| {
-            let mux = Mux::get()
-                .ok_or_else(|| anyhow::anyhow!("must be called on main thread"))
+            let mux = Mux::try_get()
+                .ok_or_else(|| anyhow::anyhow!("no mux?"))
                 .map_err(luaerr)?;
             Ok(mux.active_workspace().to_string())
         });
@@ -291,8 +291,7 @@ impl UserData for GuiWin {
                             pane_id: PaneId,
                             term_window: &mut TermWindow,
                         ) -> anyhow::Result<String> {
-                            let mux = Mux::get()
-                                .ok_or_else(|| anyhow::anyhow!("not called on main thread"))?;
+                            let mux = Mux::try_get().ok_or_else(|| anyhow::anyhow!("no mux"))?;
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow::anyhow!("invalid pane {pane_id}"))?;

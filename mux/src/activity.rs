@@ -28,7 +28,7 @@ impl Drop for Activity {
         COUNT.fetch_sub(1, Ordering::SeqCst);
 
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.prune_dead_windows();
         })
         .detach();

@@ -108,7 +108,7 @@ struct Paste {
 
 fn paste_next_chunk(paste: &Arc<Mutex<Paste>>) {
     let mut locked = paste.lock();
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     let pane = mux.get_pane(locked.pane_id).unwrap();
 
     let remain = locked.text.len() - locked.offset;

@@ -36,7 +36,7 @@ impl ClientInner {
     }
 
     pub(crate) fn expire_stale_mappings(&self) {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         self.remote_to_local_pane
             .lock()
@@ -117,7 +117,7 @@ impl ClientInner {
             return Some(*id);
         }
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         for pane in mux.iter_panes() {
             if pane.domain_id() != self.local_domain_id {
@@ -264,7 +264,7 @@ async fn update_remote_workspace(
 }
 
 fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -> bool {
-    let mux = Mux::get().expect("called by mux");
+    let mux = Mux::get();
     let domain = match mux.get_domain(local_domain_id) {
         Some(domain) => domain,
         None => return false,
@@ -281,7 +281,7 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
             // immediately; defer the bulk of this work.
             // <https://github.com/wez/wezterm/issues/2638>
             promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().expect("called by mux");
+                let mux = Mux::get();
                 let domain = match mux.get_domain(local_domain_id) {
                     Some(domain) => domain,
                     None => return,
@@ -322,9 +322,7 @@ impl ClientDomain {
     pub fn new(config: ClientDomainConfig) -> Self {
         let local_domain_id = alloc_domain_id();
         let label = config.label();
-        Mux::get()
-            .expect("created on main thread")
-            .subscribe(move |notif| mux_notify_client_domain(local_domain_id, notif));
+        Mux::get().subscribe(move |notif| mux_notify_client_domain(local_domain_id, notif));
         Self {
             config,
             label,
@@ -344,7 +342,7 @@ impl ClientDomain {
     pub fn perform_detach(&self) {
         log::info!("detached domain {}", self.local_domain_id);
         self.inner.lock().unwrap().take();
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.domain_was_detached(self.local_domain_id);
     }
 
@@ -364,7 +362,7 @@ impl ClientDomain {
     }
 
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let domain = mux
             .get_domain(domain_id)
             .ok_or_else(|| anyhow!("invalid domain id {}", domain_id))?;
@@ -406,7 +404,7 @@ impl ClientDomain {
         panes: ListPanesResponse,
         mut primary_window_id: Option<WindowId>,
     ) -> anyhow::Result<()> {
-        let mux = Mux::get().expect("to be called on main thread");
+        let mux = Mux::get();
         log::debug!(
             "domain {}: ListPanes result {:#?}",
             inner.local_domain_id,
@@ -547,7 +545,7 @@ impl ClientDomain {
         panes: ListPanesResponse,
         primary_window_id: Option<WindowId>,
     ) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let domain = mux
             .get_domain(domain_id)
             .ok_or_else(|| anyhow!("invalid domain id {}", domain_id))?;
@@ -605,7 +603,7 @@ impl Domain for ClientDomain {
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
 
-        let workspace = Mux::get().unwrap().active_workspace();
+        let workspace = Mux::get().active_workspace();
 
         let result = inner
             .client
@@ -633,7 +631,7 @@ impl Domain for ClientDomain {
         inner.remove_old_tab_mapping(result.tab_id);
         inner.record_remote_to_local_tab_mapping(result.tab_id, tab.tab_id());
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
 
@@ -651,7 +649,7 @@ impl Domain for ClientDomain {
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         let tab = mux
             .get_tab(tab_id)
@@ -770,7 +768,7 @@ impl Domain for ClientDomain {
     }
 
     fn local_window_is_closing(&self, window_id: WindowId) {
-        let mux = Mux::get().expect("to be called by mux on mux thread");
+        let mux = Mux::get();
         let window = match mux.get_window(window_id) {
             Some(w) => w,
             None => return,

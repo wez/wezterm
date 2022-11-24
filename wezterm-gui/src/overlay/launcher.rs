@@ -69,7 +69,7 @@ impl LauncherArgs {
         pane_id: PaneId,
         domain_id_of_current_tab: DomainId,
     ) -> Self {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         let active_workspace = mux.active_workspace();
 

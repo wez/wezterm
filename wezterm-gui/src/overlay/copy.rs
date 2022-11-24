@@ -116,7 +116,6 @@ impl CopyOverlay {
         cursor.visibility = CursorVisibility::Visible;
 
         let (_domain, _window, tab_id) = mux::Mux::get()
-            .expect("called on main thread")
             .resolve_pane_id(pane.pane_id())
             .ok_or_else(|| anyhow::anyhow!("no tab contains the current pane"))?;
 

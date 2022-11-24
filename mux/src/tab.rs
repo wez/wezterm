@@ -790,7 +790,7 @@ impl TabInner {
     }
 
     fn codec_pane_tree(&mut self) -> PaneNode {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let tab_id = self.id;
         let window_id = match mux.window_containing_tab(tab_id) {
             Some(w) => w,
@@ -1636,7 +1636,7 @@ impl TabInner {
         if !dead_panes.is_empty() && kill {
             let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
             promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 for pane_id in to_kill.into_iter() {
                     mux.remove_pane(pane_id);
                 }

@@ -867,7 +867,7 @@ impl QuickSelectRenderable {
         let action = self.args.action.clone();
         self.window
             .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
-                let mux = mux::Mux::get().unwrap();
+                let mux = mux::Mux::get();
                 if let Some(pane) = mux.get_pane(pane_id) {
                     {
                         let mut selection = term_window.selection(pane_id);

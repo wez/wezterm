@@ -2329,9 +2329,7 @@ impl super::TermWindow {
                 self.update_text_cursor(&pos);
                 if focused {
                     pos.pane.advise_focus();
-                    mux::Mux::get()
-                        .expect("called on mux thread")
-                        .record_focus_for_current_identity(pos.pane.pane_id());
+                    mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
             self.paint_pane_opengl(&pos, num_panes, &mut layers)?;

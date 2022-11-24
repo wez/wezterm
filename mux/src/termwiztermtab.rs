@@ -465,7 +465,7 @@ pub fn allocate(
     // Add the tab to the mux so that the output is processed
     let pane: Arc<dyn Pane> = Arc::new(pane);
 
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     mux.add_pane(&pane).expect("to be able to add pane to mux");
 
     (tw_term, pane)
@@ -515,7 +515,7 @@ pub async fn run<
         window_id: Option<WindowId>,
         term_config: Option<Arc<dyn TerminalConfiguration + Send + Sync>>,
     ) -> anyhow::Result<(PaneId, WindowId)> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         // TODO: make a singleton
         let domain: Arc<dyn Domain> = Arc::new(TermWizTerminalDomain::new());
@@ -562,7 +562,7 @@ pub async fn run<
     // be shown in succession, we don't want to leave lingering dead windows
     // on the screen so let's ask the mux to kill off our window now.
     promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if should_close_window {
             mux.kill_window(window_id);
         } else if let Some(pane) = mux.get_pane(pane_id) {

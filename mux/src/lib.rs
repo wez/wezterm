@@ -93,6 +93,7 @@ pub struct Mux {
     clients: RwLock<HashMap<ClientId, ClientInfo>>,
     identity: RwLock<Option<Arc<ClientId>>>,
     num_panes_by_workspace: RwLock<HashMap<String, usize>>,
+    main_thread_id: std::thread::ThreadId,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -292,7 +293,7 @@ fn read_from_pane_pty(
             // We don't know if we can unilaterally close
             // this pane right now, so don't!
             promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 log::trace!("checking for dead windows after EOF on pane {}", pane_id);
                 mux.prune_dead_windows();
             })
@@ -300,7 +301,7 @@ fn read_from_pane_pty(
         }
         ExitBehavior::Close => {
             promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 mux.remove_pane(pane_id);
             })
             .detach();
@@ -328,7 +329,8 @@ impl MuxWindowBuilder {
         self.notified = true;
         let activity = self.activity.take().unwrap();
         let window_id = self.window_id;
-        if let Some(mux) = Mux::get() {
+        let mux = Mux::get();
+        if mux.is_main_thread() {
             // If we're already on the mux thread, just send the notification
             // immediately.
             // This is super important for Wayland; if we push it to the
@@ -337,7 +339,7 @@ impl MuxWindowBuilder {
             mux.notify(MuxNotification::WindowCreated(window_id));
         } else {
             promise::spawn::spawn_into_main_thread(async move {
-                if let Some(mux) = Mux::get() {
+                if let Some(mux) = Mux::try_get() {
                     mux.notify(MuxNotification::WindowCreated(window_id));
                     drop(activity);
                 }
@@ -386,7 +388,12 @@ impl Mux {
             clients: RwLock::new(HashMap::new()),
             identity: RwLock::new(None),
             num_panes_by_workspace: RwLock::new(HashMap::new()),
+            main_thread_id: std::thread::current().id(),
         }
+    }
+
+    pub fn is_main_thread(&self) -> bool {
+        std::thread::current().id() == self.main_thread_id
     }
 
     fn recompute_pane_count(&self) {
@@ -555,16 +562,18 @@ impl Mux {
     }
 
     pub fn notify_from_any_thread(notification: MuxNotification) {
-        if let Some(mux) = Mux::get() {
-            mux.notify(notification)
-        } else {
-            promise::spawn::spawn_into_main_thread(async {
-                if let Some(mux) = Mux::get() {
-                    mux.notify(notification);
-                }
-            })
-            .detach();
+        if let Some(mux) = Mux::try_get() {
+            if mux.is_main_thread() {
+                mux.notify(notification);
+                return;
+            }
         }
+        promise::spawn::spawn_into_main_thread(async {
+            if let Some(mux) = Mux::try_get() {
+                mux.notify(notification);
+            }
+        })
+        .detach();
     }
 
     pub fn default_domain(&self) -> Arc<dyn Domain> {
@@ -603,7 +612,11 @@ impl Mux {
         MUX.lock().take();
     }
 
-    pub fn get() -> Option<Arc<Mux>> {
+    pub fn get() -> Arc<Mux> {
+        Self::try_get().unwrap()
+    }
+
+    pub fn try_get() -> Option<Arc<Mux>> {
         MUX.lock().as_ref().map(Arc::clone)
     }
 
@@ -1184,7 +1197,7 @@ pub struct IdentityHolder {
 
 impl Drop for IdentityHolder {
     fn drop(&mut self) {
-        if let Some(mux) = Mux::get() {
+        if let Some(mux) = Mux::try_get() {
             mux.replace_identity(self.prior.take());
         }
     }
@@ -1221,7 +1234,7 @@ impl Clipboard for MuxClipboard {
         clipboard: Option<String>,
     ) -> anyhow::Result<()> {
         let mux =
-            Mux::get().ok_or_else(|| anyhow::anyhow!("MuxClipboard::set_contents: no Mux?"))?;
+            Mux::try_get().ok_or_else(|| anyhow::anyhow!("MuxClipboard::set_contents: no Mux?"))?;
         mux.notify(MuxNotification::AssignClipboard {
             pane_id: self.pane_id,
             selection,
@@ -1235,7 +1248,7 @@ struct MuxDownloader {}
 
 impl wezterm_term::DownloadHandler for MuxDownloader {
     fn save_to_downloads(&self, name: Option<String>, data: Vec<u8>) {
-        if let Some(mux) = Mux::get() {
+        if let Some(mux) = Mux::try_get() {
             mux.notify(MuxNotification::SaveToDownloads {
                 name,
                 data: Arc::new(data),

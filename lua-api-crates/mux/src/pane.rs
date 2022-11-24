@@ -186,7 +186,7 @@ impl UserData for MuxPane {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
             let mut name = None;
-            if let Some(mux) = Mux::get() {
+            if let Some(mux) = Mux::try_get() {
                 let domain_id = pane.domain_id();
                 name = mux
                     .get_domain(domain_id)

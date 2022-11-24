@@ -685,7 +685,7 @@ impl Domain for RemoteSshDomain {
             self.id,
             "RemoteSshDomain".to_string(),
         ));
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_pane(&pane)?;
 
         Ok(pane)
@@ -766,7 +766,7 @@ impl WrappedSshChild {
         promise::spawn::spawn_into_main_thread(async move {
             if let Ok(status) = child.async_wait().await {
                 tx.send(status).await.ok();
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 mux.prune_dead_windows();
             }
         })

@@ -249,7 +249,7 @@ impl super::TermWindow {
         y: i64,
         context: &dyn WindowOps,
     ) {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
             None => return,
@@ -564,7 +564,7 @@ impl super::TermWindow {
                     // We're over a pane that isn't active
                     match &event.kind {
                         WMEK::Press(_) => {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             mux.get_active_tab_for_window(self.mux_window_id)
                                 .map(|tab| tab.set_active_idx(pos.index));
 
@@ -573,7 +573,7 @@ impl super::TermWindow {
                         }
                         WMEK::Move => {
                             if self.config.pane_focus_follows_mouse {
-                                let mux = Mux::get().unwrap();
+                                let mux = Mux::get();
                                 mux.get_active_tab_for_window(self.mux_window_id)
                                     .map(|tab| tab.set_active_idx(pos.index));
 

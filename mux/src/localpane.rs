@@ -275,12 +275,12 @@ impl Pane for LocalPane {
     }
 
     fn mouse_event(&self, event: MouseEvent) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
+        Mux::get().record_input_for_current_identity();
         self.terminal.lock().mouse_event(event)
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
+        Mux::get().record_input_for_current_identity();
         if self.tmux_domain.lock().is_some() {
             log::error!("key: {:?}", key);
             if key == KeyCode::Char('q') {
@@ -293,7 +293,7 @@ impl Pane for LocalPane {
     }
 
     fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
+        Mux::get().record_input_for_current_identity();
         self.terminal.lock().key_up(key, mods)
     }
 
@@ -309,7 +309,7 @@ impl Pane for LocalPane {
     }
 
     fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
-        Mux::get().unwrap().record_input_for_current_identity();
+        Mux::get().record_input_for_current_identity();
         MutexGuard::map(self.writer.lock(), |writer| {
             let w: &mut dyn std::io::Write = writer;
             w
@@ -321,7 +321,7 @@ impl Pane for LocalPane {
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
+        Mux::get().record_input_for_current_identity();
         if self.tmux_domain.lock().is_some() {
             Ok(())
         } else {
@@ -686,7 +686,7 @@ pub(crate) fn emit_output_for_pane(pane_id: PaneId, message: &str) {
     parser.parse(message.as_bytes(), |action| actions.push(action));
 
     promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if let Some(pane) = mux.get_pane(pane_id) {
             pane.perform_actions(actions);
             mux.notify(MuxNotification::PaneOutput(pane_id));
@@ -711,7 +711,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                     let tmux_domain = Arc::clone(&domain.inner);
 
                     let domain: Arc<dyn Domain> = Arc::new(domain);
-                    let mux = Mux::get().expect("to be called on main thread");
+                    let mux = Mux::get();
                     mux.add_domain(&domain);
 
                     if let Some(pane) = mux.get_pane(self.pane_id) {
@@ -735,7 +735,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
             }
             DeviceControlMode::Exit => {
                 if let Some(tmux) = self.tmux_domain.take() {
-                    let mux = Mux::get().expect("to be called on main thread");
+                    let mux = Mux::get();
                     if let Some(pane) = mux.get_pane(self.pane_id) {
                         let pane = pane.downcast_ref::<LocalPane>().unwrap();
                         pane.tmux_domain.lock().take();
@@ -772,27 +772,26 @@ impl AlertHandler for LocalPaneNotifHandler {
     fn alert(&mut self, alert: Alert) {
         let pane_id = self.pane_id;
         promise::spawn::spawn_into_main_thread(async move {
-            if let Some(mux) = Mux::get() {
-                match &alert {
-                    Alert::WindowTitleChanged(title) => {
-                        if let Some((_domain, window_id, _tab_id)) = mux.resolve_pane_id(pane_id) {
-                            if let Some(mut window) = mux.get_window_mut(window_id) {
-                                window.set_title(title);
-                            }
+            let mux = Mux::get();
+            match &alert {
+                Alert::WindowTitleChanged(title) => {
+                    if let Some((_domain, window_id, _tab_id)) = mux.resolve_pane_id(pane_id) {
+                        if let Some(mut window) = mux.get_window_mut(window_id) {
+                            window.set_title(title);
                         }
                     }
-                    Alert::TabTitleChanged(title) => {
-                        if let Some((_domain, _window_id, tab_id)) = mux.resolve_pane_id(pane_id) {
-                            if let Some(tab) = mux.get_tab(tab_id) {
-                                tab.set_title(title.as_deref().unwrap_or(""));
-                            }
-                        }
-                    }
-                    _ => {}
                 }
-
-                mux.notify(MuxNotification::Alert { pane_id, alert });
+                Alert::TabTitleChanged(title) => {
+                    if let Some((_domain, _window_id, tab_id)) = mux.resolve_pane_id(pane_id) {
+                        if let Some(tab) = mux.get_tab(tab_id) {
+                            tab.set_title(title.as_deref().unwrap_or(""));
+                        }
+                    }
+                }
+                _ => {}
             }
+
+            mux.notify(MuxNotification::Alert { pane_id, alert });
         })
         .detach();
     }
@@ -822,7 +821,7 @@ fn split_child(
         let status = process.wait();
         tx.try_send(status).ok();
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.prune_dead_windows();
         })
         .detach();

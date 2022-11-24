@@ -199,7 +199,7 @@ pub struct SessionHandler {
 impl Drop for SessionHandler {
     fn drop(&mut self) {
         if let Some(client_id) = self.client_id.take() {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.unregister_client(&client_id);
         }
     }
@@ -226,7 +226,7 @@ impl SessionHandler {
         let sender = self.to_write_tx.clone();
         let per_pane = self.per_pane(pane_id);
         spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             let pane = mux
                 .get_pane(pane_id)
                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -242,7 +242,7 @@ impl SessionHandler {
         let serial = decoded.serial;
 
         if let Some(client_id) = &self.client_id {
-            Mux::get().unwrap().client_had_input(client_id);
+            Mux::get().client_had_input(client_id);
         }
 
         let send_response = move |result: anyhow::Result<Pdu>| {
@@ -273,7 +273,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let mut window = mux
                                 .get_window_mut(window_id)
                                 .ok_or_else(|| anyhow!("window {} is invalid", window_id))?;
@@ -289,7 +289,7 @@ impl SessionHandler {
                 let client_id = Arc::new(client_id);
                 self.client_id.replace(client_id.clone());
                 spawn_into_main_thread(async move {
-                    let mux = Mux::get().unwrap();
+                    let mux = Mux::get();
                     mux.register_client(client_id);
                 })
                 .detach();
@@ -298,7 +298,7 @@ impl SessionHandler {
             Pdu::SetFocusedPane(SetFocusedPane { pane_id }) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    let mux = Mux::get().unwrap();
+                    let mux = Mux::get();
                     let _identity = mux.with_identity(client_id);
                     mux.record_focus_for_current_identity(pane_id);
                 })
@@ -309,7 +309,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let clients = mux.iter_clients();
                             Ok(Pdu::GetClientListResponse(GetClientListResponse {
                                 clients,
@@ -324,7 +324,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let mut tabs = vec![];
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
@@ -347,7 +347,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -366,7 +366,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -386,7 +386,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -414,7 +414,7 @@ impl SessionHandler {
                     range: std::ops::Range<StableRowIndex>,
                     limit: Option<u32>,
                 ) -> anyhow::Result<Pdu> {
-                    let mux = Mux::get().unwrap();
+                    let mux = Mux::get();
                     let pane = mux
                         .get_pane(pane_id)
                         .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -442,7 +442,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -463,7 +463,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let (_domain_id, _window_id, tab_id) = mux
                                 .resolve_pane_id(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -487,7 +487,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -514,7 +514,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -544,7 +544,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -588,7 +588,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let is_alive = match mux.get_pane(pane_id) {
                                 Some(pane) => {
                                     maybe_push_pane_changes(&pane, sender, per_pane)?;
@@ -611,7 +611,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
@@ -645,7 +645,7 @@ impl SessionHandler {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             let mut data = None;
 
                             let pane = mux
@@ -755,7 +755,7 @@ where
 }
 
 async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
 
     let (_pane_domain_id, window_id, tab_id) = mux
@@ -784,7 +784,7 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
 }
 
 async fn domain_spawn_v2(spawn: SpawnV2, client_id: Option<Arc<ClientId>>) -> anyhow::Result<Pdu> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
 
     let (tab, pane, window_id) = mux
@@ -822,7 +822,7 @@ async fn move_pane(
     request: MovePaneToNewTab,
     client_id: Option<Arc<ClientId>>,
 ) -> anyhow::Result<Pdu> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     let _identity = mux.with_identity(client_id);
 
     let (tab, window_id) = mux

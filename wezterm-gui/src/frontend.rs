@@ -34,7 +34,7 @@ impl GuiFrontEnd {
         let connection = Connection::init()?;
         connection.set_event_handler(Self::app_event_handler);
 
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         let client_id = mux.active_identity().expect("to have set my own id");
 
         let front_end = Rc::new(GuiFrontEnd {
@@ -172,7 +172,7 @@ impl GuiFrontEnd {
                             .collect(),
                     );
 
-                    let mux = Mux::get().expect("mux started");
+                    let mux = Mux::get();
                     let window_id = None;
                     let pane_id = None;
                     let cwd = None;
@@ -211,7 +211,7 @@ impl GuiFrontEnd {
 
     pub fn reconcile_workspace(&self) -> Future<()> {
         let mut promise = Promise::new();
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         let workspace = mux.active_workspace_for_client(&self.client_id);
 
         if mux.is_workspace_empty(&workspace) {
@@ -291,7 +291,7 @@ impl GuiFrontEnd {
                 log::trace!("Creating TermWindow for mux_window_id={}", mux_window_id);
                 if let Err(err) = TermWindow::new_window(mux_window_id).await {
                     log::error!("Failed to create window: {:#}", err);
-                    let mux = Mux::get().expect("switching_workspaces to trigger on main thread");
+                    let mux = Mux::get();
                     mux.kill_window(mux_window_id);
                     front_end()
                         .spawned_mux_window
@@ -316,7 +316,7 @@ impl GuiFrontEnd {
     }
 
     pub fn switch_workspace(&self, workspace: &str) {
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         mux.set_active_workspace_for_client(&self.client_id, workspace);
         *self.switching_workspaces.borrow_mut() = false;
         self.reconcile_workspace();

@@ -142,14 +142,14 @@ impl ClientPane {
             },
             Pdu::SetPalette(SetPalette { palette, .. }) => {
                 *self.palette.lock() = palette;
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 mux.notify(MuxNotification::Alert {
                     pane_id: self.local_pane_id,
                     alert: Alert::PaletteChanged,
                 });
             }
             Pdu::NotifyAlert(NotifyAlert { alert, .. }) => {
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 match &alert {
                     Alert::SetUserVar { name, value } => {
                         self.user_vars.lock().insert(name.clone(), value.clone());
@@ -164,7 +164,7 @@ impl ClientPane {
             Pdu::PaneRemoved(PaneRemoved { pane_id }) => {
                 log::trace!("remote pane {} has been removed", pane_id);
                 self.renderable.lock().inner.borrow_mut().dead = true;
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 mux.prune_dead_windows();
 
                 self.client.expire_stale_mappings();
@@ -428,7 +428,7 @@ impl Pane for ClientPane {
         let mut send_kill = true;
 
         {
-            let mux = Mux::get().expect("called on main thread");
+            let mux = Mux::get();
             if let Some(client_domain) = mux.get_domain(local_domain_id) {
                 if client_domain.state() == mux::domain::DomainState::Detached {
                     send_kill = false;
@@ -451,7 +451,7 @@ impl Pane for ClientPane {
                 // effects of killing the pane.
                 // <https://github.com/wez/wezterm/issues/1752#issuecomment-1088269363>
                 smol::Timer::after(std::time::Duration::from_millis(200)).await;
-                let mux = Mux::get().expect("called on main thread");
+                let mux = Mux::get();
                 let client_domain = mux
                     .get_domain(local_domain_id)
                     .ok_or_else(|| anyhow::anyhow!("no such domain {}", local_domain_id))?;

@@ -140,7 +140,7 @@ impl TmuxDomainState {
         if let Some(first) = cmd_queue.front() {
             let cmd = first.get_command();
             log::info!("sending cmd {:?}", cmd);
-            let mux = Mux::get().expect("to be called on main thread");
+            let mux = Mux::get();
             if let Some(pane) = mux.get_pane(self.pane_id) {
                 let mut writer = pane.writer();
                 let _ = write!(writer, "{}", cmd);
@@ -152,7 +152,7 @@ impl TmuxDomainState {
     /// schedule a `send_next_command` into main thread
     pub fn schedule_send_next_command(domain_id: usize) {
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().expect("to be called on main thread");
+            let mux = Mux::get();
             if let Some(domain) = mux.get_domain(domain_id) {
                 if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
                     tmux_domain.send_next_command();
@@ -165,7 +165,7 @@ impl TmuxDomainState {
     /// create a standalone window for tmux tabs
     pub fn create_gui_window(&self) {
         if self.gui_window.lock().is_none() {
-            let mux = Mux::get().expect("should be call at main thread");
+            let mux = Mux::get();
             let window_builder = mux.new_empty_window(None /* TODO: pass session here */);
             log::info!("Tmux create window id {}", window_builder.window_id);
             {

@@ -129,7 +129,7 @@ impl TmuxDomainState {
                 master_pane: ref_pane,
             };
             let writer = WriterWrapper::new(pane_pty.take_writer()?);
-            let mux = Mux::get().expect("should be called at main thread");
+            let mux = Mux::get();
             let size = TerminalSize {
                 rows: pane.pane_height as usize,
                 cols: pane.pane_width as usize,
@@ -259,7 +259,7 @@ impl TmuxCommand for ListAllPanes {
         }
 
         log::info!("panes in domain_id {}: {:?}", domain_id, items);
-        let mux = Mux::get().expect("to be called on main thread");
+        let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
                 return tmux_domain.inner.sync_pane_state(&items);
@@ -299,7 +299,7 @@ impl TmuxCommand for CapturePane {
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
-        let mux = Mux::get().expect("to be called on main thread");
+        let mux = Mux::get();
         let domain = match mux.get_domain(domain_id) {
             Some(d) => d,
             None => anyhow::bail!("Tmux domain lost"),
