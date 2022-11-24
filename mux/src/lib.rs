@@ -12,15 +12,13 @@ use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
 use parking_lot::{
-    MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockReadGuard, RwLockWriteGuard,
+    MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
 };
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{Read, Write};
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -90,7 +88,7 @@ pub struct Mux {
     default_domain: RwLock<Option<Arc<dyn Domain>>>,
     domains: RwLock<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RwLock<HashMap<String, Arc<dyn Domain>>>,
-    subscribers: RwLock<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
+    subscribers: RwLock<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool + Send + Sync>>>,
     banner: RwLock<Option<String>>,
     clients: RwLock<HashMap<ClientId, ClientInfo>>,
     identity: RwLock<Option<Arc<ClientId>>>,
@@ -312,8 +310,8 @@ fn read_from_pane_pty(
     dead.store(true, Ordering::Relaxed);
 }
 
-thread_local! {
-    static MUX: RefCell<Option<Rc<Mux>>> = RefCell::new(None);
+lazy_static::lazy_static! {
+    static ref MUX: Mutex<Option<Arc<Mux>>> = Mutex::new(None);
 }
 
 pub struct MuxWindowBuilder {
@@ -543,7 +541,7 @@ impl Mux {
 
     pub fn subscribe<F>(&self, subscriber: F)
     where
-        F: Fn(MuxNotification) -> bool + 'static,
+        F: Fn(MuxNotification) -> bool + 'static + Send + Sync,
     {
         let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
         self.subscribers
@@ -597,24 +595,16 @@ impl Mux {
             .insert(domain.domain_name().to_string(), Arc::clone(domain));
     }
 
-    pub fn set_mux(mux: &Rc<Mux>) {
-        MUX.with(|m| {
-            *m.borrow_mut() = Some(Rc::clone(mux));
-        });
+    pub fn set_mux(mux: &Arc<Mux>) {
+        MUX.lock().replace(Arc::clone(mux));
     }
 
     pub fn shutdown() {
-        MUX.with(|m| drop(m.borrow_mut().take()));
+        MUX.lock().take();
     }
 
-    pub fn get() -> Option<Rc<Mux>> {
-        let mut res = None;
-        MUX.with(|m| {
-            if let Some(mux) = &*m.borrow() {
-                res = Some(Rc::clone(mux));
-            }
-        });
-        res
+    pub fn get() -> Option<Arc<Mux>> {
+        MUX.lock().as_ref().map(Arc::clone)
     }
 
     pub fn get_pane(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {

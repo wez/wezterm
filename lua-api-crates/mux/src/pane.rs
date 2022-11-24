@@ -6,7 +6,7 @@ use std::sync::Arc;
 pub struct MuxPane(pub PaneId);
 
 impl MuxPane {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Arc<dyn Pane>> {
+    pub fn resolve<'a>(&self, mux: &'a Arc<Mux>) -> mlua::Result<Arc<dyn Pane>> {
         mux.get_pane(self.0)
             .ok_or_else(|| mlua::Error::external(format!("pane id {} not found in mux", self.0)))
     }

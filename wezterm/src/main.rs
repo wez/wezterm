@@ -14,7 +14,7 @@ use portable_pty::cmdbuilder::CommandBuilder;
 use serde::Serializer as _;
 use std::ffi::OsString;
 use std::io::{Read, Write};
-use std::rc::Rc;
+use std::sync::Arc;
 use tabout::{tabulate_output, Alignment, Column};
 use umask::UmaskSaver;
 use wezterm_client::client::{unix_connect_with_retry, Client};
@@ -1152,7 +1152,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             // ourselves into basically netcat.
             drop(client);
 
-            let mux = Rc::new(mux::Mux::new(None));
+            let mux = Arc::new(mux::Mux::new(None));
             Mux::set_mux(&mux);
             let unix_dom = config.unix_domains.first().unwrap();
             let target = unix_dom.target();

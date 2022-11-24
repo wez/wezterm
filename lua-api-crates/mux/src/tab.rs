@@ -5,7 +5,7 @@ use std::sync::Arc;
 pub struct MuxTab(pub TabId);
 
 impl MuxTab {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Arc<Tab>> {
+    pub fn resolve<'a>(&self, mux: &'a Arc<Mux>) -> mlua::Result<Arc<Tab>> {
         mux.get_tab(self.0)
             .ok_or_else(|| mlua::Error::external(format!("tab id {} not found in mux", self.0)))
     }

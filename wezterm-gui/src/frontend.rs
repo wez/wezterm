@@ -45,82 +45,85 @@ impl GuiFrontEnd {
             client_id: client_id.clone(),
         });
 
-        let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
-            if let Some(fe) = fe.upgrade() {
-                match n {
-                    MuxNotification::WindowWorkspaceChanged(_)
-                    | MuxNotification::ActiveWorkspaceChanged(_)
-                    | MuxNotification::WindowCreated(_)
-                    | MuxNotification::WindowRemoved(_) => {
-                        promise::spawn::spawn(async move {
-                            let fe = crate::frontend::front_end();
-                            if !fe.is_switching_workspace() {
-                                fe.reconcile_workspace();
-                            }
-                        })
-                        .detach();
-                    }
-                    MuxNotification::TabAddedToWindow { .. } => {}
-                    MuxNotification::PaneRemoved(_) => {}
-                    MuxNotification::WindowInvalidated(_) => {}
-                    MuxNotification::PaneOutput(_) => {}
-                    MuxNotification::PaneAdded(_) => {}
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert:
-                            Alert::ToastNotification {
-                                title,
-                                body,
-                                focus: _,
-                            },
-                    } => {
-                        let message = if title.is_none() { "" } else { &body };
-                        let title = title.as_ref().unwrap_or(&body);
-                        // FIXME: if notification.focus is true, we should do
-                        // something here to arrange to focus pane_id when the
-                        // notification is clicked
-                        persistent_toast_notification(title, message);
-                    }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert: Alert::Bell,
-                    } => {
-                        // Handled via TermWindowNotif; NOP it here.
-                    }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert:
-                            Alert::OutputSinceFocusLost
-                            | Alert::PaletteChanged
-                            | Alert::CurrentWorkingDirectoryChanged
-                            | Alert::WindowTitleChanged(_)
-                            | Alert::TabTitleChanged(_)
-                            | Alert::IconTitleChanged(_)
-                            | Alert::SetUserVar { .. },
-                    } => {}
-                    MuxNotification::Empty => {
+            match n {
+                MuxNotification::WindowWorkspaceChanged(_)
+                | MuxNotification::ActiveWorkspaceChanged(_)
+                | MuxNotification::WindowCreated(_)
+                | MuxNotification::WindowRemoved(_) => {
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let fe = crate::frontend::front_end();
+                        if !fe.is_switching_workspace() {
+                            fe.reconcile_workspace();
+                        }
+                    })
+                    .detach();
+                }
+                MuxNotification::TabAddedToWindow { .. } => {}
+                MuxNotification::PaneRemoved(_) => {}
+                MuxNotification::WindowInvalidated(_) => {}
+                MuxNotification::PaneOutput(_) => {}
+                MuxNotification::PaneAdded(_) => {}
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert:
+                        Alert::ToastNotification {
+                            title,
+                            body,
+                            focus: _,
+                        },
+                } => {
+                    let message = if title.is_none() { "" } else { &body };
+                    let title = title.as_ref().unwrap_or(&body);
+                    // FIXME: if notification.focus is true, we should do
+                    // something here to arrange to focus pane_id when the
+                    // notification is clicked
+                    persistent_toast_notification(title, message);
+                }
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert: Alert::Bell,
+                } => {
+                    // Handled via TermWindowNotif; NOP it here.
+                }
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert:
+                        Alert::OutputSinceFocusLost
+                        | Alert::PaletteChanged
+                        | Alert::CurrentWorkingDirectoryChanged
+                        | Alert::WindowTitleChanged(_)
+                        | Alert::TabTitleChanged(_)
+                        | Alert::IconTitleChanged(_)
+                        | Alert::SetUserVar { .. },
+                } => {}
+                MuxNotification::Empty => {
+                    promise::spawn::spawn_into_main_thread(async move {
                         if mux::activity::Activity::count() == 0 {
                             log::trace!("Mux is now empty, terminate gui");
                             Connection::get().unwrap().terminate_message_loop();
                         }
-                    }
-                    MuxNotification::SaveToDownloads { name, data } => {
-                        if !config::configuration().allow_download_protocols {
-                            log::error!(
-                                "Ignoring download request for {:?}, \
+                    })
+                    .detach();
+                }
+                MuxNotification::SaveToDownloads { name, data } => {
+                    if !config::configuration().allow_download_protocols {
+                        log::error!(
+                            "Ignoring download request for {:?}, \
                                  as allow_download_protocols=false",
-                                name
-                            );
-                        } else if let Err(err) = crate::download::save_to_downloads(name, &*data) {
-                            log::error!("save_to_downloads: {:#}", err);
-                        }
+                            name
+                        );
+                    } else if let Err(err) = crate::download::save_to_downloads(name, &*data) {
+                        log::error!("save_to_downloads: {:#}", err);
                     }
-                    MuxNotification::AssignClipboard {
-                        pane_id,
-                        selection,
-                        clipboard,
-                    } => {
+                }
+                MuxNotification::AssignClipboard {
+                    pane_id,
+                    selection,
+                    clipboard,
+                } => {
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let fe = crate::frontend::front_end();
                         log::trace!(
                             "set clipboard in pane {} {:?} {:?}",
                             pane_id,
@@ -139,13 +142,12 @@ impl GuiFrontEnd {
                             );
                         } else {
                             log::error!("Cannot assign clipboard as there are no windows");
-                        }
-                    }
+                        };
+                    })
+                    .detach();
                 }
-                true
-            } else {
-                false
             }
+            true
         });
         // Re-evaluate the config so that folks that are using
         // `wezterm.gui.get_appearance()` can have that take effect

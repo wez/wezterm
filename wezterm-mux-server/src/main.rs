@@ -176,7 +176,7 @@ fn run() -> anyhow::Result<()> {
     };
 
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
+    let mux = Arc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let executor = promise::spawn::SimpleExecutor::new();

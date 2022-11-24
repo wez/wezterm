@@ -5,14 +5,17 @@ use parking_lot::{MappedRwLockReadGuard, MappedRwLockWriteGuard};
 pub struct MuxWindow(pub WindowId);
 
 impl MuxWindow {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<MappedRwLockReadGuard<'a, Window>> {
+    pub fn resolve<'a>(
+        &self,
+        mux: &'a Arc<Mux>,
+    ) -> mlua::Result<MappedRwLockReadGuard<'a, Window>> {
         mux.get_window(self.0)
             .ok_or_else(|| mlua::Error::external(format!("window id {} not found in mux", self.0)))
     }
 
     pub fn resolve_mut<'a>(
         &self,
-        mux: &'a Rc<Mux>,
+        mux: &'a Arc<Mux>,
     ) -> mlua::Result<MappedRwLockWriteGuard<'a, Window>> {
         mux.get_window_mut(self.0)
             .ok_or_else(|| mlua::Error::external(format!("window id {} not found in mux", self.0)))

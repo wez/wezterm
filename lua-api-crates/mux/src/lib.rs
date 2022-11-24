@@ -9,7 +9,7 @@ use mux::window::{Window, WindowId};
 use mux::Mux;
 use portable_pty::CommandBuilder;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::TerminalSize;
 
@@ -21,7 +21,7 @@ pub use pane::MuxPane;
 pub use tab::MuxTab;
 pub use window::MuxWindow;
 
-fn get_mux() -> mlua::Result<Rc<Mux>> {
+fn get_mux() -> mlua::Result<Arc<Mux>> {
     Mux::get()
         .ok_or_else(|| mlua::Error::external("cannot get Mux: not running on the mux thread?"))
 }

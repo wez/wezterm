@@ -491,7 +491,7 @@ enum Publish {
 }
 
 impl Publish {
-    pub fn resolve(mux: &Rc<Mux>, config: &ConfigHandle, always_new_process: bool) -> Self {
+    pub fn resolve(mux: &Arc<Mux>, config: &ConfigHandle, always_new_process: bool) -> Self {
         if mux.default_domain().domain_name() != config.default_domain.as_deref().unwrap_or("local")
         {
             return Self::NoConnectNoPublish;
@@ -636,8 +636,8 @@ fn setup_mux(
     config: &ConfigHandle,
     default_domain_name: Option<&str>,
     default_workspace_name: Option<&str>,
-) -> anyhow::Result<Rc<Mux>> {
-    let mux = Rc::new(mux::Mux::new(Some(local_domain.clone())));
+) -> anyhow::Result<Arc<Mux>> {
+    let mux = Arc::new(mux::Mux::new(Some(local_domain.clone())));
     Mux::set_mux(&mux);
     let client_id = Arc::new(mux::client::ClientId::new());
     mux.register_client(client_id.clone());
@@ -671,7 +671,7 @@ fn build_initial_mux(
     config: &ConfigHandle,
     default_domain_name: Option<&str>,
     default_workspace_name: Option<&str>,
-) -> anyhow::Result<Rc<Mux>> {
+) -> anyhow::Result<Arc<Mux>> {
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
     setup_mux(domain, config, default_domain_name, default_workspace_name)
 }
