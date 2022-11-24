@@ -15,7 +15,6 @@ use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
 
@@ -437,13 +436,13 @@ impl ClientDomain {
                                  tab is not in the mux, make a new tab"
                             );
                             inner.remove_old_tab_mapping(remote_tab_id);
-                            tab = Rc::new(Tab::new(&root_size));
+                            tab = Arc::new(Tab::new(&root_size));
                             inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                             mux.add_tab_no_panes(&tab);
                         }
                     };
                 } else {
-                    tab = Rc::new(Tab::new(&root_size));
+                    tab = Arc::new(Tab::new(&root_size));
                     mux.add_tab_no_panes(&tab);
                     inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                 }
@@ -602,7 +601,7 @@ impl Domain for ClientDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> anyhow::Result<Rc<Tab>> {
+    ) -> anyhow::Result<Arc<Tab>> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -630,7 +629,7 @@ impl Domain for ClientDomain {
             size,
             "wezterm",
         ));
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
         inner.remove_old_tab_mapping(result.tab_id);
         inner.record_remote_to_local_tab_mapping(result.tab_id, tab.tab_id());

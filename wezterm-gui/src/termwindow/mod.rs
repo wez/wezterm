@@ -2845,7 +2845,7 @@ impl TermWindow {
         };
 
         let tab = match mux_window.get_by_idx(tab_idx) {
-            Some(tab) => Rc::clone(tab),
+            Some(tab) => Arc::clone(tab),
             None => return,
         };
         drop(mux_window);
@@ -3090,7 +3090,7 @@ impl TermWindow {
             .collect()
     }
 
-    fn get_pos_panes_for_tab(&mut self, tab: &Rc<Tab>) -> Vec<PositionedPane> {
+    fn get_pos_panes_for_tab(&mut self, tab: &Arc<Tab>) -> Vec<PositionedPane> {
         let tab_id = tab.tab_id();
 
         if let Some(pane) = self

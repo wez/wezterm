@@ -21,7 +21,6 @@ use portable_pty::*;
 use rangeset::RangeSet;
 use std::io::{BufWriter, Write};
 use std::ops::Range;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::input::{InputEvent, KeyEvent, Modifiers, MouseEvent as TermWizMouseEvent};
@@ -535,7 +534,7 @@ pub async fn run<
             TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx, term_config);
         let pane: Arc<dyn Pane> = Arc::new(pane);
 
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         mux.add_tab_and_active_pane(&tab)?;

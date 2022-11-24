@@ -81,7 +81,7 @@ pub enum MuxNotification {
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Mux {
-    tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
+    tabs: RefCell<HashMap<TabId, Arc<Tab>>>,
     panes: RefCell<HashMap<PaneId, Arc<dyn Pane>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     default_domain: RefCell<Option<Arc<dyn Domain>>>,
@@ -622,8 +622,8 @@ impl Mux {
         self.panes.borrow().get(&pane_id).map(Arc::clone)
     }
 
-    pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
-        self.tabs.borrow().get(&tab_id).map(Rc::clone)
+    pub fn get_tab(&self, tab_id: TabId) -> Option<Arc<Tab>> {
+        self.tabs.borrow().get(&tab_id).map(Arc::clone)
     }
 
     pub fn add_pane(&self, pane: &Arc<dyn Pane>) -> Result<(), Error> {
@@ -653,13 +653,13 @@ impl Mux {
         Ok(())
     }
 
-    pub fn add_tab_no_panes(&self, tab: &Rc<Tab>) {
-        self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
+    pub fn add_tab_no_panes(&self, tab: &Arc<Tab>) {
+        self.tabs.borrow_mut().insert(tab.tab_id(), Arc::clone(tab));
         self.recompute_pane_count();
     }
 
-    pub fn add_tab_and_active_pane(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
+    pub fn add_tab_and_active_pane(&self, tab: &Arc<Tab>) -> Result<(), Error> {
+        self.tabs.borrow_mut().insert(tab.tab_id(), Arc::clone(tab));
         let pane = tab
             .get_active_pane()
             .ok_or_else(|| anyhow!("tab MUST have an active pane"))?;
@@ -676,7 +676,7 @@ impl Mux {
         }
     }
 
-    fn remove_tab_internal(&self, tab_id: TabId) -> Option<Rc<Tab>> {
+    fn remove_tab_internal(&self, tab_id: TabId) -> Option<Arc<Tab>> {
         log::debug!("remove_tab_internal tab {}", tab_id);
 
         let tab = self.tabs.borrow_mut().remove(&tab_id)?;
@@ -721,7 +721,7 @@ impl Mux {
         self.prune_dead_windows();
     }
 
-    pub fn remove_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
+    pub fn remove_tab(&self, tab_id: TabId) -> Option<Arc<Tab>> {
         let tab = self.remove_tab_internal(tab_id);
         self.prune_dead_windows();
         tab
@@ -802,9 +802,9 @@ impl Mux {
         }))
     }
 
-    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<Tab>> {
+    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Arc<Tab>> {
         let window = self.get_window(window_id)?;
-        window.get_active().map(Rc::clone)
+        window.get_active().map(Arc::clone)
     }
 
     pub fn new_empty_window(&self, workspace: Option<String>) -> MuxWindowBuilder {
@@ -818,7 +818,7 @@ impl Mux {
         }
     }
 
-    pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {
+    pub fn add_tab_to_window(&self, tab: &Arc<Tab>, window_id: WindowId) -> anyhow::Result<()> {
         let tab_id = tab.tab_id();
         {
             let mut window = self
@@ -1057,7 +1057,7 @@ impl Mux {
         pane_id: PaneId,
         window_id: Option<WindowId>,
         workspace_for_new_window: Option<String>,
-    ) -> anyhow::Result<(Rc<Tab>, WindowId)> {
+    ) -> anyhow::Result<(Arc<Tab>, WindowId)> {
         let (_domain, _src_window, src_tab) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
@@ -1086,7 +1086,7 @@ impl Mux {
             .remove_pane(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} wasn't in its containing tab!?", pane_id))?;
 
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
         pane.resize(size)?;
         self.add_tab_and_active_pane(&tab)?;
@@ -1108,7 +1108,7 @@ impl Mux {
         size: TerminalSize,
         current_pane_id: Option<PaneId>,
         workspace_for_new_window: String,
-    ) -> anyhow::Result<(Rc<Tab>, Arc<dyn Pane>, WindowId)> {
+    ) -> anyhow::Result<(Arc<Tab>, Arc<dyn Pane>, WindowId)> {
         let domain = self
             .resolve_spawn_tab_domain(current_pane_id, &domain)
             .context("resolve_spawn_tab_domain")?;

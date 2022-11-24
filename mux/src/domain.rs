@@ -20,7 +20,6 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
 
@@ -55,10 +54,10 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> anyhow::Result<Rc<Tab>> {
+    ) -> anyhow::Result<Arc<Tab>> {
         let pane = self.spawn_pane(size, command, command_dir).await?;
 
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         let mux = Mux::get().unwrap();

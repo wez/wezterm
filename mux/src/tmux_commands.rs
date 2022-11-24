@@ -11,7 +11,6 @@ use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
 use std::fmt::{Debug, Write};
 use std::io::Write as _;
-use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::tmux_cc::*;
 use wezterm_term::TerminalSize;
@@ -161,7 +160,7 @@ impl TmuxDomainState {
                 "tmux pane".to_string(),
             ));
 
-            let tab = Rc::new(Tab::new(&size));
+            let tab = Arc::new(Tab::new(&size));
             tab.assign_pane(&local_pane);
 
             self.create_gui_window();
