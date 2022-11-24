@@ -15,12 +15,13 @@ use async_trait::async_trait;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::{configuration, ExecDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
+use parking_lot::Mutex;
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use wezterm_term::TerminalSize;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -46,7 +47,7 @@ pub enum SplitSource {
 }
 
 #[async_trait(?Send)]
-pub trait Domain: Downcast {
+pub trait Domain: Downcast + Send + Sync {
     /// Spawn a new command within this domain
     async fn spawn(
         &self,
@@ -172,7 +173,7 @@ pub trait Domain: Downcast {
 impl_downcast!(Domain);
 
 pub struct LocalDomain {
-    pty_system: Box<dyn PtySystem>,
+    pty_system: Mutex<Box<dyn PtySystem + Send>>,
     id: DomainId,
     name: String,
 }
@@ -198,10 +199,10 @@ impl LocalDomain {
             .cloned()
     }
 
-    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
+    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem + Send>) -> Self {
         let id = alloc_domain_id();
         Self {
-            pty_system,
+            pty_system: Mutex::new(pty_system),
             id,
             name: name.to_string(),
         }
@@ -459,11 +460,11 @@ impl WriterWrapper {
 
 impl std::io::Write for WriterWrapper {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.writer.lock().unwrap().write(buf)
+        self.writer.lock().write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.writer.lock().unwrap().flush()
+        self.writer.lock().flush()
     }
 }
 
@@ -479,6 +480,7 @@ impl Domain for LocalDomain {
         let cmd = self.build_command(command, command_dir, pane_id).await?;
         let pair = self
             .pty_system
+            .lock()
             .openpty(crate::terminal_size_to_pty_size(size)?)?;
 
         let command_line = cmd

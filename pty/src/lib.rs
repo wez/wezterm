@@ -379,7 +379,7 @@ impl ChildKiller for std::process::Child {
     }
 }
 
-pub fn native_pty_system() -> Box<dyn PtySystem> {
+pub fn native_pty_system() -> Box<dyn PtySystem + Send> {
     Box::new(NativePtySystem::default())
 }
 

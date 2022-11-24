@@ -132,7 +132,7 @@ pub fn ssh_connect_with_ui(
 /// and the reader and writer instances so that we can inject the
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
-    session: RefCell<Option<Session>>,
+    session: Mutex<Option<Session>>,
     dom: SshDomain,
     id: DomainId,
     name: String,
@@ -186,7 +186,7 @@ impl RemoteSshDomain {
         Ok(Self {
             id,
             name: dom.name.clone(),
-            session: RefCell::new(None),
+            session: Mutex::new(None),
             dom: dom.clone(),
         })
     }
@@ -568,7 +568,7 @@ impl Domain for RemoteSshDomain {
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
-        let session = self.session.borrow().as_ref().map(|s| s.clone());
+        let session: Option<Session> = self.session.lock().unwrap().as_ref().cloned();
 
         if let Some(session) = session {
             let (concrete_pty, concrete_child) = session
@@ -586,7 +586,7 @@ impl Domain for RemoteSshDomain {
         } else {
             // We're starting the session
             let (session, events) = Session::connect(self.ssh_config()?)?;
-            self.session.borrow_mut().replace(session.clone());
+            self.session.lock().unwrap().replace(session.clone());
 
             // We get to establish the session!
             //

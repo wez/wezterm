@@ -13,7 +13,6 @@ use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
@@ -251,7 +250,7 @@ impl ClientInner {
 pub struct ClientDomain {
     config: ClientDomainConfig,
     label: String,
-    inner: RefCell<Option<Arc<ClientInner>>>,
+    inner: Mutex<Option<Arc<ClientInner>>>,
     local_domain_id: DomainId,
 }
 
@@ -329,13 +328,13 @@ impl ClientDomain {
         Self {
             config,
             label,
-            inner: RefCell::new(None),
+            inner: Mutex::new(None),
             local_domain_id,
         }
     }
 
     fn inner(&self) -> Option<Arc<ClientInner>> {
-        self.inner.borrow().as_ref().map(|i| Arc::clone(i))
+        self.inner.lock().unwrap().as_ref().map(|i| Arc::clone(i))
     }
 
     pub fn connect_automatically(&self) -> bool {
@@ -344,7 +343,7 @@ impl ClientDomain {
 
     pub fn perform_detach(&self) {
         log::info!("detached domain {}", self.local_domain_id);
-        self.inner.borrow_mut().take();
+        self.inner.lock().unwrap().take();
         let mux = Mux::get().unwrap();
         mux.domain_was_detached(self.local_domain_id);
     }
@@ -395,7 +394,7 @@ impl ClientDomain {
     }
 
     pub async fn resync(&self) -> anyhow::Result<()> {
-        if let Some(inner) = self.inner.borrow().as_ref() {
+        if let Some(inner) = self.inner.lock().unwrap().as_ref() {
             let panes = inner.client.list_panes().await?;
             Self::process_pane_list(Arc::clone(inner), panes, None)?;
         }
@@ -564,7 +563,7 @@ impl ClientDomain {
             threshold,
             overlay_lag_indicator,
         ));
-        *domain.inner.borrow_mut() = Some(Arc::clone(&inner));
+        *domain.inner.lock().unwrap() = Some(Arc::clone(&inner));
 
         Self::process_pane_list(inner, panes, primary_window_id)?;
 
@@ -794,7 +793,7 @@ impl Domain for ClientDomain {
     }
 
     fn state(&self) -> DomainState {
-        if self.inner.borrow().is_some() {
+        if self.inner.lock().unwrap().is_some() {
             DomainState::Attached
         } else {
             DomainState::Detached
