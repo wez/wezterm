@@ -145,6 +145,8 @@ const PLUS_BUTTON: &[Poly] = &[
     },
 ];
 
+const TAB_BAR_LINE_HEIGHT_SCALE: f32 = 1.5;
+
 /// The data that we associate with a line; we use this to cache it shape hash
 #[derive(Debug)]
 pub struct CachedLineState {
@@ -566,7 +568,7 @@ impl super::TermWindow {
             let font = fontconfig.title_font()?;
             Ok((font.metrics().cell_height.get() as f32 * 1.75).ceil())
         } else {
-            Ok(render_metrics.cell_size.height as f32)
+            Ok(render_metrics.cell_size.height as f32 * TAB_BAR_LINE_HEIGHT_SCALE)
         }
     }
 
@@ -1078,11 +1080,15 @@ impl super::TermWindow {
             border.top.get() as f32
         };
 
+        let render_metrics = self
+            .render_metrics
+            .scale_line_height(TAB_BAR_LINE_HEIGHT_SCALE as _);
+
         // Register the tab bar location
         self.ui_items.append(&mut self.tab_bar.compute_ui_items(
             tab_bar_y as usize,
-            self.render_metrics.cell_size.height as usize,
-            self.render_metrics.cell_size.width as usize,
+            render_metrics.cell_size.height as usize,
+            render_metrics.cell_size.width as usize,
         ));
 
         let window_is_transparent =
@@ -1110,14 +1116,13 @@ impl super::TermWindow {
                 cursor: &Default::default(),
                 palette: &palette,
                 dims: &RenderableDimensions {
-                    cols: self.dimensions.pixel_width
-                        / self.render_metrics.cell_size.width as usize,
+                    cols: self.dimensions.pixel_width / render_metrics.cell_size.width as usize,
                     physical_top: 0,
                     scrollback_rows: 0,
                     scrollback_top: 0,
                     viewport_rows: 1,
                     dpi: self.terminal_size.dpi,
-                    pixel_height: self.render_metrics.cell_size.height as usize,
+                    pixel_height: render_metrics.cell_size.height as usize,
                     pixel_width: self.terminal_size.pixel_width,
                     reverse_video: false,
                 },
@@ -1138,7 +1143,7 @@ impl super::TermWindow {
                 style: None,
                 font: None,
                 use_pixel_positioning: self.config.experimental_pixel_positioning,
-                render_metrics: self.render_metrics,
+                render_metrics,
                 shape_key: None,
                 password_input: false,
             },
