@@ -8,7 +8,6 @@ use mux::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
 use mux::window::{Window, WindowId};
 use mux::Mux;
 use portable_pty::CommandBuilder;
-use std::cell::{Ref, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
@@ -67,7 +66,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         lua.create_function(|_, window_id: WindowId| {
             let mux = get_mux()?;
             let window = MuxWindow(window_id);
-            window.resolve(&mux)?;
+            let _resolved = window.resolve(&mux)?;
             Ok(window)
         })?,
     )?;

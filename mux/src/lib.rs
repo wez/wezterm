@@ -11,9 +11,12 @@ use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescri
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
+use parking_lot::{
+    MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockReadGuard, RwLockWriteGuard,
+};
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -81,17 +84,17 @@ pub enum MuxNotification {
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Mux {
-    tabs: RefCell<HashMap<TabId, Arc<Tab>>>,
-    panes: RefCell<HashMap<PaneId, Arc<dyn Pane>>>,
-    windows: RefCell<HashMap<WindowId, Window>>,
-    default_domain: RefCell<Option<Arc<dyn Domain>>>,
-    domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
-    domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
-    subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
-    banner: RefCell<Option<String>>,
-    clients: RefCell<HashMap<ClientId, ClientInfo>>,
-    identity: RefCell<Option<Arc<ClientId>>>,
-    num_panes_by_workspace: RefCell<HashMap<String, usize>>,
+    tabs: RwLock<HashMap<TabId, Arc<Tab>>>,
+    panes: RwLock<HashMap<PaneId, Arc<dyn Pane>>>,
+    windows: RwLock<HashMap<WindowId, Window>>,
+    default_domain: RwLock<Option<Arc<dyn Domain>>>,
+    domains: RwLock<HashMap<DomainId, Arc<dyn Domain>>>,
+    domains_by_name: RwLock<HashMap<String, Arc<dyn Domain>>>,
+    subscribers: RwLock<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
+    banner: RwLock<Option<String>>,
+    clients: RwLock<HashMap<ClientId, ClientInfo>>,
+    identity: RwLock<Option<Arc<ClientId>>>,
+    num_panes_by_workspace: RwLock<HashMap<String, usize>>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -374,52 +377,52 @@ impl Mux {
         }
 
         Self {
-            tabs: RefCell::new(HashMap::new()),
-            panes: RefCell::new(HashMap::new()),
-            windows: RefCell::new(HashMap::new()),
-            default_domain: RefCell::new(default_domain),
-            domains_by_name: RefCell::new(domains_by_name),
-            domains: RefCell::new(domains),
-            subscribers: RefCell::new(HashMap::new()),
-            banner: RefCell::new(None),
-            clients: RefCell::new(HashMap::new()),
-            identity: RefCell::new(None),
-            num_panes_by_workspace: RefCell::new(HashMap::new()),
+            tabs: RwLock::new(HashMap::new()),
+            panes: RwLock::new(HashMap::new()),
+            windows: RwLock::new(HashMap::new()),
+            default_domain: RwLock::new(default_domain),
+            domains_by_name: RwLock::new(domains_by_name),
+            domains: RwLock::new(domains),
+            subscribers: RwLock::new(HashMap::new()),
+            banner: RwLock::new(None),
+            clients: RwLock::new(HashMap::new()),
+            identity: RwLock::new(None),
+            num_panes_by_workspace: RwLock::new(HashMap::new()),
         }
     }
 
     fn recompute_pane_count(&self) {
         let mut count = HashMap::new();
-        for window in self.windows.borrow().values() {
+        for window in self.windows.read().values() {
             let workspace = window.get_workspace();
             for tab in window.iter() {
                 *count.entry(workspace.to_string()).or_insert(0) += tab.count_panes();
             }
         }
-        *self.num_panes_by_workspace.borrow_mut() = count;
+        *self.num_panes_by_workspace.write() = count;
     }
 
     pub fn client_had_input(&self, client_id: &ClientId) {
-        if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+        if let Some(info) = self.clients.write().get_mut(client_id) {
             info.update_last_input();
         }
     }
 
     pub fn record_input_for_current_identity(&self) {
-        if let Some(ident) = self.identity.borrow().as_ref() {
+        if let Some(ident) = self.identity.read().as_ref() {
             self.client_had_input(ident);
         }
     }
 
     pub fn record_focus_for_current_identity(&self, pane_id: PaneId) {
-        if let Some(ident) = self.identity.borrow().as_ref() {
+        if let Some(ident) = self.identity.read().as_ref() {
             self.record_focus_for_client(ident, pane_id);
         }
     }
 
     pub fn record_focus_for_client(&self, client_id: &ClientId, pane_id: PaneId) {
         let mut prior = None;
-        if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+        if let Some(info) = self.clients.write().get_mut(client_id) {
             prior = info.focused_pane_id;
             info.update_focused_pane(pane_id);
         }
@@ -440,13 +443,13 @@ impl Mux {
 
     pub fn register_client(&self, client_id: Arc<ClientId>) {
         self.clients
-            .borrow_mut()
+            .write()
             .insert((*client_id).clone(), ClientInfo::new(client_id));
     }
 
     pub fn iter_clients(&self) -> Vec<ClientInfo> {
         self.clients
-            .borrow()
+            .read()
             .values()
             .map(|info| info.clone())
             .collect()
@@ -457,7 +460,7 @@ impl Mux {
     pub fn iter_workspaces(&self) -> Vec<String> {
         let mut names: Vec<String> = self
             .windows
-            .borrow()
+            .read()
             .values()
             .map(|w| w.get_workspace().to_string())
             .collect();
@@ -480,11 +483,11 @@ impl Mux {
     /// Returns the effective active workspace name
     pub fn active_workspace(&self) -> String {
         self.identity
-            .borrow()
+            .read()
             .as_ref()
             .and_then(|ident| {
                 self.clients
-                    .borrow()
+                    .read()
                     .get(&ident)
                     .and_then(|info| info.active_workspace.clone())
             })
@@ -494,14 +497,14 @@ impl Mux {
     /// Returns the effective active workspace name for a given client
     pub fn active_workspace_for_client(&self, ident: &Arc<ClientId>) -> String {
         self.clients
-            .borrow()
+            .read()
             .get(&ident)
             .and_then(|info| info.active_workspace.clone())
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
     }
 
     pub fn set_active_workspace_for_client(&self, ident: &Arc<ClientId>, workspace: &str) {
-        let mut clients = self.clients.borrow_mut();
+        let mut clients = self.clients.write();
         if let Some(info) = clients.get_mut(&ident) {
             info.active_workspace.replace(workspace.to_string());
             self.notify(MuxNotification::ActiveWorkspaceChanged(ident.clone()));
@@ -510,7 +513,7 @@ impl Mux {
 
     /// Assigns the active workspace name for the current identity
     pub fn set_active_workspace(&self, workspace: &str) {
-        if let Some(ident) = self.identity.borrow().clone() {
+        if let Some(ident) = self.identity.read().clone() {
             self.set_active_workspace_for_client(&ident, workspace);
         }
     }
@@ -526,16 +529,16 @@ impl Mux {
 
     /// Replace the identity, returning the prior identity
     pub fn replace_identity(&self, id: Option<Arc<ClientId>>) -> Option<Arc<ClientId>> {
-        std::mem::replace(&mut *self.identity.borrow_mut(), id)
+        std::mem::replace(&mut *self.identity.write(), id)
     }
 
     /// Returns the active identity
     pub fn active_identity(&self) -> Option<Arc<ClientId>> {
-        self.identity.borrow().clone()
+        self.identity.read().clone()
     }
 
     pub fn unregister_client(&self, client_id: &ClientId) {
-        self.clients.borrow_mut().remove(client_id);
+        self.clients.write().remove(client_id);
     }
 
     pub fn subscribe<F>(&self, subscriber: F)
@@ -544,12 +547,12 @@ impl Mux {
     {
         let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
         self.subscribers
-            .borrow_mut()
+            .write()
             .insert(sub_id, Box::new(subscriber));
     }
 
     pub fn notify(&self, notification: MuxNotification) {
-        let mut subscribers = self.subscribers.borrow_mut();
+        let mut subscribers = self.subscribers.write();
         subscribers.retain(|_, notify| notify(notification.clone()));
     }
 
@@ -567,34 +570,30 @@ impl Mux {
     }
 
     pub fn default_domain(&self) -> Arc<dyn Domain> {
-        self.default_domain
-            .borrow()
-            .as_ref()
-            .map(Arc::clone)
-            .unwrap()
+        self.default_domain.read().as_ref().map(Arc::clone).unwrap()
     }
 
     pub fn set_default_domain(&self, domain: &Arc<dyn Domain>) {
-        *self.default_domain.borrow_mut() = Some(Arc::clone(domain));
+        *self.default_domain.write() = Some(Arc::clone(domain));
     }
 
     pub fn get_domain(&self, id: DomainId) -> Option<Arc<dyn Domain>> {
-        self.domains.borrow().get(&id).cloned()
+        self.domains.read().get(&id).cloned()
     }
 
     pub fn get_domain_by_name(&self, name: &str) -> Option<Arc<dyn Domain>> {
-        self.domains_by_name.borrow().get(name).cloned()
+        self.domains_by_name.read().get(name).cloned()
     }
 
     pub fn add_domain(&self, domain: &Arc<dyn Domain>) {
-        if self.default_domain.borrow().is_none() {
-            *self.default_domain.borrow_mut() = Some(Arc::clone(domain));
+        if self.default_domain.read().is_none() {
+            *self.default_domain.write() = Some(Arc::clone(domain));
         }
         self.domains
-            .borrow_mut()
+            .write()
             .insert(domain.domain_id(), Arc::clone(domain));
         self.domains_by_name
-            .borrow_mut()
+            .write()
             .insert(domain.domain_name().to_string(), Arc::clone(domain));
     }
 
@@ -619,15 +618,15 @@ impl Mux {
     }
 
     pub fn get_pane(&self, pane_id: PaneId) -> Option<Arc<dyn Pane>> {
-        self.panes.borrow().get(&pane_id).map(Arc::clone)
+        self.panes.read().get(&pane_id).map(Arc::clone)
     }
 
     pub fn get_tab(&self, tab_id: TabId) -> Option<Arc<Tab>> {
-        self.tabs.borrow().get(&tab_id).map(Arc::clone)
+        self.tabs.read().get(&tab_id).map(Arc::clone)
     }
 
     pub fn add_pane(&self, pane: &Arc<dyn Pane>) -> Result<(), Error> {
-        if self.panes.borrow().contains_key(&pane.pane_id()) {
+        if self.panes.read().contains_key(&pane.pane_id()) {
             return Ok(());
         }
 
@@ -639,12 +638,10 @@ impl Mux {
         let downloader: Arc<dyn DownloadHandler> = Arc::new(MuxDownloader {});
         pane.set_download_handler(&downloader);
 
-        self.panes
-            .borrow_mut()
-            .insert(pane.pane_id(), Arc::clone(pane));
+        self.panes.write().insert(pane.pane_id(), Arc::clone(pane));
         let pane_id = pane.pane_id();
         if let Some(reader) = pane.reader()? {
-            let banner = self.banner.borrow().clone();
+            let banner = self.banner.read().clone();
             let pane = Arc::clone(pane);
             thread::spawn(move || read_from_pane_pty(pane, banner, reader));
         }
@@ -654,12 +651,12 @@ impl Mux {
     }
 
     pub fn add_tab_no_panes(&self, tab: &Arc<Tab>) {
-        self.tabs.borrow_mut().insert(tab.tab_id(), Arc::clone(tab));
+        self.tabs.write().insert(tab.tab_id(), Arc::clone(tab));
         self.recompute_pane_count();
     }
 
     pub fn add_tab_and_active_pane(&self, tab: &Arc<Tab>) -> Result<(), Error> {
-        self.tabs.borrow_mut().insert(tab.tab_id(), Arc::clone(tab));
+        self.tabs.write().insert(tab.tab_id(), Arc::clone(tab));
         let pane = tab
             .get_active_pane()
             .ok_or_else(|| anyhow!("tab MUST have an active pane"))?;
@@ -668,7 +665,7 @@ impl Mux {
 
     fn remove_pane_internal(&self, pane_id: PaneId) {
         log::debug!("removing pane {}", pane_id);
-        if let Some(pane) = self.panes.borrow_mut().remove(&pane_id).clone() {
+        if let Some(pane) = self.panes.write().remove(&pane_id).clone() {
             log::debug!("killing pane {}", pane_id);
             pane.kill();
             self.recompute_pane_count();
@@ -679,9 +676,9 @@ impl Mux {
     fn remove_tab_internal(&self, tab_id: TabId) -> Option<Arc<Tab>> {
         log::debug!("remove_tab_internal tab {}", tab_id);
 
-        let tab = self.tabs.borrow_mut().remove(&tab_id)?;
+        let tab = self.tabs.write().remove(&tab_id)?;
 
-        if let Ok(mut windows) = self.windows.try_borrow_mut() {
+        if let Some(mut windows) = self.windows.try_write() {
             for w in windows.values_mut() {
                 w.remove_by_id(tab_id);
             }
@@ -702,11 +699,11 @@ impl Mux {
 
     fn remove_window_internal(&self, window_id: WindowId) {
         log::debug!("remove_window_internal {}", window_id);
-        let domains: Vec<Arc<dyn Domain>> = self.domains.borrow().values().cloned().collect();
+        let domains: Vec<Arc<dyn Domain>> = self.domains.read().values().cloned().collect();
         for dom in domains {
             dom.local_window_is_closing(window_id);
         }
-        let window = self.windows.borrow_mut().remove(&window_id);
+        let window = self.windows.write().remove(&window_id);
         if let Some(window) = window {
             for tab in window.iter() {
                 self.remove_tab_internal(tab.tab_id());
@@ -732,14 +729,14 @@ impl Mux {
             log::trace!("prune_dead_windows: Activity::count={}", Activity::count());
             return;
         }
-        let live_tab_ids: Vec<TabId> = self.tabs.borrow().keys().cloned().collect();
+        let live_tab_ids: Vec<TabId> = self.tabs.read().keys().cloned().collect();
         let mut dead_windows = vec![];
         let dead_tab_ids: Vec<TabId>;
 
         {
-            let mut windows = match self.windows.try_borrow_mut() {
-                Ok(w) => w,
-                Err(_) => {
+            let mut windows = match self.windows.try_write() {
+                Some(w) => w,
+                None => {
                     // It's ok if our caller already locked it; we can prune later.
                     log::trace!("prune_dead_windows: self.windows already borrowed");
                     return;
@@ -755,7 +752,7 @@ impl Mux {
 
             dead_tab_ids = self
                 .tabs
-                .borrow()
+                .read()
                 .iter()
                 .filter_map(|(&id, tab)| if tab.is_dead() { Some(id) } else { None })
                 .collect();
@@ -784,20 +781,20 @@ impl Mux {
         self.prune_dead_windows();
     }
 
-    pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
-        if !self.windows.borrow().contains_key(&window_id) {
+    pub fn get_window(&self, window_id: WindowId) -> Option<MappedRwLockReadGuard<Window>> {
+        if !self.windows.read().contains_key(&window_id) {
             return None;
         }
-        Some(Ref::map(self.windows.borrow(), |windows| {
+        Some(RwLockReadGuard::map(self.windows.read(), |windows| {
             windows.get(&window_id).unwrap()
         }))
     }
 
-    pub fn get_window_mut(&self, window_id: WindowId) -> Option<RefMut<Window>> {
-        if !self.windows.borrow().contains_key(&window_id) {
+    pub fn get_window_mut(&self, window_id: WindowId) -> Option<MappedRwLockWriteGuard<Window>> {
+        if !self.windows.read().contains_key(&window_id) {
             return None;
         }
-        Some(RefMut::map(self.windows.borrow_mut(), |windows| {
+        Some(RwLockWriteGuard::map(self.windows.write(), |windows| {
             windows.get_mut(&window_id).unwrap()
         }))
     }
@@ -810,7 +807,7 @@ impl Mux {
     pub fn new_empty_window(&self, workspace: Option<String>) -> MuxWindowBuilder {
         let window = Window::new(workspace);
         let window_id = window.window_id();
-        self.windows.borrow_mut().insert(window_id, window);
+        self.windows.write().insert(window_id, window);
         MuxWindowBuilder {
             window_id,
             activity: Some(Activity::new()),
@@ -832,7 +829,7 @@ impl Mux {
     }
 
     pub fn window_containing_tab(&self, tab_id: TabId) -> Option<WindowId> {
-        for w in self.windows.borrow().values() {
+        for w in self.windows.read().values() {
             for t in w.iter() {
                 if t.tab_id() == tab_id {
                     return Some(w.window_id());
@@ -843,13 +840,13 @@ impl Mux {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.panes.borrow().is_empty()
+        self.panes.read().is_empty()
     }
 
     pub fn is_workspace_empty(&self, workspace: &str) -> bool {
         *self
             .num_panes_by_workspace
-            .borrow()
+            .read()
             .get(workspace)
             .unwrap_or(&0)
             == 0
@@ -862,7 +859,7 @@ impl Mux {
 
     pub fn iter_panes(&self) -> Vec<Arc<dyn Pane>> {
         self.panes
-            .borrow()
+            .read()
             .iter()
             .map(|(_, v)| Arc::clone(v))
             .collect()
@@ -871,7 +868,7 @@ impl Mux {
     pub fn iter_windows_in_workspace(&self, workspace: &str) -> Vec<WindowId> {
         let mut windows: Vec<WindowId> = self
             .windows
-            .borrow()
+            .read()
             .iter()
             .filter_map(|(k, w)| {
                 if w.get_workspace() == workspace {
@@ -887,16 +884,16 @@ impl Mux {
     }
 
     pub fn iter_windows(&self) -> Vec<WindowId> {
-        self.windows.borrow().keys().cloned().collect()
+        self.windows.read().keys().cloned().collect()
     }
 
     pub fn iter_domains(&self) -> Vec<Arc<dyn Domain>> {
-        self.domains.borrow().values().cloned().collect()
+        self.domains.read().values().cloned().collect()
     }
 
     pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
         let mut ids = None;
-        for tab in self.tabs.borrow().values() {
+        for tab in self.tabs.read().values() {
             for p in tab.iter_panes_ignoring_zoom() {
                 if p.pane.pane_id() == pane_id {
                     ids = Some((tab.tab_id(), p.pane.domain_id()));
@@ -911,14 +908,14 @@ impl Mux {
 
     pub fn domain_was_detached(&self, domain: DomainId) {
         let mut dead_panes = vec![];
-        for pane in self.panes.borrow().values() {
+        for pane in self.panes.read().values() {
             if pane.domain_id() == domain {
                 dead_panes.push(pane.pane_id());
             }
         }
 
         {
-            let mut windows = self.windows.borrow_mut();
+            let mut windows = self.windows.write();
             for (_, win) in windows.iter_mut() {
                 for tab in win.iter() {
                     tab.kill_panes_in_domain(domain);
@@ -935,7 +932,7 @@ impl Mux {
     }
 
     pub fn set_banner(&self, banner: Option<String>) {
-        *self.banner.borrow_mut() = banner;
+        *self.banner.write() = banner;
     }
 
     pub fn resolve_spawn_tab_domain(
