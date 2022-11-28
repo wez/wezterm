@@ -14,7 +14,7 @@ dirs-next = "2.0"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.10"
 termwiz = { path = "../termwiz" }
 battery = { path = "../lua-api-crates/battery" }
 color-funcs = { path = "../lua-api-crates/color-funcs" }
