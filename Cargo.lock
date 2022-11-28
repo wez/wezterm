@@ -260,7 +260,7 @@ version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.1.19",
  "libc",
  "winapi",
 ]
@@ -728,7 +728,7 @@ dependencies = [
  "colorgrad",
  "dirs-next",
  "enum-display-derive",
- "env_logger",
+ "env_logger 0.9.3",
  "git2",
  "hostname",
  "lazy_static",
@@ -1349,7 +1349,7 @@ dependencies = [
  "color-funcs",
  "config",
  "dirs-next",
- "env_logger",
+ "env_logger 0.9.3",
  "filesystem",
  "json",
  "lazy_static",
@@ -1379,6 +1379,40 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "humantime",
+ "is-terminal",
+ "log",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
+name = "errno"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
+dependencies = [
+ "errno-dragonfly",
+ "libc",
+ "winapi",
+]
+
+[[package]]
+name = "errno-dragonfly"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]
@@ -2018,6 +2052,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hermit-abi"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee512640fe35acbfb4bb779db6f0d80704c2cacfa2e39b601ef3e3f47d1ae4c7"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2254,6 +2297,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-lifetimes"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e394faa0efb47f9f227f1cd89978f854542b318a6f64fa695489c9c993056656"
+dependencies = [
+ "libc",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "ioctl-rs"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2267,6 +2320,18 @@ name = "ipnet"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f88c5561171189e69df9d98bcf18fd5f9558300f7ea7b801eb8a0fd748bd8745"
+
+[[package]]
+name = "is-terminal"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aae5bc6e2eb41c9def29a3e0f1306382807764b9b53112030eff57435667352d"
+dependencies = [
+ "hermit-abi 0.2.6",
+ "io-lifetimes",
+ "rustix",
+ "windows-sys 0.42.0",
+]
 
 [[package]]
 name = "itertools"
@@ -2570,6 +2635,12 @@ name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f9f08d8963a6c613f4b1a78f4f4a4dbfadf8e6545b2d72861731e4858b8b47f"
 
 [[package]]
 name = "lock_api"
@@ -3193,7 +3264,7 @@ version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6058e64324c71e02bc2b150e4f3bc8286db6c83092132ffa3f6b1eab0f9def5"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.1.19",
  "libc",
 ]
 
@@ -4215,6 +4286,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustix"
+version = "0.36.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b1fbb4dfc4eb1d390c02df47760bb19a84bb80b301ecc947ab5406394d8223e"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4802,7 +4887,7 @@ dependencies = [
  "anyhow",
  "color-funcs",
  "config",
- "env_logger",
+ "env_logger 0.10.0",
  "futures",
  "lazy_static",
  "libflate",
@@ -4933,7 +5018,7 @@ dependencies = [
  "bitflags",
  "cassowary",
  "criterion",
- "env_logger",
+ "env_logger 0.9.3",
  "filedescriptor",
  "finl_unicode",
  "fixedbitset",
@@ -5704,7 +5789,7 @@ dependencies = [
 name = "wezterm-bidi"
 version = "0.2.2"
 dependencies = [
- "env_logger",
+ "env_logger 0.10.0",
  "k9",
  "log",
  "wezterm-dynamic",
@@ -5797,7 +5882,7 @@ dependencies = [
  "dwrote",
  "encoding_rs",
  "enum-display-derive",
- "env_logger",
+ "env_logger 0.9.3",
  "euclid",
  "finl_unicode",
  "fontconfig",
@@ -5842,7 +5927,7 @@ dependencies = [
  "embed-resource",
  "emojis",
  "env-bootstrap",
- "env_logger",
+ "env_logger 0.10.0",
  "euclid",
  "fastrand",
  "filedescriptor",
@@ -5986,7 +6071,7 @@ dependencies = [
  "camino",
  "clap 4.0.26",
  "dirs-next",
- "env_logger",
+ "env_logger 0.10.0",
  "filedescriptor",
  "filenamegen",
  "k9",
@@ -6015,7 +6100,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "csscolorparser",
- "env_logger",
+ "env_logger 0.9.3",
  "finl_unicode",
  "hex",
  "image",

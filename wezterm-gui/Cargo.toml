@@ -121,5 +121,5 @@ windows = { version="0.33.0", features = [
 
 [dev-dependencies]
 k9 = "0.11.0"
-env_logger = "0.9"
+env_logger = "0.10"
 benchmarking = "0.4"
