@@ -50,6 +50,28 @@ return {
 
 *Since: 20220101-133340-7edc5b5a*
 
+For closing WSL Terminals on Windows without confirmation, the (non default) processes `wslhost.exe`, `wsl.exe`,
+`conhost.exe` could be added to the list.
+
+```lua
+return {
+  skip_close_confirmation_for_processes_named = {
+    'bash',
+    'sh',
+    'zsh',
+    'fish',
+    'tmux',
+    'nu',
+    'cmd.exe',
+    'pwsh.exe',
+    'powershell.exe',
+    'wslhost.exe', 
+    'wsl.exe', 
+    'conhost.exe'
+  },
+}
+```
+
 More advanced control over this behavior can be achieved by defining a
 [mux-is-process-stateful](../mux-events/mux-is-process-stateful.md) event handler.
 
