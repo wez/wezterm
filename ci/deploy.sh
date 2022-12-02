@@ -206,7 +206,6 @@ Description: Wez's Terminal Emulator.
  such as fonts with ligatures, hyperlinks, tabs and multiple
  windows.
 Provides: x-terminal-emulator
-Source: https://wezfurlong.org/wezterm/
 EOF
 
         cat > pkg/debian/postinst <<EOF
