@@ -28,7 +28,7 @@ libc = "0.2"
 log = "0.4"
 portable-pty = { version="0.8", path = "../pty" }
 regex = "1"
-smol = "1.2"
+smol = "1.3"
 ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}
 libssh-rs = {version="0.1.4", features=["vendored"], git="https://github.com/wez/libssh-rs.git", optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
