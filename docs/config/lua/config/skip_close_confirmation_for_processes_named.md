@@ -49,7 +49,7 @@ return {
 ```
 
 For closing WSL Terminals on Windows without confirmation, the (non default) processes `wslhost.exe`, `wsl.exe`,
-`conhost.exe` could be added to the list. **Please keep in mind this can be a dangerous setting. It could result in unsaved files (e.g. files open in a VIM session) inside the WSL terminal to be lost.**
+`conhost.exe` could be added to the list. **Please keep in mind this can be a dangerous setting. It could result in unsaved files (e.g. files open in a `vim` session) inside the WSL terminal to be lost.**
 
 ```lua
 return {
