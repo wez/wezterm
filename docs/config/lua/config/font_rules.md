@@ -128,11 +128,30 @@ Here's another example combining `FiraCode` with `Victor Mono`, using `Victor Mo
 
 ```lua
 local wezterm = require 'wezterm'
-
 return {
-  font = wezterm.font { family = 'FiraCode' },
-
+  color_scheme = 'Zenburn',
+  font_size = 8.0,
+  harfbuzz_features = { 'kern', 'liga', 'clig', 'calt' },
+  font = wezterm.font_with_fallback {
+    {
+      family = 'FiraCode',
+      weight = 'Regular',
+      -- see: https://github.com/tonsky/FiraCode/wiki/How-to-enable-stylistic-sets
+      harfbuzz_features = { 'cv13', 'cv18', 'cv31', 'ss03' },
+    },
+  },
   font_rules = {
+    -- Select a fancy italic font for italic text
+    {
+      italic = true,
+      intensity = 'Normal',
+      font = wezterm.font {
+        family = 'VictorMono',
+        weight = 'Medium',
+        style = 'Italic',
+      },
+    },
+    -- Similarly, a fancy bold+italic font
     {
       intensity = 'Bold',
       italic = true,
@@ -142,21 +161,36 @@ return {
         style = 'Italic',
       },
     },
+    -- Regular bold
+    {
+      intensity = 'Bold',
+      font = wezterm.font {
+        family = 'FiraCode',
+        weight = 'DemiBold',
+        style = 'Normal',
+        harfbuzz_features = { 'cv13', 'cv18', 'cv31', 'ss03' },
+      },
+    },
+    -- For half-intensity italic
     {
       italic = true,
       intensity = 'Half',
       font = wezterm.font {
         family = 'VictorMono',
-        weight = 'DemiBold',
+        weight = 'Light',
         style = 'Italic',
       },
     },
+    -- Make half-intensity have same zero as FiraCode
     {
-      italic = true,
-      intensity = 'Normal',
+      intensity = 'Half',
+      italic = false,
       font = wezterm.font {
         family = 'VictorMono',
-        style = 'Italic',
+        weight = 'Light',
+        -- ss04 change zero, affects poundsign for Fira
+        -- https://github.com/rubjo/victor-mono
+        harfbuzz_features = { 'ss04' },
       },
     },
   },
@@ -166,82 +200,4 @@ return {
 ## Debugging Font Rules
 
 You can run `wezterm ls-fonts` to summarize the font rules and the fonts that
-match them:
-
-```bash
-$ wezterm ls-fonts
-Primary font:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-})
-
-
-When Intensity=Half Italic=true:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  {family="JetBrains Mono", weight="ExtraLight", italic=true},
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-})
-
-
-When Intensity=Half Italic=false:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  {family="JetBrains Mono", weight="ExtraLight"},
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-})
-
-
-When Intensity=Bold Italic=false:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  {family="JetBrains Mono", weight="Bold"},
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-})
-
-
-When Intensity=Bold Italic=true:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  {family="JetBrains Mono", weight="Bold", italic=true},
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-})
-
-
-When Intensity=Normal Italic=true:
-wezterm.font_with_fallback({
-  -- <built-in>, BuiltIn
-  {family="JetBrains Mono", italic=true},
-
-  -- /home/wez/.fonts/NotoColorEmoji.ttf, FontConfig
-  "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "JetBrains Mono",
-})
-```
-
+match them.
