@@ -140,96 +140,159 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="font_rules"><a class="header" href="#font_rules"><code>font_rules</code></a></h1>
-<p>You may optionally specify rules that apply different font styling based on the
-attributes of the text rendered in the terminal.  Most users won't need to do
-this; these rules are useful when you have some unusual fonts or mixtures of
-fonts that you'd like to use.  The default is to auto-generate reasonable
-italic and bold styling based on the <a href="font.html">font</a> configuration.</p>
-<p>If you do specify <code>font_rules</code>, they are applied in the order that they are
-specified in the configuration file, stopping with the first matching rule:</p>
+<p>When textual output in the terminal is styled with bold, italic or other
+attributes, wezterm uses <code>font_rules</code> to decide how to render that text.</p>
+<p>By default, unstyled text will use the font specified by the <a href="font.html">font</a>
+configuration, and wezterm will use that as a base, and then automatically
+generate appropriate <code>font_rules</code> that use heavier weight fonts for bold text,
+lighter weight fonts for dim text and italic fonts for italic text.</p>
+<p>Most users won't need to specify any explicit value for <code>font_rules</code>, as the
+defaults should be sufficient.</p>
+<p>If you have some unusual fonts or mixtures of fonts that you'd like to use,
+such as using your favourite monospace font for the base and a fancy italic
+font from a different font family for italics, then <code>font_rules</code> will allow you
+to do so.</p>
+<p><code>font_rules</code> is comprised of a list of rule entries with fields that are split
+into <em>matcher</em> fields and <em>action</em> fields. Matcher fields specify which textual
+attributes you want to match on, while action fields specify how you want to
+render them.</p>
+<p>The following fields are matcher fields:</p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Associated Attribute</th><th>Possible Values</th></tr></thead><tbody>
+<tr><td>italic</td><td>italic</td><td><code>true</code> (italic) or <code>false</code> (not italic)</td></tr>
+<tr><td>intensity</td><td>bold/bright or dim/half-bright</td><td><code>&quot;Normal&quot;</code> (neither bold nor dim), <code>&quot;Bold&quot;</code>, <code>&quot;Half&quot;</code></td></tr>
+<tr><td>underline</td><td>underline</td><td><code>&quot;None&quot;</code> (not underlined), <code>&quot;Single&quot;</code> (single underline), <code>&quot;Double&quot;</code> (double underline)</td></tr>
+<tr><td>blink</td><td>blinking</td><td><code>&quot;None&quot;</code> (not blinking), <code>&quot;Rapid&quot;</code> (regular rapid blinking), <code>&quot;Slow&quot;</code> (slow blinking)</td></tr>
+<tr><td>reverse</td><td>reverse/inverse</td><td><code>true</code> (reversed) or <code>false</code> (not reversed)</td></tr>
+<tr><td>strikethrough</td><td>strikethrough</td><td><code>true</code> (struck-through) or <code>false</code> (not struck-through)</td></tr>
+<tr><td>invisible</td><td>invisible</td><td><code>true</code> (invisible) or <code>false</code> (not invisible)</td></tr>
+</tbody></table>
+</div>
+<p>If a matcher field is omitted, then the associated attribute has no impact
+on the match: the rule <em>doesn't care about</em> that attribute and will match based
+on the attributes that were listed.</p>
+<p>The following fields are action fields:</p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Action</th></tr></thead><tbody>
+<tr><td>font</td><td>Specify the font that should be used</td></tr>
+</tbody></table>
+</div>
+<p>The way that <code>font_rules</code> are processed is:</p>
+<ol>
+<li>Take the list of <code>font_rules</code> from your configuration</li>
+<li>For each rule in the order listed in <code>font_rules</code>:</li>
+<li>Consider each <em>matcher</em> field explicitly specified in the entry. If the associated attribute does not match the value specified in the entry, move on to the next rule.</li>
+<li>If all of the <em>matcher</em> fields explicitly specified in the entry match the attributes of the text, then:
+<ul>
+<li>The <code>font</code> <em>action</em> field, if specified, will override the base <code>font</code> configuration</li>
+<li>No further <code>font_rules</code> will be considered: the matching is complete</li>
+</ul>
+</li>
+<li>If none of the rules you specify matched, then a set of default rules based on your base <code>font</code> will be used in the same way as above.</li>
+</ol>
+<p>Here's an example from my configuration file, which I use with a variant of
+<code>Operator Mono</code> that is patched to add ligatures.  This particular font has
+font-weights that are either too bold or too light for the default rules to
+produce great results, hence this set of rules.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
-return {
-  font_rules = {
-    -- Define a rule that matches when italic text is shown
-    {
-      -- If specified, this rule matches when a cell's italic value exactly
-      -- matches this.  If unspecified, the attribute value is irrelevant
-      -- with respect to matching.
-      italic = true,
-
-      -- Match based on intensity: &quot;Bold&quot;, &quot;Normal&quot; and &quot;Half&quot; are supported
-      -- intensity = &quot;Normal&quot;,
-
-      -- Match based on underline: &quot;None&quot;, &quot;Single&quot;, and &quot;Double&quot; are supported
-      -- underline = &quot;None&quot;,
-
-      -- Match based on the blink attribute: &quot;None&quot;, &quot;Slow&quot;, &quot;Rapid&quot;
-      -- blink = &quot;None&quot;,
-
-      -- Match based on reverse video
-      -- reverse = false,
-
-      -- Match based on strikethrough
-      -- strikethrough = false,
-
-      -- Match based on the invisible attribute
-      -- invisible = false,
-
-      -- When the above attributes match, apply this font styling
-      font = wezterm.font('Operator Mono SSm Lig Medium', { italic = true }),
-    },
-  },
-}
-</code></pre>
-<p>Here's an example from my configuration file;</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
-
--- A helper function for my fallback fonts
-function font_with_fallback(name, params)
-  local names = { name, 'Noto Color Emoji', 'JetBrains Mono' }
-  return wezterm.font_with_fallback(names, params)
-end
 
 return {
-  font = font_with_fallback 'Operator Mono SSm Lig Medium',
+  font = wezterm.font_with_fallback 'Operator Mono SSm Lig Medium',
   font_rules = {
-    -- Select a fancy italic font for italic text
-    {
-      italic = true,
-      font = font_with_fallback 'Operator Mono SSm Lig Medium Italic',
-    },
-
-    -- Similarly, a fancy bold+italic font
-    {
-      italic = true,
-      intensity = 'Bold',
-      font = font_with_fallback 'Operator Mono SSm Lig Book Italic',
-    },
-
-    -- Make regular bold text a different color to make it stand out even more
+    -- For Bold-but-not-italic text, use this relatively bold font, and override
+    -- its color to a tomato-red color to make bold text really stand out.
     {
       intensity = 'Bold',
-      font = font_with_fallback(
-        'Operator Mono SSm Lig Bold',
+      italic = false,
+      font = wezterm.font_with_fallback(
+        'Operator Mono SSm Lig',
+        -- Override the color specified by the terminal output and force
+        -- it to be tomato-red.
+        -- The color value you set here can be any CSS color name or
+        -- RGB color string.
         { foreground = 'tomato' }
       ),
     },
 
-    -- For half-intensity text, use a lighter weight font
+    -- Bold-and-italic
+    {
+      intensity = 'Bold',
+      italic = true,
+      font = wezterm.font_with_fallback {
+        family = 'Operator Mono SSm Lig',
+        italic = true,
+      },
+    },
+
+    -- normal-intensity-and-italic
+    {
+      intensity = 'Normal',
+      italic = true,
+      font = wezterm.font_with_fallback {
+        family = 'Operator Mono SSm Lig',
+        weight = 'DemiLight',
+        italic = true,
+      },
+    },
+
+    -- half-intensity-and-italic (half-bright or dim); use a lighter weight font
     {
       intensity = 'Half',
-      font = font_with_fallback 'Operator Mono SSm Lig Light',
+      italic = true,
+      font = wezterm.font_with_fallback {
+        family = 'Operator Mono SSm Lig',
+        weight = 'Light',
+        italic = true,
+      },
+    },
+
+    -- half-intensity-and-not-italic
+    {
+      intensity = 'Half',
+      italic = false,
+      font = wezterm.font_with_fallback {
+        family = 'Operator Mono SSm Lig',
+        weight = 'Light',
+      },
     },
   },
 }
 </code></pre>
-<p><em>Since: 20210502-130208-bff6815d</em></p>
-<p>The default <code>font_rules</code> generated by wezterm are now always appended to the
-rules that you've supplied (rather than used only if you didn't specify any),
-and now also include rules for selecting lighter weight fonts when half-bright
-text is rendered to the terminal.</p>
-<p>That means that you shouldn't need to specify as many rules as in previously
-releases.</p>
+<p>Here's another example combining <code>FiraCode</code> with <code>Victor Mono</code>, using <code>Victor Mono</code> only for italics:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+
+return {
+  font = wezterm.font { family = 'FiraCode' },
+
+  font_rules = {
+    {
+      intensity = 'Bold',
+      italic = true,
+      font = wezterm.font {
+        family = 'VictorMono',
+        weight = 'Bold',
+        style = 'Italic',
+      },
+    },
+    {
+      italic = true,
+      intensity = 'Half',
+      font = wezterm.font {
+        family = 'VictorMono',
+        weight = 'DemiBold',
+        style = 'Italic',
+      },
+    },
+    {
+      italic = true,
+      intensity = 'Normal',
+      font = wezterm.font {
+        family = 'VictorMono',
+        style = 'Italic',
+      },
+    },
+  },
+}
+</code></pre>
+<h2 id="debugging-font-rules"><a class="header" href="#debugging-font-rules">Debugging Font Rules</a></h2>
 <p>You can run <code>wezterm ls-fonts</code> to summarize the font rules and the fonts that
 match them:</p>
 <pre><code class="language-bash">$ wezterm ls-fonts
