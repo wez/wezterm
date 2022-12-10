@@ -16,6 +16,7 @@ use termwiz::surface::SequenceNo;
 use url::Url;
 use wezterm_term::terminal::Alert;
 use wezterm_term::StableRowIndex;
+use std::convert::TryInto;
 
 #[derive(Clone)]
 pub struct PduSender {
@@ -637,6 +638,42 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::GetRenderebleLines(GetRenderebleLines { pane_id }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let mut lines_and_indices = vec![];
+
+                            let dimensions = pane.get_dimensions();
+
+                            let start = dimensions.scrollback_top;
+                            let scrollback_rows: isize = dimensions.scrollback_rows.try_into().unwrap();
+                            let end = start + scrollback_rows;
+                            let lines = vec![start..end];
+
+                            for range in lines {
+                                let (first_row, lines) = pane.get_lines(range);
+                                for (idx, mut line) in lines.into_iter().enumerate() {
+                                    let stable_row = first_row + idx as StableRowIndex;
+                                    line.compress_for_scrollback();
+                                    lines_and_indices.push((stable_row, line));
+                                }
+                            }
+                            Ok(Pdu::GetRenderableLinesResponse(GetRenderableLinesResponse {
+                                pane_id,
+                                lines: lines_and_indices.into(),
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::GetImageCell(GetImageCell {
                 pane_id,
                 line_idx,
@@ -718,6 +755,7 @@ impl SessionHandler {
             | Pdu::LivenessResponse { .. }
             | Pdu::SearchScrollbackResponse { .. }
             | Pdu::GetLinesResponse { .. }
+            | Pdu::GetRenderableLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::WindowWorkspaceChanged { .. }
             | Pdu::GetTlsCredsResponse { .. }

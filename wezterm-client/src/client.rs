@@ -1204,6 +1204,7 @@ impl Client {
         LivenessResponse
     );
     rpc!(get_lines, GetLines, GetLinesResponse);
+    rpc!(get_renderable_lines, GetRenderebleLines, GetRenderableLinesResponse);
     rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
     rpc!(get_tls_creds, GetTlsCreds = (), GetTlsCredsResponse);
     rpc!(

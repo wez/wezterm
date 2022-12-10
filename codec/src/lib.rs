@@ -466,6 +466,8 @@ pdu! {
     MovePaneToNewTab: 48,
     MovePaneToNewTabResponse: 49,
     ActivatePaneDirection: 50,
+    GetRenderebleLines: 51,
+    GetRenderableLinesResponse: 52,
 }
 
 impl Pdu {
@@ -808,6 +810,10 @@ pub struct GetLines {
     pub pane_id: PaneId,
     pub lines: Vec<Range<StableRowIndex>>,
 }
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetRenderebleLines {
+    pub pane_id: PaneId
+}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct CellCoordinates {
@@ -981,6 +987,12 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetLinesResponse {
+    pub pane_id: PaneId,
+    pub lines: SerializedLines,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetRenderableLinesResponse {
     pub pane_id: PaneId,
     pub lines: SerializedLines,
 }
