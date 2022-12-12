@@ -115,13 +115,11 @@ impl crate::sessioninner::SessionInner {
             let fingerprint = sess
                 .host_key_hash(ssh2::HashType::Sha256)
                 .map(|fingerprint| {
-                    format!(
-                        "SHA256:{}",
-                        base64::encode_config(
-                            fingerprint,
-                            base64::Config::new(base64::CharacterSet::Standard, false)
-                        )
-                    )
+                    let engine = base64::engine::fast_portable::FastPortable::from(
+                        &base64::alphabet::STANDARD,
+                        base64::engine::fast_portable::NO_PAD,
+                    );
+                    format!("SHA256:{}", base64::encode_engine(fingerprint, &engine))
                 })
                 .or_else(|| {
                     // Querying for the Sha256 can fail if for example we were linked
