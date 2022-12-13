@@ -2031,4 +2031,15 @@ mod test {
 
         assert_eq!(vec![InputEvent::Paste("12345678".to_owned())], inputs)
     }
+
+    #[test]
+    fn mouse_event() {
+        let mut p = InputParser::new();
+
+        let input = b"\x1b[<67;41;12M";
+        let mut inputs = vec![];
+        p.parse(input, |e| inputs.push(e), false);
+
+        println!("{:?}", inputs);
+    }
 }
