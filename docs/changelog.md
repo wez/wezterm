@@ -16,6 +16,10 @@ As features stabilize some brief notes about them will accumulate here.
   a time. Thanks to [@pengux](https://github.com/pengux)!
   [#2662](https://github.com/wez/wezterm/pull/2662)
 
+#### Changed
+* Window title reporting escape sequences are now disabled by default.
+  [See here for more details](https://marc.info/?l=bugtraq&m=104612710031920&w=2)
+
 ### 20221119-145034-49b9839f
 
 #### Improved

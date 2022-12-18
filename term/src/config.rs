@@ -211,6 +211,12 @@ pub trait TerminalConfiguration: std::fmt::Debug {
             hint: ParagraphDirectionHint::LeftToRight,
         }
     }
+
+    /// Disabled by default per:
+    /// <https://marc.info/?l=bugtraq&m=104612710031920&w=2>
+    fn enable_title_reporting(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

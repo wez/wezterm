@@ -1947,13 +1947,15 @@ impl TerminalState {
             }
 
             Window::ReportWindowTitle => {
-                write!(
-                    self.writer,
-                    "{}",
-                    OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
-                )
-                .ok();
-                self.writer.flush().ok();
+                if self.config.enable_title_reporting() {
+                    write!(
+                        self.writer,
+                        "{}",
+                        OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
+                    )
+                    .ok();
+                    self.writer.flush().ok();
+                }
             }
 
             Window::ChecksumRectangularArea {

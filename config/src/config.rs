@@ -190,6 +190,14 @@ pub struct Config {
     #[dynamic(default)]
     pub enable_kitty_keyboard: bool,
 
+    /// Whether the terminal should respond to requests to read the
+    /// title string.
+    /// Disabled by default for security concerns with shells that might
+    /// otherwise attempt to execute the response.
+    /// <https://marc.info/?l=bugtraq&m=104612710031920&w=2>
+    #[dynamic(default)]
+    pub enable_title_reporting: bool,
+
     /// Specifies the width of a new window, expressed in character cells
     #[dynamic(default = "default_initial_cols", validate = "validate_row_or_col")]
     pub initial_cols: u16,
