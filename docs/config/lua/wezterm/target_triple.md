@@ -17,7 +17,8 @@ end
 The most common triples are:
 
 * `x86_64-pc-windows-msvc` - Windows
-* `x86_64-apple-darwin` - macOS
+* `x86_64-apple-darwin` - macOS (Intel)
+* `aarch64-apple-darwin` - macOS (Apple Silicon)
 * `x86_64-unknown-linux-gnu` - Linux
 
 
