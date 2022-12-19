@@ -4,6 +4,7 @@ use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use objc::*;
 
+mod app;
 pub mod bitmap;
 pub mod connection;
 pub mod window;

@@ -32,6 +32,7 @@ impl Drop for GuiFrontEnd {
 impl GuiFrontEnd {
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
         let connection = Connection::init()?;
+        connection.set_event_handler(Self::app_event_handler);
 
         let mux = Mux::get().expect("mux started and running on main thread");
         let client_id = mux.active_identity().expect("to have set my own id");
@@ -43,6 +44,7 @@ impl GuiFrontEnd {
             known_windows: RefCell::new(BTreeMap::new()),
             client_id: client_id.clone(),
         });
+
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
             if let Some(fe) = fe.upgrade() {
@@ -150,6 +152,53 @@ impl GuiFrontEnd {
         // before any windows are created
         config::reload();
         Ok(front_end)
+    }
+
+    fn app_event_handler(event: ApplicationEvent) {
+        log::trace!("Got app event {event:?}");
+        match event {
+            ApplicationEvent::OpenCommandScript(file_name) => {
+                promise::spawn::spawn(async move {
+                    use config::keyassignment::SpawnTabDomain;
+                    use portable_pty::CommandBuilder;
+                    use wezterm_term::TerminalSize;
+
+                    let cmd = CommandBuilder::from_argv(
+                        ["/bin/sh", "-c", &file_name]
+                            .iter()
+                            .map(Into::into)
+                            .collect(),
+                    );
+
+                    let mux = Mux::get().expect("mux started");
+                    let window_id = None;
+                    let pane_id = None;
+                    let cwd = None;
+                    let workspace = mux.active_workspace();
+
+                    match mux
+                        .spawn_tab_or_window(
+                            window_id,
+                            SpawnTabDomain::DomainName("local".to_string()),
+                            Some(cmd),
+                            cwd,
+                            TerminalSize::default(),
+                            pane_id,
+                            workspace,
+                        )
+                        .await
+                    {
+                        Ok((_tab, pane, _window_id)) => {
+                            log::trace!("Spawned {file_name} as pane_id {}", pane.pane_id());
+                        }
+                        Err(err) => {
+                            log::error!("Failed to spawn {file_name}: {err:#?}");
+                        }
+                    };
+                })
+                .detach();
+            }
+        }
     }
 
     pub fn run_forever(&self) -> anyhow::Result<()> {

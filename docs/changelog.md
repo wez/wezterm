@@ -15,6 +15,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Copy Mode now supports using `CTRL-u` and `CTRL-d` to move by half a page at
   a time. Thanks to [@pengux](https://github.com/pengux)!
   [#2662](https://github.com/wez/wezterm/pull/2662)
+* macOS: allow association with `.command`, `.sh`, `.zsh`, `.bash`, `.fish` and
+  `.tool` scripts, so that those can open and show their output in the
+  terminal. [#2871](https://github.com/wez/wezterm/issues/2871)
+  [#2741](https://github.com/wez/wezterm/issues/2741)
 
 #### Changed
 * Window title reporting escape sequences are now disabled by default.

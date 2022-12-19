@@ -60,5 +60,43 @@
 	<string>An application launched via WezTerm would like to access your Downloads folder.</string>
 	<key>NSSystemAdministrationUsageDescription</key>
 	<string>An application launched via WezTerm requires elevated permission.</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Terminal shell script</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>terminal.icns</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>command</string>
+				<string>sh</string>
+				<string>zsh</string>
+				<string>bash</string>
+				<string>fish</string>
+				<string>tool</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Folders</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>fold</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Shell</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.unix-executable</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

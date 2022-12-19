@@ -4,6 +4,7 @@
 use super::nsstring_to_str;
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
+use crate::os::macos::app::create_app_delegate;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::Appearance;
@@ -33,6 +34,10 @@ impl Connection {
         unsafe {
             let ns_app = NSApp();
             ns_app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
+
+            let delegate = create_app_delegate();
+            let () = msg_send![ns_app, setDelegate: delegate];
+
             let conn = Self {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
