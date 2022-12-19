@@ -223,7 +223,9 @@ impl LocalDomain {
 
     #[cfg(windows)]
     fn is_conpty(&self) -> bool {
-        self.pty_system
+        let pty_system = self.pty_system.lock();
+        let pty_system: &dyn PtySystem = &**pty_system;
+        pty_system
             .downcast_ref::<portable_pty::win::conpty::ConPtySystem>()
             .is_some()
     }
