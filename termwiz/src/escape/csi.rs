@@ -2460,12 +2460,6 @@ impl<'a> CSIParser<'a> {
                     Ok(self.advance_by(1, params, $t))
                 };
             }
-            // Consume two parameters and return the parsed result
-            macro_rules! two {
-                ($t:expr) => {
-                    Ok(self.advance_by(2, params, $t))
-                };
-            }
 
             match &params[0] {
                 CsiParam::P(b';') => {
@@ -2484,7 +2478,16 @@ impl<'a> CSIParser<'a> {
                 // Level 2 Programming Reference Manual"
                 // on page 7-78.
                 // <https://vaxhaven.com/images/f/f7/EK-PPLV2-PM-B01.pdf>
+                /* Withdrawn because xterm introduced a conflict:
+                 * <https://github.com/mintty/mintty/issues/1171#issuecomment-1336174469>
+                 * <https://github.com/mintty/mintty/issues/1189>
                 CsiParam::P(b'?') if params.len() > 1 => match &params[1] {
+                    // Consume two parameters and return the parsed result
+                    macro_rules! two {
+                        ($t:expr) => {
+                            Ok(self.advance_by(2, params, $t))
+                        };
+                    }
                     CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                         None => Err(()),
                         Some(code) => match code {
@@ -2499,6 +2502,7 @@ impl<'a> CSIParser<'a> {
                     },
                     _ => Err(()),
                 },
+                */
                 CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
