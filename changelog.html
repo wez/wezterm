@@ -152,6 +152,18 @@ usually the best available version.</p>
 <li>Copy Mode now supports using <code>CTRL-u</code> and <code>CTRL-d</code> to move by half a page at
 a time. Thanks to <a href="https://github.com/pengux">@pengux</a>!
 <a href="https://github.com/wez/wezterm/pull/2662">#2662</a></li>
+<li>macOS: allow association with <code>.command</code>, <code>.sh</code>, <code>.zsh</code>, <code>.bash</code>, <code>.fish</code> and
+<code>.tool</code> scripts, so that those can open and show their output in the
+terminal. <a href="https://github.com/wez/wezterm/issues/2871">#2871</a>
+<a href="https://github.com/wez/wezterm/issues/2741">#2741</a></li>
+</ul>
+<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<ul>
+<li>Window title reporting escape sequences are now disabled by default.
+<a href="https://marc.info/?l=bugtraq&amp;m=104612710031920&amp;w=2">See here for more details</a></li>
+<li>Withdraw DEC private SGR escapes that affect superscript and
+subscript due to xterm/vim conflict
+<a href="https://github.com/mintty/mintty/issues/1189">mintty/#1189</a></li>
 </ul>
 <h3 id="20221119-145034-49b9839f"><a class="header" href="#20221119-145034-49b9839f">20221119-145034-49b9839f</a></h3>
 <h4 id="improved"><a class="header" href="#improved">Improved</a></h4>
@@ -279,7 +291,7 @@ wezterm gui was already running. Thanks to
 than just the active pane.
 <a href="https://github.com/wez/wezterm/issues/2569">#2569</a></li>
 </ul>
-<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
 <ul>
 <li>Removed Last Resort fallback font</li>
 <li>X11: use <code>_NET_WM_MOVERESIZE</code> to drag by tab bar, when supported by the WM
@@ -319,7 +331,7 @@ Thanks to <a href="https://github.com/xeysz">@xeysz</a>!
 option to control behavior when closing the active tab.
 <a href="https://github.com/wez/wezterm/issues/2487">#2487</a></li>
 </ul>
-<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
+<h4 id="changed-2"><a class="header" href="#changed-2">Changed</a></h4>
 <ul>
 <li>fontconfig: when locating a fallback font for a given codepoint, allow
 matching non-monospace fonts if we can't find any matching monospace fonts.
@@ -350,7 +362,7 @@ or those set through the registry on Windows. <a href="https://github.com/wez/we
 <li><code>CTRL-SHIFT-P</code> is now a default assignment for <a href="config/lua/keyassignment/PaneSelect.html">PaneSelect</a></li>
 <li>Cursor now changes to a lock glyph to indicate when local echo is disabled for password entry. Detection is limited to local unix processes and cannot work with tmux. Use <code>detect_password_input=false</code> to disable this. <a href="https://github.com/wez/wezterm/issues/2460">#2460</a></li>
 </ul>
-<h4 id="changed-2"><a class="header" href="#changed-2">Changed</a></h4>
+<h4 id="changed-3"><a class="header" href="#changed-3">Changed</a></h4>
 <ul>
 <li><code>colors</code> now override colors from your selected <code>color_scheme</code>. Previously, <code>color_scheme</code> was mutually exclusive with <code>colors</code> and always took precedence. The new behavior is more in line with what most people expect.</li>
 <li>Reduced CPU utilization for busy/large screen updates, blinking cursor and other easing animations</li>
@@ -405,7 +417,7 @@ or those set through the registry on Windows. <a href="https://github.com/wez/we
 <li><code>wezterm.action.CopyMode('ClearSelectionMode')</code> allows clearing the selection mode without leaving <a href="copymode.html">Copy Mode</a>. Thanks to <a href="https://github.com/aznhe21">@aznhe21</a>! <a href="https://github.com/wez/wezterm/pull/2352">#2352</a></li>
 <li><a href="config/lua/window/set_left_status.html">window:set_left_status</a> for setting status to the left of the tabs in the tab bar <a href="https://github.com/wez/wezterm/issues/1561">#1561</a></li>
 </ul>
-<h4 id="changed-3"><a class="header" href="#changed-3">Changed</a></h4>
+<h4 id="changed-4"><a class="header" href="#changed-4">Changed</a></h4>
 <ul>
 <li>If <code>timeout_milliseconds</code> is specified in
 <a href="config/lua/keyassignment/ActivateKeyTable.html">ActivateKeyTable</a>, then the
@@ -504,7 +516,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <ul>
 <li>Bundled harfbuzz to 4.3.0</li>
 </ul>
-<h4 id="changed-4"><a class="header" href="#changed-4">Changed</a></h4>
+<h4 id="changed-5"><a class="header" href="#changed-5">Changed</a></h4>
 <ul>
 <li>Debian packages now register wezterm as an alternative for <code>x-terminal-emulator</code>. Thanks to <a href="https://github.com/xpufx">@xpufx</a>! <a href="https://github.com/wez/wezterm/pull/1883">#1883</a></li>
 <li>Windows: wezterm will now read the default environment variables from the <code>HKLM\System\CurrentControlSet\Control\Session Manager\Environment</code> and <code>HKCU\Environment</code> and apply those to the base environment prior to applying <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1848">#1848</a></li>
@@ -554,7 +566,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li><a href="config/key-tables.html">Key Tables</a> feature for powerful modal key assignments</li>
 <li><code>wezterm start --position x,y</code>, <code>wezterm start --position displayname:30%,30%</code> option to control starting window position on all systems except for Wayland. See <code>wezterm start --help</code> for more info. <a href="https://github.com/wez/wezterm/issues/1794">#1794</a></li>
 </ul>
-<h4 id="changed-5"><a class="header" href="#changed-5">Changed</a></h4>
+<h4 id="changed-6"><a class="header" href="#changed-6">Changed</a></h4>
 <ul>
 <li>Default key assignments are <code>mapped:</code> again. A new <a href="config/lua/config/key_map_preference.html">key_map_preference</a> option allows the defaults to use <code>&quot;Mapped&quot;</code> or <code>&quot;Physical&quot;</code>.</li>
 <li>Disabled ligatures for <code>&quot;Monaco&quot;</code> and <code>&quot;Menlo&quot;</code> fonts, as those have <code>&quot;fi&quot;</code> ligatures that match even for words such as <code>find</code>. <a href="https://github.com/wez/wezterm/issues/1786">#1786</a> <a href="https://github.com/wez/wezterm/issues/1736">#1736</a></li>
@@ -619,7 +631,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li>Context menu extension for Nautilus. Thanks to <a href="https://github.com/lunaryorn">@lunaryorn</a>! <a href="https://github.com/wez/wezterm/issues/1092">#1092</a></li>
 <li><a href="config/lua/wezterm/enumerate_ssh_hosts.html">wezterm.enumerate_ssh_hosts()</a> function that can be used to auto-generate ssh domain configuration</li>
 </ul>
-<h4 id="changed-6"><a class="header" href="#changed-6">Changed</a></h4>
+<h4 id="changed-7"><a class="header" href="#changed-7">Changed</a></h4>
 <ul>
 <li><strong>Key Assignments now use Physical Key locations by default!!</strong> <a href="config/keys.html#physical-vs-mapped-key-assignments">Read more</a> <a href="https://github.com/wez/wezterm/issues/1483">#1483</a> <a href="https://github.com/wez/wezterm/issues/601">#601</a> <a href="https://github.com/wez/wezterm/issues/1080">#1080</a> <a href="https://github.com/wez/wezterm/issues/1391">#1391</a></li>
 <li>Key assignments now match prior to any dead-key or IME composition <a href="https://github.com/wez/wezterm/issues/877">#877</a></li>
@@ -686,7 +698,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li><a href="config/lua/wezterm/get_builtin_color_schemes.html">wezterm.get_builtin_color_schemes()</a> function to eg: pick a random scheme per window, or otherwise reason about schemes. See <a href="config/lua/wezterm/get_builtin_color_schemes.html">the docs</a> for examples!</li>
 <li>Added color schemes: <a href="colorschemes/a/index.html#alabaster">Alabaster</a>, <a href="colorschemes/c/index.html#cga">CGA</a>, <a href="colorschemes/m/index.html#materialdesigncolors">MaterialDesignColors</a>, <a href="colorschemes/d/index.html#darkermatrix">darkermatrix</a>, <a href="colorschemes/n/index.html#nord-light">nord-light</a></li>
 </ul>
-<h4 id="changed-7"><a class="header" href="#changed-7">Changed</a></h4>
+<h4 id="changed-8"><a class="header" href="#changed-8">Changed</a></h4>
 <ul>
 <li>quickselect: we now de-duplicate labels for results with the same textual content. <a href="https://github.com/wez/wezterm/issues/1271">#1271</a></li>
 <li>The default <code>CompleteSelectionOrOpenLinkAtMouseCursor</code> left button release assignment now also accepts SHIFT being held in order to make SHIFT-click <code>ExtendSelectionToMouseCursor</code> feel more ergonomic if the mouse button is released before the SHIFT key. <a href="https://github.com/wez/wezterm/issues/1204">#1204</a></li>
@@ -757,7 +769,7 @@ activation. <a href="https://github.com/wez/wezterm/issues/1129">#1129</a></li>
 <li><a href="config/lua/config/unicode_version.html">unicode_version</a> option and corresponding OSC escape sequences that affects how the width of certain unicode sequences are interpreted.</li>
 <li>macOS: binaries produced by wezterm's CI are now codesigned, which resolves some spurious permission dialogs that affected some users <a href="https://github.com/wez/wezterm/issues/482">#482</a></li>
 </ul>
-<h4 id="changed-8"><a class="header" href="#changed-8">Changed</a></h4>
+<h4 id="changed-9"><a class="header" href="#changed-9">Changed</a></h4>
 <ul>
 <li>new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to <a href="https://github.com/friederbluemle">@friederbluemle</a>! <a href="https://github.com/wez/wezterm/pull/1132">#1132</a></li>
 <li>X11: we now allow matching visuals with &gt;= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to <a href="https://github.com/shizeeg">@shizeeg</a>! <a href="https://github.com/wez/wezterm/pull/1083">#1083</a></li>
