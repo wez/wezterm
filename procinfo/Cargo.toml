@@ -15,7 +15,7 @@ luahelper = { path = "../luahelper", optional = true }
 wezterm-dynamic = { path = "../wezterm-dynamic", optional = true }
 
 [target."cfg(windows)".dependencies]
-ntapi = "0.3"
+ntapi = "0.4"
 winapi = { version = "0.3", features = [
     "handleapi",
     "memoryapi",

@@ -49,7 +49,7 @@ wezterm-term = { path = "../term", features=["use_serde"] }
 flume = "0.10"
 
 [target."cfg(windows)".dependencies]
-ntapi = "0.3"
+ntapi = "0.4"
 winapi = { version = "0.3", features = [
     "handleapi",
     "memoryapi",
