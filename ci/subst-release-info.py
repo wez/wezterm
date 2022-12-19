@@ -64,6 +64,7 @@ def load_release_info():
 
     latest = None
     for rel in release_info:
+        print(pretty(rel))
         if rel["prerelease"]:
             continue
         latest = rel
