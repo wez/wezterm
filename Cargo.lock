@@ -5932,6 +5932,7 @@ dependencies = [
  "serde_json",
  "serial",
  "shared_library",
+ "shlex",
  "smol",
  "tabout",
  "terminfo",

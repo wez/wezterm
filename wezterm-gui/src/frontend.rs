@@ -162,19 +162,18 @@ impl GuiFrontEnd {
             ApplicationEvent::OpenCommandScript(file_name) => {
                 promise::spawn::spawn(async move {
                     use config::keyassignment::SpawnTabDomain;
-                    use portable_pty::CommandBuilder;
                     use wezterm_term::TerminalSize;
 
-                    let cmd = CommandBuilder::from_argv(
-                        ["/bin/sh", "-c", &file_name]
-                            .iter()
-                            .map(Into::into)
-                            .collect(),
-                    );
+                    // We send the script to execute to the shell on stdin, rather than ask the
+                    // shell to execute it directly, so that we start the shell and read in the
+                    // user's rc files before running the script.  Without this, wezterm on macOS
+                    // is launched with a default and very anemic path, and that is frustrating for
+                    // users.
 
                     let mux = Mux::get();
                     let window_id = None;
                     let pane_id = None;
+                    let cmd = None;
                     let cwd = None;
                     let workspace = mux.active_workspace();
 
@@ -182,7 +181,7 @@ impl GuiFrontEnd {
                         .spawn_tab_or_window(
                             window_id,
                             SpawnTabDomain::DomainName("local".to_string()),
-                            Some(cmd),
+                            cmd,
                             cwd,
                             TerminalSize::default(),
                             pane_id,
@@ -192,6 +191,8 @@ impl GuiFrontEnd {
                     {
                         Ok((_tab, pane, _window_id)) => {
                             log::trace!("Spawned {file_name} as pane_id {}", pane.pane_id());
+                            let mut writer = pane.writer();
+                            write!(writer, "{} ; exit\n", shlex::quote(&file_name)).ok();
                         }
                         Err(err) => {
                             log::error!("Failed to spawn {file_name}: {err:#?}");
