@@ -50,6 +50,7 @@ struct TabInner {
 /// A Tab is a container of Panes
 pub struct Tab {
     inner: Mutex<TabInner>,
+    tab_id: TabId,
 }
 
 #[derive(Clone)]
@@ -505,8 +506,11 @@ fn cell_dimensions(size: &TerminalSize) -> TerminalSize {
 
 impl Tab {
     pub fn new(size: &TerminalSize) -> Self {
+        let inner = TabInner::new(size);
+        let tab_id = inner.id;
         Self {
-            inner: Mutex::new(TabInner::new(size)),
+            inner: Mutex::new(inner),
+            tab_id,
         }
     }
 
@@ -580,7 +584,7 @@ impl Tab {
     }
 
     pub fn tab_id(&self) -> TabId {
-        self.inner.lock().tab_id()
+        self.tab_id
     }
 
     pub fn get_size(&self) -> TerminalSize {
@@ -1097,10 +1101,6 @@ impl TabInner {
         }
 
         dividers
-    }
-
-    fn tab_id(&self) -> TabId {
-        self.id
     }
 
     fn get_size(&self) -> TerminalSize {
