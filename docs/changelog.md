@@ -27,6 +27,9 @@ As features stabilize some brief notes about them will accumulate here.
   subscript due to xterm/vim conflict
   [mintty/#1189](https://github.com/mintty/mintty/issues/1189)
 
+#### Updated
+* Bundled harfbuzz updated to version 6.0.0
+
 ### 20221119-145034-49b9839f
 
 #### Improved
