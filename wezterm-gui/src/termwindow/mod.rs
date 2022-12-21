@@ -879,14 +879,6 @@ impl TermWindow {
                 }
                 Ok(true)
             }
-            WindowEvent::OpenInBrowser(url) => {
-                std::thread::spawn(move || {
-                    if let Err(err) = open::that(&url) {
-                        log::error!("Error opening {}: {:#}", url, err);
-                    }
-                });
-                Ok(true)
-            }
             WindowEvent::FocusChanged(focused) => {
                 self.focus_changed(focused, window);
                 Ok(true)
@@ -2777,6 +2769,14 @@ impl TermWindow {
                 pane.perform_actions(vec![termwiz::escape::Action::Esc(
                     termwiz::escape::Esc::Code(termwiz::escape::EscCode::FullReset),
                 )]);
+            }
+            OpenUri(link) => {
+                let link = link.clone();
+                std::thread::spawn(move || {
+                    if let Err(err) = open::that(&link) {
+                        log::error!("Error opening {}: {:#}", link, err);
+                    }
+                });
             }
         };
         Ok(PerformAssignmentResult::Handled)

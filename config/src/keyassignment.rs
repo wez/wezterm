@@ -535,6 +535,7 @@ pub enum KeyAssignment {
     CharSelect(CharSelectArguments),
 
     ResetTerminal,
+    OpenUri(String),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

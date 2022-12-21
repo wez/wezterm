@@ -212,6 +212,8 @@ impl CommandDef {
 
                             menu.add_item(&MenuItem::new_separator());
                         }
+                    } else if cmd.menubar[0] == "Help" {
+                        menu.assign_as_help_menu();
                     }
                 });
 
@@ -228,36 +230,6 @@ impl CommandDef {
                 item.set_tool_tip(&cmd.doc);
                 submenu.add_item(&item);
             }
-        }
-
-        let help_menu = Menu::new_with_title("Help");
-        let help_item = MenuItem::new_with("Help", None, "");
-        main_menu.add_item(&help_item);
-        help_item.set_sub_menu(&help_menu);
-        help_menu.assign_as_help_menu();
-
-        for (caption, url) in [
-            ("Documentation", "https://wezfurlong.org/wezterm/"),
-            /* Omitted because the underlying `open` utility rewrites the `#` to `%23`
-             * and matrix's URL parser doesn't like that, despite it being a core
-             * part of how URLs work.
-            (
-                "Discuss in realtime on Matrix",
-                "https://matrix.to/#/#wezterm:matrix.org",
-            ),
-            */
-            (
-                "Discuss on GitHub",
-                "https://github.com/wez/wezterm/discussions",
-            ),
-            (
-                "Search or report issue on GitHub",
-                "https://github.com/wez/wezterm/issues",
-            ),
-        ] {
-            let item = MenuItem::new_with(caption, Some(sel!(weztermPerformKeyAssignment:)), "");
-            item.set_represented_item(RepresentedItem::OpenInBrowser(url.to_string()));
-            help_menu.add_item(&item);
         }
     }
 }
@@ -933,5 +905,37 @@ static DEFS: &[CommandDef] = &[
         keys: &[],
         args: &[ArgType::ActivePane],
         menubar: &["Shell"],
+    },
+    CommandDef {
+        brief: "Documentation",
+        doc: "Visit the wezterm documentation website",
+        exp: |exp| exp.push(OpenUri("https://wezfurlong.org/wezterm/".to_string())),
+        keys: &[],
+        args: &[],
+        menubar: &["Help"],
+    },
+    CommandDef {
+        brief: "Discuss on GitHub",
+        doc: "Visit wezterm's GitHub discussion",
+        exp: |exp| {
+            exp.push(OpenUri(
+                "https://github.com/wez/wezterm/discussions/".to_string(),
+            ))
+        },
+        keys: &[],
+        args: &[],
+        menubar: &["Help"],
+    },
+    CommandDef {
+        brief: "Search or report issue on GitHub",
+        doc: "Visit wezterm's GitHub issues",
+        exp: |exp| {
+            exp.push(OpenUri(
+                "https://github.com/wez/wezterm/issues/".to_string(),
+            ))
+        },
+        keys: &[],
+        args: &[],
+        menubar: &["Help"],
     },
 ];

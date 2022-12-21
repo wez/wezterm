@@ -24,8 +24,6 @@ pub enum ApplicationEvent {
     /// The system wants to open a command in the terminal
     OpenCommandScript(String),
     PerformKeyAssignment(KeyAssignment),
-    /// A request to open a URL in the browser
-    OpenInBrowser(String),
 }
 
 pub trait ConnectionOps {

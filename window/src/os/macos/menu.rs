@@ -111,7 +111,6 @@ pub struct MenuItem {
 #[derive(Clone, Debug)]
 pub enum RepresentedItem {
     KeyAssignment(KeyAssignment),
-    OpenInBrowser(String),
 }
 
 impl MenuItem {
