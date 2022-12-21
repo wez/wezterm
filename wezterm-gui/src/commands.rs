@@ -407,7 +407,7 @@ fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandD
             doc: "Activates the debug overlay and Lua REPL".into(),
             keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "l".into())],
             args: &[ArgType::ActiveWindow],
-            menubar: &["View"],
+            menubar: &["Help"],
         },
         QuickSelect => CommandDef {
             brief: "Enter QuickSelect mode".into(),
@@ -1331,7 +1331,7 @@ fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandD
             doc: format!("Rotate panes {direction:?}").into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &["Window"],
+            menubar: &["Window", "Rotate Pane"],
         },
         SplitPane(split) => {
             let direction = split.direction;
@@ -1356,30 +1356,58 @@ fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandD
 /// Returns a list of key assignment actions that should be
 /// included in the default key assignments and command palette.
 fn compute_default_actions() -> Vec<KeyAssignment> {
+    // These are ordered by their position within the various menus
     return vec![
+        // ----------------- WezTerm
+        ReloadConfiguration,
+        #[cfg(target_os = "macos")]
+        HideApplication,
+        #[cfg(target_os = "macos")]
+        QuitApplication,
+        // ----------------- Shell
+        SpawnTab(SpawnTabDomain::CurrentPaneDomain),
+        SpawnWindow,
+        SplitVertical(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..Default::default()
+        }),
+        SplitHorizontal(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..Default::default()
+        }),
+        CloseCurrentTab { confirm: true },
+        CloseCurrentPane { confirm: true },
+        DetachDomain(SpawnTabDomain::CurrentPaneDomain),
+        ResetTerminal,
+        // ----------------- Edit
         #[cfg(not(target_os = "macos"))]
         PasteFrom(ClipboardPasteSource::PrimarySelection),
         #[cfg(not(target_os = "macos"))]
         CopyTo(ClipboardCopyDestination::PrimarySelection),
         CopyTo(ClipboardCopyDestination::Clipboard),
         PasteFrom(ClipboardPasteSource::Clipboard),
-        ToggleFullScreen,
-        Hide,
-        #[cfg(target_os = "macos")]
-        HideApplication,
-        SpawnWindow,
         ClearScrollback(ScrollbackEraseMode::ScrollbackOnly),
         ClearScrollback(ScrollbackEraseMode::ScrollbackAndViewport),
-        Search(Pattern::CurrentSelectionOrEmptyString),
-        ShowDebugOverlay,
         QuickSelect,
         CharSelect(CharSelectArguments::default()),
-        PaneSelect(PaneSelectArguments::default()),
+        ActivateCopyMode,
+        ClearKeyTableStack,
+        // ----------------- View
         DecreaseFontSize,
         IncreaseFontSize,
         ResetFontSize,
         ResetFontAndWindowSize,
-        SpawnTab(SpawnTabDomain::CurrentPaneDomain),
+        ScrollByPage(NotNan::new(-1.0).unwrap()),
+        ScrollByPage(NotNan::new(1.0).unwrap()),
+        ScrollToTop,
+        ScrollToBottom,
+        // ----------------- Window
+        ToggleFullScreen,
+        Hide,
+        Search(Pattern::CurrentSelectionOrEmptyString),
+        PaneSelect(PaneSelectArguments::default()),
+        RotatePanes(RotationDirection::Clockwise),
+        RotatePanes(RotationDirection::CounterClockwise),
         ActivateTab(0),
         ActivateTab(1),
         ActivateTab(2),
@@ -1389,28 +1417,10 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ActivateTab(6),
         ActivateTab(7),
         ActivateTab(-1),
-        CloseCurrentTab { confirm: true },
-        CloseCurrentPane { confirm: true },
         ActivateTabRelative(-1),
         ActivateTabRelative(1),
-        ReloadConfiguration,
-        #[cfg(target_os = "macos")]
-        QuitApplication,
         MoveTabRelative(-1),
         MoveTabRelative(1),
-        ScrollByPage(NotNan::new(-1.0).unwrap()),
-        ScrollByPage(NotNan::new(1.0).unwrap()),
-        ScrollToBottom,
-        ScrollToTop,
-        ActivateCopyMode,
-        SplitVertical(SpawnCommand {
-            domain: SpawnTabDomain::CurrentPaneDomain,
-            ..Default::default()
-        }),
-        SplitHorizontal(SpawnCommand {
-            domain: SpawnTabDomain::CurrentPaneDomain,
-            ..Default::default()
-        }),
         AdjustPaneSize(PaneDirection::Left, 1),
         AdjustPaneSize(PaneDirection::Right, 1),
         AdjustPaneSize(PaneDirection::Up, 1),
@@ -1421,13 +1431,14 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         ActivatePaneDirection(PaneDirection::Down),
         TogglePaneZoomState,
         ActivateLastTab,
-        ClearKeyTableStack,
-        OpenLinkAtMouseCursor,
         ShowLauncher,
         ShowTabNavigator,
-        DetachDomain(SpawnTabDomain::CurrentPaneDomain),
+        // ----------------- Help
         OpenUri("https://wezfurlong.org/wezterm/".to_string()),
         OpenUri("https://github.com/wez/wezterm/discussions/".to_string()),
         OpenUri("https://github.com/wez/wezterm/issues/".to_string()),
+        ShowDebugOverlay,
+        // ----------------- Misc
+        OpenLinkAtMouseCursor,
     ];
 }
