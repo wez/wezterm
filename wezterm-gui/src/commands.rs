@@ -373,17 +373,6 @@ static DEFS: &[CommandDef] = &[
         args: &[],
         menubar: &["WezTerm"],
     },
-    #[cfg(target_os = "macos")]
-    CommandDef {
-        brief: "Quit WezTerm",
-        doc: "Quits WezTerm",
-        exp: |exp| {
-            exp.push(QuitApplication);
-        },
-        keys: &[(Modifiers::SUPER, "q")],
-        args: &[],
-        menubar: &["WezTerm"],
-    },
     CommandDef {
         brief: "New Window",
         doc: "Launches the default program into a new window",
@@ -661,6 +650,17 @@ static DEFS: &[CommandDef] = &[
             exp.push(ReloadConfiguration);
         },
         keys: &[(Modifiers::SUPER, "r")],
+        args: &[],
+        menubar: &["WezTerm"],
+    },
+    #[cfg(target_os = "macos")]
+    CommandDef {
+        brief: "Quit WezTerm",
+        doc: "Quits WezTerm",
+        exp: |exp| {
+            exp.push(QuitApplication);
+        },
+        keys: &[(Modifiers::SUPER, "q")],
         args: &[],
         menubar: &["WezTerm"],
     },
