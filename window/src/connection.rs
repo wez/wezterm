@@ -1,6 +1,7 @@
 use crate::screen::Screens;
 use crate::{Appearance, Connection, GeometryOrigin, RequestedWindowGeometry, ResolvedGeometry};
 use anyhow::Result as Fallible;
+use config::keyassignment::KeyAssignment;
 use config::DimensionContext;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -22,6 +23,7 @@ pub fn shutdown() {
 pub enum ApplicationEvent {
     /// The system wants to open a command in the terminal
     OpenCommandScript(String),
+    PerformKeyAssignment(KeyAssignment),
 }
 
 pub trait ConnectionOps {

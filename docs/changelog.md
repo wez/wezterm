@@ -19,6 +19,8 @@ As features stabilize some brief notes about them will accumulate here.
   `.tool` scripts, so that those can open and show their output in the
   terminal. [#2871](https://github.com/wez/wezterm/issues/2871)
   [#2741](https://github.com/wez/wezterm/issues/2741)
+* macOS: initial cut at macOS native menu bar
+  [#1485](https://github.com/wez/wezterm/issues/1485)
 
 #### Changed
 * Window title reporting escape sequences are now disabled by default.

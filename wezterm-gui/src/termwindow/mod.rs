@@ -873,6 +873,12 @@ impl TermWindow {
                 self.config_was_reloaded();
                 Ok(true)
             }
+            WindowEvent::PerformKeyAssignment(action) => {
+                if let Some(pane) = self.get_active_pane_or_overlay() {
+                    self.perform_key_assignment(&pane, &action)?;
+                }
+                Ok(true)
+            }
             WindowEvent::FocusChanged(focused) => {
                 self.focus_changed(focused, window);
                 Ok(true)

@@ -186,6 +186,9 @@ pub enum WindowEvent {
 
     // Called when the files are dropped into the window
     DroppedFile(Vec<PathBuf>),
+
+    /// Called by menubar dispatching stuff on some systems
+    PerformKeyAssignment(config::keyassignment::KeyAssignment),
 }
 
 pub struct WindowEventSender {

@@ -153,6 +153,11 @@ impl GuiFrontEnd {
         // `wezterm.gui.get_appearance()` can have that take effect
         // before any windows are created
         config::reload();
+
+        // And build the initial menu bar.
+        // TODO: arrange for this to happen on config reload.
+        crate::commands::CommandDef::recreate_menubar(&config::configuration());
+
         Ok(front_end)
     }
 
@@ -200,6 +205,13 @@ impl GuiFrontEnd {
                     };
                 })
                 .detach();
+            }
+            ApplicationEvent::PerformKeyAssignment(action) => {
+                // We should only get here when there are no windows open
+                // and the user picks an action from the menubar.
+                // This is not currently possible, but could be in the
+                // future.
+                log::info!("perform: {action:?}");
             }
         }
     }

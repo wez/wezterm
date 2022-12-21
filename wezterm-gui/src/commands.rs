@@ -64,6 +64,8 @@ pub struct CommandDef {
     pub keys: &'static [(Modifiers, &'static str)],
     /// The argument types/context in which this command is valid.
     pub args: &'static [ArgType],
+    /// Where to place the command in a menubar
+    pub menubar: &'static [&'static str],
 }
 
 impl std::fmt::Debug for CommandDef {
@@ -152,6 +154,88 @@ impl CommandDef {
         }
         result
     }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn recreate_menubar(_config: &ConfigHandle) {}
+
+    #[cfg(target_os = "macos")]
+    pub fn recreate_menubar(config: &ConfigHandle) {
+        use window::os::macos::menu::*;
+
+        let main_menu = Menu::new_with_title("MainMenu");
+        main_menu.assign_as_main_menu();
+
+        let mut commands = Self::expanded_commands(config);
+        commands.retain(|cmd| !cmd.menubar.is_empty());
+
+        // Prefer to put the menus in this order
+        let mut order: Vec<&'static str> = vec!["WezTerm", "Shell", "Edit", "View", "Window"];
+        // Add any other menus on the end
+        for cmd in &commands {
+            if !order.contains(&cmd.menubar[0]) {
+                order.push(cmd.menubar[0]);
+            }
+        }
+
+        for &title in &order {
+            for cmd in &commands {
+                if cmd.menubar[0] != title {
+                    continue;
+                }
+
+                let mut submenu = main_menu.get_or_create_sub_menu(&cmd.menubar[0], |menu| {
+                    if cmd.menubar[0] == "Window" {
+                        menu.assign_as_windows_menu();
+                        // macOS will insert stuff at the top and bottom, so we add
+                        // a separator to tidy things up a bit
+                        menu.add_item(&MenuItem::new_separator());
+                    } else if cmd.menubar[0] == "WezTerm" {
+                        menu.assign_as_app_menu();
+
+                        menu.add_item(&MenuItem::new_with(
+                            "About WezTerm",
+                            Some(sel!(weztermShowAbout:)),
+                            "",
+                        ));
+                        menu.add_item(&MenuItem::new_separator());
+
+                        // FIXME: when we set this as the services menu,
+                        // both Help and trying to open Services cause
+                        // the process to spin forever in some internal
+                        // menu validation phase.
+                        if false {
+                            let services_menu = Menu::new_with_title("Services");
+                            services_menu.assign_as_services_menu();
+                            let services_item = MenuItem::new_with("Services", None, "");
+                            menu.add_item(&services_item);
+                            services_item.set_sub_menu(&services_menu);
+
+                            menu.add_item(&MenuItem::new_separator());
+                        }
+                    }
+                });
+
+                // Fill out any submenu hierarchy
+                for sub_title in cmd.menubar.iter().skip(1) {
+                    submenu = submenu.get_or_create_sub_menu(sub_title, |_menu| {});
+                }
+
+                // And add the current command to the menu
+                let item =
+                    MenuItem::new_with(&cmd.brief, Some(sel!(weztermPerformKeyAssignment:)), "");
+
+                item.set_represented_item(RepresentedItem::KeyAssignment(cmd.action.clone()));
+                item.set_tool_tip(&cmd.doc);
+                submenu.add_item(&item);
+            }
+        }
+
+        let help_menu = Menu::new_with_title("Help");
+        let help_item = MenuItem::new_with("Help", None, "");
+        main_menu.add_item(&help_item);
+        help_item.set_sub_menu(&help_menu);
+        help_menu.assign_as_help_menu();
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -160,6 +244,7 @@ pub struct ExpandedCommand {
     pub doc: Cow<'static, str>,
     pub action: KeyAssignment,
     pub keys: Vec<(Modifiers, KeyCode)>,
+    pub menubar: &'static [&'static str],
 }
 
 #[derive(Debug)]
@@ -176,6 +261,7 @@ impl Expander {
             doc: self.template.doc.into(),
             keys: self.template.permute_keys(&self.config),
             action,
+            menubar: self.template.menubar,
         };
         self.commands.push(expanded);
     }
@@ -195,13 +281,16 @@ impl Expander {
 }
 
 static DEFS: &[CommandDef] = &[
+    #[cfg(not(target_os = "macos"))]
     CommandDef {
         brief: "Paste primary selection",
         doc: "Pastes text from the primary selection",
         exp: |exp| exp.push(PasteFrom(ClipboardPasteSource::PrimarySelection)),
         keys: &[(Modifiers::SHIFT, "Insert")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
+    #[cfg(not(target_os = "macos"))]
     CommandDef {
         brief: "Copy to primary selection",
         doc: "Copies text from the primary selection",
@@ -210,6 +299,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL, "Insert")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Copy to clipboard",
@@ -217,6 +307,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(CopyTo(ClipboardCopyDestination::Clipboard)),
         keys: &[(Modifiers::SUPER, "c"), (Modifiers::NONE, "Copy")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Paste from clipboard",
@@ -224,6 +315,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(PasteFrom(ClipboardPasteSource::Clipboard)),
         keys: &[(Modifiers::SUPER, "v"), (Modifiers::NONE, "Paste")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Toggle full screen mode",
@@ -233,6 +325,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::ALT, "Return")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["View"],
     },
     CommandDef {
         brief: "Hide/Minimize Window",
@@ -242,10 +335,11 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "m")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window"],
     },
     #[cfg(target_os = "macos")]
     CommandDef {
-        brief: "Hide Application (macOS only)",
+        brief: "Hide Application",
         doc: "Hides all of the windows of the application. \
               This is macOS specific.",
         exp: |exp| {
@@ -253,16 +347,18 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "h")],
         args: &[],
+        menubar: &["WezTerm"],
     },
     #[cfg(target_os = "macos")]
     CommandDef {
-        brief: "Quit WezTerm (macOS only)",
+        brief: "Quit WezTerm",
         doc: "Quits WezTerm",
         exp: |exp| {
             exp.push(QuitApplication);
         },
         keys: &[(Modifiers::SUPER, "q")],
         args: &[],
+        menubar: &["WezTerm"],
     },
     CommandDef {
         brief: "New Window",
@@ -272,6 +368,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "n")],
         args: &[],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Clear scrollback",
@@ -282,6 +379,15 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "k")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
+    },
+    CommandDef {
+        brief: "Clear the scrollback and viewport",
+        doc: "Removes all content from the screen and scrollback",
+        exp: |exp| exp.push(ClearScrollback(ScrollbackEraseMode::ScrollbackAndViewport)),
+        keys: &[],
+        args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Search pane output",
@@ -291,6 +397,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "f")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Show debug overlay",
@@ -300,6 +407,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "l")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["View"],
     },
     CommandDef {
         brief: "Enter QuickSelect mode",
@@ -309,6 +417,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "Space")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Enter Emoji / Character selection mode",
@@ -318,6 +427,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "u")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Enter Pane selection mode",
@@ -327,6 +437,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "p")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window"],
     },
     CommandDef {
         brief: "Decrease font size",
@@ -336,15 +447,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "-"), (Modifiers::CTRL, "-")],
         args: &[ArgType::ActiveWindow],
-    },
-    CommandDef {
-        brief: "Reset font size",
-        doc: "Restores the font size to match your configuration file",
-        exp: |exp| {
-            exp.push(ResetFontSize);
-        },
-        keys: &[(Modifiers::SUPER, "0"), (Modifiers::CTRL, "0")],
-        args: &[ArgType::ActiveWindow],
+        menubar: &["View", "Font Size"],
     },
     CommandDef {
         brief: "Increase font size",
@@ -354,6 +457,25 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "="), (Modifiers::CTRL, "=")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["View", "Font Size"],
+    },
+    CommandDef {
+        brief: "Reset font size",
+        doc: "Restores the font size to match your configuration file",
+        exp: |exp| {
+            exp.push(ResetFontSize);
+        },
+        keys: &[(Modifiers::SUPER, "0"), (Modifiers::CTRL, "0")],
+        args: &[ArgType::ActiveWindow],
+        menubar: &["View", "Font Size"],
+    },
+    CommandDef {
+        brief: "Reset the window and font size",
+        doc: "Restores the original window and font size",
+        exp: |exp| exp.push(ResetFontAndWindowSize),
+        keys: &[],
+        args: &[ArgType::ActiveWindow],
+        menubar: &["View", "Font Size"],
     },
     CommandDef {
         brief: "New Tab",
@@ -363,6 +485,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "t")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Activate 1st Tab",
@@ -373,6 +496,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "1")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 2nd Tab",
@@ -382,6 +506,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "2")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 3rd Tab",
@@ -391,6 +516,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "3")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 4th Tab",
@@ -400,6 +526,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "4")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 5th Tab",
@@ -409,6 +536,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "5")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 6th Tab",
@@ -418,6 +546,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "6")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 7th Tab",
@@ -427,6 +556,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "7")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate 8th Tab",
@@ -436,6 +566,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "8")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate right-most tab",
@@ -445,9 +576,10 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "9")],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
-        brief: "Close current tab",
+        brief: "Close current Tab",
         doc: "Closes the current tab, terminating all the \
             processes that are running in its panes.",
         exp: |exp| {
@@ -455,6 +587,18 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "w")],
         args: &[ArgType::ActiveTab],
+        menubar: &["Shell"],
+    },
+    CommandDef {
+        brief: "Close current Pane",
+        doc: "Closes the current pane, terminating the \
+            processes that are running inside it.",
+        exp: |exp| {
+            exp.push(CloseCurrentPane { confirm: true });
+        },
+        keys: &[],
+        args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Activate the tab to the left",
@@ -469,6 +613,7 @@ static DEFS: &[CommandDef] = &[
             (Modifiers::CTRL, "PageUp"),
         ],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Activate the tab to the right",
@@ -483,6 +628,7 @@ static DEFS: &[CommandDef] = &[
             (Modifiers::CTRL, "PageDown"),
         ],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Reload configuration",
@@ -492,6 +638,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::SUPER, "r")],
         args: &[],
+        menubar: &["WezTerm"],
     },
     CommandDef {
         brief: "Move tab one place to the left",
@@ -502,6 +649,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageUp")],
         args: &[ArgType::ActiveTab],
+        menubar: &["Window", "Move Tab"],
     },
     CommandDef {
         brief: "Move tab one place to the right",
@@ -512,6 +660,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageDown")],
         args: &[ArgType::ActiveTab],
+        menubar: &["Window", "Move Tab"],
     },
     CommandDef {
         brief: "Scroll Up One Page",
@@ -519,6 +668,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ScrollByPage(NotNan::new(-1.0).unwrap())),
         keys: &[(Modifiers::SHIFT, "PageUp")],
         args: &[ArgType::ActivePane],
+        menubar: &["View"],
     },
     CommandDef {
         brief: "Scroll Down One Page",
@@ -527,6 +677,23 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ScrollByPage(NotNan::new(1.0).unwrap())),
         keys: &[(Modifiers::SHIFT, "PageDown")],
         args: &[ArgType::ActivePane],
+        menubar: &["View"],
+    },
+    CommandDef {
+        brief: "Scroll to the bottom",
+        doc: "Scrolls to the bottom of the viewport",
+        exp: |exp| exp.push(ScrollToBottom),
+        keys: &[],
+        args: &[ArgType::ActivePane],
+        menubar: &["View"],
+    },
+    CommandDef {
+        brief: "Scroll to the top",
+        doc: "Scrolls to the top of the viewport",
+        exp: |exp| exp.push(ScrollToTop),
+        keys: &[],
+        args: &[ArgType::ActivePane],
+        menubar: &["View"],
     },
     CommandDef {
         brief: "Activate Copy Mode",
@@ -537,6 +704,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "x")],
         args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Split Vertically (Top/Bottom)",
@@ -555,6 +723,7 @@ static DEFS: &[CommandDef] = &[
             "'",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Split Horizontally (Left/Right)",
@@ -573,9 +742,10 @@ static DEFS: &[CommandDef] = &[
             "5",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
     CommandDef {
-        brief: "Adjust Pane Size to the Left",
+        brief: "Resize Pane to the Left",
         doc: "Adjusts the closest split divider to the left",
         exp: |exp| {
             exp.push(AdjustPaneSize(PaneDirection::Left, 1));
@@ -587,9 +757,10 @@ static DEFS: &[CommandDef] = &[
             "LeftArrow",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Resize Pane"],
     },
     CommandDef {
-        brief: "Adjust Pane Size to the Right",
+        brief: "Resize Pane to the Right",
         doc: "Adjusts the closest split divider to the right",
         exp: |exp| {
             exp.push(AdjustPaneSize(PaneDirection::Right, 1));
@@ -601,9 +772,10 @@ static DEFS: &[CommandDef] = &[
             "RightArrow",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Resize Pane"],
     },
     CommandDef {
-        brief: "Adjust Pane Size Upwards",
+        brief: "Resize Pane Upwards",
         doc: "Adjusts the closest split divider towards the top",
         exp: |exp| {
             exp.push(AdjustPaneSize(PaneDirection::Up, 1));
@@ -615,9 +787,10 @@ static DEFS: &[CommandDef] = &[
             "UpArrow",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Resize Pane"],
     },
     CommandDef {
-        brief: "Adjust Pane Size Downwards",
+        brief: "Resize Pane Downwards",
         doc: "Adjusts the closest split divider towards the bottom",
         exp: |exp| {
             exp.push(AdjustPaneSize(PaneDirection::Down, 1));
@@ -629,6 +802,7 @@ static DEFS: &[CommandDef] = &[
             "DownArrow",
         )],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Resize Pane"],
     },
     CommandDef {
         brief: "Activate Pane Left",
@@ -638,6 +812,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "LeftArrow")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Select Pane"],
     },
     CommandDef {
         brief: "Activate Pane Right",
@@ -647,6 +822,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "RightArrow")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Select Pane"],
     },
     CommandDef {
         brief: "Activate Pane Up",
@@ -656,6 +832,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "UpArrow")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Select Pane"],
     },
     CommandDef {
         brief: "Activate Pane Down",
@@ -665,6 +842,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "DownArrow")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window", "Select Pane"],
     },
     CommandDef {
         brief: "Toggle Pane Zoom",
@@ -674,6 +852,7 @@ static DEFS: &[CommandDef] = &[
         },
         keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "z")],
         args: &[ArgType::ActivePane],
+        menubar: &["Window"],
     },
     CommandDef {
         brief: "Activate the last active tab",
@@ -681,6 +860,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ActivateLastTab),
         keys: &[],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Clear the key table stack",
@@ -688,13 +868,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ClearKeyTableStack),
         keys: &[],
         args: &[ArgType::ActiveWindow],
-    },
-    CommandDef {
-        brief: "Clear the scrollback and viewport",
-        doc: "Removes all content from the screen and scrollback",
-        exp: |exp| exp.push(ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)),
-        keys: &[],
-        args: &[ArgType::ActivePane],
+        menubar: &["Edit"],
     },
     CommandDef {
         brief: "Close the active pane",
@@ -702,6 +876,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(CloseCurrentPane { confirm: true }),
         keys: &[],
         args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Open link at mouse cursor",
@@ -709,27 +884,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(OpenLinkAtMouseCursor),
         keys: &[],
         args: &[ArgType::ActivePane],
-    },
-    CommandDef {
-        brief: "Reset the window and font size",
-        doc: "Restores the original window and font size",
-        exp: |exp| exp.push(ResetFontAndWindowSize),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-    },
-    CommandDef {
-        brief: "Scroll to the bottom",
-        doc: "Scrolls to the bottom of the viewport",
-        exp: |exp| exp.push(ScrollToBottom),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-    },
-    CommandDef {
-        brief: "Scroll to the top",
-        doc: "Scrolls to the top of the viewport",
-        exp: |exp| exp.push(ScrollToTop),
-        keys: &[],
-        args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Show the launcher",
@@ -737,6 +892,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ShowLauncher),
         keys: &[],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Shell"],
     },
     CommandDef {
         brief: "Navigate tabs",
@@ -744,6 +900,7 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(ShowTabNavigator),
         keys: &[],
         args: &[ArgType::ActiveWindow],
+        menubar: &["Window", "Select Tab"],
     },
     CommandDef {
         brief: "Detach the domain of the active pane",
@@ -751,5 +908,6 @@ static DEFS: &[CommandDef] = &[
         exp: |exp| exp.push(DetachDomain(SpawnTabDomain::CurrentPaneDomain)),
         keys: &[],
         args: &[ArgType::ActivePane],
+        menubar: &["Shell"],
     },
 ];
