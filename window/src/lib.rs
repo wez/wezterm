@@ -189,6 +189,8 @@ pub enum WindowEvent {
 
     /// Called by menubar dispatching stuff on some systems
     PerformKeyAssignment(config::keyassignment::KeyAssignment),
+    /// Called by menubar dispatching stuff on some systems
+    OpenInBrowser(String),
 }
 
 pub struct WindowEventSender {

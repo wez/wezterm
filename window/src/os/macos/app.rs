@@ -53,6 +53,11 @@ extern "C" fn wezterm_perform_key_assignment(
                 conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(action));
             }
         }
+        Some(RepresentedItem::OpenInBrowser(url)) => {
+            if let Some(conn) = Connection::get() {
+                conn.dispatch_app_event(ApplicationEvent::OpenInBrowser(url));
+            }
+        }
         None => {}
     }
 }

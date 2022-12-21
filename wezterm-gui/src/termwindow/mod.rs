@@ -879,6 +879,14 @@ impl TermWindow {
                 }
                 Ok(true)
             }
+            WindowEvent::OpenInBrowser(url) => {
+                std::thread::spawn(move || {
+                    if let Err(err) = open::that(&url) {
+                        log::error!("Error opening {}: {:#}", url, err);
+                    }
+                });
+                Ok(true)
+            }
             WindowEvent::FocusChanged(focused) => {
                 self.focus_changed(focused, window);
                 Ok(true)

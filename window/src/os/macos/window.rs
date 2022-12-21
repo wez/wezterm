@@ -1922,6 +1922,14 @@ impl WindowView {
                         .dispatch(WindowEvent::PerformKeyAssignment(action));
                 }
             }
+            Some(RepresentedItem::OpenInBrowser(url)) => {
+                if let Some(this) = Self::get_this(this) {
+                    this.inner
+                        .borrow_mut()
+                        .events
+                        .dispatch(WindowEvent::OpenInBrowser(url));
+                }
+            }
             None => {}
         }
     }

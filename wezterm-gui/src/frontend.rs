@@ -213,6 +213,13 @@ impl GuiFrontEnd {
                 // future.
                 log::info!("perform: {action:?}");
             }
+            ApplicationEvent::OpenInBrowser(url) => {
+                std::thread::spawn(move || {
+                    if let Err(err) = open::that(&url) {
+                        log::error!("Error opening {}: {:#}", url, err);
+                    }
+                });
+            }
         }
     }
 
