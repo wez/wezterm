@@ -271,7 +271,7 @@ fn english_ordinal(n: isize) -> String {
 /// of metadata that is useful in the command palette/menubar context.
 /// This function will be called for the result of compute_default_actions(),
 /// but can also be used to describe user-provided commands
-fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandDef> {
+pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandDef> {
     Some(match action {
         PasteFrom(ClipboardPasteSource::PrimarySelection) => CommandDef {
             brief: "Paste primary selection".into(),
