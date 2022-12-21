@@ -6,8 +6,6 @@ use std::convert::TryFrom;
 use window::{KeyCode, Modifiers};
 use KeyAssignment::*;
 
-type ExpandFn = fn(&mut Expander);
-
 /// Describes an argument/parameter/context that is required
 /// in order for the command to have meaning.
 /// The intent is for this to be used when filtering the items
@@ -53,18 +51,23 @@ fn us_layout_shift(s: &str) -> String {
 /// `CommandDef` defines a command in the UI.
 pub struct CommandDef {
     /// Brief description
-    pub brief: &'static str,
+    pub brief: Cow<'static, str>,
     /// A longer, more detailed, description
-    pub doc: &'static str,
-    /// A function that can produce 0 or more ExpandedCommand's.
-    /// The intent is that we can use this to dynamically populate
-    /// a list of commands for a given context.
-    pub exp: ExpandFn,
+    pub doc: Cow<'static, str>,
     /// The key assignments associated with this command.
-    pub keys: &'static [(Modifiers, &'static str)],
+    pub keys: Vec<(Modifiers, String)>,
     /// The argument types/context in which this command is valid.
     pub args: &'static [ArgType],
     /// Where to place the command in a menubar
+    pub menubar: &'static [&'static str],
+}
+
+#[derive(Debug, Clone)]
+pub struct ExpandedCommand {
+    pub brief: Cow<'static, str>,
+    pub doc: Cow<'static, str>,
+    pub action: KeyAssignment,
+    pub keys: Vec<(Modifiers, KeyCode)>,
     pub menubar: &'static [&'static str],
 }
 
@@ -99,13 +102,14 @@ impl CommandDef {
     fn permute_keys(&self, config: &ConfigHandle) -> Vec<(Modifiers, KeyCode)> {
         let mut keys = vec![];
 
-        for &(mods, label) in self.keys {
-            let key = DeferredKeyCode::try_from(label)
+        for (mods, label) in &self.keys {
+            let mods = *mods;
+            let key = DeferredKeyCode::try_from(label.as_str())
                 .unwrap()
                 .resolve(config.key_map_preference)
                 .clone();
 
-            let ukey = DeferredKeyCode::try_from(us_layout_shift(label))
+            let ukey = DeferredKeyCode::try_from(us_layout_shift(&label))
                 .unwrap()
                 .resolve(config.key_map_preference)
                 .clone();
@@ -148,10 +152,25 @@ impl CommandDef {
     /// Produces the complete set of expanded commands.
     pub fn expanded_commands(config: &ConfigHandle) -> Vec<ExpandedCommand> {
         let mut result = vec![];
-        for def in DEFS {
-            let expander = Expander::new(def, config);
-            result.append(&mut expander.expand());
+
+        for action in compute_default_actions() {
+            match derive_command_from_key_assignment(&action) {
+                None => log::warn!(
+                    "{action:?} is a default action, but we cannot derive a CommandDef for it"
+                ),
+                Some(def) => {
+                    let keys = def.permute_keys(config);
+                    result.push(ExpandedCommand {
+                        brief: def.brief.into(),
+                        doc: def.doc.into(),
+                        keys,
+                        action,
+                        menubar: def.menubar,
+                    });
+                }
+            }
         }
+
         result
     }
 
@@ -234,708 +253,613 @@ impl CommandDef {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ExpandedCommand {
-    pub brief: Cow<'static, str>,
-    pub doc: Cow<'static, str>,
-    pub action: KeyAssignment,
-    pub keys: Vec<(Modifiers, KeyCode)>,
-    pub menubar: &'static [&'static str],
-}
-
-#[derive(Debug)]
-pub struct Expander {
-    template: &'static CommandDef,
-    commands: Vec<ExpandedCommand>,
-    config: ConfigHandle,
-}
-
-impl Expander {
-    pub fn push(&mut self, action: KeyAssignment) {
-        let expanded = ExpandedCommand {
-            brief: self.template.brief.into(),
-            doc: self.template.doc.into(),
-            keys: self.template.permute_keys(&self.config),
-            action,
-            menubar: self.template.menubar,
-        };
-        self.commands.push(expanded);
+/// Given "1" return "1st", "2" -> "2nd" and so on
+fn english_ordinal(n: isize) -> String {
+    let n = n.to_string();
+    if n.ends_with('1') && !n.ends_with("11") {
+        format!("{n}st")
+    } else if n.ends_with('2') && !n.ends_with("12") {
+        format!("{n}nd")
+    } else if n.ends_with('3') && !n.ends_with("13") {
+        format!("{n}rd")
+    } else {
+        format!("{n}th")
     }
+}
 
-    pub fn new(template: &'static CommandDef, config: &ConfigHandle) -> Self {
-        Self {
-            template,
-            commands: vec![],
-            config: config.clone(),
+/// Describes a key assignment action; returns a bunch
+/// of metadata that is useful in the command palette/menubar context.
+/// This function will be called for the result of compute_default_actions(),
+/// but can also be used to describe user-provided commands
+fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<CommandDef> {
+    Some(match action {
+        PasteFrom(ClipboardPasteSource::PrimarySelection) => CommandDef {
+            brief: "Paste primary selection".into(),
+            doc: "Pastes text from the primary selection".into(),
+            keys: vec![(Modifiers::SHIFT, "Insert".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        CopyTo(ClipboardCopyDestination::PrimarySelection) => CommandDef {
+            brief: "Copy to primary selection".into(),
+            doc: "Copies text from the primary selection".into(),
+            keys: vec![(Modifiers::CTRL, "Insert".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        CopyTo(ClipboardCopyDestination::Clipboard) => CommandDef {
+            brief: "Copy to clipboard".into(),
+            doc: "Copies text to the clipboard".into(),
+            keys: vec![
+                (Modifiers::SUPER, "c".into()),
+                (Modifiers::NONE, "Copy".into()),
+            ],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        PasteFrom(ClipboardPasteSource::Clipboard) => CommandDef {
+            brief: "Paste from clipboard".into(),
+            doc: "Pastes text from the clipboard".into(),
+            keys: vec![
+                (Modifiers::SUPER, "v".into()),
+                (Modifiers::NONE, "Paste".into()),
+            ],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        ToggleFullScreen => CommandDef {
+            brief: "Toggle full screen mode".into(),
+            doc: "Switch between normal and full screen mode".into(),
+            keys: vec![(Modifiers::ALT, "Return".into())],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View"],
+        },
+        Hide => CommandDef {
+            brief: "Hide/Minimize Window".into(),
+            doc: "Hides/Mimimizes the current window".into(),
+            keys: vec![(Modifiers::SUPER, "m".into())],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window"],
+        },
+        HideApplication => CommandDef {
+            brief: "Hide Application".into(),
+            doc: "Hides all of the windows of the application. \
+              This is macOS specific."
+                .into(),
+            keys: vec![(Modifiers::SUPER, "h".into())],
+            args: &[],
+            menubar: &["WezTerm"],
+        },
+        SpawnWindow => CommandDef {
+            brief: "New Window".into(),
+            doc: "Launches the default program into a new window".into(),
+            keys: vec![(Modifiers::SUPER, "n".into())],
+            args: &[],
+            menubar: &["Shell"],
+        },
+        ClearScrollback(ScrollbackEraseMode::ScrollbackOnly) => CommandDef {
+            brief: "Clear scrollback".into(),
+            doc: "Clears any text that has scrolled out of the \
+              viewport of the current pane"
+                .into(),
+            keys: vec![(Modifiers::SUPER, "k".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        ClearScrollback(ScrollbackEraseMode::ScrollbackAndViewport) => CommandDef {
+            brief: "Clear the scrollback and viewport".into(),
+            doc: "Removes all content from the screen and scrollback".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        Search(Pattern::CurrentSelectionOrEmptyString) => CommandDef {
+            brief: "Search pane output".into(),
+            doc: "Enters the search mode UI for the current pane".into(),
+            keys: vec![(Modifiers::SUPER, "f".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        ShowDebugOverlay => CommandDef {
+            brief: "Show debug overlay".into(),
+            doc: "Activates the debug overlay and Lua REPL".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "l".into())],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View"],
+        },
+        QuickSelect => CommandDef {
+            brief: "Enter QuickSelect mode".into(),
+            doc: "Activates the quick selection UI for the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "Space".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        CharSelect(_) => CommandDef {
+            brief: "Enter Emoji / Character selection mode".into(),
+            doc: "Activates the character selection UI for the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "u".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        PaneSelect(_) => CommandDef {
+            brief: "Enter Pane selection mode".into(),
+            doc: "Activates the pane selection UI".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "p".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+        },
+        DecreaseFontSize => CommandDef {
+            brief: "Decrease font size".into(),
+            doc: "Scales the font size smaller by 10%".into(),
+            keys: vec![
+                (Modifiers::SUPER, "-".into()),
+                (Modifiers::CTRL, "-".into()),
+            ],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View", "Font Size"],
+        },
+        IncreaseFontSize => CommandDef {
+            brief: "Increase font size".into(),
+            doc: "Scales the font size larger by 10%".into(),
+            keys: vec![
+                (Modifiers::SUPER, "=".into()),
+                (Modifiers::CTRL, "=".into()),
+            ],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View", "Font Size"],
+        },
+        ResetFontSize => CommandDef {
+            brief: "Reset font size".into(),
+            doc: "Restores the font size to match your configuration file".into(),
+            keys: vec![
+                (Modifiers::SUPER, "0".into()),
+                (Modifiers::CTRL, "0".into()),
+            ],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View", "Font Size"],
+        },
+        ResetFontAndWindowSize => CommandDef {
+            brief: "Reset the window and font size".into(),
+            doc: "Restores the original window and font size".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["View", "Font Size"],
+        },
+        SpawnTab(SpawnTabDomain::CurrentPaneDomain) => CommandDef {
+            brief: "New Tab".into(),
+            doc: "Create a new tab in the same domain as the current pane".into(),
+            keys: vec![(Modifiers::SUPER, "t".into())],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Shell"],
+        },
+        ActivateTab(-1) => CommandDef {
+            brief: "Activate right-most tab".into(),
+            doc: "Activates the tab on the far right".into(),
+            keys: vec![(Modifiers::SUPER, "9".into())],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Tab"],
+        },
+        ActivateTab(n) => {
+            let n = *n;
+            let ordinal = english_ordinal(n);
+            let keys = if n >= 0 && n <= 7 {
+                vec![(Modifiers::SUPER, (n + 1).to_string())]
+            } else {
+                vec![]
+            };
+            CommandDef {
+                brief: format!("Activate {ordinal} Tab").into(),
+                doc: format!("Activates the {ordinal} tab").into(),
+                keys,
+                args: &[ArgType::ActiveWindow],
+                menubar: &["Window", "Select Tab"],
+            }
         }
-    }
+        CloseCurrentTab { confirm: true } => CommandDef {
+            brief: "Close current Tab".into(),
+            doc: "Closes the current tab, terminating all the \
+            processes that are running in its panes."
+                .into(),
+            keys: vec![(Modifiers::SUPER, "w".into())],
+            args: &[ArgType::ActiveTab],
+            menubar: &["Shell"],
+        },
+        CloseCurrentPane { confirm: true } => CommandDef {
+            brief: "Close current Pane".into(),
+            doc: "Closes the current pane, terminating the \
+            processes that are running inside it."
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+        },
+        ActivateTabRelative(-1) => CommandDef {
+            brief: "Activate the tab to the left".into(),
+            doc: "Activates the tab to the left. If this is the left-most \
+            tab then cycles around and activates the right-most tab"
+                .into(),
+            keys: vec![
+                (Modifiers::SUPER.union(Modifiers::SHIFT), "[".into()),
+                (Modifiers::CTRL.union(Modifiers::SHIFT), "Tab".into()),
+                (Modifiers::CTRL, "PageUp".into()),
+            ],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Tab"],
+        },
+        ActivateTabRelative(1) => CommandDef {
+            brief: "Activate the tab to the right".into(),
+            doc: "Activates the tab to the right. If this is the right-most \
+            tab then cycles around and activates the left-most tab"
+                .into(),
+            keys: vec![
+                (Modifiers::SUPER.union(Modifiers::SHIFT), "]".into()),
+                (Modifiers::CTRL, "Tab".into()),
+                (Modifiers::CTRL, "PageDown".into()),
+            ],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Tab"],
+        },
+        ReloadConfiguration => CommandDef {
+            brief: "Reload configuration".into(),
+            doc: "Reloads the configuration file".into(),
+            keys: vec![(Modifiers::SUPER, "r".into())],
+            args: &[],
+            menubar: &["WezTerm"],
+        },
+        QuitApplication => CommandDef {
+            brief: "Quit WezTerm".into(),
+            doc: "Quits WezTerm".into(),
+            keys: vec![(Modifiers::SUPER, "q".into())],
+            args: &[],
+            menubar: &["WezTerm"],
+        },
+        MoveTabRelative(-1) => CommandDef {
+            brief: "Move tab one place to the left".into(),
+            doc: "Rearranges the tabs so that the current tab moves \
+            one place to the left"
+                .into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "PageUp".into())],
+            args: &[ArgType::ActiveTab],
+            menubar: &["Window", "Move Tab"],
+        },
+        MoveTabRelative(1) => CommandDef {
+            brief: "Move tab one place to the right".into(),
+            doc: "Rearranges the tabs so that the current tab moves \
+            one place to the right"
+                .into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "PageDown".into())],
+            args: &[ArgType::ActiveTab],
+            menubar: &["Window", "Move Tab"],
+        },
 
-    pub fn expand(mut self) -> Vec<ExpandedCommand> {
-        (self.template.exp)(&mut self);
-        self.commands
-    }
+        ScrollByPage(amount) => {
+            let amount = amount.into_inner();
+            if amount == -1.0 {
+                CommandDef {
+                    brief: "Scroll Up One Page".into(),
+                    doc: "Scrolls the viewport up by 1 page".into(),
+                    keys: vec![(Modifiers::SHIFT, "PageUp".into())],
+                    args: &[ArgType::ActivePane],
+                    menubar: &["View"],
+                }
+            } else if amount == 1.0 {
+                CommandDef {
+                    brief: "Scroll Down One Page".into(),
+                    doc: "Scrolls the viewport down by 1 page".into(),
+                    keys: vec![(Modifiers::SHIFT, "PageDown".into())],
+                    args: &[ArgType::ActivePane],
+                    menubar: &["View"],
+                }
+            } else if amount < 0.0 {
+                let amount = -amount;
+                CommandDef {
+                    brief: format!("Scroll Up {amount} Page(s)").into(),
+                    doc: format!("Scrolls the viewport up by {amount} pages").into(),
+                    keys: vec![],
+                    args: &[ArgType::ActivePane],
+                    menubar: &["View"],
+                }
+            } else {
+                CommandDef {
+                    brief: format!("Scroll Down {amount} Page(s)").into(),
+                    doc: format!("Scrolls the viewport down by {amount} pages").into(),
+                    keys: vec![],
+                    args: &[ArgType::ActivePane],
+                    menubar: &["View"],
+                }
+            }
+        }
+        ScrollToBottom => CommandDef {
+            brief: "Scroll to the bottom".into(),
+            doc: "Scrolls to the bottom of the viewport".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["View"],
+        },
+        ScrollToTop => CommandDef {
+            brief: "Scroll to the top".into(),
+            doc: "Scrolls to the top of the viewport".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["View"],
+        },
+        ActivateCopyMode => CommandDef {
+            brief: "Activate Copy Mode".into(),
+            doc: "Enter mouse-less copy mode to select text using only \
+            the keyboard"
+                .into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "x".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
+        SplitVertical(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..
+        }) => CommandDef {
+            brief: "Split Vertically (Top/Bottom)".into(),
+            doc: "Split the current pane vertically into two panes, by spawning \
+            the default program into the bottom half"
+                .into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "'".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+        },
+        SplitHorizontal(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..
+        }) => CommandDef {
+            brief: "Split Horizontally (Left/Right)".into(),
+            doc: "Split the current pane horizontally into two panes, by spawning \
+            the default program into the right hand side"
+                .into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "5".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+        },
+        AdjustPaneSize(PaneDirection::Left, 1) => CommandDef {
+            brief: "Resize Pane to the Left".into(),
+            doc: "Adjusts the closest split divider to the left".into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "LeftArrow".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Resize Pane"],
+        },
+        AdjustPaneSize(PaneDirection::Right, 1) => CommandDef {
+            brief: "Resize Pane to the Right".into(),
+            doc: "Adjusts the closest split divider to the right".into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "RightArrow".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Resize Pane"],
+        },
+        AdjustPaneSize(PaneDirection::Up, 1) => CommandDef {
+            brief: "Resize Pane Upwards".into(),
+            doc: "Adjusts the closest split divider towards the top".into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "UpArrow".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Resize Pane"],
+        },
+        AdjustPaneSize(PaneDirection::Down, 1) => CommandDef {
+            brief: "Resize Pane Downwards".into(),
+            doc: "Adjusts the closest split divider towards the bottom".into(),
+            keys: vec![(
+                Modifiers::CTRL
+                    .union(Modifiers::ALT)
+                    .union(Modifiers::SHIFT),
+                "DownArrow".into(),
+            )],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Resize Pane"],
+        },
+        ActivatePaneDirection(PaneDirection::Left) => CommandDef {
+            brief: "Activate Pane Left".into(),
+            doc: "Activates the pane to the left of the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "LeftArrow".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Select Pane"],
+        },
+        ActivatePaneDirection(PaneDirection::Right) => CommandDef {
+            brief: "Activate Pane Right".into(),
+            doc: "Activates the pane to the right of the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "RightArrow".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Select Pane"],
+        },
+        ActivatePaneDirection(PaneDirection::Up) => CommandDef {
+            brief: "Activate Pane Up".into(),
+            doc: "Activates the pane to the top of the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "UpArrow".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Select Pane"],
+        },
+        ActivatePaneDirection(PaneDirection::Down) => CommandDef {
+            brief: "Activate Pane Down".into(),
+            doc: "Activates the pane to the bottom of the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "DownArrow".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window", "Select Pane"],
+        },
+        TogglePaneZoomState => CommandDef {
+            brief: "Toggle Pane Zoom".into(),
+            doc: "Toggles the zoom state for the current pane".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "z".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Window"],
+        },
+        ActivateLastTab => CommandDef {
+            brief: "Activate the last active tab".into(),
+            doc: "If there was no prior active tab, has no effect.".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Tab"],
+        },
+        ClearKeyTableStack => CommandDef {
+            brief: "Clear the key table stack".into(),
+            doc: "Removes all entries from the stack".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Edit"],
+        },
+        OpenLinkAtMouseCursor => CommandDef {
+            brief: "Open link at mouse cursor".into(),
+            doc: "If there is no link under the mouse cursor, has no effect.".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+        },
+        ShowLauncher => CommandDef {
+            brief: "Show the launcher".into(),
+            doc: "Shows the launcher menu".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Shell"],
+        },
+        ShowTabNavigator => CommandDef {
+            brief: "Navigate tabs".into(),
+            doc: "Shows the tab navigator".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Tab"],
+        },
+        DetachDomain(SpawnTabDomain::CurrentPaneDomain) => CommandDef {
+            brief: "Detach the domain of the active pane".into(),
+            doc: "Detaches (disconnects from) the domain of the active pane".into(),
+            keys: vec![],
+            args: &[ArgType::ActivePane],
+            menubar: &["Shell"],
+        },
+        OpenUri(uri) => match uri.as_ref() {
+            "https://wezfurlong.org/wezterm/" => CommandDef {
+                brief: "Documentation".into(),
+                doc: "Visit the wezterm documentation website".into(),
+                keys: vec![],
+                args: &[],
+                menubar: &["Help"],
+            },
+            "https://github.com/wez/wezterm/discussions/" => CommandDef {
+                brief: "Discuss on GitHub".into(),
+                doc: "Visit wezterm's GitHub discussion".into(),
+                keys: vec![],
+                args: &[],
+                menubar: &["Help"],
+            },
+            "https://github.com/wez/wezterm/issues/" => CommandDef {
+                brief: "Search or report issue on GitHub".into(),
+                doc: "Visit wezterm's GitHub issues".into(),
+                keys: vec![],
+                args: &[],
+                menubar: &["Help"],
+            },
+            _ => CommandDef {
+                brief: format!("Open {uri} in your browser").into(),
+                doc: format!("Open {uri} in your browser").into(),
+                keys: vec![],
+                args: &[],
+                menubar: &[],
+            },
+        },
+        _ => return None,
+    })
 }
 
-static DEFS: &[CommandDef] = &[
-    #[cfg(not(target_os = "macos"))]
-    CommandDef {
-        brief: "Paste primary selection",
-        doc: "Pastes text from the primary selection",
-        exp: |exp| exp.push(PasteFrom(ClipboardPasteSource::PrimarySelection)),
-        keys: &[(Modifiers::SHIFT, "Insert")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    #[cfg(not(target_os = "macos"))]
-    CommandDef {
-        brief: "Copy to primary selection",
-        doc: "Copies text from the primary selection",
-        exp: |exp| {
-            exp.push(CopyTo(ClipboardCopyDestination::PrimarySelection));
-        },
-        keys: &[(Modifiers::CTRL, "Insert")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Copy to clipboard",
-        doc: "Copies text to the clipboard",
-        exp: |exp| exp.push(CopyTo(ClipboardCopyDestination::Clipboard)),
-        keys: &[(Modifiers::SUPER, "c"), (Modifiers::NONE, "Copy")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Paste from clipboard",
-        doc: "Pastes text from the clipboard",
-        exp: |exp| exp.push(PasteFrom(ClipboardPasteSource::Clipboard)),
-        keys: &[(Modifiers::SUPER, "v"), (Modifiers::NONE, "Paste")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Toggle full screen mode",
-        doc: "Switch between normal and full screen mode",
-        exp: |exp| {
-            exp.push(ToggleFullScreen);
-        },
-        keys: &[(Modifiers::ALT, "Return")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Hide/Minimize Window",
-        doc: "Hides/Mimimizes the current window",
-        exp: |exp| {
-            exp.push(Hide);
-        },
-        keys: &[(Modifiers::SUPER, "m")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window"],
-    },
-    #[cfg(target_os = "macos")]
-    CommandDef {
-        brief: "Hide Application",
-        doc: "Hides all of the windows of the application. \
-              This is macOS specific.",
-        exp: |exp| {
-            exp.push(HideApplication);
-        },
-        keys: &[(Modifiers::SUPER, "h")],
-        args: &[],
-        menubar: &["WezTerm"],
-    },
-    CommandDef {
-        brief: "New Window",
-        doc: "Launches the default program into a new window",
-        exp: |exp| {
-            exp.push(SpawnWindow);
-        },
-        keys: &[(Modifiers::SUPER, "n")],
-        args: &[],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Clear scrollback",
-        doc: "Clears any text that has scrolled out of the \
-              viewport of the current pane",
-        exp: |exp| {
-            exp.push(ClearScrollback(ScrollbackEraseMode::ScrollbackOnly));
-        },
-        keys: &[(Modifiers::SUPER, "k")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Clear the scrollback and viewport",
-        doc: "Removes all content from the screen and scrollback",
-        exp: |exp| exp.push(ClearScrollback(ScrollbackEraseMode::ScrollbackAndViewport)),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Search pane output",
-        doc: "Enters the search mode UI for the current pane",
-        exp: |exp| {
-            exp.push(Search(Pattern::CurrentSelectionOrEmptyString));
-        },
-        keys: &[(Modifiers::SUPER, "f")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Show debug overlay",
-        doc: "Activates the debug overlay and Lua REPL",
-        exp: |exp| {
-            exp.push(ShowDebugOverlay);
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "l")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Enter QuickSelect mode",
-        doc: "Activates the quick selection UI for the current pane",
-        exp: |exp| {
-            exp.push(QuickSelect);
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "Space")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Enter Emoji / Character selection mode",
-        doc: "Activates the character selection UI for the current pane",
-        exp: |exp| {
-            exp.push(CharSelect(CharSelectArguments::default()));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "u")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Enter Pane selection mode",
-        doc: "Activates the pane selection UI",
-        exp: |exp| {
-            exp.push(PaneSelect(PaneSelectArguments::default()));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "p")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window"],
-    },
-    CommandDef {
-        brief: "Decrease font size",
-        doc: "Scales the font size smaller by 10%",
-        exp: |exp| {
-            exp.push(DecreaseFontSize);
-        },
-        keys: &[(Modifiers::SUPER, "-"), (Modifiers::CTRL, "-")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View", "Font Size"],
-    },
-    CommandDef {
-        brief: "Increase font size",
-        doc: "Scales the font size larger by 10%",
-        exp: |exp| {
-            exp.push(IncreaseFontSize);
-        },
-        keys: &[(Modifiers::SUPER, "="), (Modifiers::CTRL, "=")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View", "Font Size"],
-    },
-    CommandDef {
-        brief: "Reset font size",
-        doc: "Restores the font size to match your configuration file",
-        exp: |exp| {
-            exp.push(ResetFontSize);
-        },
-        keys: &[(Modifiers::SUPER, "0"), (Modifiers::CTRL, "0")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View", "Font Size"],
-    },
-    CommandDef {
-        brief: "Reset the window and font size",
-        doc: "Restores the original window and font size",
-        exp: |exp| exp.push(ResetFontAndWindowSize),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["View", "Font Size"],
-    },
-    CommandDef {
-        brief: "New Tab",
-        doc: "Create a new tab in the same domain as the current pane",
-        exp: |exp| {
-            exp.push(SpawnTab(SpawnTabDomain::CurrentPaneDomain));
-        },
-        keys: &[(Modifiers::SUPER, "t")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Activate 1st Tab",
-        doc: "Activates the left-most tab",
-
-        exp: |exp| {
-            exp.push(ActivateTab(0));
-        },
-        keys: &[(Modifiers::SUPER, "1")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 2nd Tab",
-        doc: "Activates the 2nd tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(1));
-        },
-        keys: &[(Modifiers::SUPER, "2")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 3rd Tab",
-        doc: "Activates the 3rd tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(2));
-        },
-        keys: &[(Modifiers::SUPER, "3")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 4th Tab",
-        doc: "Activates the 4th tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(3));
-        },
-        keys: &[(Modifiers::SUPER, "4")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 5th Tab",
-        doc: "Activates the 5th tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(4));
-        },
-        keys: &[(Modifiers::SUPER, "5")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 6th Tab",
-        doc: "Activates the 6th tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(5));
-        },
-        keys: &[(Modifiers::SUPER, "6")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 7th Tab",
-        doc: "Activates the 7th tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(6));
-        },
-        keys: &[(Modifiers::SUPER, "7")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate 8th Tab",
-        doc: "Activates the 8th tab from the left",
-        exp: |exp| {
-            exp.push(ActivateTab(7));
-        },
-        keys: &[(Modifiers::SUPER, "8")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate right-most tab",
-        doc: "Activates the tab on the far right",
-        exp: |exp| {
-            exp.push(ActivateTab(-1));
-        },
-        keys: &[(Modifiers::SUPER, "9")],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Close current Tab",
-        doc: "Closes the current tab, terminating all the \
-            processes that are running in its panes.",
-        exp: |exp| {
-            exp.push(CloseCurrentTab { confirm: true });
-        },
-        keys: &[(Modifiers::SUPER, "w")],
-        args: &[ArgType::ActiveTab],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Close current Pane",
-        doc: "Closes the current pane, terminating the \
-            processes that are running inside it.",
-        exp: |exp| {
-            exp.push(CloseCurrentPane { confirm: true });
-        },
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Activate the tab to the left",
-        doc: "Activates the tab to the left. If this is the left-most \
-            tab then cycles around and activates the right-most tab",
-        exp: |exp| {
-            exp.push(ActivateTabRelative(-1));
-        },
-        keys: &[
-            (Modifiers::SUPER.union(Modifiers::SHIFT), "["),
-            (Modifiers::CTRL.union(Modifiers::SHIFT), "Tab"),
-            (Modifiers::CTRL, "PageUp"),
-        ],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Activate the tab to the right",
-        doc: "Activates the tab to the right. If this is the right-most \
-            tab then cycles around and activates the left-most tab",
-        exp: |exp| {
-            exp.push(ActivateTabRelative(1));
-        },
-        keys: &[
-            (Modifiers::SUPER.union(Modifiers::SHIFT), "]"),
-            (Modifiers::CTRL, "Tab"),
-            (Modifiers::CTRL, "PageDown"),
-        ],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Reload configuration",
-        doc: "Reloads the configuration file",
-        exp: |exp| {
-            exp.push(ReloadConfiguration);
-        },
-        keys: &[(Modifiers::SUPER, "r")],
-        args: &[],
-        menubar: &["WezTerm"],
-    },
-    #[cfg(target_os = "macos")]
-    CommandDef {
-        brief: "Quit WezTerm",
-        doc: "Quits WezTerm",
-        exp: |exp| {
-            exp.push(QuitApplication);
-        },
-        keys: &[(Modifiers::SUPER, "q")],
-        args: &[],
-        menubar: &["WezTerm"],
-    },
-    CommandDef {
-        brief: "Move tab one place to the left",
-        doc: "Rearranges the tabs so that the current tab moves \
-            one place to the left",
-        exp: |exp| {
-            exp.push(MoveTabRelative(-1));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageUp")],
-        args: &[ArgType::ActiveTab],
-        menubar: &["Window", "Move Tab"],
-    },
-    CommandDef {
-        brief: "Move tab one place to the right",
-        doc: "Rearranges the tabs so that the current tab moves \
-            one place to the right",
-        exp: |exp| {
-            exp.push(MoveTabRelative(1));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "PageDown")],
-        args: &[ArgType::ActiveTab],
-        menubar: &["Window", "Move Tab"],
-    },
-    CommandDef {
-        brief: "Scroll Up One Page",
-        doc: "Scrolls the viewport up by 1 page",
-        exp: |exp| exp.push(ScrollByPage(NotNan::new(-1.0).unwrap())),
-        keys: &[(Modifiers::SHIFT, "PageUp")],
-        args: &[ArgType::ActivePane],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Scroll Down One Page",
-        doc: "Scrolls the viewport down by 1 page",
-
-        exp: |exp| exp.push(ScrollByPage(NotNan::new(1.0).unwrap())),
-        keys: &[(Modifiers::SHIFT, "PageDown")],
-        args: &[ArgType::ActivePane],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Scroll to the bottom",
-        doc: "Scrolls to the bottom of the viewport",
-        exp: |exp| exp.push(ScrollToBottom),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Scroll to the top",
-        doc: "Scrolls to the top of the viewport",
-        exp: |exp| exp.push(ScrollToTop),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["View"],
-    },
-    CommandDef {
-        brief: "Activate Copy Mode",
-        doc: "Enter mouse-less copy mode to select text using only \
-            the keyboard",
-        exp: |exp| {
-            exp.push(ActivateCopyMode);
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "x")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Split Vertically (Top/Bottom)",
-        doc: "Split the current pane vertically into two panes, by spawning \
-            the default program into the bottom half",
-        exp: |exp| {
-            exp.push(SplitVertical(SpawnCommand {
-                domain: SpawnTabDomain::CurrentPaneDomain,
-                ..Default::default()
-            }));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "'",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Split Horizontally (Left/Right)",
-        doc: "Split the current pane horizontally into two panes, by spawning \
-            the default program into the right hand side",
-        exp: |exp| {
-            exp.push(SplitHorizontal(SpawnCommand {
-                domain: SpawnTabDomain::CurrentPaneDomain,
-                ..Default::default()
-            }));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "5",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Resize Pane to the Left",
-        doc: "Adjusts the closest split divider to the left",
-        exp: |exp| {
-            exp.push(AdjustPaneSize(PaneDirection::Left, 1));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "LeftArrow",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Resize Pane"],
-    },
-    CommandDef {
-        brief: "Resize Pane to the Right",
-        doc: "Adjusts the closest split divider to the right",
-        exp: |exp| {
-            exp.push(AdjustPaneSize(PaneDirection::Right, 1));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "RightArrow",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Resize Pane"],
-    },
-    CommandDef {
-        brief: "Resize Pane Upwards",
-        doc: "Adjusts the closest split divider towards the top",
-        exp: |exp| {
-            exp.push(AdjustPaneSize(PaneDirection::Up, 1));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "UpArrow",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Resize Pane"],
-    },
-    CommandDef {
-        brief: "Resize Pane Downwards",
-        doc: "Adjusts the closest split divider towards the bottom",
-        exp: |exp| {
-            exp.push(AdjustPaneSize(PaneDirection::Down, 1));
-        },
-        keys: &[(
-            Modifiers::CTRL
-                .union(Modifiers::ALT)
-                .union(Modifiers::SHIFT),
-            "DownArrow",
-        )],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Resize Pane"],
-    },
-    CommandDef {
-        brief: "Activate Pane Left",
-        doc: "Activates the pane to the left of the current pane",
-        exp: |exp| {
-            exp.push(ActivatePaneDirection(PaneDirection::Left));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "LeftArrow")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Select Pane"],
-    },
-    CommandDef {
-        brief: "Activate Pane Right",
-        doc: "Activates the pane to the right of the current pane",
-        exp: |exp| {
-            exp.push(ActivatePaneDirection(PaneDirection::Right));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "RightArrow")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Select Pane"],
-    },
-    CommandDef {
-        brief: "Activate Pane Up",
-        doc: "Activates the pane to the top of the current pane",
-        exp: |exp| {
-            exp.push(ActivatePaneDirection(PaneDirection::Up));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "UpArrow")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Select Pane"],
-    },
-    CommandDef {
-        brief: "Activate Pane Down",
-        doc: "Activates the pane to the bottom of the current pane",
-        exp: |exp| {
-            exp.push(ActivatePaneDirection(PaneDirection::Down));
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "DownArrow")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window", "Select Pane"],
-    },
-    CommandDef {
-        brief: "Toggle Pane Zoom",
-        doc: "Toggles the zoom state for the current pane",
-        exp: |exp| {
-            exp.push(TogglePaneZoomState);
-        },
-        keys: &[(Modifiers::CTRL.union(Modifiers::SHIFT), "z")],
-        args: &[ArgType::ActivePane],
-        menubar: &["Window"],
-    },
-    CommandDef {
-        brief: "Activate the last active tab",
-        doc: "If there was no prior active tab, has no effect.",
-        exp: |exp| exp.push(ActivateLastTab),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Clear the key table stack",
-        doc: "Removes all entries from the stack",
-        exp: |exp| exp.push(ClearKeyTableStack),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Edit"],
-    },
-    CommandDef {
-        brief: "Close the active pane",
-        doc: "Terminates the process in the pane and closes it",
-        exp: |exp| exp.push(CloseCurrentPane { confirm: true }),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Open link at mouse cursor",
-        doc: "If there is no link under the mouse cursor, has no effect.",
-        exp: |exp| exp.push(OpenLinkAtMouseCursor),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Show the launcher",
-        doc: "Shows the launcher menu",
-        exp: |exp| exp.push(ShowLauncher),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Navigate tabs",
-        doc: "Shows the tab navigator",
-        exp: |exp| exp.push(ShowTabNavigator),
-        keys: &[],
-        args: &[ArgType::ActiveWindow],
-        menubar: &["Window", "Select Tab"],
-    },
-    CommandDef {
-        brief: "Detach the domain of the active pane",
-        doc: "Detaches (disconnects from) the domain of the active pane",
-        exp: |exp| exp.push(DetachDomain(SpawnTabDomain::CurrentPaneDomain)),
-        keys: &[],
-        args: &[ArgType::ActivePane],
-        menubar: &["Shell"],
-    },
-    CommandDef {
-        brief: "Documentation",
-        doc: "Visit the wezterm documentation website",
-        exp: |exp| exp.push(OpenUri("https://wezfurlong.org/wezterm/".to_string())),
-        keys: &[],
-        args: &[],
-        menubar: &["Help"],
-    },
-    CommandDef {
-        brief: "Discuss on GitHub",
-        doc: "Visit wezterm's GitHub discussion",
-        exp: |exp| {
-            exp.push(OpenUri(
-                "https://github.com/wez/wezterm/discussions/".to_string(),
-            ))
-        },
-        keys: &[],
-        args: &[],
-        menubar: &["Help"],
-    },
-    CommandDef {
-        brief: "Search or report issue on GitHub",
-        doc: "Visit wezterm's GitHub issues",
-        exp: |exp| {
-            exp.push(OpenUri(
-                "https://github.com/wez/wezterm/issues/".to_string(),
-            ))
-        },
-        keys: &[],
-        args: &[],
-        menubar: &["Help"],
-    },
-];
+/// Returns a list of key assignment actions that should be
+/// included in the default key assignments and command palette.
+fn compute_default_actions() -> Vec<KeyAssignment> {
+    return vec![
+        #[cfg(not(target_os = "macos"))]
+        PasteFrom(ClipboardPasteSource::PrimarySelection),
+        #[cfg(not(target_os = "macos"))]
+        CopyTo(ClipboardCopyDestination::PrimarySelection),
+        CopyTo(ClipboardCopyDestination::Clipboard),
+        PasteFrom(ClipboardPasteSource::Clipboard),
+        ToggleFullScreen,
+        Hide,
+        #[cfg(target_os = "macos")]
+        HideApplication,
+        SpawnWindow,
+        ClearScrollback(ScrollbackEraseMode::ScrollbackOnly),
+        ClearScrollback(ScrollbackEraseMode::ScrollbackAndViewport),
+        Search(Pattern::CurrentSelectionOrEmptyString),
+        ShowDebugOverlay,
+        QuickSelect,
+        CharSelect(CharSelectArguments::default()),
+        PaneSelect(PaneSelectArguments::default()),
+        DecreaseFontSize,
+        IncreaseFontSize,
+        ResetFontSize,
+        ResetFontAndWindowSize,
+        SpawnTab(SpawnTabDomain::CurrentPaneDomain),
+        ActivateTab(0),
+        ActivateTab(1),
+        ActivateTab(2),
+        ActivateTab(3),
+        ActivateTab(4),
+        ActivateTab(5),
+        ActivateTab(6),
+        ActivateTab(7),
+        ActivateTab(-1),
+        CloseCurrentTab { confirm: true },
+        CloseCurrentPane { confirm: true },
+        ActivateTabRelative(-1),
+        ActivateTabRelative(1),
+        ReloadConfiguration,
+        #[cfg(target_os = "macos")]
+        QuitApplication,
+        MoveTabRelative(-1),
+        MoveTabRelative(1),
+        ScrollByPage(NotNan::new(-1.0).unwrap()),
+        ScrollByPage(NotNan::new(1.0).unwrap()),
+        ScrollToBottom,
+        ScrollToTop,
+        ActivateCopyMode,
+        SplitVertical(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..Default::default()
+        }),
+        SplitHorizontal(SpawnCommand {
+            domain: SpawnTabDomain::CurrentPaneDomain,
+            ..Default::default()
+        }),
+        AdjustPaneSize(PaneDirection::Left, 1),
+        AdjustPaneSize(PaneDirection::Right, 1),
+        AdjustPaneSize(PaneDirection::Up, 1),
+        AdjustPaneSize(PaneDirection::Down, 1),
+        ActivatePaneDirection(PaneDirection::Left),
+        ActivatePaneDirection(PaneDirection::Right),
+        ActivatePaneDirection(PaneDirection::Up),
+        ActivatePaneDirection(PaneDirection::Down),
+        TogglePaneZoomState,
+        ActivateLastTab,
+        ClearKeyTableStack,
+        OpenLinkAtMouseCursor,
+        ShowLauncher,
+        ShowTabNavigator,
+        DetachDomain(SpawnTabDomain::CurrentPaneDomain),
+        OpenUri("https://wezfurlong.org/wezterm/".to_string()),
+        OpenUri("https://github.com/wez/wezterm/discussions/".to_string()),
+        OpenUri("https://github.com/wez/wezterm/issues/".to_string()),
+    ];
+}
