@@ -22,6 +22,10 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: initial cut at macOS native menu bar
   [#1485](https://github.com/wez/wezterm/issues/1485)
 
+#### Fixed
+* X11: hanging or killing the IME could hang wezterm
+  [#2819](https://github.com/wez/wezterm/issues/2819)
+
 #### Changed
 * Window title reporting escape sequences are now disabled by default.
   [See here for more details](https://marc.info/?l=bugtraq&m=104612710031920&w=2)
