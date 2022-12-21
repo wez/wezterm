@@ -45,6 +45,7 @@ mod scripting;
 mod scrollbar;
 mod selection;
 mod shapecache;
+mod spawn;
 mod stats;
 mod tabbar;
 mod termwindow;

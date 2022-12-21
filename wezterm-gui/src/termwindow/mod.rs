@@ -78,8 +78,8 @@ pub mod resize;
 mod selection;
 pub mod spawn;
 pub mod webgpu;
+use crate::spawn::SpawnWhere;
 use prevcursor::PrevCursorPos;
-use spawn::SpawnWhere;
 
 const ATLAS_SIZE: usize = 128;
 
@@ -2669,11 +2669,11 @@ impl TermWindow {
                     let src_window_id = self.mux_window_id;
 
                     promise::spawn::spawn(async move {
-                        if let Err(err) = Self::spawn_command_internal(
+                        if let Err(err) = crate::spawn::spawn_command_internal(
                             spawn,
                             SpawnWhere::NewWindow,
                             size,
-                            src_window_id,
+                            Some(src_window_id),
                             term_config,
                         )
                         .await

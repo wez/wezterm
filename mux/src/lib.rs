@@ -946,15 +946,16 @@ impl Mux {
     ) -> anyhow::Result<Arc<dyn Domain>> {
         let domain = match domain {
             SpawnTabDomain::DefaultDomain => self.default_domain(),
-            SpawnTabDomain::CurrentPaneDomain => {
-                let pane_id = pane_id
-                    .ok_or_else(|| anyhow!("CurrentPaneDomain used with no current pane"))?;
-                let (pane_domain_id, _window_id, _tab_id) = self
-                    .resolve_pane_id(pane_id)
-                    .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
-                self.get_domain(pane_domain_id)
-                    .expect("resolve_pane_id to give valid domain_id")
-            }
+            SpawnTabDomain::CurrentPaneDomain => match pane_id {
+                Some(pane_id) => {
+                    let (pane_domain_id, _window_id, _tab_id) = self
+                        .resolve_pane_id(pane_id)
+                        .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+                    self.get_domain(pane_domain_id)
+                        .expect("resolve_pane_id to give valid domain_id")
+                }
+                None => self.default_domain(),
+            },
             SpawnTabDomain::DomainId(domain_id) => self
                 .get_domain(*domain_id)
                 .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,

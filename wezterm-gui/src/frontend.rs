@@ -1,8 +1,10 @@
 use crate::scripting::guiwin::GuiWin;
+use crate::spawn::SpawnWhere;
 use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
+use config::keyassignment::{KeyAssignment, SpawnCommand};
 pub use config::FrontEndSelection;
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
@@ -98,13 +100,16 @@ impl GuiFrontEnd {
                         | Alert::SetUserVar { .. },
                 } => {}
                 MuxNotification::Empty => {
-                    promise::spawn::spawn_into_main_thread(async move {
-                        if mux::activity::Activity::count() == 0 {
-                            log::trace!("Mux is now empty, terminate gui");
-                            Connection::get().unwrap().terminate_message_loop();
-                        }
-                    })
-                    .detach();
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        promise::spawn::spawn_into_main_thread(async move {
+                            if mux::activity::Activity::count() == 0 {
+                                log::trace!("Mux is now empty, terminate gui");
+                                Connection::get().unwrap().terminate_message_loop();
+                            }
+                        })
+                        .detach();
+                    }
                 }
                 MuxNotification::SaveToDownloads { name, data } => {
                     if !config::configuration().allow_download_protocols {
@@ -211,7 +216,45 @@ impl GuiFrontEnd {
                 // and the user picks an action from the menubar.
                 // This is not currently possible, but could be in the
                 // future.
-                log::info!("perform: {action:?}");
+
+                fn spawn_command(spawn: &SpawnCommand, spawn_where: SpawnWhere) {
+                    let config = config::configuration();
+                    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
+                    let size = config.initial_size(dpi);
+                    let term_config = Arc::new(config::TermConfig::with_config(config));
+
+                    crate::spawn::spawn_command_impl(spawn, spawn_where, size, None, term_config)
+                }
+
+                match action {
+                    KeyAssignment::QuitApplication => {
+                        // If we get here, there are no windows that could have received
+                        // the QuitApplication command, therefore it must be ok to quit
+                        // immediately
+                        Connection::get().unwrap().terminate_message_loop();
+                    }
+                    KeyAssignment::SpawnWindow => {
+                        spawn_command(&SpawnCommand::default(), SpawnWhere::NewWindow);
+                    }
+                    KeyAssignment::SpawnTab(spawn_where) => {
+                        spawn_command(
+                            &SpawnCommand {
+                                domain: spawn_where,
+                                ..Default::default()
+                            },
+                            SpawnWhere::NewWindow,
+                        );
+                    }
+                    KeyAssignment::SpawnCommandInNewTab(spawn) => {
+                        spawn_command(&spawn, SpawnWhere::NewTab);
+                    }
+                    KeyAssignment::SpawnCommandInNewWindow(spawn) => {
+                        spawn_command(&spawn, SpawnWhere::NewWindow);
+                    }
+                    _ => {
+                        log::warn!("unhandled perform: {action:?}");
+                    }
+                }
             }
             ApplicationEvent::OpenInBrowser(url) => {
                 std::thread::spawn(move || {
