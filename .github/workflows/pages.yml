@@ -55,6 +55,8 @@ jobs:
         run: |
           (test -x ~/.cargo/bin/gelatyx || (cd && cargo install gelatyx --locked))
       - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source $HOME/.cargo/env
           ./ci/build-docs.sh

@@ -7,8 +7,18 @@ gelatyx lua --file $tracked_markdown --language-config ci/stylua.toml --check ||
 
 set -x
 
-[[ -f /tmp/wezterm.releases.json ]] || curl https://api.github.com/repos/wez/wezterm/releases > /tmp/wezterm.releases.json
-[[ -f /tmp/wezterm.nightly.json ]] || curl https://api.github.com/repos/wez/wezterm/releases/tags/nightly > /tmp/wezterm.nightly.json
+# Use the GH CLI to make an authenticated request if available,
+# otherwise just do an ad-hoc curl
+function ghapi() {
+  if hash gh 2>/dev/null ; then
+    gh api $1
+  else
+    curl https://api.github.com$1
+  fi
+}
+
+[[ -f /tmp/wezterm.releases.json ]] || ghapi /repos/wez/wezterm/releases > /tmp/wezterm.releases.json
+[[ -f /tmp/wezterm.nightly.json ]] || ghapi /repos/wez/wezterm/releases/tags/nightly > /tmp/wezterm.nightly.json
 python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
 mdbook-mermaid install docs
