@@ -71,6 +71,7 @@ pub mod clipboard;
 mod keyevent;
 pub mod modal;
 mod mouseevent;
+pub mod palette;
 pub mod paneselect;
 mod prevcursor;
 mod render;
@@ -2764,6 +2765,10 @@ impl TermWindow {
                         log::error!("Error opening {}: {:#}", link, err);
                     }
                 });
+            }
+            ActivateCommandPalette => {
+                let modal = crate::termwindow::palette::CommandPalette::new(self);
+                self.modal.borrow_mut().replace(Rc::new(modal));
             }
         };
         Ok(PerformAssignmentResult::Handled)

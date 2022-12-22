@@ -27,6 +27,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2819](https://github.com/wez/wezterm/issues/2819)
 
 #### Changed
+* `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
+  [#1485](https://github.com/wez/wezterm/issues/1485)
 * Window title reporting escape sequences are now disabled by default.
   [See here for more details](https://marc.info/?l=bugtraq&m=104612710031920&w=2)
 * Withdraw DEC private SGR escapes that affect superscript and

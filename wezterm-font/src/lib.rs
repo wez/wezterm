@@ -459,6 +459,7 @@ struct FontConfigInner {
     title_font: RefCell<Option<Rc<LoadedFont>>>,
     pane_select_font: RefCell<Option<Rc<LoadedFont>>>,
     char_select_font: RefCell<Option<Rc<LoadedFont>>>,
+    command_palette_font: RefCell<Option<Rc<LoadedFont>>>,
     fallback_channel: RefCell<Option<Sender<FallbackResolveInfo>>>,
 }
 
@@ -479,6 +480,7 @@ impl FontConfigInner {
             title_font: RefCell::new(None),
             pane_select_font: RefCell::new(None),
             char_select_font: RefCell::new(None),
+            command_palette_font: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi: RefCell::new(dpi),
             config: RefCell::new(config.clone()),
@@ -496,6 +498,7 @@ impl FontConfigInner {
         self.title_font.borrow_mut().take();
         self.pane_select_font.borrow_mut().take();
         self.char_select_font.borrow_mut().take();
+        self.command_palette_font.borrow_mut().take();
         self.metrics.borrow_mut().take();
         *self.font_dirs.borrow_mut() = Arc::new(FontDatabase::with_font_dirs(config)?);
         Ok(())
@@ -540,7 +543,7 @@ impl FontConfigInner {
         }
     }
 
-    fn compute_title_font(&self, config: &ConfigHandle) -> (TextStyle, f64) {
+    fn compute_title_font(&self, config: &ConfigHandle, make_bold: bool) -> (TextStyle, f64) {
         fn bold(family: &str) -> FontAttributes {
             FontAttributes {
                 family: family.to_string(),
@@ -549,7 +552,12 @@ impl FontConfigInner {
             }
         }
 
-        let mut fonts = vec![bold("Roboto")];
+        let mut fonts = vec![if make_bold {
+            bold("Roboto")
+        } else {
+            FontAttributes::new("Roboto")
+        }];
+
         // Fallback to their main font selection, so that we can pick up
         // any fallback fonts they might have configured in the main
         // config and so that they don't have to replicate that list for
@@ -575,9 +583,10 @@ impl FontConfigInner {
         &self,
         myself: &Rc<Self>,
         pref_size: Option<f64>,
+        make_bold: bool,
     ) -> anyhow::Result<Rc<LoadedFont>> {
         let config = self.config.borrow();
-        let (sys_font, sys_size) = self.compute_title_font(&config);
+        let (sys_font, sys_size) = self.compute_title_font(&config, make_bold);
 
         let font_size = pref_size.unwrap_or(sys_size);
 
@@ -628,9 +637,26 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let loaded = self.make_title_font_impl(myself, config.window_frame.font_size)?;
+        let loaded = self.make_title_font_impl(myself, config.window_frame.font_size, true)?;
 
         title_font.replace(Rc::clone(&loaded));
+
+        Ok(loaded)
+    }
+
+    fn command_palette_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
+        let config = self.config.borrow();
+
+        let mut command_palette_font = self.command_palette_font.borrow_mut();
+
+        if let Some(entry) = command_palette_font.as_ref() {
+            return Ok(Rc::clone(entry));
+        }
+
+        let loaded =
+            self.make_title_font_impl(myself, Some(config.command_palette_font_size), false)?;
+
+        command_palette_font.replace(Rc::clone(&loaded));
 
         Ok(loaded)
     }
@@ -644,7 +670,7 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let loaded = self.make_title_font_impl(myself, Some(config.char_select_font_size))?;
+        let loaded = self.make_title_font_impl(myself, Some(config.char_select_font_size), true)?;
 
         char_select_font.replace(Rc::clone(&loaded));
 
@@ -660,7 +686,7 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let loaded = self.make_title_font_impl(myself, Some(config.pane_select_font_size))?;
+        let loaded = self.make_title_font_impl(myself, Some(config.pane_select_font_size), true)?;
 
         pane_select_font.replace(Rc::clone(&loaded));
 
@@ -1003,6 +1029,10 @@ impl FontConfiguration {
 
     pub fn title_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
         self.inner.title_font(&self.inner)
+    }
+
+    pub fn command_palette_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
+        self.inner.command_palette_font(&self.inner)
     }
 
     pub fn pane_select_font(&self) -> anyhow::Result<Rc<LoadedFont>> {

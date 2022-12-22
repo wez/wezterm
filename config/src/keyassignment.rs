@@ -533,6 +533,7 @@ pub enum KeyAssignment {
 
     ResetTerminal,
     OpenUri(String),
+    ActivateCommandPalette,
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

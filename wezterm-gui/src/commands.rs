@@ -412,7 +412,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         PaneSelect(_) => CommandDef {
             brief: "Enter Pane selection mode".into(),
             doc: "Activates the pane selection UI".into(),
-            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "p".into())],
+            keys: vec![], // FIXME: find a new assignment
             args: &[ArgType::ActivePane],
             menubar: &["Window"],
         },
@@ -1329,6 +1329,13 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             args: &[ArgType::ActivePane],
             menubar: &["Shell"],
         },
+        ActivateCommandPalette => CommandDef {
+            brief: "Activate Command Palette".into(),
+            doc: "Shows the command palette modal".into(),
+            keys: vec![(Modifiers::CTRL.union(Modifiers::SHIFT), "p".into())],
+            args: &[ArgType::ActivePane],
+            menubar: &["Edit"],
+        },
     })
 }
 
@@ -1371,6 +1378,7 @@ fn compute_default_actions() -> Vec<KeyAssignment> {
         CharSelect(CharSelectArguments::default()),
         ActivateCopyMode,
         ClearKeyTableStack,
+        ActivateCommandPalette,
         // ----------------- View
         DecreaseFontSize,
         IncreaseFontSize,

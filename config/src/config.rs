@@ -117,6 +117,15 @@ pub struct Config {
     #[dynamic(default = "default_char_select_font_size")]
     pub char_select_font_size: f64,
 
+    #[dynamic(default = "default_command_palette_font_size")]
+    pub command_palette_font_size: f64,
+
+    #[dynamic(default = "default_command_palette_fg_color")]
+    pub command_palette_fg_color: RgbaColor,
+
+    #[dynamic(default = "default_command_palette_bg_color")]
+    pub command_palette_bg_color: RgbaColor,
+
     #[dynamic(default = "default_pane_select_font_size")]
     pub pane_select_font_size: f64,
 
@@ -1330,6 +1339,18 @@ fn default_pane_select_font_size() -> f64 {
 
 fn default_char_select_font_size() -> f64 {
     18.0
+}
+
+fn default_command_palette_font_size() -> f64 {
+    12.0
+}
+
+fn default_command_palette_fg_color() -> RgbaColor {
+    SrgbaTuple(0.75, 0.75, 0.75, 1.0).into()
+}
+
+fn default_command_palette_bg_color() -> RgbaColor {
+    (0x33, 0x33, 0x33).into()
 }
 
 fn default_swallow_mouse_click_on_window_focus() -> bool {
