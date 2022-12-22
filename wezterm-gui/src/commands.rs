@@ -280,13 +280,6 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             args: &[ArgType::ActivePane],
             menubar: &["Edit"],
         },
-        PastePrimarySelection => CommandDef {
-            brief: "Paste primary selection".into(),
-            doc: "Pastes text from the primary selection".into(),
-            keys: vec![],
-            args: &[ArgType::ActivePane],
-            menubar: &[],
-        },
         CopyTo(ClipboardCopyDestination::PrimarySelection) => CommandDef {
             brief: "Copy to primary selection".into(),
             doc: "Copies text to the primary selection".into(),
@@ -311,13 +304,6 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             args: &[ArgType::ActivePane],
             menubar: &["Edit"],
         },
-        Copy => CommandDef {
-            brief: "Copy to clipboard and primary selection".into(),
-            doc: "Copies text to the clipboard and the primary selection".into(),
-            keys: vec![],
-            args: &[ArgType::ActivePane],
-            menubar: &[],
-        },
         PasteFrom(ClipboardPasteSource::Clipboard) => CommandDef {
             brief: "Paste from clipboard".into(),
             doc: "Pastes text from the clipboard".into(),
@@ -327,13 +313,6 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             ],
             args: &[ArgType::ActivePane],
             menubar: &["Edit"],
-        },
-        Paste => CommandDef {
-            brief: "Paste from clipboard".into(),
-            doc: "Pastes text from the clipboard".into(),
-            keys: vec![],
-            args: &[ArgType::ActivePane],
-            menubar: &[],
         },
         ToggleFullScreen => CommandDef {
             brief: "Toggle full screen mode".into(),

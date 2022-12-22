@@ -32,6 +32,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Withdraw DEC private SGR escapes that affect superscript and
   subscript due to xterm/vim conflict
   [mintty/#1189](https://github.com/mintty/mintty/issues/1189)
+* Removed deprecated `Copy`, `Paste` and `PastePrimarySelection` actions. Use
+  [CopyTo](config/lua/keyassignment/CopyTo.md) and
+  [PasteFrom](config/lua/keyassignment/PasteFrom.md) instead.
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0

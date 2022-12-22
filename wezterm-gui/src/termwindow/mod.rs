@@ -28,8 +28,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, PaneDirection, Pattern,
-    QuickSelectArguments, RotationDirection, SpawnCommand, SplitSize,
+    KeyAssignment, PaneDirection, Pattern, QuickSelectArguments, RotationDirection, SpawnCommand,
+    SplitSize,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
@@ -2328,22 +2328,9 @@ impl TermWindow {
             ToggleFullScreen => {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
-            Copy => {
-                let text = self.selection_text(pane);
-                self.copy_to_clipboard(
-                    ClipboardCopyDestination::ClipboardAndPrimarySelection,
-                    text,
-                );
-            }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);
-            }
-            Paste => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard);
-            }
-            PastePrimarySelection => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection);
             }
             PasteFrom(source) => {
                 self.paste_from_clipboard(pane, *source);
