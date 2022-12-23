@@ -242,7 +242,9 @@ impl CommandPalette {
             };
 
             // DRY if the brief and doc are the same
-            let label = if command.brief.to_ascii_lowercase() == command.doc.to_ascii_lowercase() {
+            let label = if command.doc.is_empty()
+                || command.brief.to_ascii_lowercase() == command.doc.to_ascii_lowercase()
+            {
                 format!("{group}: {}", command.brief)
             } else {
                 format!("{group}: {}. {}", command.brief, command.doc)
