@@ -230,7 +230,7 @@ impl CommandDef {
                             doc: "".into(),
                             keys: vec![],
                             action: KeyAssignment::AttachDomain(name.to_string()),
-                            menubar: &["Shell"],
+                            menubar: &["Shell", "Attach"],
                         });
                     }
                 }
@@ -1408,7 +1408,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             doc: format!("Attach domain `{name}`").into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &[],
+            menubar: &["Shell", "Attach"],
         },
         CopyMode(_) => CommandDef {
             brief: "Activate Copy Mode".into(),
