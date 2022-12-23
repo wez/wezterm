@@ -1,5 +1,7 @@
 use config::keyassignment::*;
 use config::{ConfigHandle, DeferredKeyCode};
+use mux::domain::DomainState;
+use mux::Mux;
 use ordered_float::NotNan;
 use std::borrow::Cow;
 use std::convert::TryFrom;
@@ -169,6 +171,116 @@ impl CommandDef {
                     });
                 }
             }
+        }
+
+        // Generate some stuff based on the config
+        for cmd in &config.launch_menu {
+            let label = match cmd.label.as_ref() {
+                Some(label) => label.to_string(),
+                None => match cmd.args.as_ref() {
+                    Some(args) => args.join(" "),
+                    None => "(default shell)".to_string(),
+                },
+            };
+            result.push(ExpandedCommand {
+                brief: format!("{label} (New Tab)").into(),
+                doc: "".into(),
+                keys: vec![],
+                action: KeyAssignment::SpawnCommandInNewTab(cmd.clone()),
+                menubar: &["Shell"],
+            });
+        }
+
+        // Generate some stuff based on the mux state
+        if let Some(mux) = Mux::try_get() {
+            let mut domains = mux.iter_domains();
+            domains.sort_by(|a, b| {
+                let a_state = a.state();
+                let b_state = b.state();
+                if a_state != b_state {
+                    use std::cmp::Ordering;
+                    return if a_state == DomainState::Attached {
+                        Ordering::Less
+                    } else {
+                        Ordering::Greater
+                    };
+                }
+                a.domain_id().cmp(&b.domain_id())
+            });
+            for dom in &domains {
+                let name = dom.domain_name();
+                // FIXME: use domain_label here, but needs to be async
+                let label = name.clone();
+
+                if dom.spawnable() {
+                    if dom.state() == DomainState::Attached {
+                        result.push(ExpandedCommand {
+                            brief: format!("New Tab (Domain {label})").into(),
+                            doc: "".into(),
+                            keys: vec![],
+                            action: KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
+                                domain: SpawnTabDomain::DomainName(name.to_string()),
+                                ..SpawnCommand::default()
+                            }),
+                            menubar: &["Shell"],
+                        });
+                    } else {
+                        result.push(ExpandedCommand {
+                            brief: format!("Attach Domain {label}").into(),
+                            doc: "".into(),
+                            keys: vec![],
+                            action: KeyAssignment::AttachDomain(name.to_string()),
+                            menubar: &["Shell"],
+                        });
+                    }
+                }
+            }
+            for dom in &domains {
+                let name = dom.domain_name();
+                // FIXME: use domain_label here, but needs to be async
+                let label = name.clone();
+
+                if dom.state() == DomainState::Attached {
+                    if name == "local" {
+                        continue;
+                    }
+                    result.push(ExpandedCommand {
+                        brief: format!("Detach Domain {label}").into(),
+                        doc: "".into(),
+                        keys: vec![],
+                        action: KeyAssignment::DetachDomain(SpawnTabDomain::DomainName(
+                            name.to_string(),
+                        )),
+                        menubar: &["Shell", "Detach"],
+                    });
+                }
+            }
+
+            let active_workspace = mux.active_workspace();
+            for workspace in mux.iter_workspaces() {
+                if workspace != active_workspace {
+                    result.push(ExpandedCommand {
+                        brief: format!("Switch to workspace {workspace}").into(),
+                        doc: "".into(),
+                        keys: vec![],
+                        action: KeyAssignment::SwitchToWorkspace {
+                            name: Some(workspace.clone()),
+                            spawn: None,
+                        },
+                        menubar: &["Window", "Workspace"],
+                    });
+                }
+            }
+            result.push(ExpandedCommand {
+                brief: "Create new Workspace".into(),
+                doc: "".into(),
+                keys: vec![],
+                action: KeyAssignment::SwitchToWorkspace {
+                    name: None,
+                    spawn: None,
+                },
+                menubar: &["Window", "Workspace"],
+            });
         }
 
         result
@@ -1006,28 +1118,28 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             doc: "Detaches (disconnects from) the domain of the active pane".into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &["Shell"],
+            menubar: &["Shell", "Detach"],
         },
         DetachDomain(SpawnTabDomain::DefaultDomain) => CommandDef {
             brief: "Detach the default domain".into(),
             doc: "Detaches (disconnects from) the default domain".into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &[],
+            menubar: &["Shell", "Detach"],
         },
         DetachDomain(SpawnTabDomain::DomainName(name)) => CommandDef {
             brief: format!("Detach the `{name}` domain").into(),
             doc: format!("Detaches (disconnects from) the domain named `{name}`").into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &[],
+            menubar: &["Shell", "Detach"],
         },
         DetachDomain(SpawnTabDomain::DomainId(id)) => CommandDef {
             brief: format!("Detach the domain with id {id}").into(),
             doc: format!("Detaches (disconnects from) the domain with id {id}").into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &[],
+            menubar: &["Shell", "Detach"],
         },
         OpenUri(uri) => match uri.as_ref() {
             "https://wezfurlong.org/wezterm/" => CommandDef {
@@ -1210,7 +1322,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             .into(),
             keys: vec![],
             args: &[],
-            menubar: &[],
+            menubar: &["Window", "Workspace"],
         },
         SwitchToWorkspace {
             name: Some(name),
@@ -1228,7 +1340,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             .into(),
             keys: vec![],
             args: &[],
-            menubar: &[],
+            menubar: &["Window", "Workspace"],
         },
         SwitchToWorkspace {
             name: Some(name),
@@ -1246,7 +1358,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             .into(),
             keys: vec![],
             args: &[],
-            menubar: &[],
+            menubar: &["Window", "Workspace"],
         },
         SwitchToWorkspace {
             name: None,
@@ -1256,7 +1368,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             doc: format!("Spawn the {prog:?} into a new workspace and switch to it").into(),
             keys: vec![],
             args: &[],
-            menubar: &[],
+            menubar: &["Window", "Workspace"],
         },
         SwitchWorkspaceRelative(n) => {
             let (direction, amount) = if *n < 0 {
@@ -1274,7 +1386,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
                 .into(),
                 keys: vec![],
                 args: &[ArgType::ActivePane],
-                menubar: &[],
+                menubar: &["Window", "Workspace"],
             }
         }
         ActivateKeyTable { name, .. } => CommandDef {
