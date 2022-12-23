@@ -324,6 +324,17 @@ impl CommandPalette {
         let dimensions = term_window.dimensions;
         let size = term_window.terminal_size;
 
+        // Avoid covering the entire width
+        let desired_width = (size.cols / 3).max(80).min(size.cols);
+
+        // Center it
+        let avail_pixel_width =
+            size.cols as f32 * term_window.render_metrics.cell_size.width as f32;
+        let desired_pixel_width =
+            desired_width as f32 * term_window.render_metrics.cell_size.width as f32;
+
+        let x_adjust = ((avail_pixel_width - padding_left) - desired_pixel_width) / 2.;
+
         let computed = term_window.compute_element(
             &LayoutContext {
                 height: DimensionContext {
@@ -337,9 +348,9 @@ impl CommandPalette {
                     pixel_cell: metrics.cell_size.width as f32,
                 },
                 bounds: euclid::rect(
-                    padding_left,
+                    padding_left + x_adjust,
                     top_pixel_y,
-                    size.cols as f32 * term_window.render_metrics.cell_size.width as f32,
+                    desired_pixel_width,
                     size.rows as f32 * term_window.render_metrics.cell_size.height as f32,
                 ),
                 metrics: &metrics,

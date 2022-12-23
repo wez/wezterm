@@ -489,6 +489,7 @@ pub enum ElementCell {
     Glyph(Rc<CachedGlyph>),
 }
 
+#[derive(Debug)]
 struct Rects {
     padding: RectF,
     border_rect: RectF,
@@ -569,6 +570,7 @@ impl super::TermWindow {
             .map(|c| c.to_pixels(context));
         let style = element.font.style();
         let border = element.border.to_pixels(context);
+        let padding = element.padding.to_pixels(context);
         let baseline = context.height.pixel_cell + context.metrics.descender.get() as f32;
         let min_width = match element.min_width {
             Some(w) => w.evaluate_as_pixels(context.width),
@@ -578,6 +580,8 @@ impl super::TermWindow {
             Some(h) => h.evaluate_as_pixels(context.height),
             None => 0.0,
         };
+
+        let border_and_padding_width = border.left + border.right + padding.left + padding.right;
 
         match &element.content {
             ElementContent::Text(s) => {
@@ -633,7 +637,7 @@ impl super::TermWindow {
                     None => pixel_width,
                 }
                 .max(min_width)
-                .min(context.width.pixel_max);
+                .min(context.width.pixel_max - border_and_padding_width);
 
                 let content_rect = euclid::rect(
                     0.,
@@ -673,7 +677,7 @@ impl super::TermWindow {
                         .min(context.bounds.width()),
                     None => context.bounds.width(),
                 }
-                .min(context.width.pixel_max);
+                .min(context.width.pixel_max - border_and_padding_width);
 
                 for child in kids {
                     if child.display == DisplayType::Block {
