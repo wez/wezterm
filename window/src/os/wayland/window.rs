@@ -682,36 +682,36 @@ impl WaylandWindowInner {
                         // assume no.
                         live_resizing: false,
                     });
+                    // Avoid blurring by matching the scaling factor of the
+                    // compositor; if it is going to double the size then
+                    // we render at double the size anyway and tell it that
+                    // the buffer is already doubled.
+                    // Take care to detach the current buffer (managed by EGL),
+                    // so that the compositor doesn't get annoyed by it not
+                    // having dimensions that match the scale.
+                    // The wegl_surface.resize won't take effect until
+                    // we paint later on.
+                    // We do this only if the scale has actually changed,
+                    // otherwise interactive window resize will keep removing
+                    // the window contents!
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
-                        // Avoid blurring by matching the scaling factor of the
-                        // compositor; if it is going to double the size then
-                        // we render at double the size anyway and tell it that
-                        // the buffer is already doubled.
-                        // Take care to detach the current buffer (managed by EGL),
-                        // so that the compositor doesn't get annoyed by it not
-                        // having dimensions that match the scale.
-                        // The wegl_surface.resize won't take effect until
-                        // we paint later on.
-                        // We do this only if the scale has actually changed,
-                        // otherwise interactive window resize will keep removing
-                        // the window contents!
-                        if self.surface_factor != factor {
-                            let wayland_conn = Connection::get().unwrap().wayland();
-                            let mut pool = wayland_conn.mem_pool.borrow_mut();
-                            // Make a "fake" buffer with the right dimensions, as
-                            // simply detaching the buffer can cause wlroots-derived
-                            // compositors consider the window to be unconfigured.
-                            if let Ok((_bytes, buffer)) = pool.buffer(
-                                factor,
-                                factor,
-                                factor * 4,
-                                wayland_client::protocol::wl_shm::Format::Argb8888,
-                            ) {
-                                self.surface.attach(Some(&buffer), 0, 0);
-                                self.surface.set_buffer_scale(factor);
-                                self.surface_factor = factor;
-                            }
+                    }
+                    if self.surface_factor != factor {
+                        let wayland_conn = Connection::get().unwrap().wayland();
+                        let mut pool = wayland_conn.mem_pool.borrow_mut();
+                        // Make a "fake" buffer with the right dimensions, as
+                        // simply detaching the buffer can cause wlroots-derived
+                        // compositors consider the window to be unconfigured.
+                        if let Ok((_bytes, buffer)) = pool.buffer(
+                            factor,
+                            factor,
+                            factor * 4,
+                            wayland_client::protocol::wl_shm::Format::Argb8888,
+                        ) {
+                            self.surface.attach(Some(&buffer), 0, 0);
+                            self.surface.set_buffer_scale(factor);
+                            self.surface_factor = factor;
                         }
                     }
                 }
