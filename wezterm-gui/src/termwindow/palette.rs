@@ -17,6 +17,7 @@ use std::cell::{Ref, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use termwiz::nerdfonts::NERD_FONTS;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
 
@@ -221,6 +222,14 @@ impl CommandPalette {
                 format!("{}: ", command.menubar.join(" | "))
             };
 
+            let icon = match &command.icon {
+                Some(nf) => NERD_FONTS.get(nf).unwrap_or_else(|| {
+                    log::error!("nerdfont {nf} not found in NERD_FONTS");
+                    &'?'
+                }),
+                None => &' ',
+            };
+
             let (bg, text) = if display_idx == selected_row {
                 (
                     term_window
@@ -255,19 +264,26 @@ impl CommandPalette {
             };
 
             elements.push(
-                Element::new(&font, ElementContent::Text(label))
-                    .colors(ElementColors {
-                        border: BorderColor::default(),
-                        bg,
-                        text,
-                    })
-                    .padding(BoxDimension {
-                        left: Dimension::Cells(0.25),
-                        right: Dimension::Cells(0.25),
-                        top: Dimension::Cells(0.),
-                        bottom: Dimension::Cells(0.),
-                    })
-                    .display(DisplayType::Block),
+                Element::new(
+                    &font,
+                    ElementContent::Children(vec![
+                        Element::new(&font, ElementContent::Text(icon.to_string()))
+                            .min_width(Some(Dimension::Cells(2.))),
+                        Element::new(&font, ElementContent::Text(label)),
+                    ]),
+                )
+                .colors(ElementColors {
+                    border: BorderColor::default(),
+                    bg,
+                    text,
+                })
+                .padding(BoxDimension {
+                    left: Dimension::Cells(0.25),
+                    right: Dimension::Cells(0.25),
+                    top: Dimension::Cells(0.),
+                    bottom: Dimension::Cells(0.),
+                })
+                .display(DisplayType::Block),
             );
         }
 
@@ -331,7 +347,7 @@ impl CommandPalette {
         let size = term_window.terminal_size;
 
         // Avoid covering the entire width
-        let desired_width = (size.cols / 3).max(80).min(size.cols);
+        let desired_width = (size.cols / 3).max(75).min(size.cols);
 
         // Center it
         let avail_pixel_width =
