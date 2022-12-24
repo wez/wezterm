@@ -5,6 +5,7 @@ use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
 use config::keyassignment::{KeyAssignment, SpawnCommand};
+use config::ConfigSubscription;
 pub use config::FrontEndSelection;
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
@@ -23,6 +24,7 @@ pub struct GuiFrontEnd {
     spawned_mux_window: RefCell<HashSet<MuxWindowId>>,
     known_windows: RefCell<BTreeMap<Window, MuxWindowId>>,
     client_id: Arc<ClientId>,
+    config_subscription: RefCell<Option<ConfigSubscription>>,
 }
 
 impl Drop for GuiFrontEnd {
@@ -45,6 +47,7 @@ impl GuiFrontEnd {
             spawned_mux_window: RefCell::new(HashSet::new()),
             known_windows: RefCell::new(BTreeMap::new()),
             client_id: client_id.clone(),
+            config_subscription: RefCell::new(None),
         });
 
         mux.subscribe(move |n| {
@@ -456,5 +459,20 @@ pub fn shutdown() {
 pub fn try_new() -> Result<Rc<GuiFrontEnd>, Error> {
     let front_end = GuiFrontEnd::try_new()?;
     FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
+
+    let config_subscription = config::subscribe_to_config_reload({
+        move || {
+            promise::spawn::spawn_into_main_thread(async {
+                crate::commands::CommandDef::recreate_menubar(&config::configuration());
+            })
+            .detach();
+            true
+        }
+    });
+    front_end
+        .config_subscription
+        .borrow_mut()
+        .replace(config_subscription);
+
     Ok(front_end)
 }

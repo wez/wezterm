@@ -352,14 +352,52 @@ impl CommandDef {
     #[cfg(not(target_os = "macos"))]
     pub fn recreate_menubar(_config: &ConfigHandle) {}
 
+    /// Update the menubar to reflect the current config state.
+    /// We cannot simply build a completely new one and replace it at runtime,
+    /// because something in cocoa get's unhappy and crashes shortly after.
+    /// The strategy we have is to try to find the existing item with the
+    /// same action and update it.
+    /// We use the macos menu item tag to do a mark-sweep style garbage
+    /// collection to figure out which items were not reused/updated
+    /// and remove them at the end.
     #[cfg(target_os = "macos")]
     pub fn recreate_menubar(config: &ConfigHandle) {
         use window::os::macos::menu::*;
 
         let inputmap = InputMap::new(config);
 
-        let main_menu = Menu::new_with_title("MainMenu");
-        main_menu.assign_as_main_menu();
+        let mut candidates_for_removal = vec![];
+        let wezterm_perform_key_assignment_sel = sel!(weztermPerformKeyAssignment:);
+
+        /// Mark menu items as candidates for removal
+        fn mark_candidates(menu: &Menu, candidates: &mut Vec<MenuItem>, action: SEL) {
+            for item in menu.items() {
+                if let Some(submenu) = item.get_sub_menu() {
+                    mark_candidates(&submenu, candidates, action);
+                }
+                if item.get_action() == Some(action) {
+                    item.set_tag(0);
+                    candidates.push(item);
+                }
+            }
+        }
+
+        let main_menu = match Menu::get_main_menu() {
+            Some(existing) => {
+                mark_candidates(
+                    &existing,
+                    &mut candidates_for_removal,
+                    wezterm_perform_key_assignment_sel,
+                );
+
+                existing
+            }
+            None => {
+                let menu = Menu::new_with_title("MainMenu");
+                menu.assign_as_main_menu();
+                menu
+            }
+        };
 
         let mut commands = Self::actions_for_palette_and_menubar(config);
         commands.retain(|cmd| !cmd.menubar.is_empty());
@@ -459,12 +497,23 @@ impl CommandDef {
                     .map(|(key, _)| key_code_to_equivalent(key))
                     .unwrap_or_else(String::new);
 
-                // And add the current command to the menu
-                let item = MenuItem::new_with(
-                    &cmd.brief,
-                    Some(sel!(weztermPerformKeyAssignment:)),
-                    &short_cut,
-                );
+                let represented_item = RepresentedItem::KeyAssignment(cmd.action.clone());
+                let item = match submenu.get_item_with_represented_item(&represented_item) {
+                    Some(existing) => {
+                        existing.set_title(&cmd.brief);
+                        existing.set_key_equivalent(&short_cut);
+                        existing
+                    }
+                    None => {
+                        let item = MenuItem::new_with(
+                            &cmd.brief,
+                            Some(wezterm_perform_key_assignment_sel),
+                            &short_cut,
+                        );
+                        submenu.add_item(&item);
+                        item
+                    }
+                };
 
                 if !short_cut.is_empty() {
                     let mods: Modifiers = candidate[0].1;
@@ -490,9 +539,18 @@ impl CommandDef {
                     item.set_key_equiv_modifier_mask(equiv_mods);
                 }
 
-                item.set_represented_item(RepresentedItem::KeyAssignment(cmd.action.clone()));
+                item.set_represented_item(represented_item);
                 item.set_tool_tip(&cmd.doc);
-                submenu.add_item(&item);
+                // Update the tag to indicate that this item should
+                // not be removed by the sweep below
+                item.set_tag(1);
+            }
+        }
+
+        // Now sweep away any items that were not updated
+        for item in candidates_for_removal {
+            if item.get_tag() == 0 {
+                item.get_menu().map(|menu| menu.remove_item(&item));
             }
         }
     }
