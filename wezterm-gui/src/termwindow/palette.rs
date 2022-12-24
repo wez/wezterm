@@ -215,7 +215,11 @@ impl CommandPalette {
             .skip(top_row)
             .take(max_rows_on_screen)
         {
-            let group = command.menubar.join(" | ");
+            let group = if command.menubar.is_empty() {
+                String::new()
+            } else {
+                format!("{}: ", command.menubar.join(" | "))
+            };
 
             let (bg, text) = if display_idx == selected_row {
                 (
@@ -245,9 +249,9 @@ impl CommandPalette {
             let label = if command.doc.is_empty()
                 || command.brief.to_ascii_lowercase() == command.doc.to_ascii_lowercase()
             {
-                format!("{group}: {}", command.brief)
+                format!("{group}{}", command.brief)
             } else {
-                format!("{group}: {}. {}", command.brief, command.doc)
+                format!("{group}{}. {}", command.brief, command.doc)
             };
 
             elements.push(
