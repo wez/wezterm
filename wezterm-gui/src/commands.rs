@@ -305,6 +305,47 @@ impl CommandDef {
             });
         }
 
+        // And sweep to pick up stuff from their key assignments
+        let inputmap = InputMap::new(config);
+        for entry in inputmap.keys.default.values() {
+            if result
+                .iter()
+                .position(|cmd| cmd.action == entry.action)
+                .is_some()
+            {
+                continue;
+            }
+            if let Some(cmd) = derive_command_from_key_assignment(&entry.action) {
+                result.push(ExpandedCommand {
+                    brief: cmd.brief.into(),
+                    doc: cmd.doc.into(),
+                    keys: vec![],
+                    action: entry.action.clone(),
+                    menubar: cmd.menubar,
+                });
+            }
+        }
+        for table in inputmap.keys.by_name.values() {
+            for entry in table.values() {
+                if result
+                    .iter()
+                    .position(|cmd| cmd.action == entry.action)
+                    .is_some()
+                {
+                    continue;
+                }
+                if let Some(cmd) = derive_command_from_key_assignment(&entry.action) {
+                    result.push(ExpandedCommand {
+                        brief: cmd.brief.into(),
+                        doc: cmd.doc.into(),
+                        keys: vec![],
+                        action: entry.action.clone(),
+                        menubar: cmd.menubar,
+                    });
+                }
+            }
+        }
+
         result
     }
 
@@ -1502,12 +1543,12 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             args: &[ArgType::ActivePane],
             menubar: &["Shell", "Attach"],
         },
-        CopyMode(_) => CommandDef {
-            brief: "Activate Copy Mode".into(),
-            doc: "Activate Copy Mode".into(),
+        CopyMode(copy_mode) => CommandDef {
+            brief: format!("{copy_mode:?}").into(),
+            doc: "".into(),
             keys: vec![],
             args: &[ArgType::ActivePane],
-            menubar: &["Edit"],
+            menubar: &["Edit", "Copy Mode"],
         },
         RotatePanes(direction) => CommandDef {
             brief: format!("Rotate panes {direction:?}").into(),
