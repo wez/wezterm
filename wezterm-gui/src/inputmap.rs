@@ -358,6 +358,38 @@ impl InputMap {
         }
     }
 
+    /// Given an action, return the corresponding set of application-wide key assignments that are
+    /// mapped to it.
+    /// If any key_tables reference a given combination, then that combination
+    /// is removed from the list.
+    /// This is used to figure out whether an application-wide keyboard shortcut
+    /// can be safely configured for this action, without interfering with any
+    /// transient key_table mappings.
+    pub fn locate_app_wide_key_assignment(
+        &self,
+        action: &KeyAssignment,
+    ) -> Vec<(KeyCode, Modifiers)> {
+        let mut candidates = vec![];
+
+        for ((key, mods), entry) in &self.keys.default {
+            if entry.action == *action {
+                candidates.push((key.clone(), mods.clone()));
+            }
+        }
+
+        // Now ensure that this combination is not part of a key table
+        candidates.retain(|tuple| {
+            for table in self.keys.by_name.values() {
+                if table.contains_key(tuple) {
+                    return false;
+                }
+            }
+            true
+        });
+
+        candidates
+    }
+
     pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
         if let Some((leader_key, leader_mods, timeout)) = self.leader.as_ref() {
             if *leader_key == *key && *leader_mods == mods.remove_positional_mods() {

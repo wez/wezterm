@@ -74,7 +74,7 @@ fn save_recent(command: &ExpandedCommand) -> anyhow::Result<()> {
 }
 
 fn build_commands() -> Vec<ExpandedCommand> {
-    let mut commands = CommandDef::expanded_commands(&config::configuration());
+    let mut commands = CommandDef::actions_for_palette_and_menubar(&config::configuration());
 
     let mut scores: HashMap<&str, f64> = HashMap::new();
     let recents = load_recents();

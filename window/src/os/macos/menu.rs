@@ -1,5 +1,6 @@
 use crate::macos::nsstring;
 use crate::superclass;
+pub use cocoa::appkit::NSEventModifierFlags;
 use cocoa::appkit::{NSApp, NSApplication, NSMenu, NSMenuItem};
 use cocoa::base::{id, nil, SEL};
 use cocoa::foundation::NSInteger;
@@ -234,6 +235,12 @@ impl MenuItem {
             } else {
                 Some((*item).clone())
             }
+        }
+    }
+
+    pub fn set_key_equiv_modifier_mask(&self, mods: NSEventModifierFlags) {
+        unsafe {
+            let () = msg_send![*self.item, setKeyEquivalentModifierMask: mods];
         }
     }
 }

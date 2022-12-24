@@ -1,9 +1,11 @@
+use crate::inputmap::InputMap;
 use config::keyassignment::*;
 use config::{ConfigHandle, DeferredKeyCode};
 use mux::domain::DomainState;
 use mux::Mux;
 use ordered_float::NotNan;
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use window::{KeyCode, Modifiers};
 use KeyAssignment::*;
@@ -151,27 +153,48 @@ impl CommandDef {
         result
     }
 
+    fn expand_action(
+        action: KeyAssignment,
+        config: &ConfigHandle,
+        is_built_in: bool,
+    ) -> Option<ExpandedCommand> {
+        match derive_command_from_key_assignment(&action) {
+            None => {
+                if is_built_in {
+                    log::warn!(
+                        "{action:?} is a default action, but we cannot derive a CommandDef for it"
+                    );
+                }
+                None
+            }
+            Some(def) => {
+                let keys = def.permute_keys(config);
+                Some(ExpandedCommand {
+                    brief: def.brief.into(),
+                    doc: def.doc.into(),
+                    keys,
+                    action,
+                    menubar: def.menubar,
+                })
+            }
+        }
+    }
+
     /// Produces the complete set of expanded commands.
     pub fn expanded_commands(config: &ConfigHandle) -> Vec<ExpandedCommand> {
         let mut result = vec![];
 
         for action in compute_default_actions() {
-            match derive_command_from_key_assignment(&action) {
-                None => log::warn!(
-                    "{action:?} is a default action, but we cannot derive a CommandDef for it"
-                ),
-                Some(def) => {
-                    let keys = def.permute_keys(config);
-                    result.push(ExpandedCommand {
-                        brief: def.brief.into(),
-                        doc: def.doc.into(),
-                        keys,
-                        action,
-                        menubar: def.menubar,
-                    });
-                }
+            if let Some(command) = Self::expand_action(action, config, true) {
+                result.push(command);
             }
         }
+
+        result
+    }
+
+    pub fn actions_for_palette_and_menubar(config: &ConfigHandle) -> Vec<ExpandedCommand> {
+        let mut result = Self::expanded_commands(config);
 
         // Generate some stuff based on the config
         for cmd in &config.launch_menu {
@@ -198,7 +221,6 @@ impl CommandDef {
                 let a_state = a.state();
                 let b_state = b.state();
                 if a_state != b_state {
-                    use std::cmp::Ordering;
                     return if a_state == DomainState::Attached {
                         Ordering::Less
                     } else {
@@ -293,10 +315,12 @@ impl CommandDef {
     pub fn recreate_menubar(config: &ConfigHandle) {
         use window::os::macos::menu::*;
 
+        let inputmap = InputMap::new(config);
+
         let main_menu = Menu::new_with_title("MainMenu");
         main_menu.assign_as_main_menu();
 
-        let mut commands = Self::expanded_commands(config);
+        let mut commands = Self::actions_for_palette_and_menubar(config);
         commands.retain(|cmd| !cmd.menubar.is_empty());
 
         // Prefer to put the menus in this order
@@ -353,9 +377,77 @@ impl CommandDef {
                     submenu = submenu.get_or_create_sub_menu(sub_title, |_menu| {});
                 }
 
+                let mut candidate = inputmap.locate_app_wide_key_assignment(&cmd.action);
+                candidate.sort_by(|(a_key, a_mods), (b_key, b_mods)| {
+                    fn score_mods(mods: &Modifiers) -> usize {
+                        let mut score: usize = mods.bits() as usize;
+                        // Prefer keys with CMD on macOS
+                        if mods.contains(Modifiers::SUPER) {
+                            score += 1000;
+                        }
+                        score
+                    }
+
+                    let a_mods = score_mods(a_mods);
+                    let b_mods = score_mods(b_mods);
+
+                    match b_mods.cmp(&a_mods) {
+                        Ordering::Equal => {}
+                        ordering => return ordering,
+                    }
+
+                    a_key.cmp(&b_key)
+                });
+
+                fn key_code_to_equivalent(key: &KeyCode) -> String {
+                    match key {
+                        KeyCode::Hyper
+                        | KeyCode::Super
+                        | KeyCode::Meta
+                        | KeyCode::Cancel
+                        | KeyCode::Composed(_)
+                        | KeyCode::RawCode(_) => "".to_string(),
+                        KeyCode::Char(c) => c.to_string(),
+                        KeyCode::Physical(phys) => key_code_to_equivalent(&phys.to_key_code()),
+                        _ => "".to_string(),
+                    }
+                }
+
+                let short_cut = candidate
+                    .get(0)
+                    .map(|(key, _)| key_code_to_equivalent(key))
+                    .unwrap_or_else(String::new);
+
                 // And add the current command to the menu
-                let item =
-                    MenuItem::new_with(&cmd.brief, Some(sel!(weztermPerformKeyAssignment:)), "");
+                let item = MenuItem::new_with(
+                    &cmd.brief,
+                    Some(sel!(weztermPerformKeyAssignment:)),
+                    &short_cut,
+                );
+
+                if !short_cut.is_empty() {
+                    let mods: Modifiers = candidate[0].1;
+                    let mut equiv_mods = NSEventModifierFlags::empty();
+
+                    equiv_mods.set(
+                        NSEventModifierFlags::NSShiftKeyMask,
+                        mods.contains(Modifiers::SHIFT),
+                    );
+                    equiv_mods.set(
+                        NSEventModifierFlags::NSAlternateKeyMask,
+                        mods.contains(Modifiers::ALT),
+                    );
+                    equiv_mods.set(
+                        NSEventModifierFlags::NSControlKeyMask,
+                        mods.contains(Modifiers::CTRL),
+                    );
+                    equiv_mods.set(
+                        NSEventModifierFlags::NSCommandKeyMask,
+                        mods.contains(Modifiers::SUPER),
+                    );
+
+                    item.set_key_equiv_modifier_mask(equiv_mods);
+                }
 
                 item.set_represented_item(RepresentedItem::KeyAssignment(cmd.action.clone()));
                 item.set_tool_tip(&cmd.doc);
