@@ -37,6 +37,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Removed deprecated `Copy`, `Paste` and `PastePrimarySelection` actions. Use
   [CopyTo](config/lua/keyassignment/CopyTo.md) and
   [PasteFrom](config/lua/keyassignment/PasteFrom.md) instead.
+* `wezterm -e` is now an alias for `wezterm start`. Thanks to
+  [@Abdiramen](https://github.com/Abdiramen)!
+  [#2889](https://github.com/wez/wezterm/pull/2889)
+  [#2782](https://github.com/wez/wezterm/issues/2782)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
