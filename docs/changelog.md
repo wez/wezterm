@@ -25,6 +25,8 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
   [#2819](https://github.com/wez/wezterm/issues/2819)
+* `wezterm ssh` now respects the `AddressFamily` option when connecting
+  [#2893](https://github.com/wez/wezterm/issues/2893)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
