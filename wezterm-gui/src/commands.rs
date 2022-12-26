@@ -848,7 +848,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         },
         ActivateTab(n) => {
             let n = *n;
-            let ordinal = english_ordinal(n);
+            let ordinal = english_ordinal(n + 1);
             let keys = if n >= 0 && n <= 7 {
                 vec![(Modifiers::SUPER, (n + 1).to_string())]
             } else {
@@ -977,7 +977,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         },
         ActivateTabRelative(n) => {
             let (direction, amount) = if *n < 0 { ("left", -n) } else { ("right", *n) };
-            let ordinal = english_ordinal(amount);
+            let ordinal = english_ordinal(amount + 1);
             CommandDef {
                 brief: format!("Activate the {ordinal} tab to the {direction}").into(),
                 doc: format!(
@@ -1009,7 +1009,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         },
         ActivateTabRelativeNoWrap(n) => {
             let (direction, amount) = if *n < 0 { ("left", -n) } else { ("right", *n) };
-            let ordinal = english_ordinal(amount);
+            let ordinal = english_ordinal(amount + 1);
             CommandDef {
                 brief: format!("Activate the {ordinal} tab to the {direction}").into(),
                 doc: format!("Activates the {ordinal} tab to the {direction}").into(),
@@ -1261,7 +1261,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("cod_split_vertical"),
         },
         AdjustPaneSize(PaneDirection::Left, amount) => CommandDef {
-            brief: format!("Resize Pane {amount} cells to the Left").into(),
+            brief: format!("Resize Pane {amount} cell(s) to the Left").into(),
             doc: "Adjusts the closest split divider to the left".into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1274,7 +1274,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: None,
         },
         AdjustPaneSize(PaneDirection::Right, amount) => CommandDef {
-            brief: format!("Resize Pane {amount} cells to the Right").into(),
+            brief: format!("Resize Pane {amount} cell(s) to the Right").into(),
             doc: "Adjusts the closest split divider to the right".into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1287,7 +1287,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: None,
         },
         AdjustPaneSize(PaneDirection::Up, amount) => CommandDef {
-            brief: format!("Resize Pane {amount} cells Upwards").into(),
+            brief: format!("Resize Pane {amount} cell(s) Upwards").into(),
             doc: "Adjusts the closest split divider towards the top".into(),
             keys: vec![(
                 Modifiers::CTRL
@@ -1300,7 +1300,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: None,
         },
         AdjustPaneSize(PaneDirection::Down, amount) => CommandDef {
-            brief: format!("Resize Pane {amount} cells Downwards").into(),
+            brief: format!("Resize Pane {amount} cell(s) Downwards").into(),
             doc: "Adjusts the closest split divider towards the bottom".into(),
             keys: vec![(
                 Modifiers::CTRL
