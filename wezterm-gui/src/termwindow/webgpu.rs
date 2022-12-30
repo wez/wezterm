@@ -474,6 +474,11 @@ impl WebGpuState {
         let mut config = self.config.borrow_mut();
         config.width = dims.pixel_width as u32;
         config.height = dims.pixel_height as u32;
-        self.surface.configure(&self.device, &config);
+        if config.width > 0 && config.height > 0 {
+            // Avoid reconfiguring with a 0 sized surface, as webgpu will
+            // panic in that case
+            // <https://github.com/wez/wezterm/issues/2881>
+            self.surface.configure(&self.device, &config);
+        }
     }
 }

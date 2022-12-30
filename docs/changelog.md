@@ -27,6 +27,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2819](https://github.com/wez/wezterm/issues/2819)
 * `wezterm ssh` now respects the `AddressFamily` option when connecting
   [#2893](https://github.com/wez/wezterm/issues/2893)
+* Windows: panic when minimizing a window when `front_end='WebGpu'`
+  [#2881](https://github.com/wez/wezterm/issues/2881)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
