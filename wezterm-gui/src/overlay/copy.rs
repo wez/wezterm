@@ -825,7 +825,7 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
-    fn move_forward_one_word(&mut self) {
+    fn move_forward_one_word(&mut self, end: bool) {
         let y = self.cursor.y;
         let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
@@ -835,28 +835,33 @@ impl CopyRenderable {
             let mut words = s.split_word_bounds();
 
             if let Some(word) = words.next() {
-                self.cursor.x += unicode_column_width(word, None);
-                if !is_whitespace_word(word) {
-                    // We were part-way through a word, so look
-                    // at the next word
-                    if let Some(word) = words.next() {
-                        if is_whitespace_word(word) {
-                            self.cursor.x += unicode_column_width(word, None);
-                            // If we advance off the RHS, move to the start of the word on the
-                            // next line, if any!
-                            if self.cursor.x >= width {
-                                let dims = self.delegate.get_dimensions();
-                                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
-                                if self.cursor.y + 1 < max_row {
-                                    self.cursor.y += 1;
-                                    return self.move_to_start_of_line_content();
+                if end {
+                    // Move to the end of the current word
+                    self.cursor.x += unicode_column_width(word, None);
+                } else {
+                    // Move to the start of the next word
+                    if !is_whitespace_word(word) {
+                        // We were part-way through a word, so look
+                        // at the next word
+                        if let Some(word) = words.next() {
+                            if is_whitespace_word(word) {
+                                self.cursor.x += unicode_column_width(word, None);
+                                // If we advance off the RHS, move to the start of the word on the
+                                // next line, if any!
+                                if self.cursor.x >= width {
+                                    let dims = self.delegate.get_dimensions();
+                                    let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
+                                    if self.cursor.y + 1 < max_row {
+                                        self.cursor.y += 1;
+                                        return self.move_to_start_of_line_content();
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        // We were in whitespace and advancing
+                        // has put us at the start of the next word
                     }
-                } else {
-                    // We were in whitespace and advancing
-                    // has put us at the start of the next word
                 }
             }
         }
@@ -1110,7 +1115,8 @@ impl Pane for CopyOverlay {
                     MoveToSelectionOtherEnd => render.move_to_selection_other_end(),
                     MoveToSelectionOtherEndHoriz => render.move_to_selection_other_end_horiz(),
                     MoveBackwardWord => render.move_backward_one_word(),
-                    MoveForwardWord => render.move_forward_one_word(),
+                    MoveForwardWord => render.move_forward_one_word(false),
+                    MoveForwardWordEnd => render.move_forward_one_word(true),
                     MoveRight => render.move_right_single_cell(),
                     MoveLeft => render.move_left_single_cell(),
                     MoveUp => render.move_up_single_row(),
@@ -1586,6 +1592,11 @@ pub fn copy_key_table() -> KeyTable {
             WKeyCode::Char('w'),
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWord),
+        ),
+        (
+            WKeyCode::Char('e'),
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveForwardWordEnd),
         ),
         (
             WKeyCode::LeftArrow,
