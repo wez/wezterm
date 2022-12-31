@@ -53,6 +53,7 @@ The default key assignments in copy mode are as follows:
 |                       | <kbd>Alt</kbd> + <kbd>B</kbd>         |
 |                       | <kbd>Shift</kbd> + <kbd>Tab</kbd>     |
 |                       | <kbd>b</kbd>             |
+| Move forward one word end    | <kbd>e</kbd> |
 | Move to start of this line     | <kbd>0</kbd> |
 | Move to start of next line     | <kbd>Enter</kbd> |
 | Move to end of this line       | <kbd>$</kbd> |
