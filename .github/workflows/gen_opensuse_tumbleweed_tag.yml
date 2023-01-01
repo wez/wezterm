@@ -17,6 +17,9 @@ jobs:
       - name: "Install util-linux"
         shell: bash
         run: "zypper install -y util-linux"
+      - name: "Install which"
+        shell: bash
+        run: "zypper install -y which"
       - name: "Install git"
         shell: bash
         run: "zypper install -y git"
@@ -53,9 +56,6 @@ jobs:
             ~/.cargo/git
             target
           key: "opensuse_tumbleweed-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
-      - name: "Remove problematic deps"
-        shell: bash
-        run: "zypper remove -y busybox-which || true"
       - name: "Install System Deps"
         shell: bash
         run: "env PATH=$PATH ./get-deps"

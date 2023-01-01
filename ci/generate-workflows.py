@@ -273,6 +273,14 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
             )
 
         else:
+            if "tumbleweed" in self.name:
+                # git-core requires /usr/bin/which and that gets satisfied
+                # by busybox-which by default, which blocks installing
+                # rpmbuild, which depends on the which rpm directly,
+                # but that is blocked by the conflicting busybox-which rpm.
+                # So we explicitly install which here now
+                steps += self.install_system_package("which")
+
             steps += self.install_system_package("git")
 
         return steps
@@ -317,20 +325,10 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
     def install_system_deps(self):
         if "win" in self.name:
             return []
-        steps = []
         sudo = "sudo -n " if self.needs_sudo() else ""
-        if "tumbleweed" in self.name:
-            # get-deps wants to install rpmbuild. rpmbuild depends on which, but
-            # installation is blocked because the image already has busybox-which
-            # installed. Solution: uninstall busybox-which and allow rpmbuild to
-            # satisfy its dependency
-            steps += [
-                RunStep(name="Remove problematic deps", run=f"{sudo}zypper remove -y busybox-which || true")
-            ]
-        steps += [
+        return [
             RunStep(name="Install System Deps", run=f"{sudo}env PATH=$PATH ./get-deps")
         ]
-        return steps
 
     def build_all_release(self):
         if "win" in self.name:
