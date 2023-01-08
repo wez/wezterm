@@ -287,6 +287,18 @@ impl CommandPalette {
             );
         }
 
+        let dimensions = term_window.dimensions;
+        let size = term_window.terminal_size;
+
+        // Avoid covering the entire width
+        let desired_width = (size.cols / 3).max(75).min(size.cols);
+
+        // Center it
+        let avail_pixel_width =
+            size.cols as f32 * term_window.render_metrics.cell_size.width as f32;
+        let desired_pixel_width =
+            desired_width as f32 * term_window.render_metrics.cell_size.width as f32;
+
         let element = Element::new(&font, ElementContent::Children(elements))
             .colors(ElementColors {
                 border: BorderColor::new(
@@ -341,19 +353,8 @@ impl CommandPalette {
                     height: Dimension::Cells(0.25),
                     poly: BOTTOM_RIGHT_ROUNDED_CORNER,
                 },
-            }));
-
-        let dimensions = term_window.dimensions;
-        let size = term_window.terminal_size;
-
-        // Avoid covering the entire width
-        let desired_width = (size.cols / 3).max(75).min(size.cols);
-
-        // Center it
-        let avail_pixel_width =
-            size.cols as f32 * term_window.render_metrics.cell_size.width as f32;
-        let desired_pixel_width =
-            desired_width as f32 * term_window.render_metrics.cell_size.width as f32;
+            }))
+            .min_width(Some(Dimension::Pixels(desired_pixel_width)));
 
         let x_adjust = ((avail_pixel_width - padding_left) - desired_pixel_width) / 2.;
 
