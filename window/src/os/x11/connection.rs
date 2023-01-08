@@ -5,7 +5,7 @@ use crate::os::x11::xsettings::*;
 use crate::os::Connection;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Appearance, DeadKeyStatus, ScreenRect};
+use crate::{Appearance, DeadKeyStatus, ScreenRect, ScreenPoint};
 use anyhow::{anyhow, bail, Context as _};
 use mio::event::Source;
 use mio::unix::SourceFd;
@@ -294,12 +294,22 @@ impl ConnectionOps for XConnection {
             .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
             .clone();
 
-        // We don't yet know how to determine the active screen,
-        // so assume the main screen.
-        // TODO: find focused window and resolve it!
-        // Maybe something like <https://stackoverflow.com/a/43666928/149111>
-        // but ported to Rust?
-        let active = main.clone();
+        self.conn.send_request(&xcb::x::GrabServer {});
+        let focused = self
+            .send_and_wait_request(&xcb::x::GetInputFocus {})
+            .context("querying focused window")?;
+        let geom = self
+            .send_and_wait_request(&xcb::x::GetGeometry {
+                drawable: xcb::x::Drawable::Window(focused.focus()),
+            })
+            .context("querying geometry")?;
+        let window_origin = ScreenPoint::new(geom.x().into(), geom.y().into());
+        let active = by_name
+            .values()
+            .find(|screen| screen.rect.contains(window_origin))
+            .ok_or_else(|| anyhow::anyhow!("active window is not in any screen"))?
+            .clone();
+        self.conn.send_request(&xcb::x::UngrabServer {});
 
         Ok(Screens {
             main,
