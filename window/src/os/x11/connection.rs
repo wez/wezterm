@@ -50,6 +50,7 @@ pub struct XConnection {
     pub atom_net_move_resize_window: Atom,
     pub atom_net_wm_moveresize: Atom,
     pub atom_net_supported: Atom,
+    pub atom_net_supporting_wm_check: Atom,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::x::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
@@ -118,9 +119,59 @@ fn window_id_from_event(event: &xcb::Event) -> Option<xcb::x::Window> {
     }
 }
 
+/// Returns the name of the window manager
+fn get_wm_name(
+    conn: &xcb::Connection,
+    root: xcb::x::Window,
+    atom_net_supporting_wm_check: Atom,
+    atom_net_wm_name: Atom,
+    atom_utf8_string: Atom,
+) -> anyhow::Result<String> {
+    let reply = conn
+        .wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+            delete: false,
+            window: root,
+            property: atom_net_supporting_wm_check,
+            r#type: xcb::x::ATOM_WINDOW,
+            long_offset: 0,
+            long_length: 4,
+        }))
+        .context("GetProperty _NET_SUPPORTING_WM_CHECK")?;
+
+    let wm_window = match reply.value::<xcb::x::Window>().get(0) {
+        Some(w) => *w,
+        None => anyhow::bail!("empty list of windows"),
+    };
+
+    let reply = conn
+        .wait_for_reply(conn.send_request(&xcb::x::GetProperty {
+            delete: false,
+            window: wm_window,
+            property: atom_net_wm_name,
+            r#type: atom_utf8_string,
+            long_offset: 0,
+            long_length: 1024,
+        }))
+        .context("GetProperty _NET_WM_NAME from window manager")?;
+    Ok(String::from_utf8_lossy(reply.value::<u8>()).to_string())
+}
+
 impl ConnectionOps for XConnection {
     fn name(&self) -> String {
-        "X11".to_string()
+        match get_wm_name(
+            &self.conn,
+            self.root,
+            self.atom_net_supporting_wm_check,
+            self.atom_net_wm_name,
+            self.atom_utf8_string,
+        ) {
+            Ok(name) => format!("X11 {name}"),
+            Err(err) => {
+                log::error!("error fetching window manager name: {err:#}");
+
+                "X11".to_string()
+            }
+        }
     }
 
     fn terminate_message_loop(&self) {
@@ -534,6 +585,7 @@ impl XConnection {
         let atom_net_move_resize_window = Self::intern_atom(&conn, "_NET_MOVERESIZE_WINDOW")?;
         let atom_net_wm_moveresize = Self::intern_atom(&conn, "_NET_WM_MOVERESIZE")?;
         let atom_net_supported = Self::intern_atom(&conn, "_NET_SUPPORTED")?;
+        let atom_net_supporting_wm_check = Self::intern_atom(&conn, "_NET_SUPPORTING_WM_CHECK")?;
 
         let has_randr = conn.active_extensions().any(|e| e == xcb::Extension::RandR);
 
@@ -641,6 +693,7 @@ impl XConnection {
             atom_net_move_resize_window,
             atom_net_wm_moveresize,
             atom_net_supported,
+            atom_net_supporting_wm_check,
             atom_net_wm_icon,
             keyboard,
             kbd_ev,
