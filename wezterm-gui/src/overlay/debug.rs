@@ -195,13 +195,15 @@ pub fn show_debug_overlay(
         term.render(&changes)
     }
 
+    let version = config::wezterm_version();
+    let triple = config::wezterm_target_triple();
+
     term.render(&[Change::Text(format!(
         "Debug Overlay\r\n\
-         wezterm version: {}\r\n\
+         wezterm version: {version} {triple}\r\n\
          OpenGL version: {opengl_info}\r\n\
          Enter lua statements or expressions and hit Enter.\r\n\
          Press ESC or CTRL-D to exit\r\n",
-        config::wezterm_version()
     ))])?;
 
     loop {
