@@ -25,8 +25,8 @@ use ::window::glium::{BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, ULength, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform, TabBarColors,
-    TextStyle, VisualBellTarget,
+    BoldBrightening, ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform,
+    TabBarColors, TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::{Pane, PaneId, WithPaneLines};
@@ -3738,7 +3738,7 @@ fn resolve_fg_color_attr(
             }
         }
         wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-            if idx < 8 && config.bold_brightens_ansi_colors =>
+            if idx < 8 && config.bold_brightens_ansi_colors != BoldBrightening::No =>
         {
             // For compatibility purposes, switch to a brighter version
             // of one of the standard ANSI colors when Bold is enabled.

@@ -5,8 +5,8 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, PresentationWidth};
 use anyhow::{Context, Error};
 use config::{
-    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontStretch, FontStyle,
-    FontWeight, TextStyle,
+    configuration, BoldBrightening, ConfigHandle, FontAttributes, FontRasterizerSelection,
+    FontStretch, FontStyle, FontWeight, TextStyle,
 };
 use rangeset::RangeSet;
 use std::cell::RefCell;
@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 use termwiz::cell::Presentation;
 use thiserror::Error;
 use wezterm_bidi::Direction;
-use wezterm_term::CellAttributes;
+use wezterm_term::{CellAttributes, Intensity};
 use wezterm_toast_notification::ToastNotification;
 
 mod hbwrap;
@@ -995,8 +995,27 @@ impl FontConfigInner {
             };
         }
 
+        let would_bright = match attrs.foreground() {
+            wezterm_term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                attrs.intensity() == Intensity::Bold
+            }
+            _ => false,
+        };
+
         for rule in &config.font_rules {
-            attr_match!(intensity, &rule);
+            if let Some(intensity) = rule.intensity {
+                let effective_intensity = match config.bold_brightens_ansi_colors {
+                    BoldBrightening::BrightOnly if would_bright => Intensity::Normal,
+                    BoldBrightening::No
+                    | BoldBrightening::BrightAndBold
+                    | BoldBrightening::BrightOnly => attrs.intensity(),
+                };
+                if intensity != effective_intensity {
+                    // Rule does not match
+                    continue;
+                }
+                // matches so far
+            }
             attr_match!(underline, &rule);
             attr_match!(italic, &rule);
             attr_match!(blink, &rule);

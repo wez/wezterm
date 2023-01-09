@@ -102,8 +102,8 @@ pub struct Config {
     /// When true (the default), PaletteIndex 0-7 are shifted to
     /// bright when the font intensity is bold.  The brightening
     /// doesn't apply to text that is the default color.
-    #[dynamic(default = "default_true")]
-    pub bold_brightens_ansi_colors: bool,
+    #[dynamic(default)]
+    pub bold_brightens_ansi_colors: BoldBrightening,
 
     /// The color palette
     pub colors: Option<Palette>,
@@ -1727,6 +1727,45 @@ fn default_line_quad_cache_size() -> usize {
 
 fn default_line_to_ele_shape_cache_size() -> usize {
     1024
+}
+
+#[derive(Debug, ToDynamic, Clone, Copy, PartialEq, Eq)]
+pub enum BoldBrightening {
+    /// Bold doesn't influence palette selection
+    No,
+    /// Bold Shifts palette from 0-7 to 8-15 and preserves bold font
+    BrightAndBold,
+    /// Bold Shifts palette from 0-7 to 8-15 and removes bold intensity
+    BrightOnly,
+}
+
+impl FromDynamic for BoldBrightening {
+    fn from_dynamic(
+        value: &wezterm_dynamic::Value,
+        options: wezterm_dynamic::FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match String::from_dynamic(value, options) {
+            Ok(s) => match s.as_str() {
+                "No" => Ok(Self::No),
+                "BrightAndBold" => Ok(Self::BrightAndBold),
+                "BrightOnly" => Ok(Self::BrightOnly),
+                s => Err(wezterm_dynamic::Error::Message(format!(
+                    "`{s}` is not valid, use one of `None`, `BrightAndBold` or `BrightOnly`"
+                ))),
+            },
+            Err(err) => match bool::from_dynamic(value, options) {
+                Ok(true) => Ok(Self::BrightAndBold),
+                Ok(false) => Ok(Self::No),
+                Err(_) => Err(err),
+            },
+        }
+    }
+}
+
+impl Default for BoldBrightening {
+    fn default() -> Self {
+        BoldBrightening::BrightAndBold
+    }
 }
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]

@@ -49,6 +49,9 @@ As features stabilize some brief notes about them will accumulate here.
   [@Abdiramen](https://github.com/Abdiramen)!
   [#2889](https://github.com/wez/wezterm/pull/2889)
   [#2782](https://github.com/wez/wezterm/issues/2782)
+* [bold_brightens_ansi_colors](config/lua/config/bold_brightens_ansi_colors.md)
+  now supports `"BrightOnly"` to use the bright color without selecting a bold
+  font. [#2932](https://github.com/wez/wezterm/issues/2932)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
