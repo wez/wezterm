@@ -1,6 +1,7 @@
 use crate::color::SrgbaTuple;
 pub use crate::hyperlink::Hyperlink;
 use crate::{bail, ensure, Result};
+use base64::Engine;
 use bitflags::bitflags;
 use num_derive::*;
 use num_traits::FromPrimitive;
@@ -168,7 +169,7 @@ impl OperatingSystemCommand {
             Selection::try_parse(osc[1]).map(OperatingSystemCommand::QuerySelection)
         } else if osc.len() == 3 {
             let sel = Selection::try_parse(osc[1])?;
-            let bytes = base64::decode(osc[2])?;
+            let bytes = base64_decode(osc[2])?;
             let s = String::from_utf8(bytes)?;
             Ok(OperatingSystemCommand::SetSelection(sel, s))
         } else {
@@ -505,7 +506,7 @@ impl Display for OperatingSystemCommand {
             }
             ClearSelection(s) => write!(f, "52;{}", s)?,
             QuerySelection(s) => write!(f, "52;{};?", s)?,
-            SetSelection(s, val) => write!(f, "52;{};{}", s, base64::encode(val))?,
+            SetSelection(s, val) => write!(f, "52;{};{}", s, base64_encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
             FinalTermSemanticPrompt(i) => i.fmt(f)?,
@@ -907,7 +908,7 @@ impl ITermFileData {
             let param = if idx == last {
                 // The final argument contains `:base64`, so look for that
                 if let Some(colon) = param.iter().position(|c| *c == b':') {
-                    data = Some(base64::decode(&param[colon + 1..])?);
+                    data = Some(base64_decode(&param[colon + 1..])?);
                     &param[..colon]
                 } else {
                     // If we don't find the colon in the last piece, we've
@@ -935,7 +936,7 @@ impl ITermFileData {
 
         let name = params
             .get("name")
-            .and_then(|s| base64::decode(s).ok())
+            .and_then(|s| base64_decode(s).ok())
             .and_then(|b| String::from_utf8(b).ok());
         let size = params.get("size").and_then(|s| s.parse().ok());
         let width = params
@@ -983,7 +984,7 @@ impl Display for ITermFileData {
         }
         if let Some(ref name) = self.name {
             sep = emit_sep(sep, f)?;
-            write!(f, "name={}", base64::encode(name))?;
+            write!(f, "name={}", base64_encode(name))?;
         }
         if self.width != ITermDimension::Automatic {
             sep = emit_sep(sep, f)?;
@@ -1010,7 +1011,7 @@ impl Display for ITermFileData {
         if sep == "=" {
             write!(f, "=")?;
         }
-        write!(f, ":{}", base64::encode(&self.data))?;
+        write!(f, ":{}", base64_encode(&self.data))?;
         Ok(())
     }
 }
@@ -1145,13 +1146,13 @@ impl ITermProprietary {
         };
 
         if osc.len() == 3 && keyword == "Copy" && p1_empty {
-            return Ok(ITermProprietary::Copy(String::from_utf8(base64::decode(
+            return Ok(ITermProprietary::Copy(String::from_utf8(base64_decode(
                 osc[2],
             )?)?));
         }
         if osc.len() == 3 && keyword == "SetBadgeFormat" && p1_empty {
             return Ok(ITermProprietary::SetBadgeFormat(String::from_utf8(
-                base64::decode(osc[2])?,
+                base64_decode(osc[2])?,
             )?));
         }
 
@@ -1183,7 +1184,7 @@ impl ITermProprietary {
                 if let (Some(k), Some(v)) = (p1, p2) {
                     return Ok(ITermProprietary::SetUserVar {
                         name: k.to_string(),
-                        value: String::from_utf8(base64::decode(v)?)?,
+                        value: String::from_utf8(base64_decode(v)?)?,
                     });
                 }
             }
@@ -1222,6 +1223,18 @@ impl ITermProprietary {
     }
 }
 
+/// base64::encode is deprecated, so make a less frustrating helper
+pub(crate) fn base64_encode<T: AsRef<[u8]>>(s: T) -> String {
+    base64::engine::general_purpose::STANDARD.encode(s)
+}
+
+/// base64::decode is deprecated, so make a less frustrating helper
+pub(crate) fn base64_decode<T: AsRef<[u8]>>(
+    s: T,
+) -> std::result::Result<Vec<u8>, base64::DecodeError> {
+    base64::engine::general_purpose::STANDARD.decode(s)
+}
+
 impl Display for ITermProprietary {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "1337;")?;
@@ -1251,12 +1264,12 @@ impl Display for ITermProprietary {
                 f,
                 "ReportCellSize={height_pixels:.1};{width_pixels:.1};{scale:.1}",
             )?,
-            Copy(s) => write!(f, "Copy=;{}", base64::encode(s))?,
-            ReportVariable(s) => write!(f, "ReportVariable={}", base64::encode(s))?,
+            Copy(s) => write!(f, "Copy=;{}", base64_encode(s))?,
+            ReportVariable(s) => write!(f, "ReportVariable={}", base64_encode(s))?,
             SetUserVar { name, value } => {
-                write!(f, "SetUserVar={}={}", name, base64::encode(value))?
+                write!(f, "SetUserVar={}={}", name, base64_encode(value))?
             }
-            SetBadgeFormat(s) => write!(f, "SetBadgeFormat={}", base64::encode(s))?,
+            SetBadgeFormat(s) => write!(f, "SetBadgeFormat={}", base64_encode(s))?,
             File(file) => file.fmt(f)?,
             UnicodeVersion(ITermUnicodeVersionOp::Set(n)) => write!(f, "UnicodeVersion={}", n)?,
             UnicodeVersion(ITermUnicodeVersionOp::Push(Some(label))) => {
