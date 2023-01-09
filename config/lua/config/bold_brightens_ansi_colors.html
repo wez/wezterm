@@ -149,6 +149,15 @@ range of mature software; for instance, a lot of software
 assumes that Black+Bold renders as a Dark Grey which is
 legible on a Black background, but if this option is set to
 false, it would render as Black on Black.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>This option can now have one of three values:</p>
+<ul>
+<li><code>&quot;No&quot;</code> - the bold attribute will not influence palette selection</li>
+<li><code>&quot;BrightAndBold&quot;</code> - the bold attribute will select a bright version of palette indices 0-7 and preserve the bold attribute on the text, using both a bold font and a brighter color</li>
+<li><code>&quot;BrightOnly&quot;</code> - the bold attribute will select a bright version of palette indices 0-7 but the intensity will be treated as normal and a non-bold font will be used for the text.</li>
+</ul>
+<p>You may use <code>true</code> or <code>false</code> for backwards compatibility.  <code>true</code> is
+equivalent to <code>&quot;BrightAndBold&quot;</code> and <code>false</code> is equivalent to <code>&quot;No&quot;</code>.</p>
 
                     </main>
 
