@@ -119,6 +119,10 @@ fn window_id_from_event(event: &xcb::Event) -> Option<xcb::x::Window> {
 }
 
 impl ConnectionOps for XConnection {
+    fn name(&self) -> String {
+        "X11".to_string()
+    }
+
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
     }

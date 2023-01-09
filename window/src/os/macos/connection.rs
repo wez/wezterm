@@ -82,6 +82,10 @@ impl Connection {
 }
 
 impl ConnectionOps for Connection {
+    fn name(&self) -> String {
+        "macOS".to_string()
+    }
+
     fn terminate_message_loop(&self) {
         unsafe {
             let () = msg_send![NSApp(), stop: nil];

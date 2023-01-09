@@ -61,6 +61,10 @@ impl ConnectionOps for Connection {
         get_appearance()
     }
 
+    fn name(&self) -> String {
+        "Windows".to_string()
+    }
+
     fn run_message_loop(&self) -> anyhow::Result<()> {
         let mut msg: MSG = unsafe { std::mem::zeroed() };
         loop {

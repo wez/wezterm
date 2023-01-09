@@ -37,6 +37,8 @@ pub trait ConnectionOps {
         res
     }
 
+    fn name(&self) -> String;
+
     fn set_event_handler(&self, func: fn(ApplicationEvent)) {
         let mut handler = EVENT_HANDLER.lock().unwrap();
         *handler = func;

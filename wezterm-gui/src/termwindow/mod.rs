@@ -2033,9 +2033,10 @@ impl TermWindow {
         let gui_win = GuiWin::new(self);
 
         let opengl_info = self.opengl_info.as_deref().unwrap_or("Unknown").to_string();
+        let connection_info = Connection::get().unwrap().name();
 
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
-            crate::overlay::show_debug_overlay(term, gui_win, opengl_info)
+            crate::overlay::show_debug_overlay(term, gui_win, opengl_info, connection_info)
         });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future).detach();

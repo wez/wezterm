@@ -421,6 +421,10 @@ impl WaylandConnection {
 }
 
 impl ConnectionOps for WaylandConnection {
+    fn name(&self) -> String {
+        "Wayland".to_string()
+    }
+
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
     }
