@@ -21,6 +21,10 @@ As features stabilize some brief notes about them will accumulate here.
   [#2741](https://github.com/wez/wezterm/issues/2741)
 * macOS: initial cut at macOS native menu bar
   [#1485](https://github.com/wez/wezterm/issues/1485)
+* mux: exposed [MuxDomain](config/lua/MuxDomain/index.md) to lua, along with
+  [wezterm.mux.get_domain()](config/lua/wezterm.mux/get_domain.md),
+  [wezterm.mux.all_domains()](config/lua/wezterm.mux/all_domains.md) and
+  [wezterm.mux.set_default_domain()](config/lua/wezterm.mux/set_default_domain.md).
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm

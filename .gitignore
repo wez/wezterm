@@ -22,6 +22,7 @@ dhat-heap.json
 /docs/config/lua/keyassignment/CopyMode/index.md
 /docs/config/lua/mux-events/index.md
 /docs/config/lua/mux-window/index.md
+/docs/config/lua/MuxDomain/index.md
 /docs/config/lua/MuxTab/index.md
 /docs/config/lua/MuxPane/index.md
 /docs/config/lua/pane/index.md

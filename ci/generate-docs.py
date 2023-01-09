@@ -391,6 +391,7 @@ TOC = [
                     Gen("object: Color", "config/lua/color"),
                     Page("object: ExecDomain", "config/lua/ExecDomain.md"),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
+                    Gen("object: MuxDomain", "config/lua/MuxDomain"),
                     Gen("object: MuxWindow", "config/lua/mux-window"),
                     Gen("object: MuxTab", "config/lua/MuxTab"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),
