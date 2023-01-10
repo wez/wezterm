@@ -5,7 +5,7 @@ use crate::os::x11::xsettings::*;
 use crate::os::Connection;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Appearance, DeadKeyStatus, ScreenRect, ScreenPoint};
+use crate::{Appearance, DeadKeyStatus, ScreenPoint, ScreenRect};
 use anyhow::{anyhow, bail, Context as _};
 use mio::event::Source;
 use mio::unix::SourceFd;
@@ -239,7 +239,9 @@ impl ConnectionOps for XConnection {
             .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
             .clone();
 
-        let active = self.screen_from_focused_window(&by_name).unwrap_or_else(|_| main.clone());
+        let active = self
+            .screen_from_focused_window(&by_name)
+            .unwrap_or_else(|_| main.clone());
 
         Ok(Screens {
             main,
@@ -795,16 +797,22 @@ impl XConnection {
         future
     }
 
-    fn screen_from_focused_window(&self, by_name: &HashMap<String,ScreenInfo>) -> anyhow::Result<ScreenInfo> {
+    fn screen_from_focused_window(
+        &self,
+        by_name: &HashMap<String, ScreenInfo>,
+    ) -> anyhow::Result<ScreenInfo> {
         let focused = self
             .send_and_wait_request(&xcb::x::GetInputFocus {})
             .context("querying focused window")?;
         let geom = self
-            .send_and_wait_request(&xcb::x::GetGeometry {
-                drawable: xcb::x::Drawable::Window(focused.focus()),
+            .send_and_wait_request(&xcb::x::TranslateCoordinates {
+                src_window: focused.focus(),
+                dst_window: self.root,
+                src_x: 0,
+                src_y: 0,
             })
-            .context("querying geometry")?;
-        let window_origin = ScreenPoint::new(geom.x().into(), geom.y().into());
+            .context("querying root coordinates")?;
+        let window_origin = ScreenPoint::new(geom.dst_x().into(), geom.dst_y().into());
         Ok(by_name
             .values()
             .find(|screen| screen.rect.contains(window_origin))
