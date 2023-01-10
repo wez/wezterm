@@ -1750,7 +1750,7 @@ impl FromDynamic for BoldBrightening {
                 "BrightAndBold" => Ok(Self::BrightAndBold),
                 "BrightOnly" => Ok(Self::BrightOnly),
                 s => Err(wezterm_dynamic::Error::Message(format!(
-                    "`{s}` is not valid, use one of `None`, `BrightAndBold` or `BrightOnly`"
+                    "`{s}` is not valid, use one of `No`, `BrightAndBold` or `BrightOnly`"
                 ))),
             },
             Err(err) => match bool::from_dynamic(value, options) {
