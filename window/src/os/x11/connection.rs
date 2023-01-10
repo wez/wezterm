@@ -239,22 +239,7 @@ impl ConnectionOps for XConnection {
             .ok_or_else(|| anyhow::anyhow!("no screens were found"))?
             .clone();
 
-        self.conn.send_request(&xcb::x::GrabServer {});
-        let focused = self
-            .send_and_wait_request(&xcb::x::GetInputFocus {})
-            .context("querying focused window")?;
-        let geom = self
-            .send_and_wait_request(&xcb::x::GetGeometry {
-                drawable: xcb::x::Drawable::Window(focused.focus()),
-            })
-            .context("querying geometry")?;
-        let window_origin = ScreenPoint::new(geom.x().into(), geom.y().into());
-        let active = by_name
-            .values()
-            .find(|screen| screen.rect.contains(window_origin))
-            .ok_or_else(|| anyhow::anyhow!("active window is not in any screen"))?
-            .clone();
-        self.conn.send_request(&xcb::x::UngrabServer {});
+        let active = self.screen_from_focused_window(&by_name).unwrap_or_else(|_| main.clone());
 
         Ok(Screens {
             main,
@@ -808,5 +793,22 @@ impl XConnection {
         .detach();
 
         future
+    }
+
+    fn screen_from_focused_window(&self, by_name: &HashMap<String,ScreenInfo>) -> anyhow::Result<ScreenInfo> {
+        let focused = self
+            .send_and_wait_request(&xcb::x::GetInputFocus {})
+            .context("querying focused window")?;
+        let geom = self
+            .send_and_wait_request(&xcb::x::GetGeometry {
+                drawable: xcb::x::Drawable::Window(focused.focus()),
+            })
+            .context("querying geometry")?;
+        let window_origin = ScreenPoint::new(geom.x().into(), geom.y().into());
+        Ok(by_name
+            .values()
+            .find(|screen| screen.rect.contains(window_origin))
+            .ok_or_else(|| anyhow::anyhow!("active window is not in any screen"))?
+            .clone())
     }
 }
