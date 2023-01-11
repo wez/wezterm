@@ -143,9 +143,12 @@
 <p>Specifies whether the <a href="../../lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a>
 key assignment uses the native macOS full-screen application support or not.</p>
 <p>The default is <code>false</code> which will simply (and very quickly!) toggle between a
-full screen window with no decorations and a regularly size window.</p>
-<p>When <code>true</code>, transitioning to full screen will slowly animate the window moving
-to a full screen space on the monitor.</p>
+window that covers the full screen, with no decorations and a regularly sized
+window.</p>
+<p>When <code>true</code>, transitioning to full screen will use the macOS native full screen
+mode, which in more recent versions of macOS, will allocate a separate Space
+for the wezterm application and then slowly animate the wezterm window moving
+into to that full screen Space on the monitor.</p>
 <p>This option only has an effect when running on macOS.</p>
 
                     </main>
