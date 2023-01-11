@@ -5,7 +5,7 @@ use crate::os::x11::xsettings::*;
 use crate::os::Connection;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
-use crate::{Appearance, DeadKeyStatus, ScreenPoint, ScreenRect};
+use crate::{Appearance, DeadKeyStatus, ScreenRect};
 use anyhow::{anyhow, bail, Context as _};
 use mio::event::Source;
 use mio::unix::SourceFd;
@@ -862,6 +862,11 @@ impl XConnection {
             .send_and_wait_request(&xcb::x::GetInputFocus {})
             .context("querying focused window")?;
         let geom = self
+            .send_and_wait_request(&xcb::x::GetGeometry {
+                drawable: xcb::x::Drawable::Window(focused.focus()),
+            })
+            .context("querying geometry")?;
+        let trans_geom = self
             .send_and_wait_request(&xcb::x::TranslateCoordinates {
                 src_window: focused.focus(),
                 dst_window: self.root,
@@ -869,11 +874,23 @@ impl XConnection {
                 src_y: 0,
             })
             .context("querying root coordinates")?;
-        let window_origin = ScreenPoint::new(geom.dst_x().into(), geom.dst_y().into());
+        let window_rect: ScreenRect = euclid::rect(
+            trans_geom.dst_x().into(),
+            trans_geom.dst_y().into(),
+            geom.width() as isize,
+            geom.height() as isize,
+        );
         Ok(by_name
             .values()
-            .find(|screen| screen.rect.contains(window_origin))
+            .filter_map(|screen| {
+                screen
+                    .rect
+                    .intersection(&window_rect)
+                    .map(|r| (screen, r.area()))
+            })
+            .max_by_key(|s| s.1)
             .ok_or_else(|| anyhow::anyhow!("active window is not in any screen"))?
+            .0
             .clone())
     }
 }
