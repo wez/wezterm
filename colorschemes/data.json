@@ -639,6 +639,45 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
+        "#0225c7",
+        "#ca30c7",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#2c2b2b",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c7c7c7",
+      "cursor_border": "#c7c7c7",
+      "cursor_fg": "#ffffff",
+      "foreground": "#d5a200",
+      "indexed": {},
+      "selection_bg": "#6b5b02",
+      "selection_fg": "#67e000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Apple Classic",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "a",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#262626",
         "#5f8787",
         "#87af87",
@@ -2718,6 +2757,43 @@
   {
     "colors": {
       "ansi": [
+        "#393b44",
+        "#c94f6d",
+        "#81b29a",
+        "#dbc074",
+        "#719cd6",
+        "#9d79d6",
+        "#63cdcf",
+        "#dfdfe0"
+      ],
+      "background": "#192330",
+      "brights": [
+        "#575860",
+        "#d16983",
+        "#8ebaa4",
+        "#e0c989",
+        "#86abdc",
+        "#baa1e2",
+        "#7ad4d6",
+        "#e4e4e5"
+      ],
+      "cursor_bg": "#cdcecf",
+      "cursor_border": "#cdcecf",
+      "cursor_fg": "#cdcecf",
+      "foreground": "#cdcecf",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "_bash (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#17141f",
         "#ff6b7f",
         "#00bd9c",
@@ -4015,6 +4091,117 @@
   {
     "colors": {
       "ansi": [
+        "#1e2229",
+        "#ed1515",
+        "#44853a",
+        "#f67400",
+        "#1d99f3",
+        "#9b59b6",
+        "#1abc9c",
+        "#fcfcfc"
+      ],
+      "background": "#1e2229",
+      "brights": [
+        "#7f8c8d",
+        "#c0392b",
+        "#55a649",
+        "#fdbc4b",
+        "#3daee9",
+        "#8e44ad",
+        "#16a085",
+        "#ffffff"
+      ],
+      "cursor_bg": "#17a88b",
+      "cursor_border": "#17a88b",
+      "cursor_fg": "#17a88b",
+      "foreground": "#17a88b",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Breath (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e8e8e8",
+        "#ed1515",
+        "#c0392b",
+        "#f67400",
+        "#1d99f3",
+        "#9b59b6",
+        "#1abc9c",
+        "#fcfcfc"
+      ],
+      "background": "#e8e8e8",
+      "brights": [
+        "#7f8c8d",
+        "#c0392b",
+        "#55a649",
+        "#fdbc4b",
+        "#3daee9",
+        "#8e44ad",
+        "#16a085",
+        "#ffffff"
+      ],
+      "cursor_bg": "#292f34",
+      "cursor_border": "#292f34",
+      "cursor_fg": "#292f34",
+      "foreground": "#292f34",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "BreathLight (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e2229",
+        "#ed1515",
+        "#44853a",
+        "#f67400",
+        "#1d99f3",
+        "#9b59b6",
+        "#1abc9c",
+        "#fcfcfc"
+      ],
+      "background": "#1e2229",
+      "brights": [
+        "#7f8c8d",
+        "#c0392b",
+        "#55a649",
+        "#fdbc4b",
+        "#3daee9",
+        "#8e44ad",
+        "#16a085",
+        "#ffffff"
+      ],
+      "cursor_bg": "#bbbbbb",
+      "cursor_border": "#bbbbbb",
+      "cursor_fg": "#bbbbbb",
+      "foreground": "#bbbbbb",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "BreathSilverfox (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#31363b",
         "#ed1515",
         "#11d116",
@@ -4049,6 +4236,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#232627",
+        "#ed1515",
+        "#11d116",
+        "#f67400",
+        "#1d99f3",
+        "#9b59b6",
+        "#1abc9c",
+        "#fcfcfc"
+      ],
+      "background": "#232627",
+      "brights": [
+        "#7f8c8d",
+        "#c0392b",
+        "#1cdc9a",
+        "#fdbc4b",
+        "#3daee9",
+        "#8e44ad",
+        "#16a085",
+        "#ffffff"
+      ],
+      "cursor_bg": "#fcfcfc",
+      "cursor_border": "#fcfcfc",
+      "cursor_fg": "#fcfcfc",
+      "foreground": "#fcfcfc",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Breeze (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5036,7 +5260,7 @@
       "split": "#737994",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#626880",
+          "bg_color": "#303446",
           "fg_color": "#c6d0f5",
           "intensity": "Normal",
           "italic": false,
@@ -5052,17 +5276,7 @@
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#575757",
-        "inactive_tab_edge_hover": "#363636",
         "inactive_tab_hover": {
-          "bg_color": "#292c3c",
-          "fg_color": "#c6d0f5",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
           "bg_color": "#303446",
           "fg_color": "#c6d0f5",
           "intensity": "Normal",
@@ -5070,8 +5284,16 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "new_tab": {
+          "bg_color": "#414559",
+          "fg_color": "#c6d0f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
         "new_tab_hover": {
-          "bg_color": "#292c3c",
+          "bg_color": "#51576d",
           "fg_color": "#c6d0f5",
           "intensity": "Normal",
           "italic": true,
@@ -5082,7 +5304,11 @@
       "visual_bell": "#414559"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Catppuccin Frappe",
+        "catppuccin-frappe",
+        "CatppuccinFrappé (Gogh)"
+      ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Frappe",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -5128,7 +5354,7 @@
       "split": "#9ca0b0",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#acb0be",
+          "bg_color": "#eff1f5",
           "fg_color": "#4c4f69",
           "intensity": "Normal",
           "italic": false,
@@ -5144,17 +5370,7 @@
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#575757",
-        "inactive_tab_edge_hover": "#363636",
         "inactive_tab_hover": {
-          "bg_color": "#e6e9ef",
-          "fg_color": "#4c4f69",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
           "bg_color": "#eff1f5",
           "fg_color": "#4c4f69",
           "intensity": "Normal",
@@ -5162,8 +5378,16 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "new_tab": {
+          "bg_color": "#ccd0da",
+          "fg_color": "#4c4f69",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
         "new_tab_hover": {
-          "bg_color": "#e6e9ef",
+          "bg_color": "#bcc0cc",
           "fg_color": "#4c4f69",
           "intensity": "Normal",
           "italic": true,
@@ -5174,7 +5398,11 @@
       "visual_bell": "#ccd0da"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Catppuccin Latte",
+        "catppuccin-latte",
+        "CatppuccinLatte (Gogh)"
+      ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Latte",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -5220,7 +5448,7 @@
       "split": "#6e738d",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#5b6078",
+          "bg_color": "#24273a",
           "fg_color": "#cad3f5",
           "intensity": "Normal",
           "italic": false,
@@ -5236,17 +5464,7 @@
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#575757",
-        "inactive_tab_edge_hover": "#363636",
         "inactive_tab_hover": {
-          "bg_color": "#1e2030",
-          "fg_color": "#cad3f5",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
           "bg_color": "#24273a",
           "fg_color": "#cad3f5",
           "intensity": "Normal",
@@ -5254,8 +5472,16 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "new_tab": {
+          "bg_color": "#363a4f",
+          "fg_color": "#cad3f5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
         "new_tab_hover": {
-          "bg_color": "#1e2030",
+          "bg_color": "#494d64",
           "fg_color": "#cad3f5",
           "intensity": "Normal",
           "italic": true,
@@ -5266,7 +5492,11 @@
       "visual_bell": "#363a4f"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Catppuccin Macchiato",
+        "catppuccin-macchiato",
+        "CatppuccinMacchiato (Gogh)"
+      ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Macchiato",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -5312,7 +5542,7 @@
       "split": "#6c7086",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#585b70",
+          "bg_color": "#1e1e2e",
           "fg_color": "#cdd6f4",
           "intensity": "Normal",
           "italic": false,
@@ -5328,17 +5558,7 @@
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#575757",
-        "inactive_tab_edge_hover": "#363636",
         "inactive_tab_hover": {
-          "bg_color": "#181825",
-          "fg_color": "#cdd6f4",
-          "intensity": "Normal",
-          "italic": false,
-          "strikethrough": false,
-          "underline": "None"
-        },
-        "new_tab": {
           "bg_color": "#1e1e2e",
           "fg_color": "#cdd6f4",
           "intensity": "Normal",
@@ -5346,8 +5566,16 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "new_tab": {
+          "bg_color": "#313244",
+          "fg_color": "#cdd6f4",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
         "new_tab_hover": {
-          "bg_color": "#181825",
+          "bg_color": "#45475a",
           "fg_color": "#cdd6f4",
           "intensity": "Normal",
           "italic": true,
@@ -5358,7 +5586,11 @@
       "visual_bell": "#313244"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Catppuccin Mocha",
+        "catppuccin-mocha",
+        "CatppuccinMocha (Gogh)"
+      ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Mocha",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -7299,85 +7531,85 @@
   {
     "colors": {
       "ansi": [
-        "#1d344f",
-        "#b95d76",
-        "#618774",
-        "#ba793e",
-        "#4d688e",
-        "#8e6f98",
-        "#6ca7bd",
-        "#cdd1d5"
+        "#352c24",
+        "#a5222f",
+        "#396847",
+        "#ac5402",
+        "#2848a9",
+        "#6e33ce",
+        "#287980",
+        "#f2e9e1"
       ],
-      "background": "#eaeaea",
+      "background": "#f6f2ee",
       "brights": [
-        "#24476f",
-        "#c76882",
-        "#629f81",
-        "#ca884a",
-        "#4e75aa",
-        "#9f75ac",
-        "#74b2c9",
-        "#cfd6dd"
+        "#534c45",
+        "#b3434e",
+        "#577f63",
+        "#b86e28",
+        "#4863b6",
+        "#8452d5",
+        "#488d93",
+        "#f4ece6"
       ],
-      "compose_cursor": "#e3786c",
-      "cursor_bg": "#1d344f",
-      "cursor_border": "#1d344f",
-      "cursor_fg": "#eaeaea",
-      "foreground": "#1d344f",
+      "compose_cursor": "#955f61",
+      "cursor_bg": "#3d2b5a",
+      "cursor_border": "#3d2b5a",
+      "cursor_fg": "#f6f2ee",
+      "foreground": "#3d2b5a",
       "indexed": {
-        "16": "#d685af",
-        "17": "#e3786c"
+        "16": "#a440b5",
+        "17": "#955f61"
       },
-      "scrollbar_thumb": "#2e537d",
-      "selection_bg": "#ced5de",
-      "selection_fg": "#1d344f",
-      "split": "#dbdbdb",
+      "scrollbar_thumb": "#824d5b",
+      "selection_bg": "#e7d2be",
+      "selection_fg": "#3d2b5a",
+      "split": "#e4dcd4",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#2e537d",
-          "fg_color": "#eaeaea",
+          "bg_color": "#824d5b",
+          "fg_color": "#f6f2ee",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "background": "#dbdbdb",
+        "background": "#e4dcd4",
         "inactive_tab": {
-          "bg_color": "#dbcece",
-          "fg_color": "#233f5e",
+          "bg_color": "#dbd1dd",
+          "fg_color": "#643f61",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
-        "inactive_tab_edge": "#dbdbdb",
-        "inactive_tab_edge_hover": "#dbcece",
+        "inactive_tab_edge": "#e4dcd4",
+        "inactive_tab_edge_hover": "#dbd1dd",
         "inactive_tab_hover": {
-          "bg_color": "#ced6db",
-          "fg_color": "#1d344f",
+          "bg_color": "#d3c7bb",
+          "fg_color": "#3d2b5a",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
         "new_tab": {
-          "bg_color": "#eaeaea",
-          "fg_color": "#233f5e",
+          "bg_color": "#f6f2ee",
+          "fg_color": "#643f61",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         },
         "new_tab_hover": {
-          "bg_color": "#ced6db",
-          "fg_color": "#1d344f",
+          "bg_color": "#d3c7bb",
+          "fg_color": "#3d2b5a",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
           "underline": "None"
         }
       },
-      "visual_bell": "#1d344f"
+      "visual_bell": "#3d2b5a"
     },
     "metadata": {
       "aliases": [],
@@ -9748,6 +9980,119 @@
   {
     "colors": {
       "ansi": [
+        "#232a2d",
+        "#e57474",
+        "#8ccf7e",
+        "#e5c76b",
+        "#67b0e8",
+        "#c47fd5",
+        "#6cbfbf",
+        "#b3b9b8"
+      ],
+      "background": "#141b1e",
+      "brights": [
+        "#2d3437",
+        "#ef7e7e",
+        "#96d988",
+        "#f4d67a",
+        "#71baf2",
+        "#ce89df",
+        "#67cbe7",
+        "#bdc3c2"
+      ],
+      "cursor_bg": "#dadada",
+      "cursor_border": "#dadada",
+      "cursor_fg": "#141b1e",
+      "foreground": "#dadada",
+      "indexed": {},
+      "selection_bg": "#141b1e",
+      "selection_fg": "#dadada"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Everblush",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4b565c",
+        "#e67e80",
+        "#a7c080",
+        "#dbbc7f",
+        "#7fbbb3",
+        "#d699b6",
+        "#83c092",
+        "#d3c6aa"
+      ],
+      "background": "#2f383e",
+      "brights": [
+        "#5c6a72",
+        "#f85552",
+        "#8da101",
+        "#dfa000",
+        "#3a94c5",
+        "#df69ba",
+        "#35a77c",
+        "#dfddc8"
+      ],
+      "cursor_bg": "#d3c6aa",
+      "cursor_border": "#d3c6aa",
+      "cursor_fg": "#d3c6aa",
+      "foreground": "#d3c6aa",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "EverforestDark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5c6a72",
+        "#f85552",
+        "#8da101",
+        "#dfa000",
+        "#3a94c5",
+        "#df69ba",
+        "#35a77c",
+        "#dfddc8"
+      ],
+      "background": "#fdf6e3",
+      "brights": [
+        "#4b565c",
+        "#e67e80",
+        "#a7c080",
+        "#dbbc7f",
+        "#7fbbb3",
+        "#d699b6",
+        "#83c092",
+        "#d3c6aa"
+      ],
+      "cursor_bg": "#5c6a72",
+      "cursor_border": "#5c6a72",
+      "cursor_fg": "#5c6a72",
+      "foreground": "#5c6a72",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "EverforestLight (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1d1d1d",
         "#cda074",
         "#9e744d",
@@ -11835,45 +12180,6 @@
   {
     "colors": {
       "ansi": [
-        "#1e1e1e",
-        "#be0f17",
-        "#868715",
-        "#cc881a",
-        "#377375",
-        "#a04b73",
-        "#578e57",
-        "#978771"
-      ],
-      "background": "#1e1e1e",
-      "brights": [
-        "#7f7061",
-        "#f73028",
-        "#aab01e",
-        "#f7b125",
-        "#719586",
-        "#c77089",
-        "#7db669",
-        "#e6d4a3"
-      ],
-      "cursor_bg": "#e6d4a3",
-      "cursor_border": "#e6d4a3",
-      "cursor_fg": "#1e1e1e",
-      "foreground": "#e6d4a3",
-      "indexed": {},
-      "selection_bg": "#e6d4a3",
-      "selection_fg": "#534a42"
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Gruvbox Dark",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#1d2021",
         "#fb4934",
         "#b8bb26",
@@ -12264,16 +12570,57 @@
       ],
       "cursor_bg": "#ebdbb2",
       "cursor_border": "#ebdbb2",
-      "cursor_fg": "#ebdbb2",
+      "cursor_fg": "#282828",
       "foreground": "#ebdbb2",
-      "indexed": {}
+      "indexed": {},
+      "selection_bg": "#665c54",
+      "selection_fg": "#ebdbb2"
     },
     "metadata": {
       "aliases": [],
-      "name": "GruvboxDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "name": "GruvboxDark",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
-      "wezterm_version": "20220807-113146-c2fee766"
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1b1b",
+        "#cc241d",
+        "#98971a",
+        "#d79921",
+        "#458588",
+        "#b16286",
+        "#689d6a",
+        "#a89984"
+      ],
+      "background": "#1b1b1b",
+      "brights": [
+        "#928374",
+        "#fb4934",
+        "#b8bb26",
+        "#fabd2f",
+        "#83a598",
+        "#d3869b",
+        "#8ec07c",
+        "#ebdbb2"
+      ],
+      "cursor_bg": "#ebdbb2",
+      "cursor_border": "#ebdbb2",
+      "cursor_fg": "#1b1b1b",
+      "foreground": "#ebdbb2",
+      "indexed": {},
+      "selection_bg": "#665c54",
+      "selection_fg": "#ebdbb2"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "GruvboxDarkHard",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -14935,6 +15282,43 @@
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "j",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#090618",
+        "#c34043",
+        "#76946a",
+        "#c0a36e",
+        "#7e9cd8",
+        "#957fb8",
+        "#6a9589",
+        "#dcd7ba"
+      ],
+      "background": "#1f1f28",
+      "brights": [
+        "#727169",
+        "#e82424",
+        "#98bb6c",
+        "#e6c384",
+        "#7fb4ca",
+        "#938aa9",
+        "#7aa89f",
+        "#c8c093"
+      ],
+      "cursor_bg": "#dcd7ba",
+      "cursor_border": "#dcd7ba",
+      "cursor_fg": "#dcd7ba",
+      "foreground": "#dcd7ba",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "kanagawa (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "k",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18708,7 +19092,7 @@
         "#e0c989",
         "#86abdc",
         "#baa1e2",
-        "#7ad4d6",
+        "#7ad5d6",
         "#e4e4e5"
       ],
       "compose_cursor": "#f4a261",
@@ -18772,10 +19156,7 @@
       "visual_bell": "#cdcecf"
     },
     "metadata": {
-      "aliases": [
-        "nightfox",
-        "_bash (Gogh)"
-      ],
+      "aliases": [],
       "author": "EdenEast",
       "name": "nightfox",
       "origin_url": "https://github.com/EdenEast/nightfox.nvim",
@@ -22769,44 +23150,170 @@
   {
     "colors": {
       "ansi": [
-        "#191724",
-        "#e2e1e7",
-        "#ebbcba",
-        "#f6c177",
+        "#26233a",
+        "#eb6f92",
         "#9ccfd8",
-        "#c4a7e7",
+        "#f6c177",
         "#31748f",
+        "#c4a7e7",
+        "#ebbcba",
         "#e0def4"
       ],
       "background": "#191724",
       "brights": [
-        "#555169",
-        "#e2e1e7",
+        "#6e6a86",
+        "#eb6f92",
+        "#9ccfd8",
+        "#f6c177",
+        "#31748f",
+        "#c4a7e7",
         "#ebbcba",
+        "#e0def4"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#191724",
+      "foreground": "#e0def4",
+      "indexed": {},
+      "selection_bg": "#191724",
+      "selection_fg": "#e0def4"
+    },
+    "metadata": {
+      "aliases": [
+        "rose-pine",
+        "RoséPine (Gogh)"
+      ],
+      "name": "rose-pine",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f2e9e1",
+        "#b4637a",
+        "#56949f",
+        "#ea9d34",
+        "#286983",
+        "#907aa9",
+        "#d7827e",
+        "#575279"
+      ],
+      "background": "#faf4ed",
+      "brights": [
+        "#9893a5",
+        "#b4637a",
+        "#56949f",
+        "#ea9d34",
+        "#286983",
+        "#907aa9",
+        "#d7827e",
+        "#575279"
+      ],
+      "cursor_bg": "#575279",
+      "cursor_border": "#575279",
+      "cursor_fg": "#faf4ed",
+      "foreground": "#575279",
+      "indexed": {},
+      "selection_bg": "#faf4ed",
+      "selection_fg": "#575279"
+    },
+    "metadata": {
+      "aliases": [
+        "rose-pine-dawn",
+        "RoséPineDawn (Gogh)"
+      ],
+      "name": "rose-pine-dawn",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#393552",
+        "#eb6f92",
+        "#9ccfd8",
+        "#f6c177",
+        "#3e8fb0",
+        "#c4a7e7",
+        "#ea9a97",
+        "#e0def4"
+      ],
+      "background": "#232136",
+      "brights": [
+        "#6e6a86",
+        "#eb6f92",
+        "#9ccfd8",
+        "#f6c177",
+        "#3e8fb0",
+        "#c4a7e7",
+        "#ea9a97",
+        "#e0def4"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#232136",
+      "foreground": "#e0def4",
+      "indexed": {},
+      "selection_bg": "#232136",
+      "selection_fg": "#e0def4"
+    },
+    "metadata": {
+      "aliases": [
+        "rose-pine-moon",
+        "RoséPineMoon (Gogh)"
+      ],
+      "name": "rose-pine-moon",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#191724",
+        "#eb6f92",
+        "#31748f",
+        "#ebbcba",
+        "#c4a7e7",
         "#f6c177",
         "#9ccfd8",
-        "#c4a7e7",
+        "#e0def4"
+      ],
+      "background": "#191724",
+      "brights": [
+        "#6e6a86",
+        "#eb6f92",
         "#31748f",
-        "#c5c3ce"
+        "#ebbcba",
+        "#c4a7e7",
+        "#f6c177",
+        "#9ccfd8",
+        "#524f67"
       ],
       "cursor_bg": "#e0def4",
       "cursor_border": "#e0def4",
       "cursor_fg": "#191724",
       "foreground": "#e0def4",
       "indexed": {
-        "16": "#eb6f92",
-        "17": "#e5e5e5",
+        "16": "#f6c177",
+        "17": "#524f67",
         "18": "#1f1d2e",
         "19": "#26233a",
-        "20": "#6e6a86",
-        "21": "#f0f0f3"
+        "20": "#908caa",
+        "21": "#e0def4"
       },
       "selection_bg": "#e0def4",
       "selection_fg": "#191724"
     },
     "metadata": {
       "aliases": [],
-      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
+      "author": "Emilia Dunfelt <edun@dunfelt.se>",
       "name": "Rosé Pine (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
       "prefix": "r",
@@ -22817,91 +23324,44 @@
     "colors": {
       "ansi": [
         "#faf4ed",
-        "#1f1d2e",
+        "#b4637a",
+        "#286983",
         "#d7827e",
+        "#907aa9",
         "#ea9d34",
         "#56949f",
-        "#907aa9",
-        "#286983",
         "#575279"
       ],
       "background": "#faf4ed",
       "brights": [
         "#9893a5",
-        "#1f1d2e",
+        "#b4637a",
+        "#286983",
         "#d7827e",
+        "#907aa9",
         "#ea9d34",
         "#56949f",
-        "#907aa9",
-        "#286983",
-        "#26233a"
+        "#cecacd"
       ],
       "cursor_bg": "#575279",
       "cursor_border": "#575279",
       "cursor_fg": "#faf4ed",
       "foreground": "#575279",
       "indexed": {
-        "16": "#b4637a",
-        "17": "#c5c3ce",
+        "16": "#ea9d34",
+        "17": "#cecacd",
         "18": "#fffaf3",
         "19": "#f2e9de",
-        "20": "#6e6a86",
-        "21": "#555169"
+        "20": "#797593",
+        "21": "#575279"
       },
       "selection_bg": "#575279",
       "selection_fg": "#faf4ed"
     },
     "metadata": {
       "aliases": [],
-      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
+      "author": "Emilia Dunfelt <edun@dunfelt.se>",
       "name": "Rosé Pine Dawn (base16)",
-      "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
-      "prefix": "r",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#232136",
-        "#ecebf0",
-        "#ea9a97",
-        "#f6c177",
-        "#9ccfd8",
-        "#c4a7e7",
-        "#3e8fb0",
-        "#e0def4"
-      ],
-      "background": "#232136",
-      "brights": [
-        "#59546d",
-        "#ecebf0",
-        "#ea9a97",
-        "#f6c177",
-        "#9ccfd8",
-        "#c4a7e7",
-        "#3e8fb0",
-        "#d9d7e1"
-      ],
-      "cursor_bg": "#e0def4",
-      "cursor_border": "#e0def4",
-      "cursor_fg": "#232136",
-      "foreground": "#e0def4",
-      "indexed": {
-        "16": "#eb6f92",
-        "17": "#b9b9bc",
-        "18": "#2a273f",
-        "19": "#393552",
-        "20": "#817c9c",
-        "21": "#f5f5f7"
-      },
-      "selection_bg": "#e0def4",
-      "selection_fg": "#232136"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Emilia Dunfelt <sayhi@dunfelt.se>",
-      "name": "Rosé Pine Moon (base16)",
       "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
       "prefix": "r",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -25366,29 +25826,29 @@
     "colors": {
       "ansi": [
         "#1c1b19",
-        "#ff3128",
+        "#ef2f27",
         "#519f50",
         "#fbb829",
-        "#5573a3",
+        "#2c78bf",
         "#e02c6d",
         "#0aaeb3",
-        "#918175"
+        "#baa67f"
       ],
-      "background": "#282828",
+      "background": "#1c1b19",
       "brights": [
-        "#2d2b28",
+        "#918175",
         "#f75341",
         "#98bc37",
         "#fed06e",
-        "#8eb2f7",
-        "#e35682",
-        "#53fde9",
+        "#68a8e4",
+        "#ff5c8f",
+        "#2be4d0",
         "#fce8c3"
       ],
-      "cursor_bg": "#ebdbb2",
-      "cursor_border": "#ebdbb2",
-      "cursor_fg": "#ebdbb2",
-      "foreground": "#ebdbb2",
+      "cursor_bg": "#fbb829",
+      "cursor_border": "#fbb829",
+      "cursor_fg": "#fbb829",
+      "foreground": "#fce8c3",
       "indexed": {}
     },
     "metadata": {
@@ -29210,27 +29670,27 @@
         "#34373e",
         "#e06383",
         "#7ebebd",
-        "#dcc28c",
+        "#cccccc",
         "#a6c1e0",
         "#e1c1ee",
         "#5b94ab",
-        "#d3d3d3"
+        "#ababab"
       ],
       "background": "#282b33",
       "brights": [
         "#434750",
         "#fa7193",
         "#8fd7d6",
-        "#f5d79a",
+        "#d1dfff",
         "#b2cff0",
         "#efccfd",
         "#69abc5",
-        "#f7f7f7"
+        "#d3d3d3"
       ],
       "cursor_bg": "#7ebebd",
       "cursor_border": "#7ebebd",
       "cursor_fg": "#1f2024",
-      "foreground": "#e7e2e2",
+      "foreground": "#c6c6c6",
       "indexed": {},
       "selection_bg": "#1f2024",
       "selection_fg": "#c6c6c6"
