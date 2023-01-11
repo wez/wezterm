@@ -13,6 +13,7 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::{NSArray, NSInteger, NSRect};
 use objc::runtime::{Object, BOOL, YES};
 use objc::*;
+use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -81,9 +82,32 @@ impl Connection {
     }
 }
 
+/// `/System/Library/CoreServices/SystemVersion.plist`
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct SoftwareVersion {
+    product_build_version: String,
+    product_user_visible_version: String,
+    product_name: String,
+}
+
+impl SoftwareVersion {
+    fn load() -> anyhow::Result<Self> {
+        let vers: Self = plist::from_file("/System/Library/CoreServices/SystemVersion.plist")?;
+        Ok(vers)
+    }
+}
+
 impl ConnectionOps for Connection {
     fn name(&self) -> String {
-        "macOS".to_string()
+        if let Ok(vers) = SoftwareVersion::load() {
+            format!(
+                "{} {} ({})",
+                vers.product_name, vers.product_user_visible_version, vers.product_build_version
+            )
+        } else {
+            "macOS".to_string()
+        }
     }
 
     fn terminate_message_loop(&self) {

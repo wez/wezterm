@@ -6290,6 +6290,7 @@ dependencies = [
  "metrics",
  "mio",
  "objc",
+ "plist",
  "promise",
  "raw-window-handle",
  "resize",
