@@ -25,6 +25,21 @@ As features stabilize some brief notes about them will accumulate here.
   [wezterm.mux.get_domain()](config/lua/wezterm.mux/get_domain.md),
   [wezterm.mux.all_domains()](config/lua/wezterm.mux/all_domains.md) and
   [wezterm.mux.set_default_domain()](config/lua/wezterm.mux/set_default_domain.md).
+* Color schemes: [Apple Classic](colorschemes/a/index.md#apple-classic),
+  [\_bash (Gogh)](colorschemes/b/index.md#bash-gogh),
+  [Breath (Gogh)](colorschemes/b/index.md#breath-gogh),
+  [BreathLight (Gogh)](colorschemes/b/index.md#breathlight-gogh),
+  [BreathSilverfox (Gogh)](colorschemes/b/index.md#breathsilverfox-gogh),
+  [Breeze (Gogh)](colorschemes/b/index.md#breeze-gogh),
+  [Everblush](colorschemes/e/index.md#everblush),
+  [EverforestDark (Gogh)](colorschemes/e/index.md#everforestdark-gogh),
+  [EverforestLight (Gogh)](colorschemes/e/index.md#everforestlight-gogh),
+  [GruvboxDark](colorschemes/g/index.md#gruvboxdark),
+  [GruvboxDarkHard](colorschemes/g/index.md#gruvboxdarkhard),
+  [kanagawa (Gogh)](colorschemes/k/index.md#kanagawa-gogh),
+  [rose-pine](colorschemes/r/index.md#rose-pine),
+  [rose-pine-dawn](colorschemes/r/index.md#rose-pine-dawn),
+  [rose-pine-moon](colorschemes/r/index.md#rose-pine-moon)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
@@ -56,6 +71,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [bold_brightens_ansi_colors](config/lua/config/bold_brightens_ansi_colors.md)
   now supports `"BrightOnly"` to use the bright color without selecting a bold
   font. [#2932](https://github.com/wez/wezterm/issues/2932)
+* Color schemes: `Gruvbox Dark` was renamed to `GruvboxDark` and adjusted in
+  the upstream iTerm2-Color-Schemes repo
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
