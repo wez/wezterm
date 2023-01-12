@@ -25,6 +25,10 @@ As features stabilize some brief notes about them will accumulate here.
   [wezterm.mux.get_domain()](config/lua/wezterm.mux/get_domain.md),
   [wezterm.mux.all_domains()](config/lua/wezterm.mux/all_domains.md) and
   [wezterm.mux.set_default_domain()](config/lua/wezterm.mux/set_default_domain.md).
+* [hide_mouse_cursor_when_typing](config/lua/config/hide_mouse_cursor_when_typing.md)
+  option to control whether the mouse cursor is hidden when typing. Thanks to
+  [@ProspectPyxis](https://github.com/ProspectPyxis)!
+  [#2946](https://github.com/wez/wezterm/pull/2946)
 * Color schemes: [Apple Classic](colorschemes/a/index.md#apple-classic),
   [\_bash (Gogh)](colorschemes/b/index.md#bash-gogh),
   [Breath (Gogh)](colorschemes/b/index.md#breath-gogh),
