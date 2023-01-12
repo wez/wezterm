@@ -234,6 +234,7 @@ impl GuiFrontEnd {
                         // If we get here, there are no windows that could have received
                         // the QuitApplication command, therefore it must be ok to quit
                         // immediately
+                        log::info!("QuitApplication over here");
                         Connection::get().unwrap().terminate_message_loop();
                     }
                     KeyAssignment::SpawnWindow => {
