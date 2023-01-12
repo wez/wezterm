@@ -391,7 +391,9 @@ impl super::TermWindow {
                         {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
-                        context.set_cursor(None);
+                        if self.config.hide_mouse_cursor_when_typing {
+                            context.set_cursor(None);
+                        }
                         if !keycode.is_modifier() {
                             context.invalidate();
                         }
@@ -646,7 +648,9 @@ impl super::TermWindow {
                     {
                         self.maybe_scroll_to_bottom_for_input(&pane);
                     }
-                    context.set_cursor(None);
+                    if self.config.hide_mouse_cursor_when_typing {
+                        context.set_cursor(None);
+                    }
                     if !key.is_modifier() {
                         context.invalidate();
                     }

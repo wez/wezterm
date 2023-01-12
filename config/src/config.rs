@@ -581,6 +581,11 @@ pub struct Config {
     #[dynamic(default = "linear_ease")]
     pub text_blink_rapid_ease_out: EasingFunction,
 
+    /// If true, the mouse cursor will be hidden while typing.
+    /// This option is true by default.
+    #[dynamic(default = "default_true")]
+    pub hide_mouse_cursor_when_typing: bool,
+
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of
     /// 10 seconds.
