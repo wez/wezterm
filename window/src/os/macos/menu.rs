@@ -56,7 +56,7 @@ impl Menu {
                 None
             } else {
                 Some(Self {
-                    menu: StrongPtr::new(existing),
+                    menu: StrongPtr::retain(existing),
                 })
             }
         }
