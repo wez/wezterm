@@ -283,6 +283,7 @@ impl CommandPalette {
                     top: Dimension::Cells(0.),
                     bottom: Dimension::Cells(0.),
                 })
+                .min_width(Some(Dimension::Percent(1.)))
                 .display(DisplayType::Block),
             );
         }
