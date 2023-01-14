@@ -837,28 +837,23 @@ impl CopyRenderable {
             if let Some(word) = words.next() {
                 self.cursor.x += unicode_column_width(word, None);
                 if !is_whitespace_word(word) {
-                    // We were part-way through a word, so look
-                    // at the next word
                     if let Some(word) = words.next() {
                         if is_whitespace_word(word) {
                             self.cursor.x += unicode_column_width(word, None);
-                            // If we advance off the RHS, move to the start of the word on the
-                            // next line, if any!
-                            if self.cursor.x >= width {
-                                let dims = self.delegate.get_dimensions();
-                                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
-                                if self.cursor.y + 1 < max_row {
-                                    self.cursor.y += 1;
-                                    return self.move_to_start_of_line_content();
-                                }
-                            }
                         }
                     }
-                } else {
-                    // We were in whitespace and advancing
-                    // has put us at the start of the next word
                 }
             }
+
+            if self.cursor.x >= width {
+                let dims = self.delegate.get_dimensions();
+                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
+                if self.cursor.y + 1 < max_row {
+                    self.cursor.y += 1;
+                    return self.move_to_start_of_line_content();
+                }
+            }
+
         }
         self.select_to_cursor_pos();
     }
