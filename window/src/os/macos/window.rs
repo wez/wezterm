@@ -1870,12 +1870,49 @@ impl WindowView {
         }
     }
 
+    /// Ensure that the menubar is shown when we transition from a fullscreen window
+    /// to either a non-fullscreen window or no windows.
+    /// Without this, we can end up in a state where the menu bar is invisible when
+    /// it should otherwise be visible, and it is especially confusing when there
+    /// are no windows.
+    fn update_application_presentation(&self, is_key: bool) {
+        let is_simple_full_screen;
+        let native_full_screen;
+
+        {
+            let inner = self.inner.borrow();
+            native_full_screen = inner.config.native_macos_fullscreen_mode;
+            is_simple_full_screen = inner.fullscreen.is_some();
+        }
+
+        if !native_full_screen {
+            let current_app = unsafe { NSApplication::sharedApplication(nil) };
+            let target_options = match (is_key, is_simple_full_screen) {
+                (true, true) => {
+                    NSApplicationPresentationOptions::NSApplicationPresentationAutoHideMenuBar
+                        | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
+                }
+                (true, false) | (false, _) => {
+                    NSApplicationPresentationOptions::NSApplicationPresentationDefault
+                }
+            };
+            unsafe {
+                let current_options: NSApplicationPresentationOptions =
+                    msg_send![current_app, presentationOptions];
+                if current_options != target_options {
+                    current_app.setPresentationOptions_(target_options);
+                }
+            }
+        }
+    }
+
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             this.inner
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::FocusChanged(true));
+            this.update_application_presentation(true);
         }
     }
 
@@ -1885,6 +1922,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::FocusChanged(false));
+            this.update_application_presentation(true);
         }
     }
 
@@ -1933,6 +1971,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::Destroyed);
+            this.update_application_presentation(false);
         }
 
         // Release and zero out the inner member
