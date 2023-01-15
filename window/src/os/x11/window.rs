@@ -585,12 +585,18 @@ impl XWindowInner {
                     self.verify_focus = true;
                 }
             }
-            Event::X(xcb::x::Event::FocusIn(_)) => {
-                self.focus_changed(true);
-            }
-            Event::X(xcb::x::Event::FocusOut(_)) => {
-                self.focus_changed(false);
-            }
+            Event::X(xcb::x::Event::FocusIn(e)) => match e.detail() {
+                xcb::x::NotifyDetail::Pointer => (),
+                _ => {
+                    self.focus_changed(true);
+                }
+            },
+            Event::X(xcb::x::Event::FocusOut(e)) => match e.detail() {
+                xcb::x::NotifyDetail::Pointer => (),
+                _ => {
+                    self.focus_changed(false);
+                }
+            },
             Event::X(xcb::x::Event::LeaveNotify(_)) => {
                 self.events.dispatch(WindowEvent::MouseLeave);
             }
