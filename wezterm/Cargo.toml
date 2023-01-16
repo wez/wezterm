@@ -14,7 +14,7 @@ anyhow = "1.0"
 chrono = "0.4"
 clap = {version="4.0", features=["derive"]}
 clap_complete = "4.0"
-clap_complete_fig = "4.0"
+clap_complete_fig = "4.1"
 codec = { path = "../codec" }
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
