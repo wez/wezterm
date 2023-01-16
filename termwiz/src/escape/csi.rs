@@ -431,8 +431,8 @@ impl From<MouseButton> for MouseButtons {
             MouseButton::Button3Press | MouseButton::Button3Drag => MouseButtons::RIGHT,
             MouseButton::Button4Press => MouseButtons::VERT_WHEEL | MouseButtons::WHEEL_POSITIVE,
             MouseButton::Button5Press => MouseButtons::VERT_WHEEL,
-            MouseButton::Button6Press => MouseButtons::HORZ_WHEEL,
-            MouseButton::Button7Press => MouseButtons::HORZ_WHEEL | MouseButtons::WHEEL_POSITIVE,
+            MouseButton::Button6Press => MouseButtons::HORZ_WHEEL | MouseButtons::WHEEL_POSITIVE,
+            MouseButton::Button7Press => MouseButtons::HORZ_WHEEL,
             _ => MouseButtons::NONE,
         }
     }
