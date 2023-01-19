@@ -60,6 +60,10 @@ As features stabilize some brief notes about them will accumulate here.
   focused window, rather than just copying the `main` screen data. Thanks to
   [@NBonaparte](https://github.com/NBonaparte)!
   [#2928](https://github.com/wez/wezterm/pull/2928)
+* Resizing windows when overriding the dpi in the config would not respect
+  the specified dpi. Thanks to [@niclashoyer](https://github.com/niclashoyer)!
+  [#2914](https://github.com/wez/wezterm/issues/2914)
+  [#2978](https://github.com/wez/wezterm/pull/2978)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
