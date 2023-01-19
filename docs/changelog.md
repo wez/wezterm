@@ -64,6 +64,9 @@ As features stabilize some brief notes about them will accumulate here.
   the specified dpi. Thanks to [@niclashoyer](https://github.com/niclashoyer)!
   [#2914](https://github.com/wez/wezterm/issues/2914)
   [#2978](https://github.com/wez/wezterm/pull/2978)
+* Wayland: mouse cursor didn't auto-hide when typing. Thanks to
+  [@jmbaur](https://github.com/jmbaur)!
+  [#2977](https://github.com/wez/wezterm/pull/2977)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
