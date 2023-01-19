@@ -995,7 +995,7 @@ impl WindowInner {
     }
 
     fn focus(&mut self) {
-        unsafe{
+        unsafe {
             self.window.makeKeyAndOrderFront_(nil);
         }
     }
