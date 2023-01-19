@@ -71,6 +71,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: mouse cursor didn't auto-hide when typing. Thanks to
   [@jmbaur](https://github.com/jmbaur)!
   [#2977](https://github.com/wez/wezterm/pull/2977)
+* mux: `default_workspace` was not always respected when spawning
+  [#2981](https://github.com/wez/wezterm/issues/2981)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`

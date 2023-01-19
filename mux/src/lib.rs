@@ -392,6 +392,15 @@ impl Mux {
         }
     }
 
+    fn get_default_workspace(&self) -> String {
+        let config = configuration();
+        config
+            .default_workspace
+            .as_deref()
+            .unwrap_or(DEFAULT_WORKSPACE)
+            .to_string()
+    }
+
     pub fn is_main_thread(&self) -> bool {
         std::thread::current().id() == self.main_thread_id
     }
@@ -496,7 +505,7 @@ impl Mux {
                     .get(&ident)
                     .and_then(|info| info.active_workspace.clone())
             })
-            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
+            .unwrap_or_else(|| self.get_default_workspace())
     }
 
     /// Returns the effective active workspace name for a given client
@@ -505,7 +514,7 @@ impl Mux {
             .read()
             .get(&ident)
             .and_then(|info| info.active_workspace.clone())
-            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
+            .unwrap_or_else(|| self.get_default_workspace())
     }
 
     pub fn set_active_workspace_for_client(&self, ident: &Arc<ClientId>, workspace: &str) {

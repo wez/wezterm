@@ -1121,7 +1121,15 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 }
             };
 
-            let workspace = workspace.unwrap_or_else(|| mux::DEFAULT_WORKSPACE.to_string());
+            let workspace = workspace
+                .as_deref()
+                .unwrap_or(
+                    config
+                        .default_workspace
+                        .as_deref()
+                        .unwrap_or(mux::DEFAULT_WORKSPACE),
+                )
+                .to_string();
 
             let size = config.initial_size(0);
 
