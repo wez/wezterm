@@ -1929,6 +1929,47 @@ impl TermWindow {
         }
     }
 
+    fn activate_window(&mut self, window_idx: usize) -> anyhow::Result<()> {
+        let windows = front_end().gui_windows();
+        if let Some(win) = windows.get(window_idx) {
+            win.window.focus();
+        }
+        Ok(())
+    }
+
+    fn activate_window_relative(&mut self, delta: isize, wrap: bool) -> anyhow::Result<()> {
+        let windows = front_end().gui_windows();
+        let my_idx = windows
+            .iter()
+            .position(|w| Some(&w.window) == self.window.as_ref())
+            .ok_or_else(|| anyhow!("I'm not in the window list!?"))?;
+
+        let idx = my_idx as isize + delta;
+
+        let idx = if wrap {
+            let idx = if idx < 0 {
+                windows.len() as isize + idx
+            } else {
+                idx
+            };
+            idx as usize % windows.len()
+        } else {
+            if idx < 0 {
+                0
+            } else if idx >= windows.len() as isize {
+                windows.len().saturating_sub(1)
+            } else {
+                idx as usize
+            }
+        };
+
+        if let Some(win) = windows.get(idx) {
+            win.window.focus();
+        }
+
+        Ok(())
+    }
+
     fn activate_tab(&mut self, tab_idx: isize) -> anyhow::Result<()> {
         let mux = Mux::get();
         let mut window = mux
@@ -2366,6 +2407,15 @@ impl TermWindow {
             }
             ActivateTab(n) => {
                 self.activate_tab(*n)?;
+            }
+            ActivateWindow(n) => {
+                self.activate_window(*n)?;
+            }
+            ActivateWindowRelative(n) => {
+                self.activate_window_relative(*n, true)?;
+            }
+            ActivateWindowRelativeNoWrap(n) => {
+                self.activate_window_relative(*n, false)?;
             }
             SendString(s) => pane.writer().write_all(s.as_bytes())?,
             SendKey(key) => {

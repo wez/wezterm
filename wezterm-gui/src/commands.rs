@@ -947,6 +947,94 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &[],
             icon: Some("mdi_close_box_outline"),
         },
+        ActivateWindow(n) => {
+            let n = *n;
+            let ordinal = english_ordinal(n as isize + 1);
+            CommandDef {
+                brief: format!("Activate {ordinal} Window").into(),
+                doc: format!("Activates the {ordinal} window").into(),
+                keys: vec![],
+                args: &[ArgType::ActiveWindow],
+                menubar: &["Window", "Select Window"],
+                icon: None,
+            }
+        }
+        ActivateWindowRelative(-1) => CommandDef {
+            brief: "Activate the preceeding window".into(),
+            doc: "Activates the preceeding window. If this is the first \
+            window then cycles around and activates last window"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Window"],
+            icon: None,
+        },
+        ActivateWindowRelative(1) => CommandDef {
+            brief: "Activate the next window".into(),
+            doc: "Activates the next window. If this is the last \
+            window then cycles around and activates first window"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Window"],
+            icon: None,
+        },
+        ActivateWindowRelative(n) => {
+            let (direction, amount) = if *n < 0 {
+                ("backwards", -n)
+            } else {
+                ("forwards", *n)
+            };
+            let ordinal = english_ordinal(amount + 1);
+            CommandDef {
+                brief: format!("Activate the {ordinal} window {direction}").into(),
+                doc: format!(
+                    "Activates the {ordinal} window, moving {direction}. \
+                         Wraps around to the other end"
+                )
+                .into(),
+                keys: vec![],
+                args: &[ArgType::ActiveWindow],
+                menubar: &[],
+                icon: None,
+            }
+        }
+        ActivateWindowRelativeNoWrap(-1) => CommandDef {
+            brief: "Activate the preceeding window".into(),
+            doc: "Activates the preceeding window, stopping at the first \
+            window"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Window"],
+            icon: None,
+        },
+        ActivateWindowRelativeNoWrap(1) => CommandDef {
+            brief: "Activate the next window".into(),
+            doc: "Activates the next window, stopping at the last \
+            window"
+                .into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &["Window", "Select Window"],
+            icon: None,
+        },
+        ActivateWindowRelativeNoWrap(n) => {
+            let (direction, amount) = if *n < 0 {
+                ("backwards", -n)
+            } else {
+                ("forwards", *n)
+            };
+            let ordinal = english_ordinal(amount + 1);
+            CommandDef {
+                brief: format!("Activate the {ordinal} window {direction}").into(),
+                doc: format!("Activates the {ordinal} window, moving {direction}.").into(),
+                keys: vec![],
+                args: &[ArgType::ActiveWindow],
+                menubar: &[],
+                icon: None,
+            }
+        }
         ActivateTabRelative(-1) => CommandDef {
             brief: "Activate the tab to the left".into(),
             doc: "Activates the tab to the left. If this is the left-most \

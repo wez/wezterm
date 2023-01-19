@@ -266,6 +266,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn focus(&self) {
+        match self {
+            Self::X11(x) => x.focus(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.focus(),
+        }
+    }
+
     fn toggle_fullscreen(&self) {
         match self {
             Self::X11(x) => x.toggle_fullscreen(),

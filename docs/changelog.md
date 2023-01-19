@@ -48,6 +48,10 @@ As features stabilize some brief notes about them will accumulate here.
   [rose-pine](colorschemes/r/index.md#rose-pine),
   [rose-pine-dawn](colorschemes/r/index.md#rose-pine-dawn),
   [rose-pine-moon](colorschemes/r/index.md#rose-pine-moon)
+* [window:focus()](config/lua/window/focus.md),
+  [ActivateWindow](config/lua/keyassignment/ActivateWindow.md),
+  [ActivateWindowRelative](config/lua/keyassignment/ActivateWindowRelative.md),
+  [ActivateWindowRelativeNoWrap](config/lua/keyassignment/ActivateWindowRelativeNoWrap.md)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm

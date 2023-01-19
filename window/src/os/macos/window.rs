@@ -636,6 +636,13 @@ impl WindowOps for Window {
         });
     }
 
+    fn focus(&self) {
+        Connection::with_window_inner(self.id, |inner| {
+            inner.focus();
+            Ok(())
+        });
+    }
+
     fn hide(&self) {
         Connection::with_window_inner(self.id, |inner| {
             inner.hide();
@@ -986,6 +993,8 @@ impl WindowInner {
             self.window.close();
         }
     }
+
+    fn focus(&mut self) {}
 
     fn hide(&mut self) {
         unsafe {

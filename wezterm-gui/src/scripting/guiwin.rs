@@ -70,6 +70,10 @@ impl UserData for GuiWin {
             this.window.toggle_fullscreen();
             Ok(())
         });
+        methods.add_method("focus", |_, this, _: ()| {
+            this.window.focus();
+            Ok(())
+        });
         methods.add_method(
             "toast_notification",
             |_, _, (title, message, url, timeout): (String, String, Option<String>, Option<u64>)| {

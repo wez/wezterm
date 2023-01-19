@@ -296,6 +296,7 @@ pub trait WindowOps {
 
     fn maximize(&self) {}
     fn restore(&self) {}
+    fn focus(&self) {}
 
     fn toggle_fullscreen(&self) {}
 

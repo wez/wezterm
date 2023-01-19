@@ -269,6 +269,19 @@ impl GuiFrontEnd {
             .context("running message loop")
     }
 
+    pub fn gui_windows(&self) -> Vec<GuiWin> {
+        let windows = self.known_windows.borrow();
+        let mut windows: Vec<GuiWin> = windows
+            .iter()
+            .map(|(window, &mux_window_id)| GuiWin {
+                mux_window_id,
+                window: window.clone(),
+            })
+            .collect();
+        windows.sort_by(|a, b| a.window.cmp(&b.window));
+        windows
+    }
+
     pub fn reconcile_workspace(&self) -> Future<()> {
         let mut promise = Promise::new();
         let mux = Mux::get();

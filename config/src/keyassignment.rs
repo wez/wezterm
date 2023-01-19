@@ -534,6 +534,9 @@ pub enum KeyAssignment {
     ResetTerminal,
     OpenUri(String),
     ActivateCommandPalette,
+    ActivateWindow(usize),
+    ActivateWindowRelative(isize),
+    ActivateWindowRelativeNoWrap(isize),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

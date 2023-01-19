@@ -906,6 +906,13 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn focus(&self) {
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.focus();
+            Ok(())
+        });
+    }
+
     fn show(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
@@ -1063,6 +1070,10 @@ impl WaylandWindowInner {
                 window.set_fullscreen(None);
             }
         }
+    }
+
+    fn focus(&mut self) {
+        log::debug!("Wayland doesn't support applications changing focus");
     }
 
     fn show(&mut self) {
