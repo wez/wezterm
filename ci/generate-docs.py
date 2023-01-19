@@ -327,6 +327,7 @@ TOC = [
                     GenColorScheme("Color Schemes", "colorschemes"),
                 ],
             ),
+            Page("Troubleshooting", "troubleshooting.md"),
             Page("Scrollback", "scrollback.md"),
             Page("Quick Select Mode", "quickselect.md"),
             Page("Copy Mode", "copymode.md"),
