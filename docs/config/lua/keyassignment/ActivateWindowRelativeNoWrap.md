@@ -19,7 +19,11 @@ local act = wezterm.action
 return {
   keys = {
     { key = 'r', mods = 'ALT', action = act.ActivateWindowRelativeNoWrap(1) },
-    { key = 'e', mods = 'ALT', action = act.ActivateWindowRelativeNoWrap(-1) },
+    {
+      key = 'e',
+      mods = 'ALT',
+      action = act.ActivateWindowRelativeNoWrap(-1),
+    },
   },
 }
 ```
