@@ -994,7 +994,11 @@ impl WindowInner {
         }
     }
 
-    fn focus(&mut self) {}
+    fn focus(&mut self) {
+        unsafe{
+            self.window.makeKeyAndOrderFront_(nil);
+        }
+    }
 
     fn hide(&mut self) {
         unsafe {
