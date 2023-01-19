@@ -24,8 +24,7 @@ that region to the clipboard.
 
 ### Key Assignments
 
-The key assignments in copy mode are as follows.  They are not currently
-reassignable.
+The default key assignments in copy mode are as follows:
 
 | Action  |  Key Assignment |
 |---------|-------------------|
@@ -36,7 +35,7 @@ reassignable.
 |                | <kbd>Ctrl</kbd> + <kbd>G</kbd>   |
 |                | <kbd>q</kbd>        |
 | Cell selection | <kbd>v</kbd> |
-| Line selection | <kbd>V</kbd> |
+| Line selection | <kbd>Shift</kbd> + <kbd>V</kbd> |
 | Rectangular selection | <kbd>Ctrl</kbd> + <kbd>V</kbd> (*since: 20220624-141144-bd1b7c5d*)|
 | Move Left      | <kbd>LeftArrow</kbd> |
 |                | <kbd>h</kbd>        |
@@ -59,11 +58,11 @@ reassignable.
 | Move to end of this line       | <kbd>$</kbd> |
 | Move to start of indented line | <kbd>Alt</kbd> + <kbd>M</kbd> |
 |                                | <kbd>^</kbd> |
-| Move to bottom of scrollback   | <kbd>G</kbd> |
+| Move to bottom of scrollback   | <kbd>Shift</kbd> + <kbd>G</kbd> |
 | Move to top of scrollback      | <kbd>g</kbd> |
-| Move to top of viewport        | <kbd>H</kbd> |
-| Move to middle of viewport     | <kbd>M</kbd> |
-| Move to bottom of viewport     | <kbd>L</kbd> |
+| Move to top of viewport        | <kbd>Shift</kbd> + <kbd>H</kbd> |
+| Move to middle of viewport     | <kbd>Shift</kbd> + <kbd>M</kbd> |
+| Move to bottom of viewport     | <kbd>Shift</kbd> + <kbd>L</kbd> |
 | Move up one screen             | <kbd>PageUp</kbd> |
 |                                | <kbd>Ctrl</kbd> + <kbd>B</kbd> |
 | Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> |
@@ -71,7 +70,7 @@ reassignable.
 |                                | <kbd>Ctrl</kbd> + <kbd>F</kbd>   |
 | Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> |
 | Move to other end of the selection| <kbd>o</kbd> |
-| Move to other end of the selection horizontally| <kbd>O</kbd> (useful in Rectangular mode) |
+| Move to other end of the selection horizontally| <kbd>Shift</kbd> + <kbd>O</kbd> (useful in Rectangular mode) |
 
 ### Configurable Key Assignments
 
