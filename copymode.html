@@ -161,47 +161,49 @@ that region to the clipboard.</p>
 <p>The key assignments in copy mode are as follows.  They are not currently
 reassignable.</p>
 <div class="table-wrapper"><table><thead><tr><th>Action</th><th>Key Assignment</th></tr></thead><tbody>
-<tr><td>Exit copy mode</td><td><code>Esc</code></td></tr>
-<tr><td></td><td><code>CTRL-C</code></td></tr>
-<tr><td></td><td><code>CTRL-g</code></td></tr>
-<tr><td></td><td><code>q</code></td></tr>
-<tr><td>Cell selection</td><td><code>v</code></td></tr>
-<tr><td>Line selection</td><td><code>V</code></td></tr>
-<tr><td>Rectangular selection</td><td><code>CTRL-v</code> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
-<tr><td>Move Left</td><td><code>LeftArrow</code></td></tr>
-<tr><td></td><td><code>h</code></td></tr>
-<tr><td>Move Down</td><td><code>DownArrow</code></td></tr>
-<tr><td></td><td><code>j</code></td></tr>
-<tr><td>Move Up</td><td><code>UpArrow</code></td></tr>
-<tr><td></td><td><code>k</code></td></tr>
-<tr><td>Move Right</td><td><code>RightArrow</code></td></tr>
-<tr><td></td><td><code>l</code></td></tr>
-<tr><td>Move forward one word</td><td><code>Alt-RightArrow</code></td></tr>
-<tr><td></td><td><code>Alt-f</code></td></tr>
-<tr><td></td><td><code>Tab</code></td></tr>
-<tr><td></td><td><code>w</code></td></tr>
-<tr><td>Move backward one word</td><td><code>Alt-LeftArrow</code></td></tr>
-<tr><td></td><td><code>alt-b</code></td></tr>
-<tr><td></td><td><code>Shift-Tab</code></td></tr>
-<tr><td></td><td><code>b</code></td></tr>
-<tr><td>Move to start of this line</td><td><code>0</code></td></tr>
-<tr><td>Move to start of next line</td><td><code>Enter</code></td></tr>
-<tr><td>Move to end of this line</td><td><code>$</code></td></tr>
-<tr><td>Move to start of indented line</td><td><code>Alt-m</code></td></tr>
-<tr><td></td><td><code>^</code></td></tr>
-<tr><td>Move to bottom of scrollback</td><td><code>G</code></td></tr>
-<tr><td>Move to top of scrollback</td><td><code>g</code></td></tr>
-<tr><td>Move to top of viewport</td><td><code>H</code></td></tr>
-<tr><td>Move to middle of viewport</td><td><code>M</code></td></tr>
-<tr><td>Move to bottom of viewport</td><td><code>L</code></td></tr>
-<tr><td>Move up one screen</td><td><code>PageUp</code></td></tr>
-<tr><td></td><td><code>CTRL-b</code></td></tr>
-<tr><td>Move up half a screen</td><td><code>CTRL-u</code></td></tr>
-<tr><td>Move down one screen</td><td><code>PageDown</code></td></tr>
-<tr><td></td><td><code>CTRL-f</code></td></tr>
-<tr><td>Move down half a screen</td><td><code>CTRL-d</code></td></tr>
-<tr><td>Move to other end of the selection</td><td><code>o</code></td></tr>
-<tr><td>Move to other end of the selection horizontally</td><td><code>O</code> (useful in Rectangular mode)</td></tr>
+<tr><td>Activate copy mode</td><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd></td></tr>
+<tr><td>Copy and exit copy mode</td><td><kbd>y</kbd></td></tr>
+<tr><td>Exit copy mode</td><td><kbd>Esc</kbd></td></tr>
+<tr><td></td><td><kbd>Ctrl</kbd> + <kbd>C</kbd></td></tr>
+<tr><td></td><td><kbd>Ctrl</kbd> + <kbd>G</kbd></td></tr>
+<tr><td></td><td><kbd>q</kbd></td></tr>
+<tr><td>Cell selection</td><td><kbd>v</kbd></td></tr>
+<tr><td>Line selection</td><td><kbd>V</kbd></td></tr>
+<tr><td>Rectangular selection</td><td><kbd>Ctrl</kbd> + <kbd>V</kbd> (<em>since: 20220624-141144-bd1b7c5d</em>)</td></tr>
+<tr><td>Move Left</td><td><kbd>LeftArrow</kbd></td></tr>
+<tr><td></td><td><kbd>h</kbd></td></tr>
+<tr><td>Move Down</td><td><kbd>DownArrow</kbd></td></tr>
+<tr><td></td><td><kbd>j</kbd></td></tr>
+<tr><td>Move Up</td><td><kbd>UpArrow</kbd></td></tr>
+<tr><td></td><td><kbd>k</kbd></td></tr>
+<tr><td>Move Right</td><td><kbd>RightArrow</kbd></td></tr>
+<tr><td></td><td><kbd>l</kbd></td></tr>
+<tr><td>Move forward one word</td><td><kbd>Alt</kbd> + <kbd>RightArrow</kbd></td></tr>
+<tr><td></td><td><kbd>Alt</kbd> + <kbd>F</kbd></td></tr>
+<tr><td></td><td><kbd>Tab</kbd></td></tr>
+<tr><td></td><td><kbd>w</kbd></td></tr>
+<tr><td>Move backward one word</td><td><kbd>Alt</kbd> + <kbd>LeftArrow</kbd></td></tr>
+<tr><td></td><td><kbd>Alt</kbd> + <kbd>B</kbd></td></tr>
+<tr><td></td><td><kbd>Shift</kbd> + <kbd>Tab</kbd></td></tr>
+<tr><td></td><td><kbd>b</kbd></td></tr>
+<tr><td>Move to start of this line</td><td><kbd>0</kbd></td></tr>
+<tr><td>Move to start of next line</td><td><kbd>Enter</kbd></td></tr>
+<tr><td>Move to end of this line</td><td><kbd>$</kbd></td></tr>
+<tr><td>Move to start of indented line</td><td><kbd>Alt</kbd> + <kbd>M</kbd></td></tr>
+<tr><td></td><td><kbd>^</kbd></td></tr>
+<tr><td>Move to bottom of scrollback</td><td><kbd>G</kbd></td></tr>
+<tr><td>Move to top of scrollback</td><td><kbd>g</kbd></td></tr>
+<tr><td>Move to top of viewport</td><td><kbd>H</kbd></td></tr>
+<tr><td>Move to middle of viewport</td><td><kbd>M</kbd></td></tr>
+<tr><td>Move to bottom of viewport</td><td><kbd>L</kbd></td></tr>
+<tr><td>Move up one screen</td><td><kbd>PageUp</kbd></td></tr>
+<tr><td></td><td><kbd>Ctrl</kbd> + <kbd>B</kbd></td></tr>
+<tr><td>Move up half a screen</td><td><kbd>Ctrl</kbd> + <kbd>U</kbd></td></tr>
+<tr><td>Move down one screen</td><td><kbd>PageDown</kbd></td></tr>
+<tr><td></td><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td></tr>
+<tr><td>Move down half a screen</td><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td></tr>
+<tr><td>Move to other end of the selection</td><td><kbd>o</kbd></td></tr>
+<tr><td>Move to other end of the selection horizontally</td><td><kbd>O</kbd> (useful in Rectangular mode)</td></tr>
 </tbody></table>
 </div>
 <h3 id="configurable-key-assignments"><a class="header" href="#configurable-key-assignments">Configurable Key Assignments</a></h3>
