@@ -9,6 +9,28 @@ use wezterm_dynamic::{FromDynamic, ToDynamic, Value as DynValue};
 
 pub mod enumctor;
 
+pub fn to_lua<'lua, T: ToDynamic>(
+    lua: &'lua mlua::Lua,
+    value: T,
+) -> Result<mlua::Value<'lua>, mlua::Error> {
+    let value = value.to_dynamic();
+    dynamic_to_lua_value(lua, value)
+}
+
+pub fn from_lua<'lua, T: FromDynamic>(value: mlua::Value<'lua>) -> Result<T, mlua::Error> {
+    let lua_type = value.type_name();
+    let value = lua_value_to_dynamic(value).map_err(|e| mlua::Error::FromLuaConversionError {
+        from: lua_type,
+        to: std::any::type_name::<T>(),
+        message: Some(e.to_string()),
+    })?;
+    T::from_dynamic(&value, Default::default()).map_err(|e| mlua::Error::FromLuaConversionError {
+        from: lua_type,
+        to: std::any::type_name::<T>(),
+        message: Some(e.to_string()),
+    })
+}
+
 /// Implement lua conversion traits for a type.
 /// This implementation requires that the type implement
 /// FromDynamic and ToDynamic.
@@ -23,9 +45,7 @@ macro_rules! impl_lua_conversion_dynamic {
                 self,
                 lua: &'lua $crate::mlua::Lua,
             ) -> Result<$crate::mlua::Value<'lua>, $crate::mlua::Error> {
-                use wezterm_dynamic::ToDynamic;
-                let value = self.to_dynamic();
-                $crate::dynamic_to_lua_value(lua, value)
+                $crate::to_lua(lua, self)
             }
         }
 
@@ -34,22 +54,7 @@ macro_rules! impl_lua_conversion_dynamic {
                 value: $crate::mlua::Value<'lua>,
                 _lua: &'lua $crate::mlua::Lua,
             ) -> Result<Self, $crate::mlua::Error> {
-                use wezterm_dynamic::FromDynamic;
-                let lua_type = value.type_name();
-                let value = $crate::lua_value_to_dynamic(value).map_err(|e| {
-                    $crate::mlua::Error::FromLuaConversionError {
-                        from: lua_type,
-                        to: stringify!($struct),
-                        message: Some(e.to_string()),
-                    }
-                })?;
-                $struct::from_dynamic(&value, Default::default()).map_err(|e| {
-                    $crate::mlua::Error::FromLuaConversionError {
-                        from: lua_type,
-                        to: stringify!($struct),
-                        message: Some(e.to_string()),
-                    }
-                })
+                $crate::from_lua(value)
             }
         }
     };

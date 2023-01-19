@@ -29,6 +29,10 @@ As features stabilize some brief notes about them will accumulate here.
   option to control whether the mouse cursor is hidden when typing. Thanks to
   [@ProspectPyxis](https://github.com/ProspectPyxis)!
   [#2946](https://github.com/wez/wezterm/pull/2946)
+* [pane:get_text_from_region()](config/lua/pane/get_text_from_region.md),
+  [pane:get_text_from_semantic_zone()](config/lua/pane/get_text_from_semantic_zone.md),
+  [pane:get_semantic_zones()](config/lua/pane/get_semantic_zones.md),
+  [pane:get_semantic_zone_at()](config/lua/pane/get_semantic_zone_at.md)
 * Color schemes: [Apple Classic](colorschemes/a/index.md#apple-classic),
   [\_bash (Gogh)](colorschemes/b/index.md#bash-gogh),
   [Breath (Gogh)](colorschemes/b/index.md#breath-gogh),
