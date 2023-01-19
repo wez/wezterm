@@ -53,3 +53,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+kbd {
+    display: inline-block;
+    font-size: 0.9em;
+    padding: 0.2em;
+    color: var(--fg);
+    vertical-align: middle;
+    background-color: var(--bg);
+    border: solid 1px var(--searchresults-border-color);
+    border-bottom-color: var(--searchresults-border-color);
+    border-radius: 6px;
+    box-shadow: inset 0 -1px 0 var(--searchbar-shadow-color);
+}
