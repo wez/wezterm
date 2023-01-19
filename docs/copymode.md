@@ -29,47 +29,49 @@ reassignable.
 
 | Action  |  Key Assignment |
 |---------|-------------------|
-| Exit copy mode | `Esc`      |
-|                | `CTRL-C`   |
-|                | `CTRL-g`   |
-|                | `q`        |
-| Cell selection | `v` |
-| Line selection | `V` |
-| Rectangular selection | `CTRL-v` (*since: 20220624-141144-bd1b7c5d*)|
-| Move Left      | `LeftArrow`|
-|                | `h`        |
-| Move Down      | `DownArrow`|
-|                | `j`        |
-| Move Up        | `UpArrow`  |
-|                | `k`        |
-| Move Right     | `RightArrow`|
-|                | `l`         |
-| Move forward one word | `Alt-RightArrow` |
-|                       | `Alt-f`          |
-|                       | `Tab`            |
-|                       | `w`              |
-| Move backward one word| `Alt-LeftArrow` |
-|                       | `alt-b`         |
-|                       | `Shift-Tab`     |
-|                       | `b`             |
-| Move to start of this line     | `0` |
-| Move to start of next line     | `Enter` |
-| Move to end of this line       | `$` |
-| Move to start of indented line | `Alt-m` |
-|                                | `^` |
-| Move to bottom of scrollback   | `G` |
-| Move to top of scrollback      | `g` |
-| Move to top of viewport        | `H` |
-| Move to middle of viewport     | `M` |
-| Move to bottom of viewport     | `L` |
-| Move up one screen             | `PageUp` |
-|                                | `CTRL-b` |
-| Move up half a screen          | `CTRL-u` |
-| Move down one screen           | `PageDown` |
-|                                | `CTRL-f`   |
-| Move down half a screen        | `CTRL-d` |
-| Move to other end of the selection| `o` |
-| Move to other end of the selection horizontally| `O` (useful in Rectangular mode) |
+| Activate copy mode | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
+| Copy and exit copy mode | <kbd>y</kbd> |
+| Exit copy mode | <kbd>Esc</kbd>      |
+|                | <kbd>Ctrl</kbd> + <kbd>C</kbd>   |
+|                | <kbd>Ctrl</kbd> + <kbd>G</kbd>   |
+|                | <kbd>q</kbd>        |
+| Cell selection | <kbd>v</kbd> |
+| Line selection | <kbd>V</kbd> |
+| Rectangular selection | <kbd>Ctrl</kbd> + <kbd>V</kbd> (*since: 20220624-141144-bd1b7c5d*)|
+| Move Left      | <kbd>LeftArrow</kbd> |
+|                | <kbd>h</kbd>        |
+| Move Down      | <kbd>DownArrow</kbd> |
+|                | <kbd>j</kbd>        |
+| Move Up        | <kbd>UpArrow</kbd>  |
+|                | <kbd>k</kbd>        |
+| Move Right     | <kbd>RightArrow</kbd> |
+|                | <kbd>l</kbd>         |
+| Move forward one word | <kbd>Alt</kbd> + <kbd>RightArrow</kbd> |
+|                       | <kbd>Alt</kbd> + <kbd>F</kbd>          |
+|                       | <kbd>Tab</kbd>            |
+|                       | <kbd>w</kbd>              |
+| Move backward one word| <kbd>Alt</kbd> + <kbd>LeftArrow</kbd> |
+|                       | <kbd>Alt</kbd> + <kbd>B</kbd>         |
+|                       | <kbd>Shift</kbd> + <kbd>Tab</kbd>     |
+|                       | <kbd>b</kbd>             |
+| Move to start of this line     | <kbd>0</kbd> |
+| Move to start of next line     | <kbd>Enter</kbd> |
+| Move to end of this line       | <kbd>$</kbd> |
+| Move to start of indented line | <kbd>Alt</kbd> + <kbd>M</kbd> |
+|                                | <kbd>^</kbd> |
+| Move to bottom of scrollback   | <kbd>G</kbd> |
+| Move to top of scrollback      | <kbd>g</kbd> |
+| Move to top of viewport        | <kbd>H</kbd> |
+| Move to middle of viewport     | <kbd>M</kbd> |
+| Move to bottom of viewport     | <kbd>L</kbd> |
+| Move up one screen             | <kbd>PageUp</kbd> |
+|                                | <kbd>Ctrl</kbd> + <kbd>B</kbd> |
+| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> |
+| Move down one screen           | <kbd>PageDown</kbd> |
+|                                | <kbd>Ctrl</kbd> + <kbd>F</kbd>   |
+| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> |
+| Move to other end of the selection| <kbd>o</kbd> |
+| Move to other end of the selection horizontally| <kbd>O</kbd> (useful in Rectangular mode) |
 
 ### Configurable Key Assignments
 
