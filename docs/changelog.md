@@ -80,6 +80,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:active_key_table()](config/lua/window/active_key_table.md) now
   factors in pane-specific key table stacks for things like `CopyMode`.
   [#2986](https://github.com/wez/wezterm/discussions/2986)
+* modal overlays like CharSelect and the command palette sometimes wouldn't
+  render when first activated until pressing a key.
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`

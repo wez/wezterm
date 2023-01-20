@@ -1658,6 +1658,13 @@ impl TermWindow {
         }
     }
 
+    pub fn set_modal(&self, modal: Rc<dyn Modal>) {
+        self.modal.borrow_mut().replace(modal);
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
+    }
+
     fn get_modal(&self) -> Option<Rc<dyn Modal>> {
         self.modal.borrow().as_ref().map(|m| Rc::clone(&m))
     }
@@ -2799,11 +2806,11 @@ impl TermWindow {
             }
             PaneSelect(args) => {
                 let modal = crate::termwindow::paneselect::PaneSelector::new(self, args);
-                self.modal.borrow_mut().replace(Rc::new(modal));
+                self.set_modal(Rc::new(modal));
             }
             CharSelect(args) => {
                 let modal = crate::termwindow::charselect::CharSelector::new(self, args);
-                self.modal.borrow_mut().replace(Rc::new(modal));
+                self.set_modal(Rc::new(modal));
             }
             ResetTerminal => {
                 pane.perform_actions(vec![termwiz::escape::Action::Esc(
@@ -2820,7 +2827,7 @@ impl TermWindow {
             }
             ActivateCommandPalette => {
                 let modal = crate::termwindow::palette::CommandPalette::new(self);
-                self.modal.borrow_mut().replace(Rc::new(modal));
+                self.set_modal(Rc::new(modal));
             }
         };
         Ok(PerformAssignmentResult::Handled)
