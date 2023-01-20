@@ -524,7 +524,25 @@ impl super::TermWindow {
     }
 
     pub fn current_key_table_name(&mut self) -> Option<String> {
-        let name = self.key_table_state.current_table().map(|s| s.to_string());
+        let mut name = None;
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            if let Some(overlay) = self.pane_state(pane.pane_id()).overlay.as_mut() {
+                name = overlay
+                    .key_table_state
+                    .current_table()
+                    .map(|s| s.to_string());
+
+                if let Some(entry) = overlay.key_table_state.stack.last() {
+                    if let Some(expiry) = entry.expiration {
+                        self.update_next_frame_time(Some(expiry));
+                    }
+                }
+            }
+        }
+        if name.is_none() {
+            name = self.key_table_state.current_table().map(|s| s.to_string());
+        }
         if let Some(entry) = self.key_table_state.stack.last() {
             if let Some(expiry) = entry.expiration {
                 self.update_next_frame_time(Some(expiry));

@@ -77,6 +77,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2977](https://github.com/wez/wezterm/pull/2977)
 * mux: `default_workspace` was not always respected when spawning
   [#2981](https://github.com/wez/wezterm/issues/2981)
+* [window:active_key_table()](config/lua/window/active_key_table.md) now
+  factors in pane-specific key table stacks for things like `CopyMode`.
+  [#2986](https://github.com/wez/wezterm/discussions/2986)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
