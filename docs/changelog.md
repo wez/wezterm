@@ -52,6 +52,10 @@ As features stabilize some brief notes about them will accumulate here.
   [ActivateWindow](config/lua/keyassignment/ActivateWindow.md),
   [ActivateWindowRelative](config/lua/keyassignment/ActivateWindowRelative.md),
   [ActivateWindowRelativeNoWrap](config/lua/keyassignment/ActivateWindowRelativeNoWrap.md)
+* Copy Mode: added
+  [MoveForwardWordEnd](config/lua/keyassignment/CopyMode/MoveForwardWordEnd.md),
+  thanks to [@GZLiew](https://github.com/GZLiew)!
+  [#2908](https://github.com/wez/wezterm/pull/2908)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
