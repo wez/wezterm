@@ -72,7 +72,7 @@ struct CachedLeaderInfo {
     updated: Instant,
     fd: std::os::fd::RawFd,
     pid: u32,
-    path: Option<std::path::PathBuf>;
+    path: Option<std::path::PathBuf>,
     current_working_dir: Option<std::path::PathBuf>,
     updating: bool,
 }
@@ -473,7 +473,7 @@ impl Pane for LocalPane {
             if let Some(path) = &leader.path {
                 return Some(path.to_string_lossy().to_string());
             }
-            None
+            return None
         }
 
         #[cfg(windows)]
