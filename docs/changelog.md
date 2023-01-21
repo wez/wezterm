@@ -56,6 +56,9 @@ As features stabilize some brief notes about them will accumulate here.
   [MoveForwardWordEnd](config/lua/keyassignment/CopyMode/MoveForwardWordEnd.md),
   thanks to [@GZLiew](https://github.com/GZLiew)!
   [#2908](https://github.com/wez/wezterm/pull/2908)
+* [tab:get_size()](config/lua/MuxTab/get_size.md),
+  [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
+  [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm

@@ -1,4 +1,5 @@
 use super::*;
+use luahelper::to_lua;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -87,6 +88,26 @@ impl UserData for MuxTab {
             }
 
             Ok(result)
+        });
+
+        methods.add_method("rotate_counter_clockwise", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            tab.rotate_counter_clockwise();
+            Ok(())
+        });
+
+        methods.add_method("rotate_clockwise", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            tab.rotate_counter_clockwise();
+            Ok(())
+        });
+
+        methods.add_method("get_size", |lua, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            to_lua(lua, tab.get_size())
         });
     }
 }
