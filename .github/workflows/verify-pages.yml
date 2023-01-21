@@ -1,4 +1,4 @@
-name: pages
+name: verify-pages
 
 on:
   pull_request:
