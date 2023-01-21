@@ -473,7 +473,7 @@ impl Pane for LocalPane {
             if let Some(path) = &leader.path {
                 return Some(path.to_string_lossy().to_string());
             }
-            return None
+            return None;
         }
 
         #[cfg(windows)]
