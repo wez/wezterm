@@ -20,7 +20,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Result as IoResult, Write};
 use std::ops::Range;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{Sgr, CSI};
@@ -73,8 +72,8 @@ struct CachedLeaderInfo {
     updated: Instant,
     fd: std::os::fd::RawFd,
     pid: u32,
-    path: Option<PathBuf>,
-    current_working_dir: Option<PathBuf>,
+    path: Option<std::path::PathBuf>;
+    current_working_dir: Option<std::path::PathBuf>,
     updating: bool,
 }
 
@@ -481,6 +480,9 @@ impl Pane for LocalPane {
         if let Some(fg) = self.divine_foreground_process() {
             return Some(fg.executable.to_string_lossy().to_string());
         }
+
+        #[allow(unreachable_code)]
+        None
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
