@@ -199,6 +199,8 @@ pub struct StartCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    ///
+    /// Note that Wayland does not allow applications to control window positioning.
     #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
 
