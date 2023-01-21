@@ -20,6 +20,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Result as IoResult, Write};
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{Sgr, CSI};
@@ -33,6 +34,8 @@ use wezterm_term::{
     Alert, AlertHandler, Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent,
     SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
+
+const PROC_INFO_CACHE_TTL: Duration = Duration::from_millis(300);
 
 #[derive(Debug)]
 enum ProcessState {
@@ -55,6 +58,63 @@ struct CachedProcInfo {
     foreground: LocalProcessInfo,
 }
 
+/// This is a bit horrible; it can take 700us to tcgetpgrp, so if we have
+/// 10 tabs open and run the mouse over them, hovering them each in turn,
+/// we can spend 7ms per evaluation of the tab bar state on fetching those
+/// pids alone, which can easily lead to stuttering when moving the mouse
+/// over all of the tabs.
+///
+/// This implements a cache holding that fg process and the often queried
+/// cwd and process path that allows for stale reads to proceed quickly
+/// while the writes can happen in a background thread.
+#[cfg(unix)]
+#[derive(Clone)]
+struct CachedLeaderInfo {
+    updated: Instant,
+    fd: std::os::fd::RawFd,
+    pid: u32,
+    path: Option<PathBuf>,
+    current_working_dir: Option<PathBuf>,
+    updating: bool,
+}
+
+#[cfg(unix)]
+impl CachedLeaderInfo {
+    fn new(fd: Option<std::os::fd::RawFd>) -> Self {
+        let mut me = Self {
+            updated: Instant::now(),
+            fd: fd.unwrap_or(-1),
+            pid: 0,
+            path: None,
+            current_working_dir: None,
+            updating: false,
+        };
+        me.update();
+        me
+    }
+
+    fn can_update(&self) -> bool {
+        self.fd != -1 && !self.updating
+    }
+
+    fn update(&mut self) {
+        self.pid = unsafe { libc::tcgetpgrp(self.fd) } as u32;
+        if self.pid > 0 {
+            self.path = LocalProcessInfo::executable_path(self.pid);
+            self.current_working_dir = LocalProcessInfo::current_working_dir(self.pid);
+        } else {
+            self.path.take();
+            self.current_working_dir.take();
+        }
+        self.updated = Instant::now();
+        self.updating = false;
+    }
+
+    fn expired(&self) -> bool {
+        self.updated.elapsed() > PROC_INFO_CACHE_TTL
+    }
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: Mutex<Terminal>,
@@ -64,6 +124,8 @@ pub struct LocalPane {
     domain_id: DomainId,
     tmux_domain: Mutex<Option<Arc<TmuxDomainState>>>,
     proc_list: Mutex<Option<CachedProcInfo>>,
+    #[cfg(unix)]
+    leader: Arc<Mutex<Option<CachedLeaderInfo>>>,
     command_description: String,
 }
 
@@ -407,18 +469,18 @@ impl Pane for LocalPane {
 
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
-        if let Some(pid) = self.pty.lock().process_group_leader() {
-            if let Some(path) = LocalProcessInfo::executable_path(pid as u32) {
+        {
+            let leader = self.get_leader();
+            if let Some(path) = &leader.path {
                 return Some(path.to_string_lossy().to_string());
             }
+            None
         }
 
         #[cfg(windows)]
         if let Some(fg) = self.divine_foreground_process() {
             return Some(fg.executable.to_string_lossy().to_string());
         }
-
-        None
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
@@ -862,16 +924,44 @@ impl LocalPane {
             domain_id,
             tmux_domain: Mutex::new(None),
             proc_list: Mutex::new(None),
+            #[cfg(unix)]
+            leader: Arc::new(Mutex::new(None)),
             command_description,
         }
     }
 
+    #[cfg(unix)]
+    fn get_leader(&self) -> CachedLeaderInfo {
+        let mut leader = self.leader.lock();
+
+        if let Some(info) = leader.as_mut() {
+            // If stale, queue up some work in another thread to update.
+            // Right now, we'll return the stale data.
+            if info.expired() && info.can_update() {
+                info.updating = true;
+                let leader_ref = Arc::clone(&self.leader);
+                std::thread::spawn(move || {
+                    let mut leader = leader_ref.lock();
+                    if let Some(leader) = leader.as_mut() {
+                        leader.update();
+                    }
+                });
+            }
+        } else {
+            leader.replace(CachedLeaderInfo::new(self.pty.lock().as_raw_fd()));
+        }
+
+        (*leader).clone().unwrap()
+    }
+
     fn divine_current_working_dir(&self) -> Option<Url> {
         #[cfg(unix)]
-        if let Some(pid) = self.pty.lock().process_group_leader() {
-            if let Some(path) = LocalProcessInfo::current_working_dir(pid as u32) {
+        {
+            let leader = self.get_leader();
+            if let Some(path) = &leader.current_working_dir {
                 return Url::parse(&format!("file://localhost{}", path.display())).ok();
             }
+            return None;
         }
 
         #[cfg(windows)]
@@ -893,7 +983,7 @@ impl LocalPane {
             let expired = force_refresh
                 || proc_list
                     .as_ref()
-                    .map(|info| info.updated.elapsed() > Duration::from_millis(300))
+                    .map(|info| info.updated.elapsed() > PROC_INFO_CACHE_TTL)
                     .unwrap_or(true);
 
             if expired {

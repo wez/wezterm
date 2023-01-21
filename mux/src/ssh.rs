@@ -984,6 +984,11 @@ impl portable_pty::MasterPty for WrappedSshPty {
         let _ = inner.check_connected();
         None
     }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        None
+    }
 }
 
 impl std::io::Write for PtyWriter {

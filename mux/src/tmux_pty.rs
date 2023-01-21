@@ -156,4 +156,9 @@ impl MasterPty for TmuxPty {
     fn process_group_leader(&self) -> Option<libc::pid_t> {
         return None;
     }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        None
+    }
 }

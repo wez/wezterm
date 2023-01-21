@@ -85,6 +85,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2986](https://github.com/wez/wezterm/discussions/2986)
 * modal overlays like CharSelect and the command palette sometimes wouldn't
   render when first activated until pressing a key.
+* lag when making heavy use of foreground process information in tab titles.
+  [#2991](https://github.com/wez/wezterm/issues/2991)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`

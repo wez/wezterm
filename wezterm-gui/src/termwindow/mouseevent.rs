@@ -184,6 +184,8 @@ impl super::TermWindow {
             _ => {}
         }
 
+        let prior_ui_item = self.last_ui_item.clone();
+
         let ui_item = if matches!(self.current_mouse_capture, None | Some(MouseCapture::UI)) {
             let ui_item = self.resolve_ui_item(&event);
 
@@ -209,7 +211,7 @@ impl super::TermWindow {
             None
         };
 
-        if let Some(item) = ui_item {
+        if let Some(item) = ui_item.clone() {
             if capture_mouse {
                 self.current_mouse_capture = Some(MouseCapture::UI);
             }
@@ -230,6 +232,10 @@ impl super::TermWindow {
                 context,
                 capture_mouse,
             );
+        }
+
+        if prior_ui_item != ui_item {
+            self.update_title_post_status();
         }
     }
 
@@ -445,7 +451,6 @@ impl super::TermWindow {
             }
             _ => {}
         }
-        self.update_title_post_status();
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 

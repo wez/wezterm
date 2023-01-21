@@ -77,6 +77,11 @@ impl portable_pty::MasterPty for SshPty {
         // It's not local, so there's no meaningful leader
         None
     }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        None
+    }
 }
 
 #[derive(Debug)]

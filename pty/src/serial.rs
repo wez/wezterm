@@ -240,6 +240,11 @@ impl MasterPty for Master {
         // N/A: there is no local process
         None
     }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        None
+    }
 }
 
 struct Reader {
