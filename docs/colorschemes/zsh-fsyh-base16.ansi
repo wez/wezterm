@@ -1,0 +1,23 @@
+[37m░▒▓[38;5;232m[47m  [37m[44m[38;5;254m  [1m[38;5;255m~[0m[38;5;254m[44m/[38;5;250mDoc[38;5;254m/[1m[38;5;255mcoolors[0m[38;5;254m[44m [34m[43m[30m   master !5 ?13 [33m[49m[39m [34mfast-theme[39m [33m-t[39m [91mbase16
+[90m# simple fn with loop
+[39m_fmt_tmux_string[35m()[1m[33m{
+[0m[39m[49m [34mlocal[39m -A windata=[35m([31m$[1m[36m{[0m[31m[49mreply[1m[32m[[0m[31m[49m@[1m[32m][36m}[0m[35m[49m)
+[39m reply=[35m()
+[39m [35mfor[39m k v in [31m$[1m[36m{[32m([0m[31m[49mQkv[1m[32m)[0m[31m[49mwindata[1m[32m[[0m[31m[49m@[1m[32m][36m}[0m[39m[49m; [35mdo
+[39m   fmt_string=[31m$[1m[36m{[0m[39m[49mfmt_string/[31m$k[39m/[31m$v[1m[36m}
+[0m[39m[49m [35mdone
+[39m reply+=[31m$fmt_string
+[1m[33m}
+[0m[90m[49m# loop
+[35mrepeat[39m 0 [1m[33m{
+[0m[39m[49m [34mzsh[39m [33m-i[39m -c "[34mcat[39m [36m/etc/shells*[39m | [34mgrep[39m [33m-x[39m [33m--line-buffered[39m [33m-i[39m [32m'/bin/zsh[39m'"
+ [36mbuiltin[39m [34mexit[39m [31m$return_value
+[39m [34mfast-theme[39m [33m-tq[39m [91mdefault
+[39m [34mfsh-alias[39m [33m-tq[39m [31mdefault-X
+[39m [36mcommand[39m [33m-v[39m [34mgit[39m | [34mgrep[39m [32m".+git"[39m && [34mecho[39m [32m$'Git is installed'
+[39m [34mgit[39m [36mcheckout[39m [33m-m[39m [33m--ours[39m [94m/etc/shells[39m && [34mgit[39m status-X
+ [34mgem[39m [36minstall[39m asciidoctor
+ [34mcat[39m [96m<<<[31m[103m$PATH[39m[49m | [34mtr[39m : \\n > [91m/dev/null[39m 2>[4m[91m/usr/local
+[0m[39m[49m [34mman[39m [33m-a[39m fopen fopen-X
+ CFLAGS=[32m"-g -Wall -O0"[39m [1m[31m./configure
+[33m}
