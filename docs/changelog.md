@@ -87,6 +87,8 @@ As features stabilize some brief notes about them will accumulate here.
   render when first activated until pressing a key.
 * lag when making heavy use of foreground process information in tab titles.
   [#2991](https://github.com/wez/wezterm/issues/2991)
+* X11: always update selection owner even if our window already owns it
+  [#2926](https://github.com/wez/wezterm/issues/2926)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`

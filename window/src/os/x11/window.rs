@@ -665,10 +665,10 @@ impl XWindowInner {
                 selection,
                 time: self.copy_and_paste.time,
             })?;
-        } else if we_own_it && current_owner != window_id {
+        } else if we_own_it {
             log::trace!(
-                "SEL: window_id={window_id:?} X doesn't think we own \
-                 selection ({current_owner:?} has it), but we do: tell it we have it"
+                "SEL: window_id={window_id:?} currently owned by \
+                 {current_owner:?}, tell X we now own it"
             );
             // We have the selection but X doesn't think we do; assert it!
             conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
