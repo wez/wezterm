@@ -17,6 +17,11 @@ return {
 You can find a list of available color schemes and screenshots
 in [The Color Schemes Section](../colorschemes/index.md).
 
+*Note: if you are using multiplexing with ssh or tls domains, the color scheme
+is controlled by the config file on the multiplexer server side. This is
+because the palette is an attribute of the terminal emulation and that state
+lives on the multiplexer server.*
+
 ### Precedence of `colors` vs `color_schemes`
 
 The `color_scheme` option takes precedence over the `colors` section below,
