@@ -391,7 +391,7 @@ if [[ ! -n "$BLE_VERSION" ]]; then
   __wezterm_install_bash_prexec
 fi
 
-# This functions emits an OSC 1337 sequencne to set a user var
+# This function emits an OSC 1337 sequence to set a user var
 # associated with the current terminal pane.
 # It requires the `base64` utility to be available in the path.
 __wezterm_set_user_var() {

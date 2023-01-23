@@ -29,7 +29,7 @@ printf "\033]1337;SetUserVar=%s=%s\007" foo `echo -n bar | base64`
 
 Note that the value must be base64 encoded.
 
-Setting a user var will generate two events in the window that contains
+Setting a user var will generate events in the window that contains
 the corresponding pane:
 
 * [user-var-changed](../config/lua/window-events/user-var-changed.md), which
@@ -48,17 +48,29 @@ In this example, an alias is used to set a user var named PROG to something
 when running various commands:
 
 ```bash
-# This function sets a user var
-function _set_user_var() {
-    printf "\033]1337;SetUserVar=%s=%s\007" "$1" `echo -n "$2" | base64`
+# This function emits an OSC 1337 sequence to set a user var
+# associated with the current terminal pane.
+# It requires the `base64` utility to be available in the path.
+# This function is included in the wezterm shell integration script, but
+# is reproduced here for clarity
+__wezterm_set_user_var() {
+  if hash base64 2>/dev/null ; then
+    if [[ -z "${TMUX}" ]] ; then
+      printf "\033]1337;SetUserVar=%s=%s\007" "$1" `echo -n "$2" | base64`
+    else
+      # <https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it>
+      # Note that you ALSO need to add "set -g allow-passthrough on" to your tmux.conf
+      printf "\033Ptmux;\033\033]1337;SetUserVar=%s=%s\007\033\\" "$1" `echo -n "$2" | base64`
+    fi
+  fi
 }
 
 function _run_prog() {
     # set PROG to the program being run
-    _set_user_var "PROG" "$1"
+    __wezterm_set_user_var "PROG" "$1"
 
     # arrange to clear it when it is done
-    trap '_set_user_var PROG ""' EXIT
+    trap '__wezterm_set_user_var PROG ""' EXIT
 
     # and now run the corresponding command, taking care to avoid looping
     # with the alias definition
@@ -82,6 +94,9 @@ end)
 
 return {}
 ```
+
+If you install the [wezterm shell integration](../shell-integration.md) you
+will get a more comprehensive set of user vars set for you automatically.
 
 User vars enable you to very deliberately signal information from your pane to
 your wezterm config, and will work across multiplexer connections and even
