@@ -159,7 +159,7 @@ pane, only written.</p>
 <pre><code class="language-bash">printf &quot;\033]1337;SetUserVar=%s=%s\007&quot; foo `echo -n bar | base64`
 </code></pre>
 <p>Note that the value must be base64 encoded.</p>
-<p>Setting a user var will generate two events in the window that contains
+<p>Setting a user var will generate events in the window that contains
 the corresponding pane:</p>
 <ul>
 <li><a href="../config/lua/window-events/user-var-changed.html">user-var-changed</a>, which
@@ -174,17 +174,29 @@ the <code>user_vars</code> field in a <a href="../config/lua/PaneInformation.htm
 struct.</p>
 <p>In this example, an alias is used to set a user var named PROG to something
 when running various commands:</p>
-<pre><code class="language-bash"># This function sets a user var
-function _set_user_var() {
-    printf &quot;\033]1337;SetUserVar=%s=%s\007&quot; &quot;$1&quot; `echo -n &quot;$2&quot; | base64`
+<pre><code class="language-bash"># This function emits an OSC 1337 sequence to set a user var
+# associated with the current terminal pane.
+# It requires the `base64` utility to be available in the path.
+# This function is included in the wezterm shell integration script, but
+# is reproduced here for clarity
+__wezterm_set_user_var() {
+  if hash base64 2&gt;/dev/null ; then
+    if [[ -z &quot;${TMUX}&quot; ]] ; then
+      printf &quot;\033]1337;SetUserVar=%s=%s\007&quot; &quot;$1&quot; `echo -n &quot;$2&quot; | base64`
+    else
+      # &lt;https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it&gt;
+      # Note that you ALSO need to add &quot;set -g allow-passthrough on&quot; to your tmux.conf
+      printf &quot;\033Ptmux;\033\033]1337;SetUserVar=%s=%s\007\033\\&quot; &quot;$1&quot; `echo -n &quot;$2&quot; | base64`
+    fi
+  fi
 }
 
 function _run_prog() {
     # set PROG to the program being run
-    _set_user_var &quot;PROG&quot; &quot;$1&quot;
+    __wezterm_set_user_var &quot;PROG&quot; &quot;$1&quot;
 
     # arrange to clear it when it is done
-    trap '_set_user_var PROG &quot;&quot;' EXIT
+    trap '__wezterm_set_user_var PROG &quot;&quot;' EXIT
 
     # and now run the corresponding command, taking care to avoid looping
     # with the alias definition
@@ -205,6 +217,8 @@ end)
 
 return {}
 </code></pre>
+<p>If you install the <a href="../shell-integration.html">wezterm shell integration</a> you
+will get a more comprehensive set of user vars set for you automatically.</p>
 <p>User vars enable you to very deliberately signal information from your pane to
 your wezterm config, and will work across multiplexer connections and even
 through tmux (provided that you use the <a href="https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it">tmux passthrough escape

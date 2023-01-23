@@ -146,11 +146,37 @@ to this pane.</p>
 <p>User variables are set using an escape sequence defined by iterm2, but
 also recognized by wezterm; this example sets the <code>foo</code> user variable
 to the value <code>bar</code>:</p>
-<pre><code class="language-bash">printf &quot;\033]1337;SetUserVar=%s=%s\007&quot; foo `echo -n bar | base64`
+<pre><code class="language-bash"># This function emits an OSC 1337 sequence to set a user var
+# associated with the current terminal pane.
+# It requires the `base64` utility to be available in the path.
+# This function is included in the wezterm shell integration script, but
+# is reproduced here for clarity
+__wezterm_set_user_var() {
+  if hash base64 2&gt;/dev/null ; then
+    if [[ -z &quot;${TMUX}&quot; ]] ; then
+      printf &quot;\033]1337;SetUserVar=%s=%s\007&quot; &quot;$1&quot; `echo -n &quot;$2&quot; | base64`
+    else
+      # &lt;https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it&gt;
+      # Note that you ALSO need to add &quot;set -g allow-passthrough on&quot; to your tmux.conf
+      printf &quot;\033Ptmux;\033\033]1337;SetUserVar=%s=%s\007\033\\&quot; &quot;$1&quot; `echo -n &quot;$2&quot; | base64`
+    fi
+  fi
+}
+
+__wezterm_set_user_var &quot;foo&quot; &quot;bar&quot;
 </code></pre>
 <p>you're then able to access this in your wezterm config:</p>
 <pre><code class="language-lua">wezterm.log_info('foo var is ' .. pane:get_user_vars().foo)
 </code></pre>
+<p>Setting a user var will generate events in the window that contains
+the corresponding pane:</p>
+<ul>
+<li><a href="../window-events/user-var-changed.html">user-var-changed</a>, which
+allows you to directly take action when a var is set/changed.</li>
+<li><a href="../window-events/update-status.html">update-status</a> which allows you to update left/right status items</li>
+<li>the title and tab bar area will then update and trigger any associated events as part of that update</li>
+</ul>
+<p>The user var change event will propagate to all connected multiplexer clients.</p>
 
                     </main>
 

@@ -142,9 +142,11 @@
                         <h2 id="shell-integration"><a class="header" href="#shell-integration">Shell Integration</a></h2>
 <p>wezterm supports integrating with the shell through the following means:</p>
 <ul>
-<li>OSC 7 Escape sequences to advise the terminal of the working directory</li>
-<li>OSC 133 Escape sequence to define Input, Output and Prompt zones</li>
+<li><code>OSC 7</code> Escape sequences to advise the terminal of the working directory</li>
+<li><code>OSC 133</code> Escape sequence to define Input, Output and Prompt zones</li>
+<li><code>OSC 1337</code> Escape sequences to set user vars for tracking additional shell state</li>
 </ul>
+<p><code>OSC</code> is escape sequence jargon for <em>Operating System Command</em>.</p>
 <p>These sequences enable some improved user experiences, such as being able
 to spawn new panes, tabs and windows with the same current working directory
 as the current pane, <a href="config/lua/keyassignment/ScrollToPrompt.html">jumping through the scrollback to the start of an earlier command</a>,
@@ -158,11 +160,41 @@ automatically activate shell integration for Bash and Zsh.</p>
 <p>If you're on another system, more information on how these escapes work
 can be found below.</p>
 <p><a href="https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md">Learn more about OSC 133 Semantic Prompt Escapes</a>.</p>
+<h3 id="user-vars"><a class="header" href="#user-vars">User Vars</a></h3>
+<p><code>OSC 1337</code> provides a means for setting <em>user vars</em>, which are somewhat similar
+to environment variables, except that they are variables associated with a
+given pane rather than a process.</p>
+<p>Installing the wezterm shell integration will define the following user vars
+by default:</p>
+<ul>
+<li><code>WEZTERM_PROG</code> - the command line being executed by the shell</li>
+<li><code>WEZTERM_USER</code> - holds the output from <code>id -un</code>; the current user name</li>
+<li><code>WEZTERM_HOST</code> - holds the output from <code>hostname</code>; the hostname that the shell is running on</li>
+<li><code>WEZTERM_IN_TMUX</code> - holds <code>1</code> if the shell is running inside tmux, <code>0</code> otherwise</li>
+</ul>
+<p>If you are a tmux user, you must ensure that you have <code>set -g allow-passthrough on</code> set
+in your tmux.conf for user vars to work.</p>
+<p>Those vars will be updated each time the prompt is shown and just prior to executing a command.</p>
+<p>The shell integration provides a shell function named <code>__wezterm_set_user_var</code> which can be
+used to set your own user vars.</p>
+<p>Setting a user var will generate events in the window that contains
+the corresponding pane:</p>
+<ul>
+<li><a href="config/lua/window-events/user-var-changed.html">user-var-changed</a>, which
+allows you to directly take action when a var is set/changed.</li>
+<li><a href="config/lua/window-events/update-status.html">update-status</a> which allows you to update left/right status items</li>
+<li>the title and tab bar area will then update and trigger any associated events as part of that update</li>
+</ul>
+<p>You can access the complete set of user vars in a given pane by calling
+<a href="config/lua/pane/get_user_vars.html">pane:get_user_vars()</a>, or by accessing
+the <code>user_vars</code> field in a <a href="config/lua/PaneInformation.html">PaneInformation</a>
+struct.</p>
+<p>You may wish to use this information to adjust what is shown in your tab titles
+or in the status area.</p>
 <h3 id="osc-7-escape-sequence-to-set-the-working-directory"><a class="header" href="#osc-7-escape-sequence-to-set-the-working-directory">OSC 7 Escape sequence to set the working directory</a></h3>
-<p><code>OSC</code> is escape sequence jargon for <em>Operating System Command</em>; <code>OSC 7</code> means
-Operating System Command number 7.  This is an escape sequence that originated
-in the macOS Terminal application that is used to advise the terminal of the
-current working directory.</p>
+<p><code>OSC 7</code> means Operating System Command number 7.  This is an escape sequence
+that originated in the macOS Terminal application that is used to advise the
+terminal of the current working directory.</p>
 <p>An application (usually your shell) can be configured to emit this escape
 sequence when the current directory changes, or just to emit it each time
 it prints the prompt.</p>
