@@ -14,6 +14,8 @@ on:
 
 jobs:
   build-docs:
+    env:
+      BUILD_REASON: "PR"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
