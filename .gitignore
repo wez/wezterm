@@ -14,6 +14,7 @@ dhat-heap.json
 /docs/SUMMARY.md
 /docs/install/*.md
 /docs/cli/cli/index.md
+/docs/recipes/index.md
 /docs/colorschemes/**/index.md
 /docs/config/lua/color/index.md
 /docs/config/lua/config/index.md
