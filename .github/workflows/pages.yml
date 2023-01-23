@@ -53,7 +53,7 @@ jobs:
           (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid --locked))
       - name: Install gelatyx
         run: |
-          (test -x ~/.cargo/bin/gelatyx || (cd && cargo install gelatyx --locked))
+          (test -x ~/.cargo/bin/gelatyx || (cd && cargo install gelatyx --version "^0.2" --locked))
       - name: Build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
