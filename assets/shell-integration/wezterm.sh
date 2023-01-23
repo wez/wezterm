@@ -11,6 +11,8 @@
 # WEZTERM_SHELL_SKIP_ALL - disables all
 # WEZTERM_SHELL_SKIP_SEMANTIC_ZONES - disables zones
 # WEZTERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting
+# WEZTERM_SHELL_SKIP_USER_VARS - disable user vars that capture information
+#                                about running programs
 
 # shellcheck disable=SC2166
 if [ -z "${BASH_VERSION}" -a -z "${ZSH_NAME}" ] ; then
@@ -389,6 +391,21 @@ if [[ ! -n "$BLE_VERSION" ]]; then
   __wezterm_install_bash_prexec
 fi
 
+# This functions emits an OSC 1337 sequencne to set a user var
+# associated with the current terminal pane.
+# It requires the `base64` utility to be available in the path.
+__wezterm_set_user_var() {
+  if hash base64 2>/dev/null ; then
+    if [[ -z "${TMUX}" ]] ; then
+      printf "\033]1337;SetUserVar=%s=%s\007" "$1" `echo -n "$2" | base64`
+    else
+      # <https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it>
+      # Note that you ALSO need to add "set -g allow-passthrough on" to your tmux.conf
+      printf "\033Ptmux;\033\033]1337;SetUserVar=%s=%s\007\033\\" "$1" `echo -n "$2" | base64`
+    fi
+  fi
+}
+
 # This function emits an OSC 7 sequence to inform the terminal
 # of the current working directory.  It prefers to use a helper
 # command provided by wezterm if wezterm is installed, but falls
@@ -439,6 +456,31 @@ function __wezterm_semantic_preexec() {
   __wezterm_semantic_precmd_executing=1
 }
 
+__wezterm_user_vars_precmd() {
+  __wezterm_set_user_var "WEZTERM_PROG" ""
+  __wezterm_set_user_var "WEZTERM_USER" "$(id -un)"
+
+  # Indicate whether this pane is running inside tmux or not
+  if [[ -n "${TMUX}" ]] ; then
+    __wezterm_set_user_var "WEZTERM_IN_TMUX" "1"
+  else
+    __wezterm_set_user_var "WEZTERM_IN_TMUX" "0"
+  fi
+
+  # You may set WEZTERM_HOSTNAME to a name you want to use instead
+  # of calling out to the hostname executable on every prompt print.
+  if [[ -z "${WEZTERM_HOSTNAME}" ]] ; then
+    __wezterm_set_user_var "WEZTERM_HOST" "$(hostname)"
+  else
+    __wezterm_set_user_var "WEZTERM_HOST" "${WEZTERM_HOSTNAME}"
+  fi
+}
+
+__wezterm_user_vars_preexec() {
+  # Tell wezterm the full command that is being run
+  __wezterm_set_user_var "WEZTERM_PROG" "$1"
+}
+
 # Register the various functions; take care to perform osc7 after
 # the semantic zones as we don't want to perturb the last command
 # status before we've had a chance to report it to the terminal
@@ -449,6 +491,16 @@ if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES}" ]]; then
   else
     precmd_functions+=(__wezterm_semantic_precmd)
     preexec_functions+=(__wezterm_semantic_preexec)
+  fi
+fi
+
+if [[ -z "${WEZTERM_SHELL_SKIP_USER_VARS}" ]]; then
+  if [[ -n "$BLE_VERSION" ]]; then
+    blehook PRECMD+=__wezterm_user_vars_precmd
+    blehook PREEXEC+=__wezterm_user_vars_preexec
+  else
+    precmd_functions+=(__wezterm_user_vars_precmd)
+    preexec_functions+=(__wezterm_user_vars_preexec)
   fi
 fi
 
