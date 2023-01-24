@@ -814,6 +814,7 @@ impl Config {
                         config: Err(err),
                         file_name: Some(path_item.path.clone()),
                         lua: None,
+                        warnings: vec![],
                     }
                 }
                 Ok(None) => continue,
@@ -832,18 +833,23 @@ impl Config {
                 config: Err(err),
                 file_name: None,
                 lua: None,
+                warnings: vec![],
             },
             Ok(cfg) => cfg,
         }
     }
 
     pub fn try_default() -> anyhow::Result<LoadedConfig> {
-        let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
+        let (config, warnings) =
+            wezterm_dynamic::Error::capture_warnings(|| -> anyhow::Result<Config> {
+                Ok(default_config_with_overrides_applied()?.compute_extra_defaults(None))
+            });
 
         Ok(LoadedConfig {
-            config: Ok(config),
+            config: Ok(config?),
             file_name: None,
             lua: Some(make_lua_context(Path::new(""))?),
+            warnings,
         })
     }
 
@@ -863,40 +869,47 @@ impl Config {
 
         let mut s = String::new();
         file.read_to_string(&mut s)?;
-
-        let cfg: Config;
-
         let lua = make_lua_context(p)?;
-        let config: mlua::Value = smol::block_on(
-            // Skip a potential BOM that Windows software may have placed in the
-            // file. Note that we can't catch this happening for files that are
-            // imported via the lua require function.
-            lua.load(s.trim_start_matches('\u{FEFF}'))
-                .set_name(p.to_string_lossy())?
-                .eval_async(),
-        )?;
-        let config = Config::apply_overrides_to(&lua, config)?;
-        let config = Config::apply_overrides_obj_to(&lua, config, overrides)?;
-        cfg = Config::from_lua(config, &lua).with_context(|| {
-            format!(
-                "Error converting lua value returned by script {} to Config struct",
-                p.display()
-            )
-        })?;
-        cfg.check_consistency()?;
 
-        // Compute but discard the key bindings here so that we raise any
-        // problems earlier than we use them.
-        let _ = cfg.key_bindings();
+        let (config, warnings) =
+            wezterm_dynamic::Error::capture_warnings(|| -> anyhow::Result<Config> {
+                let cfg: Config;
 
-        std::env::set_var("WEZTERM_CONFIG_FILE", p);
-        if let Some(dir) = p.parent() {
-            std::env::set_var("WEZTERM_CONFIG_DIR", dir);
-        }
+                let config: mlua::Value = smol::block_on(
+                    // Skip a potential BOM that Windows software may have placed in the
+                    // file. Note that we can't catch this happening for files that are
+                    // imported via the lua require function.
+                    lua.load(s.trim_start_matches('\u{FEFF}'))
+                        .set_name(p.to_string_lossy())?
+                        .eval_async(),
+                )?;
+                let config = Config::apply_overrides_to(&lua, config)?;
+                let config = Config::apply_overrides_obj_to(&lua, config, overrides)?;
+                cfg = Config::from_lua(config, &lua).with_context(|| {
+                    format!(
+                        "Error converting lua value returned by script {} to Config struct",
+                        p.display()
+                    )
+                })?;
+                cfg.check_consistency()?;
+
+                // Compute but discard the key bindings here so that we raise any
+                // problems earlier than we use them.
+                let _ = cfg.key_bindings();
+
+                std::env::set_var("WEZTERM_CONFIG_FILE", p);
+                if let Some(dir) = p.parent() {
+                    std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+                }
+                Ok(cfg)
+            });
+        let cfg = config?;
+
         Ok(Some(LoadedConfig {
             config: Ok(cfg.compute_extra_defaults(Some(p))),
             file_name: Some(p.to_path_buf()),
             lua: Some(lua),
+            warnings,
         }))
     }
 

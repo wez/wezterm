@@ -154,7 +154,7 @@ impl ConfigHelper {
                                 break;
                             }
                         }
-                        log::warn!("{message}");
+                        wezterm_dynamic::Error::warn(message);
                     }
                     Some(value) => {
                         self.object.insert(DynValue::String(key), value.clone());

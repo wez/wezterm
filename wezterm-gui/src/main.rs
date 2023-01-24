@@ -778,8 +778,9 @@ fn main() {
 }
 
 fn maybe_show_configuration_error_window() {
-    if let Err(err) = config::configuration_result() {
-        let err = format!("{:#}", err);
+    let warnings = config::configuration_warnings_and_errors();
+    if !warnings.is_empty() {
+        let err = warnings.join("\n");
         mux::connui::show_configuration_error_message(&err);
     }
 }

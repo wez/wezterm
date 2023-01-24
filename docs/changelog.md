@@ -111,6 +111,9 @@ As features stabilize some brief notes about them will accumulate here.
   font. [#2932](https://github.com/wez/wezterm/issues/2932)
 * Color schemes: `Gruvbox Dark` was renamed to `GruvboxDark` and adjusted in
   the upstream iTerm2-Color-Schemes repo
+* Config warnings, such as using deprecated or invalid fields will now cause
+  the configuration error window to be shown. Previously, only hard errors were
+  shown, which meant that a number of minor config issues could be overlooked.
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
