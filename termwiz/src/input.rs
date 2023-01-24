@@ -2033,13 +2033,28 @@ mod test {
     }
 
     #[test]
-    fn mouse_event() {
+    fn mouse_horizontal_scroll() {
         let mut p = InputParser::new();
 
-        let input = b"\x1b[<67;41;12M";
-        let mut inputs = vec![];
-        p.parse(input, |e| inputs.push(e), false);
+        let input = b"\x1b[<66;42;12M\x1b[<67;42;12M";
+        let res = p.parse_as_vec(input);
 
-        println!("{:?}", inputs);
+        assert_eq!(
+            vec![
+                InputEvent::Mouse(MouseEvent {
+                    x: 42,
+                    y: 12,
+                    mouse_buttons: MouseButtons::HORZ_WHEEL | MouseButtons::WHEEL_POSITIVE,
+                    modifiers: Modifiers::NONE,
+                }),
+                InputEvent::Mouse(MouseEvent {
+                    x: 42,
+                    y: 12,
+                    mouse_buttons: MouseButtons::HORZ_WHEEL,
+                    modifiers: Modifiers::NONE,
+                })
+            ],
+            res
+        );
     }
 }
