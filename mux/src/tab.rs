@@ -1901,7 +1901,7 @@ impl TabInner {
                 || split_info.left_of_second() + split_info.second.cols > tab_size.cols
             {
                 log::error!(
-                    "No splace for split!!! {:#?} height={} width={} top_of_second={} left_of_second={} tab_size={:?}",
+                    "No space for split!!! {:#?} height={} width={} top_of_second={} left_of_second={} tab_size={:?}",
                     split_info,
                     split_info.height(),
                     split_info.width(),
