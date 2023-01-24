@@ -59,6 +59,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [tab:get_size()](config/lua/MuxTab/get_size.md),
   [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
   [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
+* [wezterm.config_builder()](config/lua/wezterm/config_builder.md)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm

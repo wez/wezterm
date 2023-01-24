@@ -126,6 +126,25 @@ fn lua_value_to_dynamic_impl(
         }
         LuaValue::UserData(ud) => match ud.get_metatable() {
             Ok(mt) => {
+                if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
+                    mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
+                ) {
+                    match to_dynamic.call(LuaValue::UserData(ud.clone())) {
+                        Ok(value) => {
+                            return lua_value_to_dynamic_impl(value, visited);
+                        }
+                        Err(err) => {
+                            return Err(mlua::Error::FromLuaConversionError {
+                                from: "userdata",
+                                to: "wezterm_dynamic::Value",
+                                message: Some(format!(
+                                    "error calling __wezterm_to_dynamic: {err:#}"
+                                )),
+                            })
+                        }
+                    }
+                }
+
                 match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
                     Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
@@ -364,6 +383,18 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
             }
             LuaValue::UserData(ud) => match ud.get_metatable() {
                 Ok(mt) => {
+                    if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
+                        mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
+                    ) {
+                        return match to_dynamic.call(LuaValue::UserData(ud.clone())) {
+                            Ok(value) => Self {
+                                visited: Rc::clone(&self.visited),
+                                value,
+                            }
+                            .fmt(fmt),
+                            Err(err) => write!(fmt, "Error calling __wezterm_to_dynamic: {err}"),
+                        };
+                    }
                     match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
                         Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
                             Ok(value) => Self {
