@@ -148,7 +148,8 @@ impl ConfigHelper {
                                 };
 
                                 let line = debug.curr_line();
-                                message.push_str(&format!("    [{i}] {source}:{line} {func_name}\n"));
+                                message
+                                    .push_str(&format!("    [{i}] {source}:{line} {func_name}\n"));
                             } else {
                                 break;
                             }
