@@ -260,6 +260,8 @@ the upstream iTerm2-Color-Schemes repo</li>
 <li>Config warnings, such as using deprecated or invalid fields will now cause
 the configuration error window to be shown. Previously, only hard errors were
 shown, which meant that a number of minor config issues could be overlooked.</li>
+<li>Referencing <code>wezterm.GLOBAL</code> now returns references rather than copies, making
+it less cumbersome to code read/modify/write with global state</li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>

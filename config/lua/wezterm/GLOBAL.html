@@ -185,6 +185,22 @@ safely validating and setting up the configuration.</p>
 <li>boolean</li>
 </ul>
 <p>Attempting to assign other types will raise an error.</p>
+<h2 id="note-about-referencing-table-values"><a class="header" href="#note-about-referencing-table-values">Note about referencing table values</a></h2>
+<p>Accessing <code>wezterm.GLOBAL</code> returns a copy of the data that you'd read, making
+it cumbersome to perform read/modify/write updates; for example this:</p>
+<pre><code class="language-lua">wezterm.GLOBAL.tab_titles['T0'] = 'Test'
+</code></pre>
+<p>will not result in <code>wezterm.GLOBAL.tab_titles.T0</code> being set, and you need
+to explicitly break it apart into:</p>
+<pre><code class="language-lua">local tab_titles = wezterm.GLOBAL.tab_titles
+tab_titles['T0'] = 'Test'
+wezterm.GLOBAL.tab_titles = tab_titles
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You no longer need to split apart read/modify/write and the simple assignment
+now works as you would expect:</p>
+<pre><code class="language-lua">wezterm.GLOBAL.tab_titles['T0'] = 'Test'
+</code></pre>
 
                     </main>
 
