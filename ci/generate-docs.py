@@ -348,6 +348,7 @@ TOC = [
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
+            Page("What is a Terminal?", "what-is-a-terminal.md"),
             Page(
                 "CLI Reference",
                 "cli/general.md",
