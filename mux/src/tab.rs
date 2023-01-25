@@ -645,6 +645,14 @@ impl Tab {
         self.inner.lock().activate_pane_direction(direction)
     }
 
+    /// Returns an adjacent pane in the specified direction.
+    /// In cases where there are multiple adjacent panes in the
+    /// intended direction, we take the pane that has the largest
+    /// edge intersection.
+    pub fn get_pane_direction(&self, direction: PaneDirection, ignore_zoom: bool) -> Option<usize> {
+        self.inner.lock().get_pane_direction(direction, ignore_zoom)
+    }
+
     pub fn prune_dead_panes(&self) -> bool {
         self.inner.lock().prune_dead_panes()
     }
@@ -1408,34 +1416,42 @@ impl TabInner {
             }
             self.toggle_zoom();
         }
-        let panes = self.iter_panes();
+        if let Some(panel_idx) = self.get_pane_direction(direction, false) {
+            self.set_active_idx(panel_idx);
+        }
+    }
+
+    fn get_pane_direction(&mut self, direction: PaneDirection, ignore_zoom: bool) -> Option<usize> {
+        let panes = if ignore_zoom {
+            self.iter_panes_ignoring_zoom()
+        } else {
+            self.iter_panes()
+        };
 
         let active = match panes.iter().find(|pane| pane.is_active) {
             Some(p) => p,
             None => {
                 // No active pane somehow...
-                self.set_active_idx(0);
-                return;
+                return Some(0);
             }
         };
 
         if matches!(direction, PaneDirection::Next | PaneDirection::Prev) {
             let max_pane_id = panes.iter().map(|p| p.index).max().unwrap_or(active.index);
 
-            if direction == PaneDirection::Next {
-                self.set_active_idx(if active.index == max_pane_id {
+            return Some(if direction == PaneDirection::Next {
+                if active.index == max_pane_id {
                     0
                 } else {
                     active.index + 1
-                });
+                }
             } else {
-                self.set_active_idx(if active.index == 0 {
+                if active.index == 0 {
                     max_pane_id
                 } else {
                     active.index - 1
-                });
-            }
-            return;
+                }
+            });
         }
 
         let mut best = None;
@@ -1506,8 +1522,9 @@ impl TabInner {
         drop(recency);
 
         if let Some((_, target)) = best.take() {
-            self.set_active_idx(target.index);
+            return Some(target.index);
         }
+        None
     }
 
     fn prune_dead_panes(&mut self) -> bool {

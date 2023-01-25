@@ -1,3 +1,5 @@
+use config::keyassignment::PaneDirection;
+
 use super::*;
 use luahelper::to_lua;
 use std::sync::Arc;
@@ -51,6 +53,23 @@ impl UserData for MuxTab {
                 .into_iter()
                 .map(|info| MuxPane(info.pane.pane_id()))
                 .collect::<Vec<MuxPane>>())
+        });
+
+        methods.add_method("get_pane_direction", |_, this, direction: String| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            let panes = tab.iter_panes_ignoring_zoom();
+
+            let dir = PaneDirection::direction_from_str(&direction).map_err(|err| {
+                mlua::Error::external(format!(
+                    "Unable to convert direction '{}'. Error: {}",
+                    direction, err
+                ))
+            })?;
+            let pane = tab
+                .get_pane_direction(dir, true)
+                .map(|pane_index| MuxPane(panes[pane_index].pane.pane_id()));
+            Ok(pane)
         });
 
         methods.add_method("set_zoomed", |_, this, zoomed: bool| {
