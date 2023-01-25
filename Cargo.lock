@@ -4473,6 +4473,7 @@ dependencies = [
  "config",
  "lazy_static",
  "luahelper",
+ "ordered-float",
  "wezterm-dynamic",
 ]
 

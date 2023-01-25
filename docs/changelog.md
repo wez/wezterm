@@ -114,6 +114,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Config warnings, such as using deprecated or invalid fields will now cause
   the configuration error window to be shown. Previously, only hard errors were
   shown, which meant that a number of minor config issues could be overlooked.
+* Referencing `wezterm.GLOBAL` now returns references rather than copies, making
+  it less cumbersome to code read/modify/write with global state
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
