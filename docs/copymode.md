@@ -19,7 +19,7 @@ as needed, in a style similar to that of the Vim editor.
 
 Move the cursor to the start of the region you wish to select and press `v` to
 toggle selection mode (it is off by default), then move the cursor to the end
-of that region.  You can then use `Copy` (by default: `CTRl-SHIFT-C`) to copy
+of that region.  You can then use `Copy` (by default: `CTRL-SHIFT-C`) to copy
 that region to the clipboard.
 
 ### Key Assignments
@@ -53,7 +53,7 @@ The default key assignments in copy mode are as follows:
 |                       | <kbd>Alt</kbd> + <kbd>B</kbd>         |
 |                       | <kbd>Shift</kbd> + <kbd>Tab</kbd>     |
 |                       | <kbd>b</kbd>             |
-| Move forward one word end    | <kbd>e</kbd> |
+| Move forward one word end    | <kbd>e</kbd> (*since: nightly builds only*)|
 | Move to start of this line     | <kbd>0</kbd> |
 | Move to start of next line     | <kbd>Enter</kbd> |
 | Move to end of this line       | <kbd>$</kbd> |
@@ -66,10 +66,10 @@ The default key assignments in copy mode are as follows:
 | Move to bottom of viewport     | <kbd>Shift</kbd> + <kbd>L</kbd> |
 | Move up one screen             | <kbd>PageUp</kbd> |
 |                                | <kbd>Ctrl</kbd> + <kbd>B</kbd> |
-| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> |
+| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> (*since: nightly builds only*)|
 | Move down one screen           | <kbd>PageDown</kbd> |
 |                                | <kbd>Ctrl</kbd> + <kbd>F</kbd>   |
-| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> |
+| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> (*since: nightly builds only*)|
 | Move to other end of the selection| <kbd>o</kbd> |
 | Move to other end of the selection horizontally| <kbd>Shift</kbd> + <kbd>O</kbd> (useful in Rectangular mode) |
 
