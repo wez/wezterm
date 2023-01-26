@@ -7,12 +7,13 @@ use ::window::*;
 use anyhow::{anyhow, Context};
 use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
-use config::keyassignment::SpawnCommand;
+use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
 use mux::Mux;
+use mux_lua::MuxDomain;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
 use std::borrow::Cow;
@@ -240,84 +241,14 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     domains
 }
 
-async fn async_run_with_domain_as_default(
-    domain: Arc<dyn Domain>,
-    cmd: Option<CommandBuilder>,
-) -> anyhow::Result<()> {
-    let mux = Mux::get();
-    crate::update::load_last_release_info_and_set_banner();
-
-    // Allow spawning local commands into new tabs/panes
-    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    mux.add_domain(&local_domain);
-
-    // And configure their desired domain as the default
-    mux.add_domain(&domain);
-    mux.set_default_domain(&domain);
-
-    let is_connecting = true;
-    spawn_tab_in_default_domain_if_mux_is_empty(cmd, is_connecting).await
-}
-
-async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
-    if let Some(cls) = opts.class.as_ref() {
-        crate::set_window_class(cls);
-    }
-    if let Some(pos) = opts.position.as_ref() {
-        set_window_position(pos.clone());
-    }
-
-    let unix_socket_path =
-        config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
-    std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
-
-    let should_publish = false;
-    if let Err(err) = spawn_mux_server(unix_socket_path, should_publish) {
-        log::warn!("{:#}", err);
-    }
-
-    let domain = Mux::get()
-        .get_domain_by_name(&opts.domain_name)
-        .ok_or_else(|| {
-            anyhow!(
-                "no multiplexer domain with name `{}` was found in the configuration",
-                opts.domain_name
-            )
-        })?;
-
-    let opts = opts.clone();
-    let cmd = if !opts.prog.is_empty() {
-        let builder = CommandBuilder::from_argv(opts.prog);
-        Some(builder)
-    } else {
-        None
-    };
-
-    async_run_with_domain_as_default(domain, cmd).await
-}
-
-fn run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
-    let activity = Activity::new();
-    build_initial_mux(&config::configuration(), None, opts.workspace.as_deref())?;
-    let gui = crate::frontend::try_new()?;
-    promise::spawn::spawn(async {
-        if let Err(err) = async_run_mux_client(opts).await {
-            terminate_with_error(err);
-        }
-        drop(activity);
-    })
-    .detach();
-
-    gui.run_forever()
-}
-
-async fn spawn_tab_in_default_domain_if_mux_is_empty(
+async fn spawn_tab_in_domain_if_mux_is_empty(
     cmd: Option<CommandBuilder>,
     is_connecting: bool,
+    domain: Option<Arc<dyn Domain>>,
 ) -> anyhow::Result<()> {
     let mux = Mux::get();
 
-    let domain = mux.default_domain();
+    let domain = domain.unwrap_or_else(|| mux.default_domain());
 
     if !is_connecting {
         let have_panes_in_domain = mux
@@ -350,6 +281,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         .any(|p| p.domain_id() == domain.domain_id());
 
     if have_panes_in_domain {
+        trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
         return Ok(());
     }
 
@@ -369,6 +301,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     let _tab = domain
         .spawn(config.initial_size(dpi), cmd, None, window_id)
         .await?;
+    trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
     Ok(())
 }
 
@@ -437,6 +370,46 @@ async fn connect_to_auto_connect_domains() -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn trigger_gui_startup(
+    lua: Option<Rc<mlua::Lua>>,
+    spawn: Option<SpawnCommand>,
+) -> anyhow::Result<()> {
+    if let Some(lua) = lua {
+        let args = lua.pack_multi(spawn)?;
+        config::lua::emit_event(&lua, ("gui-startup".to_string(), args)).await?;
+    }
+    Ok(())
+}
+
+async fn trigger_and_log_gui_startup(spawn_command: Option<SpawnCommand>) {
+    if let Err(err) =
+        config::with_lua_config_on_main_thread(move |lua| trigger_gui_startup(lua, spawn_command))
+            .await
+    {
+        let message = format!("while processing gui-startup event: {:#}", err);
+        log::error!("{}", message);
+        persistent_toast_notification("Error", &message);
+    }
+}
+
+async fn trigger_gui_attached(lua: Option<Rc<mlua::Lua>>, domain: MuxDomain) -> anyhow::Result<()> {
+    if let Some(lua) = lua {
+        let args = lua.pack_multi(domain)?;
+        config::lua::emit_event(&lua, ("gui-attached".to_string(), args)).await?;
+    }
+    Ok(())
+}
+
+async fn trigger_and_log_gui_attached(domain: MuxDomain) {
+    if let Err(err) =
+        config::with_lua_config_on_main_thread(move |lua| trigger_gui_attached(lua, domain)).await
+    {
+        let message = format!("while processing gui-attached event: {:#}", err);
+        log::error!("{}", message);
+        persistent_toast_notification("Error", &message);
+    }
+}
+
 async fn async_run_terminal_gui(
     cmd: Option<CommandBuilder>,
     opts: StartCommand,
@@ -454,33 +427,65 @@ async fn async_run_terminal_gui(
         connect_to_auto_connect_domains().await?;
     }
 
-    async fn trigger_gui_startup(
-        lua: Option<Rc<mlua::Lua>>,
-        spawn: Option<SpawnCommand>,
-    ) -> anyhow::Result<()> {
-        if let Some(lua) = lua {
-            let args = lua.pack_multi(spawn)?;
-            config::lua::emit_event(&lua, ("gui-startup".to_string(), args)).await?;
-        }
-        Ok(())
-    }
-
     let spawn_command = match &cmd {
         Some(cmd) => Some(SpawnCommand::from_command_builder(cmd)?),
         None => None,
     };
 
-    if let Err(err) =
-        config::with_lua_config_on_main_thread(move |lua| trigger_gui_startup(lua, spawn_command))
-            .await
-    {
-        let message = format!("while processing gui-startup event: {:#}", err);
-        log::error!("{}", message);
-        persistent_toast_notification("Error", &message);
+    // Apply the domain to the command
+    let spawn_command = match (spawn_command, &opts.domain) {
+        (Some(spawn), Some(name)) => Some(SpawnCommand {
+            domain: SpawnTabDomain::DomainName(name.to_string()),
+            ..spawn
+        }),
+        (None, Some(name)) => Some(SpawnCommand {
+            domain: SpawnTabDomain::DomainName(name.to_string()),
+            ..SpawnCommand::default()
+        }),
+        (spawn, None) => spawn,
+    };
+    let mux = Mux::get();
+
+    let domain = if let Some(name) = &opts.domain {
+        let domain = mux
+            .get_domain_by_name(name)
+            .ok_or_else(|| anyhow!("invalid domain {name}"))?;
+        Some(domain)
+    } else {
+        None
+    };
+
+    if !opts.attach {
+        trigger_and_log_gui_startup(spawn_command).await;
     }
 
-    let is_connecting = false;
-    spawn_tab_in_default_domain_if_mux_is_empty(cmd, is_connecting).await
+    let is_connecting = opts.attach;
+
+    if let Some(domain) = &domain {
+        if !opts.attach {
+            let window_id = {
+                // Force the builder to notify the frontend early,
+                // so that the attach await below doesn't block it.
+                let builder = mux.new_empty_window(None);
+                *builder
+            };
+
+            domain.attach(Some(window_id)).await?;
+            let config = config::configuration();
+            let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
+            let tab = domain
+                .spawn(config.initial_size(dpi), cmd.clone(), None, window_id)
+                .await?;
+            let mut window = mux
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("failed to get mux window id {window_id}"))?;
+            if let Some(tab_idx) = window.idx_by_id(tab.tab_id()) {
+                window.set_active_without_saving(tab_idx);
+            }
+            trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
+        }
+    }
+    spawn_tab_in_domain_if_mux_is_empty(cmd, is_connecting, domain).await
 }
 
 #[derive(Debug)]
@@ -528,6 +533,7 @@ impl Publish {
         cmd: Option<CommandBuilder>,
         config: &ConfigHandle,
         workspace: Option<&str>,
+        domain: SpawnTabDomain,
     ) -> anyhow::Result<bool> {
         if let Publish::TryPathOrPublish(gui_sock) = &self {
             let dom = config::UnixDomain {
@@ -559,7 +565,7 @@ impl Publish {
                         }
                         client
                             .spawn_v2(codec::SpawnV2 {
-                                domain: config::keyassignment::SpawnTabDomain::DefaultDomain,
+                                domain,
                                 window_id: None,
                                 command,
                                 command_dir: None,
@@ -675,7 +681,7 @@ fn build_initial_mux(
     setup_mux(domain, config, default_domain_name, default_workspace_name)
 }
 
-fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
+fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
@@ -705,7 +711,11 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         None
     };
 
-    let mux = build_initial_mux(&config, None, opts.workspace.as_deref())?;
+    let mux = build_initial_mux(
+        &config,
+        default_domain_name.as_deref(),
+        opts.workspace.as_deref(),
+    )?;
 
     // First, let's see if we can ask an already running wezterm to do this.
     // We must do this before we start the gui frontend as the scheduler
@@ -716,7 +726,15 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         opts.always_new_process || opts.position.is_some(),
     );
     log::trace!("{:?}", publish);
-    if publish.try_spawn(cmd.clone(), &config, opts.workspace.as_deref())? {
+    if publish.try_spawn(
+        cmd.clone(),
+        &config,
+        opts.workspace.as_deref(),
+        match &opts.domain {
+            Some(name) => SpawnTabDomain::DomainName(name.to_string()),
+            None => SpawnTabDomain::DefaultDomain,
+        },
+    )? {
         return Ok(());
     }
 
@@ -1169,11 +1187,25 @@ fn run() -> anyhow::Result<()> {
     match sub {
         SubCommand::Start(start) => {
             log::trace!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-            run_terminal_gui(start)
+            run_terminal_gui(start, None)
         }
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
-        SubCommand::Connect(connect) => run_mux_client(connect),
+        SubCommand::Connect(connect) => run_terminal_gui(
+            StartCommand {
+                domain: Some(connect.domain_name.clone()),
+                class: connect.class,
+                workspace: connect.workspace,
+                position: connect.position,
+                prog: connect.prog,
+                always_new_process: true,
+                attach: true,
+                _cmd: false,
+                no_auto_connect: false,
+                cwd: None,
+            },
+            Some(connect.domain_name),
+        ),
         SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
         SubCommand::ShowKeys(cmd) => run_show_keys(config, &cmd),
     }

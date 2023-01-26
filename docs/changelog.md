@@ -60,6 +60,8 @@ As features stabilize some brief notes about them will accumulate here.
   [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
   [tab:rotate_counter_clockwise()](config/lua/MuxTab/rotate_counter_clockwise.md).
 * [wezterm.config_builder()](config/lua/wezterm/config_builder.md)
+* [gui-attached](config/lua/gui-events/gui-attached.md) event provides some
+  more flexibility at startup.
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
@@ -116,6 +118,9 @@ As features stabilize some brief notes about them will accumulate here.
   shown, which meant that a number of minor config issues could be overlooked.
 * Referencing `wezterm.GLOBAL` now returns references rather than copies, making
   it less cumbersome to code read/modify/write with global state
+* `wezterm start` now accepts `--domain` and `--attach` options. `wezterm
+  connect DOMAIN` is now implemented internally as `wezterm start --domain
+  DOMAIN --attach`.
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
