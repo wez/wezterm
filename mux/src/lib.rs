@@ -197,6 +197,14 @@ fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: File
             }
         }
     }
+
+    // Don't forget to send anything that we might have buffered
+    // to be displayed before we return from here; this is important
+    // for very short lived commands so that we don't forget to
+    // display what they displayed.
+    if !actions.is_empty() {
+        send_actions_to_mux(&pane, std::mem::take(&mut actions));
+    }
 }
 
 fn set_socket_buffer(fd: &mut FileDescriptor, option: i32, size: usize) -> anyhow::Result<()> {
@@ -277,6 +285,7 @@ fn read_from_pane_pty(
             }
             Ok(size) => {
                 histogram!("read_from_pane_pty.bytes.rate", size as f64);
+                log::trace!("read_pty pane {pane_id} read {size} bytes");
                 if let Err(err) = tx.write_all(&buf[..size]) {
                     error!(
                         "read_pty failed to write to parser: pane {} {:?}",

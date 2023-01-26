@@ -92,6 +92,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#2991](https://github.com/wez/wezterm/issues/2991)
 * X11: always update selection owner even if our window already owns it
   [#2926](https://github.com/wez/wezterm/issues/2926)
+* command output would not be displayed if the command exited almost
+  immediately after starting up.
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
