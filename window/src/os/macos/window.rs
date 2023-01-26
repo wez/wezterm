@@ -497,13 +497,35 @@ impl Window {
             thread_local! {
                 static LAST_POSITION: RefCell<Option<NSPoint>> = RefCell::new(None);
             }
+
+            let frame = NSWindow::frame(*window);
+            let active_screen = NSScreen::mainScreen(nil);
+            let active_screen_frame = NSScreen::frame(active_screen);
+
+            fn point_in_rect(pt: NSPoint, rect: NSRect) -> bool {
+                let rect: euclid::Rect<f64, ()> = euclid::rect(
+                    rect.origin.x,
+                    rect.origin.y,
+                    rect.size.width,
+                    rect.size.height,
+                );
+                rect.contains(euclid::point2(pt.x, pt.y))
+            }
+
             LAST_POSITION.with(|last_pos| {
                 let pos = pos.or_else(|| last_pos.borrow_mut().take());
-                let next_pos = if let Some(pos) = pos {
-                    window.cascadeTopLeftFromPoint_(pos)
-                } else {
-                    window.center();
-                    window.cascadeTopLeftFromPoint_(NSPoint::new(0., 0.))
+                let next_pos = match pos {
+                    Some(pos) if point_in_rect(pos, active_screen_frame) => {
+                        // Only continue the cascade if the prior point is
+                        // still within the currently active screen
+                        window.cascadeTopLeftFromPoint_(pos)
+                    }
+                    _ => {
+                        // Otherwise, position as if it is the first time
+                        // we're displaying on this screen
+                        window.center();
+                        window.cascadeTopLeftFromPoint_(frame.origin)
+                    }
                 };
                 last_pos.borrow_mut().replace(next_pos);
             });
