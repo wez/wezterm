@@ -372,6 +372,9 @@ impl InputMap {
         let mut candidates = vec![];
 
         for ((key, mods), entry) in &self.keys.default {
+            if mods.contains(Modifiers::LEADER) {
+                continue;
+            }
             if entry.action == *action {
                 candidates.push((key.clone(), mods.clone()));
             }
