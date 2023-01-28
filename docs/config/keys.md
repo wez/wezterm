@@ -1,8 +1,27 @@
-## Configuring Key Assignments
+- [Key Assignments/Keybindings](#key-assignmentskeybindings)
+  - [Default Keybindings](#default-keybindings)
+    - [Disabling Default Keybindings](#disabling-default-keybindings)
+  - [Creating New Assignment](#creating-new-assignment)
+  - [Key Config Struct](#key-config-struct)
+  - [Physical vs Mapped Key Assignments](#physical-vs-mapped-key-assignments)
+  - [Raw Key Assignments](#raw-key-assignments)
+  - [Leader Key](#leader-key)
+  - [VoidSymbol](#voidsymbol)
+- [Available Actions](#available-actions)
 
-The default key table assignments can be overridden or extended using the
-`keys` section in your `~/.wezterm.lua` config file.  For example, you can
-disable a default assignment like this:
+
+## Key Assignments/Keybindings
+---
+
+### Default Keybindings
+
+Wezterm comes preconfigured with a large number of [default keybindings](default-keys.md).
+
+#### Disabling Default Keybindings
+
+The [default key table assignments](default-keys.md) can be overridden or extended by adding a `keys` table to your `~/.wezterm.lua` config file.
+
+For example, you can disable an individual default assignment like this:
 
 ```lua
 local wezterm = require 'wezterm'
@@ -20,51 +39,140 @@ return {
 }
 ```
 
-The `action` value can be one of the [available key
-assignments](lua/keyassignment/index.md).  Every action has an example that shows
-how to use it.
+You can also turn off all default keybindings entirely via:
+
+```lua
+return {
+  disable_default_key_bindings = true,
+}
+```
+
+### Creating New Assignment
+
+Key assigments can be defined in your `wezterm.lua` config by adding key config structs to the `keys` table e.g.
+
+```lua
+local wezterm = require 'wezterm'
+
+-- Start of main config table
+return {
+  -- Start of keys table
+  keys = {
+    -- Key config struct 1
+    { key = '0', mods = 'SUPER', action = wezterm.action.ResetFontSize },
+    -- Key config struct 2
+    {
+      key = 'l',
+      mods = 'ALT',
+      action = wezterm.action.ShowLauncher
+    },
+  },
+}
+```
+### Key Config Struct
+
+A key config struct consists of 3 fields:
+
+**Fields:**
+
+- key (required)
+- mods (optional)
+- action (required)
+
+example of possible field assignments: 
+
+| `key = `  |   `mods =`    |           `action =`            |
+| :-------: | :-----------: | :-----------------------------: |
+|    'P'    |    'SUPER'    |   wezterm.action.SpawnWindow    |
+| "Escape"  | 'CTRL\|SHIFT' | wezterm.action.ShowDebugOverlay |
+| "UpArrow" |               |       wezterm.action.Nop        |
+
+
+Combining the 3 fields togeather, we can construct a key assignment structs in our config e.g.
+
+```lua
+-- Key config struct 1
+{ key = '0', mods = 'SUPER', action = wezterm.action.ResetFontSize },
+-- Key config struct 2
+{
+   key = 'l',
+   mods = 'ALT',
+   action = wezterm.action.ShowLauncher
+},
+```
+
+The `action` value can be one of the [available key assignments](lua/keyassignment/index.md).
+Every action has an example that shows how to use it.
 
 Possible Modifier labels are:
 
- * `SUPER`, `CMD`, `WIN` - these are all equivalent: on macOS the `Command` key,
-   on Windows the `Windows` key, on Linux this can also be the `Super` or `Hyper`
-   key.  Left and right are equivalent.
- * `CTRL` - The control key.  Left and right are equivalent.
- * `SHIFT` - The shift key.  Left and right are equivalent.
- * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
-   on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
+ * `SUPER`, `CMD`, `WIN` may be used for platform agnostic configs & are all equivalent to: 
+   * on macOS the `Command` key
+   * on Windows the `Windows` key
+   * on Linux the `Super` or `Hyper` keys
+ * `CTRL` - The control key, left and right varients are equivalent
+ * `SHIFT` - The shift key, left and right varients are equivalent
+ * `ALT`, `OPT`, `META` may be used for platform agnostic configs & are all equivalent to: 
+   * on macOS the `Option` key
+   * on other platforms the `Alt` or `Meta` key, left and right varients are equivalent
  * `LEADER` - a special modal modifier state managed by `wezterm`. See [Leader Key](#leader-key) for more information.
  * `VoidSymbol` - This keycode is emitted in special cases where the original
    function of the key has been removed. Such as in Linux and using `setxkbmap`.
    `setxkbmap -option caps:none`. The `CapsLock` will no longer function as
    before in all applications, instead emitting `VoidSymbol`.
 
-You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
+You can combine modifiers using the `'|'` symbol e.g.
+
+```lua
+local wezterm = require 'wezterm'
+
+return {
+  keys = {
+    -- Key assignment using a multi-key modifier
+    { 
+      key = 'r',
+      mods = 'SHIFT|SUPER',
+      action = wezterm.action.ReloadConfiguration 
+    },
+  },
+}
+```
 
 The `key` value can be one of the following keycode identifiers.  Note that not
 all of these are meaningful on all platforms:
 
-`Hyper`, `Super`, `Meta`, `Cancel`, `Backspace`, `Tab`, `Clear`, `Enter`,
-`Shift`, `Escape`, `LeftShift`, `RightShift`, `Control`, `LeftControl`,
-`RightControl`, `Alt`, `LeftAlt`, `RightAlt`, `Menu`, `LeftMenu`, `RightMenu`,
-`Pause`, `CapsLock`, `VoidSymbol`, `PageUp`, `PageDown`, `End`, `Home`, `LeftArrow`,
-`RightArrow`, `UpArrow`, `DownArrow`, `Select`, `Print`, `Execute`,
-`PrintScreen`, `Insert`, `Delete`, `Help`, `LeftWindows`, `RightWindows`,
-`Applications`, `Sleep`, `Numpad0`, `Numpad1`, `Numpad2`, `Numpad3`,
-`Numpad4`, `Numpad5`, `Numpad6`, `Numpad7`, `Numpad8`, `Numpad9`, `Multiply`,
-`Add`, `Separator`, `Subtract`, `Decimal`, `Divide`, `NumLock`, `ScrollLock`,
-`BrowserBack`, `BrowserForward`, `BrowserRefresh`, `BrowserStop`,
-`BrowserSearch`, `BrowserFavorites`, `BrowserHome`, `VolumeMute`,
-`VolumeDown`, `VolumeUp`, `MediaNextTrack`, `MediaPrevTrack`, `MediaStop`,
-`MediaPlayPause`, `ApplicationLeftArrow`, `ApplicationRightArrow`,
-`ApplicationUpArrow`, `ApplicationDownArrow`, `F1`, `F2`, `F3`, `F4`,
-`F5`, `F6`, `F7`, `F8`, `F9`, `F10`, `F11`, `F12`, `F13`, `F14`, `F15`,
-`F16`, `F17`, `F18`, `F19`, `F20`, `F21`, `F22`, `F23`, `F24`.
+|                        |                         |                      |                        |                  |
+| ---------------------- | ----------------------- | -------------------- | ---------------------- | ---------------- |
+| `Hyper`                | `Super`                 | `Meta`               | `Cancel`               | `Backspace`      |
+| `Tab`                  | `Clear`                 | `Enter`              | `Escape`               | `Shift`          |
+| `LeftShift`            | `RightShift`            | `Control`            | `LeftControl`          | `RightControl`   |
+| `Alt`                  | `LeftAlt`               | `RightAlt`           | `Menu`                 | `CapsLock`       |
+| `LeftMenu`             | `RightMenu`             | `Pause`              | `VoidSymbol`           | `Print`          |
+| `PageUp`               | `PageDown`              | `End`                | `Home`                 | `Execute`        |
+| `UpArrow`              | `DownArrow`             | `LeftArrow`          | `RightArrow`           | `Select`         |
+| `PrintScreen`          | `Insert`                | `Delete`             | `Help`                 | `Sleep`          |
+| `LeftWindows`          | `RightWindows`          | `Applications`       | `NumLock`              | `Separator`      |
+| `Add`                  | `Subtract`              | `Multiply`           | `Divide`               | `Decimal`        |
+| `ScrollLock`           | `BrowserBack`           | `BrowserForward`     | `BrowserRefresh`       | `BrowserStop`    |
+| `BrowserSearch`        | `BrowserFavorites`      | `BrowserHome`        | `VolumeMute`           | `VolumeDown`     |
+| `VolumeUp`             | `MediaNextTrack`        | `MediaPrevTrack`     | `MediaStop`            | `MediaPlayPause` |
+| `ApplicationLeftArrow` | `ApplicationRightArrow` | `ApplicationUpArrow` | `ApplicationDownArrow` |                  |
+| `F1`                   | `F2`                    | `F3`                 | `F...`                 | `F24`            |
+| `Numpad0`              | `Numpad1`               | `Numpad2`            | `Numpad...`            | `Numpad9`        |
+
+
+ 
 
 Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.
 
-Pay attention to the case of the text that you use and the state of the `SHIFT` modifier, as `key="A"` will match 
+Pay attention to the case of the text that you assign to `key = '<some key>'` if your modifier contains `SHIFT` as this is a common mistake.
+```lua
+-- This will not be abled to be triggered
+{ key = 'r', mods = 'SHIFT|SUPER', action = wezterm.action.ResetFontSize },
+-- This WILL be abled to be triggered
+{ key = 'R', mods = 'SHIFT|SUPER', action = wezterm.action.ResetFontSize },
+```
 
 ### Physical vs Mapped Key Assignments
 
@@ -112,9 +220,8 @@ prefix.
 Similar in concept to the `phys:` mapping described above, the `raw:` mapping
 is independent of the OS keyboard layout.  Raw codes are hardware and windowing system dependent, so there is no portable way to list which key does what.
 
-To discover these values, you can set [debug_key_events =
-true](lua/config/debug_key_events.md) and press the keys of
-interest.
+To discover these values, you can set [debug_key_events = true](lua/config/debug_key_events.md) in your config, this will log key events in the [debug overlay](lua/keyassignment/ShowDebugOverlay.md).
+
 
 You can specify a raw key value of 123 by using `key="raw:123"` in your config
 rather than one of the other key values.
@@ -123,23 +230,29 @@ rather than one of the other key values.
 
 *Since: 20201031-154415-9614e117*
 
-A *leader* key is a a modal modifier key.  If leader is specified in the
-configuration then pressing that key combination will enable a virtual `LEADER`
-modifier.
+The *leader* key is a modal modifier key that takes 3 fields:
 
-While `LEADER` is active, only defined key assignments that include
-`LEADER` in the `mods` mask will be recognized.  Other keypresses
-will be swallowed and NOT passed through to the terminal.
+**Fields:**
 
-`LEADER` stays active until a keypress is registered (whether it
-matches a key binding or not), or until it has been active for
-the duration specified by `timeout_milliseconds`, at which point
-it will automatically cancel itself.
+- key (required)
+- mods (optional)
+- timeout_milliseconds (optional)
+  - default: 1000 ms (1 second)
 
-Here's an example configuration using `LEADER`.  In this configuration,
-pressing `CTRL-A` activates the leader key for up to 1 second (1000
-milliseconds).  While `LEADER` is active, the `|` key (with no other modifiers)
-will trigger the current pane to be split.
+
+If leader is specified in the configuration then pressing that key combination will enable a virtual `LEADER` modifier.
+
+While `LEADER` is active, only defined key assignments that include `LEADER` in the `mods` mask will be recognized.<br>
+Other key presses will be swallowed and **NOT** passed through to the terminal.
+
+`LEADER` stays active until a keypress is registered (whether it matches a key binding or not),
+or until it has been active for the duration specified by `timeout_milliseconds`, at which point it will automatically cancel itself.
+
+Here's an example configuration using `LEADER`.
+
+In this configuration,
+pressing `CTRL-A` activates the leader key for up to 1 second (1000 milliseconds).<br>
+While `LEADER` is active, the `'|'` key (with no other modifiers) will trigger the current pane to be split.
 
 ```lua
 local wezterm = require 'wezterm'
@@ -195,7 +308,7 @@ return {
 }
 ```
 
-# Available Actions
+## Available Actions
 
 See the [`KeyAssignment` reference](lua/keyassignment/index.md) for information
 on available actions.
