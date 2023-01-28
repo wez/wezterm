@@ -1,4 +1,27 @@
-### Color Scheme
+- [Colors \& Appearance](#colors--appearance)
+  - [Color Schemes](#color-schemes)
+  - [Precedence of 'colors' vs 'color\_schemes'](#precedence-of-colors-vs-color_schemes)
+  - [Defining your own colors](#defining-your-own-colors)
+    - [Defining Colors with HSL](#defining-colors-with-hsl)
+    - [Defining Colors with CSS](#defining-colors-with-css)
+    - [Defining a Color Scheme in your `.wezterm.lua`](#defining-a-color-scheme-in-your-weztermlua)
+    - [Defining a Color Scheme in a separate file](#defining-a-color-scheme-in-a-separate-file)
+  - [Dynamic Color Escape Sequences](#dynamic-color-escape-sequences)
+  - [Tab Bar Appearance \& Colors](#tab-bar-appearance--colors)
+    - [Native (Fancy) Tab Bar appearance](#native-fancy-tab-bar-appearance)
+    - [Retro Tab Bar appearance](#retro-tab-bar-appearance)
+  - [Window Padding](#window-padding)
+  - [Styling Inactive Panes](#styling-inactive-panes)
+  - [Window Background Image](#window-background-image)
+  - [Window Background Gradient](#window-background-gradient)
+  - [Window Background Opacity](#window-background-opacity)
+  - [Text Background Opacity](#text-background-opacity)
+
+
+# Colors & Appearance
+
+
+## Color Schemes
 
 WezTerm ships with over 700 color schemes available from
 [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots),
@@ -22,7 +45,7 @@ is controlled by the config file on the multiplexer server side. This is
 because the palette is an attribute of the terminal emulation and that state
 lives on the multiplexer server.*
 
-### Precedence of `colors` vs `color_schemes`
+## Precedence of 'colors' vs 'color_schemes'
 
 The `color_scheme` option takes precedence over the `colors` section below,
 and is mutually exclusive with it. If you want to merge/override colors
@@ -34,7 +57,7 @@ The behavior has been changed so that the `color_scheme` you have selected, if
 any, is used to define the colors, and then any colors you define in the
 `colors` section will override those colors.
 
-### Defining your own colors
+## Defining your own colors
 
 You can specify the color palette using the `colors` configuration section.
 
@@ -124,6 +147,8 @@ return {
 }
 ```
 
+### Defining Colors with HSL
+
 *Since: 20220101-133340-7edc5b5a*
 
 You may specify colors in the HSL color space, if you prefer that over RGB, by using:
@@ -141,12 +166,13 @@ return {
   },
 }
 ```
+### Defining Colors with CSS
 
 *Since: 20220319-142410-0fcdea07*
 
 Colors now also accept the following CSS-style color specifications:
 
-```
+```css
 rgb(0,255,0)
 rgb(0% 100% 0%)
 rgb(0 255 0 / 100%)
@@ -239,7 +265,7 @@ return {
 Color scheme names that are defined in files in your `color_scheme_dirs` list
 take precedence over the built-in color schemes.
 
-### Dynamic Color Escape Sequences
+## Dynamic Color Escape Sequences
 
 Wezterm supports dynamically changing its color palette via escape sequences.
 
@@ -257,12 +283,21 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 
   <video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
-### Tab Bar Appearance & Colors
+## Tab Bar Appearance & Colors
 
-The tab bar has two modes; the default is a native looking style, but
-is is also possible to enable a retro aesthetic.  The configuration
-for the two styles is broadly similar, but there are a few different
-details.
+The tab bar has two options for appearance:
+
+- Fancy, modern-style tab bar (default)
+- Retro, classic-style tab bar
+
+<img src="../screenshots/fancy-retro.png">
+
+You can specify which style to use via their respective settings show in the image.
+
+
+The default is a platform-native looking style, but it is also possible to enable a retro aesthetic.<br>
+The configuration for the two styles is broadly similar, but there are a few different
+details:
 
 * [use_fancy_tab_bar](lua/config/use_fancy_tab_bar.md) option controls
   which tab bar style is used.
@@ -275,7 +310,7 @@ details.
 * [tab_max_width](lua/config/tab_max_width.md) sets the maximum width, measured in cells,
   of a given tab when using retro tab mode.
 
-#### Native (Fancy) Tab Bar appearance
+### Native (Fancy) Tab Bar appearance
 
 The following options affect the fancy tab bar:
 
@@ -317,7 +352,7 @@ return {
 In addition, the tab bar colors mentioned below also apply
 to the items displayed in the tab bar.
 
-#### Retro Tab Bar appearance
+### Retro Tab Bar appearance
 
 The following options control the appearance of the tab bar:
 
@@ -336,74 +371,62 @@ return {
         -- The color of the text for the tab
         fg_color = '#c0c0c0',
 
-        -- Specify whether you want "Half", "Normal" or "Bold" intensity for the
-        -- label shown for this tab.
-        -- The default is "Normal"
-        intensity = 'Normal',
+        -- Font weight for focused tab label
+          -- Options: "Half", "Normal" (default), "Bold"
+        intensity = "Normal",
 
-        -- Specify whether you want "None", "Single" or "Double" underline for
-        -- label shown for this tab.
-        -- The default is "None"
-        underline = 'None',
+        -- Underline for focused tab label
+          -- Options: "None" (default), "Single", "Double"
+        underline = "None",
 
-        -- Specify whether you want the text to be italic (true) or not (false)
-        -- for this tab.  The default is false.
+        -- Italics for focused tab label
+          -- Options: true, false (default)
         italic = false,
 
-        -- Specify whether you want the text to be rendered with strikethrough (true)
-        -- or not for this tab.  The default is false.
+        -- Strikethrough for focused tab label
+          -- Options: true, false (default)
         strikethrough = false,
       },
 
-      -- Inactive tabs are the tabs that do not have focus
+      -- Inactive tabs are unfocused tabs
+        -- Options for `active_tab` are applicable to `inactive_tab`
       inactive_tab = {
-        bg_color = '#1b1032',
-        fg_color = '#808080',
-
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `inactive_tab`.
+        bg_color = "#1b1032",
+        fg_color = "#808080",
       },
 
-      -- You can configure some alternate styling when the mouse pointer
-      -- moves over inactive tabs
+      -- Alternate styling when the mouse pointer hovers over inactive tabs
+        -- Options for `active_tab` are applicable to `inactive_tab_hover`
       inactive_tab_hover = {
-        bg_color = '#3b3052',
-        fg_color = '#909090',
+        bg_color = "#3b3052",
+        fg_color = "#909090",
         italic = true,
-
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `inactive_tab_hover`.
       },
 
       -- The new tab button that let you create new tabs
+        -- Options for `active_tab` are applicable to `new_tab`
       new_tab = {
-        bg_color = '#1b1032',
-        fg_color = '#808080',
-
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `new_tab`.
+        bg_color = "#1b1032",
+        fg_color = "#808080",
       },
 
-      -- You can configure some alternate styling when the mouse pointer
-      -- moves over the new tab button
+      -- Alternate styling when the mouse pointer moves over the new tab button
+        -- Options for `active_tab` are applicable to `new_tab_hover`
       new_tab_hover = {
-        bg_color = '#3b3052',
-        fg_color = '#909090',
+        bg_color = "#3b3052",
+        fg_color = "#909090",
         italic = true,
-
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `new_tab_hover`.
       },
     },
   },
 }
 ```
 
-### Window Padding
+## Window Padding
 
 You may add padding around the edges of the terminal area.
 
-[See the window_padding docs for more info](lua/config/window_padding.md)
+See the [window_padding doc](lua/config/window_padding.md) for more info.
 
 ## Styling Inactive Panes
 
@@ -461,9 +484,8 @@ return {
 If the path is a relative path then it will be expanded relative
 to the directory containing your `wezterm.lua` config file.
 
-PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files
-can be loaded.  Animated GIF and PNG files will animate while
-the window has focus.
+PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files can be loaded. <br>
+Animated GIF and PNG files will animate while the window has focus.
 
 The image will be scaled to fit the window contents.  Very large
 images may decrease render performance and take up VRAM from the
