@@ -7,17 +7,16 @@
   - [Raw Key Assignments](#raw-key-assignments)
   - [Leader Key](#leader-key)
   - [VoidSymbol](#voidsymbol)
-- [Available Actions](#available-actions)
+  - [Available Actions](#available-actions)
 
 
-## Key Assignments/Keybindings
----
+# Key Assignments/Keybindings
 
-### Default Keybindings
+## Default Keybindings
 
 Wezterm comes preconfigured with a large number of [default keybindings](default-keys.md).
 
-#### Disabling Default Keybindings
+### Disabling Default Keybindings
 
 The [default key table assignments](default-keys.md) can be overridden or extended by adding a `keys` table to your `~/.wezterm.lua` config file.
 
@@ -47,7 +46,7 @@ return {
 }
 ```
 
-### Creating New Assignment
+## Creating New Assignment
 
 Key assigments can be defined in your `wezterm.lua` config by adding key config structs to the `keys` table e.g.
 
@@ -69,7 +68,7 @@ return {
   },
 }
 ```
-### Key Config Struct
+## Key Config Struct
 
 A key config struct consists of 3 fields:
 
@@ -174,7 +173,7 @@ Pay attention to the case of the text that you assign to `key = '<some key>'` if
 { key = 'R', mods = 'SHIFT|SUPER', action = wezterm.action.ResetFontSize },
 ```
 
-### Physical vs Mapped Key Assignments
+## Physical vs Mapped Key Assignments
 
 *Since: 20220319-142410-0fcdea07*
 
@@ -210,7 +209,7 @@ default), then `mapped:` is assumed. If `key_map_preference = "Physical"` then
 
 The default key assignments will respect `key_map_preference`.
 
-### Raw Key Assignments
+## Raw Key Assignments
 
 In some cases, `wezterm` may not know how to represent a key event in either
 its `phys:` or `mapped:` forms.  In that case, you may wish to define an
@@ -226,7 +225,7 @@ To discover these values, you can set [debug_key_events = true](lua/config/debug
 You can specify a raw key value of 123 by using `key="raw:123"` in your config
 rather than one of the other key values.
 
-### Leader Key
+## Leader Key
 
 *Since: 20201031-154415-9614e117*
 
@@ -276,7 +275,7 @@ return {
 }
 ```
 
-### VoidSymbol
+## VoidSymbol
 
 *Since: 20210814-124438-54e29167*
 
