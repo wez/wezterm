@@ -1801,6 +1801,18 @@ impl XWindowInner {
         });
     }
 
+    fn get_window_position(&mut self) -> ScreenPoint {
+        let conn = self.conn();
+        let geom = self
+            .conn()
+            .send_and_wait_request(&xcb::x::GetGeometry {
+                drawable: xcb::x::Drawable::Window(self.window_id),
+            })
+            .context("querying geometry")?;
+        log::trace!("window position is x={} y={}", geom.x(), geom.y(),);
+        ScreenPoint::new(geom.x(), geom.y())
+    }
+
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
         if title == self.title {
