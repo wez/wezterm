@@ -63,7 +63,7 @@ return {
     {
       key = 'l',
       mods = 'ALT',
-      action = wezterm.action.ShowLauncher
+      action = wezterm.action.ShowLauncher,
     },
   },
 }
@@ -90,14 +90,18 @@ example of possible field assignments:
 Combining the 3 fields togeather, we can construct a key assignment structs in our config e.g.
 
 ```lua
--- Key config struct 1
-{ key = '0', mods = 'SUPER', action = wezterm.action.ResetFontSize },
--- Key config struct 2
-{
-   key = 'l',
-   mods = 'ALT',
-   action = wezterm.action.ShowLauncher
-},
+return {
+  keys = {
+    -- Key config struct 1
+    { key = '0', mods = 'SUPER', action = wezterm.action.ResetFontSize },
+    -- Key config struct 2
+    {
+      key = 'l',
+      mods = 'ALT',
+      action = wezterm.action.ShowLauncher,
+    },
+  },
+}
 ```
 
 The `action` value can be one of the [available key assignments](lua/keyassignment/index.md).
@@ -128,10 +132,10 @@ local wezterm = require 'wezterm'
 return {
   keys = {
     -- Key assignment using a multi-key modifier
-    { 
-      key = 'r',
+    {
+      key = 'R',
       mods = 'SHIFT|SUPER',
-      action = wezterm.action.ReloadConfiguration 
+      action = wezterm.action.ReloadConfiguration,
     },
   },
 }
@@ -165,12 +169,25 @@ all of these are meaningful on all platforms:
 Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.
 
-Pay attention to the case of the text that you assign to `key = '<some key>'` if your modifier contains `SHIFT` as this is a common mistake.
+Pay attention to the case of the text that you assign to `key = '<some key>'` if your modifier contains `SHIFT` as this is a common mistake.<br>
+As of *20221119-145034-49b9839f* there's an open issue on this, see [#1906](https://github.com/wez/wezterm/issues/1906).
 ```lua
--- This will not be abled to be triggered
-{ key = 'r', mods = 'SHIFT|SUPER', action = wezterm.action.ResetFontSize },
--- This WILL be abled to be triggered
-{ key = 'R', mods = 'SHIFT|SUPER', action = wezterm.action.ResetFontSize },
+return {
+  keys = {
+    -- This will not be abled to be triggered
+    {
+      key = 'r',
+      mods = 'SHIFT|SUPER',
+      action = wezterm.action.ResetFontSize,
+    },
+    -- This WILL be abled to be triggered
+    {
+      key = 'R',
+      mods = 'SHIFT|SUPER',
+      action = wezterm.action.ResetFontSize,
+    },
+  },
+}
 ```
 
 ## Physical vs Mapped Key Assignments

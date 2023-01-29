@@ -4,7 +4,7 @@
   - [Defining your own colors](#defining-your-own-colors)
     - [Defining Colors with HSL](#defining-colors-with-hsl)
     - [Defining Colors with CSS](#defining-colors-with-css)
-    - [Defining a Color Scheme in your `.wezterm.lua`](#defining-a-color-scheme-in-your-weztermlua)
+    - [Defining a Color Scheme in `.wezterm.lua`](#defining-a-color-scheme-in-weztermlua)
     - [Defining a Color Scheme in a separate file](#defining-a-color-scheme-in-a-separate-file)
   - [Dynamic Color Escape Sequences](#dynamic-color-escape-sequences)
   - [Tab Bar Appearance \& Colors](#tab-bar-appearance--colors)
@@ -49,7 +49,7 @@ lives on the multiplexer server.*
 
 The `color_scheme` option takes precedence over the `colors` section below,
 and is mutually exclusive with it. If you want to merge/override colors
-you need to use [wezterm.color.get_default_colors()](lua/wezterm.color/get_default_colors.md) and explicitly merge them.
+you need to use [`wezterm.color.get_default_colors()`](lua/wezterm.color/get_default_colors.md) and explicitly merge them.
 
 *Since: 20220903-194523-3bb1ed61*
 
@@ -208,7 +208,7 @@ return {
 }
 ```
 
-### Defining a Color Scheme in your `.wezterm.lua`
+### Defining a Color Scheme in `.wezterm.lua`
 
 If you'd like to keep a couple of color schemes handy in your configuration
 file, rather than filling out the `colors` section, place it in a
@@ -372,49 +372,49 @@ return {
         fg_color = '#c0c0c0',
 
         -- Font weight for focused tab label
-          -- Options: "Half", "Normal" (default), "Bold"
-        intensity = "Normal",
+        -- Options: "Half", "Normal" (default), "Bold"
+        intensity = 'Normal',
 
         -- Underline for focused tab label
-          -- Options: "None" (default), "Single", "Double"
-        underline = "None",
+        -- Options: "None" (default), "Single", "Double"
+        underline = 'None',
 
         -- Italics for focused tab label
-          -- Options: true, false (default)
+        -- Options: true, false (default)
         italic = false,
 
         -- Strikethrough for focused tab label
-          -- Options: true, false (default)
+        -- Options: true, false (default)
         strikethrough = false,
       },
 
       -- Inactive tabs are unfocused tabs
-        -- Options for `active_tab` are applicable to `inactive_tab`
+      -- Options for `active_tab` are applicable to `inactive_tab`
       inactive_tab = {
-        bg_color = "#1b1032",
-        fg_color = "#808080",
+        bg_color = '#1b1032',
+        fg_color = '#808080',
       },
 
       -- Alternate styling when the mouse pointer hovers over inactive tabs
-        -- Options for `active_tab` are applicable to `inactive_tab_hover`
+      -- Options for `active_tab` are applicable to `inactive_tab_hover`
       inactive_tab_hover = {
-        bg_color = "#3b3052",
-        fg_color = "#909090",
+        bg_color = '#3b3052',
+        fg_color = '#909090',
         italic = true,
       },
 
       -- The new tab button that let you create new tabs
-        -- Options for `active_tab` are applicable to `new_tab`
+      -- Options for `active_tab` are applicable to `new_tab`
       new_tab = {
-        bg_color = "#1b1032",
-        fg_color = "#808080",
+        bg_color = '#1b1032',
+        fg_color = '#808080',
       },
 
       -- Alternate styling when the mouse pointer moves over the new tab button
-        -- Options for `active_tab` are applicable to `new_tab_hover`
+      -- Options for `active_tab` are applicable to `new_tab_hover`
       new_tab_hover = {
-        bg_color = "#3b3052",
-        fg_color = "#909090",
+        bg_color = '#3b3052',
+        fg_color = '#909090',
         italic = true,
       },
     },
