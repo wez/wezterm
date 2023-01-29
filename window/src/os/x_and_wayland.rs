@@ -386,6 +386,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn get_window_position(&self) -> ScreenPoint {
+        match self {
+            Self::X11(x) => x.get_window_position(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => ScreenPoint(0, 0),
+        }
+    }
+
     fn set_text_cursor_position(&self, cursor: Rect) {
         match self {
             Self::X11(x) => x.set_text_cursor_position(cursor),
