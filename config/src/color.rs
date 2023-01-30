@@ -642,7 +642,7 @@ fn dynamic_to_toml(value: Value) -> anyhow::Result<toml::Value> {
             toml::Value::Array(arr)
         }
         Value::Object(o) => {
-            let mut map = toml::value::Map::new();
+            let mut map = toml::map::Map::new();
             for (k, v) in o {
                 let k = match k {
                     Value::String(s) => s,
