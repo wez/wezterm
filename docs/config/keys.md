@@ -1,15 +1,3 @@
-- [Key Assignments/Keybindings](#key-assignmentskeybindings)
-  - [Default Keybindings](#default-keybindings)
-    - [Disabling Default Keybindings](#disabling-default-keybindings)
-  - [Creating New Assignment](#creating-new-assignment)
-  - [Key Config Struct](#key-config-struct)
-  - [Physical vs Mapped Key Assignments](#physical-vs-mapped-key-assignments)
-  - [Raw Key Assignments](#raw-key-assignments)
-  - [Leader Key](#leader-key)
-  - [VoidSymbol](#voidsymbol)
-  - [Available Actions](#available-actions)
-
-
 # Key Assignments/Keybindings
 
 ## Default Keybindings
@@ -80,14 +68,14 @@ A key config struct consists of 3 fields:
 
 example of possible field assignments: 
 
-| `key = `  |   `mods =`    |           `action =`            |
-| :-------: | :-----------: | :-----------------------------: |
-|    'P'    |    'SUPER'    |   wezterm.action.SpawnWindow    |
+| `key = `  | `mods =`      | `action =`                      |
+| --------- | ------------- | ------------------------------- |
+| 'P'       | 'SUPER'       | wezterm.action.SpawnWindow      |
 | "Escape"  | 'CTRL\|SHIFT' | wezterm.action.ShowDebugOverlay |
-| "UpArrow" |               |       wezterm.action.Nop        |
+| "UpArrow" |               | wezterm.action.Nop              |
 
 
-Combining the 3 fields togeather, we can construct a key assignment structs in our config e.g.
+Using the 3 fields, we can construct key assignment structs in our config e.g.
 
 ```lua
 return {
@@ -109,7 +97,7 @@ Every action has an example that shows how to use it.
 
 Possible Modifier labels are:
 
- * `SUPER`, `CMD`, `WIN` may be used for platform agnostic configs & are all equivalent to: 
+* `SUPER`, `CMD`, `WIN` may be used for platform agnostic configs & are all equivalent to: 
    * on macOS the `Command` key
    * on Windows the `Windows` key
    * on Linux the `Super` or `Hyper` keys
@@ -118,7 +106,8 @@ Possible Modifier labels are:
  * `ALT`, `OPT`, `META` may be used for platform agnostic configs & are all equivalent to: 
    * on macOS the `Option` key
    * on other platforms the `Alt` or `Meta` key, left and right varients are equivalent
- * `LEADER` - a special modal modifier state managed by `wezterm`. See [Leader Key](#leader-key) for more information.
+ * `LEADER` - a special modal modifier state managed by `wezterm`.
+    See [Leader Key](#leader-key) for more information.
  * `VoidSymbol` - This keycode is emitted in special cases where the original
    function of the key has been removed. Such as in Linux and using `setxkbmap`.
    `setxkbmap -option caps:none`. The `CapsLock` will no longer function as
@@ -128,7 +117,6 @@ You can combine modifiers using the `'|'` symbol e.g.
 
 ```lua
 local wezterm = require 'wezterm'
-
 return {
   keys = {
     -- Key assignment using a multi-key modifier
@@ -141,37 +129,13 @@ return {
 }
 ```
 
-The `key` value can be one of the following keycode identifiers.  Note that not
-all of these are meaningful on all platforms:
-
-|                        |                         |                      |                        |                  |
-| ---------------------- | ----------------------- | -------------------- | ---------------------- | ---------------- |
-| `Hyper`                | `Super`                 | `Meta`               | `Cancel`               | `Backspace`      |
-| `Tab`                  | `Clear`                 | `Enter`              | `Escape`               | `Shift`          |
-| `LeftShift`            | `RightShift`            | `Control`            | `LeftControl`          | `RightControl`   |
-| `Alt`                  | `LeftAlt`               | `RightAlt`           | `Menu`                 | `CapsLock`       |
-| `LeftMenu`             | `RightMenu`             | `Pause`              | `VoidSymbol`           | `Print`          |
-| `PageUp`               | `PageDown`              | `End`                | `Home`                 | `Execute`        |
-| `UpArrow`              | `DownArrow`             | `LeftArrow`          | `RightArrow`           | `Select`         |
-| `PrintScreen`          | `Insert`                | `Delete`             | `Help`                 | `Sleep`          |
-| `LeftWindows`          | `RightWindows`          | `Applications`       | `NumLock`              | `Separator`      |
-| `Add`                  | `Subtract`              | `Multiply`           | `Divide`               | `Decimal`        |
-| `ScrollLock`           | `BrowserBack`           | `BrowserForward`     | `BrowserRefresh`       | `BrowserStop`    |
-| `BrowserSearch`        | `BrowserFavorites`      | `BrowserHome`        | `VolumeMute`           | `VolumeDown`     |
-| `VolumeUp`             | `MediaNextTrack`        | `MediaPrevTrack`     | `MediaStop`            | `MediaPlayPause` |
-| `ApplicationLeftArrow` | `ApplicationRightArrow` | `ApplicationUpArrow` | `ApplicationDownArrow` |                  |
-| `F1`                   | `F2`                    | `F3`                 | `F...`                 | `F24`            |
-| `Numpad0`              | `Numpad1`               | `Numpad2`            | `Numpad...`            | `Numpad9`        |
-
-
- 
-
 Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.
 
 Pay attention to the case of the text that you assign to `key = '<some key>'` if your modifier contains `SHIFT` as this is a common mistake.<br>
 As of *20221119-145034-49b9839f* there's an open issue on this, see [#1906](https://github.com/wez/wezterm/issues/1906).
 ```lua
+local wezterm = require 'wezterm'
 return {
   keys = {
     -- This will not be abled to be triggered
@@ -189,6 +153,34 @@ return {
   },
 }
 ```
+
+The `key` value can be one of the following keycode identifiers.  Note that not
+all of these are meaningful on all platforms:
+
+|                      |                        |                         |                  |
+| -------------------- | ---------------------- | ----------------------- | ---------------- |
+| `Hyper`              | `Super`                | `Meta`                  | `Escape`         |
+| `Control`            | `LeftControl`          | `RightControl`          | `Execute`        |
+| `Alt`                | `LeftAlt`              | `RightAlt`              | `Select`         |
+| `Shift`              | `LeftShift`            | `RightShift`            | `Sleep`          |
+| `Menu`               | `LeftMenu`             | `RightMenu`             |                  |
+| `Applications`       | `LeftWindows`          | `RightWindows`          |                  |
+| `UpArrow`            | `LeftArrow`            | `RightArrow`            | `DownArrow`      |
+| `Tab`                | `Enter`                | `Clear`                 | `Help`           |
+| `Insert`             | `Delete`               | `Backspace`             | `Cancel`         |
+| `PageUp`             | `PageDown`             | `Home`                  | `End`            |
+| `NumLock`            | `ScrollLock`           | `CapsLock`              |                  |
+| `VolumeUp`           | `VolumeDown`           | `VolumeMute`            |                  |
+| `VoidSymbol`         | `Separator`            | `PrintScreen`           | `Print`          |
+| `F1`                 | `F2`                   | `F...`                  | `F24`            |
+| `Numpad0`            | `Numpad1`              | `Numpad...`             | `Numpad9`        |
+| `BrowserForward`     | `BrowserBack`          | `BrowserHome`           | `BrowserRefresh` |
+| `BrowserStop`        | `BrowserSearch`        | `BrowserFavorites`      | `Pause`          |
+| `MediaPlayPause`     | `MediaNextTrack`       | `MediaPrevTrack`        | `MediaStop`      |
+| `Add`                | `Subtract`             | `Multiply`              | `Divide`         |
+| `Decimal`            | `ApplicationLeftArrow` | `ApplicationRightArrow` |                  |
+| `ApplicationUpArrow` | `ApplicationDownArrow` |                         |                  |
+
 
 ## Physical vs Mapped Key Assignments
 

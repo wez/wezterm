@@ -1,25 +1,4 @@
-- [Colors \& Appearance](#colors--appearance)
-  - [Color Schemes](#color-schemes)
-  - [Precedence of 'colors' vs 'color\_schemes'](#precedence-of-colors-vs-color_schemes)
-  - [Defining your own colors](#defining-your-own-colors)
-    - [Defining Colors with HSL](#defining-colors-with-hsl)
-    - [Defining Colors with CSS](#defining-colors-with-css)
-    - [Defining a Color Scheme in `.wezterm.lua`](#defining-a-color-scheme-in-weztermlua)
-    - [Defining a Color Scheme in a separate file](#defining-a-color-scheme-in-a-separate-file)
-  - [Dynamic Color Escape Sequences](#dynamic-color-escape-sequences)
-  - [Tab Bar Appearance \& Colors](#tab-bar-appearance--colors)
-    - [Native (Fancy) Tab Bar appearance](#native-fancy-tab-bar-appearance)
-    - [Retro Tab Bar appearance](#retro-tab-bar-appearance)
-  - [Window Padding](#window-padding)
-  - [Styling Inactive Panes](#styling-inactive-panes)
-  - [Window Background Image](#window-background-image)
-  - [Window Background Gradient](#window-background-gradient)
-  - [Window Background Opacity](#window-background-opacity)
-  - [Text Background Opacity](#text-background-opacity)
-
-
 # Colors & Appearance
-
 
 ## Color Schemes
 
@@ -38,7 +17,7 @@ return {
 ```
 
 You can find a list of available color schemes and screenshots
-in [The Color Schemes Section](../colorschemes/index.md).
+in the [Color Schemes](../colorschemes/index.md) section.
 
 *Note: if you are using multiplexing with ssh or tls domains, the color scheme
 is controlled by the config file on the multiplexer server side. This is
@@ -236,15 +215,15 @@ return {
 }
 ```
 
-See also [wezterm.get_builtin_color_schemes()](lua/wezterm/get_builtin_color_schemes.md) for
+See also [`wezterm.get_builtin_color_schemes()`](lua/wezterm/get_builtin_color_schemes.md) for
 some more advanced examples, such as picking a random color scheme, or deriving from a
 builting color scheme.
 
 ### Defining a Color Scheme in a separate file
 
 If you'd like to factor your color schemes out into separate files, you
-can create a file with a `[colors]` section; take a look at [one of
-the available color schemes for an example](https://github.com/wez/wezterm/blob/main/assets/colors/Builtin%20Dark.toml).
+can create a file with a `[colors]` section;
+take a look at [one of the available color schemes for an example](https://github.com/wez/wezterm/blob/main/assets/colors/Builtin%20Dark.toml).
 
 It is recommended that you place your custom scheme in a directory
 named `$HOME/.config/wezterm/colors` if you're on a POSIX system.
@@ -292,7 +271,7 @@ The tab bar has two options for appearance:
 
 <img src="../screenshots/fancy-retro.png">
 
-You can specify which style to use via their respective settings show in the image.
+You can specify which style to use via their respective settings shown.
 
 
 The default is a platform-native looking style, but it is also possible to enable a retro aesthetic.<br>
@@ -548,6 +527,8 @@ translucent/transparent) through to `1.0` (meaning completely opaque).
 
 Setting this to a value other than the default `1.0` may impact render
 performance.
+
+**There's an open issue related to window lag when `window_background_opacity = 1.0` on macOS, which can be resolved by setting opacity < 1.0 (e.g. 0.99)* see [#2669](https://github.com/wez/wezterm/issues/2669) for info.
 
 ```lua
 return {
