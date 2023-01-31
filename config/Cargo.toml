@@ -11,7 +11,7 @@ build = "build.rs"
 env_logger = "0.10"
 
 [build-dependencies]
-git2 = { version = "0.14", default-features = false }
+git2 = { version = "0.16", default-features = false }
 
 [features]
 distro-defaults = []

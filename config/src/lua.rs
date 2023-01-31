@@ -248,6 +248,11 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         prefix_path(&mut path_array, &crate::HOME_DIR.join(".wezterm"));
         prefix_path(&mut path_array, &crate::CONFIG_DIR);
+        path_array.insert(
+            2,
+            format!("{}/plugins/?/plugin/init.lua", crate::RUNTIME_DIR.display()),
+        );
+
         if let Ok(exe) = std::env::current_exe() {
             if let Some(path) = exe.parent() {
                 wezterm_mod.set(
