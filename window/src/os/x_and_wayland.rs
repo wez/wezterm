@@ -386,11 +386,11 @@ impl WindowOps for Window {
         }
     }
 
-    fn get_window_position(&self) -> ScreenPoint {
+    fn get_window_position(&self) -> Future<ScreenPoint> {
         match self {
             Self::X11(x) => x.get_window_position(),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => ScreenPoint(0, 0),
+            Self::Wayland(w) => w.get_window_position(),
         }
     }
 
