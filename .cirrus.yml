@@ -1,10 +1,10 @@
 freebsd_instance:
-  image: freebsd-12-1-release-amd64
+  image: freebsd-13-1-release-amd64
   cpu: 4
   memory: 8G
 
 task:
-  name: freebsd-12
+  name: freebsd-13
   stateful: false
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   setup_script:
