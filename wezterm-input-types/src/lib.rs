@@ -1276,6 +1276,10 @@ bitflags! {
         const TITLE = 1;
         const RESIZE = 2;
         const NONE = 0;
+        // Reserve two bits for this enable/disable shadow,
+        // so that we effective have Option<bool>
+        const MACOS_FORCE_DISABLE_SHADOW = 4;
+        const MACOS_FORCE_ENABLE_SHADOW = 4|8;
     }
 }
 
@@ -1291,6 +1295,10 @@ impl TryFrom<String> for WindowDecorations {
                 flags = Self::NONE;
             } else if ele == "RESIZE" {
                 flags |= Self::RESIZE;
+            } else if ele == "MACOS_FORCE_DISABLE_SHADOW" {
+                flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
+            } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
+                flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }

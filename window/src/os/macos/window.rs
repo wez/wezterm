@@ -986,8 +986,25 @@ impl WindowInner {
             // when transparent, also turn off the window shadow,
             // because having the shadow enabled seems to correlate
             // with ghostly remnants see:
-            // https://github.com/wez/wezterm/issues/310
-            self.window.setHasShadow_(is_opaque);
+            // https://github.com/wez/wezterm/issues/310.
+            // But allow overriding the shadows independent of opacity as well:
+            // <https://github.com/wez/wezterm/issues/2669>
+            let shadow = if self
+                .config
+                .window_decorations
+                .contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW)
+            {
+                YES
+            } else if self
+                .config
+                .window_decorations
+                .contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW)
+            {
+                NO
+            } else {
+                is_opaque
+            };
+            self.window.setHasShadow_(shadow);
         }
     }
 }
