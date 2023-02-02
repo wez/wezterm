@@ -267,6 +267,9 @@ shown, which meant that a number of minor config issues could be overlooked.</li
 <li>Referencing <code>wezterm.GLOBAL</code> now returns references rather than copies, making
 it less cumbersome to code read/modify/write with global state</li>
 <li><code>wezterm start</code> now accepts <code>--domain</code> and <code>--attach</code> options. <code>wezterm connect DOMAIN</code> is now implemented internally as <code>wezterm start --domain DOMAIN --attach</code>.</li>
+<li>X11: spurious pointer focus events no longer influence terminal focus events.
+Thanks to <a href="https://github.com/NBonaparte">@NBonaparte</a>!
+<a href="https://github.com/wez/wezterm/pull/2959">#2959</a></li>
 </ul>
 <h4 id="updated"><a class="header" href="#updated">Updated</a></h4>
 <ul>
