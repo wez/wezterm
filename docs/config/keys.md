@@ -101,11 +101,11 @@ Possible Modifier labels are:
    * on macOS the `Command` key
    * on Windows the `Windows` key
    * on Linux the `Super` or `Hyper` keys
- * `CTRL` - The control key, left and right varients are equivalent
- * `SHIFT` - The shift key, left and right varients are equivalent
+ * `CTRL` - The control key, left and right variants are equivalent
+ * `SHIFT` - The shift key, left and right variants are equivalent
  * `ALT`, `OPT`, `META` may be used for platform agnostic configs & are all equivalent to: 
    * on macOS the `Option` key
-   * on other platforms the `Alt` or `Meta` key, left and right varients are equivalent
+   * on other platforms the `Alt` or `Meta` key, left and right variants are equivalent
  * `LEADER` - a special modal modifier state managed by `wezterm`.
     See [Leader Key](#leader-key) for more information.
  * `VoidSymbol` - This keycode is emitted in special cases where the original
