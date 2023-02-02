@@ -123,6 +123,9 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm start` now accepts `--domain` and `--attach` options. `wezterm
   connect DOMAIN` is now implemented internally as `wezterm start --domain
   DOMAIN --attach`.
+* X11: spurious pointer focus events no longer influence terminal focus events.
+  Thanks to [@NBonaparte](https://github.com/NBonaparte)!
+  [#2959](https://github.com/wez/wezterm/pull/2959)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
