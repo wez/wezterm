@@ -963,7 +963,7 @@ impl WindowOps for Window {
     }
 
     fn get_window_position(&self) -> Future<ScreenPoint> {
-        Connection::with_window_inner(self.0, move |inner| Ok(inner.get_window_position(coords)))
+        Connection::with_window_inner(self.0, move |inner| Ok(inner.get_window_position()))
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
