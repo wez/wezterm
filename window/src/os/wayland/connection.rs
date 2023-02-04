@@ -128,6 +128,8 @@ impl WaylandConnection {
                 }
             }
         }
+        let pointer =
+            pointer.ok_or_else(|| anyhow::anyhow!("no seats have an available pointer"))?;
 
         let seat_listener;
         {
@@ -188,7 +190,7 @@ impl WaylandConnection {
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
             event_q: RefCell::new(event_q),
-            pointer: RefCell::new(pointer.unwrap()),
+            pointer: RefCell::new(pointer),
             seat_listener,
             mem_pool: RefCell::new(mem_pool),
             gl_connection: RefCell::new(None),
