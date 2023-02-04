@@ -1428,6 +1428,9 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
     if wparam & MK_SHIFT != 0 {
         modifiers |= Modifiers::SHIFT;
     }
+    if unsafe { GetKeyState(VK_MENU) } as u16 & 0x8000 != 0 {
+        modifiers |= Modifiers::ALT;
+    }
     if wparam & MK_LBUTTON != 0 {
         buttons |= MouseButtons::LEFT;
     }
