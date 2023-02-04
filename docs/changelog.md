@@ -94,6 +94,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2926](https://github.com/wez/wezterm/issues/2926)
 * command output would not be displayed if the command exited almost
   immediately after starting up.
+* Windows: ALT key was not recognized when processing mouse events.
+  Thanks to [@mbikovitsky](https://github.com/mbikovitsky)!
+  [#3053](https://github.com/wez/wezterm/pull/3053)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
