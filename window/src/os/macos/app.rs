@@ -1,10 +1,12 @@
 use crate::connection::ConnectionOps;
 use crate::macos::menu::RepresentedItem;
 use crate::macos::{nsstring, nsstring_to_str};
+use crate::menu::{Menu, MenuItem};
 use crate::{ApplicationEvent, Connection};
 use cocoa::appkit::{NSApp, NSApplicationTerminateReply};
 use cocoa::base::id;
 use cocoa::foundation::NSInteger;
+use config::keyassignment::KeyAssignment;
 use objc::declare::ClassDecl;
 use objc::rc::StrongPtr;
 use objc::runtime::{Class, Object, Sel};
@@ -120,6 +122,20 @@ extern "C" fn application_open_file(
     }
 }
 
+extern "C" fn application_dock_menu(
+    _self: &mut Object,
+    _sel: Sel,
+    _app: *mut Object,
+) -> *mut Object {
+    let dock_menu = Menu::new_with_title("");
+    let new_window_item =
+        MenuItem::new_with("New Window", Some(sel!(weztermPerformKeyAssignment:)), "");
+    new_window_item
+        .set_represented_item(RepresentedItem::KeyAssignment(KeyAssignment::SpawnWindow));
+    dock_menu.add_item(&new_window_item);
+    dock_menu.autorelease()
+}
+
 fn get_class() -> &'static Class {
     Class::get(CLS_NAME).unwrap_or_else(|| {
         let mut cls = ClassDecl::new(CLS_NAME, class!(NSWindow))
@@ -137,6 +153,11 @@ fn get_class() -> &'static Class {
             cls.add_method(
                 sel!(application:openFile:),
                 application_open_file as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object),
+            );
+            cls.add_method(
+                sel!(applicationDockMenu:),
+                application_dock_menu
+                    as extern "C" fn(&mut Object, Sel, *mut Object) -> *mut Object,
             );
             cls.add_method(
                 sel!(weztermPerformKeyAssignment:),

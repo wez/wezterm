@@ -25,8 +25,8 @@ impl Menu {
         }
     }
 
-    pub fn autorelease(self) {
-        self.menu.autorelease();
+    pub fn autorelease(self) -> *mut Object {
+        self.menu.autorelease()
     }
 
     pub fn item_at_index(&self, index: usize) -> Option<MenuItem> {
