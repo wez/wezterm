@@ -5726,6 +5726,7 @@ dependencies = [
  "tempfile",
  "termios 0.3.3",
  "termwiz",
+ "termwiz-funcs",
  "textwrap 0.16.0",
  "umask",
  "url",

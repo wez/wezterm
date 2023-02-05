@@ -582,6 +582,30 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::GetPaneRenderableDimensions(GetPaneRenderableDimensions { pane_id }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let cursor_position = pane.get_cursor_position();
+                            let dimensions = pane.get_dimensions();
+                            Ok(Pdu::GetPaneRenderableDimensionsResponse(
+                                GetPaneRenderableDimensionsResponse {
+                                    pane_id,
+                                    cursor_position,
+                                    dimensions,
+                                },
+                            ))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::GetPaneRenderChanges(GetPaneRenderChanges { pane_id, .. }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);
@@ -724,6 +748,7 @@ impl SessionHandler {
             | Pdu::PaneRemoved { .. }
             | Pdu::GetImageCellResponse { .. }
             | Pdu::MovePaneToNewTabResponse { .. }
+            | Pdu::GetPaneRenderableDimensionsResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }

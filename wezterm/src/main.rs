@@ -16,10 +16,11 @@ use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::sync::Arc;
 use tabout::{tabulate_output, Alignment, Column};
+use termwiz_funcs::lines_to_escapes;
 use umask::UmaskSaver;
 use wezterm_client::client::{unix_connect_with_retry, Client};
 use wezterm_gui_subcommands::*;
-use wezterm_term::TerminalSize;
+use wezterm_term::{ScrollbackOrVisibleRowIndex, StableRowIndex, TerminalSize};
 
 mod asciicast;
 
@@ -367,6 +368,37 @@ Outputs the pane-id for the newly created pane on success"
 
         /// The text to send. If omitted, will read the text from stdin.
         text: Option<String>,
+    },
+
+    /// Retrieves the textual content of a pane and output it to stdout
+    #[command(name = "get-text", rename_all = "kebab")]
+    GetText {
+        /// Specify the target pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[arg(long)]
+        pane_id: Option<PaneId>,
+
+        /// The starting line number.
+        /// 0 is the first line of terminal screen.
+        /// Negative numbers proceed backwards into the scrollback.
+        /// The default value is unspecified is 0, the first line of
+        /// the terminal screen.
+        #[arg(long)]
+        start_line: Option<ScrollbackOrVisibleRowIndex>,
+
+        /// The ending line number.
+        /// 0 is the first line of terminal screen.
+        /// Negative numbers proceed backwards into the scrollback.
+        /// The default value if unspecified is the bottom of the
+        /// the terminal screen.
+        #[arg(long)]
+        end_line: Option<ScrollbackOrVisibleRowIndex>,
+
+        /// Include escape sequences that color and style the text.
+        /// If omitted, unattributed text will be returned.
+        #[arg(long)]
+        escapes: bool,
     },
 
     /// Activate an adjacent pane in the specified direction.
@@ -1079,6 +1111,67 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 client
                     .send_paste(codec::SendPaste { pane_id, data })
                     .await?;
+            }
+        }
+        CliSubCommand::GetText {
+            pane_id,
+            start_line,
+            end_line,
+            escapes,
+        } => {
+            let pane_id = resolve_pane_id(&client, pane_id).await?;
+
+            let info = client
+                .get_dimensions(codec::GetPaneRenderableDimensions { pane_id })
+                .await?;
+
+            let start_line = match start_line {
+                None => info.dimensions.physical_top,
+                Some(n) if n >= 0 => info.dimensions.physical_top + n as StableRowIndex,
+                Some(n) => {
+                    let line = info.dimensions.physical_top as isize + n as isize;
+                    if line < info.dimensions.scrollback_top as isize {
+                        info.dimensions.scrollback_top
+                    } else {
+                        line as StableRowIndex
+                    }
+                }
+            };
+
+            let end_line = match end_line {
+                None => {
+                    info.dimensions.physical_top + info.dimensions.viewport_rows as StableRowIndex
+                }
+                Some(n) if n >= 0 => info.dimensions.physical_top + n as StableRowIndex,
+                Some(n) => {
+                    let line = info.dimensions.physical_top as isize + n as isize;
+                    if line < info.dimensions.scrollback_top as isize {
+                        info.dimensions.scrollback_top
+                    } else {
+                        line as StableRowIndex
+                    }
+                }
+            };
+
+            let lines = client
+                .get_lines(codec::GetLines {
+                    pane_id: pane_id.into(),
+                    lines: vec![start_line..end_line + 1],
+                })
+                .await?;
+
+            let lines = lines
+                .lines
+                .extract_data()
+                .0
+                .into_iter()
+                .map(|(_idx, line)| line)
+                .collect();
+
+            if escapes {
+                println!("{}", lines_to_escapes(lines)?);
+            } else {
+                lines.iter().for_each(|line| println!("{}", line.as_str()));
             }
         }
         CliSubCommand::SpawnCommand {

@@ -62,6 +62,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.config_builder()](config/lua/wezterm/config_builder.md)
 * [gui-attached](config/lua/gui-events/gui-attached.md) event provides some
   more flexibility at startup.
+* [wezterm cli get-text](cli/cli/get-text.md) command for capturing the content of a pane.
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
