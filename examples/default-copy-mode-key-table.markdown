@@ -5,11 +5,7 @@ local act = wezterm.action
 return {
   key_tables = {
     copy_mode = {
-      {
-        key = 'Tab',
-        mods = 'NONE',
-        action = act.CopyMode 'MoveForwardWord',
-      },
+      { key = 'Tab', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
       {
         key = 'Tab',
         mods = 'SHIFT',
@@ -36,22 +32,8 @@ return {
         mods = 'SHIFT',
         action = act.CopyMode 'MoveToEndOfLineContent',
       },
-      {
-        key = 'End',
-        mods = 'SHIFT',
-        action = act.CopyMode 'MoveToEndOfLineContent',
-      },
       { key = ',', mods = 'NONE', action = act.CopyMode 'JumpReverse' },
-      {
-        key = '0',
-        mods = 'NONE',
-        action = act.CopyMode 'MoveToStartOfLine',
-      },
-      {
-        key = 'Home',
-        mods = 'NONE',
-        action = act.CopyMode 'MoveToStartOfLine',
-      },
+      { key = '0', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLine' },
       { key = ';', mods = 'NONE', action = act.CopyMode 'JumpAgain' },
       {
         key = 'F',
@@ -73,11 +55,7 @@ return {
         mods = 'SHIFT',
         action = act.CopyMode 'MoveToScrollbackBottom',
       },
-      {
-        key = 'H',
-        mods = 'NONE',
-        action = act.CopyMode 'MoveToViewportTop',
-      },
+      { key = 'H', mods = 'NONE', action = act.CopyMode 'MoveToViewportTop' },
       {
         key = 'H',
         mods = 'SHIFT',
@@ -148,6 +126,16 @@ return {
       { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
       { key = 'c', mods = 'CTRL', action = act.CopyMode 'Close' },
       {
+        key = 'd',
+        mods = 'CTRL',
+        action = act.CopyMode { MoveByPage = 0.5 },
+      },
+      {
+        key = 'e',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveForwardWordEnd',
+      },
+      {
         key = 'f',
         mods = 'NONE',
         action = act.CopyMode { JumpForward = { prev_char = false } },
@@ -181,6 +169,11 @@ return {
         action = act.CopyMode { JumpForward = { prev_char = true } },
       },
       {
+        key = 'u',
+        mods = 'CTRL',
+        action = act.CopyMode { MoveByPage = -0.5 },
+      },
+      {
         key = 'v',
         mods = 'NONE',
         action = act.CopyMode { SetSelectionMode = 'Cell' },
@@ -201,6 +194,16 @@ return {
       },
       { key = 'PageUp', mods = 'NONE', action = act.CopyMode 'PageUp' },
       { key = 'PageDown', mods = 'NONE', action = act.CopyMode 'PageDown' },
+      {
+        key = 'End',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveToEndOfLineContent',
+      },
+      {
+        key = 'Home',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveToStartOfLine',
+      },
       { key = 'LeftArrow', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
       {
         key = 'LeftArrow',

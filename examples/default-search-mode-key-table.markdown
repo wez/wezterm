@@ -22,11 +22,7 @@ return {
         action = act.CopyMode 'NextMatchPage',
       },
       { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'PriorMatch' },
-      {
-        key = 'DownArrow',
-        mods = 'NONE',
-        action = act.CopyMode 'NextMatch',
-      },
+      { key = 'DownArrow', mods = 'NONE', action = act.CopyMode 'NextMatch' },
     },
   },
 }
