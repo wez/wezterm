@@ -134,6 +134,9 @@ As features stabilize some brief notes about them will accumulate here.
 * X11: spurious pointer focus events no longer influence terminal focus events.
   Thanks to [@NBonaparte](https://github.com/NBonaparte)!
   [#2959](https://github.com/wez/wezterm/pull/2959)
+* Copy Mode: Added <kbd>Home</kbd> and <kbd>End</kbd> default assignments.
+  Thanks to [@cunha](https://github.com/cunha)!
+  [#2762](https://github.com/wez/wezterm/pull/2762)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
