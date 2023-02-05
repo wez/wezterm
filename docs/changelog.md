@@ -63,6 +63,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [gui-attached](config/lua/gui-events/gui-attached.md) event provides some
   more flexibility at startup.
 * [wezterm cli get-text](cli/cli/get-text.md) command for capturing the content of a pane.
+* macOS: added a dock menu that allows spawning new windows. Thanks to
+  [@dahlia](https://github.com/dahlia)!
+  [#3054](https://github.com/wez/wezterm/pull/3054)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
