@@ -30,7 +30,9 @@ wezterm.log_info(wezterm.format {
 
 Possible values for the `FormatItem` elements are:
 
-* `{Text="Hello"}` - the text `Hello`. The string can be any string expression.
+* `{Text="Hello"}` - the text `Hello`. The string can be any string expression,
+  including escape sequences that are not supported directly by
+  `wezterm.format`.
 * `{Attribute={Underline="None"}}` - disable underline
 * `{Attribute={Underline="Single"}}` - enable single underline
 * `{Attribute={Underline="Double"}}` - enable double underline
@@ -47,3 +49,17 @@ Possible values for the `FormatItem` elements are:
 * `{Background={AnsiColor="Black"}}` - set the background color to an ansi color as per `Foreground` above.
 * `{Background={Color="blue"}}` - set the background color to a named color or rgb value as per `Foreground` above.
 * `"ResetAttributes"` - reset all attributes to default. (*Since: 20220807-113146-c2fee766*)
+
+This example shows how to use arbitrary escape sequences to change the underline color:
+
+```lua
+local wezterm = require 'wezterm'
+wezterm.log_info(wezterm.format {
+  -- turn on underlines
+  { Attribute = { Underline = 'Single' } },
+  -- make the underline red
+  { Text = '\x1b[58:2::255:0:0m' },
+  -- and say hello
+  { Text = 'hello' },
+})
+```
