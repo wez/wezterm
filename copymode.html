@@ -194,8 +194,10 @@ that region to the clipboard.</p>
 <tr><td></td><td><kbd>b</kbd></td></tr>
 <tr><td>Move forward one word end</td><td><kbd>e</kbd> (<em>since: nightly builds only</em>)</td></tr>
 <tr><td>Move to start of this line</td><td><kbd>0</kbd></td></tr>
+<tr><td></td><td><kbd>Home</kbd></td></tr>
 <tr><td>Move to start of next line</td><td><kbd>Enter</kbd></td></tr>
 <tr><td>Move to end of this line</td><td><kbd>$</kbd></td></tr>
+<tr><td></td><td><kbd>End</kbd></td></tr>
 <tr><td>Move to start of indented line</td><td><kbd>Alt</kbd> + <kbd>M</kbd></td></tr>
 <tr><td></td><td><kbd>^</kbd></td></tr>
 <tr><td>Move to bottom of scrollback</td><td><kbd>Shift</kbd> + <kbd>G</kbd></td></tr>
@@ -264,9 +266,19 @@ return {
         mods = 'SHIFT',
         action = act.CopyMode 'MoveToEndOfLineContent',
       },
+      {
+        key = 'End',
+        mods = 'SHIFT',
+        action = act.CopyMode 'MoveToEndOfLineContent',
+      },
       { key = ',', mods = 'NONE', action = act.CopyMode 'JumpReverse' },
       {
         key = '0',
+        mods = 'NONE',
+        action = act.CopyMode 'MoveToStartOfLine',
+      },
+      {
+        key = 'Home',
         mods = 'NONE',
         action = act.CopyMode 'MoveToStartOfLine',
       },
