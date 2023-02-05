@@ -97,6 +97,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: ALT key was not recognized when processing mouse events.
   Thanks to [@mbikovitsky](https://github.com/mbikovitsky)!
   [#3053](https://github.com/wez/wezterm/pull/3053)
+* Copy Mode:
+  [MoveForwardWord](config/lua/keyassignment/CopyMode/MoveForwardWord.md) not
+  always moving to next line.  thanks to [@GZLiew](https://github.com/GZLiew)!
+  [#2955](https://github.com/wez/wezterm/pull/2955)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
