@@ -171,7 +171,9 @@ wezterm.log_info(wezterm.format {
 </code></pre>
 <p>Possible values for the <code>FormatItem</code> elements are:</p>
 <ul>
-<li><code>{Text=&quot;Hello&quot;}</code> - the text <code>Hello</code>. The string can be any string expression.</li>
+<li><code>{Text=&quot;Hello&quot;}</code> - the text <code>Hello</code>. The string can be any string expression,
+including escape sequences that are not supported directly by
+<code>wezterm.format</code>.</li>
 <li><code>{Attribute={Underline=&quot;None&quot;}}</code> - disable underline</li>
 <li><code>{Attribute={Underline=&quot;Single&quot;}}</code> - enable single underline</li>
 <li><code>{Attribute={Underline=&quot;Double&quot;}}</code> - enable double underline</li>
@@ -189,6 +191,17 @@ wezterm.log_info(wezterm.format {
 <li><code>{Background={Color=&quot;blue&quot;}}</code> - set the background color to a named color or rgb value as per <code>Foreground</code> above.</li>
 <li><code>&quot;ResetAttributes&quot;</code> - reset all attributes to default. (<em>Since: 20220807-113146-c2fee766</em>)</li>
 </ul>
+<p>This example shows how to use arbitrary escape sequences to change the underline color:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm'
+wezterm.log_info(wezterm.format {
+  -- turn on underlines
+  { Attribute = { Underline = 'Single' } },
+  -- make the underline red
+  { Text = '\x1b[58:2::255:0:0m' },
+  -- and say hello
+  { Text = 'hello' },
+})
+</code></pre>
 
                     </main>
 
