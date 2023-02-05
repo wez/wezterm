@@ -2,7 +2,7 @@ use crate::selection::{Selection, SelectionCoordinate, SelectionMode, SelectionR
 use ::window::WindowOps;
 use mux::pane::{Pane, PaneId};
 use std::cell::RefMut;
-use std::rc::Rc;
+use std::sync::Arc;
 use termwiz::surface::Line;
 use wezterm_term::StableRowIndex;
 
@@ -12,7 +12,7 @@ impl super::TermWindow {
     }
 
     /// Returns the selection region as a series of Line
-    pub fn selection_lines(&self, pane: &Rc<dyn Pane>) -> Vec<Line> {
+    pub fn selection_lines(&self, pane: &Arc<dyn Pane>) -> Vec<Line> {
         let mut result = vec![];
 
         let rectangular = self.selection(pane.pane_id()).rectangular;
@@ -63,7 +63,7 @@ impl super::TermWindow {
     }
 
     /// Returns the selection text only
-    pub fn selection_text(&self, pane: &Rc<dyn Pane>) -> String {
+    pub fn selection_text(&self, pane: &Arc<dyn Pane>) -> String {
         let mut s = String::new();
         let rectangular = self.selection(pane.pane_id()).rectangular;
         if let Some(sel) = self
@@ -109,14 +109,14 @@ impl super::TermWindow {
         s
     }
 
-    pub fn clear_selection(&mut self, pane: &Rc<dyn Pane>) {
+    pub fn clear_selection(&mut self, pane: &Arc<dyn Pane>) {
         let mut selection = self.selection(pane.pane_id());
         selection.clear();
         selection.seqno = pane.get_current_seqno();
         self.window.as_ref().unwrap().invalidate();
     }
 
-    pub fn extend_selection_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Rc<dyn Pane>) {
+    pub fn extend_selection_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Arc<dyn Pane>) {
         self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
         let (position, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
             Some(coords) => coords,
@@ -240,7 +240,7 @@ impl super::TermWindow {
         self.window.as_ref().unwrap().invalidate();
     }
 
-    pub fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Rc<dyn Pane>) {
+    pub fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Arc<dyn Pane>) {
         let (x, y) = match self.pane_state(pane.pane_id()).mouse_terminal_coords {
             Some(coords) => (coords.0.column, coords.1),
             None => return,

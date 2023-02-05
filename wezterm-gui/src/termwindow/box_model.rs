@@ -489,6 +489,7 @@ pub enum ElementCell {
     Glyph(Rc<CachedGlyph>),
 }
 
+#[derive(Debug)]
 struct Rects {
     padding: RectF,
     border_rect: RectF,
@@ -569,6 +570,7 @@ impl super::TermWindow {
             .map(|c| c.to_pixels(context));
         let style = element.font.style();
         let border = element.border.to_pixels(context);
+        let padding = element.padding.to_pixels(context);
         let baseline = context.height.pixel_cell + context.metrics.descender.get() as f32;
         let min_width = match element.min_width {
             Some(w) => w.evaluate_as_pixels(context.width),
@@ -578,6 +580,18 @@ impl super::TermWindow {
             Some(h) => h.evaluate_as_pixels(context.height),
             None => 0.0,
         };
+
+        let border_and_padding_width = border.left + border.right + padding.left + padding.right;
+
+        let max_width = match element.max_width {
+            Some(w) => {
+                w.evaluate_as_pixels(context.width)
+                    .min(context.bounds.width())
+                    - border_and_padding_width
+            }
+            None => context.bounds.width() - border_and_padding_width,
+        }
+        .min((context.width.pixel_max - context.bounds.min_x()) - border_and_padding_width);
 
         match &element.content {
             ElementContent::Text(s) => {
@@ -595,7 +609,9 @@ impl super::TermWindow {
                 let mut computed_cells = vec![];
                 let mut glyph_cache = context.gl_state.glyph_cache.borrow_mut();
                 let mut pixel_width = 0.0;
+                let mut x_pos = context.bounds.min_x();
                 let mut min_y = 0.0f32;
+                let max_x = context.bounds.min_x() + max_width;
 
                 for info in infos {
                     let cell_start = &s[info.cluster as usize..];
@@ -604,7 +620,11 @@ impl super::TermWindow {
                         .next()
                         .ok_or_else(|| anyhow!("info.cluster didn't map into string"))?;
                     if let Some(key) = BlockKey::from_str(grapheme) {
+                        if pixel_width + context.width.pixel_cell >= max_x {
+                            break;
+                        }
                         pixel_width += context.width.pixel_cell;
+                        x_pos += context.width.pixel_cell;
                         let sprite = glyph_cache.cached_block(key, context.metrics)?;
                         computed_cells.push(ElementCell::Sprite(sprite));
                     } else {
@@ -620,25 +640,30 @@ impl super::TermWindow {
                             num_cells as u8,
                         )?;
 
+                        if let Some(texture) = glyph.texture.as_ref() {
+                            let x_pos = x_pos + (glyph.x_offset + glyph.bearing_x).get() as f32;
+                            let width = texture.coords.size.width as f32 * glyph.scale as f32;
+                            if x_pos + width >= max_x {
+                                break;
+                            }
+                        } else if x_pos + glyph.x_advance.get() as f32 >= max_x {
+                            break;
+                        }
+
                         min_y =
                             min_y.min(baseline - (glyph.y_offset + glyph.bearing_y).get() as f32);
 
                         pixel_width += glyph.x_advance.get() as f32;
+                        x_pos += glyph.x_advance.get() as f32;
+
                         computed_cells.push(ElementCell::Glyph(glyph));
                     }
                 }
 
-                let pixel_width = match element.max_width {
-                    Some(w) => w.evaluate_as_pixels(context.width).min(pixel_width),
-                    None => pixel_width,
-                }
-                .max(min_width)
-                .min(context.width.pixel_max);
-
                 let content_rect = euclid::rect(
                     0.,
                     0.,
-                    pixel_width,
+                    pixel_width.max(min_width),
                     context.height.pixel_cell.max(min_height),
                 );
 
@@ -667,14 +692,6 @@ impl super::TermWindow {
                 let mut float_width: f32 = 0.;
                 let mut y_coord: f32 = 0.;
 
-                let max_width = match element.max_width {
-                    Some(w) => w
-                        .evaluate_as_pixels(context.width)
-                        .min(context.bounds.width()),
-                    None => context.bounds.width(),
-                }
-                .min(context.width.pixel_max);
-
                 for child in kids {
                     if child.display == DisplayType::Block {
                         y_coord += block_pixel_height;
@@ -682,23 +699,23 @@ impl super::TermWindow {
                         block_pixel_width = 0.;
                     }
 
+                    let bounds = match child.float {
+                        Float::None => euclid::rect(
+                            block_pixel_width,
+                            y_coord,
+                            context.bounds.max_x() - (context.bounds.min_x() + block_pixel_width),
+                            context.bounds.max_y() - (context.bounds.min_y() + y_coord),
+                        ),
+                        Float::Right => euclid::rect(
+                            0.,
+                            y_coord,
+                            context.bounds.width(),
+                            context.bounds.max_y() - (context.bounds.min_y() + y_coord),
+                        ),
+                    };
                     let kid = self.compute_element(
                         &LayoutContext {
-                            bounds: match child.float {
-                                Float::None => euclid::rect(
-                                    block_pixel_width,
-                                    y_coord,
-                                    context.bounds.max_x()
-                                        - (context.bounds.min_x() + block_pixel_width),
-                                    context.bounds.max_y() - (context.bounds.min_y() + y_coord),
-                                ),
-                                Float::Right => euclid::rect(
-                                    0.,
-                                    y_coord,
-                                    context.bounds.width(),
-                                    context.bounds.max_y() - (context.bounds.min_y() + y_coord),
-                                ),
-                            },
+                            bounds,
                             gl_state: context.gl_state,
                             height: context.height,
                             metrics: context.metrics,

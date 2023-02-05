@@ -118,6 +118,14 @@ impl Connection {
 }
 
 impl ConnectionOps for Connection {
+    fn name(&self) -> String {
+        match self {
+            Self::X11(x) => x.name(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.name(),
+        }
+    }
+
     fn terminate_message_loop(&self) {
         match self {
             Self::X11(x) => x.terminate_message_loop(),
@@ -255,6 +263,14 @@ impl WindowOps for Window {
             Self::X11(x) => x.hide(),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.hide(),
+        }
+    }
+
+    fn focus(&self) {
+        match self {
+            Self::X11(x) => x.focus(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.focus(),
         }
     }
 

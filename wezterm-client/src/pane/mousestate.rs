@@ -1,10 +1,10 @@
 use crate::client::Client;
 use codec::*;
 use mux::tab::TabId;
-use std::cell::RefCell;
+use parking_lot::Mutex;
 use std::collections::VecDeque;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use wezterm_term::{MouseButton, MouseEvent, MouseEventKind};
 
 pub struct MouseState {
@@ -64,12 +64,12 @@ impl MouseState {
         }
     }
 
-    pub fn next(state: Rc<RefCell<Self>>) -> bool {
-        let mut mouse = state.borrow_mut();
+    pub fn next(state: Arc<Mutex<Self>>) -> bool {
+        let mut mouse = state.lock();
         if let Some(event) = mouse.pop() {
             let client = mouse.client.clone();
 
-            let state = Rc::clone(&state);
+            let state = Arc::clone(&state);
             mouse.pending.store(true, Ordering::SeqCst);
             let remote_pane_id = mouse.remote_pane_id;
 
@@ -82,11 +82,11 @@ impl MouseState {
                     .await
                     .ok();
 
-                let mouse = state.borrow_mut();
+                let mouse = state.lock();
                 mouse.pending.store(false, Ordering::SeqCst);
                 drop(mouse);
 
-                Self::next(Rc::clone(&state));
+                Self::next(Arc::clone(&state));
                 Ok::<(), anyhow::Error>(())
             })
             .detach();

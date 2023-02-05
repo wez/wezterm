@@ -1,6 +1,6 @@
 # `pane:inject_output(text)`
 
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 Sends text, which may include escape sequences, to the output side of the
 current pane.  The text will be evaluated by the terminal emulator and can thus

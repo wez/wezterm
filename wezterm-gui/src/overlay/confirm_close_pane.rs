@@ -175,7 +175,7 @@ pub fn confirm_close_pane(
 ) -> anyhow::Result<()> {
     if run_confirmation_app("🛑 Really kill this pane?", &mut term)? {
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             let tab = match mux.get_active_tab_for_window(mux_window_id) {
                 Some(tab) => tab,
                 None => return,
@@ -200,7 +200,7 @@ pub fn confirm_close_tab(
         &mut term,
     )? {
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.remove_tab(tab_id);
         })
         .detach();
@@ -221,7 +221,7 @@ pub fn confirm_close_window(
         &mut term,
     )? {
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.kill_window(mux_window_id);
         })
         .detach();

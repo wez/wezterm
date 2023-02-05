@@ -1,6 +1,6 @@
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, Window, WindowOps, WindowState};
-use config::{ConfigHandle, DimensionContext};
+use config::{configuration, ConfigHandle, DimensionContext};
 use mux::Mux;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -15,11 +15,15 @@ pub struct RowsAndCols {
 impl super::TermWindow {
     pub fn resize(
         &mut self,
-        dimensions: Dimensions,
+        mut dimensions: Dimensions,
         window_state: WindowState,
         window: &Window,
         live_resizing: bool,
     ) {
+        // ignore dpi changes if there is a fixed dpi set in configuration
+        if let Some(dpi) = configuration().dpi {
+            dimensions.dpi = dpi as usize;
+        }
         log::trace!(
             "resize event, live={} current cells: {:?}, current dims: {:?}, new dims: {:?} window_state:{:?}",
             live_resizing,
@@ -261,7 +265,7 @@ impl super::TermWindow {
 
         self.terminal_size = size;
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if let Some(window) = mux.get_window(self.mux_window_id) {
             for tab in window.iter() {
                 tab.resize(size);

@@ -721,6 +721,55 @@ impl WindowOps for Window {
         schedule_show_window(self.0, ShowWindowCommand::Minimize);
     }
 
+    fn focus(&self) {
+        let window = self.0;
+        let handle = window.0;
+        promise::spawn::spawn(async move {
+            // In some situation, calling SetForegroundWindow could not bring up the window,
+            // This is a little hack which can "steal" the foreground window permission
+            // We only call this function in the window creation, so it should be fine.
+            // See : https://stackoverflow.com/questions/10740346/setforegroundwindow-only-working-while-visual-studio-is-open
+            unsafe {
+                let alt_sc = MapVirtualKeyW(VK_MENU as u32, MAPVK_VK_TO_VSC);
+
+                let mut inputs: [INPUT; 2] = [
+                    INPUT {
+                        type_: INPUT_KEYBOARD,
+                        u: Default::default(),
+                    },
+                    INPUT {
+                        type_: INPUT_KEYBOARD,
+                        u: Default::default(),
+                    },
+                ];
+                *inputs[0].u.ki_mut() = KEYBDINPUT {
+                    wVk: VK_LMENU as u16,
+                    wScan: alt_sc as u16,
+                    dwFlags: KEYEVENTF_EXTENDEDKEY,
+                    dwExtraInfo: 0,
+                    time: 0,
+                };
+                *inputs[1].u.ki_mut() = KEYBDINPUT {
+                    wVk: VK_LMENU as u16,
+                    wScan: alt_sc as u16,
+                    dwFlags: KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
+                    dwExtraInfo: 0,
+                    time: 0,
+                };
+
+                // Simulate a key press and release
+                SendInput(
+                    inputs.len() as u32,
+                    inputs.as_mut_ptr(),
+                    std::mem::size_of::<INPUT>() as i32,
+                );
+
+                SetForegroundWindow(handle);
+            }
+        })
+        .detach();
+    }
+
     fn maximize(&self) {
         schedule_show_window(self.0, ShowWindowCommand::Maximize);
     }
@@ -1378,6 +1427,9 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
     }
     if wparam & MK_SHIFT != 0 {
         modifiers |= Modifiers::SHIFT;
+    }
+    if unsafe { GetKeyState(VK_MENU) } as u16 & 0x8000 != 0 {
+        modifiers |= Modifiers::ALT;
     }
     if wparam & MK_LBUTTON != 0 {
         buttons |= MouseButtons::LEFT;

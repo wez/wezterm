@@ -906,6 +906,13 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn focus(&self) {
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.focus();
+            Ok(())
+        });
+    }
+
     fn show(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
@@ -1065,6 +1072,10 @@ impl WaylandWindowInner {
         }
     }
 
+    fn focus(&mut self) {
+        log::debug!("Wayland doesn't support applications changing focus");
+    }
+
     fn show(&mut self) {
         if self.window.is_none() {
             return;
@@ -1075,14 +1086,13 @@ impl WaylandWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        let cursor = match cursor {
-            Some(MouseCursor::Arrow) => "arrow",
-            Some(MouseCursor::Hand) => "hand",
-            Some(MouseCursor::SizeUpDown) => "ns-resize",
-            Some(MouseCursor::SizeLeftRight) => "ew-resize",
-            Some(MouseCursor::Text) => "xterm",
-            None => return,
-        };
+        let cursor = cursor.map(|cursor| match cursor {
+            MouseCursor::Arrow => "arrow",
+            MouseCursor::Hand => "hand",
+            MouseCursor::SizeUpDown => "ns-resize",
+            MouseCursor::SizeLeftRight => "ew-resize",
+            MouseCursor::Text => "xterm",
+        });
         let conn = Connection::get().unwrap().wayland();
         conn.pointer.borrow().set_cursor(cursor, None);
     }

@@ -106,6 +106,13 @@ pub trait MasterPty {
     #[cfg(unix)]
     fn process_group_leader(&self) -> Option<libc::pid_t>;
 
+    /// If get_termios() and process_group_leader() are both implemented and
+    /// return Some, then as_raw_fd() should return the same underlying fd
+    /// associated with the stream. This is to enable applications that
+    /// "know things" to query similar information for themselves.
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd>;
+
     /// If applicable to the type of the tty, return the termios
     /// associated with the stream
     #[cfg(unix)]
@@ -379,7 +386,7 @@ impl ChildKiller for std::process::Child {
     }
 }
 
-pub fn native_pty_system() -> Box<dyn PtySystem> {
+pub fn native_pty_system() -> Box<dyn PtySystem + Send> {
     Box::new(NativePtySystem::default())
 }
 

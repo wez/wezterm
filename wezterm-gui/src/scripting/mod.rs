@@ -48,6 +48,15 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     }
 
     window_mod.set(
+        "gui_windows",
+        lua.create_function(|_, _: ()| {
+            let fe =
+                try_front_end().ok_or_else(|| mlua::Error::external("not called on gui thread"))?;
+            Ok(fe.gui_windows())
+        })?,
+    )?;
+
+    window_mod.set(
         "default_keys",
         lua.create_function(|lua, _: ()| {
             let map = InputMap::default_input_map();

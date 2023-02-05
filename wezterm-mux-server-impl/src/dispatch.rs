@@ -57,7 +57,7 @@ where
     let mut handler = SessionHandler::new(pdu_sender);
 
     {
-        let mux = Mux::get().expect("to be running on gui thread");
+        let mux = Mux::get();
         let tx = item_tx.clone();
         mux.subscribe(move |n| tx.try_send(Item::Notif(n)).is_ok());
     }
@@ -145,7 +145,7 @@ where
             Ok(Item::Notif(MuxNotification::WindowInvalidated(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowWorkspaceChanged(window_id))) => {
                 let workspace = {
-                    let mux = Mux::get().expect("to be running on gui thread");
+                    let mux = Mux::get();
                     mux.get_window(window_id)
                         .map(|w| w.get_workspace().to_string())
                 };

@@ -1,10 +1,12 @@
 use super::*;
+use luahelper::to_lua;
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MuxTab(pub TabId);
 
 impl MuxTab {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Rc<Tab>> {
+    pub fn resolve<'a>(&self, mux: &'a Arc<Mux>) -> mlua::Result<Arc<Tab>> {
         mux.get_tab(self.0)
             .ok_or_else(|| mlua::Error::external(format!("tab id {} not found in mux", self.0)))
     }
@@ -86,6 +88,26 @@ impl UserData for MuxTab {
             }
 
             Ok(result)
+        });
+
+        methods.add_method("rotate_counter_clockwise", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            tab.rotate_counter_clockwise();
+            Ok(())
+        });
+
+        methods.add_method("rotate_clockwise", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            tab.rotate_counter_clockwise();
+            Ok(())
+        });
+
+        methods.add_method("get_size", |lua, this, _: ()| {
+            let mux = get_mux()?;
+            let tab = this.resolve(&mux)?;
+            to_lua(lua, tab.get_size())
         });
     }
 }

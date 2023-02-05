@@ -323,6 +323,10 @@ impl MasterPty for UnixMasterPty {
         Ok(Box::new(UnixMasterWriter { fd }))
     }
 
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        Some(self.fd.0.as_raw_fd())
+    }
+
     fn process_group_leader(&self) -> Option<libc::pid_t> {
         match unsafe { libc::tcgetpgrp(self.fd.0.as_raw_fd()) } {
             pid if pid > 0 => Some(pid),

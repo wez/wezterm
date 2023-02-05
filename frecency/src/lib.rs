@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn serialize() {
         use chrono::TimeZone;
-        let now = Utc.ymd(2022, 08, 31).and_hms(22, 16, 0);
+        let now = Utc.with_ymd_and_hms(2022, 08, 31, 22, 16, 0).unwrap();
         let f = Frecency::new_at_time(now);
         assert_eq!(serde_json::to_string(&f).unwrap(), "{\"half_life\":259200,\"last_accessed\":1661984160,\"frecency\":0.0,\"num_accesses\":0}");
     }

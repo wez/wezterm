@@ -7,6 +7,7 @@ use crate::config::{BidiMode, NewlineCanon};
 use log::debug;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
+use std::io::{BufWriter, Write};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use terminfo::{Database, Value};
@@ -350,7 +351,7 @@ pub struct TerminalState {
     term_program: String,
     term_version: String,
 
-    writer: Box<dyn std::io::Write>,
+    writer: BufWriter<ThreadedWriter>,
 
     image_cache: lru::LruCache<[u8; 32], Arc<ImageData>>,
     sixel_scrolls_right: bool,
@@ -498,7 +499,7 @@ impl TerminalState {
         term_version: &str,
         writer: Box<dyn std::io::Write + Send>,
     ) -> TerminalState {
-        let writer = Box::new(ThreadedWriter::new(writer));
+        let writer = BufWriter::new(ThreadedWriter::new(writer));
         let seqno = 1;
         let screen = ScreenOrAlt::new(size, &config, seqno, config.bidi_mode());
 
@@ -559,7 +560,7 @@ impl TerminalState {
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
-            writer: Box::new(std::io::BufWriter::new(writer)),
+            writer,
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
             kitty_img: Default::default(),
@@ -1947,13 +1948,15 @@ impl TerminalState {
             }
 
             Window::ReportWindowTitle => {
-                write!(
-                    self.writer,
-                    "{}",
-                    OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
-                )
-                .ok();
-                self.writer.flush().ok();
+                if self.config.enable_title_reporting() {
+                    write!(
+                        self.writer,
+                        "{}",
+                        OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
+                    )
+                    .ok();
+                    self.writer.flush().ok();
+                }
             }
 
             Window::ChecksumRectangularArea {

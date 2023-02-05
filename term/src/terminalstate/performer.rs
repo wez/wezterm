@@ -8,6 +8,7 @@ use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
 use std::fmt::Write;
+use std::io::Write as _;
 use std::ops::{Deref, DerefMut};
 use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType};
 use termwiz::escape::csi::{

@@ -437,10 +437,7 @@ pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
-    Copy,
     CopyTo(ClipboardCopyDestination),
-    Paste,
-    PastePrimarySelection,
     PasteFrom(ClipboardPasteSource),
     ActivateTabRelative(isize),
     ActivateTabRelativeNoWrap(isize),
@@ -535,6 +532,11 @@ pub enum KeyAssignment {
     CharSelect(CharSelectArguments),
 
     ResetTerminal,
+    OpenUri(String),
+    ActivateCommandPalette,
+    ActivateWindow(usize),
+    ActivateWindowRelative(isize),
+    ActivateWindowRelativeNoWrap(isize),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 
@@ -584,10 +586,12 @@ pub enum CopyModeAssignment {
     MoveToSelectionOtherEndHoriz,
     MoveBackwardWord,
     MoveForwardWord,
+    MoveForwardWordEnd,
     MoveRight,
     MoveLeft,
     MoveUp,
     MoveDown,
+    MoveByPage(NotNan<f64>),
     PageUp,
     PageDown,
     Close,

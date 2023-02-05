@@ -8,7 +8,7 @@ Your shell is determined by the following rules:
 
 1. The value of the `$SHELL` environment variable is used if it is set
 2. Otherwise, it will resolve your current uid and try to look up your
-   home directory from the password database.
+   shell from the password database.
 
 `wezterm` will spawn the shell and pass `-l` as an argument to request
 a login shell.  A login shell generally loads additional startup files

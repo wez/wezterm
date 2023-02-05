@@ -745,7 +745,7 @@ impl TeenyString {
 impl Drop for TeenyString {
     fn drop(&mut self) {
         if !Self::is_marker_bit_set(self.0) {
-            let vec = unsafe { Box::from_raw(self.0 as *mut usize as *mut Vec<u8>) };
+            let vec = unsafe { Box::from_raw(self.0 as *mut usize as *mut TeenyStringHeap) };
             drop(vec);
         }
     }

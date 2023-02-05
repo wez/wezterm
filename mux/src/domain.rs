@@ -15,13 +15,13 @@ use async_trait::async_trait;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::{configuration, ExecDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
+use parking_lot::Mutex;
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use wezterm_term::TerminalSize;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -47,7 +47,7 @@ pub enum SplitSource {
 }
 
 #[async_trait(?Send)]
-pub trait Domain: Downcast {
+pub trait Domain: Downcast + Send + Sync {
     /// Spawn a new command within this domain
     async fn spawn(
         &self,
@@ -55,13 +55,13 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> anyhow::Result<Rc<Tab>> {
+    ) -> anyhow::Result<Arc<Tab>> {
         let pane = self.spawn_pane(size, command, command_dir).await?;
 
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
 
@@ -74,8 +74,8 @@ pub trait Domain: Downcast {
         tab: TabId,
         pane_id: PaneId,
         split_request: SplitRequest,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
-        let mux = Mux::get().unwrap();
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let mux = Mux::get();
         let tab = match mux.get_tab(tab) {
             Some(t) => t,
             None => anyhow::bail!("Invalid tab id {}", tab),
@@ -124,7 +124,7 @@ pub trait Domain: Downcast {
             }
         };
 
-        tab.split_and_insert(pane_index, split_request, Rc::clone(&pane))?;
+        tab.split_and_insert(pane_index, split_request, Arc::clone(&pane))?;
         Ok(pane)
     }
 
@@ -133,7 +133,7 @@ pub trait Domain: Downcast {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>>;
+    ) -> anyhow::Result<Arc<dyn Pane>>;
 
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
@@ -173,7 +173,7 @@ pub trait Domain: Downcast {
 impl_downcast!(Domain);
 
 pub struct LocalDomain {
-    pty_system: Box<dyn PtySystem>,
+    pty_system: Mutex<Box<dyn PtySystem + Send>>,
     id: DomainId,
     name: String,
 }
@@ -199,10 +199,10 @@ impl LocalDomain {
             .cloned()
     }
 
-    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
+    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem + Send>) -> Self {
         let id = alloc_domain_id();
         Self {
-            pty_system,
+            pty_system: Mutex::new(pty_system),
             id,
             name: name.to_string(),
         }
@@ -223,7 +223,9 @@ impl LocalDomain {
 
     #[cfg(windows)]
     fn is_conpty(&self) -> bool {
-        self.pty_system
+        let pty_system = self.pty_system.lock();
+        let pty_system: &dyn PtySystem = &**pty_system;
+        pty_system
             .downcast_ref::<portable_pty::win::conpty::ConPtySystem>()
             .is_some()
     }
@@ -460,11 +462,11 @@ impl WriterWrapper {
 
 impl std::io::Write for WriterWrapper {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.writer.lock().unwrap().write(buf)
+        self.writer.lock().write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.writer.lock().unwrap().flush()
+        self.writer.lock().flush()
     }
 }
 
@@ -475,11 +477,12 @@ impl Domain for LocalDomain {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
         let cmd = self.build_command(command, command_dir, pane_id).await?;
         let pair = self
             .pty_system
+            .lock()
             .openpty(crate::terminal_size_to_pty_size(size)?)?;
 
         let command_line = cmd
@@ -510,7 +513,7 @@ impl Domain for LocalDomain {
             terminal.enable_conpty_quirks();
         }
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
             pane_id,
             terminal,
             child,
@@ -520,7 +523,7 @@ impl Domain for LocalDomain {
             command_description,
         ));
 
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_pane(&pane)?;
 
         Ok(pane)

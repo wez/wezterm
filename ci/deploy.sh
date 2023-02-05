@@ -237,6 +237,7 @@ EOF
         mv pkg/debian/prerm pkg/debian/DEBIAN/prerm
         chmod 0755 pkg/debian/DEBIAN/prerm
         mv pkg/debian/control pkg/debian/DEBIAN/control
+        sed -i '/^Source:/d' pkg/debian/DEBIAN/control  # The `Source:` field needs to be valid in a binary package
         echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
         cat pkg/debian/DEBIAN/control
 

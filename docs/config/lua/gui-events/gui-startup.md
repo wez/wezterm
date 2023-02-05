@@ -15,6 +15,10 @@ program will be spawned.
 This event is useful for starting a set of programs in a standard
 configuration to save you the effort of doing it manually each time.
 
+This event fires before [gui-attached](gui-attached.md).
+
+This event does not fire for `wezterm connect` invocations.
+
 *Since: 20220807-113146-c2fee766*
 
 The event receives an optional [SpawnCommand](../SpawnCommand.md) argument that
@@ -105,3 +109,4 @@ return {}
 
 See also:
 * [wezterm.mux](../wezterm.mux/index.md)
+* [gui-attached](gui-attached.md).

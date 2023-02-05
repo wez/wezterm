@@ -4,12 +4,12 @@ use crate::Mux;
 use async_trait::async_trait;
 use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
 use downcast_rs::{impl_downcast, Downcast};
+use parking_lot::{MappedMutexGuard, Mutex};
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
-use std::cell::RefMut;
 use std::collections::HashMap;
 use std::ops::Range;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use termwiz::hyperlink::Rule;
 use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo};
@@ -107,8 +107,8 @@ struct Paste {
 }
 
 fn paste_next_chunk(paste: &Arc<Mutex<Paste>>) {
-    let mut locked = paste.lock().unwrap();
-    let mux = Mux::get().unwrap();
+    let mut locked = paste.lock();
+    let mux = Mux::get();
     let pane = mux.get_pane(locked.pane_id).unwrap();
 
     let remain = locked.text.len() - locked.offset;
@@ -186,7 +186,7 @@ impl LogicalLine {
 
 /// A Pane represents a view on a terminal
 #[async_trait(?Send)]
-pub trait Pane: Downcast {
+pub trait Pane: Downcast + Send + Sync {
     fn pane_id(&self) -> PaneId;
 
     /// Returns the 0-based cursor position relative to the top left of
@@ -256,7 +256,7 @@ pub trait Pane: Downcast {
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>>;
-    fn writer(&self) -> RefMut<dyn std::io::Write>;
+    fn writer(&self) -> MappedMutexGuard<dyn std::io::Write>;
     fn resize(&self, size: TerminalSize) -> anyhow::Result<()>;
     /// Called as a hint that the pane is being resized as part of
     /// a zoom-to-fill-all-the-tab-space operation.
@@ -562,12 +562,12 @@ pub fn impl_get_lines_via_with_lines<P: Pane + ?Sized>(
 mod test {
     use super::*;
     use k9::snapshot;
+    use parking_lot::{MappedMutexGuard, Mutex};
     use std::borrow::Cow;
-    use std::cell::RefCell;
     use termwiz::surface::SEQ_ZERO;
 
     struct FakePane {
-        lines: RefCell<Vec<Line>>,
+        lines: Mutex<Vec<Line>>,
     }
 
     impl Pane for FakePane {
@@ -596,7 +596,7 @@ mod test {
             with_lines: &mut dyn WithPaneLines,
         ) {
             let mut line_refs = vec![];
-            let mut lines = self.lines.borrow_mut();
+            let mut lines = self.lines.lock();
             for line in lines
                 .iter_mut()
                 .skip(stable_range.start as usize)
@@ -624,7 +624,7 @@ mod test {
             (
                 first,
                 self.lines
-                    .borrow()
+                    .lock()
                     .iter()
                     .skip(lines.start as usize)
                     .take((lines.end - lines.start) as usize)
@@ -645,7 +645,7 @@ mod test {
         fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
             Ok(None)
         }
-        fn writer(&self) -> RefMut<dyn std::io::Write> {
+        fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
             unimplemented!()
         }
         fn resize(&self, _: TerminalSize) -> anyhow::Result<()> {
@@ -739,7 +739,7 @@ mod test {
         );
 
         let pane = FakePane {
-            lines: RefCell::new(physical_lines),
+            lines: Mutex::new(physical_lines),
         };
 
         let logical = pane.get_logical_lines(0..30);

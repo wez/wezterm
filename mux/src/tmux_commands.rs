@@ -6,12 +6,12 @@ use crate::tmux::{TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
 use crate::tmux_pty::{TmuxChild, TmuxPty};
 use crate::{Mux, Pane};
 use anyhow::{anyhow, Context};
+use parking_lot::{Condvar, Mutex};
 use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
 use std::fmt::{Debug, Write};
 use std::io::Write as _;
-use std::rc::Rc;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::Arc;
 use termwiz::tmux_cc::*;
 use wezterm_term::TerminalSize;
 
@@ -37,7 +37,7 @@ pub(crate) struct PaneItem {
 impl TmuxDomainState {
     /// check if a PaneItem received from ListAllPanes has been attached
     fn check_pane_attached(&self, target: &PaneItem) -> bool {
-        let pane_list = self.gui_tabs.borrow();
+        let pane_list = self.gui_tabs.lock();
         let local_tab = match pane_list
             .iter()
             .find(|&x| x.tmux_window_id == target.window_id)
@@ -60,7 +60,7 @@ impl TmuxDomainState {
     /// after we create a tab for a remote pane, save its ID into the
     /// TmuxPane-TmuxPane tree, so we can ref it later.
     fn add_attached_pane(&self, target: &PaneItem, tab_id: &TabId) -> anyhow::Result<()> {
-        let mut pane_list = self.gui_tabs.borrow_mut();
+        let mut pane_list = self.gui_tabs.lock();
         let local_tab = match pane_list
             .iter_mut()
             .find(|x| x.tmux_window_id == target.window_id)
@@ -92,7 +92,7 @@ impl TmuxDomainState {
         // 2) create pane if not exist
         // 3) fetch scroll buffer if new created
         // 4) update pane state if exist
-        let current_session = self.tmux_session.borrow().unwrap_or(0);
+        let current_session = self.tmux_session.lock().unwrap_or(0);
         for pane in panes.iter() {
             if pane.session_id != current_session || self.check_pane_attached(&pane) {
                 continue;
@@ -118,7 +118,7 @@ impl TmuxDomainState {
             }));
 
             {
-                let mut pane_map = self.remote_panes.borrow_mut();
+                let mut pane_map = self.remote_panes.lock();
                 pane_map.insert(pane.pane_id, ref_pane.clone());
             }
 
@@ -129,7 +129,7 @@ impl TmuxDomainState {
                 master_pane: ref_pane,
             };
             let writer = WriterWrapper::new(pane_pty.take_writer()?);
-            let mux = Mux::get().expect("should be called at main thread");
+            let mux = Mux::get();
             let size = TerminalSize {
                 rows: pane.pane_height as usize,
                 cols: pane.pane_width as usize,
@@ -150,7 +150,7 @@ impl TmuxDomainState {
                 Box::new(writer.clone()),
             );
 
-            let local_pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            let local_pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
                 local_pane_id,
                 terminal,
                 Box::new(child),
@@ -160,11 +160,11 @@ impl TmuxDomainState {
                 "tmux pane".to_string(),
             ));
 
-            let tab = Rc::new(Tab::new(&size));
+            let tab = Arc::new(Tab::new(&size));
             tab.assign_pane(&local_pane);
 
             self.create_gui_window();
-            let mut gui_window = self.gui_window.borrow_mut();
+            let mut gui_window = self.gui_window.lock();
             let gui_window_id = match gui_window.as_mut() {
                 Some(x) => x,
                 None => {
@@ -178,7 +178,6 @@ impl TmuxDomainState {
 
             self.cmd_queue
                 .lock()
-                .unwrap()
                 .push_back(Box::new(CapturePane(pane.pane_id)));
             TmuxDomainState::schedule_send_next_command(self.domain_id);
 
@@ -260,7 +259,7 @@ impl TmuxCommand for ListAllPanes {
         }
 
         log::info!("panes in domain_id {}: {:?}", domain_id, items);
-        let mux = Mux::get().expect("to be called on main thread");
+        let mux = Mux::get();
         if let Some(domain) = mux.get_domain(domain_id) {
             if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
                 return tmux_domain.inner.sync_pane_state(&items);
@@ -300,7 +299,7 @@ impl TmuxCommand for CapturePane {
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
-        let mux = Mux::get().expect("to be called on main thread");
+        let mux = Mux::get();
         let domain = match mux.get_domain(domain_id) {
             Some(d) => d,
             None => anyhow::bail!("Tmux domain lost"),
@@ -314,9 +313,9 @@ impl TmuxCommand for CapturePane {
         // capturep contents returned from guarded lines which always contain a tailing '\n'
         let unescaped = &unescaped[0..unescaped.len().saturating_sub(1)].replace("\n", "\r\n");
 
-        let pane_map = tmux_domain.inner.remote_panes.borrow();
+        let pane_map = tmux_domain.inner.remote_panes.lock();
         if let Some(pane) = pane_map.get(&self.0) {
-            let mut pane = pane.lock().expect("Grant lock of tmux cmd queue failed");
+            let mut pane = pane.lock();
             pane.output_write
                 .write_all(unescaped.as_bytes())
                 .context("writing capture pane result to output")?;

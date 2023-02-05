@@ -1,14 +1,12 @@
-name: fedora33_continuous
+name: fedora37
 
 on:
-  schedule:
-    - cron: "10 3 * * *"
-  push:
+  pull_request:
     branches:
       - main
     paths-ignore:
       - ".cirrus.yml"
-      - "docs/**"
+      - "docs/*"
       - "ci/build-docs.sh"
       - "ci/generate-docs.py"
       - "ci/subst-release-info.py"
@@ -22,9 +20,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:33"
-    env:
-      BUILD_REASON: "Schedule"
+    container: "fedora:37"
 
     steps:
       - name: "Install config manager"
@@ -65,7 +61,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: "fedora33-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "fedora37-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env PATH=$PATH ./get-deps"
@@ -80,33 +76,9 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora33.rpm"
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora33"
+          name: "fedora37"
           path: "wezterm-*.rpm"
-          retention-days: 5
-
-  upload:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: "Workaround git permissions issue"
-        shell: bash
-        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
-      - name: "checkout repo"
-        uses: actions/checkout@v3
-      - name: "Download artifact"
-        uses: actions/download-artifact@v3
-        with:
-          name: "fedora33"
-      - name: "Checksum"
-        shell: bash
-        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Upload to Nightly Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"

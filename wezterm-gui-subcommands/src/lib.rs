@@ -146,6 +146,7 @@ mod test {
 
 #[derive(Debug, Parser, Default, Clone)]
 #[command(trailing_var_arg = true)]
+#[command(visible_short_flag_alias = 'e')]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm configuration file.
@@ -198,8 +199,23 @@ pub struct StartCommand {
     /// --position main:10,20     to set x=10, y=20 relative to the main monitor
     /// --position active:10,20   to set x=10, y=20 relative to the active monitor
     /// --position HDMI-1:10,20   to set x=10, y=20 relative to the monitor named HDMI-1
+    ///
+    /// Note that Wayland does not allow applications to control window positioning.
     #[arg(long, verbatim_doc_comment)]
     pub position: Option<GuiPosition>,
+
+    /// Name of the multiplexer domain section from the configuration
+    /// to which you'd like to connect. If omitted, the default domain
+    /// will be used.
+    #[arg(long)]
+    pub domain: Option<String>,
+
+    /// When used with --domain, if the domain already has running panes,
+    /// wezterm will simply attach and will NOT spawn the specified PROG.
+    /// If you omit --attach when using --domain, wezterm will attach
+    /// AND then spawn PROG.
+    #[arg(long, requires = "domain")]
+    pub attach: bool,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash

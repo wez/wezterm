@@ -10,12 +10,12 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use procinfo::LocalProcessInfo;
 use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::borrow::Cow;
-use std::cell::{RefCell, RefMut};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Result as IoResult, Write};
@@ -34,12 +34,14 @@ use wezterm_term::{
     SemanticZone, StableRowIndex, Terminal, TerminalConfiguration, TerminalSize,
 };
 
+const PROC_INFO_CACHE_TTL: Duration = Duration::from_millis(300);
+
 #[derive(Debug)]
 enum ProcessState {
     Running {
         child_waiter: Receiver<IoResult<ExitStatus>>,
         pid: Option<u32>,
-        signaller: Box<dyn ChildKiller>,
+        signaller: Box<dyn ChildKiller + Send + Sync>,
         // Whether we've explicitly killed the child
         killed: bool,
     },
@@ -55,15 +57,74 @@ struct CachedProcInfo {
     foreground: LocalProcessInfo,
 }
 
+/// This is a bit horrible; it can take 700us to tcgetpgrp, so if we have
+/// 10 tabs open and run the mouse over them, hovering them each in turn,
+/// we can spend 7ms per evaluation of the tab bar state on fetching those
+/// pids alone, which can easily lead to stuttering when moving the mouse
+/// over all of the tabs.
+///
+/// This implements a cache holding that fg process and the often queried
+/// cwd and process path that allows for stale reads to proceed quickly
+/// while the writes can happen in a background thread.
+#[cfg(unix)]
+#[derive(Clone)]
+struct CachedLeaderInfo {
+    updated: Instant,
+    fd: std::os::fd::RawFd,
+    pid: u32,
+    path: Option<std::path::PathBuf>,
+    current_working_dir: Option<std::path::PathBuf>,
+    updating: bool,
+}
+
+#[cfg(unix)]
+impl CachedLeaderInfo {
+    fn new(fd: Option<std::os::fd::RawFd>) -> Self {
+        let mut me = Self {
+            updated: Instant::now(),
+            fd: fd.unwrap_or(-1),
+            pid: 0,
+            path: None,
+            current_working_dir: None,
+            updating: false,
+        };
+        me.update();
+        me
+    }
+
+    fn can_update(&self) -> bool {
+        self.fd != -1 && !self.updating
+    }
+
+    fn update(&mut self) {
+        self.pid = unsafe { libc::tcgetpgrp(self.fd) } as u32;
+        if self.pid > 0 {
+            self.path = LocalProcessInfo::executable_path(self.pid);
+            self.current_working_dir = LocalProcessInfo::current_working_dir(self.pid);
+        } else {
+            self.path.take();
+            self.current_working_dir.take();
+        }
+        self.updated = Instant::now();
+        self.updating = false;
+    }
+
+    fn expired(&self) -> bool {
+        self.updated.elapsed() > PROC_INFO_CACHE_TTL
+    }
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
-    terminal: RefCell<Terminal>,
-    process: RefCell<ProcessState>,
-    pty: RefCell<Box<dyn MasterPty>>,
-    writer: RefCell<Box<dyn Write>>,
+    terminal: Mutex<Terminal>,
+    process: Mutex<ProcessState>,
+    pty: Mutex<Box<dyn MasterPty + Send>>,
+    writer: Mutex<Box<dyn Write + Send>>,
     domain_id: DomainId,
-    tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
-    proc_list: RefCell<Option<CachedProcInfo>>,
+    tmux_domain: Mutex<Option<Arc<TmuxDomainState>>>,
+    proc_list: Mutex<Option<CachedProcInfo>>,
+    #[cfg(unix)]
+    leader: Arc<Mutex<Option<CachedLeaderInfo>>>,
     command_description: String,
 }
 
@@ -78,7 +139,7 @@ impl Pane for LocalPane {
         let mut map: BTreeMap<Value, Value> = BTreeMap::new();
 
         #[cfg(unix)]
-        if let Some(tio) = self.pty.borrow().get_termios() {
+        if let Some(tio) = self.pty.lock().get_termios() {
             use nix::sys::termios::LocalFlags;
             // Detect whether we might be in password input mode.
             // If local echo is disabled and canonical input mode
@@ -96,19 +157,19 @@ impl Pane for LocalPane {
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {
-        let mut cursor = terminal_get_cursor_position(&mut self.terminal.borrow_mut());
-        if self.tmux_domain.borrow().is_some() {
+        let mut cursor = terminal_get_cursor_position(&mut self.terminal.lock());
+        if self.tmux_domain.lock().is_some() {
             cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
         }
         cursor
     }
 
     fn get_keyboard_encoding(&self) -> KeyboardEncoding {
-        self.terminal.borrow().get_keyboard_encoding()
+        self.terminal.lock().get_keyboard_encoding()
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
-        self.terminal.borrow().current_seqno()
+        self.terminal.lock().current_seqno()
     }
 
     fn get_changed_since(
@@ -116,7 +177,7 @@ impl Pane for LocalPane {
         lines: Range<StableRowIndex>,
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
-        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
+        terminal_get_dirty_lines(&mut self.terminal.lock(), lines, seqno)
     }
 
     fn for_each_logical_line_in_stable_range_mut(
@@ -125,14 +186,14 @@ impl Pane for LocalPane {
         for_line: &mut dyn ForEachPaneLogicalLine,
     ) {
         terminal_for_each_logical_line_in_stable_range_mut(
-            &mut self.terminal.borrow_mut(),
+            &mut self.terminal.lock(),
             lines,
             for_line,
         );
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
-        terminal_with_lines_mut(&mut self.terminal.borrow_mut(), lines, with_lines)
+        terminal_with_lines_mut(&mut self.terminal.lock(), lines, with_lines)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
@@ -144,15 +205,15 @@ impl Pane for LocalPane {
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
-        terminal_get_dimensions(&mut self.terminal.borrow_mut())
+        terminal_get_dimensions(&mut self.terminal.lock())
     }
 
     fn copy_user_vars(&self) -> HashMap<String, String> {
-        self.terminal.borrow().user_vars().clone()
+        self.terminal.lock().user_vars().clone()
     }
 
     fn kill(&self) {
-        let mut proc = self.process.borrow_mut();
+        let mut proc = self.process.lock();
         log::debug!(
             "killing process in pane {}, state is {:?}",
             self.pane_id,
@@ -173,7 +234,7 @@ impl Pane for LocalPane {
     }
 
     fn is_dead(&self) -> bool {
-        let mut proc = self.process.borrow_mut();
+        let mut proc = self.process.lock();
         let mut notify = None;
 
         const EXIT_BEHAVIOR: &str = "This message is shown because \
@@ -255,79 +316,82 @@ impl Pane for LocalPane {
     }
 
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
-        self.terminal.borrow_mut().set_clipboard(clipboard);
+        self.terminal.lock().set_clipboard(clipboard);
     }
 
     fn set_download_handler(&self, handler: &Arc<dyn DownloadHandler>) {
-        self.terminal.borrow_mut().set_download_handler(handler);
+        self.terminal.lock().set_download_handler(handler);
     }
 
     fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {
-        self.terminal.borrow_mut().set_config(config);
+        self.terminal.lock().set_config(config);
     }
 
     fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
-        Some(self.terminal.borrow().get_config())
+        Some(self.terminal.lock().get_config())
     }
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {
-        self.terminal.borrow_mut().perform_actions(actions)
+        self.terminal.lock().perform_actions(actions)
     }
 
     fn mouse_event(&self, event: MouseEvent) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
-        self.terminal.borrow_mut().mouse_event(event)
+        Mux::get().record_input_for_current_identity();
+        self.terminal.lock().mouse_event(event)
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
-        if self.tmux_domain.borrow().is_some() {
+        Mux::get().record_input_for_current_identity();
+        if self.tmux_domain.lock().is_some() {
             log::error!("key: {:?}", key);
             if key == KeyCode::Char('q') {
-                self.terminal.borrow_mut().send_paste("detach\n")?;
+                self.terminal.lock().send_paste("detach\n")?;
             }
             return Ok(());
         } else {
-            self.terminal.borrow_mut().key_down(key, mods)
+            self.terminal.lock().key_down(key, mods)
         }
     }
 
     fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
-        self.terminal.borrow_mut().key_up(key, mods)
+        Mux::get().record_input_for_current_identity();
+        self.terminal.lock().key_up(key, mods)
     }
 
     fn resize(&self, size: TerminalSize) -> Result<(), Error> {
-        self.pty.borrow_mut().resize(PtySize {
+        self.pty.lock().resize(PtySize {
             rows: size.rows.try_into()?,
             cols: size.cols.try_into()?,
             pixel_width: size.pixel_width.try_into()?,
             pixel_height: size.pixel_height.try_into()?,
         })?;
-        self.terminal.borrow_mut().resize(size);
+        self.terminal.lock().resize(size);
         Ok(())
     }
 
-    fn writer(&self) -> RefMut<dyn std::io::Write> {
-        Mux::get().unwrap().record_input_for_current_identity();
-        self.writer.borrow_mut()
+    fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
+        Mux::get().record_input_for_current_identity();
+        MutexGuard::map(self.writer.lock(), |writer| {
+            let w: &mut dyn std::io::Write = writer;
+            w
+        })
     }
 
     fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
-        Ok(Some(self.pty.borrow_mut().try_clone_reader()?))
+        Ok(Some(self.pty.lock().try_clone_reader()?))
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
-        Mux::get().unwrap().record_input_for_current_identity();
-        if self.tmux_domain.borrow().is_some() {
+        Mux::get().record_input_for_current_identity();
+        if self.tmux_domain.lock().is_some() {
             Ok(())
         } else {
-            self.terminal.borrow_mut().send_paste(text)
+            self.terminal.lock().send_paste(text)
         }
     }
 
     fn get_title(&self) -> String {
-        let title = self.terminal.borrow_mut().get_title().to_string();
+        let title = self.terminal.lock().get_title().to_string();
         // If the title is the default pane title, then try to spice
         // things up a bit by returning the process basename instead
         if title == "wezterm" {
@@ -343,7 +407,7 @@ impl Pane for LocalPane {
     }
 
     fn palette(&self) -> ColorPalette {
-        self.terminal.borrow().palette()
+        self.terminal.lock().palette()
     }
 
     fn domain_id(&self) -> DomainId {
@@ -353,41 +417,41 @@ impl Pane for LocalPane {
     fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
         match erase_mode {
             ScrollbackEraseMode::ScrollbackOnly => {
-                self.terminal.borrow_mut().erase_scrollback();
+                self.terminal.lock().erase_scrollback();
             }
             ScrollbackEraseMode::ScrollbackAndViewport => {
-                self.terminal.borrow_mut().erase_scrollback_and_viewport();
+                self.terminal.lock().erase_scrollback_and_viewport();
             }
         }
     }
 
     fn focus_changed(&self, focused: bool) {
-        self.terminal.borrow_mut().focus_changed(focused);
+        self.terminal.lock().focus_changed(focused);
     }
 
     fn has_unseen_output(&self) -> bool {
-        self.terminal.borrow().has_unseen_output()
+        self.terminal.lock().has_unseen_output()
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        if self.tmux_domain.borrow().is_some() {
+        if self.tmux_domain.lock().is_some() {
             false
         } else {
-            self.terminal.borrow().is_mouse_grabbed()
+            self.terminal.lock().is_mouse_grabbed()
         }
     }
 
     fn is_alt_screen_active(&self) -> bool {
-        if self.tmux_domain.borrow().is_some() {
+        if self.tmux_domain.lock().is_some() {
             false
         } else {
-            self.terminal.borrow().is_alt_screen_active()
+            self.terminal.lock().is_alt_screen_active()
         }
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
         self.terminal
-            .borrow()
+            .lock()
             .get_current_dir()
             .cloned()
             .or_else(|| self.divine_current_working_dir())
@@ -395,7 +459,7 @@ impl Pane for LocalPane {
 
     fn get_foreground_process_info(&self) -> Option<LocalProcessInfo> {
         #[cfg(unix)]
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
+        if let Some(pid) = self.pty.lock().process_group_leader() {
             return LocalProcessInfo::with_root_pid(pid as u32);
         }
 
@@ -404,10 +468,12 @@ impl Pane for LocalPane {
 
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Some(path) = LocalProcessInfo::executable_path(pid as u32) {
+        {
+            let leader = self.get_leader();
+            if let Some(path) = &leader.path {
                 return Some(path.to_string_lossy().to_string());
             }
+            return None;
         }
 
         #[cfg(windows)]
@@ -415,6 +481,7 @@ impl Pane for LocalPane {
             return Some(fg.executable.to_string_lossy().to_string());
         }
 
+        #[allow(unreachable_code)]
         None
     }
 
@@ -478,7 +545,7 @@ impl Pane for LocalPane {
                 // If the process is dead but exit_behavior is holding the
                 // window, we don't need to prompt to confirm closing.
                 // That is detectable as no longer having a process group leader.
-                if self.pty.borrow().process_group_leader().is_none() {
+                if self.pty.lock().process_group_leader().is_none() {
                     return true;
                 }
             }
@@ -488,7 +555,7 @@ impl Pane for LocalPane {
     }
 
     fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
-        let mut term = self.terminal.borrow_mut();
+        let mut term = self.terminal.lock();
         term.get_semantic_zones()
     }
 
@@ -498,7 +565,7 @@ impl Pane for LocalPane {
         range: Range<StableRowIndex>,
         limit: Option<u32>,
     ) -> anyhow::Result<Vec<SearchResult>> {
-        let term = self.terminal.borrow();
+        let term = self.terminal.lock();
         let screen = term.screen();
 
         enum CompiledPattern {
@@ -683,7 +750,7 @@ pub(crate) fn emit_output_for_pane(pane_id: PaneId, message: &str) {
     parser.parse(message.as_bytes(), |action| actions.push(action));
 
     promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if let Some(pane) = mux.get_pane(pane_id) {
             pane.perform_actions(actions);
             mux.notify(MuxNotification::PaneOutput(pane_id));
@@ -708,14 +775,12 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                     let tmux_domain = Arc::clone(&domain.inner);
 
                     let domain: Arc<dyn Domain> = Arc::new(domain);
-                    let mux = Mux::get().expect("to be called on main thread");
+                    let mux = Mux::get();
                     mux.add_domain(&domain);
 
                     if let Some(pane) = mux.get_pane(self.pane_id) {
                         let pane = pane.downcast_ref::<LocalPane>().unwrap();
-                        pane.tmux_domain
-                            .borrow_mut()
-                            .replace(Arc::clone(&tmux_domain));
+                        pane.tmux_domain.lock().replace(Arc::clone(&tmux_domain));
 
                         emit_output_for_pane(
                             self.pane_id,
@@ -734,10 +799,10 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
             }
             DeviceControlMode::Exit => {
                 if let Some(tmux) = self.tmux_domain.take() {
-                    let mux = Mux::get().expect("to be called on main thread");
+                    let mux = Mux::get();
                     if let Some(pane) = mux.get_pane(self.pane_id) {
                         let pane = pane.downcast_ref::<LocalPane>().unwrap();
-                        pane.tmux_domain.borrow_mut().take();
+                        pane.tmux_domain.lock().take();
                     }
                     mux.domain_was_detached(tmux.domain_id);
                 }
@@ -769,17 +834,19 @@ struct LocalPaneNotifHandler {
 
 impl AlertHandler for LocalPaneNotifHandler {
     fn alert(&mut self, alert: Alert) {
-        if let Some(mux) = Mux::get() {
+        let pane_id = self.pane_id;
+        promise::spawn::spawn_into_main_thread(async move {
+            let mux = Mux::get();
             match &alert {
                 Alert::WindowTitleChanged(title) => {
-                    if let Some((_domain, window_id, _tab_id)) = mux.resolve_pane_id(self.pane_id) {
+                    if let Some((_domain, window_id, _tab_id)) = mux.resolve_pane_id(pane_id) {
                         if let Some(mut window) = mux.get_window_mut(window_id) {
                             window.set_title(title);
                         }
                     }
                 }
                 Alert::TabTitleChanged(title) => {
-                    if let Some((_domain, _window_id, tab_id)) = mux.resolve_pane_id(self.pane_id) {
+                    if let Some((_domain, _window_id, tab_id)) = mux.resolve_pane_id(pane_id) {
                         if let Some(tab) = mux.get_tab(tab_id) {
                             tab.set_title(title.as_deref().unwrap_or(""));
                         }
@@ -788,11 +855,9 @@ impl AlertHandler for LocalPaneNotifHandler {
                 _ => {}
             }
 
-            mux.notify(MuxNotification::Alert {
-                pane_id: self.pane_id,
-                alert,
-            });
-        }
+            mux.notify(MuxNotification::Alert { pane_id, alert });
+        })
+        .detach();
     }
 }
 
@@ -808,7 +873,7 @@ fn split_child(
     mut process: Box<dyn Child + Send>,
 ) -> (
     Receiver<IoResult<ExitStatus>>,
-    Box<dyn ChildKiller>,
+    Box<dyn ChildKiller + Send + Sync>,
     Option<u32>,
 ) {
     let pid = process.process_id();
@@ -820,7 +885,7 @@ fn split_child(
         let status = process.wait();
         tx.try_send(status).ok();
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
+            let mux = Mux::get();
             mux.prune_dead_windows();
         })
         .detach();
@@ -834,8 +899,8 @@ impl LocalPane {
         pane_id: PaneId,
         mut terminal: Terminal,
         process: Box<dyn Child + Send>,
-        pty: Box<dyn MasterPty>,
-        writer: Box<dyn Write>,
+        pty: Box<dyn MasterPty + Send>,
+        writer: Box<dyn Write + Send>,
         domain_id: DomainId,
         command_description: String,
     ) -> Self {
@@ -849,28 +914,56 @@ impl LocalPane {
 
         Self {
             pane_id,
-            terminal: RefCell::new(terminal),
-            process: RefCell::new(ProcessState::Running {
+            terminal: Mutex::new(terminal),
+            process: Mutex::new(ProcessState::Running {
                 child_waiter: process,
                 pid,
                 signaller,
                 killed: false,
             }),
-            pty: RefCell::new(pty),
-            writer: RefCell::new(writer),
+            pty: Mutex::new(pty),
+            writer: Mutex::new(writer),
             domain_id,
-            tmux_domain: RefCell::new(None),
-            proc_list: RefCell::new(None),
+            tmux_domain: Mutex::new(None),
+            proc_list: Mutex::new(None),
+            #[cfg(unix)]
+            leader: Arc::new(Mutex::new(None)),
             command_description,
         }
     }
 
+    #[cfg(unix)]
+    fn get_leader(&self) -> CachedLeaderInfo {
+        let mut leader = self.leader.lock();
+
+        if let Some(info) = leader.as_mut() {
+            // If stale, queue up some work in another thread to update.
+            // Right now, we'll return the stale data.
+            if info.expired() && info.can_update() {
+                info.updating = true;
+                let leader_ref = Arc::clone(&self.leader);
+                std::thread::spawn(move || {
+                    let mut leader = leader_ref.lock();
+                    if let Some(leader) = leader.as_mut() {
+                        leader.update();
+                    }
+                });
+            }
+        } else {
+            leader.replace(CachedLeaderInfo::new(self.pty.lock().as_raw_fd()));
+        }
+
+        (*leader).clone().unwrap()
+    }
+
     fn divine_current_working_dir(&self) -> Option<Url> {
         #[cfg(unix)]
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Some(path) = LocalProcessInfo::current_working_dir(pid as u32) {
+        {
+            let leader = self.get_leader();
+            if let Some(path) = &leader.current_working_dir {
                 return Url::parse(&format!("file://localhost{}", path.display())).ok();
             }
+            return None;
         }
 
         #[cfg(windows)]
@@ -885,14 +978,14 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self, force_refresh: bool) -> Option<RefMut<CachedProcInfo>> {
-        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            let mut proc_list = self.proc_list.borrow_mut();
+    fn divine_process_list(&self, force_refresh: bool) -> Option<MappedMutexGuard<CachedProcInfo>> {
+        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.lock() {
+            let mut proc_list = self.proc_list.lock();
 
             let expired = force_refresh
                 || proc_list
                     .as_ref()
-                    .map(|info| info.updated.elapsed() > Duration::from_millis(300))
+                    .map(|info| info.updated.elapsed() > PROC_INFO_CACHE_TTL)
                     .unwrap_or(true);
 
             if expired {
@@ -934,7 +1027,7 @@ impl LocalPane {
                 log::trace!("CachedProcInfo updated");
             }
 
-            return Some(RefMut::map(proc_list, |info| info.as_mut().unwrap()));
+            return Some(MutexGuard::map(proc_list, |info| info.as_mut().unwrap()));
         }
         None
     }
@@ -953,7 +1046,7 @@ impl Drop for LocalPane {
     fn drop(&mut self) {
         // Avoid lingering zombies if we can, but don't block forever.
         // <https://github.com/wez/wezterm/issues/558>
-        if let ProcessState::Running { signaller, .. } = &mut *self.process.borrow_mut() {
+        if let ProcessState::Running { signaller, .. } = &mut *self.process.lock() {
             let _ = signaller.kill();
         }
     }

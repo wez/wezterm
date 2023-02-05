@@ -13,7 +13,6 @@ use smol::channel::{bounded, Receiver as AsyncReceiver};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufWriter, Read, Write};
-use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -133,7 +132,7 @@ pub fn ssh_connect_with_ui(
 /// and the reader and writer instances so that we can inject the
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
-    session: RefCell<Option<Session>>,
+    session: Mutex<Option<Session>>,
     dom: SshDomain,
     id: DomainId,
     name: String,
@@ -187,7 +186,7 @@ impl RemoteSshDomain {
         Ok(Self {
             id,
             name: dom.name.clone(),
-            session: RefCell::new(None),
+            session: Mutex::new(None),
             dom: dom.clone(),
         })
     }
@@ -560,16 +559,16 @@ impl Domain for RemoteSshDomain {
         size: TerminalSize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
         let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
 
-        let pty: Box<dyn portable_pty::MasterPty>;
+        let pty: Box<dyn portable_pty::MasterPty + Send>;
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
-        let session = self.session.borrow().as_ref().map(|s| s.clone());
+        let session: Option<Session> = self.session.lock().unwrap().as_ref().cloned();
 
         if let Some(session) = session {
             let (concrete_pty, concrete_child) = session
@@ -587,7 +586,7 @@ impl Domain for RemoteSshDomain {
         } else {
             // We're starting the session
             let (session, events) = Session::connect(self.ssh_config()?)?;
-            self.session.borrow_mut().replace(session.clone());
+            self.session.lock().unwrap().replace(session.clone());
 
             // We get to establish the session!
             //
@@ -677,7 +676,7 @@ impl Domain for RemoteSshDomain {
             Box::new(writer.clone()),
         );
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+        let pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
             pane_id,
             terminal,
             child,
@@ -686,7 +685,7 @@ impl Domain for RemoteSshDomain {
             self.id,
             "RemoteSshDomain".to_string(),
         ));
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.add_pane(&pane)?;
 
         Ok(pane)
@@ -767,7 +766,7 @@ impl WrappedSshChild {
         promise::spawn::spawn_into_main_thread(async move {
             if let Ok(status) = child.async_wait().await {
                 tx.send(status).await.ok();
-                let mux = Mux::get().unwrap();
+                let mux = Mux::get();
                 mux.prune_dead_windows();
             }
         })
@@ -983,6 +982,11 @@ impl portable_pty::MasterPty for WrappedSshPty {
     fn process_group_leader(&self) -> Option<i32> {
         let mut inner = self.inner.borrow_mut();
         let _ = inner.check_connected();
+        None
+    }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
         None
     }
 }

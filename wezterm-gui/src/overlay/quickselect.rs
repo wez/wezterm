@@ -7,11 +7,10 @@ use mux::pane::{
     ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern, SearchResult, WithPaneLines,
 };
 use mux::renderable::*;
+use parking_lot::{MappedMutexGuard, Mutex};
 use rangeset::RangeSet;
-use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Range;
-use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
@@ -148,8 +147,8 @@ mod alphabet_test {
 }
 
 pub struct QuickSelectOverlay {
-    renderer: RefCell<QuickSelectRenderable>,
-    delegate: Rc<dyn Pane>,
+    renderer: Mutex<QuickSelectRenderable>,
+    delegate: Arc<dyn Pane>,
 }
 
 #[derive(Debug)]
@@ -159,7 +158,7 @@ struct MatchResult {
 }
 
 struct QuickSelectRenderable {
-    delegate: Rc<dyn Pane>,
+    delegate: Arc<dyn Pane>,
     /// The text that the user entered
     pattern: Pattern,
     /// The most recently queried set of matches
@@ -186,9 +185,9 @@ struct QuickSelectRenderable {
 impl QuickSelectOverlay {
     pub fn with_pane(
         term_window: &TermWindow,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         args: &QuickSelectArguments,
-    ) -> Rc<dyn Pane> {
+    ) -> Arc<dyn Pane> {
         let viewport = term_window.get_viewport(pane.pane_id());
         let dims = pane.get_dimensions();
 
@@ -228,7 +227,7 @@ impl QuickSelectOverlay {
 
         let window = term_window.window.clone().unwrap();
         let mut renderer = QuickSelectRenderable {
-            delegate: Rc::clone(pane),
+            delegate: Arc::clone(pane),
             pattern,
             selection: "".to_string(),
             results: vec![],
@@ -249,14 +248,14 @@ impl QuickSelectOverlay {
         renderer.dirty_results.add(search_row);
         renderer.update_search(true);
 
-        Rc::new(QuickSelectOverlay {
-            renderer: RefCell::new(renderer),
-            delegate: Rc::clone(pane),
+        Arc::new(QuickSelectOverlay {
+            renderer: Mutex::new(renderer),
+            delegate: Arc::clone(pane),
         })
     }
 
     pub fn viewport_changed(&self, viewport: Option<StableRowIndex>) {
-        let mut render = self.renderer.borrow_mut();
+        let mut render = self.renderer.lock();
         if render.viewport != viewport {
             if let Some(last) = render.last_bar_pos.take() {
                 render.dirty_results.add(last);
@@ -287,7 +286,7 @@ impl Pane for QuickSelectOverlay {
         Ok(None)
     }
 
-    fn writer(&self) -> RefMut<dyn std::io::Write> {
+    fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
         self.delegate.writer()
     }
 
@@ -301,12 +300,12 @@ impl Pane for QuickSelectOverlay {
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         match (key, mods) {
-            (KeyCode::Escape, KeyModifiers::NONE) => self.renderer.borrow().close(),
+            (KeyCode::Escape, KeyModifiers::NONE) => self.renderer.lock().close(),
             (KeyCode::UpArrow, KeyModifiers::NONE)
             | (KeyCode::Enter, KeyModifiers::NONE)
             | (KeyCode::Char('p'), KeyModifiers::CTRL) => {
                 // Move to prior match
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 if let Some(cur) = r.result_pos.as_ref() {
                     let prior = if *cur > 0 {
                         cur - 1
@@ -320,7 +319,7 @@ impl Pane for QuickSelectOverlay {
                 // Skip this page of matches and move up to the first match from
                 // the prior page.
                 let dims = self.delegate.get_dimensions();
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 if let Some(cur) = r.result_pos {
                     let top = r.viewport.unwrap_or(dims.physical_top);
                     let prior = top - dims.viewport_rows as isize;
@@ -339,7 +338,7 @@ impl Pane for QuickSelectOverlay {
                 // Skip this page of matches and move down to the first match from
                 // the next page.
                 let dims = self.delegate.get_dimensions();
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 if let Some(cur) = r.result_pos {
                     let top = r.viewport.unwrap_or(dims.physical_top);
                     let bottom = top + dims.viewport_rows as isize;
@@ -353,7 +352,7 @@ impl Pane for QuickSelectOverlay {
             }
             (KeyCode::DownArrow, KeyModifiers::NONE) | (KeyCode::Char('n'), KeyModifiers::CTRL) => {
                 // Move to next match
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 if let Some(cur) = r.result_pos.as_ref() {
                     let next = if *cur + 1 >= r.results.len() {
                         0
@@ -365,7 +364,7 @@ impl Pane for QuickSelectOverlay {
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                 // Type to add to the selection
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 r.selection.push(c);
                 let lowered = r.selection.to_lowercase();
                 let paste = lowered != r.selection;
@@ -376,12 +375,12 @@ impl Pane for QuickSelectOverlay {
             }
             (KeyCode::Backspace, KeyModifiers::NONE) => {
                 // Backspace to edit the selection
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 r.selection.pop();
             }
             (KeyCode::Char('u'), KeyModifiers::CTRL) => {
                 // CTRL-u to clear the selection
-                let mut r = self.renderer.borrow_mut();
+                let mut r = self.renderer.lock();
                 r.selection.clear();
             }
             _ => {}
@@ -431,7 +430,7 @@ impl Pane for QuickSelectOverlay {
 
     fn get_cursor_position(&self) -> StableCursorPosition {
         // move to the search box
-        let renderer = self.renderer.borrow();
+        let renderer = self.renderer.lock();
         StableCursorPosition {
             x: 8 + wezterm_term::unicode_column_width(&renderer.selection, None),
             y: renderer.compute_search_row(),
@@ -450,7 +449,7 @@ impl Pane for QuickSelectOverlay {
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
         let mut dirty = self.delegate.get_changed_since(lines.clone(), seqno);
-        dirty.add_set(&self.renderer.borrow().dirty_results);
+        dirty.add_set(&self.renderer.lock().dirty_results);
         dirty.intersection_with_range(lines)
     }
 
@@ -468,7 +467,7 @@ impl Pane for QuickSelectOverlay {
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
-        let mut renderer = self.renderer.borrow_mut();
+        let mut renderer = self.renderer.lock();
         // Take care to access self.delegate methods here before we get into
         // calling into its own with_lines_mut to avoid a runtime
         // borrow erro!
@@ -579,7 +578,7 @@ impl Pane for QuickSelectOverlay {
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        let mut renderer = self.renderer.borrow_mut();
+        let mut renderer = self.renderer.lock();
         renderer.check_for_resize();
         let dims = self.get_dimensions();
 
@@ -791,7 +790,7 @@ impl QuickSelectRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            let pane: Rc<dyn Pane> = self.delegate.clone();
+            let pane: Arc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             let scope = self.args.scope_lines;
@@ -814,7 +813,7 @@ impl QuickSelectRenderable {
                         if let Some(search_overlay) =
                             overlay.pane.downcast_ref::<QuickSelectOverlay>()
                         {
-                            let mut r = search_overlay.renderer.borrow_mut();
+                            let mut r = search_overlay.renderer.lock();
                             r.results = results.take().unwrap();
                             r.recompute_results();
                             let num_results = r.results.len();
@@ -868,7 +867,7 @@ impl QuickSelectRenderable {
         let action = self.args.action.clone();
         self.window
             .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
-                let mux = mux::Mux::get().unwrap();
+                let mux = mux::Mux::get();
                 if let Some(pane) = mux.get_pane(pane_id) {
                     {
                         let mut selection = term_window.selection(pane_id);

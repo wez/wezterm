@@ -9,9 +9,7 @@ use mux::pane::PaneId;
 use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
 use mux_lua::MuxPane;
-use termwiz::cell::CellAttributes;
-use termwiz::surface::{Change, Line};
-use termwiz_funcs::new_wezterm_terminfo_renderer;
+use termwiz_funcs::lines_to_escapes;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_toast_notification::ToastNotification;
 use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
@@ -68,6 +66,10 @@ impl UserData for GuiWin {
         });
         methods.add_method("toggle_fullscreen", |_, this, _: ()| {
             this.window.toggle_fullscreen();
+            Ok(())
+        });
+        methods.add_method("focus", |_, this, _: ()| {
+            this.window.focus();
             Ok(())
         });
         methods.add_method(
@@ -264,8 +266,8 @@ impl UserData for GuiWin {
             Ok(result)
         });
         methods.add_method("active_workspace", |_, _, _: ()| {
-            let mux = Mux::get()
-                .ok_or_else(|| anyhow::anyhow!("must be called on main thread"))
+            let mux = Mux::try_get()
+                .ok_or_else(|| anyhow::anyhow!("no mux?"))
                 .map_err(luaerr)?;
             Ok(mux.active_workspace().to_string())
         });
@@ -291,8 +293,7 @@ impl UserData for GuiWin {
                             pane_id: PaneId,
                             term_window: &mut TermWindow,
                         ) -> anyhow::Result<String> {
-                            let mux = Mux::get()
-                                .ok_or_else(|| anyhow::anyhow!("not called on main thread"))?;
+                            let mux = Mux::try_get().ok_or_else(|| anyhow::anyhow!("no mux"))?;
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow::anyhow!("invalid pane {pane_id}"))?;
@@ -308,41 +309,4 @@ impl UserData for GuiWin {
             },
         );
     }
-}
-
-fn lines_to_escapes(lines: Vec<Line>) -> anyhow::Result<String> {
-    let mut changes = vec![];
-    let mut attr = CellAttributes::blank();
-    for line in lines {
-        changes.append(&mut line.changes(&attr));
-        changes.push(Change::Text("\r\n".to_string()));
-        if let Some(a) = line.visible_cells().last().map(|cell| cell.attrs().clone()) {
-            attr = a;
-        }
-    }
-    changes.push(Change::AllAttributes(CellAttributes::blank()));
-    let mut renderer = new_wezterm_terminfo_renderer();
-
-    struct Target {
-        target: Vec<u8>,
-    }
-
-    impl std::io::Write for Target {
-        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-            std::io::Write::write(&mut self.target, buf)
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
-
-    impl termwiz::render::RenderTty for Target {
-        fn get_size_in_cells(&mut self) -> termwiz::Result<(usize, usize)> {
-            Ok((80, 24))
-        }
-    }
-
-    let mut target = Target { target: vec![] };
-    renderer.render_to(&changes, &mut target)?;
-    Ok(String::from_utf8(target.target)?)
 }

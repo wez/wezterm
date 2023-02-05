@@ -19,57 +19,61 @@ as needed, in a style similar to that of the Vim editor.
 
 Move the cursor to the start of the region you wish to select and press `v` to
 toggle selection mode (it is off by default), then move the cursor to the end
-of that region.  You can then use `Copy` (by default: `CTRl-SHIFT-C`) to copy
+of that region.  You can then use `Copy` (by default: `CTRL-SHIFT-C`) to copy
 that region to the clipboard.
 
 ### Key Assignments
 
-The key assignments in copy mode are as follows.  They are not currently
-reassignable.
+The default key assignments in copy mode are as follows:
 
 | Action  |  Key Assignment |
 |---------|-------------------|
-| Exit copy mode | `Esc`      |
-|                | `CTRL-C`   |
-|                | `CTRL-g`   |
-|                | `q`        |
-| Cell selection | `v` |
-| Line selection | `V` |
-| Rectangular selection | `CTRL-v` (*since: 20220624-141144-bd1b7c5d*)|
-| Move Left      | `LeftArrow`|
-|                | `h`        |
-| Move Down      | `DownArrow`|
-|                | `j`        |
-| Move Up        | `UpArrow`  |
-|                | `k`        |
-| Move Right     | `RightArrow`|
-|                | `l`         |
-| Move forward one word | `Alt-RightArrow` |
-|                       | `Alt-f`          |
-|                       | `Tab`            |
-|                       | `w`              |
-| Move backward one word| `Alt-LeftArrow` |
-|                       | `alt-b`         |
-|                       | `Shift-Tab`     |
-|                       | `b`             |
-| Move to start of this line     | `0` |
-|                                | `Home` |
-| Move to start of next line     | `Enter` |
-| Move to end of this line       | `$` |
-|                                | `End` |
-| Move to start of indented line | `Alt-m` |
-|                                | `^` |
-| Move to bottom of scrollback   | `G` |
-| Move to top of scrollback      | `g` |
-| Move to top of viewport        | `H` |
-| Move to middle of viewport     | `M` |
-| Move to bottom of viewport     | `L` |
-| Move up one screen             | `PageUp` |
-|                                | `CTRL-b` |
-| Move down one screen           | `PageDown` |
-|                                | `CTRL-f`   |
-| Move to other end of the selection| `o` |
-| Move to other end of the selection horizontally| `O` (useful in Rectangular mode) |
+| Activate copy mode | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
+| Copy and exit copy mode | <kbd>y</kbd> |
+| Exit copy mode | <kbd>Esc</kbd>      |
+|                | <kbd>Ctrl</kbd> + <kbd>C</kbd>   |
+|                | <kbd>Ctrl</kbd> + <kbd>G</kbd>   |
+|                | <kbd>q</kbd>        |
+| Cell selection | <kbd>v</kbd> |
+| Line selection | <kbd>Shift</kbd> + <kbd>V</kbd> |
+| Rectangular selection | <kbd>Ctrl</kbd> + <kbd>V</kbd> (*since: 20220624-141144-bd1b7c5d*)|
+| Move Left      | <kbd>LeftArrow</kbd> |
+|                | <kbd>h</kbd>        |
+| Move Down      | <kbd>DownArrow</kbd> |
+|                | <kbd>j</kbd>        |
+| Move Up        | <kbd>UpArrow</kbd>  |
+|                | <kbd>k</kbd>        |
+| Move Right     | <kbd>RightArrow</kbd> |
+|                | <kbd>l</kbd>         |
+| Move forward one word | <kbd>Alt</kbd> + <kbd>RightArrow</kbd> |
+|                       | <kbd>Alt</kbd> + <kbd>F</kbd>          |
+|                       | <kbd>Tab</kbd>            |
+|                       | <kbd>w</kbd>              |
+| Move backward one word| <kbd>Alt</kbd> + <kbd>LeftArrow</kbd> |
+|                       | <kbd>Alt</kbd> + <kbd>B</kbd>         |
+|                       | <kbd>Shift</kbd> + <kbd>Tab</kbd>     |
+|                       | <kbd>b</kbd>             |
+| Move forward one word end    | <kbd>e</kbd> (*since: nightly builds only*)|
+| Move to start of this line     | <kbd>0</kbd> |
+|                                | <kbd>Home</kbd> |
+| Move to start of next line     | <kbd>Enter</kbd> |
+| Move to end of this line       | <kbd>$</kbd> |
+|                                | <kbd>End</kbd> |
+| Move to start of indented line | <kbd>Alt</kbd> + <kbd>M</kbd> |
+|                                | <kbd>^</kbd> |
+| Move to bottom of scrollback   | <kbd>Shift</kbd> + <kbd>G</kbd> |
+| Move to top of scrollback      | <kbd>g</kbd> |
+| Move to top of viewport        | <kbd>Shift</kbd> + <kbd>H</kbd> |
+| Move to middle of viewport     | <kbd>Shift</kbd> + <kbd>M</kbd> |
+| Move to bottom of viewport     | <kbd>Shift</kbd> + <kbd>L</kbd> |
+| Move up one screen             | <kbd>PageUp</kbd> |
+|                                | <kbd>Ctrl</kbd> + <kbd>B</kbd> |
+| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> (*since: nightly builds only*)|
+| Move down one screen           | <kbd>PageDown</kbd> |
+|                                | <kbd>Ctrl</kbd> + <kbd>F</kbd>   |
+| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> (*since: nightly builds only*)|
+| Move to other end of the selection| <kbd>o</kbd> |
+| Move to other end of the selection horizontally| <kbd>Shift</kbd> + <kbd>O</kbd> (useful in Rectangular mode) |
 
 ### Configurable Key Assignments
 

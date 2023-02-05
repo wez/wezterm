@@ -4,7 +4,7 @@ use anyhow::Context;
 use config::keyassignment::{KeyAssignment, KeyTableEntry};
 use mux::pane::{Pane, PerformAssignmentResult};
 use smol::Timer;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::input::KeyboardEncoding;
 
@@ -218,7 +218,7 @@ enum OnlyKeyBindings {
 }
 
 impl super::TermWindow {
-    fn encode_win32_input(&self, pane: &Rc<dyn Pane>, key: &KeyEvent) -> Option<String> {
+    fn encode_win32_input(&self, pane: &Arc<dyn Pane>, key: &KeyEvent) -> Option<String> {
         if !self.config.allow_win32_input_mode
             || pane.get_keyboard_encoding() != KeyboardEncoding::Win32
         {
@@ -229,7 +229,7 @@ impl super::TermWindow {
 
     fn lookup_key(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         keycode: &KeyCode,
         mods: Modifiers,
         only_key_bindings: OnlyKeyBindings,
@@ -257,7 +257,7 @@ impl super::TermWindow {
 
     fn process_key(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         context: &dyn WindowOps,
         keycode: &KeyCode,
         raw_modifiers: Modifiers,
@@ -391,7 +391,9 @@ impl super::TermWindow {
                         {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
-                        context.set_cursor(None);
+                        if self.config.hide_mouse_cursor_when_typing {
+                            context.set_cursor(None);
+                        }
                         if !keycode.is_modifier() {
                             context.invalidate();
                         }
@@ -522,7 +524,25 @@ impl super::TermWindow {
     }
 
     pub fn current_key_table_name(&mut self) -> Option<String> {
-        let name = self.key_table_state.current_table().map(|s| s.to_string());
+        let mut name = None;
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            if let Some(overlay) = self.pane_state(pane.pane_id()).overlay.as_mut() {
+                name = overlay
+                    .key_table_state
+                    .current_table()
+                    .map(|s| s.to_string());
+
+                if let Some(entry) = overlay.key_table_state.stack.last() {
+                    if let Some(expiry) = entry.expiration {
+                        self.update_next_frame_time(Some(expiry));
+                    }
+                }
+            }
+        }
+        if name.is_none() {
+            name = self.key_table_state.current_table().map(|s| s.to_string());
+        }
         if let Some(entry) = self.key_table_state.stack.last() {
             if let Some(expiry) = entry.expiration {
                 self.update_next_frame_time(Some(expiry));
@@ -646,7 +666,9 @@ impl super::TermWindow {
                     {
                         self.maybe_scroll_to_bottom_for_input(&pane);
                     }
-                    context.set_cursor(None);
+                    if self.config.hide_mouse_cursor_when_typing {
+                        context.set_cursor(None);
+                    }
                     if !key.is_modifier() {
                         context.invalidate();
                     }

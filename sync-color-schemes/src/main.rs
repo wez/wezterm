@@ -359,10 +359,6 @@ async fn main() -> anyhow::Result<()> {
 
     // They color us! my precious!
     let mut schemeses = vec![];
-    accumulate(
-        &mut schemeses,
-        iterm2::sync_iterm2().await.context("sync iterm2")?,
-    );
     sync_toml(
         "https://github.com/catppuccin/wezterm",
         "main",
@@ -398,6 +394,10 @@ async fn main() -> anyhow::Result<()> {
         &mut schemeses,
     )
     .await?;
+    accumulate(
+        &mut schemeses,
+        iterm2::sync_iterm2().await.context("sync iterm2")?,
+    );
     accumulate(&mut schemeses, base16::sync().await.context("sync base16")?);
     accumulate(
         &mut schemeses,

@@ -1,13 +1,82 @@
 use super::*;
-use luahelper::dynamic_to_lua_value;
+use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
+use mlua::Value;
+use std::cmp::Ordering;
+use std::sync::Arc;
+use termwiz::cell::SemanticType;
+use wezterm_term::{SemanticZone, StableRowIndex};
 
 #[derive(Clone, Copy, Debug)]
 pub struct MuxPane(pub PaneId);
 
 impl MuxPane {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Rc<dyn Pane>> {
+    pub fn resolve<'a>(&self, mux: &'a Arc<Mux>) -> mlua::Result<Arc<dyn Pane>> {
         mux.get_pane(self.0)
             .ok_or_else(|| mlua::Error::external(format!("pane id {} not found in mux", self.0)))
+    }
+
+    fn get_text_from_semantic_zone(&self, zone: SemanticZone) -> mlua::Result<String> {
+        let mux = get_mux()?;
+        let pane = self.resolve(&mux)?;
+
+        let mut last_was_wrapped = false;
+        let first_row = zone.start_y;
+        let last_row = zone.end_y;
+
+        fn cols_for_row(zone: &SemanticZone, row: StableRowIndex) -> std::ops::Range<usize> {
+            if row < zone.start_y || row > zone.end_y {
+                0..0
+            } else if zone.start_y == zone.end_y {
+                // A single line zone
+                if zone.start_x <= zone.end_x {
+                    zone.start_x..zone.end_x.saturating_add(1)
+                } else {
+                    zone.end_x..zone.start_x.saturating_add(1)
+                }
+            } else if row == zone.end_y {
+                // last line of multi-line
+                0..zone.end_x.saturating_add(1)
+            } else if row == zone.start_y {
+                // first line of multi-line
+                zone.start_x..usize::max_value()
+            } else {
+                // some "middle" line of multi-line
+                0..usize::max_value()
+            }
+        }
+
+        let mut s = String::new();
+        for line in pane.get_logical_lines(zone.start_y..zone.end_y + 1) {
+            if !s.is_empty() && !last_was_wrapped {
+                s.push('\n');
+            }
+            let last_idx = line.physical_lines.len().saturating_sub(1);
+            for (idx, phys) in line.physical_lines.iter().enumerate() {
+                let this_row = line.first_row + idx as StableRowIndex;
+                if this_row >= first_row && this_row < last_row {
+                    let last_phys_idx = phys.len().saturating_sub(1);
+
+                    let cols = cols_for_row(&zone, this_row);
+                    let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
+                    let col_span = phys.columns_as_str(cols);
+                    // Only trim trailing whitespace if we are the last line
+                    // in a wrapped sequence
+                    if idx == last_idx {
+                        s.push_str(col_span.trim_end());
+                    } else {
+                        s.push_str(&col_span);
+                    }
+
+                    last_was_wrapped = last_col_idx == last_phys_idx
+                        && phys
+                            .get_cell(last_col_idx)
+                            .map(|c| c.attrs().wrapped())
+                            .unwrap_or(false);
+                }
+            }
+        }
+
+        Ok(s)
     }
 }
 
@@ -185,7 +254,7 @@ impl UserData for MuxPane {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
             let mut name = None;
-            if let Some(mux) = Mux::get() {
+            if let Some(mux) = Mux::try_get() {
                 let domain_id = pane.domain_id();
                 name = mux
                     .get_domain(domain_id)
@@ -207,6 +276,82 @@ impl UserData for MuxPane {
 
             pane.perform_actions(actions);
             Ok(())
+        });
+
+        methods.add_method("get_semantic_zones", |lua, this, of_type: Value| {
+            let mux = get_mux()?;
+            let pane = this.resolve(&mux)?;
+
+            let of_type: Option<SemanticType> = from_lua(of_type)?;
+
+            let mut zones = pane
+                .get_semantic_zones()
+                .map_err(|e| mlua::Error::external(format!("{:#}", e)))?;
+
+            if let Some(of_type) = of_type {
+                zones.retain(|zone| zone.semantic_type == of_type);
+            }
+
+            let zones = to_lua(lua, zones)?;
+            Ok(zones)
+        });
+
+        methods.add_method(
+            "get_semantic_zone_at",
+            |lua, this, (x, y): (usize, StableRowIndex)| {
+                let mux = get_mux()?;
+                let pane = this.resolve(&mux)?;
+
+                let zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
+
+                fn find_zone(x: usize, y: StableRowIndex, zone: &SemanticZone) -> Ordering {
+                    match zone.start_y.cmp(&y) {
+                        Ordering::Greater => return Ordering::Greater,
+                        // If the zone starts on the same line then check that the
+                        // x position is within bounds
+                        Ordering::Equal => match zone.start_x.cmp(&x) {
+                            Ordering::Greater => return Ordering::Greater,
+                            Ordering::Equal | Ordering::Less => {}
+                        },
+                        Ordering::Less => {}
+                    }
+                    match zone.end_y.cmp(&y) {
+                        Ordering::Less => Ordering::Less,
+                        // If the zone ends on the same line then check that the
+                        // x position is within bounds
+                        Ordering::Equal => match zone.end_x.cmp(&x) {
+                            Ordering::Less => Ordering::Less,
+                            Ordering::Equal | Ordering::Greater => Ordering::Equal,
+                        },
+                        Ordering::Greater => Ordering::Equal,
+                    }
+                }
+
+                match zones.binary_search_by(|zone| find_zone(x, y, zone)) {
+                    Ok(idx) => {
+                        let zone = to_lua(lua, zones[idx])?;
+                        Ok(Some(zone))
+                    }
+                    Err(_) => Ok(None),
+                }
+            },
+        );
+
+        methods.add_method("get_text_from_semantic_zone", |_lua, this, zone: Value| {
+            let zone: SemanticZone = from_lua(zone)?;
+            this.get_text_from_semantic_zone(zone)
+        });
+
+        methods.add_method("get_text_from_region", |_lua, this, (start_x, start_y, end_x, end_y): (usize, StableRowIndex, usize, StableRowIndex)| {
+            let zone = SemanticZone {
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+                // semantic_type is not used by get_text_from_semantic_zone
+                semantic_type: SemanticType::Output,
+            };
+            this.get_text_from_semantic_zone(zone)
         });
     }
 }

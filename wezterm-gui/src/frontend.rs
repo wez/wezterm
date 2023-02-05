@@ -1,8 +1,11 @@
 use crate::scripting::guiwin::GuiWin;
+use crate::spawn::SpawnWhere;
 use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use ::window::*;
 use anyhow::{Context, Error};
+use config::keyassignment::{KeyAssignment, SpawnCommand};
+use config::ConfigSubscription;
 pub use config::FrontEndSelection;
 use mux::client::ClientId;
 use mux::window::WindowId as MuxWindowId;
@@ -21,6 +24,7 @@ pub struct GuiFrontEnd {
     spawned_mux_window: RefCell<HashSet<MuxWindowId>>,
     known_windows: RefCell<BTreeMap<Window, MuxWindowId>>,
     client_id: Arc<ClientId>,
+    config_subscription: RefCell<Option<ConfigSubscription>>,
 }
 
 impl Drop for GuiFrontEnd {
@@ -32,8 +36,9 @@ impl Drop for GuiFrontEnd {
 impl GuiFrontEnd {
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
         let connection = Connection::init()?;
+        connection.set_event_handler(Self::app_event_handler);
 
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         let client_id = mux.active_identity().expect("to have set my own id");
 
         let front_end = Rc::new(GuiFrontEnd {
@@ -42,83 +47,91 @@ impl GuiFrontEnd {
             spawned_mux_window: RefCell::new(HashSet::new()),
             known_windows: RefCell::new(BTreeMap::new()),
             client_id: client_id.clone(),
+            config_subscription: RefCell::new(None),
         });
-        let fe = Rc::downgrade(&front_end);
+
         mux.subscribe(move |n| {
-            if let Some(fe) = fe.upgrade() {
-                match n {
-                    MuxNotification::WindowWorkspaceChanged(_)
-                    | MuxNotification::ActiveWorkspaceChanged(_)
-                    | MuxNotification::WindowCreated(_)
-                    | MuxNotification::WindowRemoved(_) => {
-                        promise::spawn::spawn(async move {
-                            let fe = crate::frontend::front_end();
-                            if !fe.is_switching_workspace() {
-                                fe.reconcile_workspace();
+            match n {
+                MuxNotification::WindowWorkspaceChanged(_)
+                | MuxNotification::ActiveWorkspaceChanged(_)
+                | MuxNotification::WindowCreated(_)
+                | MuxNotification::WindowRemoved(_) => {
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let fe = crate::frontend::front_end();
+                        if !fe.is_switching_workspace() {
+                            fe.reconcile_workspace();
+                        }
+                    })
+                    .detach();
+                }
+                MuxNotification::TabAddedToWindow { .. } => {}
+                MuxNotification::PaneRemoved(_) => {}
+                MuxNotification::WindowInvalidated(_) => {}
+                MuxNotification::PaneOutput(_) => {}
+                MuxNotification::PaneAdded(_) => {}
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert:
+                        Alert::ToastNotification {
+                            title,
+                            body,
+                            focus: _,
+                        },
+                } => {
+                    let message = if title.is_none() { "" } else { &body };
+                    let title = title.as_ref().unwrap_or(&body);
+                    // FIXME: if notification.focus is true, we should do
+                    // something here to arrange to focus pane_id when the
+                    // notification is clicked
+                    persistent_toast_notification(title, message);
+                }
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert: Alert::Bell,
+                } => {
+                    // Handled via TermWindowNotif; NOP it here.
+                }
+                MuxNotification::Alert {
+                    pane_id: _,
+                    alert:
+                        Alert::OutputSinceFocusLost
+                        | Alert::PaletteChanged
+                        | Alert::CurrentWorkingDirectoryChanged
+                        | Alert::WindowTitleChanged(_)
+                        | Alert::TabTitleChanged(_)
+                        | Alert::IconTitleChanged(_)
+                        | Alert::SetUserVar { .. },
+                } => {}
+                MuxNotification::Empty => {
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        promise::spawn::spawn_into_main_thread(async move {
+                            if mux::activity::Activity::count() == 0 {
+                                log::trace!("Mux is now empty, terminate gui");
+                                Connection::get().unwrap().terminate_message_loop();
                             }
                         })
                         .detach();
                     }
-                    MuxNotification::TabAddedToWindow { .. } => {}
-                    MuxNotification::PaneRemoved(_) => {}
-                    MuxNotification::WindowInvalidated(_) => {}
-                    MuxNotification::PaneOutput(_) => {}
-                    MuxNotification::PaneAdded(_) => {}
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert:
-                            Alert::ToastNotification {
-                                title,
-                                body,
-                                focus: _,
-                            },
-                    } => {
-                        let message = if title.is_none() { "" } else { &body };
-                        let title = title.as_ref().unwrap_or(&body);
-                        // FIXME: if notification.focus is true, we should do
-                        // something here to arrange to focus pane_id when the
-                        // notification is clicked
-                        persistent_toast_notification(title, message);
-                    }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert: Alert::Bell,
-                    } => {
-                        // Handled via TermWindowNotif; NOP it here.
-                    }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert:
-                            Alert::OutputSinceFocusLost
-                            | Alert::PaletteChanged
-                            | Alert::CurrentWorkingDirectoryChanged
-                            | Alert::WindowTitleChanged(_)
-                            | Alert::TabTitleChanged(_)
-                            | Alert::IconTitleChanged(_)
-                            | Alert::SetUserVar { .. },
-                    } => {}
-                    MuxNotification::Empty => {
-                        if mux::activity::Activity::count() == 0 {
-                            log::trace!("Mux is now empty, terminate gui");
-                            Connection::get().unwrap().terminate_message_loop();
-                        }
-                    }
-                    MuxNotification::SaveToDownloads { name, data } => {
-                        if !config::configuration().allow_download_protocols {
-                            log::error!(
-                                "Ignoring download request for {:?}, \
+                }
+                MuxNotification::SaveToDownloads { name, data } => {
+                    if !config::configuration().allow_download_protocols {
+                        log::error!(
+                            "Ignoring download request for {:?}, \
                                  as allow_download_protocols=false",
-                                name
-                            );
-                        } else if let Err(err) = crate::download::save_to_downloads(name, &*data) {
-                            log::error!("save_to_downloads: {:#}", err);
-                        }
+                            name
+                        );
+                    } else if let Err(err) = crate::download::save_to_downloads(name, &*data) {
+                        log::error!("save_to_downloads: {:#}", err);
                     }
-                    MuxNotification::AssignClipboard {
-                        pane_id,
-                        selection,
-                        clipboard,
-                    } => {
+                }
+                MuxNotification::AssignClipboard {
+                    pane_id,
+                    selection,
+                    clipboard,
+                } => {
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let fe = crate::frontend::front_end();
                         log::trace!(
                             "set clipboard in pane {} {:?} {:?}",
                             pane_id,
@@ -137,19 +150,117 @@ impl GuiFrontEnd {
                             );
                         } else {
                             log::error!("Cannot assign clipboard as there are no windows");
-                        }
-                    }
+                        };
+                    })
+                    .detach();
                 }
-                true
-            } else {
-                false
             }
+            true
         });
         // Re-evaluate the config so that folks that are using
         // `wezterm.gui.get_appearance()` can have that take effect
         // before any windows are created
         config::reload();
+
+        // And build the initial menu bar.
+        // TODO: arrange for this to happen on config reload.
+        crate::commands::CommandDef::recreate_menubar(&config::configuration());
+
         Ok(front_end)
+    }
+
+    fn app_event_handler(event: ApplicationEvent) {
+        log::trace!("Got app event {event:?}");
+        match event {
+            ApplicationEvent::OpenCommandScript(file_name) => {
+                promise::spawn::spawn(async move {
+                    use config::keyassignment::SpawnTabDomain;
+                    use wezterm_term::TerminalSize;
+
+                    // We send the script to execute to the shell on stdin, rather than ask the
+                    // shell to execute it directly, so that we start the shell and read in the
+                    // user's rc files before running the script.  Without this, wezterm on macOS
+                    // is launched with a default and very anemic path, and that is frustrating for
+                    // users.
+
+                    let mux = Mux::get();
+                    let window_id = None;
+                    let pane_id = None;
+                    let cmd = None;
+                    let cwd = None;
+                    let workspace = mux.active_workspace();
+
+                    match mux
+                        .spawn_tab_or_window(
+                            window_id,
+                            SpawnTabDomain::DomainName("local".to_string()),
+                            cmd,
+                            cwd,
+                            TerminalSize::default(),
+                            pane_id,
+                            workspace,
+                        )
+                        .await
+                    {
+                        Ok((_tab, pane, _window_id)) => {
+                            log::trace!("Spawned {file_name} as pane_id {}", pane.pane_id());
+                            let mut writer = pane.writer();
+                            write!(writer, "{} ; exit\n", shlex::quote(&file_name)).ok();
+                        }
+                        Err(err) => {
+                            log::error!("Failed to spawn {file_name}: {err:#?}");
+                        }
+                    };
+                })
+                .detach();
+            }
+            ApplicationEvent::PerformKeyAssignment(action) => {
+                // We should only get here when there are no windows open
+                // and the user picks an action from the menubar.
+                // This is not currently possible, but could be in the
+                // future.
+
+                fn spawn_command(spawn: &SpawnCommand, spawn_where: SpawnWhere) {
+                    let config = config::configuration();
+                    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
+                    let size = config.initial_size(dpi);
+                    let term_config = Arc::new(config::TermConfig::with_config(config));
+
+                    crate::spawn::spawn_command_impl(spawn, spawn_where, size, None, term_config)
+                }
+
+                match action {
+                    KeyAssignment::QuitApplication => {
+                        // If we get here, there are no windows that could have received
+                        // the QuitApplication command, therefore it must be ok to quit
+                        // immediately
+                        log::info!("QuitApplication over here");
+                        Connection::get().unwrap().terminate_message_loop();
+                    }
+                    KeyAssignment::SpawnWindow => {
+                        spawn_command(&SpawnCommand::default(), SpawnWhere::NewWindow);
+                    }
+                    KeyAssignment::SpawnTab(spawn_where) => {
+                        spawn_command(
+                            &SpawnCommand {
+                                domain: spawn_where,
+                                ..Default::default()
+                            },
+                            SpawnWhere::NewWindow,
+                        );
+                    }
+                    KeyAssignment::SpawnCommandInNewTab(spawn) => {
+                        spawn_command(&spawn, SpawnWhere::NewTab);
+                    }
+                    KeyAssignment::SpawnCommandInNewWindow(spawn) => {
+                        spawn_command(&spawn, SpawnWhere::NewWindow);
+                    }
+                    _ => {
+                        log::warn!("unhandled perform: {action:?}");
+                    }
+                }
+            }
+        }
     }
 
     pub fn run_forever(&self) -> anyhow::Result<()> {
@@ -158,9 +269,22 @@ impl GuiFrontEnd {
             .context("running message loop")
     }
 
+    pub fn gui_windows(&self) -> Vec<GuiWin> {
+        let windows = self.known_windows.borrow();
+        let mut windows: Vec<GuiWin> = windows
+            .iter()
+            .map(|(window, &mux_window_id)| GuiWin {
+                mux_window_id,
+                window: window.clone(),
+            })
+            .collect();
+        windows.sort_by(|a, b| a.window.cmp(&b.window));
+        windows
+    }
+
     pub fn reconcile_workspace(&self) -> Future<()> {
         let mut promise = Promise::new();
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         let workspace = mux.active_workspace_for_client(&self.client_id);
 
         if mux.is_workspace_empty(&workspace) {
@@ -240,7 +364,7 @@ impl GuiFrontEnd {
                 log::trace!("Creating TermWindow for mux_window_id={}", mux_window_id);
                 if let Err(err) = TermWindow::new_window(mux_window_id).await {
                     log::error!("Failed to create window: {:#}", err);
-                    let mux = Mux::get().expect("switching_workspaces to trigger on main thread");
+                    let mux = Mux::get();
                     mux.kill_window(mux_window_id);
                     front_end()
                         .spawned_mux_window
@@ -265,7 +389,7 @@ impl GuiFrontEnd {
     }
 
     pub fn switch_workspace(&self, workspace: &str) {
-        let mux = Mux::get().expect("mux started and running on main thread");
+        let mux = Mux::get();
         mux.set_active_workspace_for_client(&self.client_id, workspace);
         *self.switching_workspaces.borrow_mut() = false;
         self.reconcile_workspace();
@@ -349,5 +473,20 @@ pub fn shutdown() {
 pub fn try_new() -> Result<Rc<GuiFrontEnd>, Error> {
     let front_end = GuiFrontEnd::try_new()?;
     FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
+
+    let config_subscription = config::subscribe_to_config_reload({
+        move || {
+            promise::spawn::spawn_into_main_thread(async {
+                crate::commands::CommandDef::recreate_menubar(&config::configuration());
+            })
+            .detach();
+            true
+        }
+    });
+    front_end
+        .config_subscription
+        .borrow_mut()
+        .replace(config_subscription);
+
     Ok(front_end)
 }

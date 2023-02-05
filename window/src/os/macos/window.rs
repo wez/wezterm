@@ -4,6 +4,7 @@
 use super::keycodes::*;
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
+use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
 use crate::{
     Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
@@ -496,13 +497,35 @@ impl Window {
             thread_local! {
                 static LAST_POSITION: RefCell<Option<NSPoint>> = RefCell::new(None);
             }
+
+            let frame = NSWindow::frame(*window);
+            let active_screen = NSScreen::mainScreen(nil);
+            let active_screen_frame = NSScreen::frame(active_screen);
+
+            fn point_in_rect(pt: NSPoint, rect: NSRect) -> bool {
+                let rect: euclid::Rect<f64, ()> = euclid::rect(
+                    rect.origin.x,
+                    rect.origin.y,
+                    rect.size.width,
+                    rect.size.height,
+                );
+                rect.contains(euclid::point2(pt.x, pt.y))
+            }
+
             LAST_POSITION.with(|last_pos| {
                 let pos = pos.or_else(|| last_pos.borrow_mut().take());
-                let next_pos = if let Some(pos) = pos {
-                    window.cascadeTopLeftFromPoint_(pos)
-                } else {
-                    window.center();
-                    window.cascadeTopLeftFromPoint_(NSPoint::new(0., 0.))
+                let next_pos = match pos {
+                    Some(pos) if point_in_rect(pos, active_screen_frame) => {
+                        // Only continue the cascade if the prior point is
+                        // still within the currently active screen
+                        window.cascadeTopLeftFromPoint_(pos)
+                    }
+                    _ => {
+                        // Otherwise, position as if it is the first time
+                        // we're displaying on this screen
+                        window.center();
+                        window.cascadeTopLeftFromPoint_(frame.origin)
+                    }
                 };
                 last_pos.borrow_mut().replace(next_pos);
             });
@@ -631,6 +654,13 @@ impl WindowOps for Window {
     fn close(&self) {
         Connection::with_window_inner(self.id, |inner| {
             inner.close();
+            Ok(())
+        });
+    }
+
+    fn focus(&self) {
+        Connection::with_window_inner(self.id, |inner| {
+            inner.focus();
             Ok(())
         });
     }
@@ -956,8 +986,25 @@ impl WindowInner {
             // when transparent, also turn off the window shadow,
             // because having the shadow enabled seems to correlate
             // with ghostly remnants see:
-            // https://github.com/wez/wezterm/issues/310
-            self.window.setHasShadow_(is_opaque);
+            // https://github.com/wez/wezterm/issues/310.
+            // But allow overriding the shadows independent of opacity as well:
+            // <https://github.com/wez/wezterm/issues/2669>
+            let shadow = if self
+                .config
+                .window_decorations
+                .contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW)
+            {
+                YES
+            } else if self
+                .config
+                .window_decorations
+                .contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW)
+            {
+                NO
+            } else {
+                is_opaque
+            };
+            self.window.setHasShadow_(shadow);
         }
     }
 }
@@ -983,6 +1030,12 @@ impl WindowInner {
     fn close(&mut self) {
         unsafe {
             self.window.close();
+        }
+    }
+
+    fn focus(&mut self) {
+        unsafe {
+            self.window.makeKeyAndOrderFront_(nil);
         }
     }
 
@@ -1869,12 +1922,49 @@ impl WindowView {
         }
     }
 
+    /// Ensure that the menubar is shown when we transition from a fullscreen window
+    /// to either a non-fullscreen window or no windows.
+    /// Without this, we can end up in a state where the menu bar is invisible when
+    /// it should otherwise be visible, and it is especially confusing when there
+    /// are no windows.
+    fn update_application_presentation(&self, is_key: bool) {
+        let is_simple_full_screen;
+        let native_full_screen;
+
+        {
+            let inner = self.inner.borrow();
+            native_full_screen = inner.config.native_macos_fullscreen_mode;
+            is_simple_full_screen = inner.fullscreen.is_some();
+        }
+
+        if !native_full_screen {
+            let current_app = unsafe { NSApplication::sharedApplication(nil) };
+            let target_options = match (is_key, is_simple_full_screen) {
+                (true, true) => {
+                    NSApplicationPresentationOptions::NSApplicationPresentationAutoHideMenuBar
+                        | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
+                }
+                (true, false) | (false, _) => {
+                    NSApplicationPresentationOptions::NSApplicationPresentationDefault
+                }
+            };
+            unsafe {
+                let current_options: NSApplicationPresentationOptions =
+                    msg_send![current_app, presentationOptions];
+                if current_options != target_options {
+                    current_app.setPresentationOptions_(target_options);
+                }
+            }
+        }
+    }
+
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             this.inner
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::FocusChanged(true));
+            this.update_application_presentation(true);
         }
     }
 
@@ -1884,6 +1974,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::FocusChanged(false));
+            this.update_application_presentation(true);
         }
     }
 
@@ -1903,6 +1994,28 @@ impl WindowView {
         NO
     }
 
+    extern "C" fn wezterm_perform_key_assignment(
+        this: &mut Object,
+        _sel: Sel,
+        menu_item: *mut Object,
+    ) {
+        let menu_item = MenuItem::with_menu_item(menu_item);
+        // Safe because weztermPerformKeyAssignment: is only used with KeyAssignment
+        let action = menu_item.get_represented_item();
+        log::debug!("wezterm_perform_key_assignment {action:?}",);
+        match action {
+            Some(RepresentedItem::KeyAssignment(action)) => {
+                if let Some(this) = Self::get_this(this) {
+                    this.inner
+                        .borrow_mut()
+                        .events
+                        .dispatch(WindowEvent::PerformKeyAssignment(action));
+                }
+            }
+            None => {}
+        }
+    }
+
     extern "C" fn window_will_close(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             // Advise the window of its impending death
@@ -1910,6 +2023,7 @@ impl WindowView {
                 .borrow_mut()
                 .events
                 .dispatch(WindowEvent::Destroyed);
+            this.update_application_presentation(false);
         }
 
         // Release and zero out the inner member
@@ -2708,6 +2822,12 @@ impl WindowView {
             cls.add_method(
                 sel!(dealloc),
                 WindowView::dealloc as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(weztermPerformKeyAssignment:),
+                Self::wezterm_perform_key_assignment
+                    as extern "C" fn(&mut Object, Sel, *mut Object),
             );
 
             cls.add_method(

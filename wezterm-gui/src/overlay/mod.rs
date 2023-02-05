@@ -3,7 +3,6 @@ use mux::pane::{Pane, PaneId};
 use mux::tab::{Tab, TabId};
 use mux::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
-use std::rc::Rc;
 use std::sync::Arc;
 use wezterm_term::{TerminalConfiguration, TerminalSize};
 
@@ -23,10 +22,10 @@ pub use quickselect::QuickSelectOverlay;
 
 pub fn start_overlay<T, F>(
     term_window: &TermWindow,
-    tab: &Rc<Tab>,
+    tab: &Arc<Tab>,
     func: F,
 ) -> (
-    Rc<dyn Pane>,
+    Arc<dyn Pane>,
     Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where
@@ -54,10 +53,10 @@ where
 
 pub fn start_overlay_pane<T, F>(
     term_window: &TermWindow,
-    pane: &Rc<dyn Pane>,
+    pane: &Arc<dyn Pane>,
     func: F,
 ) -> (
-    Rc<dyn Pane>,
+    Arc<dyn Pane>,
     Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where

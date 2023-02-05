@@ -2,8 +2,11 @@
 
 wezterm supports integrating with the shell through the following means:
 
-* OSC 7 Escape sequences to advise the terminal of the working directory
-* OSC 133 Escape sequence to define Input, Output and Prompt zones
+* `OSC 7` Escape sequences to advise the terminal of the working directory
+* `OSC 133` Escape sequence to define Input, Output and Prompt zones
+* `OSC 1337` Escape sequences to set user vars for tracking additional shell state
+
+`OSC` is escape sequence jargon for *Operating System Command*.
 
 These sequences enable some improved user experiences, such as being able
 to spawn new panes, tabs and windows with the same current working directory
@@ -24,12 +27,49 @@ can be found below.
 
 [Learn more about OSC 133 Semantic Prompt Escapes](https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md).
 
+### User Vars
+
+`OSC 1337` provides a means for setting *user vars*, which are somewhat similar
+to environment variables, except that they are variables associated with a
+given pane rather than a process.
+
+Installing the wezterm shell integration will define the following user vars
+by default:
+
+* `WEZTERM_PROG` - the command line being executed by the shell
+* `WEZTERM_USER` - holds the output from `id -un`; the current user name
+* `WEZTERM_HOST` - holds the output from `hostname`; the hostname that the shell is running on
+* `WEZTERM_IN_TMUX` - holds `1` if the shell is running inside tmux, `0` otherwise
+
+If you are a tmux user, you must ensure that you have `set -g allow-passthrough on` set
+in your tmux.conf for user vars to work.
+
+Those vars will be updated each time the prompt is shown and just prior to executing a command.
+
+The shell integration provides a shell function named `__wezterm_set_user_var` which can be
+used to set your own user vars.
+
+Setting a user var will generate events in the window that contains
+the corresponding pane:
+
+* [user-var-changed](config/lua/window-events/user-var-changed.md), which
+  allows you to directly take action when a var is set/changed.
+* [update-status](config/lua/window-events/update-status.md) which allows you to update left/right status items
+* the title and tab bar area will then update and trigger any associated events as part of that update
+
+You can access the complete set of user vars in a given pane by calling
+[pane:get_user_vars()](config/lua/pane/get_user_vars.md), or by accessing
+the `user_vars` field in a [PaneInformation](config/lua/PaneInformation.md)
+struct.
+
+You may wish to use this information to adjust what is shown in your tab titles
+or in the status area.
+
 ### OSC 7 Escape sequence to set the working directory
 
-`OSC` is escape sequence jargon for *Operating System Command*; `OSC 7` means
-Operating System Command number 7.  This is an escape sequence that originated
-in the macOS Terminal application that is used to advise the terminal of the
-current working directory.
+`OSC 7` means Operating System Command number 7.  This is an escape sequence
+that originated in the macOS Terminal application that is used to advise the
+terminal of the current working directory.
 
 An application (usually your shell) can be configured to emit this escape
 sequence when the current directory changes, or just to emit it each time

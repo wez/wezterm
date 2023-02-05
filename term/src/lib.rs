@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 use termwiz::surface::SequenceNo;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub mod config;
 pub use config::TerminalConfiguration;
@@ -115,7 +116,7 @@ pub struct CursorPosition {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, FromDynamic, ToDynamic)]
 pub struct SemanticZone {
     pub start_y: StableRowIndex,
     pub start_x: usize,

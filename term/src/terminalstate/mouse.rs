@@ -2,6 +2,7 @@ use crate::input::*;
 use crate::terminalstate::MouseEncoding;
 use crate::TerminalState;
 use anyhow::bail;
+use std::io::Write;
 
 impl TerminalState {
     /// Encode a coordinate value using X10 encoding or Utf8 encoding.

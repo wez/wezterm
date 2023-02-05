@@ -25,8 +25,8 @@ use ::window::glium::{BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, ULength, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform, TabBarColors,
-    TextStyle, VisualBellTarget,
+    BoldBrightening, ConfigHandle, Dimension, DimensionContext, FreeTypeLoadTarget, HsbTransform,
+    TabBarColors, TextStyle, VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::{Pane, PaneId, WithPaneLines};
@@ -244,7 +244,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub palette: &'a ColorPalette,
     pub dims: &'a RenderableDimensions,
     pub config: &'a ConfigHandle,
-    pub pane: Option<&'a Rc<dyn Pane>>,
+    pub pane: Option<&'a Arc<dyn Pane>>,
 
     pub white_space: TextureRect,
     pub filled_box: TextureRect,
@@ -299,7 +299,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_bg: LinearRgba,
     pub cursor_is_default_color: bool,
     pub cursor_border_color: LinearRgba,
-    pub pane: Option<&'a Rc<dyn Pane>>,
+    pub pane: Option<&'a Arc<dyn Pane>>,
 }
 
 #[derive(Debug)]
@@ -461,7 +461,7 @@ impl super::TermWindow {
 
     fn get_intensity_if_bell_target_ringing(
         &self,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
         config: &ConfigHandle,
         target: VisualBellTarget,
     ) -> Option<f32> {
@@ -2183,7 +2183,7 @@ impl super::TermWindow {
         &mut self,
         layers: &mut TripleLayerQuadAllocator,
         split: &PositionedSplit,
-        pane: &Rc<dyn Pane>,
+        pane: &Arc<dyn Pane>,
     ) -> anyhow::Result<()> {
         let palette = pane.palette();
         let foreground = palette.split.to_linear();
@@ -2329,9 +2329,7 @@ impl super::TermWindow {
                 self.update_text_cursor(&pos);
                 if focused {
                     pos.pane.advise_focus();
-                    mux::Mux::get()
-                        .expect("called on mux thread")
-                        .record_focus_for_current_identity(pos.pane.pane_id());
+                    mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
             self.paint_pane_opengl(&pos, num_panes, &mut layers)?;
@@ -3740,7 +3738,7 @@ fn resolve_fg_color_attr(
             }
         }
         wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-            if idx < 8 && config.bold_brightens_ansi_colors =>
+            if idx < 8 && config.bold_brightens_ansi_colors != BoldBrightening::No =>
         {
             // For compatibility purposes, switch to a brighter version
             // of one of the standard ANSI colors when Bold is enabled.

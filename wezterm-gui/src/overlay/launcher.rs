@@ -5,6 +5,7 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
+use crate::commands::derive_command_from_key_assignment;
 use crate::inputmap::InputMap;
 use crate::termwindow::TermWindowNotif;
 use config::configuration;
@@ -69,7 +70,7 @@ impl LauncherArgs {
         pane_id: PaneId,
         domain_id_of_current_tab: DomainId,
     ) -> Self {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         let active_workspace = mux.active_workspace();
 
@@ -320,13 +321,19 @@ impl LauncherState {
                     // Avoid duplicate entries
                     continue;
                 }
-                key_entries.push(Entry {
-                    label: format!(
+
+                let label = match derive_command_from_key_assignment(&entry.action) {
+                    Some(cmd) => format!("{}. {}", cmd.brief, cmd.doc),
+                    None => format!(
                         "{:?} ({} {})",
                         entry.action,
                         mods.to_string(),
                         keycode.to_string().escape_debug()
                     ),
+                };
+
+                key_entries.push(Entry {
+                    label,
                     action: entry.action,
                 });
             }

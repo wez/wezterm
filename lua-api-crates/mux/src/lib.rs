@@ -2,29 +2,29 @@ use config::keyassignment::SpawnTabDomain;
 use config::lua::mlua::{self, Lua, UserData, UserDataMethods, Value as LuaValue};
 use config::lua::{get_or_create_module, get_or_create_sub_module};
 use luahelper::impl_lua_conversion_dynamic;
-use mux::domain::SplitSource;
+use mux::domain::{DomainId, SplitSource};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitDirection, SplitRequest, SplitSize, Tab, TabId};
 use mux::window::{Window, WindowId};
 use mux::Mux;
 use portable_pty::CommandBuilder;
-use std::cell::{Ref, RefMut};
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::TerminalSize;
 
+mod domain;
 mod pane;
 mod tab;
 mod window;
 
+pub use domain::MuxDomain;
 pub use pane::MuxPane;
 pub use tab::MuxTab;
 pub use window::MuxWindow;
 
-fn get_mux() -> mlua::Result<Rc<Mux>> {
-    Mux::get()
-        .ok_or_else(|| mlua::Error::external("cannot get Mux: not running on the mux thread?"))
+fn get_mux() -> mlua::Result<Arc<Mux>> {
+    Mux::try_get().ok_or_else(|| mlua::Error::external("cannot get Mux!?"))
 }
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
@@ -67,7 +67,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         lua.create_function(|_, window_id: WindowId| {
             let mux = get_mux()?;
             let window = MuxWindow(window_id);
-            window.resolve(&mux)?;
+            let _resolved = window.resolve(&mux)?;
             Ok(window)
         })?,
     )?;
@@ -106,6 +106,55 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
                 .into_iter()
                 .map(|id| MuxWindow(id))
                 .collect::<Vec<MuxWindow>>())
+        })?,
+    )?;
+
+    mux_mod.set(
+        "get_domain",
+        lua.create_function(|_, domain: LuaValue| {
+            let mux = get_mux()?;
+            match domain {
+                LuaValue::Nil => Ok(Some(MuxDomain(mux.default_domain().domain_id()))),
+                LuaValue::String(s) => match s.to_str() {
+                    Ok(name) => Ok(mux
+                        .get_domain_by_name(name)
+                        .map(|dom| MuxDomain(dom.domain_id()))),
+                    Err(err) => Err(mlua::Error::external(format!(
+                        "invalid domain identifier passed to mux.get_domain: {err:#}"
+                    ))),
+                },
+                LuaValue::Integer(id) => match TryInto::<DomainId>::try_into(id) {
+                    Ok(id) => Ok(mux.get_domain(id).map(|dom| MuxDomain(dom.domain_id()))),
+                    Err(err) => Err(mlua::Error::external(format!(
+                        "invalid domain identifier passed to mux.get_domain: {err:#}"
+                    ))),
+                },
+                _ => Err(mlua::Error::external(
+                    "invalid domain identifier passed to mux.get_domain".to_string(),
+                )),
+            }
+        })?,
+    )?;
+
+    mux_mod.set(
+        "all_domains",
+        lua.create_function(|_, _: ()| {
+            let mux = get_mux()?;
+            Ok(mux
+                .iter_domains()
+                .into_iter()
+                .map(|dom| MuxDomain(dom.domain_id()))
+                .collect::<Vec<MuxDomain>>())
+        })?,
+    )?;
+
+    mux_mod.set(
+        "set_default_domain",
+        lua.create_function(|_, domain: MuxDomain| {
+            let mux = get_mux()?;
+            let domain = domain.resolve(&mux)?;
+            mux.set_default_domain(&domain);
+            Ok(())
         })?,
     )?;
 

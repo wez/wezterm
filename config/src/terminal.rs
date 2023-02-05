@@ -67,6 +67,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().enable_kitty_graphics
     }
 
+    fn enable_title_reporting(&self) -> bool {
+        self.configuration().enable_title_reporting
+    }
+
     fn enable_kitty_keyboard(&self) -> bool {
         self.configuration().enable_kitty_keyboard
     }

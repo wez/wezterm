@@ -1,15 +1,22 @@
 use super::*;
+use parking_lot::{MappedRwLockReadGuard, MappedRwLockWriteGuard};
 
 #[derive(Clone, Copy, Debug)]
 pub struct MuxWindow(pub WindowId);
 
 impl MuxWindow {
-    pub fn resolve<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<Ref<'a, Window>> {
+    pub fn resolve<'a>(
+        &self,
+        mux: &'a Arc<Mux>,
+    ) -> mlua::Result<MappedRwLockReadGuard<'a, Window>> {
         mux.get_window(self.0)
             .ok_or_else(|| mlua::Error::external(format!("window id {} not found in mux", self.0)))
     }
 
-    pub fn resolve_mut<'a>(&self, mux: &'a Rc<Mux>) -> mlua::Result<RefMut<'a, Window>> {
+    pub fn resolve_mut<'a>(
+        &self,
+        mux: &'a Arc<Mux>,
+    ) -> mlua::Result<MappedRwLockWriteGuard<'a, Window>> {
         mux.get_window_mut(self.0)
             .ok_or_else(|| mlua::Error::external(format!("window id {} not found in mux", self.0)))
     }

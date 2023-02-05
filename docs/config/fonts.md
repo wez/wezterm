@@ -97,10 +97,6 @@ wezterm.font_with_fallback({
   -- Assumed to have Emoji Presentation
   -- Pixel sizes: [128]
   "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 
 
@@ -119,10 +115,6 @@ wezterm.font_with_fallback({
   -- Assumed to have Emoji Presentation
   -- Pixel sizes: [128]
   "Noto Color Emoji",
-
-  -- <built-in>, BuiltIn
-  "Last Resort High-Efficiency",
-
 })
 ...
 ```

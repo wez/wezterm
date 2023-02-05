@@ -14,3 +14,7 @@ value for `OSC 2` will be returned.
 Note that on Microsoft Windows the default behavior of the OS level PTY is to
 implicitly send `OSC 2` sequences to the terminal as new programs attach to the
 console.
+
+If the title text is `wezterm` and the pane is a local pane, then wezterm will
+attempt to resolve the executable path of the foreground process that is
+associated with the pane and will use that instead of `wezterm`.

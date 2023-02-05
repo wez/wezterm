@@ -3,7 +3,7 @@ use crate::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, ClipboardPasteSource};
 use mux::pane::Pane;
 use mux::Mux;
-use std::rc::Rc;
+use std::sync::Arc;
 use window::{Clipboard, WindowOps};
 
 impl TermWindow {
@@ -23,7 +23,7 @@ impl TermWindow {
         }
     }
 
-    pub fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: ClipboardPasteSource) {
+    pub fn paste_from_clipboard(&mut self, pane: &Arc<dyn Pane>, clipboard: ClipboardPasteSource) {
         let pane_id = pane.pane_id();
         log::trace!(
             "paste_from_clipboard in pane {} {:?}",
@@ -45,7 +45,7 @@ impl TermWindow {
                         .as_ref()
                         .map(|overlay| overlay.pane.clone())
                         .or_else(|| {
-                            let mux = Mux::get().unwrap();
+                            let mux = Mux::get();
                             mux.get_pane(pane_id)
                         })
                     {

@@ -1,13 +1,13 @@
 use crate::pane::CloseReason;
 use crate::{Mux, MuxNotification, Tab, TabId};
-use std::rc::Rc;
+use std::sync::Arc;
 
 static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type WindowId = usize;
 
 pub struct Window {
     id: WindowId,
-    tabs: Vec<Rc<Tab>>,
+    tabs: Vec<Arc<Tab>>,
     active: usize,
     last_active: Option<TabId>,
     workspace: String,
@@ -22,11 +22,7 @@ impl Window {
             active: 0,
             last_active: None,
             title: String::new(),
-            workspace: workspace.unwrap_or_else(|| {
-                Mux::get()
-                    .expect("Window::new to be called on mux thread")
-                    .active_workspace()
-            }),
+            workspace: workspace.unwrap_or_else(|| Mux::get().active_workspace()),
         }
     }
 
@@ -47,35 +43,33 @@ impl Window {
             return;
         }
         self.workspace = workspace.to_string();
-        if let Some(mux) = Mux::get() {
-            mux.notify(MuxNotification::WindowWorkspaceChanged(self.id));
-        }
+        Mux::get().notify(MuxNotification::WindowWorkspaceChanged(self.id));
     }
 
     pub fn window_id(&self) -> WindowId {
         self.id
     }
 
-    fn check_that_tab_isnt_already_in_window(&self, tab: &Rc<Tab>) {
+    fn check_that_tab_isnt_already_in_window(&self, tab: &Arc<Tab>) {
         for t in &self.tabs {
             assert_ne!(t.tab_id(), tab.tab_id(), "tab already added to this window");
         }
     }
 
     fn invalidate(&self) {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         mux.notify(MuxNotification::WindowInvalidated(self.id));
     }
 
-    pub fn insert(&mut self, index: usize, tab: &Rc<Tab>) {
+    pub fn insert(&mut self, index: usize, tab: &Arc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
-        self.tabs.insert(index, Rc::clone(tab));
+        self.tabs.insert(index, Arc::clone(tab));
         self.invalidate();
     }
 
-    pub fn push(&mut self, tab: &Rc<Tab>) {
+    pub fn push(&mut self, tab: &Arc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
-        self.tabs.push(Rc::clone(tab));
+        self.tabs.push(Arc::clone(tab));
         self.invalidate();
     }
 
@@ -87,7 +81,7 @@ impl Window {
         self.tabs.len()
     }
 
-    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<Tab>> {
+    pub fn get_by_idx(&self, idx: usize) -> Option<&Arc<Tab>> {
         self.tabs.get(idx)
     }
 
@@ -109,7 +103,7 @@ impl Window {
         None
     }
 
-    fn fixup_active_tab_after_removal(&mut self, active: Option<Rc<Tab>>) {
+    fn fixup_active_tab_after_removal(&mut self, active: Option<Arc<Tab>>) {
         let len = self.tabs.len();
         if let Some(active) = active {
             for (idx, tab) in self.tabs.iter().enumerate() {
@@ -125,20 +119,20 @@ impl Window {
         }
     }
 
-    pub fn remove_by_idx(&mut self, idx: usize) -> Rc<Tab> {
+    pub fn remove_by_idx(&mut self, idx: usize) -> Arc<Tab> {
         self.invalidate();
-        let active = self.get_active().map(Rc::clone);
+        let active = self.get_active().map(Arc::clone);
         self.do_remove_idx(idx, active)
     }
 
     pub fn remove_by_id(&mut self, id: TabId) {
-        let active = self.get_active().map(Rc::clone);
+        let active = self.get_active().map(Arc::clone);
         if let Some(idx) = self.idx_by_id(id) {
             self.do_remove_idx(idx, active);
         }
     }
 
-    fn do_remove_idx(&mut self, idx: usize, active: Option<Rc<Tab>>) -> Rc<Tab> {
+    fn do_remove_idx(&mut self, idx: usize, active: Option<Arc<Tab>>) -> Arc<Tab> {
         if let (Some(active), Some(removing)) = (&active, self.tabs.get(idx)) {
             if active.tab_id() == removing.tab_id()
                 && config::configuration().switch_to_last_active_tab_when_closing_tab
@@ -155,7 +149,7 @@ impl Window {
         tab
     }
 
-    pub fn get_active(&self) -> Option<&Rc<Tab>> {
+    pub fn get_active(&self) -> Option<&Arc<Tab>> {
         self.get_by_idx(self.active)
     }
 
@@ -203,7 +197,7 @@ impl Window {
         self.invalidate();
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Arc<Tab>> {
         self.tabs.iter()
     }
 

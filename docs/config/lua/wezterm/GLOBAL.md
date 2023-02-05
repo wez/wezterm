@@ -48,3 +48,30 @@ You may store values with the following types:
 
 Attempting to assign other types will raise an error.
 
+## Note about referencing table values
+
+Accessing `wezterm.GLOBAL` returns a copy of the data that you'd read, making
+it cumbersome to perform read/modify/write updates; for example this:
+
+```lua
+wezterm.GLOBAL.tab_titles['T0'] = 'Test'
+```
+
+will not result in `wezterm.GLOBAL.tab_titles.T0` being set, and you need
+to explicitly break it apart into:
+
+```lua
+local tab_titles = wezterm.GLOBAL.tab_titles
+tab_titles['T0'] = 'Test'
+wezterm.GLOBAL.tab_titles = tab_titles
+```
+
+*Since: nightly builds only*
+
+You no longer need to split apart read/modify/write and the simple assignment
+now works as you would expect:
+
+```lua
+wezterm.GLOBAL.tab_titles['T0'] = 'Test'
+```
+

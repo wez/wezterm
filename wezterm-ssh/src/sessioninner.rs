@@ -16,8 +16,10 @@ use filedescriptor::{
 };
 use portable_pty::ExitStatus;
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
+use socket2::{Domain, Socket, Type};
 use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
+use std::net::ToSocketAddrs;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -128,13 +130,13 @@ impl SessionInner {
             .context("notifying user of banner")?;
 
         let sess = libssh_rs::Session::new()?;
-        if self
+        let verbose = self
             .config
             .get("wezterm_ssh_verbose")
             .map(|s| s.as_str())
             .unwrap_or("false")
-            == "true"
-        {
+            == "true";
+        if verbose {
             sess.set_option(libssh_rs::SshOption::LogLevel(libssh_rs::LogLevel::Packet))?;
 
             /// libssh logs to stderr, but on Windows in the GUI there isn't a valid
@@ -191,9 +193,6 @@ impl SessionInner {
                 break;
             }
         }
-        if let Some(cmd) = self.config.get("proxycommand") {
-            sess.set_option(libssh_rs::SshOption::ProxyCommand(Some(cmd.to_string())))?;
-        }
         if let Some(types) = self.config.get("pubkeyacceptedtypes") {
             sess.set_option(libssh_rs::SshOption::PublicKeyAcceptedTypes(
                 types.to_string(),
@@ -201,6 +200,26 @@ impl SessionInner {
         }
         if let Some(bind_addr) = self.config.get("bindaddress") {
             sess.set_option(libssh_rs::SshOption::BindAddress(bind_addr.to_string()))?;
+        }
+
+        if let Some(cmd) = self.config.get("proxycommand") {
+            sess.set_option(libssh_rs::SshOption::ProxyCommand(Some(cmd.to_string())))?;
+        } else {
+            let sock = self.connect_to_host(&hostname, port, verbose)?;
+            let raw = {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::io::IntoRawFd;
+                    sock.into_raw_fd()
+                }
+                #[cfg(windows)]
+                {
+                    use std::os::windows::io::IntoRawSocket;
+                    sock.into_raw_socket()
+                }
+            };
+
+            sess.set_option(libssh_rs::SshOption::Socket(raw))?;
         }
 
         sess.connect()
@@ -231,8 +250,13 @@ impl SessionInner {
 
     #[cfg(feature = "ssh2")]
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
-        use socket2::{Domain, Socket, Type};
-        use std::net::ToSocketAddrs;
+        let verbose = self
+            .config
+            .get("wezterm_ssh_verbose")
+            .map(|s| s.as_str())
+            .unwrap_or("false")
+            == "true";
+
         let hostname = self
             .config
             .get("hostname")
@@ -295,33 +319,11 @@ impl SessionInner {
                 Socket::from_raw_socket(a.into_raw_socket())
             }
         } else {
-            let addr = (hostname.as_str(), port)
-                .to_socket_addrs()?
-                .next()
-                .with_context(|| format!("resolving address for {}", hostname))?;
-            let sock = Socket::new(Domain::for_address(addr), Type::STREAM, None)?;
-            if let Some(bind_addr) = self.config.get("bindaddress") {
-                let bind_addr = (bind_addr.as_str(), 0)
-                    .to_socket_addrs()?
-                    .next()
-                    .with_context(|| format!("resolving bind address {:?}", bind_addr))?;
-                sock.bind(&bind_addr.into())
-                    .with_context(|| format!("binding to {:?}", bind_addr))?;
-            }
-
-            sock.connect(&addr.into())
-                .with_context(|| format!("Connecting to {:?}", addr))?;
-            sock
+            self.connect_to_host(&hostname, port, verbose)?
         };
 
         let mut sess = ssh2::Session::new()?;
-        if self
-            .config
-            .get("wezterm_ssh_verbose")
-            .map(|s| s.as_str())
-            .unwrap_or("false")
-            == "true"
-        {
+        if verbose {
             sess.trace(ssh2::TraceFlags::all());
         }
         sess.set_blocking(true);
@@ -347,6 +349,47 @@ impl SessionInner {
 
         let mut sess = SessionWrap::with_ssh2(sess);
         self.request_loop(&mut sess)
+    }
+
+    /// Explicitly and directly connect to the requested host because
+    /// neither libssh no libssh2 respect addressfamily, so we must
+    /// handle it for ourselves
+    fn connect_to_host(&self, hostname: &str, port: u16, verbose: bool) -> anyhow::Result<Socket> {
+        let addr = (hostname, port)
+            .to_socket_addrs()?
+            .filter(|addr| self.filter_sock_addr(addr))
+            .next()
+            .with_context(|| format!("resolving address for {}", hostname))?;
+        if verbose {
+            log::info!("resolved {hostname}:{port} -> {addr:?}");
+        }
+        let sock = Socket::new(Domain::for_address(addr), Type::STREAM, None)?;
+        if let Some(bind_addr) = self.config.get("bindaddress") {
+            let bind_addr = (bind_addr.as_str(), 0)
+                .to_socket_addrs()?
+                .filter(|addr| self.filter_sock_addr(addr))
+                .next()
+                .with_context(|| format!("resolving bind address {bind_addr:?}"))?;
+            if verbose {
+                log::info!("binding to {bind_addr:?}");
+            }
+            sock.bind(&bind_addr.into())
+                .with_context(|| format!("binding to {bind_addr:?}"))?;
+        }
+
+        sock.connect(&addr.into())
+            .with_context(|| format!("Connecting to {hostname}:{port} ({addr:?})"))?;
+        Ok(sock)
+    }
+
+    /// Used to restrict to_socket_addrs results to the address
+    /// family specified by the config
+    fn filter_sock_addr(&self, addr: &std::net::SocketAddr) -> bool {
+        match self.config.get("addressfamily").map(|s| s.as_str()) {
+            Some("inet") => addr.is_ipv4(),
+            Some("inet6") => addr.is_ipv6(),
+            None | Some("any") | Some(_) => true,
+        }
     }
 
     fn request_loop(&mut self, sess: &mut SessionWrap) -> anyhow::Result<()> {

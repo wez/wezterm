@@ -280,6 +280,8 @@ impl WebGpuState {
 
         let adapter_info = adapter.get_info();
         log::trace!("Using adapter: {adapter_info:?}");
+        let alpha_modes = surface.get_supported_alpha_modes(&adapter);
+        log::trace!("alpha modes: {alpha_modes:?}");
 
         let (device, queue) = adapter
             .request_device(
@@ -306,7 +308,11 @@ impl WebGpuState {
             width: dimensions.pixel_width as u32,
             height: dimensions.pixel_height as u32,
             present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            alpha_mode: if alpha_modes.contains(&wgpu::CompositeAlphaMode::PostMultiplied) {
+                wgpu::CompositeAlphaMode::PostMultiplied
+            } else {
+                wgpu::CompositeAlphaMode::Auto
+            },
         };
         surface.configure(&device, &config);
 
@@ -474,6 +480,11 @@ impl WebGpuState {
         let mut config = self.config.borrow_mut();
         config.width = dims.pixel_width as u32;
         config.height = dims.pixel_height as u32;
-        self.surface.configure(&self.device, &config);
+        if config.width > 0 && config.height > 0 {
+            // Avoid reconfiguring with a 0 sized surface, as webgpu will
+            // panic in that case
+            // <https://github.com/wez/wezterm/issues/2881>
+            self.surface.configure(&self.device, &config);
+        }
     }
 }

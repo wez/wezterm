@@ -2,7 +2,7 @@
 
 *Since: 20220807-113146-c2fee766*
 
-*Deprecated Since: nightly builds only*
+*Deprecated Since: 20221119-145034-49b9839f*
 
 Returns the `MuxPane` representation of this pane.
 

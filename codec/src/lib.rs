@@ -417,7 +417,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 31;
+pub const CODEC_VERSION: usize = 32;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -466,6 +466,8 @@ pdu! {
     MovePaneToNewTab: 48,
     MovePaneToNewTabResponse: 49,
     ActivatePaneDirection: 50,
+    GetPaneRenderableDimensions: 51,
+    GetPaneRenderableDimensionsResponse: 52,
 }
 
 impl Pdu {
@@ -778,6 +780,18 @@ pub struct ActivatePaneDirection {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetPaneRenderChanges {
     pub pane_id: PaneId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetPaneRenderableDimensions {
+    pub pane_id: PaneId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetPaneRenderableDimensionsResponse {
+    pub pane_id: PaneId,
+    pub cursor_position: StableCursorPosition,
+    pub dimensions: RenderableDimensions,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

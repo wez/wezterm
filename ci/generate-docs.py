@@ -24,10 +24,11 @@ class Page(object):
 
 # autogenerate an index page from the contents of a directory
 class Gen(object):
-    def __init__(self, title, dirname, index=None):
+    def __init__(self, title, dirname, index=None, extract_title=False):
         self.title = title
         self.dirname = dirname
         self.index = index
+        self.extract_title = extract_title
 
     def render(self, output, depth=0):
         print(self.dirname)
@@ -37,6 +38,11 @@ class Gen(object):
             title = os.path.basename(filename).rsplit(".", 1)[0]
             if title == "index":
                 continue
+
+            if self.extract_title:
+                with open(filename, "r") as f:
+                    title = f.readline().strip('#').strip()
+
             children.append(Page(title, filename))
 
         index_filename = f"{self.dirname}/index.md"
@@ -54,7 +60,7 @@ class Gen(object):
                 except FileNotFoundError:
                     pass
             for page in children:
-                idx.write(f"  - [{page.title}]({page.title}.md)\n")
+                idx.write(f"  - [{page.title}]({os.path.basename(page.filename)})\n")
 
 
 def load_scheme(scheme):
@@ -327,6 +333,8 @@ TOC = [
                     GenColorScheme("Color Schemes", "colorschemes"),
                 ],
             ),
+            Page("Troubleshooting", "troubleshooting.md"),
+            Gen("Recipes", "recipes", extract_title=True),
             Page("Scrollback", "scrollback.md"),
             Page("Quick Select Mode", "quickselect.md"),
             Page("Copy Mode", "copymode.md"),
@@ -340,6 +348,7 @@ TOC = [
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
+            Page("What is a Terminal?", "what-is-a-terminal.md"),
             Page(
                 "CLI Reference",
                 "cli/general.md",
@@ -391,6 +400,7 @@ TOC = [
                     Gen("object: Color", "config/lua/color"),
                     Page("object: ExecDomain", "config/lua/ExecDomain.md"),
                     Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
+                    Gen("object: MuxDomain", "config/lua/MuxDomain"),
                     Gen("object: MuxWindow", "config/lua/mux-window"),
                     Gen("object: MuxTab", "config/lua/MuxTab"),
                     Page("object: PaneInformation", "config/lua/PaneInformation.md"),

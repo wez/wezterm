@@ -27,6 +27,7 @@ mux = { path = "../mux" }
 # https://github.com/sfackler/rust-openssl/pull/1578
 # https://github.com/wez/libssh-rs/blob/main/libssh-rs-sys/Cargo.toml
 openssl = "=0.10.38"
+parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }

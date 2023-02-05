@@ -273,6 +273,14 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
             )
 
         else:
+            if "tumbleweed" in self.name:
+                # git-core requires /usr/bin/which and that gets satisfied
+                # by busybox-which by default, which blocks installing
+                # rpmbuild, which depends on the which rpm directly,
+                # but that is blocked by the conflicting busybox-which rpm.
+                # So we explicitly install which here now
+                steps += self.install_system_package("which")
+
             steps += self.install_system_package("git")
 
         return steps
@@ -833,10 +841,10 @@ TARGETS = [
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
     Target(name="macos", os="macos-11"),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
-    Target(container="fedora:33"),
     Target(container="fedora:34"),
     Target(container="fedora:35"),
     Target(container="fedora:36"),
+    Target(container="fedora:37"),
     Target(container="alpine:3.12"),
     Target(container="alpine:3.13"),
     Target(container="alpine:3.14"),

@@ -1,6 +1,6 @@
 # underline_position
 
-*Since: nightly builds only*
+*Since: 20221119-145034-49b9839f*
 
 If specified, overrides the position of underlines.
 

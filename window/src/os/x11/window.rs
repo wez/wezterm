@@ -585,10 +585,14 @@ impl XWindowInner {
                     self.verify_focus = true;
                 }
             }
-            Event::X(xcb::x::Event::FocusIn(_)) => {
+            Event::X(xcb::x::Event::FocusIn(e))
+                if !matches!(e.detail(), xcb::x::NotifyDetail::Pointer) =>
+            {
                 self.focus_changed(true);
             }
-            Event::X(xcb::x::Event::FocusOut(_)) => {
+            Event::X(xcb::x::Event::FocusOut(e))
+                if !matches!(e.detail(), xcb::x::NotifyDetail::Pointer) =>
+            {
                 self.focus_changed(false);
             }
             Event::X(xcb::x::Event::LeaveNotify(_)) => {
@@ -665,10 +669,10 @@ impl XWindowInner {
                 selection,
                 time: self.copy_and_paste.time,
             })?;
-        } else if we_own_it && current_owner != window_id {
+        } else if we_own_it {
             log::trace!(
-                "SEL: window_id={window_id:?} X doesn't think we own \
-                 selection ({current_owner:?} has it), but we do: tell it we have it"
+                "SEL: window_id={window_id:?} currently owned by \
+                 {current_owner:?}, tell X we now own it"
             );
             // We have the selection but X doesn't think we do; assert it!
             conn.send_request_no_reply(&xcb::x::SetSelectionOwner {
@@ -1240,6 +1244,34 @@ impl XWindowInner {
         });
     }
 
+    fn focus(&mut self) {
+        let conn = self.conn();
+        conn.send_request_no_reply_log(&xcb::x::SendEvent {
+            propagate: true,
+            destination: xcb::x::SendEventDest::Window(conn.root),
+            event_mask: xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
+                | xcb::x::EventMask::SUBSTRUCTURE_NOTIFY,
+            event: &xcb::x::ClientMessageEvent::new(
+                self.window_id,
+                conn.atom_net_active_window,
+                xcb::x::ClientMessageData::Data32([
+                    1,
+                    // You'd think that self.copy_and_paste.time would
+                    // be the thing to use, but Mutter ignored this request
+                    // until I switched to CURRENT_TIME
+                    xcb::x::CURRENT_TIME,
+                    0,
+                    0,
+                    0,
+                ]),
+            ),
+        });
+
+        if let Err(err) = conn.flush() {
+            log::error!("Error flushing: {err:#}");
+        }
+    }
+
     fn invalidate(&mut self) {
         self.queue_pending(WindowEvent::NeedRepaint);
         self.dispatch_pending_events().ok();
@@ -1577,6 +1609,13 @@ impl WindowOps for XWindow {
         let config = config.clone();
         XConnection::with_window_inner(self.0, move |inner| {
             inner.config_did_change(&config);
+            Ok(())
+        });
+    }
+
+    fn focus(&self) {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.focus();
             Ok(())
         });
     }

@@ -1,7 +1,17 @@
 use crate::fromdynamic::{FromDynamicOptions, UnknownFieldAction};
 use crate::object::Object;
 use crate::value::Value;
+use std::cell::RefCell;
+use std::rc::Rc;
 use thiserror::Error;
+
+pub trait WarningCollector {
+    fn warn(&self, message: String);
+}
+
+thread_local! {
+    static WARNING_COLLECTOR: RefCell<Option<Box<dyn WarningCollector>>> = RefCell::new(None);
+}
 
 #[derive(Error, Debug)]
 #[non_exhaustive]
@@ -60,6 +70,58 @@ pub enum Error {
 }
 
 impl Error {
+    /// Log a warning; if a warning collector is set for the current thread,
+    /// use it, otherwise, log a regular warning message.
+    pub fn warn(message: String) {
+        WARNING_COLLECTOR.with(|collector| {
+            let collector = collector.borrow();
+            if let Some(collector) = collector.as_ref() {
+                collector.warn(message);
+            } else {
+                log::warn!("{message}");
+            }
+        });
+    }
+
+    pub fn capture_warnings<F: FnOnce() -> T, T>(f: F) -> (T, Vec<String>) {
+        let warnings = Rc::new(RefCell::new(vec![]));
+
+        struct Collector {
+            warnings: Rc<RefCell<Vec<String>>>,
+        }
+
+        impl WarningCollector for Collector {
+            fn warn(&self, message: String) {
+                self.warnings.borrow_mut().push(message);
+            }
+        }
+
+        Self::set_warning_collector(Collector {
+            warnings: Rc::clone(&warnings),
+        });
+        let result = f();
+        Self::clear_warning_collector();
+        let warnings = match Rc::try_unwrap(warnings) {
+            Ok(warnings) => warnings.into_inner(),
+            Err(warnings) => (*warnings).clone().into_inner(),
+        };
+        (result, warnings)
+    }
+
+    /// Replace the warning collector for the current thread
+    fn set_warning_collector<T: WarningCollector + 'static>(c: T) {
+        WARNING_COLLECTOR.with(|collector| {
+            collector.borrow_mut().replace(Box::new(c));
+        });
+    }
+
+    /// Clear the warning collector for the current thread
+    fn clear_warning_collector() {
+        WARNING_COLLECTOR.with(|collector| {
+            collector.borrow_mut().take();
+        });
+    }
+
     fn compute_unknown_fields(
         type_name: &'static str,
         object: &crate::Object,
@@ -108,7 +170,7 @@ impl Error {
         match options.deprecated_fields {
             UnknownFieldAction::Deny => Err(err),
             UnknownFieldAction::Warn => {
-                log::warn!("{:#}", err);
+                Self::warn(format!("{:#}", err));
                 Ok(())
             }
             UnknownFieldAction::Ignore => unreachable!(),
@@ -134,7 +196,7 @@ impl Error {
 
         if show_warning {
             for err in &errors {
-                log::warn!("{:#}", err);
+                Self::warn(format!("{:#}", err));
             }
         }
 

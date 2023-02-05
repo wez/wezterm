@@ -1,3 +1,4 @@
+use crate::escape::osc::{base64_decode, base64_encode};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::io::{Read, Seek};
@@ -112,17 +113,17 @@ impl KittyImageData {
         match t {
             "d" => Some(Self::Direct(String::from_utf8(payload.to_vec()).ok()?)),
             "f" => Some(Self::File {
-                path: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
+                path: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "t" => Some(Self::TemporaryFile {
-                path: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
+                path: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "s" => Some(Self::SharedMem {
-                name: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
+                name: String::from_utf8(base64_decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
@@ -141,7 +142,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "f".to_string());
-                keys.insert("payload", base64::encode(&path));
+                keys.insert("payload", base64_encode(&path));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -151,7 +152,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "t".to_string());
-                keys.insert("payload", base64::encode(&path));
+                keys.insert("payload", base64_encode(&path));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -161,7 +162,7 @@ impl KittyImageData {
                 data_size,
             } => {
                 keys.insert("t", "s".to_string());
-                keys.insert("payload", base64::encode(&name));
+                keys.insert("payload", base64_encode(&name));
                 set(keys, "S", data_size);
                 set(keys, "S", data_offset);
             }
@@ -195,7 +196,7 @@ impl KittyImageData {
 
         match self {
             Self::Direct(data) => {
-                base64::decode(data).or_else(|_| Err(std::io::ErrorKind::InvalidInput.into()))
+                base64_decode(data).or_else(|_| Err(std::io::ErrorKind::InvalidInput.into()))
             }
             Self::File {
                 path,

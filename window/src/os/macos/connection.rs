@@ -4,6 +4,7 @@
 use super::nsstring_to_str;
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
+use crate::os::macos::app::create_app_delegate;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::Appearance;
@@ -12,6 +13,7 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::{NSArray, NSInteger, NSRect};
 use objc::runtime::{Object, BOOL, YES};
 use objc::*;
+use serde::Deserialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -33,6 +35,10 @@ impl Connection {
         unsafe {
             let ns_app = NSApp();
             ns_app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
+
+            let delegate = create_app_delegate();
+            let () = msg_send![ns_app, setDelegate: delegate];
+
             let conn = Self {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
@@ -76,13 +82,48 @@ impl Connection {
     }
 }
 
+/// `/System/Library/CoreServices/SystemVersion.plist`
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct SoftwareVersion {
+    product_build_version: String,
+    product_user_visible_version: String,
+    product_name: String,
+}
+
+impl SoftwareVersion {
+    fn load() -> anyhow::Result<Self> {
+        let vers: Self = plist::from_file("/System/Library/CoreServices/SystemVersion.plist")?;
+        Ok(vers)
+    }
+}
+
 impl ConnectionOps for Connection {
+    fn name(&self) -> String {
+        if let Ok(vers) = SoftwareVersion::load() {
+            format!(
+                "{} {} ({})",
+                vers.product_name, vers.product_user_visible_version, vers.product_build_version
+            )
+        } else {
+            "macOS".to_string()
+        }
+    }
+
     fn terminate_message_loop(&self) {
+        log::info!("terminate_message_loop called");
         unsafe {
-            let () = msg_send![NSApp(), stop: nil];
-            // Generate a UI event so that the run loop breaks out
-            // after receiving the stop
-            let () = msg_send![NSApp(), abortModal];
+            // bounce via an event callback to encourage stop to apply
+            // to the correct level of run loop
+            promise::spawn::spawn_into_main_thread(async move {
+                log::info!("terminate_message_loop helper called");
+                let () = msg_send![NSApp(), stop: nil];
+                // Generate a UI event so that the run loop breaks out
+                // after receiving the stop
+                let () = msg_send![NSApp(), abortModal];
+                log::info!("I should really be stopping now");
+            })
+            .detach();
         }
     }
 

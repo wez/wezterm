@@ -176,7 +176,7 @@ fn run() -> anyhow::Result<()> {
     };
 
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
+    let mux = Arc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let executor = promise::spawn::SimpleExecutor::new();
@@ -210,7 +210,7 @@ async fn trigger_mux_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
 }
 
 async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
 
     let domain = mux.default_domain();
 

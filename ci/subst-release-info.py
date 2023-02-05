@@ -64,6 +64,11 @@ def load_release_info():
 
     latest = None
     for rel in release_info:
+        if type(rel) is str:
+            print("Error", pretty(release_info))
+            raise Exception("Error obtaining release info")
+
+        print(pretty(rel))
         if rel["prerelease"]:
             continue
         latest = rel

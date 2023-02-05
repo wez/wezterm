@@ -397,9 +397,16 @@ pub fn configuration_result() -> Result<ConfigHandle, Error> {
     Ok(CONFIG.get())
 }
 
+/// Returns the combined set of errors + warnings encountered
+/// while loading the preferred configuration
+pub fn configuration_warnings_and_errors() -> Vec<String> {
+    CONFIG.get_warnings_and_errors()
+}
+
 struct ConfigInner {
     config: Arc<Config>,
     error: Option<String>,
+    warnings: Vec<String>,
     generation: usize,
     watcher: Option<notify::RecommendedWatcher>,
     subscribers: HashMap<usize, Box<dyn Fn() -> bool + Send>>,
@@ -410,6 +417,7 @@ impl ConfigInner {
         Self {
             config: Arc::new(Config::default_config()),
             error: None,
+            warnings: vec![],
             generation: 0,
             watcher: None,
             subscribers: HashMap::new(),
@@ -508,7 +516,10 @@ impl ConfigInner {
             config,
             file_name,
             lua,
+            warnings,
         } = Config::load();
+
+        self.warnings = warnings;
 
         // Before we process the success/failure, extract and update
         // any paths that we should be watching
@@ -680,6 +691,18 @@ impl Configuration {
         inner.error.as_ref().cloned()
     }
 
+    pub fn get_warnings_and_errors(&self) -> Vec<String> {
+        let mut result = vec![];
+        let inner = self.inner.lock().unwrap();
+        if let Some(error) = &inner.error {
+            result.push(error.clone());
+        }
+        for warning in &inner.warnings {
+            result.push(warning.clone());
+        }
+        result
+    }
+
     /// Returns any captured error message, and clears
     /// it from the config state.
     #[allow(dead_code)]
@@ -723,6 +746,7 @@ pub struct LoadedConfig {
     pub config: anyhow::Result<Config>,
     pub file_name: Option<PathBuf>,
     pub lua: Option<mlua::Lua>,
+    pub warnings: Vec<String>,
 }
 
 fn default_one_point_oh_f64() -> f64 {

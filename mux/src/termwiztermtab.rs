@@ -16,12 +16,11 @@ use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::{FileDescriptor, Pipe};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::*;
 use rangeset::RangeSet;
-use std::cell::{RefCell, RefMut};
 use std::io::{BufWriter, Write};
 use std::ops::Range;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::input::{InputEvent, KeyEvent, Modifiers, MouseEvent as TermWizMouseEvent};
@@ -53,7 +52,7 @@ impl Domain for TermWizTerminalDomain {
         _size: TerminalSize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
+    ) -> anyhow::Result<Arc<dyn Pane>> {
         bail!("cannot spawn panes in a TermWizTerminalPane");
     }
 
@@ -84,10 +83,10 @@ impl Domain for TermWizTerminalDomain {
 pub struct TermWizTerminalPane {
     pane_id: PaneId,
     domain_id: DomainId,
-    terminal: RefCell<wezterm_term::Terminal>,
+    terminal: Mutex<wezterm_term::Terminal>,
     input_tx: Sender<InputEvent>,
-    dead: RefCell<bool>,
-    writer: RefCell<Vec<u8>>,
+    dead: Mutex<bool>,
+    writer: Mutex<Vec<u8>>,
     render_rx: FileDescriptor,
 }
 
@@ -101,7 +100,7 @@ impl TermWizTerminalPane {
     ) -> Self {
         let pane_id = alloc_pane_id();
 
-        let terminal = RefCell::new(wezterm_term::Terminal::new(
+        let terminal = Mutex::new(wezterm_term::Terminal::new(
             size,
             term_config.unwrap_or_else(|| Arc::new(config::TermConfig::new())),
             "WezTerm",
@@ -113,10 +112,10 @@ impl TermWizTerminalPane {
             pane_id,
             domain_id,
             terminal,
-            writer: RefCell::new(Vec::new()),
+            writer: Mutex::new(Vec::new()),
             render_rx,
             input_tx,
-            dead: RefCell::new(false),
+            dead: Mutex::new(false),
         }
     }
 }
@@ -127,11 +126,11 @@ impl Pane for TermWizTerminalPane {
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {
-        terminal_get_cursor_position(&mut self.terminal.borrow_mut())
+        terminal_get_cursor_position(&mut self.terminal.lock())
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
-        self.terminal.borrow().current_seqno()
+        self.terminal.lock().current_seqno()
     }
 
     fn get_changed_since(
@@ -139,7 +138,7 @@ impl Pane for TermWizTerminalPane {
         lines: Range<StableRowIndex>,
         seqno: SequenceNo,
     ) -> RangeSet<StableRowIndex> {
-        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
+        terminal_get_dirty_lines(&mut self.terminal.lock(), lines, seqno)
     }
 
     fn for_each_logical_line_in_stable_range_mut(
@@ -148,7 +147,7 @@ impl Pane for TermWizTerminalPane {
         for_line: &mut dyn ForEachPaneLogicalLine,
     ) {
         terminal_for_each_logical_line_in_stable_range_mut(
-            &mut self.terminal.borrow_mut(),
+            &mut self.terminal.lock(),
             lines,
             for_line,
         );
@@ -159,19 +158,19 @@ impl Pane for TermWizTerminalPane {
     }
 
     fn with_lines_mut(&self, lines: Range<StableRowIndex>, with_lines: &mut dyn WithPaneLines) {
-        terminal_with_lines_mut(&mut self.terminal.borrow_mut(), lines, with_lines)
+        terminal_with_lines_mut(&mut self.terminal.lock(), lines, with_lines)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        terminal_get_lines(&mut self.terminal.borrow_mut(), lines)
+        terminal_get_lines(&mut self.terminal.lock(), lines)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
-        terminal_get_dimensions(&mut self.terminal.borrow_mut())
+        terminal_get_dimensions(&mut self.terminal.lock())
     }
 
     fn get_title(&self) -> String {
-        self.terminal.borrow_mut().get_title().to_string()
+        self.terminal.lock().get_title().to_string()
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
@@ -188,8 +187,11 @@ impl Pane for TermWizTerminalPane {
         Ok(Some(Box::new(self.render_rx.try_clone()?)))
     }
 
-    fn writer(&self) -> RefMut<dyn std::io::Write> {
-        self.writer.borrow_mut()
+    fn writer(&self) -> MappedMutexGuard<dyn std::io::Write> {
+        MutexGuard::map(self.writer.lock(), |writer| {
+            let w: &mut dyn std::io::Write = writer;
+            w
+        })
     }
 
     fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
@@ -198,7 +200,7 @@ impl Pane for TermWizTerminalPane {
             cols: size.cols as usize,
         })?;
 
-        self.terminal.borrow_mut().resize(size);
+        self.terminal.lock().resize(size);
 
         Ok(())
     }
@@ -206,7 +208,7 @@ impl Pane for TermWizTerminalPane {
     fn key_down(&self, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
         let event = InputEvent::Key(KeyEvent { key, modifiers });
         if let Err(e) = self.input_tx.send(event) {
-            *self.dead.borrow_mut() = true;
+            *self.dead.lock() = true;
             return Err(e.into());
         }
         Ok(())
@@ -236,34 +238,34 @@ impl Pane for TermWizTerminalPane {
             modifiers: event.modifiers,
         });
         if let Err(e) = self.input_tx.send(event) {
-            *self.dead.borrow_mut() = true;
+            *self.dead.lock() = true;
             return Err(e.into());
         }
         Ok(())
     }
 
     fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {
-        self.terminal.borrow_mut().set_config(config);
+        self.terminal.lock().set_config(config);
     }
 
     fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
-        Some(self.terminal.borrow().get_config())
+        Some(self.terminal.lock().get_config())
     }
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {
-        self.terminal.borrow_mut().perform_actions(actions)
+        self.terminal.lock().perform_actions(actions)
     }
 
     fn kill(&self) {
-        *self.dead.borrow_mut() = true;
+        *self.dead.lock() = true;
     }
 
     fn is_dead(&self) -> bool {
-        *self.dead.borrow()
+        *self.dead.lock()
     }
 
     fn palette(&self) -> ColorPalette {
-        self.terminal.borrow().palette()
+        self.terminal.lock().palette()
     }
 
     fn domain_id(&self) -> DomainId {
@@ -271,24 +273,24 @@ impl Pane for TermWizTerminalPane {
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        self.terminal.borrow().is_mouse_grabbed()
+        self.terminal.lock().is_mouse_grabbed()
     }
 
     fn is_alt_screen_active(&self) -> bool {
-        self.terminal.borrow().is_alt_screen_active()
+        self.terminal.lock().is_alt_screen_active()
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
-        self.terminal.borrow().get_current_dir().cloned()
+        self.terminal.lock().get_current_dir().cloned()
     }
 
     fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
         match erase_mode {
             ScrollbackEraseMode::ScrollbackOnly => {
-                self.terminal.borrow_mut().erase_scrollback();
+                self.terminal.lock().erase_scrollback();
             }
             ScrollbackEraseMode::ScrollbackAndViewport => {
-                self.terminal.borrow_mut().erase_scrollback_and_viewport();
+                self.terminal.lock().erase_scrollback_and_viewport();
             }
         }
     }
@@ -435,7 +437,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
 pub fn allocate(
     size: TerminalSize,
     config: Arc<dyn TerminalConfiguration + Send + Sync>,
-) -> (TermWizTerminal, Rc<dyn Pane>) {
+) -> (TermWizTerminal, Arc<dyn Pane>) {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
 
     let (input_tx, input_rx) = channel();
@@ -461,9 +463,9 @@ pub fn allocate(
     let pane = TermWizTerminalPane::new(domain_id, size, input_tx, render_pipe.read, Some(config));
 
     // Add the tab to the mux so that the output is processed
-    let pane: Rc<dyn Pane> = Rc::new(pane);
+    let pane: Arc<dyn Pane> = Arc::new(pane);
 
-    let mux = Mux::get().unwrap();
+    let mux = Mux::get();
     mux.add_pane(&pane).expect("to be able to add pane to mux");
 
     (tw_term, pane)
@@ -513,7 +515,7 @@ pub async fn run<
         window_id: Option<WindowId>,
         term_config: Option<Arc<dyn TerminalConfiguration + Send + Sync>>,
     ) -> anyhow::Result<(PaneId, WindowId)> {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
 
         // TODO: make a singleton
         let domain: Arc<dyn Domain> = Arc::new(TermWizTerminalDomain::new());
@@ -530,9 +532,9 @@ pub async fn run<
 
         let pane =
             TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx, term_config);
-        let pane: Rc<dyn Pane> = Rc::new(pane);
+        let pane: Arc<dyn Pane> = Arc::new(pane);
 
-        let tab = Rc::new(Tab::new(&size));
+        let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         mux.add_tab_and_active_pane(&tab)?;
@@ -560,7 +562,7 @@ pub async fn run<
     // be shown in succession, we don't want to leave lingering dead windows
     // on the screen so let's ask the mux to kill off our window now.
     promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get();
         if should_close_window {
             mux.kill_window(window_id);
         } else if let Some(pane) = mux.get_pane(pane_id) {

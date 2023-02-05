@@ -1271,11 +1271,37 @@ impl KeyEvent {
 bitflags! {
     #[derive(Deserialize, Serialize, FromDynamic, ToDynamic)]
     #[serde(try_from = "String")]
-    #[dynamic(try_from = "String")]
+    #[dynamic(try_from = "String", into = "String")]
     pub struct WindowDecorations: u8 {
         const TITLE = 1;
         const RESIZE = 2;
         const NONE = 0;
+        // Reserve two bits for this enable/disable shadow,
+        // so that we effective have Option<bool>
+        const MACOS_FORCE_DISABLE_SHADOW = 4;
+        const MACOS_FORCE_ENABLE_SHADOW = 4|8;
+    }
+}
+
+impl Into<String> for &WindowDecorations {
+    fn into(self) -> String {
+        let mut s = vec![];
+        if self.contains(WindowDecorations::TITLE) {
+            s.push("TITLE");
+        }
+        if self.contains(WindowDecorations::RESIZE) {
+            s.push("RESIZE");
+        }
+        if self.contains(WindowDecorations::MACOS_FORCE_ENABLE_SHADOW) {
+            s.push("MACOS_FORCE_ENABLE_SHADOW");
+        } else if self.contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW) {
+            s.push("MACOS_FORCE_DISABLE_SHADOW");
+        }
+        if s.is_empty() {
+            "NONE".to_string()
+        } else {
+            s.join("|")
+        }
     }
 }
 
@@ -1291,6 +1317,10 @@ impl TryFrom<String> for WindowDecorations {
                 flags = Self::NONE;
             } else if ele == "RESIZE" {
                 flags |= Self::RESIZE;
+            } else if ele == "MACOS_FORCE_DISABLE_SHADOW" {
+                flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
+            } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
+                flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }

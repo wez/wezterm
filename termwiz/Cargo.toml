@@ -12,7 +12,7 @@ readme = "README.md"
 
 [dependencies]
 # backtrace = "0.3"
-base64 = "0.13"
+base64 = "0.21"
 bitflags = "1.3"
 cassowary = {version="0.3", optional=true}
 anyhow = "1.0"
@@ -55,7 +55,7 @@ docs = ["widgets", "use_serde"]
 criterion = "0.3"
 varbincode = "0.1"
 k9 = "0.11"
-env_logger = "0.9"
+env_logger = "0.10"
 
 [dependencies.num-derive]
 features = ["full-syntax"]

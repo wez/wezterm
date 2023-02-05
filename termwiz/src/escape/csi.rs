@@ -408,11 +408,15 @@ pub enum MouseButton {
     Button3Press,
     Button4Press,
     Button5Press,
+    Button6Press,
+    Button7Press,
     Button1Release,
     Button2Release,
     Button3Release,
     Button4Release,
     Button5Release,
+    Button6Release,
+    Button7Release,
     Button1Drag,
     Button2Drag,
     Button3Drag,
@@ -427,6 +431,8 @@ impl From<MouseButton> for MouseButtons {
             MouseButton::Button3Press | MouseButton::Button3Drag => MouseButtons::RIGHT,
             MouseButton::Button4Press => MouseButtons::VERT_WHEEL | MouseButtons::WHEEL_POSITIVE,
             MouseButton::Button5Press => MouseButtons::VERT_WHEEL,
+            MouseButton::Button6Press => MouseButtons::HORZ_WHEEL | MouseButtons::WHEEL_POSITIVE,
+            MouseButton::Button7Press => MouseButtons::HORZ_WHEEL,
             _ => MouseButtons::NONE,
         }
     }
@@ -605,6 +611,8 @@ impl Display for MouseReport {
                     MouseButton::Button3Press | MouseButton::Button3Release => 2,
                     MouseButton::Button4Press | MouseButton::Button4Release => 64,
                     MouseButton::Button5Press | MouseButton::Button5Release => 65,
+                    MouseButton::Button6Press | MouseButton::Button6Release => 66,
+                    MouseButton::Button7Press | MouseButton::Button7Release => 67,
                     MouseButton::Button1Drag => 32,
                     MouseButton::Button2Drag => 33,
                     MouseButton::Button3Drag => 34,
@@ -646,6 +654,8 @@ impl Display for MouseReport {
                     MouseButton::Button3Press | MouseButton::Button3Release => 2,
                     MouseButton::Button4Press | MouseButton::Button4Release => 64,
                     MouseButton::Button5Press | MouseButton::Button5Release => 65,
+                    MouseButton::Button6Press | MouseButton::Button6Release => 66,
+                    MouseButton::Button7Press | MouseButton::Button7Release => 67,
                     MouseButton::Button1Drag => 32,
                     MouseButton::Button2Drag => 33,
                     MouseButton::Button3Drag => 34,
@@ -2200,6 +2210,10 @@ impl<'a> CSIParser<'a> {
             ('m', 64) => MouseButton::Button4Release,
             ('M', 65) => MouseButton::Button5Press,
             ('m', 65) => MouseButton::Button5Release,
+            ('M', 66) => MouseButton::Button6Press,
+            ('m', 66) => MouseButton::Button6Release,
+            ('M', 67) => MouseButton::Button7Press,
+            ('m', 67) => MouseButton::Button7Release,
             ('M', 32) => MouseButton::Button1Drag,
             ('M', 33) => MouseButton::Button2Drag,
             ('M', 34) => MouseButton::Button3Drag,
@@ -2460,12 +2474,6 @@ impl<'a> CSIParser<'a> {
                     Ok(self.advance_by(1, params, $t))
                 };
             }
-            // Consume two parameters and return the parsed result
-            macro_rules! two {
-                ($t:expr) => {
-                    Ok(self.advance_by(2, params, $t))
-                };
-            }
 
             match &params[0] {
                 CsiParam::P(b';') => {
@@ -2484,7 +2492,16 @@ impl<'a> CSIParser<'a> {
                 // Level 2 Programming Reference Manual"
                 // on page 7-78.
                 // <https://vaxhaven.com/images/f/f7/EK-PPLV2-PM-B01.pdf>
+                /* Withdrawn because xterm introduced a conflict:
+                 * <https://github.com/mintty/mintty/issues/1171#issuecomment-1336174469>
+                 * <https://github.com/mintty/mintty/issues/1189>
                 CsiParam::P(b'?') if params.len() > 1 => match &params[1] {
+                    // Consume two parameters and return the parsed result
+                    macro_rules! two {
+                        ($t:expr) => {
+                            Ok(self.advance_by(2, params, $t))
+                        };
+                    }
                     CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                         None => Err(()),
                         Some(code) => match code {
@@ -2499,6 +2516,7 @@ impl<'a> CSIParser<'a> {
                     },
                     _ => Err(()),
                 },
+                */
                 CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),

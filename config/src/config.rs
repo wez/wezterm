@@ -102,8 +102,8 @@ pub struct Config {
     /// When true (the default), PaletteIndex 0-7 are shifted to
     /// bright when the font intensity is bold.  The brightening
     /// doesn't apply to text that is the default color.
-    #[dynamic(default = "default_true")]
-    pub bold_brightens_ansi_colors: bool,
+    #[dynamic(default)]
+    pub bold_brightens_ansi_colors: BoldBrightening,
 
     /// The color palette
     pub colors: Option<Palette>,
@@ -116,6 +116,15 @@ pub struct Config {
 
     #[dynamic(default = "default_char_select_font_size")]
     pub char_select_font_size: f64,
+
+    #[dynamic(default = "default_command_palette_font_size")]
+    pub command_palette_font_size: f64,
+
+    #[dynamic(default = "default_command_palette_fg_color")]
+    pub command_palette_fg_color: RgbaColor,
+
+    #[dynamic(default = "default_command_palette_bg_color")]
+    pub command_palette_bg_color: RgbaColor,
 
     #[dynamic(default = "default_pane_select_font_size")]
     pub pane_select_font_size: f64,
@@ -189,6 +198,14 @@ pub struct Config {
     pub enable_kitty_graphics: bool,
     #[dynamic(default)]
     pub enable_kitty_keyboard: bool,
+
+    /// Whether the terminal should respond to requests to read the
+    /// title string.
+    /// Disabled by default for security concerns with shells that might
+    /// otherwise attempt to execute the response.
+    /// <https://marc.info/?l=bugtraq&m=104612710031920&w=2>
+    #[dynamic(default)]
+    pub enable_title_reporting: bool,
 
     /// Specifies the width of a new window, expressed in character cells
     #[dynamic(default = "default_initial_cols", validate = "validate_row_or_col")]
@@ -564,6 +581,11 @@ pub struct Config {
     #[dynamic(default = "linear_ease")]
     pub text_blink_rapid_ease_out: EasingFunction,
 
+    /// If true, the mouse cursor will be hidden while typing.
+    /// This option is true by default.
+    #[dynamic(default = "default_true")]
+    pub hide_mouse_cursor_when_typing: bool,
+
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of
     /// 10 seconds.
@@ -792,6 +814,7 @@ impl Config {
                         config: Err(err),
                         file_name: Some(path_item.path.clone()),
                         lua: None,
+                        warnings: vec![],
                     }
                 }
                 Ok(None) => continue,
@@ -810,18 +833,23 @@ impl Config {
                 config: Err(err),
                 file_name: None,
                 lua: None,
+                warnings: vec![],
             },
             Ok(cfg) => cfg,
         }
     }
 
     pub fn try_default() -> anyhow::Result<LoadedConfig> {
-        let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
+        let (config, warnings) =
+            wezterm_dynamic::Error::capture_warnings(|| -> anyhow::Result<Config> {
+                Ok(default_config_with_overrides_applied()?.compute_extra_defaults(None))
+            });
 
         Ok(LoadedConfig {
-            config: Ok(config),
+            config: Ok(config?),
             file_name: None,
             lua: Some(make_lua_context(Path::new(""))?),
+            warnings,
         })
     }
 
@@ -841,40 +869,47 @@ impl Config {
 
         let mut s = String::new();
         file.read_to_string(&mut s)?;
-
-        let cfg: Config;
-
         let lua = make_lua_context(p)?;
-        let config: mlua::Value = smol::block_on(
-            // Skip a potential BOM that Windows software may have placed in the
-            // file. Note that we can't catch this happening for files that are
-            // imported via the lua require function.
-            lua.load(s.trim_start_matches('\u{FEFF}'))
-                .set_name(p.to_string_lossy())?
-                .eval_async(),
-        )?;
-        let config = Config::apply_overrides_to(&lua, config)?;
-        let config = Config::apply_overrides_obj_to(&lua, config, overrides)?;
-        cfg = Config::from_lua(config, &lua).with_context(|| {
-            format!(
-                "Error converting lua value returned by script {} to Config struct",
-                p.display()
-            )
-        })?;
-        cfg.check_consistency()?;
 
-        // Compute but discard the key bindings here so that we raise any
-        // problems earlier than we use them.
-        let _ = cfg.key_bindings();
+        let (config, warnings) =
+            wezterm_dynamic::Error::capture_warnings(|| -> anyhow::Result<Config> {
+                let cfg: Config;
 
-        std::env::set_var("WEZTERM_CONFIG_FILE", p);
-        if let Some(dir) = p.parent() {
-            std::env::set_var("WEZTERM_CONFIG_DIR", dir);
-        }
+                let config: mlua::Value = smol::block_on(
+                    // Skip a potential BOM that Windows software may have placed in the
+                    // file. Note that we can't catch this happening for files that are
+                    // imported via the lua require function.
+                    lua.load(s.trim_start_matches('\u{FEFF}'))
+                        .set_name(p.to_string_lossy())?
+                        .eval_async(),
+                )?;
+                let config = Config::apply_overrides_to(&lua, config)?;
+                let config = Config::apply_overrides_obj_to(&lua, config, overrides)?;
+                cfg = Config::from_lua(config, &lua).with_context(|| {
+                    format!(
+                        "Error converting lua value returned by script {} to Config struct",
+                        p.display()
+                    )
+                })?;
+                cfg.check_consistency()?;
+
+                // Compute but discard the key bindings here so that we raise any
+                // problems earlier than we use them.
+                let _ = cfg.key_bindings();
+
+                std::env::set_var("WEZTERM_CONFIG_FILE", p);
+                if let Some(dir) = p.parent() {
+                    std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+                }
+                Ok(cfg)
+            });
+        let cfg = config?;
+
         Ok(Some(LoadedConfig {
             config: Ok(cfg.compute_extra_defaults(Some(p))),
             file_name: Some(p.to_path_buf()),
             lua: Some(lua),
+            warnings,
         }))
     }
 
@@ -1324,6 +1359,18 @@ fn default_char_select_font_size() -> f64 {
     18.0
 }
 
+fn default_command_palette_font_size() -> f64 {
+    12.0
+}
+
+fn default_command_palette_fg_color() -> RgbaColor {
+    SrgbaTuple(0.75, 0.75, 0.75, 1.0).into()
+}
+
+fn default_command_palette_bg_color() -> RgbaColor {
+    (0x33, 0x33, 0x33).into()
+}
+
 fn default_swallow_mouse_click_on_window_focus() -> bool {
     cfg!(target_os = "macos")
 }
@@ -1698,6 +1745,45 @@ fn default_line_quad_cache_size() -> usize {
 
 fn default_line_to_ele_shape_cache_size() -> usize {
     1024
+}
+
+#[derive(Debug, ToDynamic, Clone, Copy, PartialEq, Eq)]
+pub enum BoldBrightening {
+    /// Bold doesn't influence palette selection
+    No,
+    /// Bold Shifts palette from 0-7 to 8-15 and preserves bold font
+    BrightAndBold,
+    /// Bold Shifts palette from 0-7 to 8-15 and removes bold intensity
+    BrightOnly,
+}
+
+impl FromDynamic for BoldBrightening {
+    fn from_dynamic(
+        value: &wezterm_dynamic::Value,
+        options: wezterm_dynamic::FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error> {
+        match String::from_dynamic(value, options) {
+            Ok(s) => match s.as_str() {
+                "No" => Ok(Self::No),
+                "BrightAndBold" => Ok(Self::BrightAndBold),
+                "BrightOnly" => Ok(Self::BrightOnly),
+                s => Err(wezterm_dynamic::Error::Message(format!(
+                    "`{s}` is not valid, use one of `No`, `BrightAndBold` or `BrightOnly`"
+                ))),
+            },
+            Err(err) => match bool::from_dynamic(value, options) {
+                Ok(true) => Ok(Self::BrightAndBold),
+                Ok(false) => Ok(Self::No),
+                Err(_) => Err(err),
+            },
+        }
+    }
+}
+
+impl Default for BoldBrightening {
+    fn default() -> Self {
+        BoldBrightening::BrightAndBold
+    }
 }
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
