@@ -853,7 +853,6 @@ impl CopyRenderable {
                     return self.move_to_start_of_line_content();
                 }
             }
-
         }
         self.select_to_cursor_pos();
     }
