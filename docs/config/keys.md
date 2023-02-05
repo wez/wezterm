@@ -132,23 +132,20 @@ return {
 Alternatively, a single unicode character can be specified to indicate
 pressing the corresponding key.
 
-Pay attention to the case of the text that you assign to `key = '<some key>'` if your modifier contains `SHIFT` as this is a common mistake.<br>
-As of *20221119-145034-49b9839f* there's an open issue on this, see [#1906](https://github.com/wez/wezterm/issues/1906).
+Pay attention to key assignment that use `SHIFT` in the modifer.
+There is an open issue [#1906](https://github.com/wez/wezterm/issues/1906) that prevents the ability to discern `SHIFT` being used as part of the modifier sequence versus being used to access the assigned key.
+This issue pertains to non-alphabetic charater keys such as `'+'`, `'_'`, `'|'`, etc. e.g.
 ```lua
 local wezterm = require 'wezterm'
 return {
   keys = {
     -- This will not be abled to be triggered
-    {
-      key = 'r',
-      mods = 'SHIFT|SUPER',
-      action = wezterm.action.ResetFontSize,
-    },
+    { key = '+', mods = 'SUPER', action = wezterm.action.IncreaseFontSize },
     -- This WILL be abled to be triggered
     {
-      key = 'R',
-      mods = 'SHIFT|SUPER',
-      action = wezterm.action.ResetFontSize,
+      key = '+',
+      mods = 'SUPER|SHIFT',
+      action = wezterm.action.IncreaseFontSize,
     },
   },
 }
@@ -228,12 +225,23 @@ prefix.
 Similar in concept to the `phys:` mapping described above, the `raw:` mapping
 is independent of the OS keyboard layout.  Raw codes are hardware and windowing system dependent, so there is no portable way to list which key does what.
 
-To discover these values, you can set [debug_key_events = true](lua/config/debug_key_events.md) in your config, this will log key events in the [debug overlay](lua/keyassignment/ShowDebugOverlay.md).
+To discover these values, you can set [debug_key_events = true](lua/config/debug_key_events.md) in your config, this will log key events in the [debug overlay](lua/keyassignment/ShowDebugOverlay.md) e.g.
 
+<img src="../screenshots/debug-key_event-raw_code.png">
 
 You can specify a raw key value of 123 by using `key="raw:123"` in your config
 rather than one of the other key values.
 
+```lua
+local wezterm = require 'wezterm'
+return {
+  keys = {
+    -- These are the same key assignments
+    { key = 'raw:45', mods = 'SUPER', action = wezterm.action.SpawnWindow },
+    { key = 'n', mods = 'SUPER', action = wezterm.action.SpawnWindow },
+  },
+}
+```
 ## Leader Key
 
 *Since: 20201031-154415-9614e117*
@@ -250,8 +258,7 @@ The *leader* key is a modal modifier key that takes 3 fields:
 
 If leader is specified in the configuration then pressing that key combination will enable a virtual `LEADER` modifier.
 
-While `LEADER` is active, only defined key assignments that include `LEADER` in the `mods` mask will be recognized.<br>
-Other key presses will be swallowed and **NOT** passed through to the terminal.
+While `LEADER` is active, only defined key assignments that include `LEADER` in the `mods` mask will be recognized. Other key presses will be swallowed and **NOT** passed through to the terminal.
 
 `LEADER` stays active until a keypress is registered (whether it matches a key binding or not),
 or until it has been active for the duration specified by `timeout_milliseconds`, at which point it will automatically cancel itself.

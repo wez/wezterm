@@ -269,7 +269,7 @@ The tab bar has two options for appearance:
 - Fancy, modern-style tab bar (default)
 - Retro, classic-style tab bar
 
-<img src="../screenshots/fancy-retro.png">
+<img src="../screenshots/wezterm-tab-bar-fancy-retro.png">
 
 You can specify which style to use via their respective settings shown.
 
