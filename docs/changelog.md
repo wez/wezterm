@@ -105,6 +105,9 @@ As features stabilize some brief notes about them will accumulate here.
   [MoveForwardWord](config/lua/keyassignment/CopyMode/MoveForwardWord.md) not
   always moving to next line.  thanks to [@GZLiew](https://github.com/GZLiew)!
   [#2955](https://github.com/wez/wezterm/pull/2955)
+* Wayland: fixup hidpi scaling when `front_end="WebGpu"`. Thanks to
+  [@valpackett](https://github.com/valpackett)!
+  [#2877](https://github.com/wez/wezterm/pull/2887)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
