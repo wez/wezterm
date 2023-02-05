@@ -103,8 +103,7 @@ impl GuiFrontEnd {
                         | Alert::SetUserVar { .. },
                 } => {}
                 MuxNotification::Empty => {
-                    #[cfg(not(target_os = "macos"))]
-                    {
+                    if config::configuration().quit_when_all_windows_are_closed {
                         promise::spawn::spawn_into_main_thread(async move {
                             if mux::activity::Activity::count() == 0 {
                                 log::trace!("Mux is now empty, terminate gui");

@@ -672,6 +672,9 @@ pub struct Config {
     pub skip_close_confirmation_for_processes_named: Vec<String>,
 
     #[dynamic(default = "default_true")]
+    pub quit_when_all_windows_are_closed: bool,
+
+    #[dynamic(default = "default_true")]
     pub warn_about_missing_glyphs: bool,
 
     #[dynamic(default)]

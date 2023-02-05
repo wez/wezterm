@@ -66,6 +66,8 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: added a dock menu that allows spawning new windows. Thanks to
   [@dahlia](https://github.com/dahlia)!
   [#3054](https://github.com/wez/wezterm/pull/3054)
+* [quit_when_all_windows_are_closed](config/lua/config/quit_when_all_windows_are_closed.md)
+  configuration option.
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
