@@ -55,8 +55,10 @@ The default key assignments in copy mode are as follows:
 |                       | <kbd>b</kbd>             |
 | Move forward one word end    | <kbd>e</kbd> (*since: nightly builds only*)|
 | Move to start of this line     | <kbd>0</kbd> |
+|                                | <kbd>Home</kbd> |
 | Move to start of next line     | <kbd>Enter</kbd> |
 | Move to end of this line       | <kbd>$</kbd> |
+|                                | <kbd>End</kbd> |
 | Move to start of indented line | <kbd>Alt</kbd> + <kbd>M</kbd> |
 |                                | <kbd>^</kbd> |
 | Move to bottom of scrollback   | <kbd>Shift</kbd> + <kbd>G</kbd> |

@@ -1859,6 +1859,16 @@ pub fn copy_key_table() -> KeyTable {
             Modifiers::NONE,
             KeyAssignment::CopyMode(CopyModeAssignment::JumpForward { prev_char: true }),
         ),
+        (
+            WKeyCode::Home,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToStartOfLine),
+        ),
+        (
+            WKeyCode::End,
+            Modifiers::NONE,
+            KeyAssignment::CopyMode(CopyModeAssignment::MoveToEndOfLineContent),
+        ),
     ] {
         table.insert((key, mods), KeyTableEntry { action });
     }
