@@ -9,7 +9,7 @@ use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
 use objc::declare::ClassDecl;
 use objc::rc::StrongPtr;
-use objc::runtime::{Class, Object, Sel};
+use objc::runtime::{Class, Object, Sel, BOOL, NO, YES};
 use objc::*;
 
 const CLS_NAME: &str = "WezTermAppDelegate";
@@ -68,12 +68,29 @@ extern "C" fn application_will_finish_launching(
     log::debug!("application_will_finish_launching");
 }
 
-extern "C" fn application_open_untitled_file(_self: &mut Object, _sel: Sel, _app: *mut Object) {
-    if let Some(conn) = Connection::get() {
-        conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
-            KeyAssignment::SpawnWindow,
-        ));
+extern "C" fn application_did_finish_launching(this: &mut Object, _sel: Sel, _notif: *mut Object) {
+    log::debug!("application_did_finish_launching");
+    unsafe {
+        (*this).set_ivar("launched", YES);
     }
+}
+
+extern "C" fn application_open_untitled_file(
+    this: &mut Object,
+    _sel: Sel,
+    _app: *mut Object,
+) -> BOOL {
+    let launched: BOOL = unsafe { *this.get_ivar("launched") };
+    log::debug!("application_open_file launched={launched}");
+    if let Some(conn) = Connection::get() {
+        if launched == YES {
+            conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
+                KeyAssignment::SpawnWindow,
+            ));
+        }
+        return YES;
+    }
+    NO
 }
 
 extern "C" fn wezterm_perform_key_assignment(
@@ -149,6 +166,8 @@ fn get_class() -> &'static Class {
         let mut cls = ClassDecl::new(CLS_NAME, class!(NSWindow))
             .expect("Unable to register application class");
 
+        cls.add_ivar::<BOOL>("launched");
+
         unsafe {
             cls.add_method(
                 sel!(applicationShouldTerminate:),
@@ -157,6 +176,10 @@ fn get_class() -> &'static Class {
             cls.add_method(
                 sel!(applicationWillFinishLaunching:),
                 application_will_finish_launching as extern "C" fn(&mut Object, Sel, *mut Object),
+            );
+            cls.add_method(
+                sel!(applicationDidFinishLaunching:),
+                application_did_finish_launching as extern "C" fn(&mut Object, Sel, *mut Object),
             );
             cls.add_method(
                 sel!(application:openFile:),
@@ -177,7 +200,8 @@ fn get_class() -> &'static Class {
             );
             cls.add_method(
                 sel!(applicationOpenUntitledFile:),
-                application_open_untitled_file as extern "C" fn(&mut Object, Sel, *mut Object),
+                application_open_untitled_file
+                    as extern "C" fn(&mut Object, Sel, *mut Object) -> BOOL,
             );
         }
 
@@ -190,6 +214,7 @@ pub fn create_app_delegate() -> StrongPtr {
     unsafe {
         let delegate: *mut Object = msg_send![cls, alloc];
         let delegate: *mut Object = msg_send![delegate, init];
+        (*delegate).set_ivar("launched", NO);
         StrongPtr::new(delegate)
     }
 }
