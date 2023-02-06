@@ -315,9 +315,9 @@ dependencies = [
 
 [[package]]
 name = "benchmarking"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3937429ef059161c005a608ae02451b64e5e98d26d2038f43674f506b571bad6"
+checksum = "32842502e72b27b30b2681692d16bf47a8a375c5a2795613f0dc699bed9a48bb"
 
 [[package]]
 name = "bintree"
