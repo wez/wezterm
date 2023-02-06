@@ -111,17 +111,14 @@ impl ConnectionOps for Connection {
     }
 
     fn terminate_message_loop(&self) {
-        log::info!("terminate_message_loop called");
         unsafe {
             // bounce via an event callback to encourage stop to apply
             // to the correct level of run loop
             promise::spawn::spawn_into_main_thread(async move {
-                log::info!("terminate_message_loop helper called");
                 let () = msg_send![NSApp(), stop: nil];
                 // Generate a UI event so that the run loop breaks out
                 // after receiving the stop
                 let () = msg_send![NSApp(), abortModal];
-                log::info!("I should really be stopping now");
             })
             .detach();
         }
