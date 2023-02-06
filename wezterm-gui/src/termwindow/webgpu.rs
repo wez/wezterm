@@ -308,7 +308,12 @@ impl WebGpuState {
         let queue = Arc::new(queue);
 
         // Explicitly request an SRGB format, if available
-        let format = caps.formats[0].add_srgb_suffix();
+        let pref_format_srgb = caps.formats[0].add_srgb_suffix();
+        let format = if caps.formats.contains(&pref_format_srgb) {
+            pref_format_srgb
+        } else {
+            caps.formats[0]
+        };
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -324,7 +329,7 @@ impl WebGpuState {
             } else {
                 wgpu::CompositeAlphaMode::Auto
             },
-            view_formats: vec![format, format.remove_srgb_suffix()],
+            view_formats: vec![format.add_srgb_suffix(), format.remove_srgb_suffix()],
         };
         surface.configure(&device, &config);
 
