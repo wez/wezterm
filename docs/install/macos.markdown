@@ -39,7 +39,7 @@ $ brew install --cask wez/wezterm/wezterm-nightly
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```bash
-$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
+$ brew upgrade --cask wez/wezterm/wezterm-nightly --no-quarantine --greedy-latest
 ```
 
 ## MacPorts
