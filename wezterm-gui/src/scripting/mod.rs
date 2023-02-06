@@ -82,7 +82,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         "enumerate_gpus",
         lua.create_function(|_, _: ()| {
             let backends = wgpu::Backends::all();
-            let instance = wgpu::Instance::new(backends);
+            let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                backends,
+                ..Default::default()
+            });
             let gpus: Vec<GpuInfo> = instance
                 .enumerate_adapters(backends)
                 .map(|adapter| {

@@ -19,21 +19,21 @@ struct VertexOutput {
 };
 
 // a regular monochrome text glyph
-let IS_GLYPH: f32 = 0.0;
+const IS_GLYPH: f32 = 0.0;
 
 // a color emoji glyph
-let IS_COLOR_EMOJI: f32 = 1.0;
+const IS_COLOR_EMOJI: f32 = 1.0;
 
 // a full color texture attached as the
 // background image of the window
-let IS_BG_IMAGE: f32 = 2.0;
+const IS_BG_IMAGE: f32 = 2.0;
 
 // like 2.0, except that instead of an
 // image, we use the solid bg color
-let IS_SOLID_COLOR: f32 = 3.0;
+const IS_SOLID_COLOR: f32 = 3.0;
 
 // Grayscale poly quad for non-aa text render layers
-let IS_GRAY_SCALE: f32 = 4.0;
+const IS_GRAY_SCALE: f32 = 4.0;
 
 struct ShaderUniform {
   foreground_text_hsb: vec3<f32>,

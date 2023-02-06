@@ -120,6 +120,7 @@ impl Texture2d for WebGpuTexture {
 
 impl WebGpuTexture {
     pub fn new(width: u32, height: u32, state: &WebGpuState) -> Self {
+        let format = wgpu::TextureFormat::Rgba8UnormSrgb;
         let texture = state.device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
                 width,
@@ -129,9 +130,10 @@ impl WebGpuTexture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("Texture Atlas"),
+            view_formats: &[format, format.remove_srgb_suffix()],
         });
         Self {
             texture,
@@ -197,8 +199,11 @@ impl WebGpuState {
         config: &ConfigHandle,
     ) -> anyhow::Result<Self> {
         let backends = wgpu::Backends::all();
-        let instance = wgpu::Instance::new(backends);
-        let surface = unsafe { instance.create_surface(&handle) };
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            ..Default::default()
+        });
+        let surface = unsafe { instance.create_surface(&handle)? };
 
         let mut adapter: Option<wgpu::Adapter> = None;
 
@@ -280,8 +285,8 @@ impl WebGpuState {
 
         let adapter_info = adapter.get_info();
         log::trace!("Using adapter: {adapter_info:?}");
-        let alpha_modes = surface.get_supported_alpha_modes(&adapter);
-        log::trace!("alpha modes: {alpha_modes:?}");
+        let caps = surface.get_capabilities(&adapter);
+        log::trace!("caps: {caps:?}");
 
         let (device, queue) = adapter
             .request_device(
@@ -302,17 +307,24 @@ impl WebGpuState {
 
         let queue = Arc::new(queue);
 
+        // Explicitly request an SRGB format, if available
+        let format = caps.formats[0].add_srgb_suffix();
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_supported_formats(&adapter)[0],
+            format,
             width: dimensions.pixel_width as u32,
             height: dimensions.pixel_height as u32,
             present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: if alpha_modes.contains(&wgpu::CompositeAlphaMode::PostMultiplied) {
+            alpha_mode: if caps
+                .alpha_modes
+                .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+            {
                 wgpu::CompositeAlphaMode::PostMultiplied
             } else {
                 wgpu::CompositeAlphaMode::Auto
             },
+            view_formats: vec![format, format.remove_srgb_suffix()],
         };
         surface.configure(&device, &config);
 
