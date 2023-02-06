@@ -166,7 +166,10 @@ impl TmuxDomainState {
     pub fn create_gui_window(&self) {
         if self.gui_window.lock().is_none() {
             let mux = Mux::get();
-            let window_builder = mux.new_empty_window(None /* TODO: pass session here */);
+            let window_builder = mux.new_empty_window(
+                None, /* TODO: pass session here */
+                None, /* position */
+            );
             log::info!("Tmux create window id {}", window_builder.window_id);
             {
                 let mut window_id = self.gui_window.lock();

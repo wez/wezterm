@@ -33,7 +33,7 @@ use config::keyassignment::{
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
-    TermConfig, WindowCloseConfirmation,
+    GeometryOrigin, GuiPosition, TermConfig, WindowCloseConfirmation,
 };
 use lfucache::*;
 use mlua::{FromLua, UserData, UserDataFields};
@@ -59,7 +59,6 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::SequenceNo;
 use wezterm_dynamic::Value;
 use wezterm_font::FontConfiguration;
-use wezterm_gui_subcommands::GuiPosition;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration, TerminalSize};
@@ -760,12 +759,19 @@ impl TermWindow {
         let tw = Rc::new(RefCell::new(myself));
         let tw_event = Rc::clone(&tw);
 
-        let (x, y, origin) = POSITION
-            .lock()
-            .unwrap()
-            .take()
-            .map(|pos| (Some(pos.x), Some(pos.y), pos.origin))
-            .unwrap_or((None, None, Default::default()));
+        let mut x = None;
+        let mut y = None;
+        let mut origin = GeometryOrigin::default();
+
+        if let Some(position) = mux
+            .get_window(mux_window_id)
+            .and_then(|window| window.get_initial_position().clone())
+            .or_else(|| POSITION.lock().unwrap().take())
+        {
+            x.replace(position.x);
+            y.replace(position.y);
+            origin = position.origin;
+        }
 
         let geometry = RequestedWindowGeometry {
             width: Dimension::Pixels(dimensions.pixel_width as f32),

@@ -228,7 +228,9 @@ async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
         .any(|p| p.domain_id() == domain.domain_id());
 
     if !have_panes_in_domain {
-        let window_id = mux.new_empty_window(None);
+        let workspace = None;
+        let position = None;
+        let window_id = mux.new_empty_window(workspace, position);
         domain.attach(Some(*window_id)).await?;
 
         let config = config::configuration();

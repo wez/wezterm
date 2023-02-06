@@ -166,7 +166,7 @@ impl Default for SpawnTabDomain {
     }
 }
 
-#[derive(Default, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct SpawnCommand {
     /// Optional descriptive label
     pub label: Option<String>,
@@ -192,6 +192,8 @@ pub struct SpawnCommand {
 
     #[dynamic(default)]
     pub domain: SpawnTabDomain,
+
+    pub position: Option<crate::GuiPosition>,
 }
 impl_lua_conversion_dynamic!(SpawnCommand);
 
@@ -245,6 +247,7 @@ impl SpawnCommand {
             args: if args.is_empty() { None } else { Some(args) },
             set_environment_variables,
             cwd,
+            position: None,
         })
     }
 }
@@ -414,7 +417,7 @@ impl Default for CharSelectArguments {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Default, Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct QuickSelectArguments {
     /// Overrides the main quick_select_alphabet config
     #[dynamic(default)]
@@ -432,7 +435,7 @@ pub struct QuickSelectArguments {
     pub scope_lines: Option<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -540,7 +543,7 @@ pub enum KeyAssignment {
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 
-#[derive(Debug, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub struct SplitPane {
     pub direction: PaneDirection,
     #[dynamic(default)]
@@ -621,7 +624,7 @@ pub struct KeyTables {
     pub by_name: HashMap<String, KeyTable>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct KeyTableEntry {
     pub action: KeyAssignment,
 }

@@ -57,6 +57,22 @@ wezterm.action.SpawnCommandInNewWindow {
   -- current pane.
   -- See the Multiplexing section of the docs for more on this topic.
   domain = { DomainName = 'my.server' },
+
+  -- Since: nightly builds only
+  -- Specify the initial position for a GUI window when this command
+  -- is used in a context that will create a new window, such as with
+  -- wezterm.mux.spawn_window, SpawnCommandInNewWindow
+  position = {
+    x = 10,
+    y = 300,
+    -- Optional origin to use for x and y.
+    -- Possible values:
+    -- * "ScreenCoordinateSystem" (this is the default)
+    -- * "MainScreen" (the primary or main screen)
+    -- * "ActiveScreen" (whichever screen hosts the active/focused window)
+    -- * {Named="HDMI-1"} - uses a screen by name. See wezterm.gui.screens()
+    -- origin = "ScreenCoordinateSystem"
+  },
 }
 ```
 

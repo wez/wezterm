@@ -525,7 +525,7 @@ pub async fn run<
         let window_id = match window_id {
             Some(id) => id,
             None => {
-                window_builder = mux.new_empty_window(None);
+                window_builder = mux.new_empty_window(None, None);
                 *window_builder
             }
         };

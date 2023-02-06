@@ -208,6 +208,7 @@ struct SpawnWindow {
     width: Option<usize>,
     height: Option<usize>,
     workspace: Option<String>,
+    position: Option<config::GuiPosition>,
     #[dynamic(flatten)]
     cmd_builder: CommandBuilderFrag,
 }
@@ -240,6 +241,7 @@ impl SpawnWindow {
                 size,
                 None,
                 self.workspace.unwrap_or_else(|| mux.active_workspace()),
+                self.position,
             )
             .await
             .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;
@@ -290,6 +292,7 @@ impl SpawnTab {
                 size,
                 pane,
                 String::new(),
+                None, // optional gui window position
             )
             .await
             .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;

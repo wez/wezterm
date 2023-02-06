@@ -75,4 +75,29 @@ name will be used.
 wezterm.mux.spawn_window { workspace = { 'coding' } }
 ```
 
+### position
 
+*Since: nightly builds only*
+
+Specify the initial position for the GUI window that will be created to display
+this mux window.
+
+The value is a lua table:
+
+```
+wezterm.mux.spawn_window {
+  position = {
+    x = 10,
+    y = 300,
+    -- Optional origin to use for x and y.
+    -- Possible values:
+    -- * "ScreenCoordinateSystem" (this is the default)
+    -- * "MainScreen" (the primary or main screen)
+    -- * "ActiveScreen" (whichever screen hosts the active/focused window)
+    -- * {Named="HDMI-1"} - uses a screen by name. See wezterm.gui.screens()
+    -- origin = "ScreenCoordinateSystem"
+  },
+}
+```
+
+See also [wezterm.gui.screens()](../wezterm.gui/screens.md)

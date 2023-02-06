@@ -1,9 +1,8 @@
 use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
-use config::{Dimension, GeometryOrigin, SshParameters};
+use config::{GuiPosition, SshParameters};
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
 
@@ -22,125 +21,6 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
         Ok((left.to_string(), right.to_string()))
     } else {
         Err(format!("Expected name=value, but got {}", arg))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct GuiPosition {
-    pub x: Dimension,
-    pub y: Dimension,
-    pub origin: GeometryOrigin,
-}
-
-impl GuiPosition {
-    fn parse_dim(s: &str) -> anyhow::Result<Dimension> {
-        if let Some(v) = s.strip_suffix("px") {
-            Ok(Dimension::Pixels(v.parse()?))
-        } else if let Some(v) = s.strip_suffix("%") {
-            Ok(Dimension::Percent(v.parse::<f32>()? / 100.))
-        } else {
-            Ok(Dimension::Pixels(s.parse()?))
-        }
-    }
-
-    fn parse_x_y(s: &str) -> anyhow::Result<(Dimension, Dimension)> {
-        let fields: Vec<_> = s.split(',').collect();
-        if fields.len() != 2 {
-            anyhow::bail!("expected x,y coordinates");
-        }
-        Ok((Self::parse_dim(fields[0])?, Self::parse_dim(fields[1])?))
-    }
-
-    fn parse_origin(s: &str) -> GeometryOrigin {
-        match s {
-            "screen" => GeometryOrigin::ScreenCoordinateSystem,
-            "main" => GeometryOrigin::MainScreen,
-            "active" => GeometryOrigin::ActiveScreen,
-            name => GeometryOrigin::Named(name.to_string()),
-        }
-    }
-}
-
-impl FromStr for GuiPosition {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> anyhow::Result<GuiPosition> {
-        let fields: Vec<_> = s.split(':').collect();
-        if fields.len() == 2 {
-            let origin = Self::parse_origin(fields[0]);
-            let (x, y) = Self::parse_x_y(fields[1])?;
-            return Ok(GuiPosition { x, y, origin });
-        }
-        if fields.len() == 1 {
-            let (x, y) = Self::parse_x_y(fields[0])?;
-            return Ok(GuiPosition {
-                x,
-                y,
-                origin: GeometryOrigin::ScreenCoordinateSystem,
-            });
-        }
-        anyhow::bail!("invalid position spec {}", s);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn xy() {
-        assert_eq!(
-            GuiPosition::from_str("10,20").unwrap(),
-            GuiPosition {
-                x: Dimension::Pixels(10.),
-                y: Dimension::Pixels(20.),
-                origin: GeometryOrigin::ScreenCoordinateSystem
-            }
-        );
-
-        assert_eq!(
-            GuiPosition::from_str("screen:10,20").unwrap(),
-            GuiPosition {
-                x: Dimension::Pixels(10.),
-                y: Dimension::Pixels(20.),
-                origin: GeometryOrigin::ScreenCoordinateSystem
-            }
-        );
-    }
-
-    #[test]
-    fn named() {
-        assert_eq!(
-            GuiPosition::from_str("hdmi-1:10,20").unwrap(),
-            GuiPosition {
-                x: Dimension::Pixels(10.),
-                y: Dimension::Pixels(20.),
-                origin: GeometryOrigin::Named("hdmi-1".to_string()),
-            }
-        );
-    }
-
-    #[test]
-    fn active() {
-        assert_eq!(
-            GuiPosition::from_str("active:10,20").unwrap(),
-            GuiPosition {
-                x: Dimension::Pixels(10.),
-                y: Dimension::Pixels(20.),
-                origin: GeometryOrigin::ActiveScreen
-            }
-        );
-    }
-
-    #[test]
-    fn main() {
-        assert_eq!(
-            GuiPosition::from_str("main:10,20").unwrap(),
-            GuiPosition {
-                x: Dimension::Pixels(10.),
-                y: Dimension::Pixels(20.),
-                origin: GeometryOrigin::MainScreen
-            }
-        );
     }
 }
 

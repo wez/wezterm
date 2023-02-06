@@ -145,6 +145,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Copy Mode: Added <kbd>Home</kbd> and <kbd>End</kbd> default assignments.
   Thanks to [@cunha](https://github.com/cunha)!
   [#2762](https://github.com/wez/wezterm/pull/2762)
+* [wezterm.mux.spawn_window](config/lua/wezterm.mux/spawn_window.md) and
+  [SpawnCommandInNewWindow](config/lua/keyassignment/SpawnCommandInNewWindow.md)
+  now accept a position field to control initial gui window position.
+  [#2976](https://github.com/wez/wezterm/issues/2976)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0

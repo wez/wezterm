@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 #[derive(Debug, Copy, Clone)]
@@ -172,7 +173,7 @@ impl Dimension {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum GeometryOrigin {
     /// x,y relative to overall screen coordinate system.
     /// Selected position might be outside of the regions covered
@@ -186,5 +187,127 @@ pub enum GeometryOrigin {
 impl Default for GeometryOrigin {
     fn default() -> Self {
         Self::ScreenCoordinateSystem
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+pub struct GuiPosition {
+    #[dynamic(try_from = "crate::units::PixelUnit")]
+    pub x: Dimension,
+    #[dynamic(try_from = "crate::units::PixelUnit")]
+    pub y: Dimension,
+    #[dynamic(default)]
+    pub origin: GeometryOrigin,
+}
+
+impl GuiPosition {
+    fn parse_dim(s: &str) -> anyhow::Result<Dimension> {
+        if let Some(v) = s.strip_suffix("px") {
+            Ok(Dimension::Pixels(v.parse()?))
+        } else if let Some(v) = s.strip_suffix("%") {
+            Ok(Dimension::Percent(v.parse::<f32>()? / 100.))
+        } else {
+            Ok(Dimension::Pixels(s.parse()?))
+        }
+    }
+
+    fn parse_x_y(s: &str) -> anyhow::Result<(Dimension, Dimension)> {
+        let fields: Vec<_> = s.split(',').collect();
+        if fields.len() != 2 {
+            anyhow::bail!("expected x,y coordinates");
+        }
+        Ok((Self::parse_dim(fields[0])?, Self::parse_dim(fields[1])?))
+    }
+
+    fn parse_origin(s: &str) -> GeometryOrigin {
+        match s {
+            "screen" => GeometryOrigin::ScreenCoordinateSystem,
+            "main" => GeometryOrigin::MainScreen,
+            "active" => GeometryOrigin::ActiveScreen,
+            name => GeometryOrigin::Named(name.to_string()),
+        }
+    }
+}
+
+impl FromStr for GuiPosition {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> anyhow::Result<GuiPosition> {
+        let fields: Vec<_> = s.split(':').collect();
+        if fields.len() == 2 {
+            let origin = Self::parse_origin(fields[0]);
+            let (x, y) = Self::parse_x_y(fields[1])?;
+            return Ok(GuiPosition { x, y, origin });
+        }
+        if fields.len() == 1 {
+            let (x, y) = Self::parse_x_y(fields[0])?;
+            return Ok(GuiPosition {
+                x,
+                y,
+                origin: GeometryOrigin::ScreenCoordinateSystem,
+            });
+        }
+        anyhow::bail!("invalid position spec {}", s);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn xy() {
+        assert_eq!(
+            GuiPosition::from_str("10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ScreenCoordinateSystem
+            }
+        );
+
+        assert_eq!(
+            GuiPosition::from_str("screen:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ScreenCoordinateSystem
+            }
+        );
+    }
+
+    #[test]
+    fn named() {
+        assert_eq!(
+            GuiPosition::from_str("hdmi-1:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::Named("hdmi-1".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn active() {
+        assert_eq!(
+            GuiPosition::from_str("active:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::ActiveScreen
+            }
+        );
+    }
+
+    #[test]
+    fn main() {
+        assert_eq!(
+            GuiPosition::from_str("main:10,20").unwrap(),
+            GuiPosition {
+                x: Dimension::Pixels(10.),
+                y: Dimension::Pixels(20.),
+                origin: GeometryOrigin::MainScreen
+            }
+        );
     }
 }

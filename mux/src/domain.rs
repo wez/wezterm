@@ -296,6 +296,7 @@ impl LocalDomain {
                 args: if args.is_empty() { None } else { Some(args) },
                 set_environment_variables,
                 cwd,
+                position: None,
             };
 
             let spawn_command = config::with_lua_config_on_main_thread(|lua| async {

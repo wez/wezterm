@@ -4,7 +4,7 @@ use crate::tab::{SplitRequest, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
-use config::{configuration, ExitBehavior};
+use config::{configuration, ExitBehavior, GuiPosition};
 use domain::{Domain, DomainId, DomainState, SplitSource};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 #[cfg(unix)]
@@ -825,8 +825,12 @@ impl Mux {
         window.get_active().map(Arc::clone)
     }
 
-    pub fn new_empty_window(&self, workspace: Option<String>) -> MuxWindowBuilder {
-        let window = Window::new(workspace);
+    pub fn new_empty_window(
+        &self,
+        workspace: Option<String>,
+        position: Option<GuiPosition>,
+    ) -> MuxWindowBuilder {
+        let window = Window::new(workspace, position);
         let window_id = window.window_id();
         self.windows.write().insert(window_id, window);
         MuxWindowBuilder {
@@ -1097,7 +1101,7 @@ impl Mux {
 
             (window_id, size)
         } else {
-            window_builder = self.new_empty_window(workspace_for_new_window);
+            window_builder = self.new_empty_window(workspace_for_new_window, None);
             (*window_builder, src_tab.get_size())
         };
 
@@ -1127,6 +1131,7 @@ impl Mux {
         size: TerminalSize,
         current_pane_id: Option<PaneId>,
         workspace_for_new_window: String,
+        window_position: Option<GuiPosition>,
     ) -> anyhow::Result<(Arc<Tab>, Arc<dyn Pane>, WindowId)> {
         let domain = self
             .resolve_spawn_tab_domain(current_pane_id, &domain)
@@ -1152,7 +1157,7 @@ impl Mux {
             (window_id, size)
         } else {
             term_config = None;
-            window_builder = self.new_empty_window(Some(workspace_for_new_window));
+            window_builder = self.new_empty_window(Some(workspace_for_new_window), window_position);
             (*window_builder, size)
         };
 

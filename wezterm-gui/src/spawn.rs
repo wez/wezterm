@@ -126,6 +126,7 @@ pub async fn spawn_command_internal(
                     size,
                     current_pane_id,
                     workspace,
+                    spawn.position,
                 )
                 .await
                 .context("spawn_tab_or_window")?;

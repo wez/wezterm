@@ -1,5 +1,6 @@
 use crate::pane::CloseReason;
 use crate::{Mux, MuxNotification, Tab, TabId};
+use config::GuiPosition;
 use std::sync::Arc;
 
 static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -12,10 +13,11 @@ pub struct Window {
     last_active: Option<TabId>,
     workspace: String,
     title: String,
+    initial_position: Option<GuiPosition>,
 }
 
 impl Window {
-    pub fn new(workspace: Option<String>) -> Self {
+    pub fn new(workspace: Option<String>, initial_position: Option<GuiPosition>) -> Self {
         Self {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             tabs: vec![],
@@ -23,7 +25,12 @@ impl Window {
             last_active: None,
             title: String::new(),
             workspace: workspace.unwrap_or_else(|| Mux::get().active_workspace()),
+            initial_position,
         }
+    }
+
+    pub fn get_initial_position(&self) -> &Option<GuiPosition> {
+        &self.initial_position
     }
 
     pub fn get_workspace(&self) -> &str {

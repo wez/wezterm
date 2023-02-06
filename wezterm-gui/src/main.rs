@@ -212,7 +212,9 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let gui = crate::frontend::try_new()?;
     let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
     {
-        let window_id = mux.new_empty_window(None);
+        let workspace = None;
+        let position = None;
+        let window_id = mux.new_empty_window(workspace, position);
         block_on(domain.attach(Some(*window_id)))?; // FIXME: blocking
 
         // FIXME: blocking
@@ -269,7 +271,9 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         // from the size specified in the remote mux.
         // We use the TabAddedToWindow mux notification
         // to detect and adjust the size later on.
-        let builder = mux.new_empty_window(None);
+        let workspace = None;
+        let position = None;
+        let builder = mux.new_empty_window(workspace, position);
         *builder
     };
 
@@ -466,7 +470,9 @@ async fn async_run_terminal_gui(
             let window_id = {
                 // Force the builder to notify the frontend early,
                 // so that the attach await below doesn't block it.
-                let builder = mux.new_empty_window(None);
+                let workspace = None;
+                let position = None;
+                let builder = mux.new_empty_window(workspace, position);
                 *builder
             };
 

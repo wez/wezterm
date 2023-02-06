@@ -198,6 +198,7 @@ impl GuiFrontEnd {
                             TerminalSize::default(),
                             pane_id,
                             workspace,
+                            None, // optional position
                         )
                         .await
                     {
