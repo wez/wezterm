@@ -68,6 +68,14 @@ extern "C" fn application_will_finish_launching(
     log::debug!("application_will_finish_launching");
 }
 
+extern "C" fn application_open_untitled_file(_self: &mut Object, _sel: Sel, _app: *mut Object) {
+    if let Some(conn) = Connection::get() {
+        conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
+            KeyAssignment::SpawnWindow,
+        ));
+    }
+}
+
 extern "C" fn wezterm_perform_key_assignment(
     _self: &mut Object,
     _sel: Sel,
@@ -166,6 +174,10 @@ fn get_class() -> &'static Class {
             cls.add_method(
                 sel!(weztermShowAbout:),
                 wezterm_show_about as extern "C" fn(&mut Object, Sel, *mut Object),
+            );
+            cls.add_method(
+                sel!(applicationOpenUntitledFile:),
+                application_open_untitled_file as extern "C" fn(&mut Object, Sel, *mut Object),
             );
         }
 
