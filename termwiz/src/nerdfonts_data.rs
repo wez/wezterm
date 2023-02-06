@@ -389,9 +389,11 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("cod_workspace_untrusted", '\u{ebc2}'),                     // 
     ("cod_zoom_in", '\u{eb81}'),                                 // 
     ("cod_zoom_out", '\u{eb82}'),                                // 
+    ("custom_asm", '\u{e6ab}'),                                  // 
     ("custom_c", '\u{e61e}'),                                    // 
     ("custom_cpp", '\u{e61d}'),                                  // 
     ("custom_crystal", '\u{e62f}'),                              // 
+    ("custom_default", '\u{e612}'),                              // 
     ("custom_electron", '\u{e62e}'),                             // 
     ("custom_elixir", '\u{e62d}'),                               // 
     ("custom_elm", '\u{e62c}'),                                  // 
@@ -403,11 +405,13 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_folder_npm", '\u{e5fa}'),                           // 
     ("custom_folder_open", '\u{e5fe}'),                          // 
     ("custom_go", '\u{e626}'),                                   // 
+    ("custom_home", '\u{e617}'),                                 // 
     ("custom_kotlin", '\u{e634}'),                               // 
     ("custom_msdos", '\u{e629}'),                                // 
     ("custom_orgmode", '\u{e633}'),                              // 
-    ("custom_puppet", '\u{e631}'),                               // 
+    ("custom_play_arrow", '\u{e602}'),                           // 
     ("custom_purescript", '\u{e630}'),                           // 
+    ("custom_v_lang", '\u{e6ac}'),                               // 
     ("custom_vim", '\u{e62b}'),                                  // 
     ("custom_windows", '\u{e62a}'),                              // 
     ("dev_android", '\u{e70e}'),                                 // 
@@ -3840,43 +3844,159 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("pom_pomodoro_squashed", '\u{e004}'),                       // 
     ("pom_pomodoro_ticking", '\u{e003}'),                        // 
     ("pom_short_pause", '\u{e005}'),                             // 
+    ("seti_apple", '\u{e635}'),                                  // 
+    ("seti_argdown", '\u{e636}'),                                // 
+    ("seti_asm", '\u{e637}'),                                    // 
+    ("seti_audio", '\u{e638}'),                                  // 
+    ("seti_babel", '\u{e639}'),                                  // 
+    ("seti_bazel", '\u{e63a}'),                                  // 
+    ("seti_bicep", '\u{e63b}'),                                  // 
     ("seti_bower", '\u{e61a}'),                                  // 
+    ("seti_bsl", '\u{e63c}'),                                    // 
+    ("seti_c", '\u{e649}'),                                      // 
+    ("seti_c_sharp", '\u{e648}'),                                // 
+    ("seti_cake", '\u{e63e}'),                                   // 
+    ("seti_cake_php", '\u{e63d}'),                               // 
+    ("seti_checkbox", '\u{e63f}'),                               // 
+    ("seti_checkbox_unchecked", '\u{e640}'),                     // 
+    ("seti_clock", '\u{e641}'),                                  // 
+    ("seti_clojure", '\u{e642}'),                                // 
+    ("seti_code_climate", '\u{e643}'),                           // 
+    ("seti_code_search", '\u{e644}'),                            // 
     ("seti_coffee", '\u{e61b}'),                                 // 
+    ("seti_coldfusion", '\u{e645}'),                             // 
     ("seti_config", '\u{e615}'),                                 // 
+    ("seti_cpp", '\u{e646}'),                                    // 
+    ("seti_crystal_embedded", '\u{e647}'),                       // 
     ("seti_css", '\u{e614}'),                                    // 
-    ("seti_default", '\u{e612}'),                                // 
+    ("seti_csv", '\u{e64a}'),                                    // 
+    ("seti_cu", '\u{e64b}'),                                     // 
+    ("seti_d", '\u{e651}'),                                      // 
+    ("seti_dart", '\u{e64c}'),                                   // 
+    ("seti_db", '\u{e64d}'),                                     // 
+    ("seti_default", '\u{e64e}'),                                // 
+    ("seti_deprecation_cop", '\u{e64f}'),                        // 
+    ("seti_docker", '\u{e650}'),                                 // 
+    ("seti_editorconfig", '\u{e652}'),                           // 
     ("seti_ejs", '\u{e618}'),                                    // 
+    ("seti_elixir_script", '\u{e653}'),                          // 
+    ("seti_error", '\u{e654}'),                                  // 
+    ("seti_eslint", '\u{e655}'),                                 // 
+    ("seti_ethereum", '\u{e656}'),                               // 
+    ("seti_f_sharp", '\u{e65a}'),                                // 
     ("seti_favicon", '\u{e623}'),                                // 
+    ("seti_firebase", '\u{e657}'),                               // 
+    ("seti_firefox", '\u{e658}'),                                // 
     ("seti_folder", '\u{e613}'),                                 // 
+    ("seti_font", '\u{e659}'),                                   // 
+    ("seti_git", '\u{e65d}'),                                    // 
+    ("seti_github", '\u{e65b}'),                                 // 
+    ("seti_gitlab", '\u{e65c}'),                                 // 
     ("seti_go", '\u{e627}'),                                     // 
+    ("seti_go2", '\u{e65e}'),                                    // 
+    ("seti_godot", '\u{e65f}'),                                  // 
+    ("seti_gradle", '\u{e660}'),                                 // 
+    ("seti_grails", '\u{e661}'),                                 // 
+    ("seti_graphql", '\u{e662}'),                                // 
     ("seti_grunt", '\u{e611}'),                                  // 
     ("seti_gulp", '\u{e610}'),                                   // 
+    ("seti_hacklang", '\u{e663}'),                               // 
+    ("seti_haml", '\u{e664}'),                                   // 
+    ("seti_happenings", '\u{e665}'),                             // 
     ("seti_haskell", '\u{e61f}'),                                // 
+    ("seti_haxe", '\u{e666}'),                                   // 
     ("seti_heroku", '\u{e607}'),                                 // 
-    ("seti_home", '\u{e617}'),                                   // 
+    ("seti_hex", '\u{e667}'),                                    // 
     ("seti_html", '\u{e60e}'),                                   // 
+    ("seti_ignored", '\u{e668}'),                                // 
+    ("seti_illustrator", '\u{e669}'),                            // 
     ("seti_image", '\u{e60d}'),                                  // 
+    ("seti_info", '\u{e66a}'),                                   // 
+    ("seti_ionic", '\u{e66b}'),                                  // 
+    ("seti_jade", '\u{e66c}'),                                   // 
+    ("seti_java", '\u{e66d}'),                                   // 
     ("seti_javascript", '\u{e60c}'),                             // 
+    ("seti_jenkins", '\u{e66e}'),                                // 
+    ("seti_jinja", '\u{e66f}'),                                  // 
     ("seti_json", '\u{e60b}'),                                   // 
     ("seti_julia", '\u{e624}'),                                  // 
     ("seti_karma", '\u{e622}'),                                  // 
     ("seti_license", '\u{e60a}'),                                // 
+    ("seti_liquid", '\u{e670}'),                                 // 
+    ("seti_livescript", '\u{e671}'),                             // 
+    ("seti_lock", '\u{e672}'),                                   // 
     ("seti_lua", '\u{e620}'),                                    // 
+    ("seti_makefile", '\u{e673}'),                               // 
     ("seti_markdown", '\u{e609}'),                               // 
+    ("seti_maven", '\u{e674}'),                                  // 
+    ("seti_mdo", '\u{e675}'),                                    // 
     ("seti_mustache", '\u{e60f}'),                               // 
+    ("seti_new_file", '\u{e676}'),                               // 
+    ("seti_nim", '\u{e677}'),                                    // 
+    ("seti_notebook", '\u{e678}'),                               // 
     ("seti_npm", '\u{e616}'),                                    // 
+    ("seti_nunjucks", '\u{e679}'),                               // 
+    ("seti_ocaml", '\u{e67a}'),                                  // 
+    ("seti_odata", '\u{e67b}'),                                  // 
+    ("seti_pddl", '\u{e67c}'),                                   // 
+    ("seti_pdf", '\u{e67d}'),                                    // 
+    ("seti_perl", '\u{e67e}'),                                   // 
+    ("seti_photoshop", '\u{e67f}'),                              // 
     ("seti_php", '\u{e608}'),                                    // 
-    ("seti_play_arrow", '\u{e602}'),                             // 
+    ("seti_pipeline", '\u{e680}'),                               // 
+    ("seti_plan", '\u{e681}'),                                   // 
+    ("seti_platformio", '\u{e682}'),                             // 
+    ("seti_powershell", '\u{e683}'),                             // 
+    ("seti_prisma", '\u{e684}'),                                 // 
     ("seti_project", '\u{e601}'),                                // 
+    ("seti_prolog", '\u{e685}'),                                 // 
+    ("seti_pug", '\u{e686}'),                                    // 
+    ("seti_puppet", '\u{e631}'),                                 // 
     ("seti_python", '\u{e606}'),                                 // 
+    ("seti_r", '\u{e68a}'),                                      // 
     ("seti_rails", '\u{e604}'),                                  // 
     ("seti_react", '\u{e625}'),                                  // 
+    ("seti_reasonml", '\u{e687}'),                               // 
+    ("seti_rescript", '\u{e688}'),                               // 
+    ("seti_rollup", '\u{e689}'),                                 // 
     ("seti_ruby", '\u{e605}'),                                   // 
+    ("seti_rust", '\u{e68b}'),                                   // 
+    ("seti_salesforce", '\u{e68c}'),                             // 
     ("seti_sass", '\u{e603}'),                                   // 
+    ("seti_sbt", '\u{e68d}'),                                    // 
+    ("seti_scala", '\u{e68e}'),                                  // 
+    ("seti_search", '\u{e68f}'),                                 // 
+    ("seti_settings", '\u{e690}'),                               // 
+    ("seti_shell", '\u{e691}'),                                  // 
+    ("seti_slim", '\u{e692}'),                                   // 
+    ("seti_smarty", '\u{e693}'),                                 // 
+    ("seti_spring", '\u{e694}'),                                 // 
+    ("seti_stylelint", '\u{e695}'),                              // 
     ("seti_stylus", '\u{e600}'),                                 // 
+    ("seti_sublime", '\u{e696}'),                                // 
+    ("seti_svelte", '\u{e697}'),                                 // 
+    ("seti_svg", '\u{e698}'),                                    // 
+    ("seti_swift", '\u{e699}'),                                  // 
+    ("seti_terraform", '\u{e69a}'),                              // 
+    ("seti_tex", '\u{e69b}'),                                    // 
+    ("seti_todo", '\u{e69c}'),                                   // 
+    ("seti_tsconfig", '\u{e69d}'),                               // 
     ("seti_twig", '\u{e61c}'),                                   // 
     ("seti_typescript", '\u{e628}'),                             // 
+    ("seti_vala", '\u{e69e}'),                                   // 
+    ("seti_video", '\u{e69f}'),                                  // 
+    ("seti_vue", '\u{e6a0}'),                                    // 
+    ("seti_wasm", '\u{e6a1}'),                                   // 
+    ("seti_wat", '\u{e6a2}'),                                    // 
+    ("seti_webpack", '\u{e6a3}'),                                // 
+    ("seti_wgt", '\u{e6a4}'),                                    // 
+    ("seti_word", '\u{e6a5}'),                                   // 
+    ("seti_xls", '\u{e6a6}'),                                    // 
     ("seti_xml", '\u{e619}'),                                    // 
+    ("seti_yarn", '\u{e6a7}'),                                   // 
+    ("seti_yml", '\u{e6a8}'),                                    // 
+    ("seti_zig", '\u{e6a9}'),                                    // 
+    ("seti_zip", '\u{e6aa}'),                                    // 
     ("weather_alien", '\u{e36e}'),                               // 
     ("weather_aliens", '\u{e345}'),                              // 
     ("weather_barometer", '\u{e372}'),                           // 

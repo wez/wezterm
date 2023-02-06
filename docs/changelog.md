@@ -152,6 +152,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
+* Bundled Nerd Font Symbols font to v2.3.3
 
 ### 20221119-145034-49b9839f
 
