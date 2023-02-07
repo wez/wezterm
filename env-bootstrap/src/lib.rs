@@ -123,7 +123,7 @@ pub fn set_lang_from_locale() {
                 if !libc::setlocale(libc::LC_CTYPE, candidate_cstr.as_ptr()).is_null() {
                     std::env::set_var("LANG", &candidate);
                 } else {
-                    log::warn!("setlocale({}) failed, fall back to en_US.UTF-8", candidate);
+                    log::debug!("setlocale({}) failed, fall back to en_US.UTF-8", candidate);
                     std::env::set_var("LANG", "en_US.UTF-8");
                 }
                 libc::setlocale(libc::LC_CTYPE, old);
