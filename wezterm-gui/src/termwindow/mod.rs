@@ -1553,13 +1553,6 @@ impl TermWindow {
         self.config = config.clone();
         self.palette.take();
 
-        self.window_background = reload_background_image(
-            &config,
-            &self.window_background,
-            &self.dimensions,
-            &self.render_metrics,
-        );
-
         let mux = Mux::get();
         let window = match mux.get_window(self.mux_window_id) {
             Some(window) => window,
@@ -1643,6 +1636,15 @@ impl TermWindow {
             window.config_did_change(&config);
             window.invalidate();
         }
+
+        // Do this after we've potentially adjusted scaling based on config/padding
+        // and window size
+        self.window_background = reload_background_image(
+            &config,
+            &self.window_background,
+            &self.dimensions,
+            &self.render_metrics,
+        );
 
         self.invalidate_modal();
         self.emit_window_event("window-config-reloaded", None);
