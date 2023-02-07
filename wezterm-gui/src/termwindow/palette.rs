@@ -141,7 +141,7 @@ fn compute_matches(selection: &str, commands: &[ExpandedCommand]) -> Vec<usize> 
             .enumerate()
             .filter_map(|(row_idx, entry)| {
                 let group = entry.menubar.join(" ");
-                let text = format!("{group}: {}", entry.brief);
+                let text = format!("{group}: {}. {} {:?}", entry.brief, entry.doc, entry.action);
                 matcher
                     .fuzzy_match(&text, selection)
                     .map(|score| MatchResult::new(row_idx, score, selection, commands))
