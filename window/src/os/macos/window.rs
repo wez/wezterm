@@ -397,6 +397,21 @@ pub struct Window {
 unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
 
+fn set_window_position(window: *mut Object, coords: ScreenPoint) {
+    unsafe {
+        let cartesian = screen_point_to_cartesian(coords);
+        let frame = NSWindow::frame(window);
+        let content_frame = NSWindow::contentRectForFrameRect_(window, frame);
+        let delta_x = content_frame.origin.x - frame.origin.x;
+        let delta_y = content_frame.origin.y - frame.origin.y;
+        let point = NSPoint::new(
+            cartesian.x as f64 - delta_x,
+            cartesian.y as f64 - delta_y - content_frame.size.height,
+        );
+        NSWindow::setFrameOrigin_(window, point);
+    }
+}
+
 impl Window {
     pub async fn new_window<F>(
         _class_name: &str,
@@ -421,10 +436,8 @@ impl Window {
             x,
             y,
         } = conn.resolve_geometry(geometry);
-        let pos = match (x, y) {
-            (Some(x), Some(y)) => Some(screen_point_to_cartesian(ScreenPoint::new(
-                x as isize, y as isize,
-            ))),
+        let initial_pos = match (x, y) {
+            (Some(x), Some(y)) => Some(ScreenPoint::new(x as isize, y as isize)),
             _ => None,
         };
 
@@ -513,7 +526,13 @@ impl Window {
             }
 
             LAST_POSITION.with(|last_pos| {
-                let pos = pos.or_else(|| last_pos.borrow_mut().take());
+                if let Some(pos) = initial_pos {
+                    // Put it where they asked it to be, without influencing
+                    // future positioning info
+                    set_window_position(*window, pos);
+                    return;
+                }
+                let pos = last_pos.borrow_mut().take();
                 let next_pos = match pos {
                     Some(pos) if point_in_rect(pos, active_screen_frame) => {
                         // Only continue the cascade if the prior point is
@@ -1109,18 +1128,7 @@ impl WindowInner {
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
-        unsafe {
-            let cartesian = screen_point_to_cartesian(coords);
-            let frame = NSWindow::frame(*self.window);
-            let content_frame = NSWindow::contentRectForFrameRect_(*self.window, frame);
-            let delta_x = content_frame.origin.x - frame.origin.x;
-            let delta_y = content_frame.origin.y - frame.origin.y;
-            let point = NSPoint::new(
-                cartesian.x as f64 - delta_x,
-                cartesian.y as f64 - delta_y - content_frame.size.height,
-            );
-            NSWindow::setFrameOrigin_(*self.window, point);
-        }
+        set_window_position(*self.window, coords);
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
