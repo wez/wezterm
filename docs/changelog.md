@@ -68,6 +68,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#3054](https://github.com/wez/wezterm/pull/3054)
 * [quit_when_all_windows_are_closed](config/lua/config/quit_when_all_windows_are_closed.md)
   configuration option.
+* `CTRL-SHIFT-P` now activates the new [command
+  palette](config/lua/keyassignment/ActivateCommandPalette.md)
+  [#1485](https://github.com/wez/wezterm/issues/1485)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
@@ -92,8 +95,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:active_key_table()](config/lua/window/active_key_table.md) now
   factors in pane-specific key table stacks for things like `CopyMode`.
   [#2986](https://github.com/wez/wezterm/discussions/2986)
-* modal overlays like CharSelect and the command palette sometimes wouldn't
-  render when first activated until pressing a key.
+* modal overlays like CharSelect and the [command
+  palette](config/lua/keyassignment/ActivateCommandPalette.md) sometimes
+  wouldn't render when first activated until pressing a key.
 * lag when making heavy use of foreground process information in tab titles.
   [#2991](https://github.com/wez/wezterm/issues/2991)
 * X11: always update selection owner even if our window already owns it
@@ -114,8 +118,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#3068](https://github.com/wez/wezterm/issues/3068)
 
 #### Changed
-* `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`
-  [#1485](https://github.com/wez/wezterm/issues/1485)
+* `CTRL-SHIFT-P` now activates the new [command
+  palette](config/lua/keyassignment/ActivateCommandPalette.md), instead of
+  `PaneSelect` [#1485](https://github.com/wez/wezterm/issues/1485)
 * Window title reporting escape sequences are now disabled by default.
   [See here for more details](https://marc.info/?l=bugtraq&m=104612710031920&w=2)
 * Withdraw DEC private SGR escapes that affect superscript and
