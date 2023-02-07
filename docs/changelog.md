@@ -197,6 +197,7 @@ As features stabilize some brief notes about them will accumulate here.
   [show_new_tab_button_in_tab_bar](config/lua/config/show_new_tab_button_in_tab_bar.md)
   config options to customize the tab bar appearance.
   [#2082](https://github.com/wez/wezterm/issues/2082)
+* [front_end = "WebGpu"](config/lua/config/front_end.md) enables Metal, Vulkan and DX 12 drivers.
 
 #### Fixed
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
