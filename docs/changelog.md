@@ -110,6 +110,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: fixup hidpi scaling when `front_end="WebGpu"`. Thanks to
   [@valpackett](https://github.com/valpackett)!
   [#2877](https://github.com/wez/wezterm/pull/2887)
+* Reloading the config while a pane was zoomed could result in visual artifacts
+  [#3068](https://github.com/wez/wezterm/issues/3068)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new command palette, instead of `PaneSelect`

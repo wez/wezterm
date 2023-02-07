@@ -41,6 +41,7 @@ struct TabInner {
     id: TabId,
     pane: Option<Tree>,
     size: TerminalSize,
+    size_before_zoom: TerminalSize,
     active: usize,
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
@@ -735,6 +736,7 @@ impl TabInner {
             id: TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             pane: Some(Tree::new()),
             size: *size,
+            size_before_zoom: *size,
             active: 0,
             zoomed: None,
             title: String::new(),
@@ -871,11 +873,12 @@ impl TabInner {
             if let Some(pane) = self.get_active_pane() {
                 pane.set_zoomed(false);
             }
-
-            apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
+            self.size = self.size_before_zoom;
+            self.resize(size);
         } else {
             // We weren't zoomed, but now we want to zoom.
             // Locate the active pane
+            self.size_before_zoom = size;
             if let Some(pane) = self.get_active_pane() {
                 pane.set_zoomed(true);
                 pane.resize(size).ok();
@@ -1113,12 +1116,10 @@ impl TabInner {
             return;
         }
 
-        // Un-zoom first, so that the layout can be reasoned about
-        // more easily.
-        let was_zoomed = self.zoomed.is_some();
-        self.set_zoomed(false);
-
-        {
+        if let Some(zoomed) = &self.zoomed {
+            self.size = size;
+            zoomed.resize(size).ok();
+        } else {
             let dims = cell_dimensions(&size);
             let (min_x, min_y) = compute_min_size(self.pane.as_mut().unwrap());
             let current_size = self.size;
@@ -1153,9 +1154,6 @@ impl TabInner {
                 apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
             }
         }
-
-        // And finally restore the zoom, if appropriate
-        self.set_zoomed(was_zoomed);
     }
 
     fn apply_pane_size(&mut self, pane_size: TerminalSize, cursor: &mut Cursor) {
