@@ -443,10 +443,10 @@ impl Modal for CommandPalette {
             (KeyCode::Escape, KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CTRL) => {
                 term_window.cancel_modal();
             }
-            (KeyCode::UpArrow, KeyModifiers::NONE) => {
+            (KeyCode::UpArrow, KeyModifiers::NONE) | (KeyCode::Char('p'), KeyModifiers::CTRL) => {
                 self.move_up();
             }
-            (KeyCode::DownArrow, KeyModifiers::NONE) => {
+            (KeyCode::DownArrow, KeyModifiers::NONE) | (KeyCode::Char('n'), KeyModifiers::CTRL) => {
                 self.move_down();
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
