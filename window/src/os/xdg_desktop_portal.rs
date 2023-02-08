@@ -4,6 +4,7 @@
 
 use crate::{Appearance, Connection, ConnectionOps};
 use anyhow::Context;
+use futures_lite::future::FutureExt;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -49,7 +50,20 @@ pub async fn read_setting(namespace: &str, key: &str) -> anyhow::Result<OwnedVal
     let proxy = PortalSettingsProxy::new(&connection)
         .await
         .context("make proxy")?;
-    proxy.Read(namespace, key).await.context("Read")
+    proxy
+        .Read(namespace, key)
+        .or(async {
+            async_io::Timer::after(std::time::Duration::from_secs(1)).await;
+            Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "Timed out reading from xdg-portal; this indicates a problem \
+                 with your graphical environment. Consider running \
+                 'systemctl restart --user xdg-desktop-portal.service'",
+            )
+            .into())
+        })
+        .await
+        .with_context(|| format!("Reading xdg-portal {namespace} {key}"))
 }
 
 fn value_to_appearance(value: OwnedValue) -> anyhow::Result<Appearance> {

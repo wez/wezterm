@@ -187,7 +187,7 @@ impl ConnectionOps for XConnection {
         match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
             Ok(appearance) => return appearance,
             Err(err) => {
-                log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
+                log::warn!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
             }
         }
         if let Some(XSetting::String(name)) = self.xsettings.borrow().get("Net/ThemeName") {
