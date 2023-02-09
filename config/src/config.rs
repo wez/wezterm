@@ -921,14 +921,26 @@ impl Config {
         mut config: mlua::Value<'l>,
         overrides: &wezterm_dynamic::Value,
     ) -> anyhow::Result<mlua::Value<'l>> {
+        // config may be a table, or it may be a config builder.
+        // We'll leave it up to lua to call the appropriate
+        // index function as managing that from Rust is a PITA.
+        let setter: mlua::Function = lua
+            .load(
+                r#"
+                    return function(config, key, value)
+                        config[key] = value;
+                        return config;
+                    end
+                    "#,
+            )
+            .eval()?;
+
         match overrides {
             wezterm_dynamic::Value::Object(obj) => {
-                if let mlua::Value::Table(tbl) = &mut config {
-                    for (key, value) in obj {
-                        let key = luahelper::dynamic_to_lua_value(lua, key.clone())?;
-                        let value = luahelper::dynamic_to_lua_value(lua, value.clone())?;
-                        tbl.set(key, value)?;
-                    }
+                for (key, value) in obj {
+                    let key = luahelper::dynamic_to_lua_value(lua, key.clone())?;
+                    let value = luahelper::dynamic_to_lua_value(lua, value.clone())?;
+                    config = setter.call((config, key, value))?;
                 }
                 Ok(config)
             }
