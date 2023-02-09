@@ -267,6 +267,17 @@ void_deps() {
   fi
 }
 
+solus_deps() {
+  EOPKG="$SUDO eopkg"
+  $EOPKG install -y -c system.devel
+  $EOPKG install -y \
+    xcb-util-devel \
+    xcb-util-image-devel \
+    libxkbcommon-devel \
+    fontconfig-devel \
+    libx11-devel
+}
+
 fallback_method() {
   if test -e /etc/alpine-release; then
     alpine_deps
@@ -278,6 +289,8 @@ fallback_method() {
     arch_deps
   elif test -e /etc/gentoo-release; then
     gentoo_deps
+  elif test -e /etc/solus-release; then
+    solus_deps
   elif test_cmd 'lsb_release' && test "$(lsb_release -si)" = "openSUSE"; then
     suse_deps
   fi
@@ -330,6 +343,9 @@ case $ID in
   ;;
   void)
     void_deps
+  ;;
+  solus)
+    solus_deps
   ;;
   *)
     echo "Couldn't find OS by ID, found ID: $ID"
