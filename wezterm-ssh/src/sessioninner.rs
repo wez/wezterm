@@ -202,25 +202,22 @@ impl SessionInner {
             sess.set_option(libssh_rs::SshOption::BindAddress(bind_addr.to_string()))?;
         }
 
-        if let Some(cmd) = self.config.get("proxycommand") {
-            sess.set_option(libssh_rs::SshOption::ProxyCommand(Some(cmd.to_string())))?;
-        } else {
-            let sock = self.connect_to_host(&hostname, port, verbose)?;
-            let raw = {
-                #[cfg(unix)]
-                {
-                    use std::os::unix::io::IntoRawFd;
-                    sock.into_raw_fd()
-                }
-                #[cfg(windows)]
-                {
-                    use std::os::windows::io::IntoRawSocket;
-                    sock.into_raw_socket()
-                }
-            };
+        let sock =
+            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
+        let raw = {
+            #[cfg(unix)]
+            {
+                use std::os::unix::io::IntoRawFd;
+                sock.into_raw_fd()
+            }
+            #[cfg(windows)]
+            {
+                use std::os::windows::io::IntoRawSocket;
+                sock.into_raw_socket()
+            }
+        };
 
-            sess.set_option(libssh_rs::SshOption::Socket(raw))?;
-        }
+        sess.set_option(libssh_rs::SshOption::Socket(raw))?;
 
         sess.connect()
             .with_context(|| format!("Connecting to {hostname}:{port}"))?;
@@ -281,46 +278,8 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let sock: Socket = if let Some(proxy_command) =
-            self.config.get("proxycommand").and_then(|c| {
-                if !c.is_empty() && c != "none" {
-                    Some(c)
-                } else {
-                    None
-                }
-            }) {
-            let mut cmd;
-            if cfg!(windows) {
-                let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
-                cmd = std::process::Command::new(comspec);
-                cmd.args(&["/c", proxy_command]);
-            } else {
-                cmd = std::process::Command::new("sh");
-                cmd.args(&["-c", &format!("exec {}", proxy_command)]);
-            }
-
-            let (a, b) = socketpair()?;
-
-            cmd.stdin(b.as_stdio()?);
-            cmd.stdout(b.as_stdio()?);
-            cmd.stderr(std::process::Stdio::inherit());
-            let _child = cmd
-                .spawn()
-                .with_context(|| format!("spawning ProxyCommand {}", proxy_command))?;
-
-            #[cfg(unix)]
-            unsafe {
-                use std::os::unix::io::{FromRawFd, IntoRawFd};
-                Socket::from_raw_fd(a.into_raw_fd())
-            }
-            #[cfg(windows)]
-            unsafe {
-                use std::os::windows::io::{FromRawSocket, IntoRawSocket};
-                Socket::from_raw_socket(a.into_raw_socket())
-            }
-        } else {
-            self.connect_to_host(&hostname, port, verbose)?
-        };
+        let sock =
+            self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
 
         let mut sess = ssh2::Session::new()?;
         if verbose {
@@ -353,8 +312,52 @@ impl SessionInner {
 
     /// Explicitly and directly connect to the requested host because
     /// neither libssh no libssh2 respect addressfamily, so we must
-    /// handle it for ourselves
-    fn connect_to_host(&self, hostname: &str, port: u16, verbose: bool) -> anyhow::Result<Socket> {
+    /// handle it for ourselves.
+    /// If proxy_command is set, then we execute that process for ourselves
+    /// too, as proxy commands are not supported by libssh2 and are not supported
+    /// on Windows in libssh.
+    fn connect_to_host(
+        &self,
+        hostname: &str,
+        port: u16,
+        verbose: bool,
+        proxy_command: Option<&String>,
+    ) -> anyhow::Result<Socket> {
+        match proxy_command.map(|s| s.as_str()) {
+            Some("none") | None => {}
+            Some(proxy_command) => {
+                let mut cmd;
+                if cfg!(windows) {
+                    let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
+                    cmd = std::process::Command::new(comspec);
+                    cmd.args(&["/c", proxy_command]);
+                } else {
+                    cmd = std::process::Command::new("sh");
+                    cmd.args(&["-c", &format!("exec {}", proxy_command)]);
+                }
+
+                let (a, b) = socketpair()?;
+
+                cmd.stdin(b.as_stdio()?);
+                cmd.stdout(b.as_stdio()?);
+                cmd.stderr(std::process::Stdio::inherit());
+                let _child = cmd
+                    .spawn()
+                    .with_context(|| format!("spawning ProxyCommand {}", proxy_command))?;
+
+                #[cfg(unix)]
+                unsafe {
+                    use std::os::unix::io::{FromRawFd, IntoRawFd};
+                    return Ok(Socket::from_raw_fd(a.into_raw_fd()));
+                }
+                #[cfg(windows)]
+                unsafe {
+                    use std::os::windows::io::{FromRawSocket, IntoRawSocket};
+                    return Ok(Socket::from_raw_socket(a.into_raw_socket()));
+                }
+            }
+        }
+
         let addr = (hostname, port)
             .to_socket_addrs()?
             .filter(|addr| self.filter_sock_addr(addr))
