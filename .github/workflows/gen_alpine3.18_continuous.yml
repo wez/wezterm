@@ -1,15 +1,35 @@
-name: alpine3.15_tag
+name: alpine3.18_continuous
 
 on:
+  schedule:
+    - cron: "10 3 * * *"
   push:
-    tags:
-      - "20*"
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_alpine3.18_continuous.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "alpine:3.15"
+    container: "alpine:3.18"
     env:
+      BUILD_REASON: "Schedule"
       RUSTFLAGS: "-C target-feature=-crt-static"
 
     steps:
@@ -43,7 +63,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "alpine3.15-None-2-${{ runner.os }}-cargo"
+          key: "alpine3.18-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -54,29 +74,22 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "alpine3.15"
+          cache-key: "alpine3.18"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Rename APKs"
-        shell: bash
-        run: "mv ~/packages/wezterm/x86_64/*.apk $(echo ~/packages/wezterm/x86_64/*.apk | sed -e 's/wezterm-/wezterm-alpine3.15-/')"
       - name: "Move APKs"
         shell: bash
-        run: "mv ~/packages/wezterm/x86_64/*.apk ."
-      - name: "Move APK keys"
-        shell: bash
-        run: "mv ~/.abuild/*.pub wezterm-alpine3.15.pub"
+        run: "mv ~/packages/wezterm/x86_64/*.apk wezterm-nightly-alpine3.18.apk"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "alpine3.15"
-          path: |
-            wezterm-*.apk
-            *.pub
+          name: "alpine3.18"
+          path: "wezterm-*.apk"
+          retention-days: 5
 
   upload:
     runs-on: ubuntu-latest
@@ -91,17 +104,12 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "alpine3.15"
+          name: "alpine3.18"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.apk *.pub ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Create pre-release"
+        run: "for f in wezterm-*.apk ; do sha256sum $f > $f.sha256 ; done"
+      - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
-      - name: "Upload to Tagged Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.apk *.pub *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.apk *.sha256"
