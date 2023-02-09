@@ -29,8 +29,28 @@ trait PortalSettings {
     fn SettingChanged(&self, namespace: &str, key: &str, value: OwnedValue) -> Result<()>;
 }
 
+#[derive(PartialEq)]
+enum CachedAppearance {
+    /// Never tried to determine appearance
+    Unknown,
+    /// Tried and failed
+    None,
+    /// We got it
+    Some(Appearance),
+}
+
+impl CachedAppearance {
+    fn to_result(&self) -> anyhow::Result<Option<Appearance>> {
+        match self {
+            Self::Unknown => anyhow::bail!("Appearance is Unknown"),
+            Self::None => Ok(None),
+            Self::Some(a) => Ok(Some(*a)),
+        }
+    }
+}
+
 struct State {
-    appearance: Option<Appearance>,
+    appearance: CachedAppearance,
     subscribe_running: bool,
     last_update: Instant,
 }
@@ -38,7 +58,7 @@ struct State {
 lazy_static::lazy_static! {
   static ref STATE: Mutex<State> = Mutex::new(
           State {
-              appearance: None,
+              appearance: CachedAppearance::Unknown,
               subscribe_running: false,
               last_update: Instant::now(),
           }
@@ -50,6 +70,7 @@ pub async fn read_setting(namespace: &str, key: &str) -> anyhow::Result<OwnedVal
     let proxy = PortalSettingsProxy::new(&connection)
         .await
         .context("make proxy")?;
+
     proxy
         .Read(namespace, key)
         .or(async {
@@ -79,18 +100,42 @@ fn value_to_appearance(value: OwnedValue) -> anyhow::Result<Appearance> {
     })
 }
 
-pub async fn get_appearance() -> anyhow::Result<Appearance> {
+pub async fn get_appearance() -> anyhow::Result<Option<Appearance>> {
     let mut state = STATE.lock().unwrap();
-    if state.appearance.is_some()
-        && (state.subscribe_running || state.last_update.elapsed().as_secs() < 1)
-    {
-        Ok(state.appearance.unwrap())
-    } else {
-        let value = read_setting("org.freedesktop.appearance", "color-scheme").await?;
-        let appearance = value_to_appearance(value)?;
-        state.appearance = Some(appearance);
-        state.last_update = Instant::now();
-        Ok(appearance)
+
+    match &state.appearance {
+        CachedAppearance::Some(_)
+            if (state.subscribe_running || state.last_update.elapsed().as_secs() < 1) =>
+        {
+            // Known values are considered good while our subscription is running,
+            // or for 1 second since we last queried
+            return state.appearance.to_result();
+        }
+        CachedAppearance::None => {
+            // Permanently cache the error state
+            return Ok(None);
+        }
+        CachedAppearance::Some(_) | CachedAppearance::Unknown => {
+            // We'll need to query for these
+        }
+    }
+
+    match read_setting("org.freedesktop.appearance", "color-scheme").await {
+        Ok(value) => {
+            let appearance = value_to_appearance(value)?;
+            state.appearance = CachedAppearance::Some(appearance);
+            state.last_update = Instant::now();
+            Ok(Some(appearance))
+        }
+        Err(err) => {
+            // Cache that we didn't get any value, so we can avoid
+            // repeating this query again later
+            state.appearance = CachedAppearance::None;
+            state.last_update = Instant::now();
+            // but bubble up the underlying message so that we can
+            // log a warning elsewhere
+            Err(err)
+        }
     }
 }
 
@@ -100,8 +145,8 @@ pub async fn run_signal_loop(stream: &mut SettingChangedStream<'_>) -> Result<()
         value_to_appearance(read_setting("org.freedesktop.appearance", "color-scheme").await?)
     {
         let mut state = STATE.lock().unwrap();
-        if state.appearance != Some(value) {
-            state.appearance = Some(value);
+        if state.appearance != CachedAppearance::Some(value) {
+            state.appearance = CachedAppearance::Some(value);
             state.last_update = Instant::now();
             drop(state);
             let conn = Connection::get().ok_or_else(|| anyhow::anyhow!("connection is dead"))?;
@@ -114,7 +159,7 @@ pub async fn run_signal_loop(stream: &mut SettingChangedStream<'_>) -> Result<()
         if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
             if let Ok(appearance) = value_to_appearance(args.value) {
                 let mut state = STATE.lock().unwrap();
-                state.appearance = Some(appearance);
+                state.appearance = CachedAppearance::Some(appearance);
                 state.last_update = Instant::now();
                 drop(state);
                 let conn =

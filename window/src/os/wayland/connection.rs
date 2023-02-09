@@ -433,7 +433,8 @@ impl ConnectionOps for WaylandConnection {
 
     fn get_appearance(&self) -> Appearance {
         match promise::spawn::block_on(crate::os::xdg_desktop_portal::get_appearance()) {
-            Ok(appearance) => return appearance,
+            Ok(Some(appearance)) => return appearance,
+            Ok(None) => {}
             Err(err) => {
                 log::debug!("Unable to resolve appearance using xdg-desktop-portal: {err:#}");
             }
