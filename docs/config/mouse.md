@@ -37,15 +37,15 @@ NOTE: In the action column, `act` is an alias to `wezterm.action` (to avoid repe
 | Single Left Down | `NONE`   | `act.SelectTextAtMouseCursor("Cell")`  |
 | Single Left Down | `SHIFT`   | `act.ExtendSelectionToMouseCursor("Cell")`  |
 | Single Left Down | `ALT`   | `act.SelectTextAtMouseCursor("Block")`  (*since: 20220624-141144-bd1b7c5d*) |
-| Single Left Up | `SHIFT`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("PrimarySelection")`  |
-| Single Left Up | `NONE`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("PrimarySelection")`  |
-| Single Left Up | `ALT`   | `act.CompleteSelection("PrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
-| Double Left Up | `NONE`   | `act.CompleteSelection("PrimarySelection")`  |
-| Triple Left Up | `NONE`   | `act.CompleteSelection("PrimarySelection")`  |
+| Single Left Up | `SHIFT`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("ClipboardAndPrimarySelection")`  |
+| Single Left Up | `NONE`   | `act.CompleteSelectionOrOpenLinkAtMouseCursor("ClipboardAndPrimarySelection")`  |
+| Single Left Up | `ALT`   | `act.CompleteSelection("ClipboardAndPrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Double Left Up | `NONE`   | `act.CompleteSelection("ClipboardAndPrimarySelection")`  |
+| Triple Left Up | `NONE`   | `act.CompleteSelection("ClipboardAndPrimarySelection")`  |
 | Single Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Cell")`  |
 | Single Left Drag | `ALT`   | `act.ExtendSelectionToMouseCursor("Block")` (*since: 20220624-141144-bd1b7c5d*) |
 | Single Left Down | `ALT+SHIFT`   | `act.ExtendSelectionToMouseCursor("Block")`  (*since: 20220624-141144-bd1b7c5d*) |
-| Single Left Up | `ALT+SHIFT`   | `act.CompleteSelection("PrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
+| Single Left Up | `ALT+SHIFT`   | `act.CompleteSelection("ClipboardAndPrimarySelection")`  (*since: 20220624-141144-bd1b7c5d*) |
 | Double Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Word")`  |
 | Triple Left Drag | `NONE`   | `act.ExtendSelectionToMouseCursor("Line")`  |
 | Single Middle Down | `NONE`   | `act.PasteFrom("PrimarySelection")`  |
@@ -86,7 +86,7 @@ return {
     {
       event = { Up = { streak = 1, button = 'Left' } },
       mods = 'NONE',
-      action = act.CompleteSelection 'PrimarySelection',
+      action = act.CompleteSelection 'ClipboardAndPrimarySelection',
     },
 
     -- and make CTRL-Click open hyperlinks

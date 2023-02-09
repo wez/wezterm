@@ -152,7 +152,7 @@ impl InputMap {
                         button: MouseButton::Left
                     },
                     CompleteSelectionOrOpenLinkAtMouseCursor(
-                        ClipboardCopyDestination::PrimarySelection
+                        ClipboardCopyDestination::ClipboardAndPrimarySelection
                     )
                 ],
                 [
@@ -166,7 +166,7 @@ impl InputMap {
                         button: MouseButton::Left
                     },
                     CompleteSelectionOrOpenLinkAtMouseCursor(
-                        ClipboardCopyDestination::PrimarySelection
+                        ClipboardCopyDestination::ClipboardAndPrimarySelection
                     )
                 ],
                 [
@@ -179,7 +179,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
+                    CompleteSelection(ClipboardCopyDestination::ClipboardAndPrimarySelection)
                 ],
                 [
                     MouseEventTriggerMods {
@@ -217,7 +217,7 @@ impl InputMap {
                         streak: 2,
                         button: MouseButton::Left
                     },
-                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
+                    CompleteSelection(ClipboardCopyDestination::ClipboardAndPrimarySelection)
                 ],
                 [
                     MouseEventTriggerMods {
@@ -229,7 +229,7 @@ impl InputMap {
                         streak: 3,
                         button: MouseButton::Left
                     },
-                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
+                    CompleteSelection(ClipboardCopyDestination::ClipboardAndPrimarySelection)
                 ],
                 [
                     MouseEventTriggerMods {

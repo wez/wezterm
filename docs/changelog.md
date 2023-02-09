@@ -156,6 +156,11 @@ As features stabilize some brief notes about them will accumulate here.
   [SpawnCommandInNewWindow](config/lua/keyassignment/SpawnCommandInNewWindow.md)
   now accept a position field to control initial gui window position.
   [#2976](https://github.com/wez/wezterm/issues/2976)
+* X11/Wayland: Mouse based selection once again copies to both the clipboard
+  and the primary selection. This was the original intended behavior but a
+  regression in an earlier release changed it by accident and it's been
+  annoying me ever since. You are welcome to define your own [mouse
+  bindings](config/mouse.md) if you want to change that behavior.
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0
