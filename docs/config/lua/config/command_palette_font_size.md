@@ -1,4 +1,4 @@
-# `command_palette_font_size = 12.0`
+# `command_palette_font_size = 14.0`
 
 *Since: nightly builds only*
 
