@@ -384,7 +384,7 @@ Outputs the pane-id for the newly created pane on success"
         /// Negative numbers proceed backwards into the scrollback.
         /// The default value is unspecified is 0, the first line of
         /// the terminal screen.
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         start_line: Option<ScrollbackOrVisibleRowIndex>,
 
         /// The ending line number.
@@ -392,7 +392,7 @@ Outputs the pane-id for the newly created pane on success"
         /// Negative numbers proceed backwards into the scrollback.
         /// The default value if unspecified is the bottom of the
         /// the terminal screen.
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         end_line: Option<ScrollbackOrVisibleRowIndex>,
 
         /// Include escape sequences that color and style the text.
