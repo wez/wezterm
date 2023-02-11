@@ -25,6 +25,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::cell::{CellAttributes, UnicodeVersion};
 use termwiz::surface::{Line, SEQ_ZERO};
+use unicode_normalization::UnicodeNormalization;
 use wezterm_bidi::Direction;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_font::shaper::PresentationWidth;
@@ -866,8 +867,15 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     };
 
     if let Some(text) = &text {
+        // Emulate the effect of output normalization
+        let text = if config.normalize_output_to_unicode_nfc {
+            text.nfc().collect()
+        } else {
+            text.to_string()
+        };
+
         let line = Line::from_text(
-            text,
+            &text,
             &CellAttributes::default(),
             SEQ_ZERO,
             Some(unicode_version),
