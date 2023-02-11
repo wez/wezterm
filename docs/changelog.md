@@ -161,6 +161,9 @@ As features stabilize some brief notes about them will accumulate here.
   regression in an earlier release changed it by accident and it's been
   annoying me ever since. You are welcome to define your own [mouse
   bindings](config/mouse.md) if you want to change that behavior.
+* WSL Domains returned from
+  [wezterm.default_wsl_domains](config/lua/wezterm/default_wsl_domains.md) now
+  set `default_cwd="~"` [#2826](https://github.com/wez/wezterm/issues/2826)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0

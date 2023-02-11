@@ -27,7 +27,7 @@ impl WslDomain {
                     name: format!("WSL:{}", distro.name),
                     distribution: Some(distro.name.clone()),
                     username: None,
-                    default_cwd: None,
+                    default_cwd: Some("~".to_string()),
                     default_prog: None,
                 });
             }

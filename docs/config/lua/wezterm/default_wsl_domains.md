@@ -53,3 +53,8 @@ return {
 However, wez strongly recommends that you use `chsh` inside the WSL domain to make
 that the default shell if possible, so that you can avoid this additional configuration!
 
+*Since: nightly builds only*
+
+The `default_cwd` field is now automatically set to `"~"` to make it more
+convenient to launch a WSL instance in the home directory of the configured
+distribution.
