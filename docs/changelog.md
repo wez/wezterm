@@ -116,6 +116,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#2877](https://github.com/wez/wezterm/pull/2887)
 * Reloading the config while a pane was zoomed could result in visual artifacts
   [#3068](https://github.com/wez/wezterm/issues/3068)
+* SSH: Closing an individual pane via `CloseCurrentPane` would kill the remote
+  pane but not detect that it had exited.
+  [#3095](https://github.com/wez/wezterm/issues/3095)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command

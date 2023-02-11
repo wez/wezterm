@@ -44,6 +44,10 @@ impl ChannelWrap {
                 if chan.is_eof() {
                     if let Some(status) = chan.get_exit_status() {
                         return Some(ExitStatus::with_exit_code(status as u32));
+                    } else if let Some(status) = chan.get_exit_signal() {
+                        return Some(ExitStatus::with_signal(
+                            status.signal_name.as_deref().unwrap_or("unknown signal"),
+                        ));
                     }
                 }
                 None
