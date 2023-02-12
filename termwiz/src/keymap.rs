@@ -37,7 +37,7 @@ impl<Value: Debug> Node<Value> {
         }
     }
 
-    fn lookup(&self, key: &[u8], depth: usize) -> NodeFind<&Value> {
+    fn lookup(&self, key: &[u8], depth: usize, maybe_more: bool) -> NodeFind<&Value> {
         if key.is_empty() {
             // We've matched the maximum extent of the input key.
             if self.children.is_empty() {
@@ -50,7 +50,13 @@ impl<Value: Debug> Node<Value> {
                 }
             }
             return match self.value.as_ref() {
-                Some(value) => NodeFind::AmbiguousMatch(depth, value),
+                Some(value) => {
+                    if maybe_more {
+                        NodeFind::AmbiguousMatch(depth, value)
+                    } else {
+                        NodeFind::Exact(depth, value)
+                    }
+                }
                 None => NodeFind::AmbiguousBackTrack,
             };
         }
@@ -60,12 +66,23 @@ impl<Value: Debug> Node<Value> {
             .binary_search_by(|node| node.label.cmp(&key[0]))
         {
             Ok(idx) => {
-                match self.children[idx].lookup(&key[1..], depth + 1) {
+                match self.children[idx].lookup(&key[1..], depth + 1, maybe_more) {
                     NodeFind::AmbiguousBackTrack => {
                         // The child didn't have an exact match, so check
                         // whether we do
                         match self.value.as_ref() {
-                            Some(value) => NodeFind::AmbiguousMatch(depth, value),
+                            Some(value) => {
+                                // We do! If we're expecting more, let's return an AmbiguousMatch,
+                                // otherwise, let's treat this as an Exact match
+                                //
+                                // see the "lookup_with_multiple_ambiguous_matches_"
+                                // test cases in this file for an example
+                                if maybe_more {
+                                    NodeFind::AmbiguousMatch(depth, value)
+                                } else {
+                                    NodeFind::Exact(depth, value)
+                                }
+                            }
                             None => NodeFind::AmbiguousBackTrack,
                         }
                     }
@@ -173,8 +190,8 @@ impl<Value: Debug + Clone> KeyMap<Value> {
     /// case; if the caller knows that no more data is available this can be
     /// treated as `Found::None`, but otherwise it would be best to read more
     /// data from the stream and retry with a longer input.
-    pub fn lookup<S: AsRef<[u8]>>(&self, key: S) -> Found<Value> {
-        match self.root.lookup(key.as_ref(), 0) {
+    pub fn lookup<S: AsRef<[u8]>>(&self, key: S, maybe_more: bool) -> Found<Value> {
+        match self.root.lookup(key.as_ref(), 0, maybe_more) {
             NodeFind::None => Found::None,
             NodeFind::AmbiguousBackTrack => Found::NeedData,
             NodeFind::Exact(depth, value) => Found::Exact(depth, value.clone()),
@@ -187,10 +204,13 @@ impl<Value: Debug + Clone> KeyMap<Value> {
 mod test {
     use super::*;
 
+    const NO_MORE: bool = false;
+    const MAYBE_MORE: bool = true;
+
     #[test]
     fn lookup_empty() {
         let km: KeyMap<bool> = KeyMap::new();
-        assert_eq!(km.lookup("boo"), Found::None);
+        assert_eq!(km.lookup("boo", true), Found::None);
     }
 
     #[test]
@@ -199,12 +219,32 @@ mod test {
         km.insert("boa", true);
         km.insert("boo", true);
         km.insert("boom", false);
-        assert_eq!(km.lookup("b"), Found::NeedData);
-        assert_eq!(km.lookup("bo"), Found::NeedData);
-        assert_eq!(km.lookup("boa"), Found::Exact(3, true),);
-        assert_eq!(km.lookup("boo"), Found::Ambiguous(3, true),);
-        assert_eq!(km.lookup("boom"), Found::Exact(4, false),);
-        assert_eq!(km.lookup("boom!"), Found::Exact(4, false),);
+        assert_eq!(km.lookup("b", MAYBE_MORE), Found::NeedData);
+        assert_eq!(km.lookup("bo", MAYBE_MORE), Found::NeedData);
+        assert_eq!(km.lookup("boa", MAYBE_MORE), Found::Exact(3, true),);
+        assert_eq!(km.lookup("boo", MAYBE_MORE), Found::Ambiguous(3, true),);
+        assert_eq!(km.lookup("boom", MAYBE_MORE), Found::Exact(4, false),);
+        assert_eq!(km.lookup("boom!", MAYBE_MORE), Found::Exact(4, false),);
+    }
+
+    #[test]
+    fn lookup_with_multiple_ambiguous_matches_without_additional_input() {
+        let mut km = KeyMap::new();
+        km.insert("boa", false);
+        km.insert("boo", false);
+        km.insert("boom", true);
+        km.insert("boom!!", false);
+        assert_eq!(km.lookup("boom!", NO_MORE), Found::Exact(4, true));
+    }
+
+    #[test]
+    fn lookup_with_multiple_ambiguous_matches_with_potential_additional_input() {
+        let mut km = KeyMap::new();
+        km.insert("boa", false);
+        km.insert("boo", false);
+        km.insert("boom", true);
+        km.insert("boom!!", false);
+        assert_eq!(km.lookup("boom!", MAYBE_MORE), Found::Ambiguous(4, true));
     }
 
     #[test]
@@ -213,8 +253,8 @@ mod test {
         km.insert("\x03", true);
         km.insert("\x27", true);
         km.insert("\x03XYZ", true);
-        assert_eq!(km.lookup("\x03"), Found::Ambiguous(1, true),);
-        assert_eq!(km.lookup("\x03foo"), Found::Exact(1, true),);
-        assert_eq!(km.lookup("\x03X"), Found::Ambiguous(1, true),);
+        assert_eq!(km.lookup("\x03", MAYBE_MORE), Found::Ambiguous(1, true),);
+        assert_eq!(km.lookup("\x03foo", MAYBE_MORE), Found::Exact(1, true),);
+        assert_eq!(km.lookup("\x03X", MAYBE_MORE), Found::Ambiguous(1, true),);
     }
 }
