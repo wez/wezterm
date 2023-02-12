@@ -1453,6 +1453,13 @@ impl InputParser {
                 modifiers: Modifiers::NONE,
             }),
         );
+        map.insert(
+            b"\x1b[",
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('['),
+                modifiers: Modifiers::ALT,
+            }),
+        );
 
         map
     }
@@ -1606,7 +1613,10 @@ impl InputParser {
                         }
                     }
 
-                    match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
+                    match (
+                        self.key_map.lookup(self.buf.as_slice(), maybe_more),
+                        maybe_more,
+                    ) {
                         // If we got an unambiguous ESC and we have more data to
                         // follow, then this is likely the Meta version of the
                         // following keypress.  Buffer up the escape key and
@@ -1674,9 +1684,9 @@ impl InputParser {
         self.process_bytes(callback, maybe_more);
     }
 
-    pub fn parse_as_vec(&mut self, bytes: &[u8]) -> Vec<InputEvent> {
+    pub fn parse_as_vec(&mut self, bytes: &[u8], maybe_more: bool) -> Vec<InputEvent> {
         let mut result = Vec::new();
-        self.parse(bytes, |event| result.push(event), false);
+        self.parse(bytes, |event| result.push(event), maybe_more);
         result
     }
 
@@ -1692,10 +1702,13 @@ impl InputParser {
 mod test {
     use super::*;
 
+    const NO_MORE: bool = false;
+    const MAYBE_MORE: bool = true;
+
     #[test]
     fn simple() {
         let mut p = InputParser::new();
-        let inputs = p.parse_as_vec(b"hello");
+        let inputs = p.parse_as_vec(b"hello", NO_MORE);
         assert_eq!(
             vec![
                 InputEvent::Key(KeyEvent {
@@ -1726,7 +1739,7 @@ mod test {
     #[test]
     fn control_characters() {
         let mut p = InputParser::new();
-        let inputs = p.parse_as_vec(b"\x03\x1bJ\x7f");
+        let inputs = p.parse_as_vec(b"\x03\x1bJ\x7f", NO_MORE);
         assert_eq!(
             vec![
                 InputEvent::Key(KeyEvent {
@@ -1749,7 +1762,7 @@ mod test {
     #[test]
     fn arrow_keys() {
         let mut p = InputParser::new();
-        let inputs = p.parse_as_vec(b"\x1bOA\x1bOB\x1bOC\x1bOD");
+        let inputs = p.parse_as_vec(b"\x1bOA\x1bOB\x1bOC\x1bOD", NO_MORE);
         assert_eq!(
             vec![
                 InputEvent::Key(KeyEvent {
@@ -1799,22 +1812,19 @@ mod test {
                 key: KeyCode::Escape,
                 modifiers: Modifiers::NONE,
             })],
-            p.parse_as_vec(b"\x1b")
+            p.parse_as_vec(b"\x1b", false)
         );
 
         let mut inputs = Vec::new();
-        // Fragment this F-key sequence across two different pushes
-        p.parse(b"\x1b[11", |evt| inputs.push(evt), true);
-        p.parse(b"", |evt| inputs.push(evt), false);
-        // make sure we recognize it as just the F-key
+        // An incomplete F-key sequence fragmented across two different pushes
+        p.parse(b"\x1b[11", |evt| inputs.push(evt), MAYBE_MORE);
+        p.parse(b"", |evt| inputs.push(evt), NO_MORE);
+        // since we finish with maybe_more false (NO_MORE), the results should be the longest matching
+        // parts of said f-key sequence
         assert_eq!(
             vec![
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Escape,
-                    modifiers: Modifiers::NONE,
-                }),
-                InputEvent::Key(KeyEvent {
-                    modifiers: Modifiers::NONE,
+                    modifiers: Modifiers::ALT,
                     key: KeyCode::Char('['),
                 }),
                 InputEvent::Key(KeyEvent {
@@ -1831,10 +1841,30 @@ mod test {
     }
 
     #[test]
+    fn alt_left_bracket() {
+        // tests that `Alt` + `[` is recognized as a single
+        // event rather than two events (one `Esc` the second `Char('[')`)
+        let mut p = InputParser::new();
+
+        let mut inputs = Vec::new();
+        p.parse(b"\x1b[", |evt| inputs.push(evt), false);
+
+        assert_eq!(
+            vec![InputEvent::Key(KeyEvent {
+                modifiers: Modifiers::ALT,
+                key: KeyCode::Char('['),
+            }),],
+            inputs
+        );
+    }
+
+    #[test]
     fn modify_other_keys_parse() {
         let mut p = InputParser::new();
-        let inputs =
-            p.parse_as_vec(b"\x1b[27;5;13~\x1b[27;5;9~\x1b[27;6;8~\x1b[27;2;127~\x1b[27;6;27~");
+        let inputs = p.parse_as_vec(
+            b"\x1b[27;5;13~\x1b[27;5;9~\x1b[27;6;8~\x1b[27;2;127~\x1b[27;6;27~",
+            NO_MORE,
+        );
         assert_eq!(
             vec![
                 InputEvent::Key(KeyEvent {
@@ -2037,7 +2067,7 @@ mod test {
         let mut p = InputParser::new();
 
         let input = b"\x1b[<66;42;12M\x1b[<67;42;12M";
-        let res = p.parse_as_vec(input);
+        let res = p.parse_as_vec(input, MAYBE_MORE);
 
         assert_eq!(
             vec![
