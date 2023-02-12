@@ -80,6 +80,12 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Source Tarball"
+        shell: bash
+        run: "bash ci/source-archive.sh"
+      - name: "Build AppImage"
+        shell: bash
+        run: "bash ci/appimage.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
@@ -87,3 +93,6 @@ jobs:
           path: |
             wezterm-*.deb
             wezterm-*.xz
+            *src.tar.gz
+            *.AppImage
+            *.zsync

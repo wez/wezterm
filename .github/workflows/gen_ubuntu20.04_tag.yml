@@ -68,6 +68,12 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Source Tarball"
+        shell: bash
+        run: "bash ci/source-archive.sh"
+      - name: "Build AppImage"
+        shell: bash
+        run: "bash ci/appimage.sh"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
@@ -75,6 +81,23 @@ jobs:
           path: |
             wezterm-*.deb
             wezterm-*.xz
+            *src.tar.gz
+            *.AppImage
+            *.zsync
+      - name: "Checkout linuxbrew tap"
+        uses: actions/checkout@v3
+        with:
+          repository: "wez/homebrew-wezterm-linuxbrew"
+          path: "linuxbrew-wezterm"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Update linuxbrew tap formula"
+        shell: bash
+        run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
+      - name: "Commit linuxbrew tap changes"
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Automated update to match latest tag"
+          repository: "linuxbrew-wezterm"
 
   upload:
     runs-on: ubuntu-latest
@@ -92,7 +115,7 @@ jobs:
           name: "ubuntu20.04"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
+        run: "for f in wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync ; do sha256sum $f > $f.sha256 ; done"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,4 +125,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync *.sha256"
