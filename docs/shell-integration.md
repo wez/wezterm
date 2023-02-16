@@ -18,6 +18,7 @@ shell program to emit the escape sequences at the appropriate place.
 
 You can find some [examples for various shells in the wezterm
 repo](https://github.com/wez/wezterm/tree/main/assets/shell-integration).
+Xonsh is supported via a [term-integrations](https://github.com/jnoortheen/xontrib-term-integrations) plugin.
 
 Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
