@@ -68,6 +68,9 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Install libfuse2"
+        shell: bash
+        run: "apt-get install -y libfuse2"
       - name: "Source Tarball"
         shell: bash
         run: "bash ci/source-archive.sh"

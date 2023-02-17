@@ -393,6 +393,8 @@ cargo build --all --release""",
             }
         steps = [RunStep("Package", "bash ci/deploy.sh", env=deploy_env)]
         if self.app_image:
+            # AppImage needs fuse
+            steps += self.install_system_package('libfuse2')
             steps.append(RunStep("Source Tarball", "bash ci/source-archive.sh"))
             steps.append(RunStep("Build AppImage", "bash ci/appimage.sh"))
         return steps

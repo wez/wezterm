@@ -1,6 +1,8 @@
 #!/bin/bash
 
 rm -rf AppDir *.AppImage *.zsync
+set -e
+
 mkdir AppDir
 
 install -Dsm755 -t AppDir/usr/bin target/release/wezterm-mux-server
