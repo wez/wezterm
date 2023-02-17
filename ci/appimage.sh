@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 rm -rf AppDir *.AppImage *.zsync
 set -e
 

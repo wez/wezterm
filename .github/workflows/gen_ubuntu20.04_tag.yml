@@ -8,7 +8,9 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "ubuntu:20.04"
+    container:
+      image: "ubuntu:20.04"
+      options: --privileged
 
     steps:
       - name: "set APT to non-interactive"
