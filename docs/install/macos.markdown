@@ -10,11 +10,11 @@ with support for both Apple Silicon and Intel hardware.
 [:simple-apple: Download for macOS :material-tray-arrow-down:]({{ macos_zip_stable }}){ .md-button }
 [:simple-apple: Nightly for macOS :material-tray-arrow-down:]({{ macos_zip_nightly }}){ .md-button }
 
-1. Download <a href="{{ macos_zip_stable }}">Release</a>
-2. Extract the zipfile and drag the `WezTerm.app` bundle to your `Applications` folder
+1. Download <a href="{{ macos_zip_stable }}">Release</a>.
+2. Extract the zipfile and drag the `WezTerm.app` bundle to your `Applications` folder.
 3. First time around, you may need to right click and select `Open` to allow launching
-   the application that your just downloaded from the internet.
-3. Subsequently, a simple double-click will launch the UI
+   the application that you've just downloaded from the internet.
+3. Subsequently, a simple double-click will launch the UI.
 4. To use wezterm binary from a terminal emulator, like `wezterm ls-fonts` you'll need to add the location to the wezterm binary folder that exists _inside_ the WezTerm.app, to your environment's $PATH value. For example, to add it to your `~/.zshrc` file, and assuming your WezTerm.app was installed to `/Applications`, add:
 ```sh
 PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
@@ -24,23 +24,22 @@ export PATH
 
 ## Homebrew
 
-WezTerm is available for [brew](https://brew.sh/) users in a tap:
+WezTerm is available for [brew](https://brew.sh/) users:
 
 ```console
-$ brew tap wez/wezterm
-$ brew install --cask wez/wezterm/wezterm
+$ brew install --cask wezterm
 ```
 
 If you'd like to use a nightly build:
 
 ```console
-$ brew install --cask wez/wezterm/wezterm-nightly
+$ brew install --cask wezterm-nightly
 ```
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```console
-$ brew upgrade --cask wez/wezterm/wezterm-nightly --no-quarantine --greedy-latest
+$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
 ```
 
 ## MacPorts
