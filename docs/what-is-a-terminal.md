@@ -219,7 +219,7 @@ A *Terminal Emulator* is a program that creates a PTY and then spawns a child
 program (typically a shell program) into that PTY, passing it the client-side
 of the PTY.
 
-The Terminal Emulator then reads the output from the client-side an interprets
+The Terminal Emulator then reads the output from the client-side and interprets
 the escape sequences to produce a display, and decodes keyboard/mouse input
 from the windowing environment and encodes it as escape sequences to send to
 the running program ([See keyboard encoding](config/key-encoding.md)) thereby
