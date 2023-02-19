@@ -1280,6 +1280,7 @@ bitflags! {
         // so that we effective have Option<bool>
         const MACOS_FORCE_DISABLE_SHADOW = 4;
         const MACOS_FORCE_ENABLE_SHADOW = 4|8;
+        const MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR = 16;
     }
 }
 
@@ -1296,6 +1297,9 @@ impl Into<String> for &WindowDecorations {
             s.push("MACOS_FORCE_ENABLE_SHADOW");
         } else if self.contains(WindowDecorations::MACOS_FORCE_DISABLE_SHADOW) {
             s.push("MACOS_FORCE_DISABLE_SHADOW");
+        }
+        if self.contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR) {
+            s.push("MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR");
         }
         if s.is_empty() {
             "NONE".to_string()
@@ -1321,6 +1325,8 @@ impl TryFrom<String> for WindowDecorations {
                 flags |= Self::MACOS_FORCE_DISABLE_SHADOW;
             } else if ele == "MACOS_FORCE_ENABLE_SHADOW" {
                 flags |= Self::MACOS_FORCE_ENABLE_SHADOW;
+            } else if ele == "MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR" {
+                flags |= Self::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR;
             } else {
                 return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
             }
