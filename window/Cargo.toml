@@ -85,7 +85,7 @@ futures-util = "0.3"
 futures-lite = "1.12"
 
 [target.'cfg(target_os="macos")'.dependencies]
-cocoa = "0.20"
+cocoa = { git = "https://github.com/Gkirito/core-foundation-rs.git", subdir = "cocoa", branch = "feature/add-NSVisualEffectMaterial" }
 objc = "0.2"
 clipboard_macos = "0.1"
 core-foundation = "0.7"

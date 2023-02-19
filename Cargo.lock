@@ -621,6 +621,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.24.1"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+dependencies = [
+ "bitflags",
+ "block",
+ "cocoa-foundation",
+ "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-graphics 0.22.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "foreign-types",
+ "libc",
+ "objc",
+]
+
+[[package]]
+name = "cocoa-foundation"
+version = "0.1.1"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+dependencies = [
+ "bitflags",
+ "block",
+ "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-graphics-types 0.1.1 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "foreign-types",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "codec"
 version = "0.1.0"
 dependencies = [
@@ -765,7 +794,16 @@ version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "194a7a9e6de53fa55116934067c844d9d749312f75c6f6d0980e8c252f8c2146"
 dependencies = [
- "core-foundation-sys 0.8.3",
+ "core-foundation-sys 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
+]
+
+[[package]]
+name = "core-foundation"
+version = "0.9.3"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+dependencies = [
+ "core-foundation-sys 0.8.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
  "libc",
 ]
 
@@ -780,6 +818,11 @@ name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.8.3"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
 
 [[package]]
 name = "core-graphics"
@@ -800,8 +843,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2581bbab3b8ffc6fcbd550bf46c355135d16e9ff2a6ea032ad6b9bf1d7efe4fb"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.3",
- "core-graphics-types",
+ "core-foundation 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.22.3"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-graphics-types 0.1.1 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
  "foreign-types",
  "libc",
 ]
@@ -813,7 +868,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a68b68b3446082644c91ac778bf50cd4104bfb002b5a6a7c44cca5a2c70788b"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.3",
+ "core-foundation 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics-types"
+version = "0.1.1"
+source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
  "foreign-types",
  "libc",
 ]
@@ -824,8 +890,8 @@ version = "19.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d74ada66e07c1cefa18f8abfba765b486f250de2e4a999e5727fc0dd4b4a25"
 dependencies = [
- "core-foundation 0.9.3",
- "core-graphics 0.22.3",
+ "core-foundation 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "foreign-types",
  "libc",
 ]
@@ -1330,7 +1396,7 @@ dependencies = [
  "backtrace",
  "battery",
  "chrono",
- "cocoa",
+ "cocoa 0.20.2",
  "color-funcs",
  "config",
  "dirs-next",
@@ -2176,7 +2242,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64c122667b287044802d6ce17ee2ddf13207ed924c712de9a66a5814d5b64765"
 dependencies = [
  "android_system_properties",
- "core-foundation-sys 0.8.3",
+ "core-foundation-sys 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "iana-time-zone-haiku",
  "js-sys",
  "wasm-bindgen",
@@ -2802,7 +2868,7 @@ checksum = "de11355d1f6781482d027a3b4d4de7825dcedb197bf573e0596d00008402d060"
 dependencies = [
  "bitflags",
  "block",
- "core-graphics-types",
+ "core-graphics-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "foreign-types",
  "log",
  "objc",
@@ -4281,8 +4347,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a332be01508d814fed64bf28f798a146d73792121129962fdf335bb3c49a4254"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.3",
- "core-foundation-sys 0.8.3",
+ "core-foundation 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-foundation-sys 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc",
  "security-framework-sys",
 ]
@@ -4293,7 +4359,7 @@ version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31c9bb296072e961fcbd8853511dd39c2d8be2deb1e17c6860b1d30732b323b4"
 dependencies = [
- "core-foundation-sys 0.8.3",
+ "core-foundation-sys 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc",
 ]
 
@@ -5870,7 +5936,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "config",
- "core-foundation 0.9.3",
+ "core-foundation 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text",
  "dwrote",
  "encoding_rs",
@@ -6120,7 +6186,7 @@ name = "wezterm-toast-notification"
 version = "0.1.0"
 dependencies = [
  "async-io",
- "cocoa",
+ "cocoa 0.20.2",
  "core-foundation 0.7.0",
  "futures-util",
  "log",
@@ -6192,7 +6258,7 @@ dependencies = [
  "bit-set",
  "bitflags",
  "block",
- "core-graphics-types",
+ "core-graphics-types 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "d3d12",
  "foreign-types",
  "fxhash",
@@ -6294,7 +6360,7 @@ dependencies = [
  "cgl",
  "clipboard-win",
  "clipboard_macos",
- "cocoa",
+ "cocoa 0.24.1",
  "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
