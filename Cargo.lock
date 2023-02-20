@@ -623,13 +623,13 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.24.1"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 dependencies = [
  "bitflags",
  "block",
  "cocoa-foundation",
- "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
- "core-graphics 0.22.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-foundation 0.9.3 (git+https://github.com/servo/core-foundation-rs.git)",
+ "core-graphics 0.22.3 (git+https://github.com/servo/core-foundation-rs.git)",
  "foreign-types",
  "libc",
  "objc",
@@ -638,12 +638,12 @@ dependencies = [
 [[package]]
 name = "cocoa-foundation"
 version = "0.1.1"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
- "core-graphics-types 0.1.1 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-foundation 0.9.3 (git+https://github.com/servo/core-foundation-rs.git)",
+ "core-graphics-types 0.1.1 (git+https://github.com/servo/core-foundation-rs.git)",
  "foreign-types",
  "libc",
  "objc",
@@ -801,9 +801,9 @@ dependencies = [
 [[package]]
 name = "core-foundation"
 version = "0.9.3"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 dependencies = [
- "core-foundation-sys 0.8.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-foundation-sys 0.8.3 (git+https://github.com/servo/core-foundation-rs.git)",
  "libc",
 ]
 
@@ -822,7 +822,7 @@ checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 [[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 
 [[package]]
 name = "core-graphics"
@@ -852,11 +852,11 @@ dependencies = [
 [[package]]
 name = "core-graphics"
 version = "0.22.3"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
- "core-graphics-types 0.1.1 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-foundation 0.9.3 (git+https://github.com/servo/core-foundation-rs.git)",
+ "core-graphics-types 0.1.1 (git+https://github.com/servo/core-foundation-rs.git)",
  "foreign-types",
  "libc",
 ]
@@ -876,10 +876,10 @@ dependencies = [
 [[package]]
 name = "core-graphics-types"
 version = "0.1.1"
-source = "git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial#8bbdd5fd4ce925d3e0a7835df1fff67049e6d480"
+source = "git+https://github.com/servo/core-foundation-rs.git#65eccd9e792e777c4f41031ccd7400690d9de7ce"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.3 (git+https://github.com/Gkirito/core-foundation-rs.git?branch=feature/add-NSVisualEffectMaterial)",
+ "core-foundation 0.9.3 (git+https://github.com/servo/core-foundation-rs.git)",
  "foreign-types",
  "libc",
 ]
