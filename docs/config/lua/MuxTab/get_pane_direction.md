@@ -1,8 +1,8 @@
-# `pane:get_pane_direction(direction)`
+# `tab:get_pane_direction(direction)`
 
 *Since: nightly builds only*
 
-Returns pane adjacent to the given *pane* in the direction *direction*.
+Returns pane adjacent to the active pane in *tab* in the direction *direction*.
 
 Valid values for *direction* are:
 
