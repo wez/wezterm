@@ -23,7 +23,7 @@ use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
     default_true, GpuInfo, KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor,
-    WebGpuPowerPreference, CONFIG_DIR, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
+    WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
     HOME_DIR,
 };
 use anyhow::Context;
@@ -780,10 +780,11 @@ impl Config {
         // multiple.  In addition, it spawns a lot of subprocesses,
         // so we do this bit "by-hand"
 
-        let mut paths = vec![
-            PathPossibility::optional(CONFIG_DIR.join("wezterm.lua")),
-            PathPossibility::optional(HOME_DIR.join(".wezterm.lua")),
-        ];
+        let mut paths = vec![PathPossibility::optional(HOME_DIR.join(".wezterm.lua"))];
+        for dir in CONFIG_DIRS.iter() {
+            paths.push(PathPossibility::optional(dir.join("wezterm.lua")))
+        }
+
         if cfg!(windows) {
             // On Windows, a common use case is to maintain a thumb drive
             // with a set of portable tools that don't need to be installed
@@ -1178,7 +1179,9 @@ impl Config {
 
     fn compute_color_scheme_dirs(&self) -> Vec<PathBuf> {
         let mut paths = self.color_scheme_dirs.clone();
-        paths.push(CONFIG_DIR.join("colors"));
+        for dir in CONFIG_DIRS.iter() {
+            paths.push(dir.join("colors"));
+        }
         if cfg!(windows) {
             // See commentary re: portable tools above!
             if let Ok(exe_name) = std::env::current_exe() {
