@@ -144,13 +144,11 @@ impl DiffState {
     #[inline]
     fn set_cell(&mut self, col_num: usize, row_num: usize, other_cell: CellRef) {
         self.cursor = match self.cursor.take() {
-            Some((cursor_row, cursor_col))
-                if cursor_row == row_num && cursor_col == col_num - 1 =>
-            {
-                // It is on the column prior, so we don't need
-                // to explicitly move it.  Record the effective
-                // position for next time.
-                Some((row_num, col_num))
+            Some((cursor_row, cursor_col)) if cursor_row == row_num && cursor_col == col_num => {
+                // It is on the current column, so we don't need
+                // to explicitly move it.  Move the cursor by the
+                // width of the text we're about to add.
+                Some((row_num, col_num + other_cell.width()))
             }
             _ => {
                 // Need to explicitly move the cursor
@@ -158,8 +156,8 @@ impl DiffState {
                     y: Position::Absolute(row_num),
                     x: Position::Absolute(col_num),
                 });
-                // and remember the position for next time
-                Some((row_num, col_num))
+                // and update the position for next time
+                Some((row_num, col_num + other_cell.width()))
             }
         };
 
@@ -1610,6 +1608,23 @@ mod test {
         // Verify that all overlapping cells are updated when cell widths
         // differ on each side.
         assert_eq!(s.screen_chars_to_string(), "abcd\n");
+    }
+
+    #[test]
+    fn diff_cursor_double_width() {
+        let mut s = Surface::new(3, 1);
+        s.add_change("かa");
+
+        let s2 = Surface::new(3, 1);
+        let changes = s2.diff_region(0, 0, 3, 1, &s, 0, 0);
+
+        assert_eq!(
+            changes
+                .iter()
+                .filter(|change| matches!(change, Change::CursorPosition { .. }))
+                .count(),
+            1
+        );
     }
 
     #[test]
