@@ -44,6 +44,7 @@ jobs:
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - uses: actions/cache@v3
+        name: Cache mdbook
         with:
           path: |
             ~/.cargo/bin/
@@ -60,6 +61,9 @@ jobs:
       - name: Install mdBook mermaid
         run: |
           (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid --locked))
+      - name: Install mdBook admonish
+        run: |
+          (test -x ~/.cargo/bin/mdbook-admonish || (cd && cargo install mdbook-admonish --locked))
       - name: Install gelatyx
         run: |
           (test -x ~/.cargo/bin/gelatyx || (cd && cargo install gelatyx --version "^0.2" --locked))
