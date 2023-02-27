@@ -1465,11 +1465,52 @@ pub enum IntegratedTitleButtonAlignment {
     Left,
 }
 
-#[derive(Debug, Default, FromDynamic, ToDynamic, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, ToDynamic, PartialEq, Eq, Clone, Copy)]
 pub enum IntegratedTitleButtonStyle {
     #[default]
     Windows,
     Gnome,
+    // macos only
+    Native,
+}
+
+impl FromDynamic for IntegratedTitleButtonStyle {
+    fn from_dynamic(
+        value: &wezterm_dynamic::Value,
+        _options: wezterm_dynamic::FromDynamicOptions,
+    ) -> Result<Self, wezterm_dynamic::Error>
+    where
+        Self: Sized,
+    {
+        let type_name = "integrated_title_button_style";
+
+        if let wezterm_dynamic::Value::String(string) = value {
+            let style = match string.as_str() {
+                "Windows" => Self::Windows,
+                "Gnome" => Self::Gnome,
+                "Native" if cfg!(target_os = "macos") => Self::Native,
+                _ => {
+                    let possible: &[&str] = if cfg!(target_os = "macos") {
+                        &["Windows", "Gnome", "Native"]
+                    } else {
+                        &["Windows", "Gnome"]
+                    };
+                    return Err(wezterm_dynamic::Error::InvalidVariantForType {
+                        variant_name: string.to_string(),
+                        type_name,
+                        possible,
+                    });
+                }
+            };
+            Ok(style)
+        } else {
+            Err(wezterm_dynamic::Error::InvalidVariantForType {
+                variant_name: value.variant_name().to_string(),
+                type_name,
+                possible: &["String"],
+            })
+        }
+    }
 }
 
 /// Map c to its Ctrl equivalent.
