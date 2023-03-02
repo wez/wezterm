@@ -71,6 +71,8 @@ As features stabilize some brief notes about them will accumulate here.
 * `CTRL-SHIFT-P` now activates the new [command
   palette](config/lua/keyassignment/ActivateCommandPalette.md)
   [#1485](https://github.com/wez/wezterm/issues/1485)
+* `wezterm sssh` now supports `%l` and `%L` tokens in config files.
+  [#3176](https://github.com/wez/wezterm/issues/3176)
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm

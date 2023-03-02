@@ -477,6 +477,19 @@ impl Config {
         }
     }
 
+    fn resolve_local_host(&self, include_domain_name: bool) -> String {
+        let hostname = gethostname::gethostname().to_string_lossy().to_string();
+
+        if include_domain_name {
+            hostname
+        } else {
+            match hostname.split_once('.') {
+                Some((hostname, _domain)) => hostname.to_string(),
+                None => hostname,
+            }
+        }
+    }
+
     fn resolve_local_user(&self) -> String {
         for user in &["USER", "USERNAME"] {
             if let Some(user) = self.resolve_env(user) {
@@ -621,11 +634,16 @@ impl Config {
 
     /// Perform token substitution
     fn expand_tokens(&self, value: &mut String, tokens: &[&str], token_map: &ConfigMap) {
+        let orig_value = value.to_string();
         for &t in tokens {
             if let Some(v) = token_map.get(t) {
                 *value = value.replace(t, v);
             } else if t == "%u" {
                 *value = value.replace(t, &self.resolve_local_user());
+            } else if t == "%l" {
+                *value = value.replace(t, &self.resolve_local_host(false));
+            } else if t == "%L" {
+                *value = value.replace(t, &self.resolve_local_host(true));
             } else if t == "%d" {
                 if let Some(home) = self.resolve_home() {
                     let mut items = value
@@ -641,6 +659,8 @@ impl Config {
                     }
                     *value = items.join(" ");
                 }
+            } else if value.contains(t) {
+                log::warn!("Unsupported token {t} when evaluating `{orig_value}`");
             }
         }
 
