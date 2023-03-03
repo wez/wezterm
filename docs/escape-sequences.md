@@ -280,7 +280,7 @@ CSI 38 : 2 : R : G : B m
 
 *Since: 20220807-113146-c2fee766*
 
-This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
 
 ```
@@ -308,7 +308,7 @@ CSI 48 : 2 : R : G : B m
 
 *Since: 20220807-113146-c2fee766*
 
-This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
 
 ```
@@ -336,7 +336,7 @@ CSI 58 : 2 : R : G : B m
 
 *Since: 20220807-113146-c2fee766*
 
-This is a wezterm extension: wezterm considers colorspace ID `6` as RGBA,
+This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
 
 ```
