@@ -79,11 +79,10 @@ fn extract_font_data(
     parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
     let matches = ParsedFont::best_match(attr, pixel_size, font_info);
 
-    for m in matches {
-        return Ok(m);
+    match matches {
+        Some(m) => Ok(m),
+        None => anyhow::bail!("No font matching {:?} in {:?}", attr, source),
     }
-
-    anyhow::bail!("No font matching {:?} in {:?}", attr, source);
 }
 
 /// Convert a rust string to a windows wide string
@@ -157,11 +156,10 @@ pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFo
         parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
         let matches = ParsedFont::best_match(&attr, pixel_size, font_info);
 
-        for m in matches {
-            return Ok((m, point_size));
+        match matches {
+            Some(m) => Ok((m, point_size)),
+            None => anyhow::bail!("No font matching {:?} in {:?}", attr, source),
         }
-
-        anyhow::bail!("No font matching {:?} in {:?}", attr, source);
     }
 }
 
