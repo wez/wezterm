@@ -509,6 +509,10 @@ impl Pane for LocalPane {
             });
 
             fn default_stateful_check(proc_list: &LocalProcessInfo) -> bool {
+                // Fig uses `figterm` a pseudo terminal for a lot of functionality, it runs between
+                // the shell and terminal. Unfortunately it is typically named `<shell> (figterm)`,
+                // which prevents the statuful check from passing. This strips the suffix from the
+                // process name to allow the check to pass.
                 let names = proc_list
                     .flatten_to_exe_names()
                     .into_iter()
