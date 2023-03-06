@@ -394,6 +394,13 @@ async fn main() -> anyhow::Result<()> {
         &mut schemeses,
     )
     .await?;
+    sync_toml(
+        "https://github.com/folke/tokyonight.nvim",
+        "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
     accumulate(
         &mut schemeses,
         iterm2::sync_iterm2().await.context("sync iterm2")?,
