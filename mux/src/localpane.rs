@@ -509,7 +509,14 @@ impl Pane for LocalPane {
             });
 
             fn default_stateful_check(proc_list: &LocalProcessInfo) -> bool {
-                let names = proc_list.flatten_to_exe_names();
+                let names = proc_list
+                    .flatten_to_exe_names()
+                    .into_iter()
+                    .map(|s| match s.strip_suffix(" (figterm)") {
+                        Some(s) => s.into(),
+                        None => s,
+                    })
+                    .collect::<HashSet<_>>();
 
                 let skip = configuration()
                     .skip_close_confirmation_for_processes_named
