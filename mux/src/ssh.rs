@@ -177,6 +177,9 @@ pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap
     if ssh_dom.no_agent_auth {
         ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
     }
+    if let Some("true") = ssh_config.get("wezterm_ssh_verbose").map(|s| s.as_str()) {
+        log::info!("Using ssh config: {ssh_config:#?}");
+    }
     Ok(ssh_config)
 }
 
