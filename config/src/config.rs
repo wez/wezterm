@@ -404,6 +404,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub tab_bar_at_bottom: bool,
+    
+    #[dynamic(default)]
+    pub scroll_tabs: bool,
 
     /// If true, tab bar titles are prefixed with the tab index
     #[dynamic(default = "default_true")]
