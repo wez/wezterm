@@ -6,9 +6,11 @@ use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
 use std::cell::RefCell;
 use std::io::{Read, Write};
-use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::os::unix::process::CommandExt;
 use std::{io, mem, ptr};
+
+pub use std::os::unix::io::RawFd;
 
 #[derive(Default)]
 pub struct UnixPtySystem {}
@@ -323,7 +325,7 @@ impl MasterPty for UnixMasterPty {
         Ok(Box::new(UnixMasterWriter { fd }))
     }
 
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+    fn as_raw_fd(&self) -> Option<RawFd> {
         Some(self.fd.0.as_raw_fd())
     }
 

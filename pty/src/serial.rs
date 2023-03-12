@@ -242,7 +242,7 @@ impl MasterPty for Master {
     }
 
     #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+    fn as_raw_fd(&self) -> Option<crate::unix::RawFd> {
         None
     }
 }
