@@ -111,7 +111,7 @@ pub trait MasterPty {
     /// associated with the stream. This is to enable applications that
     /// "know things" to query similar information for themselves.
     #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd>;
+    fn as_raw_fd(&self) -> Option<unix::RawFd>;
 
     /// If applicable to the type of the tty, return the termios
     /// associated with the stream
