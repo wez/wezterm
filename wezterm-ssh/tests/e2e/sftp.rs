@@ -1,10 +1,10 @@
-use crate::sshd::session;
+use crate::sshd::*;
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
 use predicates::prelude::*;
 use rstest::*;
 use std::convert::TryInto;
-use wezterm_ssh::{FileType, Session, SftpChannelError, SftpError, Utf8PathBuf};
+use wezterm_ssh::{FileType, SftpChannelError, SftpError, Utf8PathBuf};
 
 // Sftp file tests
 mod file;
@@ -23,8 +23,10 @@ fn file_type_to_str(file_type: FileType) -> &'static str {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn read_dir_should_return_list_of_directories_files_and_symlinks(#[future] session: Session) {
-    let session: Session = session.await;
+async fn read_dir_should_return_list_of_directories_files_and_symlinks(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     // $TEMP/dir1/
     // $TEMP/dir2/
@@ -75,8 +77,10 @@ async fn read_dir_should_return_list_of_directories_files_and_symlinks(#[future]
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn create_dir_should_create_a_directory_on_the_remote_filesystem(#[future] session: Session) {
-    let session: Session = session.await;
+async fn create_dir_should_create_a_directory_on_the_remote_filesystem(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -93,8 +97,10 @@ async fn create_dir_should_create_a_directory_on_the_remote_filesystem(#[future]
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn create_dir_should_return_error_if_unable_to_create_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn create_dir_should_return_error_if_unable_to_create_directory(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -119,8 +125,8 @@ async fn create_dir_should_return_error_if_unable_to_create_directory(#[future] 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_dir_should_remove_a_remote_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_dir_should_remove_a_remote_directory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -141,9 +147,9 @@ async fn remove_dir_should_remove_a_remote_directory(#[future] session: Session)
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -190,8 +196,8 @@ async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn metadata_should_return_metadata_about_a_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn metadata_should_return_metadata_about_a_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -210,8 +216,8 @@ async fn metadata_should_return_metadata_about_a_file(#[future] session: Session
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn metadata_should_return_metadata_about_a_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn metadata_should_return_metadata_about_a_directory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -231,9 +237,9 @@ async fn metadata_should_return_metadata_about_a_directory(#[future] session: Se
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -258,9 +264,9 @@ async fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -284,8 +290,8 @@ async fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn metadata_should_fail_if_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn metadata_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -303,8 +309,8 @@ async fn metadata_should_fail_if_path_missing(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_metadata_should_return_metadata_about_a_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_metadata_should_return_metadata_about_a_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -323,8 +329,10 @@ async fn symlink_metadata_should_return_metadata_about_a_file(#[future] session:
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_metadata_should_return_metadata_about_a_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_metadata_should_return_metadata_about_a_directory(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -344,9 +352,9 @@ async fn symlink_metadata_should_return_metadata_about_a_directory(#[future] ses
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_file(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -371,9 +379,9 @@ async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_fil
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_directory(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -397,8 +405,8 @@ async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_dir
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_metadata_should_fail_if_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_metadata_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -416,8 +424,8 @@ async fn symlink_metadata_should_fail_if_path_missing(#[future] session: Session
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_should_create_symlink_pointing_to_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -447,8 +455,8 @@ async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Sessi
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -468,8 +476,8 @@ async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn symlink_should_succeed_even_if_path_missing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -488,8 +496,8 @@ async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session)
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn read_link_should_return_the_target_of_the_symlink(#[future] session: Session) {
-    let session: Session = session.await;
+async fn read_link_should_return_the_target_of_the_symlink(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -523,8 +531,8 @@ async fn read_link_should_return_the_target_of_the_symlink(#[future] session: Se
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Session) {
-    let session: Session = session.await;
+async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -563,8 +571,10 @@ async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Sessi
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
-    let session: Session = session.await;
+async fn canonicalize_should_resolve_absolute_path_for_relative_path(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     // For resolving parts of a path, all components must exist
     let temp = TempDir::new().unwrap();
@@ -590,9 +600,9 @@ async fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] s
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
-    #[future] session: Session,
+    #[future] session: SessionWithSshd,
 ) {
-    let session: Session = session.await;
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let missing = temp.child("missing");
@@ -626,8 +636,10 @@ async fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn canonicalize_should_fail_if_resolving_missing_path_with_dots(#[future] session: Session) {
-    let session: Session = session.await;
+async fn canonicalize_should_fail_if_resolving_missing_path_with_dots(
+    #[future] session: SessionWithSshd,
+) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let missing = temp.child(".").child("hello").child("..").child("world");
@@ -642,8 +654,8 @@ async fn canonicalize_should_fail_if_resolving_missing_path_with_dots(#[future] 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn rename_should_support_singular_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn rename_should_support_singular_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -669,8 +681,8 @@ async fn rename_should_support_singular_file(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn rename_should_support_dirtectory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn rename_should_support_dirtectory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -705,8 +717,8 @@ async fn rename_should_support_dirtectory(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn rename_should_fail_if_source_path_missing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let missing = temp.child("missing");
@@ -730,8 +742,8 @@ async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_file_should_remove_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_file_should_remove_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -749,8 +761,8 @@ async fn remove_file_should_remove_file(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_file_should_remove_symlink_to_file(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_file_should_remove_symlink_to_file(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
@@ -772,8 +784,8 @@ async fn remove_file_should_remove_symlink_to_file(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_file_should_remove_symlink_to_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_file_should_remove_symlink_to_directory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -795,8 +807,8 @@ async fn remove_file_should_remove_symlink_to_directory(#[future] session: Sessi
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_file_should_fail_if_path_to_directory(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_file_should_fail_if_path_to_directory(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -816,8 +828,8 @@ async fn remove_file_should_fail_if_path_to_directory(#[future] session: Session
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn remove_file_should_fail_if_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn remove_file_should_fail_if_path_missing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
 

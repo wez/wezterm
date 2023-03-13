@@ -1,6 +1,6 @@
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use rstest::*;
 use std::collections::HashMap;
 use std::path::Path;
@@ -406,15 +406,31 @@ impl Drop for Sshd {
 #[fixture]
 /// Stand up a singular sshd session and hold onto it for the lifetime
 /// of our tests, returning a reference to it with each fixture ref
-pub fn sshd() -> &'static Sshd {
-    static SSHD: OnceCell<Sshd> = OnceCell::new();
+pub fn sshd() -> Sshd {
+    Sshd::spawn(Default::default()).unwrap()
+}
 
-    SSHD.get_or_init(|| Sshd::spawn(Default::default()).unwrap())
+pub struct SessionWithSshd {
+    _sshd: Sshd,
+    session: Session,
+}
+
+impl std::ops::Deref for SessionWithSshd {
+    type Target = Session;
+    fn deref(&self) -> &Session {
+        &self.session
+    }
+}
+
+impl std::ops::DerefMut for SessionWithSshd {
+    fn deref_mut(&mut self) -> &mut Session {
+        &mut self.session
+    }
 }
 
 #[fixture]
 /// Stand up an sshd instance and then connect to it and perform authentication
-pub async fn session(sshd: &'_ Sshd) -> Session {
+pub async fn session(sshd: Sshd) -> SessionWithSshd {
     let port = sshd.port;
 
     let mut config = Config::new();
@@ -501,5 +517,8 @@ pub async fn session(sshd: &'_ Sshd) -> Session {
         }
     }
 
-    session
+    SessionWithSshd {
+        session,
+        _sshd: sshd,
+    }
 }

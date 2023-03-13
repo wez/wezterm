@@ -1,17 +1,16 @@
-use crate::sshd::session;
+use crate::sshd::*;
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
 use rstest::*;
 use smol::io::{AsyncReadExt, AsyncWriteExt};
 use std::convert::TryInto;
 use std::path::PathBuf;
-use wezterm_ssh::Session;
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn metadata_should_retrieve_file_stat(#[future] session: Session) {
-    let session: Session = session.await;
+async fn metadata_should_retrieve_file_stat(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
@@ -35,8 +34,8 @@ async fn metadata_should_retrieve_file_stat(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn read_dir_should_retrieve_next_dir_entry(#[future] session: Session) {
-    let session: Session = session.await;
+async fn read_dir_should_retrieve_next_dir_entry(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
@@ -84,8 +83,8 @@ async fn read_dir_should_retrieve_next_dir_entry(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn should_support_async_reading(#[future] session: Session) {
-    let session: Session = session.await;
+async fn should_support_async_reading(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
@@ -116,8 +115,8 @@ async fn should_support_async_reading(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn should_support_async_writing(#[future] session: Session) {
-    let session: Session = session.await;
+async fn should_support_async_writing(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
@@ -146,8 +145,8 @@ async fn should_support_async_writing(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn should_support_async_flush(#[future] session: Session) {
-    let session: Session = session.await;
+async fn should_support_async_flush(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
@@ -171,8 +170,8 @@ async fn should_support_async_flush(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn should_support_async_close(#[future] session: Session) {
-    let session: Session = session.await;
+async fn should_support_async_close(#[future] session: SessionWithSshd) {
+    let session: SessionWithSshd = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
