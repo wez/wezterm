@@ -3297,12 +3297,20 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "open"
-version = "3.2.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2078c0039e6a54a0c42c28faa984e115fb4c2d5bf2208f77d1961002df8576f8"
+checksum = "21ecf2487e799604735754d2c5896106785987b441b5aee58f242e4d4963179a"
 dependencies = [
  "pathdiff",
- "windows-sys 0.42.0",
+]
+
+[[package]]
+name = "open"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd61e3bf9d78956c72ee864bba52431f7f43994b21a17e9e72596a81bd61075b"
+dependencies = [
+ "pathdiff",
 ]
 
 [[package]]
@@ -4684,7 +4692,7 @@ dependencies = [
  "config",
  "log",
  "luahelper",
- "open",
+ "open 3.4.0",
  "smol",
  "wezterm-dynamic",
  "winapi",
@@ -5907,7 +5915,7 @@ dependencies = [
  "mlua",
  "mux",
  "mux-lua",
- "open",
+ "open 4.0.0",
  "ordered-float",
  "parking_lot 0.12.1",
  "portable-pty",
@@ -6092,7 +6100,7 @@ dependencies = [
  "futures-util",
  "log",
  "objc",
- "open",
+ "open 3.4.0",
  "serde",
  "windows 0.33.0",
  "xml-rs",
