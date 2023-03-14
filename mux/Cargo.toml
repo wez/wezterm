@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 async-trait = "0.1"
 base64 = "0.21"
 bintree = { path = "../bintree" }
@@ -19,9 +19,9 @@ downcast-rs = "1.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 hostname = "0.3"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
 luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
 mlua = "0.8.3"
@@ -36,12 +36,12 @@ rangeset = { path = "../rangeset" }
 regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}
 shell-words = "1.1"
-smol = "1.2"
+smol.workspace = true
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
-thiserror = "1.0"
+thiserror.workspace = true
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }

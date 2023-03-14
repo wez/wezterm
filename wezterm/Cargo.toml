@@ -7,10 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 chrono = "0.4"
 clap = {version="4.0", features=["derive"]}
 clap_complete = "4.0"
@@ -20,15 +20,15 @@ config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 hostname = "0.3"
-libc = "0.2"
-log = "0.4"
+libc.workspace = true
+log.workspace = true
 mux = { path = "../mux" }
 portable-pty = { path = "../pty" }
 promise = { path = "../promise" }
 serde = {version="1.0", features = ["derive"]}
 serde_json = "1.0"
 shell-words = "1.1"
-smol = "1.2"
+smol.workspace = true
 tabout = { path = "../tabout" }
 tempfile = "3.3"
 termwiz = { path = "../termwiz" }

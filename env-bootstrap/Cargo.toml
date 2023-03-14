@@ -11,9 +11,9 @@ backtrace = "0.3"
 chrono = {version="0.4", features=["unstable-locales"]}
 config = { path = "../config" }
 dirs-next = "2.0"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
 env_logger = "0.10"
 termwiz = { path = "../termwiz" }
 battery = { path = "../lua-api-crates/battery" }

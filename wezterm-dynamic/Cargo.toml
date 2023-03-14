@@ -9,9 +9,9 @@ license = "MIT"
 [dependencies]
 wezterm-dynamic-derive = { version="0.1", path="derive" }
 ordered-float = "3.0"
-thiserror = "1.0"
+thiserror.workspace = true
 strsim = "0.10"
-log = "0.4"
+log.workspace = true
 
 [dev-dependencies]
 maplit = "1.0"

@@ -9,7 +9,7 @@ build = "build.rs"
 
 [dependencies]
 open = "4.0"
-log = "0.4"
+log.workspace = true
 
 [target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
 serde = {version="1.0", features = ["derive"]}

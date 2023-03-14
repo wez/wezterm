@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 config = { path = "../../config" }
 csscolorparser = {version="0.6", features=["lab"]}
 deltae = "0.3"
 image = "0.24.2"
-lazy_static = "1.4"
-log = "0.4"
+lazy_static.workspace = true
+log.workspace = true
 lru = "0.7"
 luahelper = { path = "../../luahelper" }
 plist = "1.3"

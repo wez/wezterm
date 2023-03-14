@@ -7,7 +7,7 @@ links = "fontconfig"
 build = "build.rs"
 
 [dependencies]
-libc = "~0.2"
+libc.workspace = true
 
 [build-dependencies]
 pkg-config = "0.3"

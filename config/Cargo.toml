@@ -17,15 +17,15 @@ git2 = { version = "0.16", default-features = false }
 distro-defaults = []
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 bitflags = "1.3"
 colorgrad = "0.6"
 dirs-next = "2.0"
 enum-display-derive = "0.1"
 hostname = "0.3"
-lazy_static = "1.4"
-libc = "0.2"
-log = "0.4"
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
 luahelper = { path = "../luahelper" }
 mlua = {version="0.8.3", features=["vendored", "lua54", "async", "send"]}
 # file change notification
@@ -35,7 +35,7 @@ portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 serde = {version="1.0", features = ["rc", "derive"]}
 shlex = "1.1"
-smol = "1.2"
+smol.workspace = true
 termwiz = { path = "../termwiz", features=["use_serde"] }
 toml = "0.7"
 umask = { path = "../umask" }

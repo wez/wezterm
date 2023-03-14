@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 color-funcs = { path = "../lua-api-crates/color-funcs" }
 config = { path = "../config" }
 env_logger = "0.10"
 futures = "0.3"
-lazy_static = "1.4"
+lazy_static.workspace = true
 libflate = "1"
-log = "0.4"
+log.workspace = true
 reqwest = "0.11"
 rusqlite = {version="0.27", features=["bundled", "blob"]}
 serde = {version="1.0", features=["derive"]}

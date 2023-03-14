@@ -9,8 +9,8 @@ default = ["lua"]
 lua = ["dep:luahelper", "dep:wezterm-dynamic"]
 
 [dependencies]
-libc = "0.2"
-log = "0.4"
+libc.workspace = true
+log.workspace = true
 luahelper = { path = "../luahelper", optional = true }
 wezterm-dynamic = { path = "../wezterm-dynamic", optional = true }
 

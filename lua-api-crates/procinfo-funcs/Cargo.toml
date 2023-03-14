@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
 config = { path = "../../config" }
-libc = "0.2"
+libc.workspace = true
 luahelper = { path = "../../luahelper" }
 procinfo = { path = "../../procinfo" }
 wezterm-dynamic = { path = "../../wezterm-dynamic" }

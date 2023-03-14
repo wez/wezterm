@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 clap = {version="4.0", features=["derive"]}
 config = { path = "../config" }
-anyhow = "1.0"
+anyhow.workspace = true

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 filenamegen = "0.2"
-anyhow = "1.0"
+anyhow.workspace = true
 config = { path = "../../config" }
 luahelper = { path = "../../luahelper" }
-smol = "1.2"
+smol.workspace = true
