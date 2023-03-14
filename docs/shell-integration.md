@@ -128,6 +128,21 @@ function prompt {
 }
 ```
 
+### OSC 7 on Windows with powershell (with starship)
+
+When you're using [Starship](https://starship.rs/), the prompt is already modify, in this case can add only the necessary output to the already modified prompt, with a function like this in [powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1):
+
+```powershell
+$prompt = ""
+function Invoke-Starship-PreCommand {
+    $current_location = $executionContext.SessionState.Path.CurrentLocation
+    if ($current_location.Provider.Name -eq "FileSystem") {
+        $provider_path = $current_location.ProviderPath -replace "\\", "/"
+        $prompt = "$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}$ansi_escape\"
+    }
+    $host.ui.Write($prompt)
+````
+
 ## Using Clink on Windows Systems
 
 [Clink](https://github.com/chrisant996/clink) brings bash style line editing,
