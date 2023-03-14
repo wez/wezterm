@@ -141,7 +141,7 @@ function Invoke-Starship-PreCommand {
         $prompt = "$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}$ansi_escape\"
     }
     $host.ui.Write($prompt)
-````
+```
 
 ## Using Clink on Windows Systems
 
