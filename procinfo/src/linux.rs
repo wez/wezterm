@@ -71,7 +71,7 @@ impl LocalProcessInfo {
             Some(LinuxStat {
                 pid,
                 name: name.to_string(),
-                status: fields.get(0)?.to_string(),
+                status: fields.first()?.to_string(),
                 ppid: fields.get(1)?.parse().ok()?,
                 starttime: fields.get(20)?.parse().ok()?,
             })
