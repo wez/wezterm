@@ -1127,10 +1127,7 @@ impl TerminalState {
     }
 
     fn set_hyperlink(&mut self, link: Option<Hyperlink>) {
-        self.pen.set_hyperlink(match link {
-            Some(hyperlink) => Some(Arc::new(hyperlink)),
-            None => None,
-        });
+        self.pen.set_hyperlink(link.map(Arc::new));
     }
 
     /// <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Device-Control-functions:DCS-plus-q-Pt-ST.F95>
@@ -2261,10 +2258,7 @@ impl TerminalState {
             }
             Cursor::BackwardTabulation(n) => {
                 for _ in 0..n {
-                    let x = match self.tabs.find_prev_tab_stop(self.cursor.x) {
-                        Some(x) => x,
-                        None => 0,
-                    };
+                    let x = self.tabs.find_prev_tab_stop(self.cursor.x).unwrap_or(0);
                     self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Relative(0));
                 }
             }

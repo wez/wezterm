@@ -130,10 +130,9 @@ impl LocalProcessInfo {
             }
         }
 
-        if let Some(info) = procs.iter().find(|info| info.pid == pid) {
-            Some(build_proc(info, &procs))
-        } else {
-            None
-        }
+        procs
+            .iter()
+            .find(|info| info.pid == pid)
+            .map(|info| build_proc(info, &procs))
     }
 }

@@ -237,10 +237,7 @@ impl SpawnCommand {
         for (k, v) in cmd.iter_full_env_as_str() {
             set_environment_variables.insert(k.to_string(), v.to_string());
         }
-        let cwd = match cmd.get_cwd() {
-            Some(cwd) => Some(PathBuf::from(cwd)),
-            None => None,
-        };
+        let cwd = cmd.get_cwd().map(PathBuf::from);
         Ok(Self {
             label: None,
             domain: SpawnTabDomain::DefaultDomain,

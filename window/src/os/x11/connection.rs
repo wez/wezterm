@@ -431,9 +431,7 @@ impl XConnection {
             .poll_for_event()
             .context("X11 connection is broken")?
         {
-            if let Err(err) = self.process_xcb_event_ime(&event) {
-                return Err(err);
-            }
+            self.process_xcb_event_ime(&event)?
         }
         self.conn.flush().context("flushing pending requests")?;
 

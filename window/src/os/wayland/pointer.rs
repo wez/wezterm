@@ -55,11 +55,9 @@ impl Inner {
     fn resolve_copy_and_paste(&mut self) -> Option<Arc<Mutex<CopyAndPaste>>> {
         let conn = WaylandConnection::get().unwrap().wayland();
         let active_surface_id = conn.active_surface_id.borrow();
-        if let Some(pending) = self.surface_to_pending.get(&active_surface_id) {
-            Some(Arc::clone(&pending.lock().unwrap().copy_and_paste))
-        } else {
-            None
-        }
+        self.surface_to_pending
+            .get(&active_surface_id)
+            .map(|pending| Arc::clone(&pending.lock().unwrap().copy_and_paste))
     }
 
     fn route_data_offer(&mut self, event: DataOfferEvent, offer: WlDataOffer) {
