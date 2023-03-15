@@ -357,6 +357,16 @@ impl ImageDataType {
                             Self::decode_single(data)
                         }
                     }
+                    ImageFormat::WebP => {
+                        let decoder = match image::codecs::webp::WebPDecoder::new(&*data) {
+                            Ok(d) => d,
+                            _ => return Self::EncodedFile(data),
+                        };
+                        match decoder.into_frames().collect_frames() {
+                            Ok(frames) => Self::decode_frames(frames),
+                            _ => Self::EncodedFile(data),
+                        }
+                    }
                     _ => Self::decode_single(data),
                 }
             }
