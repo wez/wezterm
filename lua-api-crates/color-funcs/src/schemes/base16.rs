@@ -81,7 +81,7 @@ impl Base16Scheme {
             },
             metadata: ColorSchemeMetaData {
                 name: Some(scheme.scheme),
-                author: Some(scheme.author.clone()),
+                author: Some(scheme.author),
                 origin_url: None,
                 wezterm_version: None,
                 aliases: vec![],

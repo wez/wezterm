@@ -703,7 +703,7 @@ impl<'a> Performer<'a> {
                 if title.is_empty() {
                     self.icon_title = None;
                 } else {
-                    self.icon_title = Some(title.clone());
+                    self.icon_title = Some(title);
                 }
                 let title = self.icon_title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
@@ -715,7 +715,7 @@ impl<'a> Performer<'a> {
                 self.title = title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
                     handler.alert(Alert::WindowTitleChanged(title.clone()));
-                    handler.alert(Alert::IconTitleChanged(Some(title.clone())));
+                    handler.alert(Alert::IconTitleChanged(Some(title)));
                 }
             }
 
@@ -723,7 +723,7 @@ impl<'a> Performer<'a> {
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
                 if let Some(handler) = self.alert_handler.as_mut() {
-                    handler.alert(Alert::WindowTitleChanged(title.clone()));
+                    handler.alert(Alert::WindowTitleChanged(title));
                 }
             }
             OperatingSystemCommand::SetHyperlink(link) => {

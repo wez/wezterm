@@ -701,7 +701,7 @@ impl FontShaper for HarfbuzzShaper {
             dpi,
         };
         if let Some(metrics) = self.metrics.borrow().get(&key) {
-            return Ok(metrics.clone());
+            return Ok(*metrics);
         }
 
         let scale = self.handles[font_idx].scale.unwrap_or(1.);
@@ -737,7 +737,7 @@ impl FontShaper for HarfbuzzShaper {
             metrics.force_y_adjust = diff;
         }
 
-        self.metrics.borrow_mut().insert(key, metrics.clone());
+        self.metrics.borrow_mut().insert(key, metrics);
 
         log::trace!(
             "metrics_for_idx={}, size={}, dpi={} -> {:?}",

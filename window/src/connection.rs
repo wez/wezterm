@@ -91,7 +91,7 @@ pub trait ConnectionOps {
                     GeometryOrigin::MainScreen => screens.main.rect,
                     GeometryOrigin::ActiveScreen => screens.active.rect,
                     GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
-                        Some(info) => info.rect.clone(),
+                        Some(info) => info.rect,
                         None => {
                             log::error!(
                             "Requested display {} was not found; available displays are: {:?}. \
