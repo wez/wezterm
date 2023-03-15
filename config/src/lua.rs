@@ -133,8 +133,8 @@ impl ConfigHelper {
                         for i in 1.. {
                             if let Some(debug) = lua.inspect_stack(i) {
                                 let names = debug.names();
-                                let name = names.name.map(|b| String::from_utf8_lossy(b));
-                                let name_what = names.name_what.map(|b| String::from_utf8_lossy(b));
+                                let name = names.name.map(String::from_utf8_lossy);
+                                let name_what = names.name_what.map(String::from_utf8_lossy);
 
                                 let dbg_source = debug.source();
                                 let source = dbg_source
@@ -402,7 +402,7 @@ fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
 /// Errors may occur while retrieving the hostname from the system,
 /// or if the hostname isn't a UTF-8 string.
 fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
-    let hostname = hostname::get().map_err(|e| mlua::Error::external(e))?;
+    let hostname = hostname::get().map_err(mlua::Error::external)?;
     match hostname.to_str() {
         Some(hostname) => Ok(hostname.to_owned()),
         None => Err(mlua::Error::external(anyhow!("hostname isn't UTF-8"))),
@@ -557,9 +557,7 @@ fn font<'lua>(
             freetype_load_target: attrs.freetype_load_target,
             freetype_render_target: attrs.freetype_render_target,
             freetype_load_flags: match attrs.freetype_load_flags {
-                Some(flags) => {
-                    Some(TryFrom::try_from(flags).map_err(|e| mlua::Error::external(e))?)
-                }
+                Some(flags) => Some(TryFrom::try_from(flags).map_err(mlua::Error::external)?),
                 None => None,
             },
             scale: attrs.scale,
@@ -608,9 +606,7 @@ fn font_with_fallback<'lua>(
                 freetype_load_target: attrs.freetype_load_target,
                 freetype_render_target: attrs.freetype_render_target,
                 freetype_load_flags: match attrs.freetype_load_flags {
-                    Some(flags) => {
-                        Some(TryFrom::try_from(flags).map_err(|e| mlua::Error::external(e))?)
-                    }
+                    Some(flags) => Some(TryFrom::try_from(flags).map_err(mlua::Error::external)?),
                     None => None,
                 },
                 scale: attrs.scale,
@@ -820,7 +816,7 @@ fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String>
     let wide: &[u16] =
         unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u16, bytes.len() / 2) };
 
-    String::from_utf16(wide).map_err(|e| mlua::Error::external(e))
+    String::from_utf16(wide).map_err(mlua::Error::external)
 }
 
 pub fn add_to_config_reload_watch_list<'lua>(

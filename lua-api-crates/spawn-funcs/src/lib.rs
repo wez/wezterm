@@ -45,7 +45,7 @@ async fn run_child_process<'lua>(
         cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
     }
 
-    let output = cmd.output().await.map_err(|e| mlua::Error::external(e))?;
+    let output = cmd.output().await.map_err(mlua::Error::external)?;
 
     Ok((
         output.status.success(),
@@ -69,7 +69,7 @@ async fn background_child_process<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua
 
     cmd.stdin(smol::process::Stdio::null())
         .spawn()
-        .map_err(|e| mlua::Error::external(e))?;
+        .map_err(mlua::Error::external)?;
 
     Ok(())
 }

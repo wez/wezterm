@@ -901,8 +901,7 @@ impl Reconnectable {
                 .connect(
                     tls_client
                         .expected_cn
-                        .as_ref()
-                        .map(String::as_str)
+                        .as_deref()
                         .unwrap_or(remote_host_name),
                     stream,
                 )

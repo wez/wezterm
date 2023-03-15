@@ -24,7 +24,7 @@ fn allocate_port() -> u16 {
     listener.local_addr().unwrap().port()
 }
 
-const USERNAME: Lazy<String> = Lazy::new(|| whoami::username());
+const USERNAME: Lazy<String> = Lazy::new(whoami::username);
 
 pub struct SshKeygen;
 

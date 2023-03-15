@@ -471,7 +471,7 @@ pub struct FontConfiguration {
 impl FontConfigInner {
     /// Create a new empty configuration
     pub fn new(config: Option<ConfigHandle>, dpi: usize) -> anyhow::Result<Self> {
-        let config = config.unwrap_or_else(|| configuration());
+        let config = config.unwrap_or_else(configuration);
         let locator = new_locator(config.font_locator);
         Ok(Self {
             fonts: RefCell::new(HashMap::new()),
@@ -590,11 +590,7 @@ impl FontConfigInner {
 
         let font_size = pref_size.unwrap_or(sys_size);
 
-        let text_style = config
-            .window_frame
-            .font
-            .as_ref()
-            .unwrap_or_else(|| &sys_font);
+        let text_style = config.window_frame.font.as_ref().unwrap_or(&sys_font);
 
         let dpi = *self.dpi.borrow() as u32;
         let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
@@ -701,12 +697,12 @@ impl FontConfigInner {
         let preferred_attributes = attributes
             .iter()
             .filter(|a| !a.is_fallback)
-            .map(|a| a.clone())
+            .cloned()
             .collect::<Vec<_>>();
         let fallback_attributes = attributes
             .iter()
             .filter(|a| a.is_fallback)
-            .map(|a| a.clone())
+            .cloned()
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
         let mut handles = vec![];

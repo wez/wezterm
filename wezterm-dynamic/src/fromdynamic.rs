@@ -184,7 +184,7 @@ impl FromDynamic for char {
         match value {
             Value::String(s) => {
                 let mut iter = s.chars();
-                let c = iter.next().ok_or_else(|| Error::CharFromWrongSizedString)?;
+                let c = iter.next().ok_or(Error::CharFromWrongSizedString)?;
                 if iter.next().is_some() {
                     Err(Error::CharFromWrongSizedString)
                 } else {

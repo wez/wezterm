@@ -191,7 +191,7 @@ fn gradient_colors<'lua>(
     _lua: &'lua Lua,
     (gradient, num_colors): (Gradient, usize),
 ) -> mlua::Result<Vec<ColorWrap>> {
-    let g = gradient.build().map_err(|e| mlua::Error::external(e))?;
+    let g = gradient.build().map_err(mlua::Error::external)?;
     Ok(g.colors(num_colors)
         .into_iter()
         .map(|c| {

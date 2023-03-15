@@ -425,7 +425,7 @@ struct ShapedGlyph {
 impl ConceptFrame {
     fn reshape_title(&mut self) -> Option<()> {
         let font_config = self.config.font_config.as_ref()?;
-        let title = self.title.as_ref().map(|s| s.as_str()).unwrap_or("");
+        let title = self.title.as_deref().unwrap_or("");
         if title.is_empty() {
             self.title.take();
             self.shaped_title.take();

@@ -94,7 +94,7 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
 
     for row in &display_rows {
         for (idx, col) in row.iter().enumerate() {
-            let max_width = col_widths.get(idx).cloned().unwrap_or_else(|| col.len());
+            let max_width = col_widths.get(idx).cloned().unwrap_or(col.len());
             let alignment = columns
                 .get(idx)
                 .map(|c| c.alignment)
@@ -200,7 +200,7 @@ pub fn tabulate_for_terminal(
 
     for row in rows {
         for (idx, col) in row.iter().enumerate() {
-            let max_width = col_widths.get(idx).cloned().unwrap_or_else(|| col.len());
+            let max_width = col_widths.get(idx).cloned().unwrap_or(col.len());
             let alignment = columns
                 .get(idx)
                 .map(|c| c.alignment)

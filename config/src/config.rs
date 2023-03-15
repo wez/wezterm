@@ -1335,7 +1335,7 @@ impl Config {
         }
 
         if wsl_env.is_some() || cfg!(windows) || crate::version::running_under_wsl() {
-            let mut wsl_env = wsl_env.unwrap_or_else(String::new);
+            let mut wsl_env = wsl_env.unwrap_or_default();
             if !wsl_env.is_empty() {
                 wsl_env.push(':');
             }

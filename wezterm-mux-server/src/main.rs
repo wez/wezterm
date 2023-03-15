@@ -215,9 +215,7 @@ async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
     let domain = mux.default_domain();
 
     {
-        if let Err(err) =
-            config::with_lua_config_on_main_thread(move |lua| trigger_mux_startup(lua)).await
-        {
+        if let Err(err) = config::with_lua_config_on_main_thread(trigger_mux_startup).await {
             log::error!("while processing mux-startup event: {:#}", err);
         }
     }

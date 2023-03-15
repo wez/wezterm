@@ -82,7 +82,7 @@ impl LocalProcessInfo {
         }
 
         fn cwd_for_pid(pid: pid_t) -> PathBuf {
-            LocalProcessInfo::current_working_dir(pid as u32).unwrap_or_else(|| PathBuf::new())
+            LocalProcessInfo::current_working_dir(pid as u32).unwrap_or_else(PathBuf::new)
         }
 
         fn parse_cmdline(pid: pid_t) -> Vec<String> {
