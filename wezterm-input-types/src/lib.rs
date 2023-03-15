@@ -441,7 +441,7 @@ impl ToString for KeyCode {
         match self {
             Self::RawCode(n) => format!("raw:{}", n),
             Self::Char(c) => format!("mapped:{}", c),
-            Self::Physical(phys) => format!("{}", phys.to_string()),
+            Self::Physical(phys) => phys.to_string(),
             Self::Composed(s) => s.to_string(),
             Self::Numpad(n) => format!("Numpad{}", n),
             Self::Function(n) => format!("F{}", n),
@@ -965,7 +965,7 @@ impl PhysKeyCode {
     fn make_inv_map() -> HashMap<Self, String> {
         let mut map = HashMap::new();
         for (k, v) in PHYSKEYCODE_MAP.iter() {
-            map.insert(v.clone(), k.clone());
+            map.insert(*v, k.clone());
         }
         map
     }

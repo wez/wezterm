@@ -205,7 +205,7 @@ impl Face {
         if res != 0 {
             None
         } else {
-            Some(String::from_utf8_lossy(&buf).into_owned().to_string())
+            Some(String::from_utf8_lossy(&buf).into_owned())
         }
     }
 
@@ -612,7 +612,7 @@ impl Face {
     }
 
     pub fn set_transform(&mut self, matrix: Option<FT_Matrix>) {
-        let mut matrix = matrix.clone();
+        let mut matrix = matrix;
         unsafe {
             FT_Set_Transform(
                 self.face,

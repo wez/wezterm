@@ -260,7 +260,7 @@ impl TerminalState {
                 }
                 _ => {}
             }
-            self.last_mouse_move.replace(event.clone());
+            self.last_mouse_move.replace(event);
 
             let (button, _button) = self.mouse_report_button_number(&event);
             let button = 32 + button;

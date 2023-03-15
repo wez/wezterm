@@ -294,7 +294,7 @@ impl Keyboard {
                 log::trace!("process_key_event: raw key was handled; not processing further");
 
                 if want_repeat {
-                    return Some(WindowKeyEvent::RawKeyEvent(raw_key_event.clone()));
+                    return Some(WindowKeyEvent::RawKeyEvent(raw_key_event));
                 }
                 return None;
             }

@@ -39,7 +39,7 @@ impl UserData for MuxTab {
         methods.add_method("get_title", |_, this, _: ()| {
             let mux = get_mux()?;
             let tab = this.resolve(&mux)?;
-            Ok(tab.get_title().to_string())
+            Ok(tab.get_title())
         });
         methods.add_method("set_title", |_, this, title: String| {
             let mux = get_mux()?;

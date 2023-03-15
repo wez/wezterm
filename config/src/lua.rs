@@ -395,7 +395,7 @@ fn shell_join_args<'lua>(_: &'lua Lua, args: Vec<String>) -> mlua::Result<String
 }
 
 fn shell_quote_arg<'lua>(_: &'lua Lua, arg: String) -> mlua::Result<String> {
-    Ok(shlex::quote(&arg).into_owned().to_string())
+    Ok(shlex::quote(&arg).into_owned())
 }
 
 /// Returns the system hostname.

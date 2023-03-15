@@ -70,7 +70,7 @@ impl Clone for ParsedFont {
             synthesize_dim: self.synthesize_dim,
             assume_emoji_presentation: self.assume_emoji_presentation,
             handle: self.handle.clone(),
-            cap_height: self.cap_height.clone(),
+            cap_height: self.cap_height,
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
             pixel_sizes: self.pixel_sizes.clone(),
             harfbuzz_features: self.harfbuzz_features.clone(),

@@ -203,7 +203,7 @@ impl Palette {
             indexed: {
                 let mut map = self.indexed.clone();
                 for (k, v) in &other.indexed {
-                    map.insert(k.clone(), v.clone());
+                    map.insert(*k, *v);
                 }
                 map
             },

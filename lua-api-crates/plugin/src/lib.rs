@@ -101,7 +101,7 @@ impl RepoSpec {
         let mut merge_info = None;
         repo.fetchhead_foreach(|refname, _remote_url, target_oid, was_merge| {
             if was_merge {
-                merge_info.replace((refname.to_string(), target_oid.clone()));
+                merge_info.replace((refname.to_string(), *target_oid));
                 return true;
             }
             false
