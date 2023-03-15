@@ -85,7 +85,7 @@ async fn extract_scheme_yamls(url: &str, tar_data: &[u8]) -> anyhow::Result<Vec<
                 apply_nightly_version(&mut scheme.metadata);
 
                 schemes.push(Scheme {
-                    name: name,
+                    name,
                     file_name: None,
                     data: scheme,
                 });

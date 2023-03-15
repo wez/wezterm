@@ -87,7 +87,7 @@ impl PerPane {
             changed = true;
         }
 
-        if !changed && !force_with_input_serial.is_some() {
+        if !changed && force_with_input_serial.is_none() {
             return None;
         }
 
@@ -802,7 +802,7 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
-        tab_id: tab_id,
+        tab_id,
         window_id,
         size,
     }))

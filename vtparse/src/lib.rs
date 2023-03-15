@@ -785,10 +785,7 @@ mod test {
 
     #[test]
     fn test_osc_too_many_params() {
-        let fields = (0..MAX_OSC + 2)
-            .into_iter()
-            .map(|i| i.to_string())
-            .collect::<Vec<_>>();
+        let fields = (0..MAX_OSC + 2).map(|i| i.to_string()).collect::<Vec<_>>();
         let input = format!("\x1b]{}\x07", fields.join(";"));
         let actions = parse_as_vec(input.as_bytes());
         assert_eq!(actions.len(), 1);

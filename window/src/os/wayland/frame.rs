@@ -1215,8 +1215,7 @@ fn request_for_location_on_rmb(pointer_data: &PointerUserData) -> Option<FrameRe
 fn mix_colors(x: RgbColor, y: RgbColor) -> RgbColor {
     #[inline]
     fn gamma_mix(x: f32, y: f32) -> f32 {
-        let z = ((x * x + y * y) / 2.0).sqrt();
-        z
+        ((x * x + y * y) / 2.0).sqrt()
     }
 
     let x = x.to_tuple_rgba();

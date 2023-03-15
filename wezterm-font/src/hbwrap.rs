@@ -1,5 +1,4 @@
 //! Higher level harfbuzz bindings
-use freetype;
 
 pub use harfbuzz::*;
 

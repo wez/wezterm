@@ -57,7 +57,7 @@ fn print_helper(args: Variadic<Value>) -> String {
                     output.push_str(&item);
                 }
             },
-            item @ _ => {
+            item => {
                 let item = format!("{:#?}", ValuePrinter(item));
                 output.push_str(&item);
             }
