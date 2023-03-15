@@ -159,7 +159,6 @@ return {
       mods = 'LEADER|CTRL',
       action = wezterm.action.SendString '\x01',
     },
-  },
 }
 ```
 
