@@ -141,7 +141,7 @@ fn parse_wsl_distro_list(output: &str) -> Vec<WslDistro> {
             continue;
         }
 
-        let is_default = line.starts_with("*");
+        let is_default = line.starts_with('*');
 
         let mut fields = HashMap::new();
         for (label, (start_idx, end_idx)) in field_map.iter() {

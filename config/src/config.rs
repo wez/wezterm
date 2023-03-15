@@ -1711,7 +1711,7 @@ impl DroppedFileQuoting {
     pub fn escape(self, s: &str) -> String {
         match self {
             Self::None => s.to_string(),
-            Self::SpacesOnly => s.replace(" ", "\\ "),
+            Self::SpacesOnly => s.replace(' ', "\\ "),
             // https://docs.rs/shlex/latest/shlex/fn.quote.html
             Self::Posix => shlex::quote(s).into_owned().to_string(),
             Self::Windows => {

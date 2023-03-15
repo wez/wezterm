@@ -63,11 +63,11 @@ impl SshAgent {
         let stdout = String::from_utf8(output.stdout)
             .map_err(|x| io::Error::new(io::ErrorKind::InvalidData, x))?;
         Ok(stdout
-            .split(";")
+            .split(';')
             .map(str::trim)
-            .filter(|s| s.contains("="))
+            .filter(|s| s.contains('='))
             .map(|s| {
-                let mut tokens = s.split("=");
+                let mut tokens = s.split('=');
                 let key = tokens.next().unwrap().trim().to_string();
                 let rest = tokens
                     .map(str::trim)

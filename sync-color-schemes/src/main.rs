@@ -62,7 +62,7 @@ pub async fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
     let mut ttl = Duration::from_secs(86400);
     if let Some(value) = response.headers().get(reqwest::header::CACHE_CONTROL) {
         if let Ok(value) = value.to_str() {
-            let fields = value.splitn(2, "=").collect::<Vec<_>>();
+            let fields = value.splitn(2, '=').collect::<Vec<_>>();
             if fields.len() == 2 && fields[0] == "max-age" {
                 if let Ok(secs) = fields[1].parse::<u64>() {
                     ttl = Duration::from_secs(secs);

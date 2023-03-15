@@ -204,7 +204,7 @@ impl GuiPosition {
     fn parse_dim(s: &str) -> anyhow::Result<Dimension> {
         if let Some(v) = s.strip_suffix("px") {
             Ok(Dimension::Pixels(v.parse()?))
-        } else if let Some(v) = s.strip_suffix("%") {
+        } else if let Some(v) = s.strip_suffix('%') {
             Ok(Dimension::Percent(v.parse::<f32>()? / 100.))
         } else {
             Ok(Dimension::Pixels(s.parse()?))
