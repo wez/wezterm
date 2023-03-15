@@ -680,7 +680,7 @@ impl ColorSchemeFile {
 
     pub fn to_toml_value(&self) -> anyhow::Result<toml::Value> {
         let value = self.to_dynamic();
-        Ok(dynamic_to_toml(value)?)
+        dynamic_to_toml(value)
     }
 
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {

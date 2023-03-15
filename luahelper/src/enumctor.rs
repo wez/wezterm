@@ -140,7 +140,7 @@ where
                     deprecated_fields: UnknownFieldAction::Ignore,
                 },
             ) {
-                return Ok(field.to_lua(lua)?);
+                return field.to_lua(lua);
             }
 
             // Step 2: see if this is a valid variant, and whether we can
