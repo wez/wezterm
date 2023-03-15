@@ -49,7 +49,8 @@ impl UserData for MuxWindow {
         methods.add_method("set_workspace", |_, this, new_name: String| {
             let mux = get_mux()?;
             let mut window = this.resolve_mut(&mux)?;
-            Ok(window.set_workspace(&new_name))
+            window.set_workspace(&new_name);
+            Ok(())
         });
         methods.add_async_method("spawn_tab", |_, this, spawn: SpawnTab| async move {
             spawn.spawn(this).await
@@ -62,7 +63,8 @@ impl UserData for MuxWindow {
         methods.add_method("set_title", |_, this, title: String| {
             let mux = get_mux()?;
             let mut window = this.resolve_mut(&mux)?;
-            Ok(window.set_title(&title))
+            window.set_title(&title);
+            Ok(())
         });
         methods.add_method("tabs", |_, this, _: ()| {
             let mux = get_mux()?;

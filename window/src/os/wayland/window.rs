@@ -948,11 +948,17 @@ impl WindowOps for WaylandWindow {
     }
 
     fn maximize(&self) {
-        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.maximize()));
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.maximize();
+            Ok(())
+        });
     }
 
     fn restore(&self) {
-        WaylandConnection::with_window_inner(self.0, move |inner| Ok(inner.restore()));
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.restore();
+            Ok(())
+        });
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {
@@ -970,7 +976,8 @@ impl WindowOps for WaylandWindow {
 
     fn set_resize_increments(&self, x: u16, y: u16) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            Ok(inner.set_resize_increments(x, y))
+            inner.set_resize_increments(x, y);
+            Ok(())
         });
     }
 

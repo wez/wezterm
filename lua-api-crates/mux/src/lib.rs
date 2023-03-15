@@ -52,7 +52,8 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
             let mux = get_mux()?;
             let workspaces = mux.iter_workspaces();
             if workspaces.contains(&workspace) {
-                Ok(mux.set_active_workspace(&workspace))
+                mux.set_active_workspace(&workspace);
+                Ok(())
             } else {
                 Err(mlua::Error::external(format!(
                     "{:?} is not an existing workspace",
