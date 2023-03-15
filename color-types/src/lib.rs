@@ -671,7 +671,7 @@ impl FromStr for SrgbaTuple {
                         Ok(v / 100.)
                     } else {
                         let v: f32 = s.parse().map_err(|_| ())?;
-                        if v > 255.0 || v < 0. {
+                        if !(0. ..=255.0).contains(&v) {
                             Err(())
                         } else {
                             Ok(v / 255.)
