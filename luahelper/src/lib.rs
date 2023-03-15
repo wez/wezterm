@@ -229,7 +229,7 @@ fn lua_value_to_dynamic_impl(
                         mlua::Error::FromLuaConversionError {
                             from: lua_type,
                             to: "value",
-                            message: Some(format!("while processing {key:?}: {}", e.to_string())),
+                            message: Some(format!("while processing {key:?}: {e}")),
                         }
                     })?;
                     obj.insert(key, value);

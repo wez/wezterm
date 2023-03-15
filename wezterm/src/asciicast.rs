@@ -71,10 +71,10 @@ impl Header {
             config::wezterm_target_triple().to_string(),
         );
         if let Ok(shell) = std::env::var("SHELL") {
-            env.insert("SHELL".to_string(), shell.to_string());
+            env.insert("SHELL".to_string(), shell);
         }
         if let Ok(lang) = std::env::var("LANG") {
-            env.insert("LANG".to_string(), lang.to_string());
+            env.insert("LANG".to_string(), lang);
         }
 
         let palette: ColorPalette = config.resolved_palette.clone().into();
@@ -412,7 +412,7 @@ impl RecordCommand {
         }
 
         {
-            let tx = tx.clone();
+            let tx = tx;
             std::thread::spawn(move || -> anyhow::Result<()> {
                 let status = child.wait()?;
                 tx.send(Message::Terminated(status))?;
@@ -517,7 +517,7 @@ impl PlayCommand {
 
         {
             let mut stdin = tty.reader()?;
-            let tx = tx.clone();
+            let tx = tx;
             std::thread::spawn(move || -> anyhow::Result<()> {
                 let mut buf = [0u8; 8192];
                 loop {

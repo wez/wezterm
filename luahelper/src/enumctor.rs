@@ -183,8 +183,7 @@ where
                 }
                 _ => {
                     // Must be a valid variant, but requires arguments
-                    let variant_ctor =
-                        lua.create_userdata(EnumVariant::<T>::new(field.to_string()))?;
+                    let variant_ctor = lua.create_userdata(EnumVariant::<T>::new(field))?;
                     Ok(Value::UserData(variant_ctor))
                 }
             }

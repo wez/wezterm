@@ -16,7 +16,7 @@ where
     apply_nightly_version(&mut scheme.metadata);
 
     Ok(Scheme {
-        name: name.clone(),
+        name,
         file_name: None,
         data: scheme,
     })

@@ -2017,7 +2017,7 @@ impl TerminalState {
         {
             let bidi_mode = self.get_bidi_mode();
             let screen = self.screen_mut();
-            for y in row_range.clone() {
+            for y in row_range {
                 screen.clear_line(y, col_range.clone(), &pen, seqno, bidi_mode);
                 let line_idx = screen.phys_row(y);
                 screen.line_mut(line_idx).set_single_width(seqno);
@@ -2098,7 +2098,7 @@ impl TerminalState {
                 };
 
                 self.screen_mut()
-                    .clear_line(cy, range.clone(), &pen, seqno, bidi_mode);
+                    .clear_line(cy, range, &pen, seqno, bidi_mode);
             }
             Edit::InsertCharacter(n) => {
                 // https://vt100.net/docs/vt510-rm/ICH.html

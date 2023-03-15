@@ -40,7 +40,7 @@ impl UmaskSaver {
     /// used in a program.
     #[cfg(unix)]
     pub fn saved_umask() -> Option<mode_t> {
-        SAVED_UMASK.lock().unwrap().clone()
+        *SAVED_UMASK.lock().unwrap()
     }
 }
 
