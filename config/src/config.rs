@@ -1813,7 +1813,7 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
         Err(format!(
             "\"{name}\" is a built-in domain and cannot be redefined"
         ))
-    } else if name == "" {
+    } else if name.is_empty() {
         Err("the empty string is an invalid domain name".to_string())
     } else {
         Ok(())

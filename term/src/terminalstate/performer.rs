@@ -424,7 +424,7 @@ impl<'a> Performer<'a> {
 
             ControlCode::Enquiry => {
                 let response = self.config.enq_answerback();
-                if response.len() > 0 {
+                if !response.is_empty() {
                     write!(self.writer, "{}", response).ok();
                     self.writer.flush().ok();
                 }
