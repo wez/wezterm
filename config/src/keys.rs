@@ -62,20 +62,20 @@ impl DeferredKeyCode {
     }
 }
 
-impl Into<String> for &DeferredKeyCode {
-    fn into(self) -> String {
-        match self {
+impl From<&DeferredKeyCode> for String {
+    fn from(val: &DeferredKeyCode) -> Self {
+        match val {
             DeferredKeyCode::KeyCode(key) => key.to_string(),
             DeferredKeyCode::Either { original, .. } => original.to_string(),
         }
     }
 }
 
-impl Into<String> for DeferredKeyCode {
-    fn into(self) -> String {
-        match self {
+impl From<DeferredKeyCode> for String {
+    fn from(val: DeferredKeyCode) -> Self {
+        match val {
             DeferredKeyCode::KeyCode(key) => key.to_string(),
-            DeferredKeyCode::Either { original, .. } => original.to_string(),
+            DeferredKeyCode::Either { original, .. } => original,
         }
     }
 }
