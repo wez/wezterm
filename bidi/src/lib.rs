@@ -997,7 +997,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             } else {
                 // No strong type matching the oppositedirection was found either
                 // before or after these brackets in this text chain. Resolve the
@@ -1010,7 +1009,6 @@ impl BidiContext {
                     &self.orig_char_types,
                     &self.levels,
                 );
-                return;
             }
         } else {
             // No strong type was found between the brackets. Leave

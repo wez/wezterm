@@ -1050,7 +1050,7 @@ impl Client {
                 };
                 ui.output_str(&err.to_string());
                 log::error!("{:?}", err);
-                return Err(err.into());
+                Err(err.into())
             }
             Err(err) => {
                 log::trace!("{:?}", err);

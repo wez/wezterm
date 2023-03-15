@@ -287,7 +287,7 @@ mod unix {
                     // Something to fill in later as/when that question arises!
                 }
                 let x11 = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-                return format!("x11-{}-{}", x11, class_name);
+                format!("x11-{}-{}", x11, class_name)
             }
             #[cfg(target_os = "macos")]
             {

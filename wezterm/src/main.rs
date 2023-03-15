@@ -637,7 +637,7 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
             portable_pty::unix::close_random_fds();
         }
         let res = cmd.exec();
-        return Err(anyhow::anyhow!("failed to exec {cmd:?}: {res:?}"));
+        Err(anyhow::anyhow!("failed to exec {cmd:?}: {res:?}"))
     }
 
     #[cfg(windows)]
