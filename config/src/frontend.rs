@@ -1,17 +1,12 @@
 use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic, Default)]
 pub enum FrontEndSelection {
+    #[default]
     OpenGL,
     WebGpu,
     Software,
-}
-
-impl Default for FrontEndSelection {
-    fn default() -> Self {
-        FrontEndSelection::OpenGL
-    }
 }
 
 /// Corresponds to <https://docs.rs/wgpu/latest/wgpu/struct.AdapterInfo.html>

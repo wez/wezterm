@@ -7,20 +7,15 @@ use std::hash::Hash;
 
 /// Specify how FromDynamic will treat unknown fields
 /// when converting from Value to a given target type
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub enum UnknownFieldAction {
     /// Don't check, don't warn, don't raise an error
     Ignore,
     /// Emit a log::warn log
+    #[default]
     Warn,
     /// Return an Error
     Deny,
-}
-
-impl Default for UnknownFieldAction {
-    fn default() -> UnknownFieldAction {
-        UnknownFieldAction::Warn
-    }
 }
 
 /// Specify various options for FromDynamic::from_dynamic
