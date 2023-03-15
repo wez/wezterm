@@ -140,7 +140,7 @@ impl ConfigHelper {
                                 let source = dbg_source
                                     .source
                                     .and_then(|b| String::from_utf8(b.to_vec()).ok())
-                                    .unwrap_or_else(String::new);
+                                    .unwrap_or_default();
                                 let func_name = match (name, name_what) {
                                     (Some(name), Some(name_what)) => format!("{name_what} {name}"),
                                     (Some(name), None) => format!("{name}"),
