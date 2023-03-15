@@ -358,11 +358,11 @@ impl Face {
                         };
 
                         if axis.tag == ft_make_tag(b'w', b'g', b'h', b't') {
-                            weight = weight * scale;
+                            weight *= scale;
                         }
 
                         if axis.tag == ft_make_tag(b'w', b'd', b't', b'h') {
-                            width = width * scale;
+                            width *= scale;
                         }
                     }
                 }

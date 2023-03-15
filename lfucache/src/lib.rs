@@ -182,7 +182,7 @@ impl<K: Hash + Eq + Clone + Debug, V, S: Default + BuildHasher> LfuCache<K, V, S
                     .unwrap();
                 {
                     let mut freq = entry.freq.borrow_mut();
-                    *freq = *freq / delta;
+                    *freq /= delta;
                 }
                 self.frequency_index.insert(lfu_entry);
             }

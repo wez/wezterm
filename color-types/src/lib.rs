@@ -572,7 +572,7 @@ fn x_parse_color_component(value: &str) -> Result<f32, ()> {
 
     for c in value.chars() {
         num_digits += 1;
-        component = component << 4;
+        component <<= 4;
 
         let nybble = match c.to_digit(16) {
             Some(v) => v as u16,
@@ -620,7 +620,7 @@ impl FromStr for SrgbaTuple {
                     let mut component = 0u16;
 
                     for _ in 0..digits {
-                        component = component << 4;
+                        component <<= 4;
 
                         let nybble = match chars.next().unwrap().to_digit(16) {
                             Some(v) => v as u16,
