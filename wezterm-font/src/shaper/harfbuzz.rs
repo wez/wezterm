@@ -440,7 +440,7 @@ impl HarfbuzzShaper {
                     Some(pw) => {
                         let cell_idx = pw.byte_to_cell_idx(start);
                         let actual_start = self.start_by_cell_idx.get(&cell_idx)?;
-                        self.map.get_mut(&actual_start)
+                        self.map.get_mut(actual_start)
                     }
                     None => self.map.get_mut(&start),
                 }
@@ -451,7 +451,7 @@ impl HarfbuzzShaper {
                     Some(pw) => {
                         let cell_idx = pw.byte_to_cell_idx(start);
                         let actual_start = self.start_by_cell_idx.get(&cell_idx)?;
-                        self.map.get(&actual_start)
+                        self.map.get(actual_start)
                     }
                     None => self.map.get(&start),
                 }

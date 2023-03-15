@@ -88,7 +88,7 @@ impl CopyAndPaste {
             Some((manager, device)) => {
                 let source = PrimarySelectionSource::new(
                     &manager,
-                    &[TEXT_MIME_TYPE.to_string()],
+                    [TEXT_MIME_TYPE.to_string()],
                     move |event, _dispatch_data| match event {
                         PrimarySelectionSourceEvent::Cancelled => {
                             crate::Connection::get()

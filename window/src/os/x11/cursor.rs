@@ -146,7 +146,7 @@ impl CursorInfo {
             }) {
                 // 0.5 and later have the required support
                 if (vers.major_version(), vers.minor_version()) >= (0, 5) {
-                    size.replace(cursor_size(&config.xcursor_size, &*conn.xrm.borrow()));
+                    size.replace(cursor_size(&config.xcursor_size, &conn.xrm.borrow()));
                     theme = config
                         .xcursor_theme
                         .as_ref()
@@ -296,7 +296,7 @@ impl CursorInfo {
                         cursor,
                         XcbCursor {
                             id: cursor_id,
-                            conn: Rc::downgrade(&conn),
+                            conn: Rc::downgrade(conn),
                         },
                     );
                     return Some(cursor_id);
@@ -347,7 +347,7 @@ impl CursorInfo {
                                     cursor,
                                     XcbCursor {
                                         id: cursor_id,
-                                        conn: Rc::downgrade(&conn),
+                                        conn: Rc::downgrade(conn),
                                     },
                                 );
 
@@ -400,7 +400,7 @@ impl CursorInfo {
             cursor,
             XcbCursor {
                 id: cursor_id,
-                conn: Rc::downgrade(&conn),
+                conn: Rc::downgrade(conn),
             },
         );
 

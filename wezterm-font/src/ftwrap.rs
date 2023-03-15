@@ -180,7 +180,7 @@ impl Face {
                     origin: self.source.origin.clone(),
                     coverage: self.source.coverage.clone(),
                 };
-                res.push(ParsedFont::from_face(&self, source)?);
+                res.push(ParsedFont::from_face(self, source)?);
             }
 
             FT_Done_MM_Var(self.lib, mm);

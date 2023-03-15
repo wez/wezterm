@@ -128,7 +128,7 @@ fn parse_wsl_distro_list(output: &str) -> Vec<WslDistro> {
 
         while let Some(start_idx) = iter.next() {
             let end_idx = iter.peek().copied();
-            let label = field_slice(&lines[0], start_idx, end_idx).trim();
+            let label = field_slice(lines[0], start_idx, end_idx).trim();
             field_map.insert(label, (start_idx, end_idx));
         }
     }

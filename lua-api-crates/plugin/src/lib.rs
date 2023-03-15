@@ -87,7 +87,7 @@ impl RepoSpec {
 
     fn update(&self) -> anyhow::Result<()> {
         let path = self.checkout_path();
-        let repo = Repository::open(&path)?;
+        let repo = Repository::open(path)?;
         let mut remote = get_remote(&repo)?.ok_or_else(|| anyhow!("no remotes!?"))?;
         remote.connect(git2::Direction::Fetch).context("connect")?;
         let branch = remote

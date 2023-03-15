@@ -43,7 +43,7 @@ impl<'a> Deref for Performer<'a> {
 
 impl<'a> DerefMut for Performer<'a> {
     fn deref_mut(&mut self) -> &mut TerminalState {
-        &mut self.state
+        self.state
     }
 }
 

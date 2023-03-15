@@ -371,7 +371,7 @@ impl ParsedFont {
         };
         let assume_emoji_presentation = has_color;
 
-        let names = Names::from_ft_face(&face);
+        let names = Names::from_ft_face(face);
         // Objectively gross, but freetype's italic property is very coarse grained.
         // fontconfig resorts to name matching, so we do too :-/
         let style = match style {
@@ -777,7 +777,7 @@ pub(crate) fn parse_and_collect_font_info(
     origin: FontOrigin,
 ) -> anyhow::Result<()> {
     let lib = crate::ftwrap::Library::new()?;
-    let num_faces = lib.query_num_faces(&source)?;
+    let num_faces = lib.query_num_faces(source)?;
 
     fn load_one(
         lib: &crate::ftwrap::Library,
@@ -807,7 +807,7 @@ pub(crate) fn parse_and_collect_font_info(
     }
 
     for index in 0..num_faces {
-        if let Err(err) = load_one(&lib, &source, index, font_info, &origin) {
+        if let Err(err) = load_one(&lib, source, index, font_info, &origin) {
             log::trace!("error while parsing {:?} index {}: {}", source, index, err);
         }
     }

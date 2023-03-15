@@ -96,7 +96,7 @@ impl ScheduledEvent {
         // changed.
         if config::configuration().generation() == generation {
             let args = lua.pack_multi(())?;
-            emit_event(&lua, (self.user_event_id, args)).await?;
+            emit_event(lua, (self.user_event_id, args)).await?;
         }
         Ok(())
     }

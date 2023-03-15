@@ -88,7 +88,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener
     let listener = UnixListener::bind(sock_path)
         .with_context(|| format!("Failed to bind to {}", sock_path.display()))?;
 
-    config::set_sticky_bit(&sock_path);
+    config::set_sticky_bit(sock_path);
 
     Ok(listener)
 }

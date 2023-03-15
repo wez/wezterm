@@ -148,7 +148,7 @@ impl SurfaceUserData {
             drop(user_data);
             if let Some(ref cb) = callback {
                 if old_scale_factor != new_scale_factor {
-                    (&mut *cb.borrow_mut())(new_scale_factor, surface.clone(), ddata);
+                    (*cb.borrow_mut())(new_scale_factor, surface.clone(), ddata);
                 }
             }
         });
@@ -225,7 +225,7 @@ where
         drop(user_data);
         if let Some(ref cb) = callback {
             if old_scale_factor != new_scale_factor {
-                (&mut *cb.borrow_mut())(new_scale_factor, surface.detach(), ddata);
+                (*cb.borrow_mut())(new_scale_factor, surface.detach(), ddata);
             }
         }
     });
@@ -250,7 +250,7 @@ impl Part {
                     move |dpi, surface: wl_surface::WlSurface, ddata: DispatchData| {
                         surface.set_buffer_scale(dpi);
                         surface.commit();
-                        (&mut inner.borrow_mut().implem)(FrameRequest::Refresh, 0, ddata);
+                        (inner.borrow_mut().implem)(FrameRequest::Refresh, 0, ddata);
                     },
                 ),
             )
@@ -552,7 +552,7 @@ impl Frame for ConceptFrame {
         // Send a Refresh request on callback from DoubleMemPool as it will be fired when
         // None was previously returned from `pool()` and the draw was postponed
         let pools = DoubleMemPool::new(shm.clone(), move |ddata| {
-            (&mut my_inner.borrow_mut().implem)(FrameRequest::Refresh, 0, ddata);
+            (my_inner.borrow_mut().implem)(FrameRequest::Refresh, 0, ddata);
         })?;
 
         Ok(ConceptFrame {
@@ -600,7 +600,7 @@ impl Frame for ConceptFrame {
                     Event::Leave { serial, .. } => {
                         data.location = Location::None;
                         change_pointer(&pointer, &inner, data.location, Some(serial));
-                        (&mut inner.implem)(FrameRequest::Refresh, 0, ddata);
+                        (inner.implem)(FrameRequest::Refresh, 0, ddata);
                     }
                     Event::Motion {
                         surface_x,
@@ -614,7 +614,7 @@ impl Frame for ConceptFrame {
                             match (newpos, data.location) {
                                 (Location::Button(_), _) | (_, Location::Button(_)) => {
                                     // pointer movement involves a button, request refresh
-                                    (&mut inner.implem)(FrameRequest::Refresh, 0, ddata);
+                                    (inner.implem)(FrameRequest::Refresh, 0, ddata);
                                 }
                                 _ => (),
                             }
@@ -644,7 +644,7 @@ impl Frame for ConceptFrame {
                             };
 
                             if let Some(request) = request {
-                                (&mut inner.implem)(request, serial, ddata);
+                                (inner.implem)(request, serial, ddata);
                             }
                         }
                     }
@@ -757,7 +757,7 @@ impl Frame for ConceptFrame {
     }
 
     fn redraw(&mut self) {
-        let showing_title_bar = self.showing_title_bar(&*self.inner.borrow());
+        let showing_title_bar = self.showing_title_bar(&self.inner.borrow());
 
         if showing_title_bar {
             self.reshape_title();
@@ -1074,7 +1074,7 @@ impl Frame for ConceptFrame {
     }
 
     fn subtract_borders(&self, width: i32, height: i32) -> (i32, i32) {
-        if !self.showing_title_bar(&*self.inner.borrow()) {
+        if !self.showing_title_bar(&self.inner.borrow()) {
             (width, height)
         } else {
             (width, height - HEADER_SIZE as i32)
@@ -1082,7 +1082,7 @@ impl Frame for ConceptFrame {
     }
 
     fn add_borders(&self, width: i32, height: i32) -> (i32, i32) {
-        if !self.showing_title_bar(&*self.inner.borrow()) {
+        if !self.showing_title_bar(&self.inner.borrow()) {
             (width, height)
         } else {
             (width, height + HEADER_SIZE as i32)
@@ -1090,7 +1090,7 @@ impl Frame for ConceptFrame {
     }
 
     fn location(&self) -> (i32, i32) {
-        if !self.showing_title_bar(&*self.inner.borrow()) {
+        if !self.showing_title_bar(&self.inner.borrow()) {
             (0, 0)
         } else {
             (0, -(HEADER_SIZE as i32))

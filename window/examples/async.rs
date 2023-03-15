@@ -69,7 +69,7 @@ impl MyWindow {
                     }
 
                     let mut frame = glium::Frame::new(
-                        Rc::clone(&gl),
+                        Rc::clone(gl),
                         (self.dims.pixel_width as u32, self.dims.pixel_height as u32),
                     );
 

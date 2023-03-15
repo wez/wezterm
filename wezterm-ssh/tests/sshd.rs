@@ -32,8 +32,8 @@ impl SshKeygen {
     // ssh-keygen -t rsa -f $ROOT/id_rsa -N "" -q
     pub fn generate_rsa(path: impl AsRef<Path>, passphrase: impl AsRef<str>) -> io::Result<bool> {
         let res = Command::new("ssh-keygen")
-            .args(&["-m", "PEM"])
-            .args(&["-t", "rsa"])
+            .args(["-m", "PEM"])
+            .args(["-t", "rsa"])
             .arg("-f")
             .arg(path.as_ref())
             .arg("-N")
@@ -301,7 +301,7 @@ impl Sshd {
         // Generate $ROOT/sshd_config based on config
         let sshd_config_file = tmp.child("sshd_config");
         sshd_config_file.write_str(&config.to_string())?;
-        std::fs::write("/dev/stderr", &config.to_string())?;
+        std::fs::write("/dev/stderr", config.to_string())?;
 
         let sshd_log_file = tmp.child("sshd.log");
 

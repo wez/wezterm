@@ -104,7 +104,7 @@ impl InputHandler {
         let inner = self.inner.lock().unwrap();
         let keyboard_id = wl_id(keyboard);
         let seat_id = inner.keyboard_to_seat.get(&keyboard_id)?;
-        inner.input_by_seat.get(&seat_id).cloned()
+        inner.input_by_seat.get(seat_id).cloned()
     }
 
     pub fn get_text_input_for_surface(
@@ -114,8 +114,8 @@ impl InputHandler {
         let inner = self.inner.lock().unwrap();
         let surface_id = wl_id(surface);
         let keyboard_id = inner.surface_to_keyboard.get(&surface_id)?;
-        let seat_id = inner.keyboard_to_seat.get(&keyboard_id)?;
-        inner.input_by_seat.get(&seat_id).cloned()
+        let seat_id = inner.keyboard_to_seat.get(keyboard_id)?;
+        inner.input_by_seat.get(seat_id).cloned()
     }
 
     pub fn get_text_input_for_seat(&self, seat: &WlSeat) -> Option<Attached<ZwpTextInputV3>> {

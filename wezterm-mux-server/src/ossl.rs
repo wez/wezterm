@@ -127,7 +127,7 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
 
     if let Some(chain_file) = tls_server.pem_ca.as_ref() {
         acceptor
-            .set_certificate_chain_file(&chain_file)
+            .set_certificate_chain_file(chain_file)
             .context(format!(
                 "set_certificate_chain_file to {} for TLS listener",
                 chain_file.display()

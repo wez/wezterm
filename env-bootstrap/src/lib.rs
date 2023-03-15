@@ -32,7 +32,7 @@ pub fn fixup_appimage() {
                 let mut paths = std::env::split_paths(&path).collect::<Vec<_>>();
                 paths.insert(0, PathBuf::from(dir));
                 let new_path = std::env::join_paths(paths).expect("unable to update PATH");
-                std::env::set_var("PATH", &new_path);
+                std::env::set_var("PATH", new_path);
             }
         }
 

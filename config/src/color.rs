@@ -195,7 +195,7 @@ impl Palette {
             ansi: overlay!(ansi),
             brights: overlay!(brights),
             tab_bar: match (&self.tab_bar, &other.tab_bar) {
-                (Some(a), Some(b)) => Some(a.overlay_with(&b)),
+                (Some(a), Some(b)) => Some(a.overlay_with(b)),
                 (None, Some(b)) => Some(b.clone()),
                 (Some(a), None) => Some(a.clone()),
                 (None, None) => None,

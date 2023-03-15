@@ -168,12 +168,12 @@ impl Keyboard {
             .first_event;
 
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
-        let device_id = xkb::x11::get_core_keyboard_device_id(&connection);
+        let device_id = xkb::x11::get_core_keyboard_device_id(connection);
         ensure!(device_id != -1, "Couldn't find core keyboard device");
 
         let keymap = xkb::x11::keymap_new_from_device(
             &context,
-            &connection,
+            connection,
             device_id,
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
@@ -458,7 +458,7 @@ impl Keyboard {
     pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
         let new_keymap = xkb::x11::keymap_new_from_device(
             &self.context,
-            &connection,
+            connection,
             self.get_device_id(),
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );

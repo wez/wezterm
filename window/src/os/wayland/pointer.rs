@@ -291,7 +291,7 @@ impl PointerDispatcher {
 
         let primary_selection_device = selection_manager
             .as_ref()
-            .map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
+            .map(|m| PrimarySelectionDevice::init_for_seat(m, seat));
 
         Ok(Self {
             inner,
@@ -326,7 +326,7 @@ impl PointerDispatcher {
         let primary_selection_device = self
             .selection_manager
             .as_ref()
-            .map(|m| PrimarySelectionDevice::init_for_seat(&m, seat));
+            .map(|m| PrimarySelectionDevice::init_for_seat(m, seat));
 
         self.data_device = data_device;
         self.primary_selection_device = primary_selection_device;

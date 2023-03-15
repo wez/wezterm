@@ -27,7 +27,7 @@ fn apply_nightly_version(metadata: &mut ColorSchemeMetaData) {
 
 fn make_cache() -> Cache {
     let file_name = "/tmp/wezterm-sync-color-schemes.sqlite";
-    let connection = sqlite_cache::rusqlite::Connection::open(&file_name).unwrap();
+    let connection = sqlite_cache::rusqlite::Connection::open(file_name).unwrap();
     Cache::new(sqlite_cache::CacheConfig::default(), connection).unwrap()
 }
 
@@ -127,7 +127,7 @@ fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
     let json_file_name = "docs/colorschemes/data.json";
 
     let mut version_by_name = BTreeMap::new();
-    if let Ok(data) = std::fs::read_to_string(&json_file_name) {
+    if let Ok(data) = std::fs::read_to_string(json_file_name) {
         #[derive(Deserialize)]
         struct MetaOnly {
             metadata: MetaData,
@@ -171,7 +171,7 @@ fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
     for s in &schemeses {
         // Only interested in aliases with different-enough names
         let mut aliases = s.data.metadata.aliases.clone();
-        aliases.retain(|name| !suffixed_alias_matches_name(&name, &s.name));
+        aliases.retain(|name| !suffixed_alias_matches_name(name, &s.name));
 
         // Normalize the list of aliases so that the canonical
         // name is included in the list at the start.

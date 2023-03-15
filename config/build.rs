@@ -37,7 +37,7 @@ fn main() {
             let head = head.canonicalize().unwrap();
             println!("cargo:rerun-if-changed={}", head.display());
             if let Ok(output) = std::process::Command::new("git")
-                .args(&[
+                .args([
                     "-c",
                     "core.abbrev=8",
                     "show",

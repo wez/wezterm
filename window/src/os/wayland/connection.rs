@@ -230,7 +230,7 @@ impl WaylandConnection {
                             input.enable();
                             input.commit();
                         }
-                        env.input_handler.advise_surface(&surface, &keyboard);
+                        env.input_handler.advise_surface(surface, &keyboard);
                     });
                 } else {
                     log::warn!("{:?}, no known surface", event);

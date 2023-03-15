@@ -96,7 +96,7 @@ impl Header {
                 .iter()
                 .map(|s| s.to_string_lossy().to_string())
                 .collect();
-            Some(shell_words::join(&args))
+            Some(shell_words::join(args))
         };
 
         Header {
@@ -546,8 +546,8 @@ impl PlayCommand {
             let duration = target.saturating_duration_since(Instant::now());
             std::thread::sleep(duration);
 
-            tty.write_all(&event.2.as_bytes())?;
-            sent_parser.parse(&event.2.as_bytes(), |act| sent_actions.push(act));
+            tty.write_all(event.2.as_bytes())?;
+            sent_parser.parse(event.2.as_bytes(), |act| sent_actions.push(act));
         }
 
         std::thread::sleep(Duration::from_millis(100));

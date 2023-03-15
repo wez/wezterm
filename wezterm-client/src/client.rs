@@ -708,7 +708,7 @@ impl Reconnectable {
         // we can connect using those same credentials and avoid running through
         // the SSH authentication flow.
         if let Some(Ok(_)) = tls_client.ssh_parameters() {
-            match self.try_connect(&tls_client, ui, &remote_address, remote_host_name) {
+            match self.try_connect(&tls_client, ui, remote_address, remote_host_name) {
                 Ok(stream) => {
                     self.stream.replace(stream);
                     return Ok(());
@@ -800,9 +800,9 @@ impl Reconnectable {
                     // Save the credentials to disk, as that is currently the easiest
                     // way to get them into openssl.  Ideally we'd keep these entirely
                     // in memory.
-                    std::fs::write(&self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
+                    std::fs::write(self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
                     std::fs::write(
-                        &self.tls_creds_cert_path()?,
+                        self.tls_creds_cert_path()?,
                         creds.client_cert_pem.as_bytes(),
                     )?;
                     log::info!("got TLS creds");
@@ -814,7 +814,7 @@ impl Reconnectable {
 
         let cloned_ui = ui.clone();
         let stream = cloned_ui.run_and_log_error({
-            || self.try_connect(&tls_client, ui, &remote_address, remote_host_name)
+            || self.try_connect(&tls_client, ui, remote_address, remote_host_name)
         })?;
         self.stream.replace(stream);
         Ok(())
@@ -843,7 +843,7 @@ impl Reconnectable {
 
         if let Some(chain_file) = tls_client.pem_ca.as_ref() {
             connector
-                .set_certificate_chain_file(&chain_file)
+                .set_certificate_chain_file(chain_file)
                 .context(format!(
                     "set_certificate_chain_file to {} for TLS client",
                     chain_file.display()

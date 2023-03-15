@@ -1141,7 +1141,7 @@ impl TerminalState {
         for name in &names {
             res.push_str("\x1bP");
 
-            let encoded_name = hex::encode_upper(&name);
+            let encoded_name = hex::encode_upper(name);
             match name.as_str() {
                 "TN" | "name" => {
                     res.push_str("1+r");

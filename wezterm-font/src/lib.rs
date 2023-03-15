@@ -111,7 +111,7 @@ impl LoadedFont {
         if loaded {
             if let Some(font_config) = self.font_config.upgrade() {
                 *self.shaper.borrow_mut() =
-                    new_shaper(&*font_config.config.borrow(), &self.handles.borrow())?;
+                    new_shaper(&font_config.config.borrow(), &self.handles.borrow())?;
             }
         }
         Ok(loaded)
@@ -598,7 +598,7 @@ impl FontConfigInner {
         let attributes = text_style.font_with_fallback();
         let (handles, _loaded) = self.resolve_font_helper_impl(&attributes, pixel_size)?;
 
-        let shaper = new_shaper(&*config, &handles)?;
+        let shaper = new_shaper(&config, &handles)?;
 
         let metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
@@ -835,7 +835,7 @@ impl FontConfigInner {
             }
         }
 
-        Ok((new_shaper(&*config, &handles)?, handles))
+        Ok((new_shaper(config, &handles)?, handles))
     }
 
     /// Given a text style, load (with caching) the font that best
@@ -1012,12 +1012,12 @@ impl FontConfigInner {
                 }
                 // matches so far
             }
-            attr_match!(underline, &rule);
-            attr_match!(italic, &rule);
-            attr_match!(blink, &rule);
-            attr_match!(reverse, &rule);
-            attr_match!(strikethrough, &rule);
-            attr_match!(invisible, &rule);
+            attr_match!(underline, rule);
+            attr_match!(italic, rule);
+            attr_match!(blink, rule);
+            attr_match!(reverse, rule);
+            attr_match!(strikethrough, rule);
+            attr_match!(invisible, rule);
 
             // If we get here, then none of the rules didn't match,
             // so we therefore assume that it did match overall.
