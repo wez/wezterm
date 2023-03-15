@@ -28,7 +28,7 @@ pub enum BidiClass {
     WhiteSpace,
 }
 
-pub const BIDI_CLASS: &'static [(char, char, BidiClass)] = &[
+pub const BIDI_CLASS: &[(char, char, BidiClass)] = &[
     ('\u{0}', '\u{8}', BidiClass::BoundaryNeutral), // Cc   [9] <control-0000>..<control-0008>
     ('\u{9}', '\u{9}', BidiClass::SegmentSeparator), // Cc       <control-0009>
     ('\u{a}', '\u{a}', BidiClass::ParagraphSeparator), // Cc       <control-000A>
