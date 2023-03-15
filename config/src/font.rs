@@ -662,27 +662,17 @@ impl Default for FontLocatorSelection {
     }
 }
 
-#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]
 pub enum FontRasterizerSelection {
+    #[default]
     FreeType,
 }
 
-impl Default for FontRasterizerSelection {
-    fn default() -> Self {
-        FontRasterizerSelection::FreeType
-    }
-}
-
-#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]
 pub enum FontShaperSelection {
     Allsorts,
+    #[default]
     Harfbuzz,
-}
-
-impl Default for FontShaperSelection {
-    fn default() -> Self {
-        FontShaperSelection::Harfbuzz
-    }
 }
 
 #[cfg(test)]

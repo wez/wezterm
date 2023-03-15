@@ -40,7 +40,7 @@ const BORDER_SIZE: u32 = 12;
 const HEADER_SIZE: u32 = 30;
 
 /// Configuration for ConceptFrame
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ConceptConfig {
     pub font_config: Option<Rc<FontConfiguration>>,
     pub config: Option<ConfigHandle>,
@@ -53,16 +53,6 @@ impl ConceptConfig {
             .as_ref()
             .map(|c| &c.window_frame)
             .unwrap_or(&self.default_frame)
-    }
-}
-
-impl Default for ConceptConfig {
-    fn default() -> ConceptConfig {
-        ConceptConfig {
-            font_config: None,
-            default_frame: WindowFrameConfig::default(),
-            config: None,
-        }
     }
 }
 

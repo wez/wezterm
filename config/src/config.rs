@@ -1572,20 +1572,15 @@ fn default_inactive_pane_hsb() -> HsbTransform {
     }
 }
 
-#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, Default)]
 pub enum DefaultCursorStyle {
     BlinkingBlock,
+    #[default]
     SteadyBlock,
     BlinkingUnderline,
     SteadyUnderline,
     BlinkingBar,
     SteadyBar,
-}
-
-impl Default for DefaultCursorStyle {
-    fn default() -> Self {
-        DefaultCursorStyle::SteadyBlock
-    }
 }
 
 impl DefaultCursorStyle {
@@ -1648,18 +1643,13 @@ pub enum NewlineCanon {
     CarriageReturnAndLineFeed,
 }
 
-#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug)]
+#[derive(FromDynamic, ToDynamic, Clone, Copy, Debug, Default)]
 pub enum WindowCloseConfirmation {
+    #[default]
     AlwaysPrompt,
     NeverPrompt,
     // TODO: something smart where we see whether the
     // running programs are stateful
-}
-
-impl Default for WindowCloseConfirmation {
-    fn default() -> Self {
-        WindowCloseConfirmation::AlwaysPrompt
-    }
 }
 
 struct PathPossibility {
@@ -1682,20 +1672,15 @@ impl PathPossibility {
 }
 
 /// Behavior when the program spawned by wezterm terminates
-#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ExitBehavior {
     /// Close the associated pane
+    #[default]
     Close,
     /// Close the associated pane if the process was successful
     CloseOnCleanExit,
     /// Hold the pane until it is explicitly closed
     Hold,
-}
-
-impl Default for ExitBehavior {
-    fn default() -> Self {
-        ExitBehavior::Close
-    }
 }
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
@@ -1762,11 +1747,12 @@ fn default_line_to_ele_shape_cache_size() -> usize {
     1024
 }
 
-#[derive(Debug, ToDynamic, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BoldBrightening {
     /// Bold doesn't influence palette selection
     No,
     /// Bold Shifts palette from 0-7 to 8-15 and preserves bold font
+    #[default]
     BrightAndBold,
     /// Bold Shifts palette from 0-7 to 8-15 and removes bold intensity
     BrightOnly,
@@ -1795,24 +1781,13 @@ impl FromDynamic for BoldBrightening {
     }
 }
 
-impl Default for BoldBrightening {
-    fn default() -> Self {
-        BoldBrightening::BrightAndBold
-    }
-}
-
-#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ImePreeditRendering {
     /// IME preedit is rendered by WezTerm itself
+    #[default]
     Builtin,
     /// IME preedit is rendered by system
     System,
-}
-
-impl Default for ImePreeditRendering {
-    fn default() -> Self {
-        ImePreeditRendering::Builtin
-    }
 }
 
 fn validate_row_or_col(value: &u16) -> Result<(), String> {

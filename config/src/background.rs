@@ -290,31 +290,21 @@ impl Default for BackgroundOrigin {
     }
 }
 
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Default)]
 pub enum Interpolation {
+    #[default]
     Linear,
     Basis,
     CatmullRom,
 }
 
-impl Default for Interpolation {
-    fn default() -> Self {
-        Interpolation::Linear
-    }
-}
-
-#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Default)]
 pub enum BlendMode {
+    #[default]
     Rgb,
     LinearRgb,
     Hsv,
     Oklab,
-}
-
-impl Default for BlendMode {
-    fn default() -> Self {
-        BlendMode::Rgb
-    }
 }
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq)]
