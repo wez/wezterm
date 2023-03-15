@@ -103,8 +103,8 @@ impl BidiRun {
         impl<'a> Iterator for Iter<'a> {
             type Item = usize;
             fn next(&mut self) -> Option<usize> {
-                while let Some(idx) = self.range.next() {
-                    if self.removed_by_x9.iter().position(|&i| i == idx).is_some() {
+                for idx in self.range.by_ref() {
+                    if self.removed_by_x9.iter().any(|&i| i == idx) {
                         // Skip it
                         continue;
                     }

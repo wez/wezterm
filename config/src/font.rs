@@ -566,7 +566,7 @@ impl TextStyle {
         // Insert our bundled default JetBrainsMono as a fallback
         // in case their preference doesn't match anything.
         // But don't add it if it is already their preference.
-        if font.iter().position(|f| *f == default_font).is_none() {
+        if !font.iter().any(|f| *f == default_font) {
             default_font.is_fallback = true;
             font.push(default_font);
         }
