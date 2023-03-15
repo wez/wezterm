@@ -551,8 +551,7 @@ impl ParsedFont {
         };
         let style = *styles
             .iter()
-            .filter(|&&style| candidates.iter().any(|&idx| fonts[idx].style == style))
-            .next()?;
+            .find(|&&style| candidates.iter().any(|&idx| fonts[idx].style == style))?;
 
         // Reduce to matching italics
         candidates.retain(|&idx| fonts[idx].style == style);

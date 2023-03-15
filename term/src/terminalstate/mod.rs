@@ -76,21 +76,11 @@ impl TabStop {
     }
 
     fn find_prev_tab_stop(&self, col: usize) -> Option<usize> {
-        for i in (0..col.min(self.tabs.len())).rev() {
-            if self.tabs[i] {
-                return Some(i);
-            }
-        }
-        None
+        (0..col.min(self.tabs.len())).rev().find(|&i| self.tabs[i])
     }
 
     fn find_next_tab_stop(&self, col: usize) -> Option<usize> {
-        for i in col + 1..self.tabs.len() {
-            if self.tabs[i] {
-                return Some(i);
-            }
-        }
-        None
+        (col + 1..self.tabs.len()).find(|&i| self.tabs[i])
     }
 
     /// Respond to the terminal resizing.
