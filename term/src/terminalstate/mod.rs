@@ -1049,7 +1049,7 @@ impl TerminalState {
         } else {
             y + 1
         };
-        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y as i64));
+        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
     }
 
     /// Moves the cursor down one line in the same column.
@@ -2049,7 +2049,7 @@ impl TerminalState {
 
                     let blank_attr = self.pen.clone_sgr_only();
                     let screen = self.screen_mut();
-                    for _ in x..limit as usize {
+                    for _ in x..limit {
                         screen.erase_cell(x, y, right_margin, seqno, blank_attr.clone());
                     }
                 }
@@ -2079,7 +2079,7 @@ impl TerminalState {
                 {
                     let blank = Cell::blank_with_attrs(self.pen.clone_sgr_only());
                     let screen = self.screen_mut();
-                    for x in x..limit as usize {
+                    for x in x..limit {
                         screen.set_cell(x, y, &blank, seqno);
                     }
                 }

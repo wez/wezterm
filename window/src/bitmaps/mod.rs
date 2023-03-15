@@ -285,7 +285,7 @@ pub trait BitmapImage {
         }
 
         for y in src_rect.origin.y..src_rect.origin.y + copy_height {
-            let dest_y = y as isize + dest_top_left.y - src_rect.origin.y as isize;
+            let dest_y = y + dest_top_left.y - src_rect.origin.y;
             if dest_y < 0 {
                 continue;
             }

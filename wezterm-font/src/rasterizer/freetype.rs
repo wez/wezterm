@@ -46,7 +46,7 @@ impl FontRasterizer for FreeTypeRasterizer {
             unsafe { mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
 
         // pitch is the number of bytes per source row
-        let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+        let pitch = ft_glyph.bitmap.pitch.unsigned_abs() as usize;
         let data = unsafe {
             slice::from_raw_parts_mut(
                 ft_glyph.bitmap.buffer,
@@ -81,7 +81,7 @@ impl FreeTypeRasterizer {
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
-        let size = (width * height * 4) as usize;
+        let size = width * height * 4;
         let mut rgba = vec![0u8; size];
         for y in 0..height {
             let src_offset = y * pitch;
@@ -124,7 +124,7 @@ impl FreeTypeRasterizer {
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
-        let size = (width * height * 4) as usize;
+        let size = width * height * 4;
         let mut rgba = vec![0u8; size];
         for y in 0..height {
             let src_offset = y * pitch;
@@ -162,10 +162,10 @@ impl FreeTypeRasterizer {
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize / 3;
         let height = ft_glyph.bitmap.rows as usize;
-        let size = (width * height * 4) as usize;
+        let size = width * height * 4;
         let mut rgba = vec![0u8; size];
         for y in 0..height {
-            let src_offset = y * pitch as usize;
+            let src_offset = y * pitch;
             let dest_offset = y * width * 4;
             for x in 0..width {
                 let red = data[src_offset + (x * 3)];
@@ -219,7 +219,7 @@ impl FreeTypeRasterizer {
         let mut last_line = None;
 
         for y in 0..height {
-            let src_offset = y * pitch as usize;
+            let src_offset = y * pitch;
 
             for x in 0..width {
                 let alpha = data[src_offset + (x * 4) + 3];
@@ -236,7 +236,7 @@ impl FreeTypeRasterizer {
             }
         }
         for y in (0..height).rev() {
-            let src_offset = y * pitch as usize;
+            let src_offset = y * pitch;
 
             for x in (0..width).rev() {
                 let alpha = data[src_offset + (x * 4) + 3];
@@ -261,11 +261,11 @@ impl FreeTypeRasterizer {
         let dest_width = 1 + last_col - first_col;
         let dest_height = 1 + last_line - first_line;
 
-        let size = (dest_width * dest_height * 4) as usize;
+        let size = dest_width * dest_height * 4;
         let mut rgba = vec![0u8; size];
 
         for y in first_line..=last_line {
-            let src_offset = y * pitch as usize;
+            let src_offset = y * pitch;
             let dest_offset = (y - first_line) * dest_width * 4;
             for x in first_col..=last_col {
                 let blue = data[src_offset + (x * 4)];
@@ -299,14 +299,13 @@ impl FreeTypeRasterizer {
         log::trace!("Rasterizier wants {:?}", parsed);
         let lib = ftwrap::Library::new()?;
         let mut face = lib.face_from_locator(&parsed.handle)?;
-        let has_color = unsafe {
-            (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
-        };
+        let has_color =
+            unsafe { (((*face.face).face_flags as u32) & ftwrap::FT_FACE_FLAG_COLOR) != 0 };
 
         if parsed.synthesize_italic {
             face.set_transform(Some(FT_Matrix {
-                xx: 1 * 65536,            // scale x
-                yy: 1 * 65536,            // scale y
+                xx: 65536,                // scale x
+                yy: 65536,                // scale y
                 xy: (0.2 * 65536.0) as _, // skew x
                 yx: 0 * 65536,            // skey y
             }));

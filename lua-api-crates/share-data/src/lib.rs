@@ -211,7 +211,7 @@ fn lua_value_to_gvalue_impl(value: LuaValue, visited: &mut HashSet<usize>) -> ml
                 }
 
                 Value::Array(Array {
-                    inner: Arc::new(Mutex::new(array.into())),
+                    inner: Arc::new(Mutex::new(array)),
                 })
             } else {
                 let mut obj = BTreeMap::default();
@@ -228,7 +228,7 @@ fn lua_value_to_gvalue_impl(value: LuaValue, visited: &mut HashSet<usize>) -> ml
                     obj.insert(key, value);
                 }
                 Value::Object(Object {
-                    inner: Arc::new(Mutex::new(obj.into())),
+                    inner: Arc::new(Mutex::new(obj)),
                 })
             }
         }

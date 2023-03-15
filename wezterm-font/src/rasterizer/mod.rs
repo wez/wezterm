@@ -26,9 +26,9 @@ impl RasterizedGlyph {
         let stride = self.width * 4;
 
         // Calculate the skewed horizontal offsets of the bottom and top of the glyph.
-        let bottom = self.bearing_y.get().round() as f64 - self.height as f64;
+        let bottom = self.bearing_y.get().round() - self.height as f64;
         let skew_min = ((bottom + 0.5) * factor).floor();
-        let skew_max = ((self.bearing_y.get() as f64 - 0.5) * factor).ceil();
+        let skew_max = ((self.bearing_y.get() - 0.5) * factor).ceil();
 
         // Allocate enough extra width for the min/max skew offsets.
         let skew_width = self.width + (skew_max - skew_min) as usize;

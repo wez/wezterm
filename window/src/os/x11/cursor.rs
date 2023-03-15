@@ -89,13 +89,13 @@ fn icon_path() -> Vec<PathBuf> {
                     if let Some(home) = dirs_next::home_dir() {
                         home.join(&s[2..])
                     } else {
-                        p.into()
+                        p
                     }
                 } else {
-                    p.into()
+                    p
                 }
             }
-            None => p.into(),
+            None => p,
         }
     }
 

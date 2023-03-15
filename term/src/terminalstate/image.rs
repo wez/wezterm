@@ -135,7 +135,7 @@ impl TerminalState {
             height_in_cells
         };
 
-        let mut remain_y = target_pixel_height as usize;
+        let mut remain_y = target_pixel_height;
         for y in 0..height_in_cells {
             let padding_bottom = cell_pixel_height.saturating_sub(remain_y) as u16;
             let y_delta = (remain_y.min(cell_pixel_height) as f32) / (target_pixel_height as f32);
@@ -153,7 +153,7 @@ impl TerminalState {
                 cursor_x,
                 cursor_x + width_in_cells
             );
-            let mut remain_x = target_pixel_width as usize;
+            let mut remain_x = target_pixel_width;
             for x in 0..width_in_cells {
                 let padding_right = cell_pixel_width.saturating_sub(remain_x) as u16;
                 let x_delta = (remain_x.min(cell_pixel_width) as f32) / (target_pixel_width as f32);

@@ -21,7 +21,7 @@ pub fn set_sticky_bit(path: &Path) {
         if let Ok(metadata) = path.metadata() {
             let mut perms = metadata.permissions();
             let mode = perms.mode();
-            perms.set_mode(mode | libc::S_ISVTX as u32);
+            perms.set_mode(mode | libc::S_ISVTX);
             let _ = std::fs::set_permissions(path, perms);
         }
     }

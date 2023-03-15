@@ -94,8 +94,8 @@ impl TerminalState {
         } else if self.mouse_encoding == MouseEncoding::SgrPixels
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
         {
-            let height = self.screen.physical_rows as usize;
-            let width = self.screen.physical_cols as usize;
+            let height = self.screen.physical_rows;
+            let width = self.screen.physical_cols;
             log::trace!(
                 "wheel {event:?} ESC [<{};{};{}M",
                 button,
@@ -157,8 +157,8 @@ impl TerminalState {
             )?;
             self.writer.flush()?;
         } else if self.mouse_encoding == MouseEncoding::SgrPixels {
-            let height = self.screen.physical_rows as usize;
-            let width = self.screen.physical_cols as usize;
+            let height = self.screen.physical_rows;
+            let width = self.screen.physical_cols;
             log::trace!(
                 "press {event:?} ESC [<{};{};{}M",
                 button,
@@ -205,8 +205,8 @@ impl TerminalState {
                     )?;
                     self.writer.flush()?;
                 } else if self.mouse_encoding == MouseEncoding::SgrPixels {
-                    let height = self.screen.physical_rows as usize;
-                    let width = self.screen.physical_cols as usize;
+                    let height = self.screen.physical_rows;
+                    let width = self.screen.physical_cols;
                     log::trace!(
                         "release {event:?} ESC [<{};{};{}m",
                         release_button,
@@ -281,8 +281,8 @@ impl TerminalState {
                 )?;
                 self.writer.flush()?;
             } else if self.mouse_encoding == MouseEncoding::SgrPixels {
-                let height = self.screen.physical_rows as usize;
-                let width = self.screen.physical_cols as usize;
+                let height = self.screen.physical_rows;
+                let width = self.screen.physical_cols;
                 log::trace!(
                     "move {event:?} ESC [<{};{};{}M",
                     button,

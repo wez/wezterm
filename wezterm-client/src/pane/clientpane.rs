@@ -324,8 +324,8 @@ impl Pane for ClientPane {
         let render = self.renderable.lock();
         let mut inner = render.inner.borrow_mut();
 
-        let cols = size.cols as usize;
-        let rows = size.rows as usize;
+        let cols = size.cols;
+        let rows = size.rows;
 
         if inner.dimensions.cols != cols || inner.dimensions.viewport_rows != rows {
             inner.dimensions.cols = cols;

@@ -812,7 +812,7 @@ impl From<mux::client::ClientInfo> for CliListClientsResultItem {
                 .unwrap_or(std::time::Duration::ZERO),
             idle_time: idle_time.to_std().unwrap_or(std::time::Duration::ZERO),
             workspace: active_workspace.as_deref().unwrap_or("").to_string(),
-            focused_pane_id: focused_pane_id,
+            focused_pane_id,
         }
     }
 }
@@ -1129,8 +1129,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 None => info.dimensions.physical_top,
                 Some(n) if n >= 0 => info.dimensions.physical_top + n as StableRowIndex,
                 Some(n) => {
-                    let line = info.dimensions.physical_top as isize + n as isize;
-                    if line < info.dimensions.scrollback_top as isize {
+                    let line = info.dimensions.physical_top + n as isize;
+                    if line < info.dimensions.scrollback_top {
                         info.dimensions.scrollback_top
                     } else {
                         line as StableRowIndex
@@ -1144,8 +1144,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 }
                 Some(n) if n >= 0 => info.dimensions.physical_top + n as StableRowIndex,
                 Some(n) => {
-                    let line = info.dimensions.physical_top as isize + n as isize;
-                    if line < info.dimensions.scrollback_top as isize {
+                    let line = info.dimensions.physical_top + n as isize;
+                    if line < info.dimensions.scrollback_top {
                         info.dimensions.scrollback_top
                     } else {
                         line as StableRowIndex
@@ -1155,7 +1155,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
             let lines = client
                 .get_lines(codec::GetLines {
-                    pane_id: pane_id.into(),
+                    pane_id,
                     lines: vec![start_line..end_line + 1],
                 })
                 .await?;

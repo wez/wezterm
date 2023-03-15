@@ -415,7 +415,7 @@ impl Face {
                 // Fontconfig duplicates F000..F0FF to 0000..00FF
                 for ucs4 in 0xf00..0xf100 {
                     if coverage.contains(ucs4) {
-                        coverage.add(ucs4 as u32 - 0xf000);
+                        coverage.add(ucs4 - 0xf000);
                     }
                 }
             }
@@ -502,7 +502,7 @@ impl Face {
 
                 for (idx, info) in sizes.iter().enumerate() {
                     log::debug!("idx={} info={:?}", idx, info);
-                    let distance = (info.height - (pixel_height as i16)).abs() as usize;
+                    let distance = (info.height - (pixel_height as i16)).unsigned_abs() as usize;
                     let candidate = Best {
                         idx,
                         distance,
@@ -672,7 +672,7 @@ impl Face {
             unsafe { std::mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
 
         // pitch is the number of bytes per source row
-        let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+        let pitch = ft_glyph.bitmap.pitch.unsigned_abs() as usize;
         let data = unsafe {
             std::slice::from_raw_parts_mut(
                 ft_glyph.bitmap.buffer,
@@ -689,7 +689,7 @@ impl Face {
                 let height = ft_glyph.bitmap.rows as usize;
 
                 'next_line_lcd: for y in 0..height {
-                    let src_offset = y * pitch as usize;
+                    let src_offset = y * pitch;
                     for x in 0..width {
                         if data[src_offset + (x * 3)] != 0
                             || data[src_offset + (x * 3) + 1] != 0
@@ -709,7 +709,7 @@ impl Face {
                 let width = ft_glyph.bitmap.width as usize;
                 let height = ft_glyph.bitmap.rows as usize;
                 'next_line_bgra: for y in 0..height {
-                    let src_offset = y * pitch as usize;
+                    let src_offset = y * pitch;
                     for x in 0..width {
                         let alpha = data[src_offset + (x * 4) + 3];
                         if alpha != 0 {
@@ -1107,7 +1107,7 @@ impl FreeTypeStream {
                 0
             }
             StreamBacking::File(file) => {
-                if let Err(err) = file.seek(SeekFrom::Start(offset.into())) {
+                if let Err(err) = file.seek(SeekFrom::Start(offset)) {
                     log::error!(
                         "failed to seek {} to offset {}: {:#}",
                         myself.name,

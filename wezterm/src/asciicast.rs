@@ -302,10 +302,10 @@ mod unix {
             let size = unsafe { size.assume_init() };
 
             Ok(PtySize {
-                rows: size.ws_row.into(),
-                cols: size.ws_col.into(),
-                pixel_width: size.ws_xpixel.into(),
-                pixel_height: size.ws_ypixel.into(),
+                rows: size.ws_row,
+                cols: size.ws_col,
+                pixel_width: size.ws_xpixel,
+                pixel_height: size.ws_ypixel,
             })
         }
 

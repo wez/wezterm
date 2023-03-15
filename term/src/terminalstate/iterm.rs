@@ -57,7 +57,7 @@ impl TerminalState {
                 let width = info.width as usize;
                 let height = info.height as usize;
                 // but ensure that it fits
-                if width as usize > self.pixel_width || height as usize > self.pixel_height {
+                if width > self.pixel_width || height > self.pixel_height {
                     let width = width as f32;
                     let height = height as f32;
                     let mut candidates = vec![];

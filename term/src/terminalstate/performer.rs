@@ -167,7 +167,7 @@ impl<'a> Performer<'a> {
             if self.insert {
                 let margin = self.left_and_right_margins.end;
                 let screen = self.screen_mut();
-                for _ in x..x + print_width as usize {
+                for _ in x..x + print_width {
                     screen.insert_cell(x, y, margin, seqno);
                 }
             }
@@ -952,7 +952,7 @@ impl<'a> Performer<'a> {
                                     // We set the border to the background color; we don't
                                     // have an escape that sets that independently, and this
                                     // way just looks better.
-                                    self.palette_mut().cursor_border = c.into();
+                                    self.palette_mut().cursor_border = c;
                                 }
                                 set_or_query!(cursor_bg)
                             }

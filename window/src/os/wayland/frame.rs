@@ -1253,8 +1253,8 @@ fn draw_buttons(
 
     let mut path = PathBuilder::new();
     let y = HEADER_SIZE as f32 * scale - sep_stroke.width;
-    path.move_to(0., y as f32);
-    path.line_to(width as f32 * scale as f32, y);
+    path.move_to(0., y);
+    path.line_to(width as f32 * scale, y);
     let path = path.finish().unwrap();
 
     pixmap.stroke_path(
@@ -1409,7 +1409,7 @@ fn draw_button(
 
 fn draw_icon(pixmap: &mut PixmapMut, x_offset: usize, scale: f32, icon_color: Paint, icon: Icon) {
     let h = HEADER_SIZE as f32;
-    let cx = pixmap.width() as f32 / scale as f32 - h / 2. - x_offset as f32;
+    let cx = pixmap.width() as f32 / scale - h / 2. - x_offset as f32;
     let cy = h / 2.;
     let s = scale;
 

@@ -74,7 +74,7 @@ impl ColorPalette {
             ColorAttribute::Default => self.foreground,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
-            | ColorAttribute::TrueColorWithDefaultFallback(color) => color.into(),
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
         }
     }
     pub fn resolve_bg(&self, color: ColorAttribute) -> SrgbaTuple {
@@ -82,7 +82,7 @@ impl ColorPalette {
             ColorAttribute::Default => self.background,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
-            | ColorAttribute::TrueColorWithDefaultFallback(color) => color.into(),
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
         }
     }
 }
@@ -169,7 +169,7 @@ impl ColorPalette {
 
         let cursor_bg = RgbColor::new_8bpc(0x52, 0xad, 0x70).into();
         let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70).into();
-        let cursor_fg = colors[AnsiColor::Black as usize].into();
+        let cursor_fg = colors[AnsiColor::Black as usize];
 
         let selection_fg = SrgbaTuple(0., 0., 0., 0.);
         let selection_bg = SrgbaTuple(0.5, 0.4, 0.6, 0.5);

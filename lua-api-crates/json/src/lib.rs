@@ -129,7 +129,7 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
                     }
                 }
 
-                JValue::Array(array.into())
+                JValue::Array(array)
             } else {
                 let mut obj = Map::default();
                 for pair in table.pairs::<LuaValue, LuaValue>() {
@@ -155,7 +155,7 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
                     })?;
                     obj.insert(key, value);
                 }
-                JValue::Object(obj.into())
+                JValue::Object(obj)
             }
         }
     })

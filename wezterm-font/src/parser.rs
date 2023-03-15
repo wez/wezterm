@@ -366,9 +366,8 @@ impl ParsedFont {
         let stretch = FontStretch::from_opentype_stretch(width);
         let cap_height = face.cap_height();
         let pixel_sizes = face.pixel_sizes();
-        let has_color = unsafe {
-            (((*face.face).face_flags as u32) & (crate::ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
-        };
+        let has_color =
+            unsafe { (((*face.face).face_flags as u32) & crate::ftwrap::FT_FACE_FLAG_COLOR) != 0 };
         let assume_emoji_presentation = has_color;
 
         let names = Names::from_ft_face(face);

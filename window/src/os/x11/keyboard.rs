@@ -434,24 +434,19 @@ impl Keyboard {
         mods_locked: u32,
         group: u32,
     ) {
-        self.state.borrow_mut().update_mask(
-            xkb::ModMask::from(mods_depressed),
-            xkb::ModMask::from(mods_latched),
-            xkb::ModMask::from(mods_locked),
-            0,
-            0,
-            xkb::LayoutIndex::from(group),
-        );
+        self.state
+            .borrow_mut()
+            .update_mask(mods_depressed, mods_latched, mods_locked, 0, 0, group);
     }
 
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
         self.state.borrow_mut().update_mask(
-            xkb::ModMask::from(ev.base_mods().bits()),
-            xkb::ModMask::from(ev.latched_mods().bits()),
-            xkb::ModMask::from(ev.locked_mods().bits()),
+            ev.base_mods().bits(),
+            ev.latched_mods().bits(),
+            ev.locked_mods().bits(),
             ev.base_group() as xkb::LayoutIndex,
             ev.latched_group() as xkb::LayoutIndex,
-            xkb::LayoutIndex::from(ev.locked_group() as u32),
+            ev.locked_group() as u32,
         );
     }
 
