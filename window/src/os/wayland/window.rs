@@ -628,15 +628,13 @@ impl WaylandWindowInner {
             self.window_state = window_state;
         }
 
-        if pending.configure.is_none() {
-            if pending.dpi.is_some() {
-                // Synthesize a pending configure event for the dpi change
-                pending.configure.replace((
-                    self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
-                    self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
-                ));
-                log::debug!("synthesize configure with {:?}", pending.configure);
-            }
+        if pending.configure.is_none() && pending.dpi.is_some() {
+            // Synthesize a pending configure event for the dpi change
+            pending.configure.replace((
+                self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
+                self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
+            ));
+            log::debug!("synthesize configure with {:?}", pending.configure);
         }
 
         if let Some((mut w, mut h)) = pending.configure.take() {
@@ -1163,26 +1161,26 @@ impl WaylandWindowInner {
     fn set_text_cursor_position(&mut self, rect: Rect) {
         let surface_id = wl_id(&*self.surface);
         let conn = Connection::get().unwrap().wayland();
-        if surface_id == *conn.active_surface_id.borrow() {
-            if self.text_cursor.map(|prior| prior != rect).unwrap_or(true) {
-                self.text_cursor.replace(rect);
-                let factor = get_surface_scale_factor(&self.surface);
+        if surface_id == *conn.active_surface_id.borrow()
+            && self.text_cursor.map(|prior| prior != rect).unwrap_or(true)
+        {
+            self.text_cursor.replace(rect);
+            let factor = get_surface_scale_factor(&self.surface);
 
-                conn.environment.with_inner(|env| {
-                    if let Some(input) = env
-                        .input_handler()
-                        .get_text_input_for_surface(&self.surface)
-                    {
-                        input.set_cursor_rectangle(
-                            rect.min_x() as i32 / factor,
-                            rect.min_y() as i32 / factor,
-                            rect.width() as i32 / factor,
-                            rect.height() as i32 / factor,
-                        );
-                        input.commit();
-                    }
-                });
-            }
+            conn.environment.with_inner(|env| {
+                if let Some(input) = env
+                    .input_handler()
+                    .get_text_input_for_surface(&self.surface)
+                {
+                    input.set_cursor_rectangle(
+                        rect.min_x() as i32 / factor,
+                        rect.min_y() as i32 / factor,
+                        rect.width() as i32 / factor,
+                        rect.height() as i32 / factor,
+                    );
+                    input.commit();
+                }
+            });
         }
     }
 

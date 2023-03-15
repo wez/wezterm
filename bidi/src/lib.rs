@@ -1458,12 +1458,8 @@ impl BidiContext {
                         // Do nothing
                     } else if overflow_embedding > 0 {
                         overflow_embedding -= 1;
-                    } else {
-                        if !stack.isolate_status() {
-                            if stack.depth() >= 2 {
-                                stack.pop();
-                            }
-                        }
+                    } else if !stack.isolate_status() && stack.depth() >= 2 {
+                        stack.pop();
                     }
                 }
                 BidiClass::BoundaryNeutral => {}

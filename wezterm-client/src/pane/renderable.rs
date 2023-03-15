@@ -751,27 +751,28 @@ impl RenderableState {
                 }
             };
 
-            if inner.client.overlay_lag_indicator && idx == inner.dimensions.physical_top {
-                if inner.is_tardy() {
-                    let status = format!(
-                        "wezterm: {:.0?}⏳since last response",
-                        inner.last_recv_time.elapsed()
-                    );
-                    // Right align it in the tab
-                    let col = inner
-                        .dimensions
-                        .cols
-                        .saturating_sub(wezterm_term::unicode_column_width(&status, None));
+            if inner.client.overlay_lag_indicator
+                && idx == inner.dimensions.physical_top
+                && inner.is_tardy()
+            {
+                let status = format!(
+                    "wezterm: {:.0?}⏳since last response",
+                    inner.last_recv_time.elapsed()
+                );
+                // Right align it in the tab
+                let col = inner
+                    .dimensions
+                    .cols
+                    .saturating_sub(wezterm_term::unicode_column_width(&status, None));
 
-                    let mut attr = CellAttributes::default();
-                    attr.set_foreground(AnsiColor::White);
-                    attr.set_background(AnsiColor::Blue);
+                let mut attr = CellAttributes::default();
+                attr.set_foreground(AnsiColor::White);
+                attr.set_background(AnsiColor::Blue);
 
-                    result
-                        .last_mut()
-                        .unwrap()
-                        .overlay_text_with_attribute(col, &status, attr, SEQ_ZERO);
-                }
+                result
+                    .last_mut()
+                    .unwrap()
+                    .overlay_text_with_attribute(col, &status, attr, SEQ_ZERO);
             }
 
             inner.lines.put(idx, entry);
