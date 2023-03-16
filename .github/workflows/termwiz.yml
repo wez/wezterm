@@ -4,29 +4,25 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/*"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "termwiz/**"
+      - "bidi/**"
+      - "wezterm-dynamic/**"
+      - "color-types/**"
+      - "filedescriptor/**"
+      - "vtparse/**"
+      - ".github/workflows/termwiz.yml"
   push:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "termwiz/**"
+      - "bidi/**"
+      - "wezterm-dynamic/**"
+      - "color-types/**"
+      - "filedescriptor/**"
+      - "vtparse/**"
+      - ".github/workflows/termwiz.yml"
 
 jobs:
   build-termwiz-all-features:
