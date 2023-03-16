@@ -9,7 +9,7 @@ down.
 
 This section describes working with the scrollback and discusses some
 configuration options; be sure to read the [configuration
-docs](config/files.html) to learn how to change your settings!
+docs](config/files.md) to learn how to change your settings!
 
 ### Controlling the scrollback size
 
@@ -50,7 +50,7 @@ return {
 }
 ```
 
-You may [change the color of the scrollbar](config/appearance.html#defining-your-own-colors) if you wish!
+You may [change the color of the scrollbar](config/appearance.md#defining-your-own-colors) if you wish!
 
 ### Scrolling without a scrollbar
 
@@ -103,7 +103,7 @@ may be more recent than your version of wezterm) is shown below.
 You can see the configuration in your version of wezterm by running
 `wezterm show-keys --lua --key-table search_mode`.
 
-{{#include examples/default-search-mode-key-table.markdown}}
+{% include "examples/default-search-mode-key-table.markdown" %}
 
 (Those assignments reference `CopyMode` because search mode is a facet of [Copy Mode](copymode.md)).
 
@@ -143,5 +143,5 @@ With that in your config you can now:
 
 without needing to reach for your mouse.
 
-See [the Search action docs](config/lua/keyassignment/Search.html) for more information on
+See [the Search action docs](config/lua/keyassignment/Search.md) for more information on
 using the `Search` action.

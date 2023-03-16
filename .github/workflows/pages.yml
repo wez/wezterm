@@ -10,7 +10,6 @@ on:
       - "ci/generate-docs.py"
       - "ci/subst-release-info.py"
       - ".github/workflows/pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
   schedule:
     - cron: "50 * * * *"
 
@@ -43,40 +42,33 @@ jobs:
           components: "rustfmt"
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-      - uses: actions/cache@v3
-        name: Cache mdbook
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-mdbook-${{ hashFiles('.github/workflows/pages.yml') }}
-      - name: Install mdBook
-        run: |
-          (test -x ~/.cargo/bin/mdbook || (cd && cargo install mdbook --no-default-features --features search --vers "^0.4" --locked))
-      - name: Install mdBook linkcheck
-        run: |
-         (test -x ~/.cargo/bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck --locked))
-      - name: Install mdBook mermaid
-        run: |
-          (test -x ~/.cargo/bin/mdbook-mermaid || (cd && cargo install mdbook-mermaid --locked))
-      - name: Install mdBook admonish
-        run: |
-          (test -x ~/.cargo/bin/mdbook-admonish || (cd && cargo install mdbook-admonish --locked))
       - name: Install gelatyx
-        run: |
-          (test -x ~/.cargo/bin/gelatyx || (cd && cargo install gelatyx --version "^0.2" --locked))
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: gelatyx
+          args: --locked
+      - name: Install mdbook-linkcheck
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: mdbook-linkcheck
+          args: --locked
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - uses: actions/cache@v2
+        with:
+          key: ${{ github.ref }}
+          path: .cache
       - name: Build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source $HOME/.cargo/env
-          ./ci/build-docs.sh
+          CARDS=true ./ci/build-docs.sh
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: gh_pages/html
+          path: gh_pages
 
   deploy:
     environment:

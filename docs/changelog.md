@@ -1,3 +1,9 @@
+---
+hide:
+    - navigation
+toc_depth: 3
+---
+
 ## Changes
 
 Releases are named using the date, time and git commit hash.
@@ -680,7 +686,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting [use_fancy_tab_bar = false](config/lua/config/use_fancy_tab_bar.md).
 * Support for the [Kitty Image Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing [notcurses](https://notcurses.com/) if you want to see what modern terminal graphics can do! [#986](https://github.com/wez/wezterm/issues/986)
-* unix domains now support an optional `proxy_command` to use in place of a direct unix socket connection. [Read more about multiplexing unix domains](multiplexing.html#unix-domains)
+* unix domains now support an optional `proxy_command` to use in place of a direct unix socket connection. [Read more about multiplexing unix domains](multiplexing.md#unix-domains)
 * [ScrollToTop](config/lua/keyassignment/ScrollToTop.md) and [ScrollToBottom](config/lua/keyassignment/ScrollToBottom.md) key assignments [#1360](https://github.com/wez/wezterm/issues/1360)
 * [SSH Domains](config/lua/SshDomain.md) now support specifying `ssh_config` overrides. [#1149](https://github.com/wez/wezterm/issues/1149)
 * [default_gui_startup_args](config/lua/config/default_gui_startup_args.md) allows defaulting to starting the ssh client (for example). [#1030](https://github.com/wez/wezterm/issues/1030)
@@ -841,7 +847,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: incorrect Sixel HLS hue handling [#775](https://github.com/wez/wezterm/issues/775)
 * Fixed: we now recognize the `CSI 48:2:0:214:255m` form of specifying true color text attributes [#785](https://github.com/wez/wezterm/issues/785)
 * Fixed: split separators didn't respect `tab_bar_at_bottom=true` and were rendered in the wrong place [#797](https://github.com/wez/wezterm/issues/797)
-* Improved: messaging around [exit_behavior](https://wezfurlong.org/wezterm/config/lua/config/exit_behavior.html)
+* Improved: messaging around [exit_behavior](https://wezfurlong.org/wezterm/config/lua/config/exit_behavior.md)
 * Fixed: errors loading custom color schemes are now logged to the error log [#794](https://github.com/wez/wezterm/issues/794)
 * Fixed: OSC 7 (current working directory) now works with paths that contain spaces and other special characters. Thanks to [@Arvedui](https://github.com/Arvedui)! [#799](https://github.com/wez/wezterm/pull/799)
 * Changed: the homebrew tap is now a Cask that installs to the /Applications directory on macOS. Thanks to [@laggardkernel](https://github.com/laggardkernel)!
@@ -994,7 +1000,7 @@ As features stabilize some brief notes about them will accumulate here.
 ### 20210314-114017-04b7cedd
 
 * New: [tab_bar_style](config/lua/config/tab_bar_style.md) allows customizing the appearance of the rest of tha tab bar.
-* New: animated gif and png images displayed via `wezterm imgcat` (the iTerm2 image protocol), or attached to the window background via [window_background_image](config/appearance.html#window-background-image) will now animate while the window has focus.
+* New: animated gif and png images displayed via `wezterm imgcat` (the iTerm2 image protocol), or attached to the window background via [window_background_image](config/appearance.md#window-background-image) will now animate while the window has focus.
 * New: added [foreground_text_hsb](config/lua/config/foreground_text_hsb.md) setting to adjust hue, saturation and brightness when text is rendered.
 * New: added [ResetFontAndWindowSize](config/lua/keyassignment/ResetFontAndWindowSize.md) key assignment.
 * New: added [ScrollByLine](config/lua/keyassignment/ScrollByLine.md) key assignment.
@@ -1065,7 +1071,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm [#404](https://github.com/wez/wezterm/issues/404)
 * Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. [#350](https://github.com/wez/wezterm/issues/350)
 * Added `selection_word_boundary` option to control double-click word selection boundaries. The default is <tt> \t\n{}\[\]()\"'\`</tt>. [#405](https://github.com/wez/wezterm/issues/405)
-* Added support for Curly, Dotted and Dashed underlines.  See [this documentation](faq.html#how-do-i-enable-undercurl-curly-underlines) on the escape sequences how enable undercurl support in vim and nvim. [#415](https://github.com/wez/wezterm/issues/415)
+* Added support for Curly, Dotted and Dashed underlines.  See [this documentation](faq.md#how-do-i-enable-undercurl-curly-underlines) on the escape sequences how enable undercurl support in vim and nvim. [#415](https://github.com/wez/wezterm/issues/415)
 * Fixed an issue where wezterm would spawn processes with `umask 077` on unix systems, rather than the more commonly expected `umask 022`. [#416](https://github.com/wez/wezterm/issues/416)
 * macOS: We now ship a Universal binary containing both Intel and "Apple Silicon" architectures
 * Setting a really large or really small font scale (using CTRL +/-) no longer causes a panic [#428](https://github.com/wez/wezterm/issues/428)
@@ -1075,8 +1081,8 @@ As features stabilize some brief notes about them will accumulate here.
 * New: `adjust_window_size_when_changing_font_size` option to control whether changing the font size adjusts the dimensions of the window (true) or adjusts the number of terminal rows/columns (false).  The default is `true`. [#431](https://github.com/wez/wezterm/issues/431)
 * macOS: we no longer use MetalANGLE to render the gui; it was short lived as macOS Big Sur now uses Metal in its CGL implementation.  Support for using MetalANGLE is still present if the dylib is found on startup, but we no longer ship the dylib.
 * Windows: when pasting text, ensure that the text has CRLF line endings unless bracketed paste is enabled. This imperfect heuristic helps to keep multi-line pastes on multiple lines when using Windows console applications and to avoid interleaved blank lines when using unix applications. [#411](https://github.com/wez/wezterm/issues/411)
-* New: [ClearScrollback](config/lua/keyassignment/ClearScrollback.html) now accepts a parameter to control whether the viewport is cleared along with the scrollback. Thanks to [@dfrankland](https://github.com/dfrankland)!
-* New: [default_cwd](config/lua/config/default_cwd.html) to specify an alternative current working directory. Thanks to [@dfrankland](https://github.com/dfrankland)!
+* New: [ClearScrollback](config/lua/keyassignment/ClearScrollback.md) now accepts a parameter to control whether the viewport is cleared along with the scrollback. Thanks to [@dfrankland](https://github.com/dfrankland)!
+* New: [default_cwd](config/lua/config/default_cwd.md) to specify an alternative current working directory. Thanks to [@dfrankland](https://github.com/dfrankland)!
 * New: [CopyTo](config/lua/keyassignment/CopyTo.md) and [PasteFrom](config/lua/keyassignment/PasteFrom.md) actions. [Copy](config/lua/keyassignment/Copy.md), [Paste](config/lua/keyassignment/Paste.md) and [PastePrimarySelection](config/lua/keyassignment/PastePrimarySelection.md) are now deprecated in favor of these new options.
 * X11: Mouse-based selection now copies-to and pastes-from the `PrimarySelection` by default. The [CompleteSelection](config/lua/keyassignment/CompleteSelection.md) and [CompleteSelectionOrOpenLinkAtMouseCursor](config/lua/keyassignment/CompleteSelectionOrOpenLinkAtMouseCursor.md) actions now require a parameter to specify the clipboard.
 * X11: `SHIFT-CTRL-C` and `SHIFT-CTRL-V` now copy-to and paste from the `Clipboard` by default.  `SHIFT-Insert` pastes from the `PrimarySelection` by default.
@@ -1285,7 +1291,7 @@ As features stabilize some brief notes about them will accumulate here.
   enables "Open WezTerm Here" in the explorer.exe context menu.
 * Added `ClearScrollback` key assignment to clear the scrollback.  This is bound to CMD-K and CTRL-SHIFT-K by default.
 * Added `Search` key assignment to search the scrollback.  Read the new
-  [scrollback](scrollback.html) section for more information!
+  [scrollback](scrollback.md) section for more information!
 * Fixed an issue where ALT+number would send the wrong output for European
   keyboard layouts on macOS and Linux.  As part of this the default behavior
   has changed: we used to force ALT+number to produce ALT+number instead of
@@ -1297,9 +1303,9 @@ As features stabilize some brief notes about them will accumulate here.
   you have installed so that you can quickly spawn a shell in any of them.
   You can suppress this behavior if you wish by setting
   `add_wsl_distributions_to_launch_menu = false`.
-  [Read more about the launcher menu](config/launch.html#the-launcher-menu)
+  [Read more about the launcher menu](config/launch.md#the-launcher-menu)
 * Added `ActivateCopyMode` key assignment to put the tab into mouseless-copy
-  mode; [use the keyboard to define the selected text region](copymode.html).
+  mode; [use the keyboard to define the selected text region](copymode.md).
   This is bound to CTRL-SHIFT-X by default.
 
 ### 20200517-122836-92c201c6
@@ -1325,7 +1331,7 @@ As features stabilize some brief notes about them will accumulate here.
 ### 20200503-171512-b13ef15f
 
 * Added the `launch_menu` configuration for the launcher menu
-  as described in [Launching Programs](config/launch.html).
+  as described in [Launching Programs](config/launch.md).
 * Fixed a crash when reloading a config with `enable_tab_bar=false`
 * Fixed missing icon when running under X11 and Wayland
 * Wayland client-side-decorations improved and now also render window title

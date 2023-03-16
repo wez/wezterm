@@ -1,0 +1,23 @@
+/* prevent selection of prefix and output for console syntax */
+.language-console .gp, .language-console .go {
+  user-select: none;
+  -webkit-user-select: none; /* Chrome/Safari */
+  -ms-user-select: none; /* IE10+ */
+  color: !important pink;
+}
+
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url(fonts/Symbols-Nerd-Font-Mono.ttf) format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.nf {
+  font-family: "Symbols Nerd Font Mono";
+  speak: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+

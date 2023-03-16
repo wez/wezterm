@@ -123,13 +123,13 @@ issue.
 
 ### Multiple characters being rendered/combined as one character?
 
-`wezterm` supports [advanced font shaping](config/font-shaping.html), which,
+`wezterm` supports [advanced font shaping](config/font-shaping.md), which,
 amongst other things, allows for multiple characters/glyphs to be combined into
 one [ligature](https://en.wikipedia.org/wiki/Ligature_(writing)). You may be
 experiencing this if, e.g., `!=` becomes rendered as `≠` in `wezterm`.
 
 If you are seeing this kind of "font combining" and wish to disable it, then
-this is documented in [advanced font shaping options](config/font-shaping.html)
+this is documented in [advanced font shaping options](config/font-shaping.md)
 page.
 
 ## How to troubleshoot keys that don't work or produce weird characters!?
@@ -142,7 +142,7 @@ reflect this; there is more information on that above.
 
 If the key in question is produced in combination with Alt/Option then [this
 section of the docs describes how wezterm processes
-Alt/Option](config/keys.html), as well as options that influence that behavior.
+Alt/Option](config/keys.md), as well as options that influence that behavior.
 
 The next thing to verify is what byte sequences are being produced when you
 press keys.  I generally suggest running `xxd`, pressing the relevant key, then
@@ -249,7 +249,7 @@ env TERM=wezterm nvim
 Note: on Windows, the ConPTY layer strips out the curly underline escape
 sequences.  If you're missing this feature in your WSL instance, you will need
 to use either `wezterm ssh` or
-[multiplexing](multiplexing.html#connecting-into-windows-subsystem-for-linux)
+[multiplexing](multiplexing.md#connecting-into-windows-subsystem-for-linux)
 to bypass ConPTY.
 
 ## I use Powershell for my shell, and I have problems with cursor keys in other apps

@@ -41,7 +41,7 @@ applied to the terminal display using the following rules:
 * The cursor position will be updated based on the column width of the grapheme.
 
 After the graphemes are applied to the terminal display, the rendering portion of
-WezTerm will attempt to apply your [font shaping](config/font-shaping.html) configuration
+WezTerm will attempt to apply your [font shaping](config/font-shaping.md) configuration
 based on runs of graphemes with matching graphic attributes to determine which glyphs
 should be rendered from your fonts; it is at this stage that emoji and ligatures are
 resolved.
@@ -390,17 +390,17 @@ The table below is keyed by the OSC code.
 |4  |Change/Query Color Number | Set or query color palette entries 0-255. | query color number 1: `\x1b]4;1;?\x1b\\` <br/> Set color number 2: `\x1b]4;2;#cccccc\x1b\\` |
 |5  |Change/Query Special Color Number | Ignored | |
 |6  |iTerm2 Change Title Tab Color | Ignored | |
-|7  |Set Current Working Directory | [See Shell Integration](shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory) ||
-|8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.html#explicit-hyperlinks) | |
+|7  |Set Current Working Directory | [See Shell Integration](shell-integration.md#osc-7-escape-sequence-to-set-the-working-directory) ||
+|8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.md#explicit-hyperlinks) | |
 |9  |iTerm2 Show System Notification | Show a "toast" notification | `printf "\e]9;%s\e\\" "hello there"` |
 |10 |Set Default Text Foreground Color| | `\x1b]10;#ff0000\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]10;rgba(127,127,127,0.4)\x07"` |
 |11 |Set Default Text Background Color| | `\x1b]11;#0000ff\x1b\\`.<br/> Also supports RGBA in nightly builds: `printf "\e]11;rgba:efff/ecff/f4ff/d000\x07"` |
 |12 |Set Text Cursor Color| | `\x1b]12;#00ff00\x1b\\`.<br/> Also supports RGBA in nightly builds. |
 |52 |Manipulate clipboard | Requests to query the clipboard are ignored. Allows setting or clearing the clipboard | |
 |104|ResetColors | Reset color palette entries to their default values | |
-|133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.html) |
+|133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.md) |
 |777|Call rxvt extension| Only the notify extension is supported; it shows a "toast" notification | `printf "\e]777;notify;%s;%s\e\\" "title" "body"` |
-|1337 |iTerm2 File Upload Protocol | Allows displaying images inline | [See iTerm Image Protocol](imgcat.html) |
+|1337 |iTerm2 File Upload Protocol | Allows displaying images inline | [See iTerm Image Protocol](imgcat.md) |
 |L  |Set Icon Name (Sun) | Same as OSC 1 | `\x1b]Ltab-title\x1b\\` |
 |l  |Set Window Title (Sun) | Same as OSC 2 | `\x1b]lwindow-title\x1b\\` |
 

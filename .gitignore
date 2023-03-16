@@ -1,6 +1,10 @@
 .DS_Store
 dhat-heap.json
 /docs/_site
+/docs/favicon.png
+/docs/favicon.svg
+/docs/fonts/*
+/mkdocs.yml
 /PKGBUILD
 /WezTerm*.zip
 /WezTerm*.exe
@@ -16,6 +20,8 @@ dhat-heap.json
 /docs/cli/cli/index.md
 /docs/recipes/index.md
 /docs/colorschemes/**/index.md
+/docs/colorschemes/scheme.css
+/docs/colorschemes/scheme.js
 /docs/config/lua/color/index.md
 /docs/config/lua/config/index.md
 /docs/config/lua/gui-events/index.md

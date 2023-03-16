@@ -7,11 +7,11 @@ just a protocol, wezterm's `imgcat` also renders images in iTerm2.
 
 To render an image inline in your terminal:
 
-```
+```console
 $ wezterm imgcat /path/to/image.png
 ```
 
-<img width="100%" height="100%" src="screenshots/wezterm-imgcat.png" alt="inline image display">
+![inline image display](screenshots/wezterm-imgcat.png)
 
 
 **Note that the image protocol isn't fully handled by multiplexer sessions

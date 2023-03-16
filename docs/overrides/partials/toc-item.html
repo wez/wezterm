@@ -1,0 +1,19 @@
+{% if not page.meta.toc_depth or toc_item.level <= page.meta.toc_depth %}
+<!-- Table of contents item -->
+<li class="md-nav__item">
+  <a href="{{ toc_item.url }}" class="md-nav__link">
+    {{ toc_item.title }}
+  </a>
+
+  <!-- Table of contents list -->
+  {% if toc_item.children %}
+    <nav class="md-nav" aria-label="{{ toc_item.title }}">
+      <ul class="md-nav__list">
+        {% for toc_item in toc_item.children %}
+          {% include "partials/toc-item.html" %}
+        {% endfor %}
+      </ul>
+    </nav>
+  {% endif %}
+</li>
+{% endif %}

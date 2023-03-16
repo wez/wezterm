@@ -32,10 +32,24 @@ function ghapi() {
 [[ -f /tmp/wezterm.nightly.json ]] || ghapi /repos/wez/wezterm/releases/tags/nightly > /tmp/wezterm.nightly.json
 python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
-mdbook-mermaid install docs
-mdbook build docs
 
-rm gh_pages/html/README.markdown
-cp assets/fonts/Symbols-Nerd-Font-Mono.ttf gh_pages/html/fonts/
-cp assets/icon/terminal.png gh_pages/html/favicon.png
-cp "assets/icon/wezterm-icon.svg" gh_pages/html/favicon.svg
+mdbook-linkcheck --standalone docs
+
+# Adjust path to pick up pip-installed binaries
+PATH="$HOME/.local/bin;$PATH"
+pip install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin
+if test -n "${CARDS}" ; then
+  pip install --quiet pillow cairosvg
+fi
+
+black ci/generate-docs.py ci/subst-release-info.py
+
+cp "assets/icon/terminal.png" docs/favicon.png
+cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
+mkdir docs/fonts
+cp assets/fonts/Symbols-Nerd-Font-Mono.ttf docs/fonts/
+
+mkdocs build
+
+# mdbook-mermaid install docs
+# mdbook build docs

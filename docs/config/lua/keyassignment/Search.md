@@ -41,7 +41,7 @@ return {
 }
 ```
 
-[Learn more about the search overlay](../../../scrollback.html#searching-the-scrollback)
+[Learn more about the search overlay](../../../scrollback.md#searching-the-scrollback)
 
 *since: 20220624-141144-bd1b7c5d*
 

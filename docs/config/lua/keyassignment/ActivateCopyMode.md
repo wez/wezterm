@@ -12,5 +12,5 @@ return {
 }
 ```
 
-[Learn more about copy mode](../../../copymode.html)
+[Learn more about copy mode](../../../copymode.md)
 

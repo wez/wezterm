@@ -17,26 +17,26 @@ attempt to install them for you.  If it doesn't know about your system,
 If you don't plan to submit a pull request to the wezterm repo, you can
 download a smaller source tarball using these steps:
 
-```bash
-curl https://sh.rustup.rs -sSf | sh -s
-curl -LO {{ src_stable }}
-tar -xzf {{ src_stable_asset }}
-cd {{ src_stable_dir }}
-./get-deps
-cargo build --release
-cargo run --release --bin wezterm -- start
+```console
+$ curl https://sh.rustup.rs -sSf | sh -s
+$ curl -LO {{ src_stable }}
+$ tar -xzf {{ src_stable_asset }}
+$ cd {{ src_stable_dir }}
+$ ./get-deps
+$ cargo build --release
+$ cargo run --release --bin wezterm -- start
 ```
 
 Alternatively, use the full git repo:
 
-```bash
-curl https://sh.rustup.rs -sSf | sh -s
-git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
-cd wezterm
-git submodule update --init --recursive
-./get-deps
-cargo build --release
-cargo run --release --bin wezterm -- start
+```console
+$ curl https://sh.rustup.rs -sSf | sh -s
+$ git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
+$ cd wezterm
+$ git submodule update --init --recursive
+$ ./get-deps
+$ cargo build --release
+$ cargo run --release --bin wezterm -- start
 ```
 
 **If you get an error about zlib then you most likely didn't initialize the submodules;
@@ -48,8 +48,8 @@ By default, support for both X11 and Wayland is included on Unix systems.
 If your distribution has X11 but not Wayland, then you can build WezTerm without
 Wayland support by changing the `build` invocation:
 
-```bash
-cargo build --release --no-default-features vendored-fonts
+```console
+$ cargo build --release --no-default-features vendored-fonts
 ```
 
 Building without X11 is not supported.

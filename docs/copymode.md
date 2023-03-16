@@ -96,4 +96,4 @@ may be more recent than your version of wezterm) is shown below.
 You can see the configuration in your version of wezterm by running
 `wezterm show-keys --lua --key-table copy_mode`.
 
-{{#include examples/default-copy-mode-key-table.markdown}}
+{% include "examples/default-copy-mode-key-table.markdown" %}

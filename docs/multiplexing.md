@@ -22,7 +22,7 @@ the domain of the current tab, or a specific numbered domain.
 
 ## SSH Domains
 
-*wezterm also supports [regular ad-hoc ssh connections](ssh.html).
+*wezterm also supports [regular ad-hoc ssh connections](ssh.md).
 This section of the docs refers to running a wezterm daemon on the remote end
 of a multiplexing session that uses ssh as a channel*
 

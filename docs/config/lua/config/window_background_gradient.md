@@ -63,7 +63,7 @@ return {
 }
 ```
 
-<img src="../../../screenshots/vertical-gradient.png">
+![Vertical Gradient](../../../screenshots/vertical-gradient.png)
 
 Gradients are implemented using the `colorgrad` crate.
 Take a look at <https://github.com/mazznoer/colorgrad-rs#using-web-color-format>
@@ -95,7 +95,7 @@ return {
 }
 ```
 
-<img src="../../../screenshots/linear-gradient.png">
+![Linear Gradient](../../../screenshots/linear-gradient.png)
 
 ## Radial gradient:
 
@@ -131,7 +131,7 @@ return {
 }
 ```
 
-<img src="../../../screenshots/radial-gradient.png">
+![Radial Gradient](../../../screenshots/radial-gradient.png)
 
 ## Presets
 

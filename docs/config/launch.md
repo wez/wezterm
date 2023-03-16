@@ -168,7 +168,7 @@ return {
 }
 ```
 
-<img src="../screenshots/launch-menu.png" alt="Screenshot">
+![Launch Menu](../screenshots/launch-menu.png)
 
 Here's a fancy example that will add some helpful entries to the launcher
 menu when running on Windows:

@@ -7,8 +7,9 @@ been tested.
 Starting with version 20210203-095643-70a364eb, WezTerm is a Universal binary
 with support for both Apple Silicon and Intel hardware.
 
-<a href="{{ macos_zip_stable }}" class="btn">Download for macOS</a>
-<a href="{{ macos_zip_nightly }}" class="btn">Nightly for macOS</a>
+[:simple-apple: Download for macOS :material-tray-arrow-down:]({{ macos_zip_stable }}){ .md-button }
+[:simple-apple: Nightly for macOS :material-tray-arrow-down:]({{ macos_zip_nightly }}){ .md-button }
+
 1. Download <a href="{{ macos_zip_stable }}">Release</a>
 2. Extract the zipfile and drag the `WezTerm.app` bundle to your `Applications` folder
 3. First time around, you may need to right click and select `Open` to allow launching
@@ -19,26 +20,26 @@ with support for both Apple Silicon and Intel hardware.
 PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
 export PATH
 ```
-5. Configuration instructions can be [found here](../config/files.html)
+5. Configuration instructions can be [found here](../config/files.md)
 
 ## Homebrew
 
 WezTerm is available for [brew](https://brew.sh/) users in a tap:
 
-```bash
+```console
 $ brew tap wez/wezterm
 $ brew install --cask wez/wezterm/wezterm
 ```
 
 If you'd like to use a nightly build:
 
-```bash
+```console
 $ brew install --cask wez/wezterm/wezterm-nightly
 ```
 
 to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
-```bash
+```console
 $ brew upgrade --cask wez/wezterm/wezterm-nightly --no-quarantine --greedy-latest
 ```
 
@@ -46,7 +47,7 @@ $ brew upgrade --cask wez/wezterm/wezterm-nightly --no-quarantine --greedy-lates
 
 WezTerm is also available via [MacPorts](https://ports.macports.org/port/wezterm/summary):
 
-```bash
+```console
 $ sudo port selfupdate
 $ sudo port install wezterm
 ```

@@ -15,7 +15,7 @@ have been removed and replaced by the more flexible
 *Since: 20210314-114017-04b7cedd*
 
 This config option allows styling the elements that appear in the tab bar.
-This configuration supplements the [tab bar color](../../appearance.html#tab-bar-appearance--colors)
+This configuration supplements the [tab bar color](../../appearance.md#tab-bar-appearance--colors)
 options.
 
 Styling in this context refers to how the edges of the tabs and the new tab button are rendered.
@@ -35,8 +35,7 @@ The available elements are:
 
 This example changes the tab edges to the PowerLine arrow symbols:
 
-<img width="100%" height="100%" src="../../../screenshots/wezterm-tab-edge-styled.png"
-  alt="Demonstrating setting the styling of the left and right tab edges">
+![Demonstrating setting the styling of the left and right tab edges](../../../screenshots/wezterm-tab-edge-styled.png)
 
 ```lua
 local wezterm = require 'wezterm'

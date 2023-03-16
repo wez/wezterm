@@ -12,4 +12,4 @@ local date_and_time = wezterm.strftime_utc '%Y-%m-%d %H:%M:%S'
 wezterm.log_info(date_and_time)
 ```
 
-See also [strftime](strftime.md) and [wezterm.time](../wezterm.time/index.markdown).
+See also [strftime](strftime.md) and [wezterm.time](../wezterm.time/index.md).

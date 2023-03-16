@@ -21,7 +21,7 @@ create.
 SSH sessions created in this way are non-persistent and all associated
 tabs will die if your network connection is interrupted.
 
-Take a look at [the multiplexing section](multiplexing.html) for an
+Take a look at [the multiplexing section](multiplexing.md) for an
 alternative configuration that connects to a remote wezterm instance
 and preserves your tabs.
 

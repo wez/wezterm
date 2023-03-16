@@ -259,7 +259,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
    bash "$scheme" ; ../tools/screenshotTable.sh; sleep 0.5; done
 ```
 
-  <video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video>
+  <video width="80%" controls src="../../screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
 ### Tab Bar Appearance & Colors
 
@@ -450,7 +450,7 @@ reduce it by half, and 2.0 will double the value.
 
 ## Window Background Image
 
-<img width="100%" height="100%" src="../screenshots/wezterm-vday-screenshot.png" alt="Screenshot">
+![Screenshot](../screenshots/wezterm-vday-screenshot.png)
 
 *since: 20201031-154415-9614e117*
 
@@ -505,7 +505,7 @@ behavior and more, take a look at the more power
 
 *Since: 20210814-124438-54e29167*
 
-<img src="../screenshots/radial-gradient.png">
+![Gradient](../screenshots/radial-gradient.png)
 
 See [window_background_gradient](lua/config/window_background_gradient.md)
 for configuration information on gradients.

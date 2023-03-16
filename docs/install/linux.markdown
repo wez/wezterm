@@ -11,20 +11,20 @@ To install using the command line:
 
 First, [setup flatpak on your system](https://flatpak.org/setup/), then:
 
-```bash
-flatpak install flathub org.wezfurlong.wezterm
+```console
+$ flatpak install flathub org.wezfurlong.wezterm
 ```
 
 and then run:
 
-```bash
-flatpak run org.wezfurlong.wezterm
+```console
+$ flatpak run org.wezfurlong.wezterm
 ```
 
 You may wish to define an alias for convenience:
 
-```bash
-alias wezterm='flatpak run org.wezfurlong.wezterm'
+```console
+$ alias wezterm='flatpak run org.wezfurlong.wezterm'
 ```
 
 Note: flatpaks run in a sandbox so some functionality may behave a little
@@ -46,30 +46,30 @@ range of Linux distributions.
 
 Download and make the file executable and you're ready to run!
 
-<a href="{{ ubuntu18_AppImage_stable }}" class="btn">AppImage</a>
-<a href="{{ ubuntu18_AppImage_nightly }}" class="btn">Nightly AppImage</a>
+[AppImage :material-tray-arrow-down:]({{ ubuntu18_AppImage_stable }}){ .md-button }
+[Nightly AppImage :material-tray-arrow-down:]({{ ubuntu18_AppImage_nightly }}){ .md-button }
 
-```bash
-curl -LO {{ ubuntu18_AppImage_stable }}
-chmod +x {{ ubuntu18_AppImage_stable_asset }}
+```console
+$ curl -LO {{ ubuntu18_AppImage_stable }}
+$ chmod +x {{ ubuntu18_AppImage_stable_asset }}
 ```
 
 You may then execute the appimage directly to launch wezterm, with no
 specific installation steps required:
 
-```bash
-./{{ ubuntu18_AppImage_stable_asset }}
+```console
+$ ./{{ ubuntu18_AppImage_stable_asset }}
 ```
 
 That said, you may wish to make it a bit more convenient:
 
-```bash
-mkdir ~/bin
-mv ./{{ ubuntu18_AppImage_stable_asset }} ~/bin/wezterm
-~/bin/wezterm
+```console
+$ mkdir ~/bin
+$ mv ./{{ ubuntu18_AppImage_stable_asset }} ~/bin/wezterm
+$ ~/bin/wezterm
 ```
 
-* Configuration instructions can be [found here](../config/files.html)
+* Configuration instructions can be [found here](../config/files.md)
 
 ## Installing on Ubuntu and Debian-based Systems
 
@@ -90,13 +90,13 @@ you can try the AppImage download which should work on most Linux systems.
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 20 package:
 
-```bash
-curl -LO {{ ubuntu20_deb_stable }}
-sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
+```console
+$ curl -LO {{ ubuntu20_deb_stable }}
+$ sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](../config/files.html)
+* Configuration instructions can be [found here](../config/files.md)
 
 ## Installing on Fedora and rpm-based Systems
 
@@ -121,22 +121,22 @@ on most Linux systems.
 To download and install from the CLI you can use something like this, which
 shows how to install the Fedora 35 package:
 
-```bash
-sudo dnf install -y {{ fedora35_rpm_stable }}
+```console
+$ sudo dnf install -y {{ fedora35_rpm_stable }}
 ```
 
 WezTerm is also available in the official Factory repo in openSUSE Tumbleweed. To install from Factory instead
 from the rpm provided by WezTerm's Github repository, you can use Yast. If you prefer the CLI, you can install
 it as root user with
 
-```bash
-zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
-zypper refresh
-zypper install wezterm
+```console
+$ zypper addrepo https://download.opensuse.org/repositories/openSUSE:Factory/standard/openSUSE:Factory.repo
+$ zypper refresh
+$ zypper install wezterm
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](../config/files.html)
+* Configuration instructions can be [found here](../config/files.md)
 
 ## Arch Linux
 
@@ -165,21 +165,21 @@ APKs are built out from the `main` branch.
 If you are a [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) user, you can install
 wezterm from our tap:
 
-```bash
+```console
 $ brew tap wez/wezterm-linuxbrew
 $ brew install wezterm
 ```
 
 If you'd like to use a nightly build you can perform a head install:
 
-```bash
+```console
 $ brew install --HEAD wezterm
 ```
 
 to upgrade to a newer nightly, it is simplest to remove then
 install:
 
-```bash
+```console
 $ brew rm wezterm
 $ brew install --HEAD wezterm
 ```
@@ -189,7 +189,7 @@ $ brew install --HEAD wezterm
 Another option for linux is a raw binary archive.  These are the same binaries that
 are built for Ubuntu but provided in a tarball.
 
-<a href="{{ linux_raw_bin_stable }}" class="btn">Download raw Linux binaries</a>
-<a href="{{ linux_raw_bin_nightly }}" class="btn">Nightly raw Linux binaries</a>
+[Raw Linux Binary :material-tray-arrow-down:]({{ linux_raw_bin_stable }}){ .md-button }
+[Nightly Raw Linux Binary :material-tray-arrow-down:]({{ linux_raw_bin_nightly }}){ .md-button }
 
 

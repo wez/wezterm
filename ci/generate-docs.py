@@ -14,12 +14,24 @@ class Page(object):
         self.filename = filename
         self.children = children or []
 
-    def render(self, output, depth=0):
+    def render(self, output, depth=0, mode="mdbook"):
         indent = "  " * depth
         bullet = "- " if depth > 0 else ""
-        output.write(f"{indent}{bullet}[{self.title}]({self.filename})\n")
+        if mode == "mdbook":
+            if self.filename:
+                output.write(f"{indent}{bullet}[{self.title}]({self.filename})\n")
+        elif mode == "mkdocs":
+            if depth > 0:
+                if len(self.children) == 0:
+                    output.write(f'{indent}{bullet}"{self.title}": {self.filename}\n')
+                else:
+                    output.write(f'{indent}{bullet}"{self.title}":\n')
+                    if self.filename:
+                        output.write(
+                            f'{indent}  {bullet}"{self.title}": {self.filename}\n'
+                        )
         for kid in self.children:
-            kid.render(output, depth + 1)
+            kid.render(output, depth + 1, mode)
 
 
 # autogenerate an index page from the contents of a directory
@@ -30,8 +42,7 @@ class Gen(object):
         self.index = index
         self.extract_title = extract_title
 
-    def render(self, output, depth=0):
-        print(self.dirname)
+    def render(self, output, depth=0, mode="mdbook"):
         names = sorted(glob.glob(f"{self.dirname}/*.md"))
         children = []
         for filename in names:
@@ -41,13 +52,13 @@ class Gen(object):
 
             if self.extract_title:
                 with open(filename, "r") as f:
-                    title = f.readline().strip('#').strip()
+                    title = f.readline().strip("#").strip()
 
             children.append(Page(title, filename))
 
         index_filename = f"{self.dirname}/index.md"
         index_page = Page(self.title, index_filename, children=children)
-        index_page.render(output, depth)
+        index_page.render(output, depth, mode)
         with open(f"{self.dirname}/index.md", "w") as idx:
             if self.index:
                 idx.write(self.index)
@@ -187,7 +198,7 @@ class GenColorScheme(object):
         self.dirname = dirname
         self.index = index
 
-    def render(self, output, depth=0):
+    def render(self, output, depth=0, mode="mdbook"):
         with open("colorschemes/data.json") as f:
             scheme_data = json.load(f)
         by_prefix = {}
@@ -209,6 +220,34 @@ class GenColorScheme(object):
             else:
                 return None
 
+        style_filename = f"{self.dirname}/scheme.css"
+        with open(style_filename, "w") as style_file:
+            for scheme in by_name.values():
+                style_file.write(scheme["css"])
+                style_file.write("\n")
+        js_filename = f"{self.dirname}/scheme.js"
+        with open(js_filename, "w") as js_file:
+            data_by_scheme = {}
+            for scheme in by_name.values():
+                ident = scheme["ident"]
+                data = screen_shot_table(scheme)
+                data_by_scheme[ident] = data
+
+            js_file.write(f"SCHEME_DATA = {json.dumps(data_by_scheme)};\n")
+            js_file.write(
+                f"""
+function load_scheme_player(ident) {{
+  var data = SCHEME_DATA[ident];
+  AsciinemaPlayer.create(
+    'data:text/plain;base64,' + data,
+    document.getElementById(ident + '-player'), {{
+    theme: ident,
+    autoPlay: true,
+  }});
+}}
+"""
+            )
+
         children = []
         for scheme_prefix in sorted(by_prefix.keys()):
             scheme_filename = f"{self.dirname}/{scheme_prefix}/index.md"
@@ -216,6 +255,7 @@ class GenColorScheme(object):
             children.append(Page(scheme_prefix, scheme_filename))
 
             with open(scheme_filename, "w") as idx:
+                idents_to_load = []
 
                 for scheme in by_prefix[scheme_prefix]:
                     title = scheme["name"]
@@ -223,26 +263,11 @@ class GenColorScheme(object):
 
                     data = screen_shot_table(scheme)
                     ident = scheme["ident"]
+                    idents_to_load.append(ident)
 
                     idx.write(
                         f"""
 <div id="{ident}-player"></div>
-
-<style>
-{scheme["css"]}
-</style>
-
-<script>
-window.addEventListener('load', function () {{
-    AsciinemaPlayer.create(
-        'data:text/plain;base64,{data}',
-        document.getElementById('{ident}-player'), {{
-        theme: "{ident}",
-        autoPlay: true,
-    }});
-}});
-
-</script>
 """
                     )
 
@@ -267,13 +292,16 @@ window.addEventListener('load', function () {{
                                 if alias_link:
                                     alias_list.append(f"[{a}]({alias_link})")
                                 else:
-                                    alias_list.append(f"`{a}` (but that name isn't used here)")
-                            aliases = ', '.join(alias_list)
+                                    alias_list.append(
+                                        f"`{a}` (but that name isn't used here)"
+                                    )
+                            aliases = ", ".join(alias_list)
                             idx.write(f"This scheme is also known as {aliases}.<br/>\n")
                         else:
                             canon_link = scheme_link(canon_name)
-                            idx.write(f"This scheme is the same as [{canon_name}]({canon_link}).<br/>\n")
-
+                            idx.write(
+                                f"This scheme is the same as [{canon_name}]({canon_link}).<br/>\n"
+                            )
 
                     idx.write("\nTo use this scheme, add this to your config:\n")
                     idx.write(
@@ -287,9 +315,20 @@ return {{
 """
                     )
 
+                idents_to_load = json.dumps(idents_to_load)
+                idx.write(
+                    f"""
+<script>
+document.addEventListener("DOMContentLoaded", function() {{
+  {idents_to_load}.forEach(ident => load_scheme_player(ident));
+}});
+</script>
+"""
+                )
+
         index_filename = f"{self.dirname}/index.md"
         index_page = Page(self.title, index_filename, children=children)
-        index_page.render(output, depth)
+        index_page.render(output, depth, mode)
 
         with open(f"{self.dirname}/index.md", "w") as idx:
             idx.write(f"{len(scheme_data)} Color schemes listed by first letter\n\n")
@@ -300,41 +339,10 @@ return {{
 
 TOC = [
     Page(
-        "wezterm",
+        "WezTerm",
         "index.md",
         children=[
-            Page(
-                "Install",
-                "installation.md",
-                children=[
-                    Page("Windows", "install/windows.md"),
-                    Page("macOS", "install/macos.md"),
-                    Page("Linux", "install/linux.md"),
-                    Page("FreeBSD", "install/freebsd.md"),
-                    Page("Build from source", "install/source.md"),
-                ],
-            ),
             Page("Features", "features.md"),
-            Page("Change Log", "changelog.md"),
-            Page(
-                "Configuration",
-                "config/files.md",
-                children=[
-                    Page("Launching Programs", "config/launch.md"),
-                    Page("Fonts", "config/fonts.md"),
-                    Page("Font Shaping", "config/font-shaping.md"),
-                    Page("Keyboard Concepts", "config/keyboard-concepts.md"),
-                    Page("Key Binding", "config/keys.md"),
-                    Page("Key Tables", "config/key-tables.md"),
-                    Page("Default Key Assignments", "config/default-keys.md"),
-                    Page("Keyboard Encoding", "config/key-encoding.md"),
-                    Page("Mouse Binding", "config/mouse.md"),
-                    Page("Colors & Appearance", "config/appearance.md"),
-                    GenColorScheme("Color Schemes", "colorschemes"),
-                ],
-            ),
-            Page("Troubleshooting", "troubleshooting.md"),
-            Gen("Recipes", "recipes", extract_title=True),
             Page("Scrollback", "scrollback.md"),
             Page("Quick Select Mode", "quickselect.md"),
             Page("Copy Mode", "copymode.md"),
@@ -344,100 +352,153 @@ TOC = [
             Page("SSH", "ssh.md"),
             Page("Serial Ports & Arduino", "serial.md"),
             Page("Multiplexing", "multiplexing.md"),
-            Page("Escape Sequences", "escape-sequences.md"),
-            Page("F.A.Q.", "faq.md"),
-            Page("Getting Help", "help.md"),
-            Page("Contributing", "contributing.md"),
-            Page("What is a Terminal?", "what-is-a-terminal.md"),
-            Page(
-                "CLI Reference",
-                "cli/general.md",
-                children=[
-                    Gen("cli", "cli/cli"),
-                    Page("show-keys", "cli/show-keys.md"),
-                ],
+        ],
+    ),
+    Page(
+        "Install",
+        "installation.md",
+        children=[
+            Page("Windows", "install/windows.md"),
+            Page("macOS", "install/macos.md"),
+            Page("Linux", "install/linux.md"),
+            Page("FreeBSD", "install/freebsd.md"),
+            Page("Build from source", "install/source.md"),
+        ],
+    ),
+    Page(
+        "Configuration",
+        "config/files.md",
+        children=[
+            Page("Launching Programs", "config/launch.md"),
+            Page("Fonts", "config/fonts.md"),
+            Page("Font Shaping", "config/font-shaping.md"),
+            Page("Keyboard Concepts", "config/keyboard-concepts.md"),
+            Page("Key Binding", "config/keys.md"),
+            Page("Key Tables", "config/key-tables.md"),
+            Page("Default Key Assignments", "config/default-keys.md"),
+            Page("Keyboard Encoding", "config/key-encoding.md"),
+            Page("Mouse Binding", "config/mouse.md"),
+            Page("Colors & Appearance", "config/appearance.md"),
+            GenColorScheme("Color Schemes", "colorschemes"),
+            Gen("Recipes", "recipes", extract_title=True),
+        ],
+    ),
+    Page(
+        "Lua Reference",
+        "config/lua/general.md",
+        children=[
+            Gen(
+                "module: wezterm",
+                "config/lua/wezterm",
             ),
-            Page(
-                "Lua Reference",
-                "config/lua/general.md",
-                children=[
-                    Gen(
-                        "module: wezterm",
-                        "config/lua/wezterm",
-                    ),
-                    Gen(
-                        "module: wezterm.color",
-                        "config/lua/wezterm.color",
-                    ),
-                    Gen(
-                        "module: wezterm.gui",
-                        "config/lua/wezterm.gui",
-                    ),
-                    Gen(
-                        "module: wezterm.mux",
-                        "config/lua/wezterm.mux",
-                    ),
-                    Gen(
-                        "module: wezterm.procinfo",
-                        "config/lua/wezterm.procinfo",
-                    ),
-                    Gen(
-                        "module: wezterm.time",
-                        "config/lua/wezterm.time",
-                    ),
-                    Gen(
-                        "struct: Config",
-                        "config/lua/config",
-                    ),
-                    Gen(
-                        "enum: KeyAssignment",
-                        "config/lua/keyassignment",
-                    ),
-                    Gen(
-                        "enum: CopyModeAssignment",
-                        "config/lua/keyassignment/CopyMode",
-                    ),
-                    Gen("object: Color", "config/lua/color"),
-                    Page("object: ExecDomain", "config/lua/ExecDomain.md"),
-                    Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
-                    Gen("object: MuxDomain", "config/lua/MuxDomain"),
-                    Gen("object: MuxWindow", "config/lua/mux-window"),
-                    Gen("object: MuxTab", "config/lua/MuxTab"),
-                    Page("object: PaneInformation", "config/lua/PaneInformation.md"),
-                    Page("object: TabInformation", "config/lua/TabInformation.md"),
-                    Page("object: SshDomain", "config/lua/SshDomain.md"),
-                    Page("object: SpawnCommand", "config/lua/SpawnCommand.md"),
-                    Gen("object: Time", "config/lua/wezterm.time/Time"),
-                    Page("object: TlsDomainClient", "config/lua/TlsDomainClient.md"),
-                    Page("object: TlsDomainServer", "config/lua/TlsDomainServer.md"),
-                    Gen(
-                        "object: Pane",
-                        "config/lua/pane",
-                    ),
-                    Gen(
-                        "object: Window",
-                        "config/lua/window",
-                    ),
-                    Page("object: WslDomain", "config/lua/WslDomain.md"),
-                    Gen(
-                        "events: Gui",
-                        "config/lua/gui-events",
-                    ),
-                    Gen(
-                        "events: Multiplexer",
-                        "config/lua/mux-events",
-                    ),
-                    Gen(
-                        "events: Window",
-                        "config/lua/window-events",
-                    ),
-                ],
+            Gen(
+                "module: wezterm.color",
+                "config/lua/wezterm.color",
+            ),
+            Gen(
+                "module: wezterm.gui",
+                "config/lua/wezterm.gui",
+            ),
+            Gen(
+                "module: wezterm.mux",
+                "config/lua/wezterm.mux",
+            ),
+            Gen(
+                "module: wezterm.procinfo",
+                "config/lua/wezterm.procinfo",
+            ),
+            Gen(
+                "module: wezterm.time",
+                "config/lua/wezterm.time",
+            ),
+            Gen(
+                "struct: Config",
+                "config/lua/config",
+            ),
+            Gen(
+                "enum: KeyAssignment",
+                "config/lua/keyassignment",
+            ),
+            Gen(
+                "enum: CopyModeAssignment",
+                "config/lua/keyassignment/CopyMode",
+            ),
+            Gen("object: Color", "config/lua/color"),
+            Page("object: ExecDomain", "config/lua/ExecDomain.md"),
+            Page("object: LocalProcessInfo", "config/lua/LocalProcessInfo.md"),
+            Gen("object: MuxDomain", "config/lua/MuxDomain"),
+            Gen("object: MuxWindow", "config/lua/mux-window"),
+            Gen("object: MuxTab", "config/lua/MuxTab"),
+            Page("object: PaneInformation", "config/lua/PaneInformation.md"),
+            Page("object: TabInformation", "config/lua/TabInformation.md"),
+            Page("object: SshDomain", "config/lua/SshDomain.md"),
+            Page("object: SpawnCommand", "config/lua/SpawnCommand.md"),
+            Gen("object: Time", "config/lua/wezterm.time/Time"),
+            Page("object: TlsDomainClient", "config/lua/TlsDomainClient.md"),
+            Page("object: TlsDomainServer", "config/lua/TlsDomainServer.md"),
+            Gen(
+                "object: Pane",
+                "config/lua/pane",
+            ),
+            Gen(
+                "object: Window",
+                "config/lua/window",
+            ),
+            Page("object: WslDomain", "config/lua/WslDomain.md"),
+            Gen(
+                "events: Gui",
+                "config/lua/gui-events",
+            ),
+            Gen(
+                "events: Multiplexer",
+                "config/lua/mux-events",
+            ),
+            Gen(
+                "events: Window",
+                "config/lua/window-events",
             ),
         ],
-    )
+    ),
+    Page(
+        "CLI Reference",
+        "cli/general.md",
+        children=[
+            Gen("wezterm cli", "cli/cli"),
+            Page("wezterm show-keys", "cli/show-keys.md"),
+        ],
+    ),
+    Page(
+        "Reference",
+        None,
+        children=[
+            Page("Escape Sequences", "escape-sequences.md"),
+            Page("What is a Terminal?", "what-is-a-terminal.md"),
+        ],
+    ),
+    Page(
+        "Get Help",
+        None,
+        children=[
+            Page("Getting Help", "help.md"),
+            Page("Troubleshooting", "troubleshooting.md"),
+            Page("F.A.Q.", "faq.md"),
+            Page("Contributing", "contributing.md"),
+        ],
+    ),
+    Page("Change Log", "changelog.md"),
 ]
 
 os.chdir("docs")
-with open("SUMMARY.md", "w") as f:
+
+with open("../mkdocs.yml", "w") as f:
+    f.write("# this is auto-generated by docs/generate-toc.py, do not edit\n")
+    f.write("INHERIT: docs/mkdocs-base.yml\n")
+    f.write("nav:\n")
     for page in TOC:
-        page.render(f)
+        page.render(f, depth=1, mode="mkdocs")
+
+
+with open("SUMMARY.md", "w") as f:
+    f.write("[root](index.md)\n")
+    for page in TOC:
+        page.render(f, depth=1, mode="mdbook")
