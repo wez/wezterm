@@ -4,31 +4,23 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/*"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/termwiz.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "wezterm-ssh/**"
+      - "filedescriptor/**"
+      - "pty/**"
+      - "async_ossl/**"
+      - "termwiz/**"
+      - ".github/workflows/wezterm_ssh.yml"
   push:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/termwiz.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "wezterm-ssh/**"
+      - "filedescriptor/**"
+      - "pty/**"
+      - "async_ossl/**"
+      - "termwiz/**"
+      - ".github/workflows/wezterm_ssh.yml"
 
 jobs:
   build-wezterm-ssh-feature-libssh-rs:
