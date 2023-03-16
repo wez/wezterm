@@ -3,6 +3,45 @@ import os
 import sys
 from copy import deepcopy
 
+TRIGGER_PATHS = [
+    "**/*.rs",
+    "**/Cargo.lock",
+    "**/Cargo.toml",
+    "assets/fonts/**/*",
+    "assets/icon/*",
+    "ci/deploy.sh",
+]
+
+TRIGGER_PATHS_APPIMAGE = [
+    "ci/appimage.sh",
+    "ci/appstreamcli",
+    "ci/source-archive.sh",
+]
+
+TRIGGER_PATHS_UNIX = [
+    "assets/open-wezterm-here",
+    "assets/shell-completion/**/*",
+    "assets/shell-integration/**/*",
+    "assets/wezterm-nautilus.py",
+    "assets/wezterm.appdata.xml",
+    "assets/wezterm.desktop",
+    "get-deps",
+    "tag-name.sh",
+    "termwiz/data/wezterm.terminfo",
+]
+
+TRIGGER_PATHS_MAC = [
+    "assets/macos/**/*",
+    "ci/macos-entitlement.plist",
+    "get-deps",
+    "tag-name.sh",
+]
+
+TRIGGER_PATHS_WIN = [
+    "assets/windows/**/*",
+    "ci/windows-installer.iss",
+]
+
 
 def yv(v, depth=0):
     if v is True:
@@ -883,6 +922,20 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
         else:
             container = ""
 
+        trigger_paths = []
+        trigger_paths += TRIGGER_PATHS
+        if "win" in name:
+            trigger_paths += TRIGGER_PATHS_WIN
+        elif "macos" in name:
+            trigger_paths += TRIGGER_PATHS_MAC
+        else:
+            trigger_paths += TRIGGER_PATHS_UNIX
+        if t.app_image:
+            trigger_paths += TRIGGER_PATHS_APPIMAGE
+
+        trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
+        trigger = trigger.replace("@PATHS@", trigger_paths)
+
         with open(file_name, "w") as f:
             f.write(
                 f"""name: {name}
@@ -931,18 +984,8 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/*"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/workflows/no-response.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
-      - "**/*.markdown"
+    paths:
+      @PATHS@
 """,
         is_continuous=False,
     )
@@ -959,18 +1002,8 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/workflows/no-response.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
-      - "**/*.markdown"
+    paths:
+      @PATHS@
 """,
         is_continuous=True,
     )

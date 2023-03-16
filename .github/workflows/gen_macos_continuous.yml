@@ -6,18 +6,25 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/workflows/no-response.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
-      - "**/*.markdown"
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/appimage.sh"
+      - "ci/appstreamcli"
+      - "ci/deploy.sh"
+      - "ci/source-archive.sh"
+      - "get-deps"
+      - "tag-name.sh"
+      - "termwiz/data/wezterm.terminfo"
 
 jobs:
   build:
