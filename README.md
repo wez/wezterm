@@ -10,7 +10,7 @@ User facing docs and guide at: https://wezfurlong.org/wezterm/
 
 ## Installation
 
-https://wezfurlong.org/wezterm/installation.html
+https://wezfurlong.org/wezterm/installation
 
 ## Getting help
 
