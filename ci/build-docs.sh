@@ -37,9 +37,15 @@ mdbook-linkcheck --standalone docs
 
 # Adjust path to pick up pip-installed binaries
 PATH="$HOME/.local/bin;$PATH"
-pip install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin
+
+PIP=pip3
+if ! hash pip3 >/dev/null ; then
+  PIP=pip
+fi
+
+$PIP install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin
 if test -n "${CARDS}" ; then
-  pip install --quiet pillow cairosvg
+  $PIP install --quiet pillow cairosvg
 fi
 
 black ci/generate-docs.py ci/subst-release-info.py

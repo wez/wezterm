@@ -45,7 +45,7 @@ def pretty(o):
 
 
 def build_subst(subst, stable, categorized):
-    for (kind, info) in categorized.items():
+    for kind, info in categorized.items():
         if info is None:
             continue
         url, name, dir = info
@@ -68,7 +68,7 @@ def load_release_info():
             print("Error", pretty(release_info))
             raise Exception("Error obtaining release info")
 
-        print(pretty(rel))
+        # print(pretty(rel))
         if rel["prerelease"]:
             continue
         latest = rel
@@ -77,13 +77,13 @@ def load_release_info():
     latest = categorize(latest)
     nightly = categorize(nightly)
 
-    print("latest: ", pretty(latest))
-    print("nightly: ", pretty(nightly))
+    # print("latest: ", pretty(latest))
+    # print("nightly: ", pretty(nightly))
 
     subst = {}
     build_subst(subst, "stable", latest)
     build_subst(subst, "nightly", nightly)
-    print(pretty(subst))
+    # print(pretty(subst))
 
     for name in [
         "install/windows",
@@ -95,7 +95,7 @@ def load_release_info():
         with open(f"docs/{name}.markdown", "r") as input:
             with open(f"docs/{name}.md", "w") as output:
                 for line in input:
-                    for (search, replace) in subst.items():
+                    for search, replace in subst.items():
                         line = line.replace(search, replace)
                     output.write(line)
 
