@@ -4,29 +4,15 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/*"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/fmt.yml"
   push:
     branches:
       - main
-    paths-ignore:
-      - ".cirrus.yml"
-      - "docs/**"
-      - "ci/build-docs.sh"
-      - "ci/generate-docs.py"
-      - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/verify-pages.yml"
-      - ".github/ISSUE_TEMPLATE/*"
-      - "**/*.md"
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/fmt.yml"
 
 jobs:
   check-code-formatting:
