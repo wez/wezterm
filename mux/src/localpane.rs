@@ -804,7 +804,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 // TODO: do we need to proactively list available tabs here?
                 // if so we should arrange to call domain.attach() and make
                 // it do the right thing.
-                } else {
+                } else if configuration().log_unknown_escape_sequences {
                     log::warn!("unknown DeviceControlMode::Enter {:?}", mode,);
                 }
             }
@@ -819,11 +819,13 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 }
             }
             DeviceControlMode::Data(c) => {
-                log::warn!(
-                    "unhandled DeviceControlMode::Data {:x} {}",
-                    c,
-                    (c as char).escape_debug()
-                );
+                if configuration().log_unknown_escape_sequences {
+                    log::warn!(
+                        "unhandled DeviceControlMode::Data {:x} {}",
+                        c,
+                        (c as char).escape_debug()
+                    );
+                }
             }
             DeviceControlMode::TmuxEvents(events) => {
                 if let Some(tmux) = self.tmux_domain.as_ref() {
@@ -833,7 +835,9 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 }
             }
             _ => {
-                log::warn!("unhandled: {:?}", control);
+                if configuration().log_unknown_escape_sequences {
+                    log::warn!("unhandled: {:?}", control);
+                }
             }
         }
     }

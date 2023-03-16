@@ -217,6 +217,10 @@ pub trait TerminalConfiguration: std::fmt::Debug + Send + Sync {
     fn enable_title_reporting(&self) -> bool {
         false
     }
+
+    fn log_unknown_escape_sequences(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

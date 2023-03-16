@@ -101,6 +101,10 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
         self.configuration().debug_key_events
     }
 
+    fn log_unknown_escape_sequences(&self) -> bool {
+        self.configuration().log_unknown_escape_sequences
+    }
+
     fn normalize_output_to_unicode_nfc(&self) -> bool {
         self.configuration().normalize_output_to_unicode_nfc
     }

@@ -297,19 +297,29 @@ impl<'a> Performer<'a> {
                                 self.writer.flush().ok();
                             }
                             _ => {
-                                log::warn!("unhandled DECRQSS {:?}", s);
+                                if self.config.log_unknown_escape_sequences() {
+                                    log::warn!("unhandled DECRQSS {:?}", s);
+                                }
                                 // Reply that the request is invalid
                                 write!(self.writer, "{}0$r{}", DCS, ST).ok();
                                 self.writer.flush().ok();
                             }
                         }
                     }
-                    _ => log::warn!("unhandled {:?}", s),
+                    _ => {
+                        if self.config.log_unknown_escape_sequences() {
+                            log::warn!("unhandled {:?}", s);
+                        }
+                    }
                 }
             }
             _ => match self.device_control_handler.as_mut() {
                 Some(handler) => handler.handle_device_control(ctrl),
-                None => log::warn!("unhandled {:?}", ctrl),
+                None => {
+                    if self.config.log_unknown_escape_sequences() {
+                        log::warn!("unhandled {:?}", ctrl);
+                    }
+                }
             },
         }
     }
@@ -432,7 +442,11 @@ impl<'a> Performer<'a> {
 
             ControlCode::Null => {}
 
-            _ => log::warn!("unhandled ControlCode {:?}", control),
+            _ => {
+                if self.config.log_unknown_escape_sequences() {
+                    log::warn!("unhandled ControlCode {:?}", control);
+                }
+            }
         }
     }
 
@@ -523,7 +537,9 @@ impl<'a> Performer<'a> {
                 // to receive it. Just ignore it.
             }
             CSI::Unspecified(unspec) => {
-                log::warn!("unknown unspecified CSI: {:?}", format!("{}", unspec))
+                if self.config.log_unknown_escape_sequences() {
+                    log::warn!("unknown unspecified CSI: {:?}", format!("{}", unspec));
+                }
             }
         };
     }
@@ -670,7 +686,11 @@ impl<'a> Performer<'a> {
                 }
             }
 
-            _ => log::warn!("ESC: unhandled {:?}", esc),
+            _ => {
+                if self.config.log_unknown_escape_sequences() {
+                    log::warn!("ESC: unhandled {:?}", esc);
+                }
+            }
         }
     }
 
@@ -790,7 +810,11 @@ impl<'a> Performer<'a> {
                         }
                     }
                 }
-                _ => log::warn!("unhandled iterm2: {:?}", iterm),
+                _ => {
+                    if self.config.log_unknown_escape_sequences() {
+                        log::warn!("unhandled iterm2: {:?}", iterm);
+                    }
+                }
             },
 
             OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::FreshLine) => {

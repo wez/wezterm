@@ -77,6 +77,9 @@ pub struct Config {
     #[dynamic(default)]
     pub window_decorations: WindowDecorations,
 
+    #[dynamic(default)]
+    pub log_unknown_escape_sequences: bool,
+
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
     /// Relative paths are taken to be relative to the directory
