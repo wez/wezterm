@@ -922,7 +922,7 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
         else:
             container = ""
 
-        trigger_paths = []
+        trigger_paths = [file_name]
         trigger_paths += TRIGGER_PATHS
         if "win" in name:
             trigger_paths += TRIGGER_PATHS_WIN
