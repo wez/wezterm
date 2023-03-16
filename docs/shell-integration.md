@@ -1,5 +1,3 @@
-## Shell Integration
-
 wezterm supports integrating with the shell through the following means:
 
 * `OSC 7` Escape sequences to advise the terminal of the working directory
@@ -28,7 +26,7 @@ can be found below.
 
 [Learn more about OSC 133 Semantic Prompt Escapes](https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md).
 
-### User Vars
+## User Vars
 
 `OSC 1337` provides a means for setting *user vars*, which are somewhat similar
 to environment variables, except that they are variables associated with a
@@ -66,7 +64,7 @@ struct.
 You may wish to use this information to adjust what is shown in your tab titles
 or in the status area.
 
-### OSC 7 Escape sequence to set the working directory
+## OSC 7 Escape sequence to set the working directory
 
 `OSC 7` means Operating System Command number 7.  This is an escape sequence
 that originated in the macOS Terminal application that is used to advise the
@@ -91,7 +89,7 @@ zsh source a `vte.sh` script that configures the shell to emit this
 sequence.  On other systems you will likely need to configure this
 for yourself.
 
-### OSC 7 on Windows with cmd.exe
+## OSC 7 on Windows with cmd.exe
 
 `cmd.exe` doesn't allow a lot of flexibility in configuring the prompt,
 but fortunately it does allow for emitting escape sequences.  You
@@ -109,7 +107,7 @@ return {
 }
 ```
 
-### OSC 7 on Windows with powershell
+## OSC 7 on Windows with powershell
 
 You can configure a custom prompt in powershell by creating/editing your
 [powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1)
@@ -128,7 +126,7 @@ function prompt {
 }
 ```
 
-### OSC 7 on Windows with powershell (with starship)
+## OSC 7 on Windows with powershell (with starship)
 
 When using [Starship](https://starship.rs/), since it has taken control of the prompt, hooking in to set
 OSC 7 can be achieved this way instead:

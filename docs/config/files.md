@@ -3,8 +3,9 @@
 `wezterm` will look for a [lua](https://www.lua.org/manual/5.3/manual.html)
 configuration file using the logic shown below.
 
-The recommendation is to place your configuration file at `$HOME/.wezterm.lua`
-to get started.
+!!! tip
+    The recommendation is to place your configuration file at `$HOME/.wezterm.lua`
+    (`%HOME%/.wezterm.lua` on Windows) to get started.
 
 More complex configurations that need to span multiple files can be placed in
 `$XDG_CONFIG_HOME/wezterm/wezterm.lua` (for X11/Wayland) or
@@ -33,22 +34,25 @@ failed to parse, wezterm would treat it as though it didn't exist and continue
 to try other candidate file locations. In all current versions of wezterm, an
 error will be shown and the default configuration will be used instead.
 
-Note that on Windows, to support users that carry their wezterm application and
-configuration around on a thumb drive, wezterm will look for the config file in
-the same location as wezterm.exe.  That is shown in the chart above as thumb
-drive mode.
+!!! note
+    On Windows, to support users that carry their wezterm application and
+    configuration around on a thumb drive, wezterm will look for the config file in
+    the same location as wezterm.exe.  That is shown in the chart above as thumb
+    drive mode.  It is **not** recommended to store your configs in that
+    location if you are not running off a thumb drive.
 
 `wezterm` will watch the config file that it loads; if/when it changes, the
 configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the `CTRL+SHIFT+R` keyboard shortcut
 to force the configuration to be reloaded.
 
-**The configuration file may be evaluated multiple times for each wezterm
-process** both at startup and in response to the configuration file being
-reloaded.  You should avoid taking actions in the main flow of the config file
-that have side effects; for example, unconditionally launching background
-processes can result in many of them being spawned over time if you launch
-many copies of wezterm, or are frequently reloading your config file.
+!!! info
+    **The configuration file may be evaluated multiple times for each wezterm
+    process** both at startup and in response to the configuration file being
+    reloaded.  You should avoid taking actions in the main flow of the config file
+    that have side effects; for example, unconditionally launching background
+    processes can result in many of them being spawned over time if you launch
+    many copies of wezterm, or are frequently reloading your config file.
 
 ### Configuration Overrides
 
@@ -110,5 +114,7 @@ return {
 }
 ```
 
+## Configuration Reference
 
-
+Continue browsing this section of the docs for an overview of the commonly
+adjusted settings, or visit the [Lua Config Reference](lua/config/index.md) for a more detailed list of possibilities.

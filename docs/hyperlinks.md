@@ -1,5 +1,3 @@
-## Hyperlinks
-
 wezterm has support for both implicit and explicit hyperlinks.
 
 ### Implicit Hyperlinks

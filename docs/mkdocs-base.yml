@@ -10,7 +10,7 @@ site_dir: gh_pages
 theme:
   name: material
   logo: favicon.svg
-  favicon: favicon.svg
+  favicon: favicon.png
   custom_dir: docs/overrides
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -80,6 +80,8 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - def_list
+  - toc:
+      permalink: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -103,3 +105,7 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/wez/wezterm
+    - icon: fontawesome/brands/mastodon
+      link: https://fosstodon.org/@wez
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/wezfurlong

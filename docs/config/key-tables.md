@@ -1,5 +1,3 @@
-## Key Tables
-
 *Since: 20220408-101518-b908e2dd*
 
 In addition to the default key table defined by the `keys` configuration

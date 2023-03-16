@@ -1,7 +1,13 @@
+---
+hide:
+  - toc
+---
 
-<img alt="WezTerm Icon" height="128" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/wezterm-icon.svg" align="left" style="padding-right: 1em"> *WezTerm is a GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
+*WezTerm is a powerful cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
 
-<a class="btn" href="installation.md">Download</a>
+![Screenshot](screenshots/wezterm-vday-screenshot.png)
+
+[Download :material-tray-arrow-down:](installation.md){ .md-button }
 
 ## Features
 
@@ -16,7 +22,9 @@ Looking for a [configuration reference?](config/files.md)
 **These docs are searchable: press `S` or click on the magnifying glass icon
 to activate the search function!**
 
+<figure markdown>
+
 ![Screenshot](screenshots/two.png)
 
-*Screenshot of wezterm on macOS, running vim*
-
+<figcaption>Screenshot of wezterm on macOS, running vim</figcaption>
+</figure>

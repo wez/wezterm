@@ -1,5 +1,3 @@
-## Scrollback
-
 WezTerm provides a searchable scrollback buffer with a configurable maximum
 size limit that allows you to review information that doesn't fit in the
 physical window size.  As content is printed to the display the display may be

@@ -1,7 +1,7 @@
 ### Font Related Configuration
 
 WezTerm bundles [JetBrains Mono](https://www.jetbrains.com/lp/mono/),
-[PowerlineExtraSymbols](https://github.com/ryanoasis/powerline-extra-symbols) and
+[Nerd Font Symbols](https://nerdfonts.com) and
 [Noto Color Emoji](https://www.google.com/get/noto/help/emoji/) fonts
 and uses those for the default font configuration.
 
@@ -26,10 +26,9 @@ text into glyphs the first font in the list is consulted, and if the
 glyph isn't present in that font, WezTerm proceeds to the next font
 in the fallback list.
 
-The default fallback includes the popular
-[PowerlineExtraSymbols](https://github.com/ryanoasis/powerline-extra-symbols)
-font, which means that you don't need to use specially patched fonts to use the
-powerline glyphs.
+The default fallback includes the popular [Nerd Font
+Symbols](https://nerdfonts.com) font, which means that you don't need to use
+specially patched fonts to use the powerline or Nerd Fonts symbol glyphs.
 
 You can specify your own fallback; that's useful if you've got a killer
 monospace font, but it doesn't have glyphs for the asian script that you
@@ -80,7 +79,7 @@ You may use `wezterm ls-fonts` to have wezterm explain information about which f
 
 It shows output like this:
 
-```
+```console
 $ wezterm ls-fonts
 Primary font:
 wezterm.font_with_fallback({
@@ -121,7 +120,7 @@ wezterm.font_with_fallback({
 
 You can ask wezterm to including a listing of all of the fonts on the system in a form that can be copied and pasted into the configuration file:
 
-```
+```console
 $ wezterm ls-fonts --list-system
 <same output as above, but then:>
 112 fonts found in your font_dirs + built-in fonts:
@@ -152,8 +151,8 @@ You may also display the shaping plan for a given text string; in this example,
 the `a` and the `b` are separated by a special symbol which is not present in
 the main font, so we expect to see a different font used for that glyph:
 
-```
-wezterm ls-fonts --text a🞄b
+```console
+$ wezterm ls-fonts --text a🞄b
 a    \u{61}       x_adv=8  glyph=29   wezterm.font("Operator Mono SSm Lig", {weight="DemiLight", stretch="Normal", italic=false})
                                       /home/wez/.fonts/OperatorMonoSSmLig-Medium.otf, FontDirs
 🞄    \u{1f784}    x_adv=4  glyph=9129 wezterm.font("Symbola", {weight="Regular", stretch="SemiCondensed", italic=false})

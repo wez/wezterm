@@ -1,5 +1,3 @@
-## Quick Select Mode
-
 *Since: 20210502-154244-3f7122cb*
 
 Quick Select mode allows you to quickly highlight text that matches

@@ -1,5 +1,5 @@
-**Notice:** *multiplexing is still a young feature and is evolving rapidly.
-Your feedback is welcomed!*
+!!! note
+    *multiplexing is still a young feature and is evolving rapidly.  Your feedback is welcomed!*
 
 ## Multiplexing
 
@@ -55,7 +55,7 @@ settings to use with SSH domains.
 
 To connect to the system, run:
 
-```bash
+```console
 $ wezterm connect my.server
 ```
 
@@ -96,7 +96,7 @@ return {
 If you prefer to connect manually, omit the `default_gui_startup_args` setting
 and then run:
 
-```bash
+```console
 $ wezterm connect unix
 ```
 
@@ -217,7 +217,7 @@ Now when you start wezterm you'll be presented with a WSL tab.
 
 You can also omit `default_gui_startup_args` and use:
 
-```bash
+```console
 $ wezterm connect wsl
 ```
 
@@ -285,6 +285,6 @@ will automatically reconnect using the certificate it obtained during
 bootstrapping if your connection was interrupted and resume your
 remote terminal session
 
-```bash
+```console
 $ wezterm connect server.name
 ```

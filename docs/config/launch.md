@@ -4,31 +4,31 @@ By default, when opening new tabs or windows, your shell will be spawned.
 
 Your shell is determined by the following rules:
 
-### On Posix Systems
+=== "On Posix Systems"
 
-1. The value of the `$SHELL` environment variable is used if it is set
-2. Otherwise, it will resolve your current uid and try to look up your
-   shell from the password database.
+    1. The value of the `$SHELL` environment variable is used if it is set
+    2. Otherwise, it will resolve your current uid and try to look up your
+    shell from the password database.
 
-`wezterm` will spawn the shell and pass `-l` as an argument to request
-a login shell.  A login shell generally loads additional startup files
-and sets up more environment than a non-login shell.
+    `wezterm` will spawn the shell and pass `-l` as an argument to request
+    a login shell.  A login shell generally loads additional startup files
+    and sets up more environment than a non-login shell.
 
-*Since: 20210502-154244-3f7122cb*: instead of passing `-l` to the shell, wezterm
-will spawn the shell as `-$SHELL` to invoke it as a login shell.
+    *Since: 20210502-154244-3f7122cb*: instead of passing `-l` to the shell, wezterm
+    will spawn the shell as `-$SHELL` to invoke it as a login shell.
 
-Note: if you have recently changed your shell using `chsh` and you
-have `$SHELL` set in the environment, you will need to sign out and
-sign back in again for the environment to pick up your new `$SHELL`
-value.
+    Note: if you have recently changed your shell using `chsh` and you
+    have `$SHELL` set in the environment, you will need to sign out and
+    sign back in again for the environment to pick up your new `$SHELL`
+    value.
 
-*Since: 20220903-194523-3bb1ed61*: wezterm will now always resolve the shell via the
-password database.
+    *Since: 20220903-194523-3bb1ed61*: wezterm will now always resolve the shell via the
+    password database.
 
-### On Windows Systems
+=== "On Windows Systems"
 
-1. The value of the `%COMSPEC%` environment variable is used if it is set.
-2. Otherwise, `cmd.exe`
+    1. The value of the `%COMSPEC%` environment variable is used if it is set.
+    2. Otherwise, `cmd.exe`
 
 ## Changing the default program
 
@@ -51,8 +51,8 @@ for example, open an editor in wezterm you can use the `start` subcommand
 to launch it.  This example opens up a new terminal window running vim
 to edit your wezterm configuration:
 
-```bash
-wezterm start -- vim ~/.wezterm.lua
+```console
+$ wezterm start -- vim ~/.wezterm.lua
 ```
 
 ## Specifying the current working directory
@@ -71,8 +71,8 @@ directory you can do so via the config, CLI, and when using
 
 * One off program in a specific working directory via the CLI:
 
-  ```bash
-  wezterm start --cwd /some/path
+  ```console
+  $ wezterm start --cwd /some/path
   ```
 
 * The [`SpawnCommandInNewTab`](lua/keyassignment/SpawnCommandInNewTab.md),

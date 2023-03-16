@@ -1,5 +1,3 @@
-## iTerm Image Protocol Support
-
 wezterm implements support for the [iTerm2 inline images
 protocol](https://iterm2.com/documentation-images.html) and provides a handy
 `imgcat` subcommand to make it easy to try out.  Because the protocol is

@@ -1,5 +1,3 @@
-## Default Shortcut / Key Binding Assignments
-
 The default key assignments are shown in the table below.
 
 You may also use `wezterm show-keys --lua` to see the assignments
@@ -91,4 +89,12 @@ return {
   disable_default_key_bindings = true,
 }
 ```
+
+!!! tip
+    When using `disable_default_key_bindings`, it is recommended that you
+    assign [ShowDebugOverlay](lua/keyassignment/ShowDebugOverlay.md) to
+    something to aid in potential future troubleshooting.
+
+    Likewise, you may wish to assign
+    [ActivateCommandPalette](lua/keyassignment/ActivateCommandPalette.md).
 

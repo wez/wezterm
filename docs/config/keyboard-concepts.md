@@ -1,5 +1,3 @@
-## Keyboard Concepts
-
 `wezterm` allows assigning action(s) to specific key events, and comes
 pre-configured with a number of commonly useful assignments.
 

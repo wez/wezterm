@@ -1,5 +1,3 @@
-## Copy Mode
-
 *since: 20200607-144723-74889cd4*
 
 Copy mode allows you to make selections using the keyboard; no need to reach

@@ -355,7 +355,7 @@ TOC = [
         ],
     ),
     Page(
-        "Install",
+        "Download",
         "installation.md",
         children=[
             Page("Windows", "install/windows.md"),
@@ -369,6 +369,7 @@ TOC = [
         "Configuration",
         "config/files.md",
         children=[
+            Page("Colors & Appearance", "config/appearance.md"),
             Page("Launching Programs", "config/launch.md"),
             Page("Fonts", "config/fonts.md"),
             Page("Font Shaping", "config/font-shaping.md"),
@@ -378,7 +379,6 @@ TOC = [
             Page("Default Key Assignments", "config/default-keys.md"),
             Page("Keyboard Encoding", "config/key-encoding.md"),
             Page("Mouse Binding", "config/mouse.md"),
-            Page("Colors & Appearance", "config/appearance.md"),
             GenColorScheme("Color Schemes", "colorschemes"),
             Gen("Recipes", "recipes", extract_title=True),
         ],
@@ -479,9 +479,9 @@ TOC = [
         "Get Help",
         None,
         children=[
-            Page("Getting Help", "help.md"),
             Page("Troubleshooting", "troubleshooting.md"),
             Page("F.A.Q.", "faq.md"),
+            Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
         ],
     ),

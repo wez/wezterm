@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 WezTerm is available pre-built for the major platforms and, because it is open
 source, you may also build it for yourself.
 
