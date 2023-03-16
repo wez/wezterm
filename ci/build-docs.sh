@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for util in mdbook mdbook-linkcheck mdbook-mermaid mdbook-admonish gelatyx ; do
+for util in mdbook-linkcheck gelatyx ; do
   if ! hash $util 2>/dev/null ; then
     cargo install $util --locked
   fi
