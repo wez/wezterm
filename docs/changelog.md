@@ -129,6 +129,8 @@ As features stabilize some brief notes about them will accumulate here.
   [#3095](https://github.com/wez/wezterm/issues/3095)
 * Panic when decoding animated webp images
   [#3250](https://github.com/wez/wezterm/issues/3250)
+* Config was not applied to non-zoomed panes when config was reloaded
+  [#3259](https://github.com/wez/wezterm/issues/3259)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command

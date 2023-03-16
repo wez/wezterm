@@ -1613,7 +1613,7 @@ impl TermWindow {
             let term_config: Arc<dyn TerminalConfiguration> =
                 Arc::new(TermConfig::with_config(config.clone()));
             for tab in window.iter() {
-                for pane in tab.iter_panes() {
+                for pane in tab.iter_panes_ignoring_zoom() {
                     pane.pane.set_config(Arc::clone(&term_config));
                 }
             }
