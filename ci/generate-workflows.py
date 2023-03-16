@@ -934,12 +934,12 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
             trigger_paths += TRIGGER_PATHS_APPIMAGE
 
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
-        trigger = trigger.replace("@PATHS@", trigger_paths)
+        trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
 
         with open(file_name, "w") as f:
             f.write(
                 f"""name: {name}
-{trigger}
+{trigger_with_paths}
 jobs:
   build:
     runs-on: {yv(job.runs_on)}
