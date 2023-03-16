@@ -13,7 +13,7 @@ git ls-tree -r HEAD --name-only docs | egrep '\.(markdown|md)$' > $tracked_markd
 gelatyx --language lua --file-list $tracked_markdown --language-config ci/stylua.toml
 gelatyx --language lua --file-list $tracked_markdown --language-config ci/stylua.toml --check || exit 1
 
-set -x
+set -ex
 
 # Use the GH CLI to make an authenticated request if available,
 # otherwise just do an ad-hoc curl.
@@ -52,7 +52,7 @@ black ci/generate-docs.py ci/subst-release-info.py
 
 cp "assets/icon/terminal.png" docs/favicon.png
 cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
-mkdir docs/fonts
+mkdir -p docs/fonts
 cp assets/fonts/Symbols-Nerd-Font-Mono.ttf docs/fonts/
 
 mkdocs build
