@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
@@ -252,6 +252,7 @@ pub struct GlyphCache {
     pub block_glyphs: HashMap<SizedBlockKey, Sprite>,
     pub cursor_glyphs: HashMap<(Option<CursorShape>, u8), Sprite>,
     pub color: HashMap<(RgbColor, NotNan<f32>), Sprite>,
+    min_frame_duration: Duration,
 }
 
 impl GlyphCache {
@@ -274,6 +275,7 @@ impl GlyphCache {
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
             color: HashMap::new(),
+            min_frame_duration: Duration::from_millis(1000 / fonts.config().max_fps as u64),
         })
     }
 }
@@ -302,6 +304,7 @@ impl GlyphCache {
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
             color: HashMap::new(),
+            min_frame_duration: Duration::from_millis(1000 / fonts.config().max_fps as u64),
         })
     }
 }
@@ -558,6 +561,7 @@ impl GlyphCache {
         atlas: &mut Atlas,
         decoded: &DecodedImage,
         padding: Option<usize>,
+        min_frame_duration: Duration,
     ) -> anyhow::Result<(Sprite, Option<Instant>)> {
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
@@ -585,7 +589,18 @@ impl GlyphCache {
                 if frames.len() > 1 {
                     let now = Instant::now();
 
-                    let mut next_due = *decoded_frame_start + durations[*decoded_current_frame];
+                    // We round up the frame duration to at least the minimum
+                    // frame duration that wezterm can use when rendering.
+                    // There's no point trying to deal with smaller intervals
+                    // because we simply cannot render them without dropping
+                    // frames.
+                    // In addition, with a 1ms frame delay, there's a good chance
+                    // that any given cell may switch to a different frame from
+                    // its neighbor while we are rendering the entire terminal
+                    // frame, so we want to avoid that.
+                    // <https://github.com/wez/wezterm/issues/3260>
+                    let mut next_due = *decoded_frame_start
+                        + durations[*decoded_current_frame].max(min_frame_duration);
                     if now >= next_due {
                         // Advance to next frame
                         *decoded_current_frame = *decoded_current_frame + 1;
@@ -631,11 +646,22 @@ impl GlyphCache {
         let id = image_data.id() as u64;
 
         if let Some(decoded) = self.image_cache.get(&id) {
-            Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, decoded, padding)
+            Self::cached_image_impl(
+                &mut self.frame_cache,
+                &mut self.atlas,
+                decoded,
+                padding,
+                self.min_frame_duration,
+            )
         } else {
             let decoded = DecodedImage::load(image_data);
-            let res =
-                Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, &decoded, padding)?;
+            let res = Self::cached_image_impl(
+                &mut self.frame_cache,
+                &mut self.atlas,
+                &decoded,
+                padding,
+                self.min_frame_duration,
+            )?;
             self.image_cache.put(id, decoded);
             Ok(res)
         }
