@@ -36,7 +36,7 @@ theme:
     - content.tabs.link
     - navigation.footer
     - navigation.indexes
-    - navigation.instant
+    #- navigation.instant - breaks colorscheme preview
     #- navigation.expand
     - navigation.tabs
     - navigation.tabs.sticky
