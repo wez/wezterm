@@ -196,7 +196,7 @@ impl TerminalState {
                 xpos += x_delta;
             }
             ypos += y_delta;
-            if !params.do_not_move_cursor {
+            if !params.do_not_move_cursor && y < height_in_cells - 1 {
                 self.new_line(false);
             }
         }
@@ -213,7 +213,7 @@ impl TerminalState {
             if bottom_right {
                 self.set_cursor_pos(
                     &Position::Relative(width_in_cells as i64),
-                    &Position::Relative(-1),
+                    &Position::Relative(0),
                 );
             }
         }

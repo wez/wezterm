@@ -138,6 +138,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Default [hyperlink_rules](config/lua/config/hyperlink_rules.md) now match
   URLs with port numbers
   [#928](https://github.com/wez/wezterm/issues/928)
+* Incorrect cursor position after processing iTerm2 image escape sequence
+  [#3266](https://github.com/wez/wezterm/issues/3266)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command
