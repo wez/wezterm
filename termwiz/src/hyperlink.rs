@@ -160,6 +160,10 @@ pub struct Rule {
     /// with ambiguous replacement of `$11` vs `$1` in the case of
     /// more complex regexes.
     pub format: String,
+
+    /// Which capture to highlight
+    #[dynamic(default)]
+    pub highlight: usize,
 }
 
 struct RegexWrap(Regex);
@@ -221,6 +225,7 @@ pub struct RuleMatch {
 }
 
 /// An internal intermediate match result
+#[derive(Debug)]
 struct Match<'t> {
     rule: &'t Rule,
     captures: Captures<'t>,
@@ -229,14 +234,18 @@ struct Match<'t> {
 impl<'t> Match<'t> {
     /// Returns the length of the matched text in bytes (not cells!)
     fn len(&self) -> usize {
-        let c0 = self.captures.get(0).unwrap();
+        let c0 = self.highlight().unwrap();
         c0.end() - c0.start()
     }
 
     /// Returns the span of the matched text, measured in bytes (not cells!)
     fn range(&self) -> Range<usize> {
-        let c0 = self.captures.get(0).unwrap();
+        let c0 = self.highlight().unwrap();
         c0.start()..c0.end()
+    }
+
+    fn highlight(&self) -> Option<regex::Match> {
+        self.captures.get(self.rule.highlight)
     }
 
     /// Expand replacements in the format string to yield the URL
@@ -260,9 +269,14 @@ impl<'t> Match<'t> {
 impl Rule {
     /// Construct a new rule.  It may fail if the regex is invalid.
     pub fn new(regex: &str, format: &str) -> Result<Self> {
+        Self::with_highlight(regex, format, 0)
+    }
+
+    pub fn with_highlight(regex: &str, format: &str, highlight: usize) -> Result<Self> {
         Ok(Self {
             regex: Regex::new(regex)?,
             format: format.to_owned(),
+            highlight,
         })
     }
 
@@ -272,7 +286,10 @@ impl Rule {
         let mut matches = Vec::new();
         for rule in rules.iter() {
             for captures in rule.regex.captures_iter(line) {
-                matches.push(Match { rule, captures });
+                let m = Match { rule, captures };
+                if m.highlight().is_some() {
+                    matches.push(m);
+                }
             }
         }
         // Sort the matches by descending match length.

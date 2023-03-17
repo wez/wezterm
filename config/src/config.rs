@@ -1438,14 +1438,18 @@ fn default_initial_cols() -> u16 {
     80
 }
 
-fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
+pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
     vec![
-        // URL with a protocol
-        hyperlink::Rule::new(r"\b\w+://[\w.-]+\.[a-z]{2,15}\S*\b", "$0").unwrap(),
+        // First handle URLs wrapped with punctuation (i.e. brackets)
+        // e.g. [http://foo] (http://foo) <http://foo>
+        hyperlink::Rule::with_highlight(r"\((\w+://\S+)\)", "$1", 1).unwrap(),
+        hyperlink::Rule::with_highlight(r"\[(\w+://\S+)\]", "$1", 1).unwrap(),
+        hyperlink::Rule::with_highlight(r"<(\w+://\S+)>", "$1", 1).unwrap(),
+        // Then handle URLs not wrapped in brackets
+        // and include terminating ), / or - characters, if any
+        hyperlink::Rule::new(r"\b\w+://\S+[)/a-zA-Z0-9-]+", "$0").unwrap(),
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
-        // file://
-        hyperlink::Rule::new(r"\bfile://\S*\b", "$0").unwrap(),
     ]
 }
 

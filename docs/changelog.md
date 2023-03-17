@@ -79,6 +79,10 @@ As features stabilize some brief notes about them will accumulate here.
   [#1485](https://github.com/wez/wezterm/issues/1485)
 * `wezterm sssh` now supports `%l` and `%L` tokens in config files.
   [#3176](https://github.com/wez/wezterm/issues/3176)
+* [hyperlink_rules](config/lua/config/hyperlink_rules.md) now support
+  specifying which capture group should be highlighted.
+* [wezterm.default_hyperlink_rules](config/lua/wezterm/default_hyperlink_rules.md)
+  function makes it easier to extend the default set of hyperlink rules.
 
 #### Fixed
 * X11: hanging or killing the IME could hang wezterm
@@ -131,6 +135,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#3250](https://github.com/wez/wezterm/issues/3250)
 * Config was not applied to non-zoomed panes when config was reloaded
   [#3259](https://github.com/wez/wezterm/issues/3259)
+* Default [hyperlink_rules](config/lua/config/hyperlink_rules.md) now match
+  URLs with port numbers
+  [#928](https://github.com/wez/wezterm/issues/928)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command

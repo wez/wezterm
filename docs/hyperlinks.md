@@ -5,66 +5,42 @@ wezterm has support for both implicit and explicit hyperlinks.
 Implicit hyperlinks are produced by running a series of rules over the output
 displayed in the terminal to produce a hyperlink.  There is a default rule
 to match URLs and make them clickable, but you can also specify your own rules
-to make your own links.  As an example, at my place of work many of our internal
-tools use `T123` to indicate task number 123 in our internal task tracking system.
-It is desirable to make this clickable, and that can be done with the following
-configuration in your `~/.wezterm.lua`:
+to make your own links.
+
+As an example, at my place of work many of our internal tools use `T123` to
+indicate task number 123 in our internal task tracking system.  It is desirable
+to make this clickable, and that can be done with the following configuration
+in your `~/.wezterm.lua`:
 
 ```lua
+local wezterm = require 'wezterm'
+
+-- Use the defaults as a base
+local hyperlink_rules = wezterm.default_hyperlink_rules()
+
+-- make task numbers clickable
+-- the first matched regex group is captured in $1.
+table.insert(hyperlink_rules, {
+  regex = [[\b[tt](\d+)\b]],
+  format = 'https://example.com/tasks/?t=$1',
+})
+
+-- make username/project paths clickable. this implies paths like the following are for github.
+-- ( "nvim-treesitter/nvim-treesitter" | wbthomason/packer.nvim | wez/wezterm | "wez/wezterm.git" )
+-- as long as a full url hyperlink regex exists above this it should not match a full url to
+-- github or gitlab / bitbucket (i.e. https://gitlab.com/user/project.git is still a whole clickable url)
+table.insert(hyperlink_rules, {
+  regex = [[["]?([\w\d]{1}[-\w\d]+)(/){1}([-\w\d\.]+)["]?]],
+  format = 'https://www.github.com/$1/$3',
+})
+
 return {
-  hyperlink_rules = {
-    -- Linkify things that look like URLs and the host has a TLD name.
-    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
-    {
-      regex = '\\b\\w+://[\\w.-]+\\.[a-z]{2,15}\\S*\\b',
-      format = '$0',
-    },
-
-    -- linkify email addresses
-    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
-    {
-      regex = [[\b\w+@[\w-]+(\.[\w-]+)+\b]],
-      format = 'mailto:$0',
-    },
-
-    -- file:// URI
-    -- Compiled-in default. Used if you don't specify any hyperlink_rules.
-    {
-      regex = [[\bfile://\S*\b]],
-      format = '$0',
-    },
-
-    -- Linkify things that look like URLs with numeric addresses as hosts.
-    -- E.g. http://127.0.0.1:8000 for a local development server,
-    -- or http://192.168.1.1 for the web interface of many routers.
-    {
-      regex = [[\b\w+://(?:[\d]{1,3}\.){3}[\d]{1,3}\S*\b]],
-      format = '$0',
-    },
-
-    -- Make task numbers clickable
-    -- The first matched regex group is captured in $1.
-    {
-      regex = [[\b[tT](\d+)\b]],
-      format = 'https://example.com/tasks/?t=$1',
-    },
-
-    -- Make username/project paths clickable. This implies paths like the following are for GitHub.
-    -- ( "nvim-treesitter/nvim-treesitter" | wbthomason/packer.nvim | wez/wezterm | "wez/wezterm.git" )
-    -- As long as a full URL hyperlink regex exists above this it should not match a full URL to
-    -- GitHub or GitLab / BitBucket (i.e. https://gitlab.com/user/project.git is still a whole clickable URL)
-    {
-      regex = [[["]?([\w\d]{1}[-\w\d]+)(/){1}([-\w\d\.]+)["]?]],
-      format = 'https://www.github.com/$1/$3',
-    },
-  },
+  hyperlink_rules = hyperlink_rules,
 }
 ```
 
-Note that it is generally convenient to use literal strings (`[[...]]`)
-when declaring your hyperlink rules, so you won't have to escape
-backslashes.  In the example above, all cases except the first use
-literal strings for their regular expressions.
+See also [hyperlink_rules](config/lua/config/hyperlink_rules.md) and
+[default_hyperlink_rules](config/lua/wezterm/default_hyperlink_rules.md).
 
 
 ### Explicit Hyperlinks

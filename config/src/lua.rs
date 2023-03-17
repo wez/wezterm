@@ -353,6 +353,14 @@ end
         wezterm_mod.set("shell_quote_arg", lua.create_function(shell_quote_arg)?)?;
         wezterm_mod.set("shell_split", lua.create_function(shell_split)?)?;
 
+        wezterm_mod.set(
+            "default_hyperlink_rules",
+            lua.create_function(move |lua, ()| {
+                let rules = crate::config::default_hyperlink_rules();
+                Ok(to_lua(lua, rules))
+            })?,
+        )?;
+
         // Define our own os.getenv function that knows how to resolve current
         // environment values from eg: the registry on Windows, or for
         // the current SHELL value on unix, even if the user has changed
