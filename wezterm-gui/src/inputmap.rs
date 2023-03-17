@@ -74,7 +74,10 @@ impl InputMap {
                 //
                 // See: <https://github.com/wez/wezterm/issues/3262>
                 let (disable_code, disable_mods) = code.normalize_shift(mods);
-                if keys.default.contains_key(&(disable_code.clone(), disable_mods)) {
+                if keys
+                    .default
+                    .contains_key(&(disable_code.clone(), disable_mods))
+                {
                     continue;
                 }
                 keys.default
