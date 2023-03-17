@@ -26,6 +26,7 @@ pub enum KittyImageData {
     /// The data bytes, baes64-encoded fragments.
     /// t='d'
     Direct(String),
+    DirectBin(Vec<u8>),
     /// The path to a file containing the data.
     /// t='f'
     File {
@@ -72,6 +73,7 @@ impl std::fmt::Debug for KittyImageData {
     fn fmt(&self, fmt: &mut Formatter) -> std::fmt::Result {
         match self {
             Self::Direct(data) => write!(fmt, "Direct({} bytes of data)", data.len()),
+            Self::DirectBin(data) => write!(fmt, "DirectBin({} bytes of data)", data.len()),
             Self::File {
                 path,
                 data_offset,
@@ -136,6 +138,9 @@ impl KittyImageData {
             Self::Direct(d) => {
                 keys.insert("payload", d.to_string());
             }
+            Self::DirectBin(d) => {
+                keys.insert("payload", base64_encode(d));
+            }
             Self::File {
                 path,
                 data_offset,
@@ -195,9 +200,13 @@ impl KittyImageData {
         }
 
         match self {
-            Self::Direct(data) => {
-                base64_decode(data).or_else(|_| Err(std::io::ErrorKind::InvalidInput.into()))
-            }
+            Self::Direct(data) => base64_decode(data).or_else(|err| {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("base64 decode: {err:#}"),
+                ))
+            }),
+            Self::DirectBin(bin) => Ok(bin),
             Self::File {
                 path,
                 data_offset,
@@ -1067,19 +1076,19 @@ impl KittyImage {
             keys.insert(k, v);
         }
 
-        let payload = keys_payload_iter.next();
+        let payload = keys_payload_iter.next().unwrap_or(b"");
         let action = get(&keys, "a").unwrap_or("t");
         let verbosity = KittyImageVerbosity::from_keys(&keys)?;
         match action {
             "t" => Some(Self::TransmitData {
-                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+                transmit: KittyImageTransmit::from_keys(&keys, payload)?,
                 verbosity,
             }),
             "q" => Some(Self::Query {
-                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+                transmit: KittyImageTransmit::from_keys(&keys, payload)?,
             }),
             "T" => Some(Self::TransmitDataAndDisplay {
-                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+                transmit: KittyImageTransmit::from_keys(&keys, payload)?,
                 placement: KittyImagePlacement::from_keys(&keys)?,
                 verbosity,
             }),
@@ -1094,7 +1103,7 @@ impl KittyImage {
                 verbosity,
             }),
             "f" => Some(Self::TransmitFrame {
-                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+                transmit: KittyImageTransmit::from_keys(&keys, payload)?,
                 frame: KittyImageFrame::from_keys(&keys)?,
                 verbosity,
             }),

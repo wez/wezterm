@@ -145,6 +145,8 @@ As features stabilize some brief notes about them will accumulate here.
   reduces the render latency due to decoding frames; animations now render as
   soon as the first frame is decoded.
   [#3263](https://github.com/wez/wezterm/issues/3263)
+* Improved compatiblity with the Kitty Image Protocol
+  [#2716](https://github.com/wez/wezterm/issues/2716)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command
