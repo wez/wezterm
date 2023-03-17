@@ -290,7 +290,11 @@ impl FrameDecoder {
 
         let frame = frames
             .next()
-            .ok_or_else(|| anyhow::anyhow!("no frames!?"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Image format is not fully supported by \
+                    https://github.com/image-rs/image/blob/master/README.md#supported-image-formats")
+            })?;
         let frame = frame?;
 
         let mut durations = vec![];
@@ -410,15 +414,17 @@ impl FrameState {
             },
         }
     }
-    fn load_next_frame(&mut self) -> anyhow::Result<bool> {
+    fn load_next_frame(&mut self) -> bool {
         match self.rx.try_recv() {
             Ok(frame) => {
                 self.current_frame = frame;
-                Ok(true)
+                true
             }
-            Err(TryRecvError::Empty) => Ok(false),
+            Err(TryRecvError::Empty) => false,
             Err(TryRecvError::Disconnected) => {
-                anyhow::bail!("decoded thread terminated");
+                log::warn!("decoder thread terminated");
+                self.current_frame.duration = Duration::from_secs(86400);
+                false
             }
         }
     }
@@ -939,7 +945,7 @@ impl GlyphCache {
                     *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
                 if now >= next_due {
                     // Advance to next frame
-                    if frames.load_next_frame()? {
+                    if frames.load_next_frame() {
                         *decoded_current_frame = *decoded_current_frame + 1;
                         *decoded_frame_start = now;
                         next_due =
