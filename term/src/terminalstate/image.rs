@@ -1,5 +1,6 @@
 use crate::{Position, StableRowIndex, TerminalState};
 use anyhow::Context;
+use humansize::{SizeFormatter, DECIMAL};
 use ordered_float::NotNan;
 use std::sync::Arc;
 use termwiz::cell::Cell;
@@ -244,11 +245,12 @@ pub(crate) fn check_image_dimensions(width: u32, height: u32) -> anyhow::Result<
     let size = width.saturating_mul(height).saturating_mul(4);
     if size > MAX_IMAGE_SIZE {
         anyhow::bail!(
-            "Ignoring image data {}x{} because {} bytes > max allowed {}",
+            "Ignoring image data for image with dimensions {}x{} \
+             because required RAM {} > max allowed {}",
             width,
             height,
-            size,
-            MAX_IMAGE_SIZE
+            SizeFormatter::new(size, DECIMAL),
+            SizeFormatter::new(MAX_IMAGE_SIZE, DECIMAL),
         );
     }
     Ok(())
