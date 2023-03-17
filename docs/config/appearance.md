@@ -21,10 +21,11 @@ If you'd like to automatically adjust your color scheme based on the
 system dark mode or light mode appearance, see the example in
 [wezterm.gui.get_appearance()](lua/wezterm.gui/get_appearance.md)
 
-*Note: if you are using multiplexing with ssh or tls domains, the color scheme
-is controlled by the config file on the multiplexer server side. This is
-because the palette is an attribute of the terminal emulation and that state
-lives on the multiplexer server.*
+!!! note
+    if you are using multiplexing with ssh or tls domains, the color scheme
+    is controlled by the config file on the multiplexer server side. This is
+    because the palette is an attribute of the terminal emulation and that state
+    lives on the multiplexer server.*
 
 ### Precedence of `colors` vs `color_schemes`
 
