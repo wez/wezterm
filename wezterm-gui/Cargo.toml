@@ -68,6 +68,7 @@ mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 open = "4.0"
 ordered-float = "3.0"
+ouroboros = "0.15"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }

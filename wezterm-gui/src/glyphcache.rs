@@ -7,8 +7,11 @@ use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect};
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
+use image::io::Limits;
+use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageFormat, ImageResult};
 use lfucache::LfuCacheU64;
 use ordered_float::NotNan;
+use ouroboros::self_referencing;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -193,11 +196,170 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
     }
 }
 
+#[self_referencing]
+struct OwnedFrames {
+    data: Arc<Vec<u8>>,
+    #[borrows(data)]
+    #[covariant]
+    frames: Frames<'this>,
+}
+
+impl std::fmt::Debug for OwnedFrames {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("OwnedFrames").finish()
+    }
+}
+
+impl OwnedFrames {
+    pub fn make(data: &Arc<Vec<u8>>, format: ImageFormat, limits: Limits) -> anyhow::Result<Self> {
+        Ok(OwnedFramesTryBuilder {
+            data: Arc::clone(data),
+            frames_builder: |data: &Arc<Vec<u8>>| Self::get_frames(format, limits, data),
+        }
+        .try_build()?)
+    }
+
+    pub fn next(&mut self) -> Option<ImageResult<Frame>> {
+        self.with_frames_mut(|frames| frames.next())
+    }
+
+    fn single_frame<'a>(
+        format: ImageFormat,
+        limits: Limits,
+        data: &'a [u8],
+    ) -> anyhow::Result<Frames<'a>> {
+        let mut reader = image::io::Reader::with_format(std::io::Cursor::new(data), format);
+        reader.limits(limits);
+        let buf = reader.decode()?;
+        let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
+        let frame = Frame::from_parts(buf.into_rgba8(), 0, 0, delay);
+        Ok(Frames::new(Box::new(std::iter::once(ImageResult::Ok(
+            frame,
+        )))))
+    }
+
+    fn get_frames<'a>(
+        format: ImageFormat,
+        limits: Limits,
+        data: &'a [u8],
+    ) -> anyhow::Result<Frames<'a>> {
+        Ok(match format {
+            ImageFormat::Gif => {
+                let decoder = image::codecs::gif::GifDecoder::with_limits(data, limits)?;
+                decoder.into_frames()
+            }
+            ImageFormat::Png => {
+                let decoder = image::codecs::png::PngDecoder::with_limits(data, limits.clone())?;
+                if decoder.is_apng() {
+                    decoder.apng().into_frames()
+                } else {
+                    Self::single_frame(format, limits, data)?
+                }
+            }
+            ImageFormat::WebP => {
+                let mut decoder = image::codecs::webp::WebPDecoder::new(data)?;
+                decoder.set_limits(limits)?;
+                decoder.into_frames()
+            }
+            _ => Self::single_frame(format, limits, data)?,
+        })
+    }
+}
+
+struct FrameState {
+    data: Arc<Vec<u8>>,
+    frames: OwnedFrames,
+    format: ImageFormat,
+    limits: Limits,
+    current_frame: Frame,
+    hash: [u8; 32],
+}
+
+impl FrameState {
+    fn new(
+        data: Arc<Vec<u8>>,
+        frames: OwnedFrames,
+        format: ImageFormat,
+        limits: Limits,
+        current_frame: Frame,
+    ) -> Self {
+        let hash = ImageDataType::hash_bytes(current_frame.buffer().as_raw());
+        Self {
+            data,
+            frames,
+            format,
+            limits,
+            current_frame,
+            hash,
+        }
+    }
+
+    fn load_next_frame(&mut self) -> anyhow::Result<()> {
+        loop {
+            let start = Instant::now();
+            match self.frames.next() {
+                Some(Ok(frame)) => {
+                    log::info!("next took {:?}", start.elapsed());
+                    let duration: Duration = frame.delay().into();
+                    if duration.as_millis() == 0 {
+                        continue;
+                    }
+                    self.hash = ImageDataType::hash_bytes(frame.buffer().as_raw());
+                    self.current_frame = frame;
+                    return Ok(());
+                }
+                Some(Err(err)) => {
+                    log::warn!("error decoding next frame: {err:#}");
+                    continue;
+                }
+                None => {
+                    log::info!("last next took {:?}", start.elapsed());
+                    let start = Instant::now();
+                    let frames = OwnedFrames::make(&self.data, self.format, self.limits.clone())?;
+                    log::info!("make took {:?}", start.elapsed());
+                    self.frames = frames;
+                    continue;
+                }
+            }
+        }
+    }
+
+    fn frame_duration(&self) -> Duration {
+        self.current_frame.delay().into()
+    }
+
+    fn frame_hash(&self) -> &[u8; 32] {
+        &self.hash
+    }
+}
+
+impl BitmapImage for FrameState {
+    unsafe fn pixel_data(&self) -> *const u8 {
+        self.current_frame.buffer().as_raw().as_slice().as_ptr()
+    }
+
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
+        panic!("cannot mutate DecodedImage");
+    }
+
+    fn image_dimensions(&self) -> (usize, usize) {
+        let (width, height) = self.current_frame.buffer().dimensions();
+        (width as usize, height as usize)
+    }
+}
+
+impl std::fmt::Debug for FrameState {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("FrameState").finish()
+    }
+}
+
 #[derive(Debug)]
 pub struct DecodedImage {
     frame_start: RefCell<Instant>,
     current_frame: RefCell<usize>,
     image: Arc<ImageData>,
+    frames: RefCell<Option<FrameState>>,
 }
 
 impl DecodedImage {
@@ -208,15 +370,46 @@ impl DecodedImage {
             frame_start: RefCell::new(Instant::now()),
             current_frame: RefCell::new(0),
             image: Arc::new(image),
+            frames: RefCell::new(None),
         }
     }
 
     fn load(image_data: &Arc<ImageData>) -> Self {
         match &*image_data.data() {
-            ImageDataType::EncodedFile(_) => {
-                log::warn!("Unexpected ImageDataType::EncodedFile; either file is unreadable or we missed a .decode call somewhere");
-                Self::placeholder()
-            }
+            ImageDataType::EncodedFile(data) => match image::guess_format(&data) {
+                Ok(format) => {
+                    let data = Arc::new(data.clone());
+                    let limits = Limits::default();
+                    match OwnedFrames::make(&data, format, limits.clone()) {
+                        Ok(mut frames) => match frames.next() {
+                            Some(Ok(current_frame)) => Self {
+                                frame_start: RefCell::new(Instant::now()),
+                                current_frame: RefCell::new(0),
+                                image: Arc::clone(image_data),
+                                frames: RefCell::new(Some(FrameState::new(
+                                    data,
+                                    frames,
+                                    format,
+                                    limits,
+                                    current_frame,
+                                ))),
+                            },
+                            _ => {
+                                log::warn!("unable to decode first image frame. Using placeholder");
+                                Self::placeholder()
+                            }
+                        },
+                        Err(err) => {
+                            log::warn!("unable to decode image: {err:#}. Using placeholder");
+                            Self::placeholder()
+                        }
+                    }
+                }
+                Err(err) => {
+                    log::warn!("unable to decode image: {err:#}. Using placeholder");
+                    Self::placeholder()
+                }
+            },
             ImageDataType::AnimRgba8 { durations, .. } => {
                 let current_frame = if durations.len() > 1 && durations[0].as_millis() == 0 {
                     // Skip possible 0-duration root frame
@@ -228,6 +421,7 @@ impl DecodedImage {
                     frame_start: RefCell::new(Instant::now()),
                     current_frame: RefCell::new(current_frame),
                     image: Arc::clone(image_data),
+                    frames: RefCell::new(None),
                 }
             }
 
@@ -235,6 +429,7 @@ impl DecodedImage {
                 frame_start: RefCell::new(Instant::now()),
                 current_frame: RefCell::new(0),
                 image: Arc::clone(image_data),
+                frames: RefCell::new(None),
             },
         }
     }
@@ -612,7 +807,8 @@ impl GlyphCache {
                             }
                         }
                         *decoded_frame_start = now;
-                        next_due = *decoded_frame_start + durations[*decoded_current_frame];
+                        next_due = *decoded_frame_start
+                            + durations[*decoded_current_frame].max(min_frame_duration);
                         handle.current_frame = *decoded_current_frame;
                     }
 
@@ -631,10 +827,60 @@ impl GlyphCache {
 
                 return Ok((
                     sprite,
-                    Some(*decoded_frame_start + durations[*decoded_current_frame]),
+                    Some(
+                        *decoded_frame_start
+                            + durations[*decoded_current_frame].max(min_frame_duration),
+                    ),
                 ));
             }
-            ImageDataType::EncodedFile(_) => unreachable!(),
+            ImageDataType::EncodedFile(_) => {
+                let mut frames = decoded.frames.borrow_mut();
+                let frames = frames.as_mut().expect("to have frames");
+
+                let mut next = None;
+                let mut decoded_frame_start = decoded.frame_start.borrow_mut();
+                let mut decoded_current_frame = decoded.current_frame.borrow_mut();
+                let now = Instant::now();
+
+                // We round up the frame duration to at least the minimum
+                // frame duration that wezterm can use when rendering.
+                // There's no point trying to deal with smaller intervals
+                // because we simply cannot render them without dropping
+                // frames.
+                // In addition, with a 1ms frame delay, there's a good chance
+                // that any given cell may switch to a different frame from
+                // its neighbor while we are rendering the entire terminal
+                // frame, so we want to avoid that.
+                // <https://github.com/wez/wezterm/issues/3260>
+                let mut next_due =
+                    *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
+                if now >= next_due {
+                    // Advance to next frame
+                    frames.load_next_frame()?;
+                    *decoded_current_frame = *decoded_current_frame + 1;
+                    *decoded_frame_start = now;
+                    next_due =
+                        *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
+                    handle.current_frame = *decoded_current_frame;
+                }
+
+                next.replace(next_due);
+
+                let hash = *frames.frame_hash();
+
+                if let Some(sprite) = frame_cache.get(&hash) {
+                    return Ok((sprite.clone(), next));
+                }
+
+                let sprite = atlas.allocate_with_padding(frames, padding)?;
+
+                frame_cache.insert(hash, sprite.clone());
+
+                Ok((
+                    sprite,
+                    Some(*decoded_frame_start + frames.frame_duration().max(min_frame_duration)),
+                ))
+            }
         }
     }
 

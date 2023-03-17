@@ -72,6 +72,10 @@ pub enum InternalError {
     #[error(transparent)]
     FileDescriptor(#[from] filedescriptor::Error),
 
+    #[cfg(feature = "use_image")]
+    #[error(transparent)]
+    ImageError(#[from] image::ImageError),
+
     #[error("{}", .context)]
     Context {
         context: String,
