@@ -49,6 +49,34 @@ impl InputMap {
 
         if !config.disable_default_key_bindings {
             for (mods, code, action) in CommandDef::default_key_assignments(config) {
+                // If the user configures {key='p', mods='CTRL|SHIFT'} that gets
+                // normalized into {key='P', mods='CTRL'} in Config::key_bindings(),
+                // and that value exists in `keys.default` when we reach this point.
+                //
+                // When we get here with the default assignments for ActivateCommandPalette
+                // we are going to register un-normalized entries that don't match
+                // the existing normalized entry.
+                //
+                // Ideally we'd unconditionally normalize_shift
+                // here and register the result if it isn't already in the map.
+                //
+                // Our default set of assignments deliberately and explicitly emits
+                // variations on SHIFT as a workaround for an issue with
+                // normalization under X11: <https://github.com/wez/wezterm/issues/1906>.
+                // Until that is resolved, we need to keep emitting both variants.
+                //
+                // In order for the DisableDefaultAssignment behavior to work with the
+                // least surprises, and for these normalization related workarounds
+                // to continue? to work, the approach we take here is to lookup the
+                // normalized version of what we're about to register, and if we get
+                // a match, skip this key.  Otherwise register the non-normalized
+                // version from default_key_assignments().
+                //
+                // See: <https://github.com/wez/wezterm/issues/3262>
+                let (disable_code, disable_mods) = code.normalize_shift(mods);
+                if keys.default.contains_key(&(disable_code.clone(), disable_mods)) {
+                    continue;
+                }
                 keys.default
                     .entry((code, mods))
                     .or_insert(KeyTableEntry { action });
