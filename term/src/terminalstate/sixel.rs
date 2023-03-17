@@ -114,7 +114,13 @@ impl TerminalState {
         let data = image.into_vec();
         let image_data = ImageDataType::new_single_frame(width, height, data);
 
-        let image_data = self.raw_image_to_image_data(image_data);
+        let image_data = match self.raw_image_to_image_data(image_data) {
+            Ok(d) => d,
+            Err(err) => {
+                log::error!("error while processing sixel image: {err:#}");
+                return;
+            }
+        };
         let old_cursor = self.cursor;
         if self.sixel_display_mode {
             // Sixel Display Mode (DECSDM) requires placing the image

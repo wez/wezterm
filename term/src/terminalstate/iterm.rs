@@ -113,7 +113,14 @@ impl TerminalState {
             },
         };
 
-        let image_data = self.raw_image_to_image_data(data);
+        let image_data = match self.raw_image_to_image_data(data) {
+            Ok(d) => d,
+            Err(err) => {
+                log::error!("error processing image data: {err:#}");
+                return;
+            }
+        };
+
         if let Err(err) = self.assign_image_to_cells(ImageAttachParams {
             image_width: width as u32,
             image_height: height as u32,

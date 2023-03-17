@@ -579,6 +579,7 @@ impl TerminfoRenderer {
                             // original image bytes over
                             match &*image.image.data() {
                                 ImageDataType::EncodedFile(data) => data.to_vec(),
+                                ImageDataType::File(file) => file.data()?,
                                 ImageDataType::AnimRgba8 { .. } | ImageDataType::Rgba8 { .. } => {
                                     unimplemented!()
                                 }

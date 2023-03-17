@@ -254,6 +254,14 @@ impl FileDescriptor {
     }
 
     #[inline]
+    pub(crate) fn as_file_impl(&self) -> Result<std::fs::File> {
+        let duped = OwnedHandle::dup(self)?;
+        let fd = duped.into_raw_fd();
+        let stdio = unsafe { std::fs::File::from_raw_fd(fd) };
+        Ok(stdio)
+    }
+
+    #[inline]
     pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> Result<()> {
         let on = if non_blocking { 1 } else { 0 };
         let res = unsafe { libc::ioctl(self.handle.as_raw_file_descriptor(), libc::FIONBIO, &on) };

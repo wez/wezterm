@@ -304,6 +304,13 @@ impl FileDescriptor {
         self.as_stdio_impl()
     }
 
+    /// A convenience method for creating a `std::fs::File` object.
+    /// The `File` is created using a duplicated handle so
+    /// that the source handle remains alive.
+    pub fn as_file(&self) -> Result<std::fs::File> {
+        self.as_file_impl()
+    }
+
     /// Attempt to change the non-blocking IO mode of the file descriptor.
     /// Not all kinds of file descriptor can be placed in non-blocking mode
     /// on all systems, and some file descriptors will claim to be in

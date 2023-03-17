@@ -234,6 +234,14 @@ impl FileDescriptor {
     }
 
     #[inline]
+    pub(crate) fn as_file_impl(&self) -> Result<std::fs::File> {
+        let duped = self.handle.try_clone()?;
+        let handle = duped.into_raw_handle();
+        let stdio = unsafe { std::fs::File::from_raw_handle(handle) };
+        Ok(stdio)
+    }
+
+    #[inline]
     pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> Result<()> {
         if !self.handle.is_socket_handle() {
             return Err(Error::OnlySocketsNonBlocking);

@@ -227,14 +227,18 @@ impl TerminalState {
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
-    pub(crate) fn raw_image_to_image_data(&mut self, data: ImageDataType) -> Arc<ImageData> {
+    pub(crate) fn raw_image_to_image_data(
+        &mut self,
+        data: ImageDataType,
+    ) -> std::io::Result<Arc<ImageData>> {
         let key = data.compute_hash();
         if let Some(item) = self.image_cache.get(&key) {
-            Arc::clone(item)
+            Ok(Arc::clone(item))
         } else {
+            let data = data.swap_out()?;
             let image_data = Arc::new(ImageData::with_data(data));
             self.image_cache.put(key, Arc::clone(&image_data));
-            image_data
+            Ok(image_data)
         }
     }
 }

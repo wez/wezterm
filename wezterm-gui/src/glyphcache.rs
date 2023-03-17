@@ -5,20 +5,24 @@ use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect};
+use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use image::io::Limits;
 use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageFormat, ImageResult};
 use lfucache::LfuCacheU64;
 use ordered_float::NotNan;
-use ouroboros::self_referencing;
+use parking_lot::Mutex;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, Read, Seek, Write};
 use std::rc::Rc;
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
-use termwiz::image::{ImageData, ImageDataType};
+use termwiz::image::{ImageData, ImageDataFile, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
@@ -179,7 +183,7 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
         match &*self.h {
             ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
             ImageDataType::AnimRgba8 { frames, .. } => frames[self.current_frame].as_ptr(),
-            ImageDataType::EncodedFile(_) => unreachable!(),
+            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
 
@@ -191,151 +195,246 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
         match &*self.h {
             ImageDataType::Rgba8 { width, height, .. }
             | ImageDataType::AnimRgba8 { width, height, .. } => (*width as usize, *height as usize),
-            ImageDataType::EncodedFile(_) => unreachable!(),
+            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
 }
 
-#[self_referencing]
-struct OwnedFrames {
-    data: Arc<Vec<u8>>,
-    #[borrows(data)]
-    #[covariant]
-    frames: Frames<'this>,
+struct DecodedFrame {
+    data: Arc<Mutex<Vec<u8>>>,
+    duration: Duration,
+    hash: [u8; 32],
+    width: usize,
+    height: usize,
 }
 
-impl std::fmt::Debug for OwnedFrames {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        fmt.debug_struct("OwnedFrames").finish()
-    }
-}
+struct FrameDecoder {}
 
-impl OwnedFrames {
-    pub fn make(data: &Arc<Vec<u8>>, format: ImageFormat, limits: Limits) -> anyhow::Result<Self> {
-        Ok(OwnedFramesTryBuilder {
-            data: Arc::clone(data),
-            frames_builder: |data: &Arc<Vec<u8>>| Self::get_frames(format, limits, data),
-        }
-        .try_build()?)
+impl FrameDecoder {
+    pub fn start(file: ImageDataFile) -> anyhow::Result<Receiver<DecodedFrame>> {
+        let (tx, rx) = sync_channel(2);
+
+        let file_dup = file.duplicate_file()?;
+        let buf_reader = std::io::BufReader::new(file_dup);
+        let reader = image::io::Reader::new(buf_reader).with_guessed_format()?;
+        let format = reader
+            .format()
+            .ok_or_else(|| anyhow::anyhow!("cannot determine image format"))?;
+
+        let scratch_file = tempfile::tempfile().context("make scratch file for decoding image")?;
+
+        std::thread::spawn(move || {
+            if let Err(err) = Self::run_decoder_thread(reader, format, file, scratch_file, tx) {
+                if err
+                    .downcast_ref::<std::sync::mpsc::SendError<DecodedFrame>>()
+                    .is_none()
+                {
+                    log::error!("Error decoding image: {err:#}");
+                }
+            }
+        });
+
+        Ok(rx)
     }
 
-    pub fn next(&mut self) -> Option<ImageResult<Frame>> {
-        self.with_frames_mut(|frames| frames.next())
-    }
-
-    fn single_frame<'a>(
+    fn run_decoder_thread(
+        reader: image::io::Reader<BufReader<File>>,
         format: ImageFormat,
-        limits: Limits,
-        data: &'a [u8],
-    ) -> anyhow::Result<Frames<'a>> {
-        let mut reader = image::io::Reader::with_format(std::io::Cursor::new(data), format);
-        reader.limits(limits);
-        let buf = reader.decode()?;
-        let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
-        let frame = Frame::from_parts(buf.into_rgba8(), 0, 0, delay);
-        Ok(Frames::new(Box::new(std::iter::once(ImageResult::Ok(
-            frame,
-        )))))
-    }
-
-    fn get_frames<'a>(
-        format: ImageFormat,
-        limits: Limits,
-        data: &'a [u8],
-    ) -> anyhow::Result<Frames<'a>> {
-        Ok(match format {
+        image_data_file: ImageDataFile,
+        mut scratch_file: File,
+        tx: SyncSender<DecodedFrame>,
+    ) -> anyhow::Result<()> {
+        let start = Instant::now();
+        let limits = Limits::default();
+        let mut frames = match format {
             ImageFormat::Gif => {
-                let decoder = image::codecs::gif::GifDecoder::with_limits(data, limits)?;
+                let mut reader = reader.into_inner();
+                reader.rewind()?;
+                let decoder = image::codecs::gif::GifDecoder::with_limits(reader, limits)?;
                 decoder.into_frames()
             }
             ImageFormat::Png => {
-                let decoder = image::codecs::png::PngDecoder::with_limits(data, limits.clone())?;
+                let mut reader = reader.into_inner();
+                reader.rewind()?;
+                let decoder = image::codecs::png::PngDecoder::with_limits(reader, limits.clone())?;
                 if decoder.is_apng() {
                     decoder.apng().into_frames()
                 } else {
-                    Self::single_frame(format, limits, data)?
+                    let size = decoder.total_bytes() as usize;
+                    let mut buf = vec![0u8; size];
+                    let (width, height) = decoder.dimensions();
+                    let mut reader = decoder.into_reader()?;
+                    reader.read(&mut buf)?;
+                    let buf = image::RgbaImage::from_raw(width, height, buf).ok_or_else(|| {
+                        anyhow::anyhow!("inconsistent {width}x{height} -> {size}")
+                    })?;
+                    let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
+                    let frame = Frame::from_parts(buf, 0, 0, delay);
+                    Frames::new(Box::new(std::iter::once(ImageResult::Ok(frame))))
                 }
             }
             ImageFormat::WebP => {
-                let mut decoder = image::codecs::webp::WebPDecoder::new(data)?;
+                let mut reader = reader.into_inner();
+                reader.rewind()?;
+                let mut decoder = image::codecs::webp::WebPDecoder::new(reader)?;
                 decoder.set_limits(limits)?;
                 decoder.into_frames()
             }
-            _ => Self::single_frame(format, limits, data)?,
-        })
+            _ => {
+                let buf = reader.decode()?;
+                let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
+                let frame = Frame::from_parts(buf.into_rgba8(), 0, 0, delay);
+                Frames::new(Box::new(std::iter::once(ImageResult::Ok(frame))))
+            }
+        };
+
+        let frame = frames
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("no frames!?"))?;
+        let frame = frame?;
+
+        let mut durations = vec![];
+        let mut hashes = vec![];
+        let (width, height) = frame.buffer().dimensions();
+        let width = width as usize;
+        let height = height as usize;
+
+        let duration: Duration = frame.delay().into();
+        let mut data = frame.into_buffer().into_raw();
+        data.shrink_to_fit();
+        let buf_2 = Arc::new(Mutex::new(data.clone()));
+        let buf_1 = Arc::new(Mutex::new(data.clone()));
+        let buf_0 = Arc::new(Mutex::new(data.clone()));
+
+        let buffers = [buf_0, buf_1, buf_2];
+        let mut which_buffer = 0;
+
+        fn next_buffer(which: &mut usize) {
+            *which += 1;
+            if *which > 2 {
+                *which = 0;
+            }
+        }
+
+        log::debug!("first frame took {:?} to decode", start.elapsed());
+
+        let hash = ImageDataType::hash_bytes(&data);
+        tx.send(DecodedFrame {
+            data: Arc::clone(&buffers[which_buffer]),
+            duration,
+            hash,
+            width,
+            height,
+        })?;
+        next_buffer(&mut which_buffer);
+        durations.push(duration);
+        hashes.push(hash);
+
+        scratch_file.write_all(&data)?;
+
+        while let Some(frame) = frames.next() {
+            let frame = frame?;
+
+            let duration: Duration = frame.delay().into();
+            let data = frame.into_buffer().into_raw();
+
+            let buf = Arc::clone(&buffers[which_buffer]);
+
+            buf.lock().copy_from_slice(&data);
+
+            let hash = ImageDataType::hash_bytes(&data);
+            tx.send(DecodedFrame {
+                data: buf,
+                duration,
+                hash,
+                width,
+                height,
+            })?;
+            next_buffer(&mut which_buffer);
+            durations.push(duration);
+            hashes.push(hash);
+
+            scratch_file.write_all(&data)?;
+        }
+
+        // We no longer need to keep the source file alive, as
+        // we can serve all frames from our scratch file
+        drop(image_data_file);
+        drop(frames);
+
+        let elapsed = start.elapsed();
+        let fps = durations.len() as f32 / elapsed.as_secs_f32();
+
+        log::debug!(
+            "decoded {} frames, {} bytes in {elapsed:?}, {fps} fps",
+            durations.len(),
+            durations.len() * buffers[which_buffer].lock().len()
+        );
+
+        loop {
+            scratch_file.rewind()?;
+            for (&duration, &hash) in durations.iter().zip(hashes.iter()) {
+                let buf = Arc::clone(&buffers[which_buffer]);
+                which_buffer += 1;
+                scratch_file.read(buf.lock().as_mut_slice())?;
+                tx.send(DecodedFrame {
+                    data: buf,
+                    duration,
+                    hash,
+                    width,
+                    height,
+                })?;
+                next_buffer(&mut which_buffer);
+            }
+        }
     }
 }
 
 struct FrameState {
-    data: Arc<Vec<u8>>,
-    frames: OwnedFrames,
-    format: ImageFormat,
-    limits: Limits,
-    current_frame: Frame,
-    hash: [u8; 32],
+    rx: Receiver<DecodedFrame>,
+    current_frame: DecodedFrame,
 }
 
 impl FrameState {
-    fn new(
-        data: Arc<Vec<u8>>,
-        frames: OwnedFrames,
-        format: ImageFormat,
-        limits: Limits,
-        current_frame: Frame,
-    ) -> Self {
-        let hash = ImageDataType::hash_bytes(current_frame.buffer().as_raw());
+    fn new(rx: Receiver<DecodedFrame>) -> Self {
+        let data = vec![0u8; 4];
+        let hash = ImageDataType::hash_bytes(&data);
         Self {
-            data,
-            frames,
-            format,
-            limits,
-            current_frame,
-            hash,
+            rx,
+            current_frame: DecodedFrame {
+                data: Arc::new(Mutex::new(data)),
+                width: 1,
+                height: 1,
+                duration: Duration::from_millis(0),
+                hash,
+            },
         }
     }
-
-    fn load_next_frame(&mut self) -> anyhow::Result<()> {
-        loop {
-            let start = Instant::now();
-            match self.frames.next() {
-                Some(Ok(frame)) => {
-                    log::info!("next took {:?}", start.elapsed());
-                    let duration: Duration = frame.delay().into();
-                    if duration.as_millis() == 0 {
-                        continue;
-                    }
-                    self.hash = ImageDataType::hash_bytes(frame.buffer().as_raw());
-                    self.current_frame = frame;
-                    return Ok(());
-                }
-                Some(Err(err)) => {
-                    log::warn!("error decoding next frame: {err:#}");
-                    continue;
-                }
-                None => {
-                    log::info!("last next took {:?}", start.elapsed());
-                    let start = Instant::now();
-                    let frames = OwnedFrames::make(&self.data, self.format, self.limits.clone())?;
-                    log::info!("make took {:?}", start.elapsed());
-                    self.frames = frames;
-                    continue;
-                }
+    fn load_next_frame(&mut self) -> anyhow::Result<bool> {
+        match self.rx.try_recv() {
+            Ok(frame) => {
+                self.current_frame = frame;
+                Ok(true)
+            }
+            Err(TryRecvError::Empty) => Ok(false),
+            Err(TryRecvError::Disconnected) => {
+                anyhow::bail!("decoded thread terminated");
             }
         }
     }
 
     fn frame_duration(&self) -> Duration {
-        self.current_frame.delay().into()
+        self.current_frame.duration
     }
 
     fn frame_hash(&self) -> &[u8; 32] {
-        &self.hash
+        &self.current_frame.hash
     }
 }
 
 impl BitmapImage for FrameState {
     unsafe fn pixel_data(&self) -> *const u8 {
-        self.current_frame.buffer().as_raw().as_slice().as_ptr()
+        self.current_frame.data.lock().as_slice().as_ptr()
     }
 
     unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
@@ -343,8 +442,7 @@ impl BitmapImage for FrameState {
     }
 
     fn image_dimensions(&self) -> (usize, usize) {
-        let (width, height) = self.current_frame.buffer().dimensions();
-        (width as usize, height as usize)
+        (self.current_frame.width, self.current_frame.height)
     }
 }
 
@@ -376,40 +474,25 @@ impl DecodedImage {
 
     fn load(image_data: &Arc<ImageData>) -> Self {
         match &*image_data.data() {
-            ImageDataType::EncodedFile(data) => match image::guess_format(&data) {
-                Ok(format) => {
-                    let data = Arc::new(data.clone());
-                    let limits = Limits::default();
-                    match OwnedFrames::make(&data, format, limits.clone()) {
-                        Ok(mut frames) => match frames.next() {
-                            Some(Ok(current_frame)) => Self {
-                                frame_start: RefCell::new(Instant::now()),
-                                current_frame: RefCell::new(0),
-                                image: Arc::clone(image_data),
-                                frames: RefCell::new(Some(FrameState::new(
-                                    data,
-                                    frames,
-                                    format,
-                                    limits,
-                                    current_frame,
-                                ))),
-                            },
-                            _ => {
-                                log::warn!("unable to decode first image frame. Using placeholder");
-                                Self::placeholder()
-                            }
-                        },
-                        Err(err) => {
-                            log::warn!("unable to decode image: {err:#}. Using placeholder");
-                            Self::placeholder()
-                        }
-                    }
-                }
+            ImageDataType::File(file) => match FrameDecoder::start(file.clone()) {
+                Ok(rx) => Self {
+                    frame_start: RefCell::new(Instant::now()),
+                    current_frame: RefCell::new(0),
+                    image: Arc::clone(image_data),
+                    frames: RefCell::new(Some(FrameState::new(rx))),
+                },
                 Err(err) => {
-                    log::warn!("unable to decode image: {err:#}. Using placeholder");
+                    log::error!("failed to start FrameDecoder: {err:#}");
                     Self::placeholder()
                 }
             },
+            ImageDataType::EncodedFile(_) => {
+                log::error!("Unexpected EncodedFile; should have File here");
+                // The swap_out call happens in the terminal layer
+                // when normalizing/caching the data just prior to
+                // applying it to the terminal model
+                Self::placeholder()
+            }
             ImageDataType::AnimRgba8 { durations, .. } => {
                 let current_frame = if durations.len() > 1 && durations[0].as_millis() == 0 {
                     // Skip possible 0-duration root frame
@@ -833,7 +916,7 @@ impl GlyphCache {
                     ),
                 ));
             }
-            ImageDataType::EncodedFile(_) => {
+            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
                 let mut frames = decoded.frames.borrow_mut();
                 let frames = frames.as_mut().expect("to have frames");
 
@@ -856,12 +939,13 @@ impl GlyphCache {
                     *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
                 if now >= next_due {
                     // Advance to next frame
-                    frames.load_next_frame()?;
-                    *decoded_current_frame = *decoded_current_frame + 1;
-                    *decoded_frame_start = now;
-                    next_due =
-                        *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
-                    handle.current_frame = *decoded_current_frame;
+                    if frames.load_next_frame()? {
+                        *decoded_current_frame = *decoded_current_frame + 1;
+                        *decoded_frame_start = now;
+                        next_due =
+                            *decoded_frame_start + frames.frame_duration().max(min_frame_duration);
+                        handle.current_frame = *decoded_current_frame;
+                    }
                 }
 
                 next.replace(next_due);

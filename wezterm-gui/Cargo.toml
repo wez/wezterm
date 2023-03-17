@@ -68,7 +68,6 @@ mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 open = "4.0"
 ordered-float = "3.0"
-ouroboros = "0.15"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
@@ -82,6 +81,7 @@ serial = "0.4"
 shlex = "1.1"
 smol = "1.2"
 tabout = { path = "../tabout" }
+tempfile = "3.4"
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }

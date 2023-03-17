@@ -107,14 +107,7 @@ impl TerminalState {
             )
         })?);
 
-        let (image_width, image_height) = match &*img.data() {
-            ImageDataType::EncodedFile(data) => {
-                let decoded = ::image::load_from_memory(data).context("decode png")?;
-                decoded.dimensions()
-            }
-            ImageDataType::AnimRgba8 { width, height, .. }
-            | ImageDataType::Rgba8 { width, height, .. } => (*width, *height),
-        };
+        let (image_width, image_height) = img.data().dimensions()?;
 
         let info = self.assign_image_to_cells(ImageAttachParams {
             image_width,
@@ -450,7 +443,9 @@ impl TerminalState {
 
         let mut img = img.data();
         match &mut *img {
-            ImageDataType::EncodedFile(_) => anyhow::bail!("invalid image type"),
+            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
+                anyhow::bail!("invalid image type")
+            }
             ImageDataType::Rgba8 {
                 width,
                 height,
@@ -603,7 +598,7 @@ impl TerminalState {
         });
 
         match &mut *anim {
-            ImageDataType::EncodedFile(_) => {
+            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
                 anyhow::bail!("Expected decoded image for image id {}", image_id)
             }
             ImageDataType::Rgba8 {
@@ -831,7 +826,9 @@ impl TerminalState {
         let (image_id, image_number, img) = self.kitty_img_transmit_inner(transmit)?;
         self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
 
-        let img = self.raw_image_to_image_data(img);
+        let img = self
+            .raw_image_to_image_data(img)
+            .context("storing image data")?;
         self.kitty_img.record_id_to_data(image_id, img);
 
         if image_number.is_some() {

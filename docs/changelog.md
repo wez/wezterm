@@ -140,6 +140,11 @@ As features stabilize some brief notes about them will accumulate here.
   [#928](https://github.com/wez/wezterm/issues/928)
 * Incorrect cursor position after processing iTerm2 image escape sequence
   [#3266](https://github.com/wez/wezterm/issues/3266)
+* Images are now buffered to temporary files and decoded in background
+  threads. This reduces the RAM overhead especially of long animations and
+  reduces the render latency due to decoding frames; animations now render as
+  soon as the first frame is decoded.
+  [#3263](https://github.com/wez/wezterm/issues/3263)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command
