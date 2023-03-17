@@ -95,7 +95,10 @@ impl TerminalState {
 
         let downscaled = (width < info.width as usize) || (height < info.height as usize);
         let data = match (downscaled, info.format) {
-            (true, ImageFormat::Gif) | (true, ImageFormat::Png) | (false, _) => {
+            (true, ImageFormat::Gif)
+            | (true, ImageFormat::Png)
+            | (true, ImageFormat::WebP)
+            | (false, _) => {
                 // Don't resample things that might be animations,
                 // or things that don't need resampling
                 ImageDataType::EncodedFile(image.data)
