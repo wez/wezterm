@@ -81,9 +81,9 @@ impl FormatColor {
     }
 }
 
-impl Into<ColorSpec> for FormatColor {
-    fn into(self) -> ColorSpec {
-        match self {
+impl From<FormatColor> for ColorSpec {
+    fn from(val: FormatColor) -> Self {
+        match val {
             FormatColor::AnsiColor(c) => c.into(),
             FormatColor::Color(s) => {
                 let rgba = SrgbaTuple::from_str(&s).unwrap_or_else(|()| (0xff, 0xff, 0xff).into());
@@ -104,14 +104,14 @@ pub enum FormatItem {
 }
 impl_lua_conversion_dynamic!(FormatItem);
 
-impl Into<Change> for FormatItem {
-    fn into(self) -> Change {
-        match self {
-            Self::Attribute(change) => change.into(),
-            Self::Text(t) => t.into(),
-            Self::Foreground(c) => AttributeChange::Foreground(c.to_attr()).into(),
-            Self::Background(c) => AttributeChange::Background(c.to_attr()).into(),
-            Self::ResetAttributes => Change::AllAttributes(CellAttributes::default()),
+impl From<FormatItem> for Change {
+    fn from(val: FormatItem) -> Self {
+        match val {
+            FormatItem::Attribute(change) => change.into(),
+            FormatItem::Text(t) => t.into(),
+            FormatItem::Foreground(c) => AttributeChange::Foreground(c.to_attr()).into(),
+            FormatItem::Background(c) => AttributeChange::Background(c.to_attr()).into(),
+            FormatItem::ResetAttributes => Change::AllAttributes(CellAttributes::default()),
         }
     }
 }

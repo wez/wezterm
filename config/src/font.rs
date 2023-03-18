@@ -269,15 +269,15 @@ bitflags! {
     }
 }
 
-impl Into<String> for FreeTypeLoadFlags {
-    fn into(self) -> String {
-        self.to_string()
+impl From<FreeTypeLoadFlags> for String {
+    fn from(val: FreeTypeLoadFlags) -> Self {
+        val.to_string()
     }
 }
 
-impl Into<String> for &FreeTypeLoadFlags {
-    fn into(self) -> String {
-        self.to_string()
+impl From<&FreeTypeLoadFlags> for String {
+    fn from(val: &FreeTypeLoadFlags) -> Self {
+        val.to_string()
     }
 }
 

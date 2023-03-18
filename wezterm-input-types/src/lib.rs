@@ -500,9 +500,9 @@ impl TryFrom<String> for Modifiers {
     }
 }
 
-impl Into<String> for &Modifiers {
-    fn into(self) -> String {
-        self.to_string()
+impl From<&Modifiers> for String {
+    fn from(val: &Modifiers) -> Self {
+        val.to_string()
     }
 }
 

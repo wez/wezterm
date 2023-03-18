@@ -13,14 +13,14 @@ struct Color {
     blue: f32,
 }
 
-impl Into<RgbaColor> for Color {
-    fn into(self) -> RgbaColor {
+impl From<Color> for RgbaColor {
+    fn from(val: Color) -> Self {
         // For compatibility with `iterm2xrdb`, we round these
         // values off :-/
         fn compat(v: f32) -> f32 {
             (v * 255.).round() / 255.
         }
-        SrgbaTuple(compat(self.red), compat(self.green), compat(self.blue), 1.0).into()
+        SrgbaTuple(compat(val.red), compat(val.green), compat(val.blue), 1.0).into()
     }
 }
 

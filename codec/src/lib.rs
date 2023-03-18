@@ -700,9 +700,9 @@ impl InputSerial {
     }
 }
 
-impl Into<InputSerial> for std::time::SystemTime {
-    fn into(self) -> InputSerial {
-        let duration = self
+impl From<std::time::SystemTime> for InputSerial {
+    fn from(val: std::time::SystemTime) -> Self {
+        let duration = val
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
             .expect("SystemTime before unix epoch?");
         let millis: u64 = duration

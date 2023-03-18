@@ -325,9 +325,9 @@ impl std::fmt::Debug for Image {
     }
 }
 
-impl Into<Vec<u8>> for Image {
-    fn into(self) -> Vec<u8> {
-        self.data
+impl From<Image> for Vec<u8> {
+    fn from(val: Image) -> Self {
+        val.data
     }
 }
 

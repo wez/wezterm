@@ -63,21 +63,21 @@ impl std::ops::Deref for RgbaColor {
     }
 }
 
-impl Into<String> for &RgbaColor {
-    fn into(self) -> String {
-        self.color.to_string()
+impl From<&RgbaColor> for String {
+    fn from(val: &RgbaColor) -> Self {
+        val.color.to_string()
     }
 }
 
-impl Into<String> for RgbaColor {
-    fn into(self) -> String {
-        self.color.to_string()
+impl From<RgbaColor> for String {
+    fn from(val: RgbaColor) -> Self {
+        val.color.to_string()
     }
 }
 
-impl Into<SrgbaTuple> for RgbaColor {
-    fn into(self) -> SrgbaTuple {
-        self.color
+impl From<RgbaColor> for SrgbaTuple {
+    fn from(val: RgbaColor) -> Self {
+        val.color
     }
 }
 
@@ -104,22 +104,24 @@ impl From<AnsiColor> for ColorSpec {
     }
 }
 
-impl Into<ColorAttribute> for ColorSpec {
-    fn into(self) -> ColorAttribute {
-        match self {
-            Self::AnsiColor(c) => ColorAttribute::PaletteIndex(c.into()),
-            Self::Color(RgbaColor { color }) => ColorAttribute::TrueColorWithDefaultFallback(color),
-            Self::Default => ColorAttribute::Default,
+impl From<ColorSpec> for ColorAttribute {
+    fn from(val: ColorSpec) -> Self {
+        match val {
+            ColorSpec::AnsiColor(c) => ColorAttribute::PaletteIndex(c.into()),
+            ColorSpec::Color(RgbaColor { color }) => {
+                ColorAttribute::TrueColorWithDefaultFallback(color)
+            }
+            ColorSpec::Default => ColorAttribute::Default,
         }
     }
 }
 
-impl Into<TWColorSpec> for ColorSpec {
-    fn into(self) -> TWColorSpec {
-        match self {
-            Self::AnsiColor(c) => c.into(),
-            Self::Color(RgbaColor { color }) => TWColorSpec::TrueColor(color),
-            Self::Default => TWColorSpec::Default,
+impl From<ColorSpec> for TWColorSpec {
+    fn from(val: ColorSpec) -> Self {
+        match val {
+            ColorSpec::AnsiColor(c) => c.into(),
+            ColorSpec::Color(RgbaColor { color }) => TWColorSpec::TrueColor(color),
+            ColorSpec::Default => TWColorSpec::Default,
         }
     }
 }
