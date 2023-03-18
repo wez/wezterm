@@ -239,7 +239,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         let package: Table = globals.get("package")?;
         let package_path: String = package.get("path")?;
-        let mut path_array: Vec<String> = package_path.split(";").map(|s| s.to_owned()).collect();
+        let mut path_array: Vec<String> = package_path.split(';').map(|s| s.to_owned()).collect();
 
         fn prefix_path(array: &mut Vec<String>, path: &Path) {
             array.insert(0, format!("{}/?.lua", path.display()));

@@ -83,7 +83,7 @@ impl ITerm2 {
 
         // Look for metadata encoded in comments(!)
         for line in s.lines() {
-            let fields = line.splitn(2, ":").collect::<Vec<_>>();
+            let fields = line.splitn(2, ':').collect::<Vec<_>>();
             if fields.len() == 2 {
                 let k = fields[0].trim().to_ascii_lowercase();
                 let v = fields[1].trim();

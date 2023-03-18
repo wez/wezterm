@@ -415,7 +415,7 @@ impl TryFrom<&str> for KeyCode {
 
         // Don't consider "F" to be an invalid F key!
         if s.len() > 1 {
-            if let Some(n) = s.strip_prefix("F") {
+            if let Some(n) = s.strip_prefix('F') {
                 let n: u8 = n
                     .parse()
                     .map_err(|err| format!("parsing F<NUMBER>: {:#}", err))?;

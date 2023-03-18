@@ -349,7 +349,7 @@ impl ParsedFont {
                 }
                 code.push_str("},\n")
             }
-            code.push_str("\n");
+            code.push('\n');
         }
         code.push_str("})");
         code

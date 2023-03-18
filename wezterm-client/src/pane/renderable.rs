@@ -270,7 +270,7 @@ impl RenderableInner {
         }
 
         let text = textwrap::fill(text, self.dimensions.cols);
-        let lines: Vec<&str> = text.split("\n").collect();
+        let lines: Vec<&str> = text.split('\n').collect();
 
         for (idx, paste_line) in lines.iter().enumerate() {
             let row = self.cursor_position.y + idx as StableRowIndex;
