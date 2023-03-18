@@ -554,12 +554,21 @@ impl Window {
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
-            let view = WindowView::alloc(&inner)?;
-            NSView::initWithFrame_(*view, rect);
-            view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
+            let background_view = WindowView::alloc(&inner)?;
+            NSView::initWithFrame_(*background_view, rect);
+            background_view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
 
             let () = msg_send![
-                *view,
+                *background_view,
+                setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
+            ];
+
+            let draw_view = WindowView::alloc(&inner)?;
+            NSView::initWithFrame_(*draw_view, rect);
+            draw_view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
+
+            let () = msg_send![
+                *draw_view,
                 setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
             ];
 
@@ -567,15 +576,6 @@ impl Window {
                 .window_decorations
                 .contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR)
             {
-                let background_view = WindowView::alloc(&inner)?;
-                NSView::initWithFrame_(*background_view, rect);
-                background_view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
-
-                let () = msg_send![
-                    *background_view,
-                    setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
-                ];
-
                 let blurred_view =
                     NSVisualEffectView::initWithFrame_(NSVisualEffectView::alloc(nil), rect);
                 blurred_view.autorelease();
@@ -591,22 +591,20 @@ impl Window {
                     positioned: NSWindowOrderingMode::NSWindowBelow
                     relativeTo: 0
                 ];
-
-                let _: () = msg_send![
-                    *background_view,
-                    addSubview: *view
-                    positioned: NSWindowOrderingMode::NSWindowAbove
-                    relativeTo: 0
-                ];
-                window.setContentView_(*background_view);
-                window.setDelegate_(*background_view);
-            } else {
-                window.setContentView_(*view);
-                window.setDelegate_(*view);
             }
-            view.setWantsLayer(YES);
+
+            let _: () = msg_send![
+                *background_view,
+                addSubview: *draw_view
+                positioned: NSWindowOrderingMode::NSWindowAbove
+                relativeTo: 0
+            ];
+
+            window.setContentView_(*background_view);
+            window.setDelegate_(*background_view);
+            draw_view.setWantsLayer(YES);
             let () = msg_send![
-                *view,
+                *draw_view,
                 setLayerContentsRedrawPolicy: NSViewLayerContentsRedrawDuringViewResize
             ];
 
@@ -617,8 +615,8 @@ impl Window {
                     NSArray::arrayWithObject(nil, appkit::NSFilenamesPboardType)
             ];
 
-            let frame = NSView::frame(*view);
-            let backing_frame = NSView::convertRectToBacking(*view, frame);
+            let frame = NSView::frame(*background_view);
+            let backing_frame = NSView::convertRectToBacking(*background_view, frame);
             let width = backing_frame.size.width;
             let height = backing_frame.size.height;
 
@@ -626,11 +624,11 @@ impl Window {
             let window_handle = Window {
                 id: window_id,
                 ns_window: *window,
-                ns_view: *view,
+                ns_view: *draw_view,
             };
             let window_inner = Rc::new(RefCell::new(WindowInner {
                 window,
-                view,
+                view: draw_view,
                 config: config.clone(),
             }));
             inner.borrow_mut().window.replace(weak_window);
