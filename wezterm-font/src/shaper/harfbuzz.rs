@@ -466,8 +466,8 @@ impl HarfbuzzShaper {
         cluster_resolver.build(hb_infos, s, &range);
         log::debug!("cluster_resolver: {cluster_resolver:#?}");
 
-        let mut info_iter = hb_infos.iter().zip(positions.iter()).peekable();
-        while let Some((info, pos)) = info_iter.next() {
+        let info_iter = hb_infos.iter().zip(positions.iter()).peekable();
+        for (info, pos) in info_iter {
             let cluster_info = match cluster_resolver.get_mut(info.cluster as usize) {
                 Some(i) => i,
                 None => panic!(

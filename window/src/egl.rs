@@ -61,10 +61,7 @@ pub struct GlConnection {
 impl GlConnection {
     #[allow(dead_code)]
     pub fn has_extension(&self, wanted: &str) -> bool {
-        self.extensions
-            .split(' ')
-            .find(|&ext| ext == wanted)
-            .is_some()
+        self.extensions.split(' ').any(|ext| ext == wanted)
     }
 }
 
