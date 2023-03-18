@@ -600,7 +600,7 @@ impl FromStr for SrgbaTuple {
         if !s.is_ascii() {
             return Err(());
         }
-        if s.len() > 0 && s.as_bytes()[0] == b'#' {
+        if !s.is_empty() && s.as_bytes()[0] == b'#' {
             // Probably `#RGB`
 
             let digits = (s.len() - 1) / 3;
