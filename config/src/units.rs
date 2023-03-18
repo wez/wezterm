@@ -16,18 +16,18 @@ impl FromDynamic for OptPixelUnit {
     }
 }
 
-impl Into<Option<Dimension>> for OptPixelUnit {
-    fn into(self) -> Option<Dimension> {
-        self.0
+impl From<OptPixelUnit> for Option<Dimension> {
+    fn from(val: OptPixelUnit) -> Self {
+        val.0
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct PixelUnit(Dimension);
 
-impl Into<Dimension> for PixelUnit {
-    fn into(self) -> Dimension {
-        self.0
+impl From<PixelUnit> for Dimension {
+    fn from(val: PixelUnit) -> Self {
+        val.0
     }
 }
 

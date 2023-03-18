@@ -33,15 +33,15 @@ bitflags::bitflags! {
     }
 }
 
-impl Into<String> for LauncherFlags {
-    fn into(self) -> String {
-        self.to_string()
+impl From<LauncherFlags> for String {
+    fn from(val: LauncherFlags) -> Self {
+        val.to_string()
     }
 }
 
-impl Into<String> for &LauncherFlags {
-    fn into(self) -> String {
-        self.to_string()
+impl From<&LauncherFlags> for String {
+    fn from(val: &LauncherFlags) -> Self {
+        val.to_string()
     }
 }
 

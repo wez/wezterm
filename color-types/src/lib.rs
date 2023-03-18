@@ -753,9 +753,9 @@ impl From<[f32; 4]> for LinearRgba {
     }
 }
 
-impl Into<[f32; 4]> for LinearRgba {
-    fn into(self) -> [f32; 4] {
-        [self.0, self.1, self.2, self.3]
+impl From<LinearRgba> for [f32; 4] {
+    fn from(val: LinearRgba) -> Self {
+        [val.0, val.1, val.2, val.3]
     }
 }
 
