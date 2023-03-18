@@ -102,7 +102,7 @@ impl Compose {
             }
             ComposeStatus::Composed => {
                 let res = self.state.keysym();
-                let composed = self.state.utf8().unwrap_or_else(String::new);
+                let composed = self.state.utf8().unwrap_or_default();
                 self.state.reset();
                 FeedResult::Composed(composed, res.unwrap_or(xsym))
             }

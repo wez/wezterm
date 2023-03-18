@@ -90,7 +90,7 @@ fn toml_to_dynamic(value: &toml::Value) -> Value {
         toml::Value::Datetime(d) => d.to_string().to_dynamic(),
         toml::Value::Array(a) => a
             .iter()
-            .map(|element| toml_to_dynamic(&element))
+            .map(toml_to_dynamic)
             .collect::<Vec<_>>()
             .to_dynamic(),
         // Allow `colors.indexed` to be passed through with actual integer keys
@@ -166,7 +166,7 @@ impl LuaConfigState {
 
     /// Take a reference on the latest generation of the lua context
     fn get_lua(&self) -> Option<Rc<mlua::Lua>> {
-        self.lua.as_ref().map(|lua| Rc::clone(lua))
+        self.lua.as_ref().map(Rc::clone)
     }
 }
 

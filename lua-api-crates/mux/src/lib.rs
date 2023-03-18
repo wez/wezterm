@@ -104,7 +104,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
             Ok(mux
                 .iter_windows()
                 .into_iter()
-                .map(|id| MuxWindow(id))
+                .map(MuxWindow)
                 .collect::<Vec<MuxWindow>>())
         })?,
     )?;

@@ -405,7 +405,7 @@ impl HarfbuzzShaper {
                     map.entry(start).or_insert_with(|| Item { start, cell_idx });
                 }
 
-                let mut cluster_starts: Vec<Item> = map.into_iter().map(|(_, item)| item).collect();
+                let mut cluster_starts: Vec<Item> = map.into_values().collect();
                 cluster_starts.sort();
 
                 // If we have multiple entries with the same starting cell index,

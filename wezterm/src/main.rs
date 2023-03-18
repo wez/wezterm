@@ -482,8 +482,8 @@ impl ImgCatCommand {
             ITermFileData {
                 name: None,
                 size: Some(data.len()),
-                width: self.width.unwrap_or_else(Default::default),
-                height: self.height.unwrap_or_else(Default::default),
+                width: self.width.unwrap_or_default(),
+                height: self.height.unwrap_or_default(),
                 preserve_aspect_ratio: !self.no_preserve_aspect_ratio,
                 inline: true,
                 do_not_move_cursor: false,

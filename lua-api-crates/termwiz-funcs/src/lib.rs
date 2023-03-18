@@ -145,7 +145,7 @@ pub fn format_as_escapes(items: Vec<FormatItem>) -> anyhow::Result<String> {
 }
 
 fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
-    format_as_escapes(items).map_err(|e| mlua::Error::external(e))
+    format_as_escapes(items).map_err(mlua::Error::external)
 }
 
 pub fn pad_right(mut result: String, width: usize) -> String {
