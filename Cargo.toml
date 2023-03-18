@@ -5,6 +5,7 @@ members = [
   "strip-ansi-escapes",
   "sync-color-schemes",
   "wezterm",
+  "wezterm-blob-leases",
   "wezterm-dynamic",
   "wezterm-gui",
   "wezterm-mux-server",
