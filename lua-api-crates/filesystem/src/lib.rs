@@ -13,10 +13,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
 async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
     let mut dir = smol::fs::read_dir(path)
         .await
-        .map_err(|e| mlua::Error::external(e))?;
+        .map_err(mlua::Error::external)?;
     let mut entries = vec![];
     while let Some(entry) = dir.next().await {
-        let entry = entry.map_err(|e| mlua::Error::external(e))?;
+        let entry = entry.map_err(mlua::Error::external)?;
         if let Some(utf8) = entry.path().to_str() {
             entries.push(utf8.to_string());
         } else {
@@ -36,7 +36,7 @@ async fn glob<'lua>(
     let entries = smol::unblock(move || {
         let mut entries = vec![];
         let glob = filenamegen::Glob::new(&pattern)?;
-        for path in glob.walk(path.as_ref().map(|s| s.as_str()).unwrap_or(".")) {
+        for path in glob.walk(path.as_deref().unwrap_or(".")) {
             if let Some(utf8) = path.to_str() {
                 entries.push(utf8.to_string());
             } else {
@@ -49,6 +49,6 @@ async fn glob<'lua>(
         Ok(entries)
     })
     .await
-    .map_err(|e| mlua::Error::external(e))?;
+    .map_err(mlua::Error::external)?;
     Ok(entries)
 }

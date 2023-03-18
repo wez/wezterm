@@ -308,10 +308,8 @@ impl CursorInfo {
             }
         }
 
-        let theme = self.theme.as_ref().map(|s| s.as_str()).unwrap_or("default");
-        if self.pict_format_id.is_none() {
-            return None;
-        }
+        let theme = self.theme.as_deref().unwrap_or("default");
+        self.pict_format_id?;
 
         let names: &[&str] = match cursor.unwrap_or(MouseCursor::Arrow) {
             MouseCursor::Arrow => &["top_left_arrow", "left_ptr"],

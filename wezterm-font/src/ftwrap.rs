@@ -279,7 +279,7 @@ impl Face {
 
             names
                 .entry(sfnt_name.name_id as u32)
-                .or_insert_with(|| vec![])
+                .or_insert_with(Vec::new)
                 .push(NameRecord {
                     platform_id: sfnt_name.platform_id,
                     encoding_id: sfnt_name.encoding_id,

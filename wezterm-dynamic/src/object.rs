@@ -99,7 +99,7 @@ impl PartialOrd for Object {
 
 impl Drop for Object {
     fn drop(&mut self) {
-        for (_, child) in std::mem::replace(&mut self.inner, BTreeMap::new()) {
+        for (_, child) in std::mem::take(&mut self.inner) {
             crate::drop::safely(child);
         }
     }

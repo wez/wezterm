@@ -23,10 +23,10 @@ impl_lua_conversion_dynamic!(BatteryInfo);
 
 fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
     use starship_battery::{Manager, State};
-    let manager = Manager::new().map_err(|e| mlua::Error::external(e))?;
+    let manager = Manager::new().map_err(mlua::Error::external)?;
     let mut result = vec![];
-    for b in manager.batteries().map_err(|e| mlua::Error::external(e))? {
-        let bat = b.map_err(|e| mlua::Error::external(e))?;
+    for b in manager.batteries().map_err(mlua::Error::external)? {
+        let bat = b.map_err(mlua::Error::external)?;
         result.push(BatteryInfo {
             state_of_charge: bat.state_of_charge().value,
             vendor: opt_string(bat.vendor()),

@@ -890,7 +890,7 @@ impl Screen {
             .iter()
             .skip(phys_range.start)
             .take(phys_range.end - phys_range.start)
-            .map(|line| line.clone())
+            .cloned()
             .collect()
     }
 

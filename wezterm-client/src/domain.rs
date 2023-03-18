@@ -332,7 +332,7 @@ impl ClientDomain {
     }
 
     fn inner(&self) -> Option<Arc<ClientInner>> {
-        self.inner.lock().unwrap().as_ref().map(|i| Arc::clone(i))
+        self.inner.lock().unwrap().as_ref().map(Arc::clone)
     }
 
     pub fn connect_automatically(&self) -> bool {

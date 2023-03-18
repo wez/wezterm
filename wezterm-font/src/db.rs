@@ -22,7 +22,7 @@ impl FontDatabase {
         for parsed in font_info {
             self.by_full_name
                 .entry(parsed.names().full_name.clone())
-                .or_insert_with(|| vec![])
+                .or_insert_with(Vec::new)
                 .push(parsed);
         }
     }
@@ -138,7 +138,7 @@ impl FontDatabase {
         }
 
         if let Some(idx) = ParsedFont::best_matching_index(font_attr, &candidates, pixel_size) {
-            return candidates.get(idx).map(|&p| p);
+            return candidates.get(idx).copied();
         }
 
         None

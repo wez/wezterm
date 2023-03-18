@@ -115,11 +115,7 @@ where
 }
 
 fn get_scoped() -> Option<Arc<Executor<'static>>> {
-    SCOPED_EXECUTOR
-        .lock()
-        .unwrap()
-        .as_ref()
-        .map(|e| Arc::clone(&e))
+    SCOPED_EXECUTOR.lock().unwrap().as_ref().map(Arc::clone)
 }
 
 /// Spawn a future into the main thread; it will be polled in the
