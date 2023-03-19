@@ -136,7 +136,7 @@ impl Error {
                         errors.push(Self::UnknownFieldForStruct {
                             field_name: s.to_string(),
                             type_name,
-                            possible: possible.clone(),
+                            possible,
                         });
                     }
                 }
@@ -201,9 +201,9 @@ impl Error {
         }
 
         if options.unknown_fields == UnknownFieldAction::Deny {
-            for err in errors {
-                return Err(err);
-            }
+            let mut errors = errors; // Consume errors
+            let first_err = errors.swap_remove(0);
+            return Err(first_err);
         }
 
         Ok(())
