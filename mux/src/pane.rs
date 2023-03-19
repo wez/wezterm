@@ -508,9 +508,9 @@ pub fn impl_get_logical_lines_via_get_lines<P: Pane + ?Sized>(
                 });
             }
             Some(prior) => {
-                if prior.logical.last_cell_was_wrapped()
-                    && prior.logical.len() <= MAX_LOGICAL_LINE_LEN
-                {
+                if prior.logical.len() > MAX_LOGICAL_LINE_LEN {
+                    break;
+                } else if prior.logical.last_cell_was_wrapped() {
                     let seqno = prior.logical.current_seqno().max(line.current_seqno());
                     prior.logical.set_last_cell_was_wrapped(false, seqno);
                     prior.logical.append_line(line.clone(), seqno);
