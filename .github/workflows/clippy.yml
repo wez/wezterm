@@ -28,7 +28,7 @@ jobs:
           profile: "minimal"
           toolchain: "nightly"
           override: true
-          components: rustfmt
+          components: clippy
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: Run Clippy # Allow lints with -A lint_name
