@@ -204,6 +204,9 @@ As features stabilize some brief notes about them will accumulate here.
 * wezterm now also searches `$XDG_CONFIG_DIRS` as well as `$XDG_CONFIG_HOME`
   when searching for config files. Thanks to [@jmbaur](https://github.com/jmbaur)!
   [#3146](https://github.com/wez/wezterm/pull/3146)
+* [wezterm.time.call_after](config/lua/wezterm.time/call_after.md) now accepts
+  fractional numbers of seconds.
+  [#3287](https://github.com/wez/wezterm/issues/3287)
 
 #### Updated
 * Bundled harfbuzz updated to version 6.0.0

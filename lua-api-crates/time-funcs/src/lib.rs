@@ -61,7 +61,7 @@ struct ScheduledEvent {
     /// their callback function
     user_event_id: String,
     /// The delay after which to run their callback
-    interval_seconds: u64,
+    interval_seconds: f64,
 }
 
 impl ScheduledEvent {
@@ -93,7 +93,7 @@ impl ScheduledEvent {
     }
 
     async fn run(self, lua: &Lua, generation: usize) -> mlua::Result<()> {
-        let duration = std::time::Duration::from_secs(self.interval_seconds);
+        let duration = std::time::Duration::from_secs_f64(self.interval_seconds);
         smol::Timer::after(duration).await;
         // Skip doing anything of consequence if the generation has
         // changed.
@@ -148,7 +148,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
 
     time_mod.set(
         "call_after",
-        lua.create_function(|lua, (interval_seconds, func): (u64, mlua::Function)| {
+        lua.create_function(|lua, (interval_seconds, func): (f64, mlua::Function)| {
             let user_event_id = wrap_callback(lua, func)?;
 
             let event = ScheduledEvent {

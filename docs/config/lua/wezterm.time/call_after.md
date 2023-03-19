@@ -36,3 +36,6 @@ With great power comes great responsibility: if you schedule a lot of frequent
 callbacks, or frequently reload your configuration in this way, you may
 increase the CPU load on your system because you are asking it to work harder.
 
+*Since: nightly builds only*
+
+You can use fractional seconds to delay by more precise intervals.
