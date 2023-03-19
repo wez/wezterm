@@ -1,0 +1,37 @@
+name: clippy
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/clippy.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - ".github/workflows/clippy.yml"
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  lint-rust-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "nightly"
+          override: true
+          components: rustfmt
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: Run Clippy # Allow lints with -A lint_name
+        run: |
+          source $HOME/.cargo/env
+          ./clippy.sh
