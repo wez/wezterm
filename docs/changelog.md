@@ -147,6 +147,9 @@ As features stabilize some brief notes about them will accumulate here.
   [#3263](https://github.com/wez/wezterm/issues/3263)
 * Improved compatiblity with the Kitty Image Protocol
   [#2716](https://github.com/wez/wezterm/issues/2716)
+* [wezterm.time.call_after](config/lua/wezterm.time/call_after.md) would not
+  work when used in an event callback.
+  [#3026](https://github.com/wez/wezterm/issues/3026)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command

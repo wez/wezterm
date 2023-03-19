@@ -735,6 +735,14 @@ pub fn register_event<'lua>(
     }
 }
 
+const IS_EVENT: &str = "wezterm-is-event-emission";
+
+/// Returns true if the current lua context is being called as part
+/// of an emit_event call.
+pub fn is_event_emission<'lua>(lua: &'lua Lua) -> mlua::Result<bool> {
+    lua.named_registry_value(IS_EVENT)
+}
+
 /// This implements `wezterm.emit`.
 /// The first parameter to emit is the name of a signal that may or may not
 /// have previously been registered via `wezterm.on`.
@@ -751,6 +759,8 @@ pub async fn emit_event<'lua>(
     lua: &'lua Lua,
     (name, args): (String, mlua::MultiValue<'lua>),
 ) -> mlua::Result<bool> {
+    lua.set_named_registry_value(IS_EVENT, true)?;
+
     let decorated_name = format!("wezterm-event-{}", name);
     let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
     match tbl {
