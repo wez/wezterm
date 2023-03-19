@@ -9,6 +9,7 @@ members = [
   "wezterm-dynamic",
   "wezterm-gui",
   "wezterm-mux-server",
+  "wezterm-open-url",
   "wezterm-ssh"
 ]
 resolver = "2"

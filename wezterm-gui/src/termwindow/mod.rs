@@ -2810,12 +2810,7 @@ impl TermWindow {
                 )]);
             }
             OpenUri(link) => {
-                let link = link.clone();
-                std::thread::spawn(move || {
-                    if let Err(err) = open::that(&link) {
-                        log::error!("Error opening {}: {:#}", link, err);
-                    }
-                });
+                wezterm_open_url::open_url(link);
             }
             ActivateCommandPalette => {
                 let modal = crate::termwindow::palette::CommandPalette::new(self);
@@ -2832,7 +2827,7 @@ impl TermWindow {
         // triggering our WndProc recursively.
         // We get that assurance for free as part of the async dispatch that we
         // perform below; here we allow the user to define an `open-uri` event
-        // handler that can bypass the normal `open::that` functionality.
+        // handler that can bypass the normal `open_url` functionality.
         if let Some(link) = self.current_highlight.as_ref().cloned() {
             let window = GuiWin::new(self);
             let pane = MuxPane(pane.pane_id());
@@ -2856,12 +2851,8 @@ impl TermWindow {
                     None => true,
                 };
                 if default_click {
-                    std::thread::spawn(move || {
-                        log::info!("clicking {}", link);
-                        if let Err(err) = open::that(&link) {
-                            log::error!("Error opening {}: {:#}", link, err);
-                        }
-                    });
+                    log::info!("clicking {}", link);
+                    wezterm_open_url::open_url(&link);
                 }
                 Ok(())
             }

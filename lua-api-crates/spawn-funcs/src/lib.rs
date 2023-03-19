@@ -18,13 +18,9 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
 
 fn open_with<'lua>(_: &'lua Lua, (url, app): (String, Option<String>)) -> mlua::Result<()> {
     if let Some(app) = app {
-        open::with_in_background(url, app);
+        wezterm_open_url::open_with(&url, &app);
     } else {
-        std::thread::spawn(move || {
-            if let Err(err) = open::that(&url) {
-                log::error!("Error opening {}: {:#}", url, err);
-            }
-        });
+        wezterm_open_url::open_url(&url);
     }
     Ok(())
 }

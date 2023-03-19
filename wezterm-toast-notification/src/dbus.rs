@@ -126,10 +126,7 @@ async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::er
                 let args = signal.args()?;
                 if args.nid == notification {
                     if let Some(url) = notif.url.as_ref() {
-                        let url = url.clone();
-                        std::thread::spawn(move || {
-                            let _ = open::that(url);
-                        });
+                        wezterm_open_url::open_url(url);
                         abort_closed.abort();
                         break;
                     }

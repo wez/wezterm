@@ -4755,9 +4755,9 @@ dependencies = [
  "config",
  "log",
  "luahelper",
- "open",
  "smol",
  "wezterm-dynamic",
+ "wezterm-open-url",
  "winapi",
 ]
 
@@ -5987,7 +5987,6 @@ dependencies = [
  "mux",
  "mux-lua",
  "once_cell",
- "open",
  "ordered-float",
  "parking_lot 0.12.1",
  "portable-pty",
@@ -6024,6 +6023,7 @@ dependencies = [
  "wezterm-font",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
+ "wezterm-open-url",
  "wezterm-ssh",
  "wezterm-term",
  "wezterm-toast-notification",
@@ -6103,6 +6103,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-open-url"
+version = "0.1.0"
+dependencies = [
+ "open",
+ "winapi",
+]
+
+[[package]]
 name = "wezterm-ssh"
 version = "0.4.0"
 dependencies = [
@@ -6175,8 +6183,8 @@ dependencies = [
  "futures-util",
  "log",
  "objc",
- "open",
  "serde",
+ "wezterm-open-url",
  "windows 0.33.0",
  "xml-rs",
  "zbus",

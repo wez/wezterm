@@ -65,7 +65,7 @@ impl NotifDelegate {
             if !url.is_null() {
                 let url = std::slice::from_raw_parts(url.UTF8String() as *const u8, url.len());
                 let url = String::from_utf8_lossy(url);
-                let _ = open::that(&*url);
+                wezterm_open_url::open_url(&*url);
             }
             let () = msg_send![center, removeDeliveredNotification: notif];
         }

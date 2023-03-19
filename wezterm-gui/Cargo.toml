@@ -67,7 +67,6 @@ mlua = {version="0.8.3", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 once_cell = "1.8"
-open = "4.0"
 ordered-float = "3.0"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
@@ -102,6 +101,7 @@ wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
+wezterm-open-url = { path = "../wezterm-open-url" }
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }

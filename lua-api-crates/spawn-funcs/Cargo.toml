@@ -13,7 +13,7 @@ log = "0.4"
 luahelper = { path = "../../luahelper" }
 smol = "1.2"
 bstr = "0.2"
-open = "4.0"
+wezterm-open-url = { path = "../../wezterm-open-url" }
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}
