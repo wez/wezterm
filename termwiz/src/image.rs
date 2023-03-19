@@ -18,7 +18,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
-use wezterm_blob_leases::{lease_bytes, BlobLease, BlobManager};
+use wezterm_blob_leases::{BlobLease, BlobManager};
 
 #[cfg(feature = "use_serde")]
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
@@ -203,7 +203,13 @@ pub enum ImageDataType {
     /// Data is in the native image file format,
     /// (best for file formats that have animated content)
     /// and is stored as a blob via the blob manager.
-    EncodedLease(#[cfg_attr(feature = "use_serde", serde(with = "lease_bytes"))] BlobLease),
+    EncodedLease(
+        #[cfg_attr(
+            feature = "use_serde",
+            serde(with = "wezterm_blob_leases::lease_bytes")
+        )]
+        BlobLease,
+    ),
     /// Data is RGBA u8 data
     Rgba8 {
         data: Vec<u8>,
