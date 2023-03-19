@@ -1143,24 +1143,22 @@ impl TabInner {
                 dpi: dims.dpi,
             };
 
-            if size != current_size {
-                // Update the split nodes with adjusted sizes
-                adjust_x_size(
-                    self.pane.as_mut().unwrap(),
-                    cols as isize - current_size.cols as isize,
-                    &dims,
-                );
-                adjust_y_size(
-                    self.pane.as_mut().unwrap(),
-                    rows as isize - current_size.rows as isize,
-                    &dims,
-                );
+            // Update the split nodes with adjusted sizes
+            adjust_x_size(
+                self.pane.as_mut().unwrap(),
+                cols as isize - current_size.cols as isize,
+                &dims,
+            );
+            adjust_y_size(
+                self.pane.as_mut().unwrap(),
+                rows as isize - current_size.rows as isize,
+                &dims,
+            );
 
-                self.size = size;
+            self.size = size;
 
-                // And then resize the individual panes to match
-                apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
-            }
+            // And then resize the individual panes to match
+            apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
         }
     }
 
