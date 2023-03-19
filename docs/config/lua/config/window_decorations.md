@@ -28,17 +28,15 @@ When the resizable border is disabled you will need to use features of your
 desktop environment to resize the window.  Windows users may wish to consider
 [AltSnap](https://github.com/RamonUnch/AltSnap).
 
-```admonish warning
-Think twice before removing `RESIZE` from the set of decorations as it causes
-problems with resizing and minimizing the window. You usually want to keep
-`RESIZE` enabled.
-```
+!!! warning
+    Think twice before removing `RESIZE` from the set of decorations as it causes
+    problems with resizing and minimizing the window. You usually want to keep
+    `RESIZE` enabled.
 
 If you just want to remove the title bar, set `window_decorations = "RESIZE"`
 as you will run into problems if you remove `RESIZE` from the set of
 decorations.
 
-```admonish
-You probably always want `RESIZE` to be listed in your `window_decorations`.
-```
+!!! info
+    You probably always want `RESIZE` to be listed in your `window_decorations`.
 
