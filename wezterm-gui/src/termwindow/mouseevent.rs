@@ -191,9 +191,11 @@ impl super::TermWindow {
 
             match (self.last_ui_item.take(), &ui_item) {
                 (Some(prior), Some(item)) => {
-                    self.leave_ui_item(&prior);
-                    self.enter_ui_item(item);
-                    context.invalidate();
+                    if prior != *item {
+                        self.leave_ui_item(&prior);
+                        self.enter_ui_item(item);
+                        context.invalidate();
+                    }
                 }
                 (Some(prior), None) => {
                     self.leave_ui_item(&prior);
