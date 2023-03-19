@@ -191,7 +191,7 @@ impl super::TermWindow {
 
             match (self.last_ui_item.take(), &ui_item) {
                 (Some(prior), Some(item)) => {
-                    if prior != *item {
+                    if prior != *item || !self.config.use_fancy_tab_bar {
                         self.leave_ui_item(&prior);
                         self.enter_ui_item(item);
                         context.invalidate();

@@ -1762,29 +1762,13 @@ impl TermWindow {
         let active_tab = tabs.iter().find(|t| t.is_active).cloned();
         let active_pane = panes.iter().find(|p| p.is_active).cloned();
 
-        let v_context = DimensionContext {
-            dpi: self.dimensions.dpi as f32,
-            pixel_max: self.terminal_size.pixel_height as f32,
-            pixel_cell: self.render_metrics.cell_size.height as f32,
-        };
-        let padding_top = self.config.window_padding.top.evaluate_as_pixels(v_context) as u16;
-        let padding_bottom = self
-            .config
-            .window_padding
-            .bottom
-            .evaluate_as_pixels(v_context) as u16;
-
+        let border = self.get_os_border();
+        let tab_bar_height = self.tab_bar_pixel_height().unwrap_or(0.);
         let tab_bar_y = if self.config.tab_bar_at_bottom {
-            let avail_height = self
-                .dimensions
-                .pixel_height
-                .saturating_sub((padding_top + padding_bottom) as usize);
-
-            let num_rows = avail_height as usize / self.render_metrics.cell_size.height as usize;
-
-            num_rows as i64 - 1
+            ((self.dimensions.pixel_height as f32) - (tab_bar_height + border.bottom.get() as f32))
+                .max(0.)
         } else {
-            0
+            border.top.get() as f32
         };
 
         let tab_bar_height = self.tab_bar_pixel_height().unwrap_or(0.);

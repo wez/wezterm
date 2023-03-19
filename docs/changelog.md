@@ -150,6 +150,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.time.call_after](config/lua/wezterm.time/call_after.md) would not
   work when used in an event callback.
   [#3026](https://github.com/wez/wezterm/issues/3026)
+* Hover state not correctly indicated for retro tab bar when showing at
+  the bottom of the window
+  [#3113](https://github.com/wez/wezterm/issues/3113)
 
 #### Changed
 * `CTRL-SHIFT-P` now activates the new [command
