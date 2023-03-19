@@ -695,7 +695,7 @@ fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> 
     if let Some(pos) = opts.position.as_ref() {
         set_window_position(pos.clone());
     }
-    wezterm_blob_leases::register_storage(Box::new(
+    wezterm_blob_leases::register_storage(Arc::new(
         wezterm_blob_leases::simple_tempdir::SimpleTempDir::new()?,
     ))?;
 
@@ -1204,7 +1204,9 @@ fn run() -> anyhow::Result<()> {
     match sub {
         SubCommand::Start(start) => {
             log::trace!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-            run_terminal_gui(start, None)
+            let res = run_terminal_gui(start, None);
+            wezterm_blob_leases::clear_storage();
+            res
         }
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),

@@ -1,8 +1,8 @@
 use crate::{ContentId, Error, LeaseId};
-use once_cell::sync::OnceCell;
 use std::io::{BufRead, Seek};
+use std::sync::{Arc, Mutex};
 
-static STORAGE: OnceCell<Box<dyn BlobStorage + Send + Sync + 'static>> = OnceCell::new();
+static STORAGE: Mutex<Option<Arc<dyn BlobStorage + Send + Sync + 'static>>> = Mutex::new(None);
 
 pub trait BufSeekRead: BufRead + Seek {}
 pub type BoxedReader = Box<dyn BufSeekRead + Send + Sync>;
@@ -51,16 +51,21 @@ pub trait BlobStorage {
 }
 
 pub fn register_storage(
-    storage: Box<dyn BlobStorage + Send + Sync + 'static>,
+    storage: Arc<dyn BlobStorage + Send + Sync + 'static>,
 ) -> Result<(), Error> {
-    STORAGE
-        .set(storage)
-        .map_err(|_| Error::AlreadyInitializedStorage)
+    STORAGE.lock().unwrap().replace(storage);
+    Ok(())
 }
 
-pub fn get_storage() -> Result<&'static (dyn BlobStorage + Send + Sync + 'static), Error> {
+pub fn get_storage() -> Result<Arc<dyn BlobStorage + Send + Sync + 'static>, Error> {
     STORAGE
-        .get()
-        .map(|s| s.as_ref())
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|s| s.clone())
         .ok_or_else(|| Error::StorageNotInit)
+}
+
+pub fn clear_storage() {
+    STORAGE.lock().unwrap().take();
 }
