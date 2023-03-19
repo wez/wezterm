@@ -695,6 +695,9 @@ fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> 
     if let Some(pos) = opts.position.as_ref() {
         set_window_position(pos.clone());
     }
+    wezterm_blob_leases::register_storage(Box::new(
+        wezterm_blob_leases::simple_tempdir::SimpleTempDir::new()?,
+    ))?;
 
     let config = config::configuration();
     let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();

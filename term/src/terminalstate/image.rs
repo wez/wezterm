@@ -230,7 +230,7 @@ impl TerminalState {
     pub(crate) fn raw_image_to_image_data(
         &mut self,
         data: ImageDataType,
-    ) -> std::io::Result<Arc<ImageData>> {
+    ) -> Result<Arc<ImageData>, termwiz::error::InternalError> {
         let key = data.compute_hash();
         if let Some(item) = self.image_cache.get(&key) {
             Ok(Arc::clone(item))

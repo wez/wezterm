@@ -11,14 +11,14 @@
 //! protocol appears to track the images out of band as attachments with
 //! z-order.
 
+use crate::error::InternalError;
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fs::File;
 use std::hash::{Hash, Hasher};
-use std::io::{Read, Seek, SeekFrom, Write};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
+use wezterm_blob_leases::{lease_bytes, BlobLease, BlobManager};
 
 #[cfg(feature = "use_serde")]
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
@@ -194,109 +194,6 @@ impl ImageCell {
     }
 }
 
-#[derive(Clone)]
-pub struct ImageDataFile {
-    file: Arc<Mutex<File>>,
-    hash: [u8; 32],
-    len: usize,
-}
-
-impl ImageDataFile {
-    /// Loads a copy of the data from disk, and returns it
-    /// as a vec
-    pub fn data(&self) -> std::io::Result<Vec<u8>> {
-        self.with_rewound_file(|file| {
-            let mut data = vec![];
-            file.read_to_end(&mut data)?;
-            Ok(data)
-        })
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    #[cfg(feature = "use_image")]
-    pub fn dimensions(&self) -> image::ImageResult<(u32, u32)> {
-        self.with_rewound_file(|file| {
-            let bufreader = std::io::BufReader::new(file);
-            let reader = image::io::Reader::new(bufreader).with_guessed_format()?;
-            Ok(reader.into_dimensions())
-        })?
-    }
-
-    pub fn with_rewound_file<R, F: FnOnce(&mut File) -> std::io::Result<R>>(
-        &self,
-        func: F,
-    ) -> std::io::Result<R> {
-        let mut file = self.file.lock().unwrap();
-        let position = file.stream_position()?;
-        file.rewind()?;
-        let result = (func)(&mut *file);
-        file.seek(SeekFrom::Start(position))?;
-        result
-    }
-
-    pub fn with_data(data: &[u8]) -> std::io::Result<Self> {
-        let mut file = tempfile::tempfile()?;
-
-        file.write_all(&data)?;
-
-        let hash = ImageDataType::hash_bytes(&data);
-        let len = data.len();
-
-        Ok(Self {
-            hash,
-            file: Arc::new(Mutex::new(file)),
-            len,
-        })
-    }
-
-    pub fn duplicate_file(&self) -> Result<File, filedescriptor::Error> {
-        let file = self.file.lock().unwrap();
-        let fd = filedescriptor::FileDescriptor::dup(&*file)?;
-        let mut file = fd.as_file()?;
-        file.rewind()?;
-        Ok(file)
-    }
-}
-
-#[cfg(feature = "use_serde")]
-impl Serialize for ImageDataFile {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let data = self.data().map_err(|err| serde::ser::Error::custom(err))?;
-        data.serialize(serializer)
-    }
-}
-
-#[cfg(feature = "use_serde")]
-impl<'de> Deserialize<'de> for ImageDataFile {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let data = <Vec<u8> as Deserialize>::deserialize(deserializer)?;
-        Self::with_data(&data).map_err(|err| serde::de::Error::custom(err))
-    }
-}
-
-impl Eq for ImageDataFile {}
-impl PartialEq for ImageDataFile {
-    fn eq(&self, rhs: &Self) -> bool {
-        self.hash == rhs.hash
-    }
-}
-impl std::fmt::Debug for ImageDataFile {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        fmt.debug_struct("ImageDataFile")
-            .field("hash", &self.hash)
-            .finish()
-    }
-}
-
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Eq)]
 pub enum ImageDataType {
@@ -305,10 +202,8 @@ pub enum ImageDataType {
     EncodedFile(Vec<u8>),
     /// Data is in the native image file format,
     /// (best for file formats that have animated content)
-    /// and is stored in a file, rather than in memory.
-    /// The file will be cleaned up by the OS automatically
-    /// when this process terminates.
-    File(ImageDataFile),
+    /// and is stored as a blob via the blob manager.
+    EncodedLease(#[cfg_attr(feature = "use_serde", serde(with = "lease_bytes"))] BlobLease),
     /// Data is RGBA u8 data
     Rgba8 {
         data: Vec<u8>,
@@ -333,7 +228,7 @@ impl std::fmt::Debug for ImageDataType {
                 .debug_struct("EncodedFile")
                 .field("data_of_len", &data.len())
                 .finish(),
-            Self::File(file) => file.fmt(fmt),
+            Self::EncodedLease(lease) => lease.fmt(fmt),
             Self::Rgba8 {
                 data,
                 width,
@@ -395,7 +290,7 @@ impl ImageDataType {
         let mut hasher = sha2::Sha256::new();
         match self {
             ImageDataType::EncodedFile(data) => hasher.update(data),
-            ImageDataType::File(f) => return f.hash,
+            ImageDataType::EncodedLease(lease) => return lease.content_id().as_hash_bytes(),
             ImageDataType::Rgba8 { data, .. } => hasher.update(data),
             ImageDataType::AnimRgba8 {
                 frames, durations, ..
@@ -430,16 +325,18 @@ impl ImageDataType {
     }
 
     #[cfg(feature = "use_image")]
-    pub fn dimensions(&self) -> image::ImageResult<(u32, u32)> {
-        match self {
-            ImageDataType::EncodedFile(data) => {
-                let reader =
-                    image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
-                let (width, height) = reader.into_dimensions()?;
+    pub fn dimensions(&self) -> Result<(u32, u32), InternalError> {
+        fn dimensions_for_data(data: &[u8]) -> image::ImageResult<(u32, u32)> {
+            let reader =
+                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+            let (width, height) = reader.into_dimensions()?;
 
-                Ok((width, height))
-            }
-            ImageDataType::File(file) => file.dimensions(),
+            Ok((width, height))
+        }
+
+        match self {
+            ImageDataType::EncodedFile(data) => Ok(dimensions_for_data(data)?),
+            ImageDataType::EncodedLease(lease) => Ok(dimensions_for_data(&lease.get_data()?)?),
             ImageDataType::AnimRgba8 { width, height, .. }
             | ImageDataType::Rgba8 { width, height, .. } => Ok((*width, *height)),
         }
@@ -447,9 +344,13 @@ impl ImageDataType {
 
     /// Migrate an in-memory encoded image blob to on-disk to reduce
     /// the memory footprint
-    pub fn swap_out(self) -> std::io::Result<Self> {
+    pub fn swap_out(self) -> Result<Self, InternalError> {
         match self {
-            Self::EncodedFile(data) => Ok(Self::File(ImageDataFile::with_data(&data)?)),
+            Self::EncodedFile(data) => match BlobManager::store(&data) {
+                Ok(lease) => Ok(Self::EncodedLease(lease)),
+                Err(wezterm_blob_leases::Error::StorageNotInit) => Ok(Self::EncodedFile(data)),
+                Err(err) => Err(err.into()),
+            },
             other => Ok(other),
         }
     }
@@ -611,7 +512,7 @@ impl ImageData {
     pub fn len(&self) -> usize {
         match &*self.data() {
             ImageDataType::EncodedFile(d) => d.len(),
-            ImageDataType::File(f) => f.len(),
+            ImageDataType::EncodedLease(_) => 0,
             ImageDataType::Rgba8 { data, .. } => data.len(),
             ImageDataType::AnimRgba8 { frames, .. } => frames.len() * frames[0].len(),
         }

@@ -16,14 +16,15 @@ use parking_lot::Mutex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Read, Seek, Write};
+use std::io::{Read, Seek, Write};
 use std::rc::Rc;
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
-use termwiz::image::{ImageData, ImageDataFile, ImageDataType};
+use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
+use wezterm_blob_leases::{BlobLease, BoxedReader};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
 use wezterm_term::Underline;
@@ -183,7 +184,7 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
         match &*self.h {
             ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
             ImageDataType::AnimRgba8 { frames, .. } => frames[self.current_frame].as_ptr(),
-            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => unreachable!(),
+            ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
 
@@ -195,7 +196,7 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
         match &*self.h {
             ImageDataType::Rgba8 { width, height, .. }
             | ImageDataType::AnimRgba8 { width, height, .. } => (*width as usize, *height as usize),
-            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => unreachable!(),
+            ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
 }
@@ -211,11 +212,10 @@ struct DecodedFrame {
 struct FrameDecoder {}
 
 impl FrameDecoder {
-    pub fn start(file: ImageDataFile) -> anyhow::Result<Receiver<DecodedFrame>> {
+    pub fn start(lease: BlobLease) -> anyhow::Result<Receiver<DecodedFrame>> {
         let (tx, rx) = sync_channel(2);
 
-        let file_dup = file.duplicate_file()?;
-        let buf_reader = std::io::BufReader::new(file_dup);
+        let buf_reader = lease.get_reader()?;
         let reader = image::io::Reader::new(buf_reader).with_guessed_format()?;
         let format = reader
             .format()
@@ -224,7 +224,7 @@ impl FrameDecoder {
         let scratch_file = tempfile::tempfile().context("make scratch file for decoding image")?;
 
         std::thread::spawn(move || {
-            if let Err(err) = Self::run_decoder_thread(reader, format, file, scratch_file, tx) {
+            if let Err(err) = Self::run_decoder_thread(reader, format, scratch_file, tx) {
                 if err
                     .downcast_ref::<std::sync::mpsc::SendError<DecodedFrame>>()
                     .is_none()
@@ -238,9 +238,8 @@ impl FrameDecoder {
     }
 
     fn run_decoder_thread(
-        reader: image::io::Reader<BufReader<File>>,
+        reader: image::io::Reader<BoxedReader>,
         format: ImageFormat,
-        image_data_file: ImageDataFile,
         mut scratch_file: File,
         tx: SyncSender<DecodedFrame>,
     ) -> anyhow::Result<()> {
@@ -361,9 +360,6 @@ impl FrameDecoder {
             scratch_file.write_all(&data)?;
         }
 
-        // We no longer need to keep the source file alive, as
-        // we can serve all frames from our scratch file
-        drop(image_data_file);
         drop(frames);
 
         let elapsed = start.elapsed();
@@ -480,7 +476,7 @@ impl DecodedImage {
 
     fn load(image_data: &Arc<ImageData>) -> Self {
         match &*image_data.data() {
-            ImageDataType::File(file) => match FrameDecoder::start(file.clone()) {
+            ImageDataType::EncodedLease(lease) => match FrameDecoder::start(lease.clone()) {
                 Ok(rx) => Self {
                     frame_start: RefCell::new(Instant::now()),
                     current_frame: RefCell::new(0),
@@ -922,7 +918,7 @@ impl GlyphCache {
                     ),
                 ));
             }
-            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
+            ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
                 let mut frames = decoded.frames.borrow_mut();
                 let frames = frames.as_mut().expect("to have frames");
 

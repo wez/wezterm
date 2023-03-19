@@ -5051,6 +5051,7 @@ dependencies = [
  "varbincode",
  "vtparse",
  "wezterm-bidi",
+ "wezterm-blob-leases",
  "wezterm-color-types",
  "wezterm-dynamic",
  "winapi",
@@ -5826,6 +5827,7 @@ dependencies = [
  "once_cell",
  "serde",
  "sha2 0.9.9",
+ "tempfile",
  "thiserror",
  "uuid",
 ]
@@ -6015,6 +6017,7 @@ dependencies = [
  "url",
  "walkdir",
  "wezterm-bidi",
+ "wezterm-blob-leases",
  "wezterm-client",
  "wezterm-dynamic",
  "wezterm-font",

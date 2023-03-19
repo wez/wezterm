@@ -443,7 +443,7 @@ impl TerminalState {
 
         let mut img = img.data();
         match &mut *img {
-            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
+            ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
                 anyhow::bail!("invalid image type")
             }
             ImageDataType::Rgba8 {
@@ -598,7 +598,7 @@ impl TerminalState {
         });
 
         match &mut *anim {
-            ImageDataType::File(_) | ImageDataType::EncodedFile(_) => {
+            ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
                 anyhow::bail!("Expected decoded image for image id {}", image_id)
             }
             ImageDataType::Rgba8 {
