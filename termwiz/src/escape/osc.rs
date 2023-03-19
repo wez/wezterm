@@ -1086,7 +1086,7 @@ impl ITermDimension {
 impl ITermProprietary {
     #[cfg_attr(
         feature = "cargo-clippy",
-        allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
+        allow(clippy::cognitive_complexity, clippy::cognitive_complexity)
     )]
     fn parse(osc: &[&[u8]]) -> Result<Self> {
         // iTerm has a number of different styles of OSC parameter

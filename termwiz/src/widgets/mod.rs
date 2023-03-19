@@ -399,8 +399,8 @@ impl<'widget> Ui<'widget> {
         self.add_widget_to_layout(&mut layout, root)?;
         let mut changed = false;
 
-        // Clippy is dead wrong about this iterator being an identity_conversion
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::identity_conversion))]
+        // Clippy is dead wrong about this iterator being an useless_conversion
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::useless_conversion))]
         for result in layout.compute_constraints(width, height, root)? {
             let render_data = self.render.get_mut(&result.widget).unwrap();
             let coords = ParentRelativeCoords::new(result.rect.x, result.rect.y);
