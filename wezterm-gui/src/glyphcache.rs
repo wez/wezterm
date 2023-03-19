@@ -5,18 +5,16 @@ use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect};
-use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use image::io::Limits;
 use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageFormat, ImageResult};
 use lfucache::LfuCacheU64;
+use once_cell::sync::Lazy;
 use ordered_float::NotNan;
-use parking_lot::Mutex;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Seek};
 use std::rc::Rc;
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
@@ -24,7 +22,7 @@ use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
-use wezterm_blob_leases::{BlobLease, BoxedReader};
+use wezterm_blob_leases::{BlobLease, BlobManager, BoxedReader};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
 use wezterm_term::Underline;
@@ -201,10 +199,10 @@ impl<'a> BitmapImage for DecodedImageHandle<'a> {
     }
 }
 
+#[derive(Clone)]
 struct DecodedFrame {
-    data: Arc<Mutex<Vec<u8>>>,
+    lease: BlobLease,
     duration: Duration,
-    hash: [u8; 32],
     width: usize,
     height: usize,
 }
@@ -221,10 +219,8 @@ impl FrameDecoder {
             .format()
             .ok_or_else(|| anyhow::anyhow!("cannot determine image format"))?;
 
-        let scratch_file = tempfile::tempfile().context("make scratch file for decoding image")?;
-
         std::thread::spawn(move || {
-            if let Err(err) = Self::run_decoder_thread(reader, format, scratch_file, tx) {
+            if let Err(err) = Self::run_decoder_thread(reader, format, tx) {
                 if err
                     .downcast_ref::<std::sync::mpsc::SendError<DecodedFrame>>()
                     .is_none()
@@ -240,7 +236,6 @@ impl FrameDecoder {
     fn run_decoder_thread(
         reader: image::io::Reader<BoxedReader>,
         format: ImageFormat,
-        mut scratch_file: File,
         tx: SyncSender<DecodedFrame>,
     ) -> anyhow::Result<()> {
         let start = Instant::now();
@@ -296,131 +291,111 @@ impl FrameDecoder {
             })?;
         let frame = frame?;
 
-        let mut durations = vec![];
-        let mut hashes = vec![];
+        let mut decoded_frames = vec![];
         let (width, height) = frame.buffer().dimensions();
         let width = width as usize;
         let height = height as usize;
 
         let duration: Duration = frame.delay().into();
-        let mut data = frame.into_buffer().into_raw();
-        data.shrink_to_fit();
-        let buf_2 = Arc::new(Mutex::new(data.clone()));
-        let buf_1 = Arc::new(Mutex::new(data.clone()));
-        let buf_0 = Arc::new(Mutex::new(data.clone()));
+        log::debug!("first frame took {:?} to decode.", start.elapsed());
 
-        let buffers = [buf_0, buf_1, buf_2];
-        let mut which_buffer = 0;
-
-        fn next_buffer(which: &mut usize) {
-            *which += 1;
-            if *which > 2 {
-                *which = 0;
-            }
-        }
-
-        log::debug!("first frame took {:?} to decode", start.elapsed());
-
-        let hash = ImageDataType::hash_bytes(&data);
-        tx.send(DecodedFrame {
-            data: Arc::clone(&buffers[which_buffer]),
+        let data = frame.into_buffer().into_raw();
+        let lease = BlobManager::store(&data)?;
+        let decoded_frame = DecodedFrame {
+            lease,
             duration,
-            hash,
             width,
             height,
-        })?;
-        next_buffer(&mut which_buffer);
-        durations.push(duration);
-        hashes.push(hash);
-
-        scratch_file.write_all(&data)?;
+        };
+        tx.send(decoded_frame.clone())?;
+        decoded_frames.push(decoded_frame);
 
         while let Some(frame) = frames.next() {
             let frame = frame?;
 
             let duration: Duration = frame.delay().into();
             let data = frame.into_buffer().into_raw();
+            let lease = BlobManager::store(&data)?;
 
-            let buf = Arc::clone(&buffers[which_buffer]);
-
-            buf.lock().copy_from_slice(&data);
-
-            let hash = ImageDataType::hash_bytes(&data);
-            tx.send(DecodedFrame {
-                data: buf,
+            let decoded_frame = DecodedFrame {
+                lease,
                 duration,
-                hash,
                 width,
                 height,
-            })?;
-            next_buffer(&mut which_buffer);
-            durations.push(duration);
-            hashes.push(hash);
-
-            scratch_file.write_all(&data)?;
+            };
+            tx.send(decoded_frame.clone())?;
+            decoded_frames.push(decoded_frame);
         }
 
         drop(frames);
 
         let elapsed = start.elapsed();
-        let fps = durations.len() as f32 / elapsed.as_secs_f32();
+        let fps = decoded_frames.len() as f32 / elapsed.as_secs_f32();
 
         log::debug!(
             "decoded {} frames, {} bytes in {elapsed:?}, {fps} fps",
-            durations.len(),
-            durations.len() * buffers[which_buffer].lock().len()
+            decoded_frames.len(),
+            decoded_frames.len() * width * height * 4
         );
-
-        loop {
-            scratch_file.rewind()?;
-            for (&duration, &hash) in durations.iter().zip(hashes.iter()) {
-                let buf = Arc::clone(&buffers[which_buffer]);
-                which_buffer += 1;
-                scratch_file.read(buf.lock().as_mut_slice())?;
-                tx.send(DecodedFrame {
-                    data: buf,
-                    duration,
-                    hash,
-                    width,
-                    height,
-                })?;
-                next_buffer(&mut which_buffer);
-            }
-        }
+        Ok(())
     }
 }
 
+enum FrameSource {
+    Decoder(Receiver<DecodedFrame>),
+    FrameIndex(usize),
+}
+
 struct FrameState {
-    rx: Receiver<DecodedFrame>,
+    source: FrameSource,
     current_frame: DecodedFrame,
+    frames: Vec<DecodedFrame>,
 }
 
 impl FrameState {
     fn new(rx: Receiver<DecodedFrame>) -> Self {
-        let data = vec![0u8; 4];
-        let hash = ImageDataType::hash_bytes(&data);
+        static EMPTY: Lazy<BlobLease> = Lazy::new(|| BlobManager::store(&[0u8; 4]).unwrap());
+
         Self {
-            rx,
+            source: FrameSource::Decoder(rx),
+            frames: vec![],
             current_frame: DecodedFrame {
-                data: Arc::new(Mutex::new(data)),
+                lease: EMPTY.clone(),
                 width: 1,
                 height: 1,
                 duration: Duration::from_millis(0),
-                hash,
             },
         }
     }
+
     fn load_next_frame(&mut self) -> bool {
-        match self.rx.try_recv() {
-            Ok(frame) => {
-                self.current_frame = frame;
+        match &mut self.source {
+            FrameSource::Decoder(rx) => match rx.try_recv() {
+                Ok(frame) => {
+                    self.frames.push(frame.clone());
+                    self.current_frame = frame;
+                    true
+                }
+                Err(TryRecvError::Empty) => false,
+                Err(TryRecvError::Disconnected) => {
+                    self.source = FrameSource::FrameIndex(0);
+                    if self.frames.is_empty() {
+                        log::warn!("decoder thread terminated");
+                        self.current_frame.duration = Duration::from_secs(86400);
+                        self.frames.push(self.current_frame.clone());
+                        false
+                    } else {
+                        true
+                    }
+                }
+            },
+            FrameSource::FrameIndex(idx) => {
+                *idx = *idx + 1;
+                if *idx >= self.frames.len() {
+                    *idx = 0;
+                }
+                self.current_frame = self.frames[*idx].clone();
                 true
-            }
-            Err(TryRecvError::Empty) => false,
-            Err(TryRecvError::Disconnected) => {
-                log::warn!("decoder thread terminated");
-                self.current_frame.duration = Duration::from_secs(86400);
-                false
             }
         }
     }
@@ -429,22 +404,8 @@ impl FrameState {
         self.current_frame.duration
     }
 
-    fn frame_hash(&self) -> &[u8; 32] {
-        &self.current_frame.hash
-    }
-}
-
-impl BitmapImage for FrameState {
-    unsafe fn pixel_data(&self) -> *const u8 {
-        self.current_frame.data.lock().as_slice().as_ptr()
-    }
-
-    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
-        panic!("cannot mutate DecodedImage");
-    }
-
-    fn image_dimensions(&self) -> (usize, usize) {
-        (self.current_frame.width, self.current_frame.height)
+    fn frame_hash(&self) -> [u8; 32] {
+        self.current_frame.lease.content_id().as_hash_bytes()
     }
 }
 
@@ -952,13 +913,18 @@ impl GlyphCache {
 
                 next.replace(next_due);
 
-                let hash = *frames.frame_hash();
+                let hash = frames.frame_hash();
 
                 if let Some(sprite) = frame_cache.get(&hash) {
                     return Ok((sprite.clone(), next));
                 }
 
-                let sprite = atlas.allocate_with_padding(frames, padding)?;
+                let frame = Image::from_raw(
+                    frames.current_frame.width,
+                    frames.current_frame.height,
+                    frames.current_frame.lease.get_data()?,
+                );
+                let sprite = atlas.allocate_with_padding(&frame, padding)?;
 
                 frame_cache.insert(hash, sprite.clone());
 

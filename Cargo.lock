@@ -5986,6 +5986,7 @@ dependencies = [
  "mlua",
  "mux",
  "mux-lua",
+ "once_cell",
  "open",
  "ordered-float",
  "parking_lot 0.12.1",
