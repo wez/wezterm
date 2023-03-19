@@ -389,6 +389,8 @@ impl InputMap {
         }
     }
 
+    // Clippy seems to have a false positive here
+    #[allow(dead_code)]
     /// Given an action, return the corresponding set of application-wide key assignments that are
     /// mapped to it.
     /// If any key_tables reference a given combination, then that combination

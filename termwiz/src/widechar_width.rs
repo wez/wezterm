@@ -1631,6 +1631,8 @@ impl WcLookupTable {
 
 #[cfg(test)]
 mod test {
+    // Clippy has a false possitive here
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
