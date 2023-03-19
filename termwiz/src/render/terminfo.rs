@@ -317,10 +317,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    #[cfg_attr(
-        feature = "cargo-clippy",
-        allow(clippy::cognitive_complexity)
-    )]
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cognitive_complexity))]
     pub fn render_to<W: RenderTty + Write>(
         &mut self,
         changes: &[Change],
