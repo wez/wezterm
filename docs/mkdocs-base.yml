@@ -77,6 +77,11 @@ extra_javascript:
 
 markdown_extensions:
   - admonition
+  - pymdownx.saneheaders
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: wez
+      repo: wezterm
   - pymdownx.details
   - attr_list
   - md_in_html
