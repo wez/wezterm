@@ -39,7 +39,6 @@
     },
     "metadata": {
       "aliases": [
-        "3024 (base16)",
         "3024 (dark) (terminal.sexy)"
       ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
@@ -117,7 +116,7 @@
     },
     "metadata": {
       "aliases": [
-        "3024 Day",
+        "3024 Day (Gogh)",
         "3024Day (Gogh)"
       ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
@@ -160,7 +159,7 @@
     },
     "metadata": {
       "aliases": [
-        "3024 Night",
+        "3024 Night (Gogh)",
         "3024Night (Gogh)"
       ],
       "author": "Jan T. Sott (http://github.com/idleberg)",
@@ -354,7 +353,9 @@
       "selection_fg": "#f3d9c4"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Adventure Time (Gogh)"
+      ],
       "name": "AdventureTime",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -543,7 +544,9 @@
       "selection_fg": "#73fa91"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Alien Blood (Gogh)"
+      ],
       "name": "AlienBlood",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -679,38 +682,38 @@
     "colors": {
       "ansi": [
         "#262626",
-        "#5f8787",
-        "#87af87",
-        "#5f8787",
+        "#444444",
         "#ffffaf",
+        "#87af87",
+        "#8787af",
+        "#5fafaf",
         "#87afd7",
-        "#5f875f",
-        "#bcbcbc"
+        "#5f5f87"
       ],
       "background": "#262626",
       "brights": [
-        "#6c6c6c",
-        "#5f8787",
-        "#87af87",
-        "#5f8787",
+        "#87875f",
+        "#444444",
         "#ffffaf",
+        "#87af87",
+        "#8787af",
+        "#5fafaf",
         "#87afd7",
-        "#5f875f",
-        "#ffffff"
+        "#6c6c6c"
       ],
-      "cursor_bg": "#bcbcbc",
-      "cursor_border": "#bcbcbc",
+      "cursor_bg": "#5f5f87",
+      "cursor_border": "#5f5f87",
       "cursor_fg": "#262626",
-      "foreground": "#bcbcbc",
+      "foreground": "#5f5f87",
       "indexed": {
         "16": "#ff8700",
-        "17": "#5f87af",
-        "18": "#303030",
-        "19": "#333333",
-        "20": "#787878",
-        "21": "#c9c9c9"
+        "17": "#bcbcbc",
+        "18": "#af5f5f",
+        "19": "#5f875f",
+        "20": "#5f87af",
+        "21": "#5f8787"
       },
-      "selection_bg": "#bcbcbc",
+      "selection_bg": "#5f5f87",
       "selection_fg": "#262626"
     },
     "metadata": {
@@ -793,7 +796,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Argonaut (Gogh)"
+      ],
       "name": "Argonaut",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -832,7 +837,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Arthur (Gogh)"
+      ],
       "name": "Arthur",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -879,7 +886,6 @@
     },
     "metadata": {
       "aliases": [
-        "Ashes (base16)",
         "Ashes (dark) (terminal.sexy)"
       ],
       "author": "Jannik Siebert (https://github.com/janniks)",
@@ -2367,7 +2373,9 @@
       "selection_fg": "#c5c8c6"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Atom (Gogh)"
+      ],
       "name": "Atom",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
@@ -2531,6 +2539,84 @@
   {
     "colors": {
       "ansi": [
+        "#0a0e14",
+        "#ff3333",
+        "#c2d94c",
+        "#ff8f40",
+        "#59c2ff",
+        "#ffee99",
+        "#95e6cb",
+        "#b3b1ad"
+      ],
+      "background": "#0a0e14",
+      "brights": [
+        "#4d5566",
+        "#ff3333",
+        "#c2d94c",
+        "#ff8f40",
+        "#59c2ff",
+        "#ffee99",
+        "#95e6cb",
+        "#b3b1ad"
+      ],
+      "cursor_bg": "#e6b450",
+      "cursor_border": "#e6b450",
+      "cursor_fg": "#e6b450",
+      "foreground": "#b3b1ad",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "AyuDark (Gogh)"
+      ],
+      "name": "Ayu Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "a",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#575f66",
+        "#f51818",
+        "#86b300",
+        "#f2ae49",
+        "#399ee6",
+        "#a37acc",
+        "#4cbf99",
+        "#fafafa"
+      ],
+      "background": "#fafafa",
+      "brights": [
+        "#8a9199",
+        "#f51818",
+        "#86b300",
+        "#f2ae49",
+        "#399ee6",
+        "#a37acc",
+        "#4cbf99",
+        "#fafafa"
+      ],
+      "cursor_bg": "#ff9940",
+      "cursor_border": "#ff9940",
+      "cursor_fg": "#ff9940",
+      "foreground": "#575f66",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "AyuLight (Gogh)"
+      ],
+      "name": "Ayu Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "a",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#191e2a",
         "#ed8274",
         "#a6cc70",
@@ -2565,6 +2651,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1f2430",
+        "#ff3333",
+        "#bae67e",
+        "#ffa759",
+        "#73d0ff",
+        "#d4bfff",
+        "#95e6cb",
+        "#cbccc6"
+      ],
+      "background": "#1f2430",
+      "brights": [
+        "#707a8c",
+        "#ff3333",
+        "#bae67e",
+        "#ffa759",
+        "#73d0ff",
+        "#d4bfff",
+        "#95e6cb",
+        "#cbccc6"
+      ],
+      "cursor_bg": "#ffcc66",
+      "cursor_border": "#ffcc66",
+      "cursor_fg": "#ffcc66",
+      "foreground": "#cbccc6",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "AyuMirage (Gogh)"
+      ],
+      "name": "Ayu Mirage (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "a",
+      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -2609,117 +2734,6 @@
   {
     "colors": {
       "ansi": [
-        "#0a0e14",
-        "#ff3333",
-        "#c2d94c",
-        "#ff8f40",
-        "#59c2ff",
-        "#ffee99",
-        "#95e6cb",
-        "#b3b1ad"
-      ],
-      "background": "#0a0e14",
-      "brights": [
-        "#4d5566",
-        "#ff3333",
-        "#c2d94c",
-        "#ff8f40",
-        "#59c2ff",
-        "#ffee99",
-        "#95e6cb",
-        "#b3b1ad"
-      ],
-      "cursor_bg": "#e6b450",
-      "cursor_border": "#e6b450",
-      "cursor_fg": "#e6b450",
-      "foreground": "#b3b1ad",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "AyuDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#575f66",
-        "#f51818",
-        "#86b300",
-        "#f2ae49",
-        "#399ee6",
-        "#a37acc",
-        "#4cbf99",
-        "#fafafa"
-      ],
-      "background": "#fafafa",
-      "brights": [
-        "#8a9199",
-        "#f51818",
-        "#86b300",
-        "#f2ae49",
-        "#399ee6",
-        "#a37acc",
-        "#4cbf99",
-        "#fafafa"
-      ],
-      "cursor_bg": "#ff9940",
-      "cursor_border": "#ff9940",
-      "cursor_fg": "#ff9940",
-      "foreground": "#575f66",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "AyuLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1f2430",
-        "#ff3333",
-        "#bae67e",
-        "#ffa759",
-        "#73d0ff",
-        "#d4bfff",
-        "#95e6cb",
-        "#cbccc6"
-      ],
-      "background": "#1f2430",
-      "brights": [
-        "#707a8c",
-        "#ff3333",
-        "#bae67e",
-        "#ffa759",
-        "#73d0ff",
-        "#d4bfff",
-        "#95e6cb",
-        "#cbccc6"
-      ],
-      "cursor_bg": "#ffcc66",
-      "cursor_border": "#ffcc66",
-      "cursor_fg": "#ffcc66",
-      "foreground": "#cbccc6",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "AyuMirage (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "a",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#000000",
         "#ac6d74",
         "#74ac6d",
@@ -2752,43 +2766,6 @@
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
       "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#393b44",
-        "#c94f6d",
-        "#81b29a",
-        "#dbc074",
-        "#719cd6",
-        "#9d79d6",
-        "#63cdcf",
-        "#dfdfe0"
-      ],
-      "background": "#192330",
-      "brights": [
-        "#575860",
-        "#d16983",
-        "#8ebaa4",
-        "#e0c989",
-        "#86abdc",
-        "#baa1e2",
-        "#7ad4d6",
-        "#e4e4e5"
-      ],
-      "cursor_bg": "#cdcecf",
-      "cursor_border": "#cdcecf",
-      "cursor_fg": "#cdcecf",
-      "foreground": "#cdcecf",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "_bash (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b",
-      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -2902,7 +2879,7 @@
     },
     "metadata": {
       "aliases": [
-        "Belafonte Day",
+        "Belafonte Day (Gogh)",
         "BelafonteDay (Gogh)"
       ],
       "author": "Jan T. Sott",
@@ -2945,7 +2922,7 @@
     },
     "metadata": {
       "aliases": [
-        "Belafonte Night",
+        "Belafonte Night (Gogh)",
         "BelafonteNight (Gogh)"
       ],
       "author": "Jan T. Sott",
@@ -3030,7 +3007,6 @@
     },
     "metadata": {
       "aliases": [
-        "Bespin (base16)",
         "Bespin (dark) (terminal.sexy)"
       ],
       "author": "Jan T. Sott",
@@ -3144,7 +3120,9 @@
       "selection_fg": "#e0dbbb"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Birds Of Paradise (Gogh)"
+      ],
       "name": "BirdsOfParadise",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -3736,7 +3714,7 @@
     },
     "metadata": {
       "aliases": [
-        "Blazer",
+        "Blazer (Gogh)",
         "Miu (Gogh)"
       ],
       "name": "Blazer",
@@ -3900,6 +3878,84 @@
   {
     "colors": {
       "ansi": [
+        "#d5d6dd",
+        "#d52753",
+        "#23974a",
+        "#df631c",
+        "#275fe4",
+        "#823ff1",
+        "#27618d",
+        "#000000"
+      ],
+      "background": "#f9f9f9",
+      "brights": [
+        "#e4e5ed",
+        "#ff6480",
+        "#3cbc66",
+        "#c5a332",
+        "#0099e1",
+        "#ce33c0",
+        "#6d93bb",
+        "#26272d"
+      ],
+      "cursor_bg": "#383a42",
+      "cursor_border": "#383a42",
+      "cursor_fg": "#383a42",
+      "foreground": "#383a42",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "BlulocoLight (Gogh)"
+      ],
+      "name": "Bluloco Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e4e5f1",
+        "#d52753",
+        "#23974a",
+        "#df631c",
+        "#275fe4",
+        "#823ff1",
+        "#27618d",
+        "#000000"
+      ],
+      "background": "#f9f9f9",
+      "brights": [
+        "#5794de",
+        "#ff6480",
+        "#3cbc66",
+        "#c5a332",
+        "#0099e1",
+        "#ce33c0",
+        "#6d93bb",
+        "#26272d"
+      ],
+      "cursor_bg": "#383a42",
+      "cursor_border": "#383a42",
+      "cursor_fg": "#383a42",
+      "foreground": "#383a42",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "BlulocoZshLight (Gogh)"
+      ],
+      "name": "Bluloco Zsh Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#41444d",
         "#fc2f52",
         "#25a45c",
@@ -3978,80 +4034,6 @@
   {
     "colors": {
       "ansi": [
-        "#d5d6dd",
-        "#d52753",
-        "#23974a",
-        "#df631c",
-        "#275fe4",
-        "#823ff1",
-        "#27618d",
-        "#000000"
-      ],
-      "background": "#f9f9f9",
-      "brights": [
-        "#e4e5ed",
-        "#ff6480",
-        "#3cbc66",
-        "#c5a332",
-        "#0099e1",
-        "#ce33c0",
-        "#6d93bb",
-        "#26272d"
-      ],
-      "cursor_bg": "#383a42",
-      "cursor_border": "#383a42",
-      "cursor_fg": "#383a42",
-      "foreground": "#383a42",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "BlulocoLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#e4e5f1",
-        "#d52753",
-        "#23974a",
-        "#df631c",
-        "#275fe4",
-        "#823ff1",
-        "#27618d",
-        "#000000"
-      ],
-      "background": "#f9f9f9",
-      "brights": [
-        "#5794de",
-        "#ff6480",
-        "#3cbc66",
-        "#c5a332",
-        "#0099e1",
-        "#ce33c0",
-        "#6d93bb",
-        "#26272d"
-      ],
-      "cursor_bg": "#383a42",
-      "cursor_border": "#383a42",
-      "cursor_fg": "#383a42",
-      "foreground": "#383a42",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "BlulocoZshLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "b",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#4f4f4f",
         "#ff6c60",
         "#a8ff60",
@@ -4081,7 +4063,9 @@
       "selection_fg": "#0000a4"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Borland (Gogh)"
+      ],
       "name": "Borland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4128,6 +4112,43 @@
   {
     "colors": {
       "ansi": [
+        "#1e2229",
+        "#ed1515",
+        "#44853a",
+        "#f67400",
+        "#1d99f3",
+        "#9b59b6",
+        "#1abc9c",
+        "#fcfcfc"
+      ],
+      "background": "#080d14",
+      "brights": [
+        "#7f8c8d",
+        "#c0392b",
+        "#55a649",
+        "#fdbc4b",
+        "#3daee9",
+        "#8e44ad",
+        "#16a085",
+        "#ffffff"
+      ],
+      "cursor_bg": "#17a88b",
+      "cursor_border": "#17a88b",
+      "cursor_fg": "#17a88b",
+      "foreground": "#17a88b",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Breath Darker (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#e8e8e8",
         "#ed1515",
         "#c0392b",
@@ -4155,8 +4176,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "BreathLight (Gogh)",
+      "aliases": [
+        "BreathLight (Gogh)"
+      ],
+      "name": "Breath Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
       "wezterm_version": "nightly builds only"
@@ -4192,8 +4215,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "BreathSilverfox (Gogh)",
+      "aliases": [
+        "BreathSilverfox (Gogh)"
+      ],
+      "name": "Breath Silverfox (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
       "wezterm_version": "nightly builds only"
@@ -4315,7 +4340,6 @@
     },
     "metadata": {
       "aliases": [
-        "Brewer (base16)",
         "Brewer (dark) (terminal.sexy)"
       ],
       "author": "Timothée Poisot (http://github.com/tpoisot)",
@@ -4478,7 +4502,9 @@
       "selection_fg": "#e6e1dc"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Broadcast (Gogh)"
+      ],
       "name": "Broadcast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4517,7 +4543,9 @@
       "selection_fg": "#d6dbe5"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Brogrammer (Gogh)"
+      ],
       "name": "Brogrammer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -4854,7 +4882,7 @@
     },
     "metadata": {
       "aliases": [
-        "Builtin Solarized Light",
+        "Solarized Light (Gogh)",
         "SolarizedLight (Gogh)"
       ],
       "name": "Builtin Solarized Light",
@@ -4896,7 +4924,6 @@
     },
     "metadata": {
       "aliases": [
-        "Builtin Tango Dark",
         "Gnometerm (terminal.sexy)"
       ],
       "name": "Builtin Tango Dark",
@@ -4976,7 +5003,9 @@
       "selection_fg": "#40318d"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "C64 (Gogh)"
+      ],
       "author": "Jan T. Sott",
       "name": "C64",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -5260,8 +5289,8 @@
       "split": "#737994",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#303446",
-          "fg_color": "#c6d0f5",
+          "bg_color": "#ca9ee6",
+          "fg_color": "#232634",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -5276,6 +5305,7 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "inactive_tab_edge": "#414559",
         "inactive_tab_hover": {
           "bg_color": "#303446",
           "fg_color": "#c6d0f5",
@@ -5296,7 +5326,7 @@
           "bg_color": "#51576d",
           "fg_color": "#c6d0f5",
           "intensity": "Normal",
-          "italic": true,
+          "italic": false,
           "strikethrough": false,
           "underline": "None"
         }
@@ -5305,9 +5335,8 @@
     },
     "metadata": {
       "aliases": [
-        "Catppuccin Frappe",
-        "catppuccin-frappe",
-        "CatppuccinFrappé (Gogh)"
+        "Catppuccin Frappé (Gogh)",
+        "catppuccin-frappe"
       ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Frappe",
@@ -5319,30 +5348,30 @@
   {
     "colors": {
       "ansi": [
-        "#5c5f77",
+        "#bcc0cc",
         "#d20f39",
         "#40a02b",
         "#df8e1d",
         "#1e66f5",
         "#ea76cb",
         "#179299",
-        "#acb0be"
+        "#5c5f77"
       ],
       "background": "#eff1f5",
       "brights": [
-        "#6c6f85",
+        "#acb0be",
         "#d20f39",
         "#40a02b",
         "#df8e1d",
         "#1e66f5",
         "#ea76cb",
         "#179299",
-        "#bcc0cc"
+        "#6c6f85"
       ],
       "compose_cursor": "#dd7878",
       "cursor_bg": "#dc8a78",
       "cursor_border": "#dc8a78",
-      "cursor_fg": "#eff1f5",
+      "cursor_fg": "#dce0e8",
       "foreground": "#4c4f69",
       "indexed": {
         "16": "#fe640b",
@@ -5354,8 +5383,8 @@
       "split": "#9ca0b0",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#eff1f5",
-          "fg_color": "#4c4f69",
+          "bg_color": "#8839ef",
+          "fg_color": "#dce0e8",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -5370,6 +5399,7 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "inactive_tab_edge": "#ccd0da",
         "inactive_tab_hover": {
           "bg_color": "#eff1f5",
           "fg_color": "#4c4f69",
@@ -5390,7 +5420,7 @@
           "bg_color": "#bcc0cc",
           "fg_color": "#4c4f69",
           "intensity": "Normal",
-          "italic": true,
+          "italic": false,
           "strikethrough": false,
           "underline": "None"
         }
@@ -5398,11 +5428,7 @@
       "visual_bell": "#ccd0da"
     },
     "metadata": {
-      "aliases": [
-        "Catppuccin Latte",
-        "catppuccin-latte",
-        "CatppuccinLatte (Gogh)"
-      ],
+      "aliases": [],
       "author": "Catppuccin Org",
       "name": "Catppuccin Latte",
       "origin_url": "https://github.com/catppuccin/wezterm",
@@ -5448,8 +5474,8 @@
       "split": "#6e738d",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#24273a",
-          "fg_color": "#cad3f5",
+          "bg_color": "#c6a0f6",
+          "fg_color": "#181926",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -5464,6 +5490,7 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "inactive_tab_edge": "#363a4f",
         "inactive_tab_hover": {
           "bg_color": "#24273a",
           "fg_color": "#cad3f5",
@@ -5484,7 +5511,7 @@
           "bg_color": "#494d64",
           "fg_color": "#cad3f5",
           "intensity": "Normal",
-          "italic": true,
+          "italic": false,
           "strikethrough": false,
           "underline": "None"
         }
@@ -5493,9 +5520,8 @@
     },
     "metadata": {
       "aliases": [
-        "Catppuccin Macchiato",
-        "catppuccin-macchiato",
-        "CatppuccinMacchiato (Gogh)"
+        "Catppuccin Macchiato (Gogh)",
+        "catppuccin-macchiato"
       ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Macchiato",
@@ -5542,8 +5568,8 @@
       "split": "#6c7086",
       "tab_bar": {
         "active_tab": {
-          "bg_color": "#1e1e2e",
-          "fg_color": "#cdd6f4",
+          "bg_color": "#cba6f7",
+          "fg_color": "#11111b",
           "intensity": "Normal",
           "italic": false,
           "strikethrough": false,
@@ -5558,6 +5584,7 @@
           "strikethrough": false,
           "underline": "None"
         },
+        "inactive_tab_edge": "#313244",
         "inactive_tab_hover": {
           "bg_color": "#1e1e2e",
           "fg_color": "#cdd6f4",
@@ -5578,7 +5605,7 @@
           "bg_color": "#45475a",
           "fg_color": "#cdd6f4",
           "intensity": "Normal",
-          "italic": true,
+          "italic": false,
           "strikethrough": false,
           "underline": "None"
         }
@@ -5587,15 +5614,55 @@
     },
     "metadata": {
       "aliases": [
-        "Catppuccin Mocha",
-        "catppuccin-mocha",
-        "CatppuccinMocha (Gogh)"
+        "Catppuccin Mocha (Gogh)",
+        "catppuccin-mocha"
       ],
       "author": "Catppuccin Org",
       "name": "Catppuccin Mocha",
       "origin_url": "https://github.com/catppuccin/wezterm",
       "prefix": "c",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#5c5f77",
+        "#d20f39",
+        "#40a02b",
+        "#df8e1d",
+        "#1e66f5",
+        "#ea76cb",
+        "#179299",
+        "#acb0be"
+      ],
+      "background": "#eff1f5",
+      "brights": [
+        "#6c6f85",
+        "#d20f39",
+        "#40a02b",
+        "#df8e1d",
+        "#1e66f5",
+        "#ea76cb",
+        "#179299",
+        "#bcc0cc"
+      ],
+      "cursor_bg": "#dc8a78",
+      "cursor_border": "#dc8a78",
+      "cursor_fg": "#4c4f69",
+      "foreground": "#4c4f69",
+      "indexed": {},
+      "selection_bg": "#acb0be",
+      "selection_fg": "#4c4f69"
+    },
+    "metadata": {
+      "aliases": [
+        "Catppuccin Latte (Gogh)"
+      ],
+      "name": "catppuccin-latte",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -5716,7 +5783,6 @@
     },
     "metadata": {
       "aliases": [
-        "Chalk (base16)",
         "Chalk (dark) (terminal.sexy)"
       ],
       "author": "Chris Kempson (http://chriskempson.com)",
@@ -5830,7 +5896,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Chalkboard (Gogh)"
+      ],
       "name": "Chalkboard",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -5984,7 +6052,9 @@
       "selection_fg": "#aea47f"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Ciapre (Gogh)"
+      ],
       "name": "Ciapre",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -6113,7 +6183,6 @@
     },
     "metadata": {
       "aliases": [
-        "Classic Dark (base16)",
         "Default (dark) (terminal.sexy)"
       ],
       "author": "Jason Heeris (http://heeris.id.au)",
@@ -6200,8 +6269,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "CloneofUbuntu (Gogh)",
+      "aliases": [
+        "CloneofUbuntu (Gogh)"
+      ],
+      "name": "Clone Of Ubuntu (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -6274,7 +6345,9 @@
       "selection_fg": "#041730"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Clrs (Gogh)"
+      ],
       "name": "CLRS",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -6314,7 +6387,7 @@
     },
     "metadata": {
       "aliases": [
-        "Cobalt Neon",
+        "Cobalt Neon (Gogh)",
         "CobaltNeon (Gogh)"
       ],
       "name": "Cobalt Neon",
@@ -6355,7 +6428,9 @@
       "selection_fg": "#b5b5b5"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Cobalt 2 (Gogh)"
+      ],
       "name": "Cobalt2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -6402,7 +6477,6 @@
     },
     "metadata": {
       "aliases": [
-        "Codeschool (base16)",
         "Codeschool (dark) (terminal.sexy)"
       ],
       "author": "blockloop",
@@ -6707,7 +6781,9 @@
       "selection_fg": "#69525a"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Crayon Pony Fish (Gogh)"
+      ],
       "name": "CrayonPonyFish",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
@@ -7095,7 +7171,7 @@
     },
     "metadata": {
       "aliases": [
-        "Dark Pastel",
+        "Dark Pastel (Gogh)",
         "DarkPastel (Gogh)"
       ],
       "name": "Dark Pastel",
@@ -7347,7 +7423,9 @@
       "selection_fg": "#bababa"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Darkside (Gogh)"
+      ],
       "name": "Darkside",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -7900,8 +7978,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "DeHydration (Gogh)",
+      "aliases": [
+        "DeHydration (Gogh)"
+      ],
+      "name": "Dehydration (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -7974,7 +8054,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Desert (Gogh)"
+      ],
       "name": "Desert",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -8048,7 +8130,9 @@
       "selection_fg": "#b9bcba"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Dimmed Monokai (Gogh)"
+      ],
       "name": "DimmedMonokai",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "d",
@@ -8893,7 +8977,9 @@
       "selection_fg": "#e5c7a9"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Earthsong (Gogh)"
+      ],
       "name": "Earthsong",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -9034,7 +9120,6 @@
     },
     "metadata": {
       "aliases": [
-        "Eighties (base16)",
         "Eighties (dark) (terminal.sexy)"
       ],
       "author": "Chris Kempson (http://chriskempson.com)",
@@ -9146,7 +9231,9 @@
       "selection_fg": "#facd77"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Elemental (Gogh)"
+      ],
       "name": "Elemental",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -9343,7 +9430,6 @@
     },
     "metadata": {
       "aliases": [
-        "Embers (base16)",
         "Embers (dark) (terminal.sexy)"
       ],
       "author": "Jannik Siebert (https://github.com/janniks)",
@@ -9752,7 +9838,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Espresso (Gogh)"
+      ],
       "name": "Espresso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -9839,7 +9927,7 @@
     },
     "metadata": {
       "aliases": [
-        "Espresso Libre",
+        "Espresso Libre (Gogh)",
         "EspressoLibre (Gogh)"
       ],
       "name": "Espresso Libre",
@@ -10009,7 +10097,9 @@
       "selection_fg": "#dadada"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Everblush (Gogh)"
+      ],
       "name": "Everblush",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
@@ -10046,8 +10136,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "EverforestDark (Gogh)",
+      "aliases": [
+        "EverforestDark (Gogh)"
+      ],
+      "name": "Everforest Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
@@ -10083,8 +10175,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "EverforestLight (Gogh)",
+      "aliases": [
+        "EverforestLight (Gogh)"
+      ],
+      "name": "Everforest Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
@@ -10132,45 +10226,6 @@
   {
     "colors": {
       "ansi": [
-        "#040303",
-        "#f92672",
-        "#c2ffdf",
-        "#e6c000",
-        "#c2ffdf",
-        "#ffb8d1",
-        "#c5a3ff",
-        "#f8f8f0"
-      ],
-      "background": "#5a5475",
-      "brights": [
-        "#6090cb",
-        "#ff857f",
-        "#c2ffdf",
-        "#ffea00",
-        "#c2ffdf",
-        "#ffb8d1",
-        "#c5a3ff",
-        "#f8f8f0"
-      ],
-      "cursor_bg": "#f8f8f0",
-      "cursor_border": "#f8f8f0",
-      "cursor_fg": "#060709",
-      "foreground": "#f8f8f2",
-      "indexed": {},
-      "selection_bg": "#8077a8",
-      "selection_fg": "#f6e1ce"
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Fairyfloss",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "f",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#42395d",
         "#a8757b",
         "#ff857f",
@@ -10198,8 +10253,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "FairyFloss (Gogh)",
+      "aliases": [
+        "FairyFloss (Gogh)"
+      ],
+      "name": "Fairy Floss (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -10235,11 +10292,52 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "FairyFlossDark (Gogh)",
+      "aliases": [
+        "FairyFlossDark (Gogh)"
+      ],
+      "name": "Fairy Floss Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#040303",
+        "#f92672",
+        "#c2ffdf",
+        "#e6c000",
+        "#c2ffdf",
+        "#ffb8d1",
+        "#c5a3ff",
+        "#f8f8f0"
+      ],
+      "background": "#5a5475",
+      "brights": [
+        "#6090cb",
+        "#ff857f",
+        "#c2ffdf",
+        "#ffea00",
+        "#c2ffdf",
+        "#ffb8d1",
+        "#c5a3ff",
+        "#f8f8f0"
+      ],
+      "cursor_bg": "#f8f8f0",
+      "cursor_border": "#f8f8f0",
+      "cursor_fg": "#060709",
+      "foreground": "#f8f8f2",
+      "indexed": {},
+      "selection_bg": "#8077a8",
+      "selection_fg": "#f6e1ce"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Fairyfloss",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "f",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -10462,7 +10560,6 @@
     },
     "metadata": {
       "aliases": [
-        "FishTank",
         "Fishtank (Gogh)"
       ],
       "name": "FishTank",
@@ -10597,6 +10694,45 @@
   {
     "colors": {
       "ansi": [
+        "#1f2229",
+        "#d41919",
+        "#5ebdab",
+        "#fea44c",
+        "#367bf0",
+        "#bf2e5d",
+        "#49aee6",
+        "#e6e6e6"
+      ],
+      "background": "#272a34",
+      "brights": [
+        "#8c42ab",
+        "#ec0101",
+        "#47d4b9",
+        "#ff8a18",
+        "#277fff",
+        "#d71655",
+        "#05a1f7",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#ffffff",
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "FlatRemix (Gogh)"
+      ],
+      "name": "Flat Remix (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "f",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1d1d19",
         "#f18339",
         "#9fd364",
@@ -10626,48 +10762,13 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Flatland (Gogh)"
+      ],
       "name": "Flatland",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "f",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1f2229",
-        "#d41919",
-        "#5ebdab",
-        "#fea44c",
-        "#367bf0",
-        "#bf2e5d",
-        "#49aee6",
-        "#e6e6e6"
-      ],
-      "background": "#272a34",
-      "brights": [
-        "#8c42ab",
-        "#ec0101",
-        "#47d4b9",
-        "#ff8a18",
-        "#277fff",
-        "#d71655",
-        "#05a1f7",
-        "#ffffff"
-      ],
-      "cursor_bg": "#ffffff",
-      "cursor_border": "#ffffff",
-      "cursor_fg": "#ffffff",
-      "foreground": "#ffffff",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "FlatRemix (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "f",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -10941,7 +11042,7 @@
     },
     "metadata": {
       "aliases": [
-        "FrontEndDelight",
+        "Frontend Delight (Gogh)",
         "FrontendDelight (Gogh)"
       ],
       "name": "FrontEndDelight",
@@ -11030,7 +11131,7 @@
     },
     "metadata": {
       "aliases": [
-        "FunForrest",
+        "Frontend Fun Forrest (Gogh)",
         "FrontendFunForrest (Gogh)"
       ],
       "name": "FunForrest",
@@ -11072,7 +11173,7 @@
     },
     "metadata": {
       "aliases": [
-        "Galaxy",
+        "Frontend Galaxy (Gogh)",
         "FrontendGalaxy (Gogh)"
       ],
       "name": "Galaxy",
@@ -11151,8 +11252,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "GeoHot (Gogh)",
+      "aliases": [
+        "GeoHot (Gogh)"
+      ],
+      "name": "Geohot (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -11237,7 +11340,9 @@
       "selection_fg": "#535353"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Github (Gogh)"
+      ],
       "name": "Github",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -11471,8 +11576,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "gooey (Gogh)",
+      "aliases": [
+        "gooey (Gogh)"
+      ],
+      "name": "Gooey (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -11553,12 +11660,50 @@
     },
     "metadata": {
       "aliases": [
-        "Google Dark (base16)",
         "Google (dark) (terminal.sexy)"
       ],
       "author": "Seth Wright (http://sethawright.com)",
       "name": "Google Dark (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
+      "prefix": "g",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#202124",
+        "#ea4335",
+        "#34a853",
+        "#fbbc04",
+        "#4285f4",
+        "#a142f4",
+        "#24c1e0",
+        "#e8eaed"
+      ],
+      "background": "#202124",
+      "brights": [
+        "#5f6368",
+        "#ea4335",
+        "#34a853",
+        "#fbbc05",
+        "#4285f4",
+        "#a142f4",
+        "#24c1e0",
+        "#ffffff"
+      ],
+      "cursor_bg": "#e8eaed",
+      "cursor_border": "#e8eaed",
+      "cursor_fg": "#e8eaed",
+      "foreground": "#e8eaed",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "GoogleDark (Gogh)"
+      ],
+      "name": "Google Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -11622,43 +11767,6 @@
         "#24c1e0",
         "#e8eaed"
       ],
-      "background": "#202124",
-      "brights": [
-        "#5f6368",
-        "#ea4335",
-        "#34a853",
-        "#fbbc05",
-        "#4285f4",
-        "#a142f4",
-        "#24c1e0",
-        "#ffffff"
-      ],
-      "cursor_bg": "#e8eaed",
-      "cursor_border": "#e8eaed",
-      "cursor_fg": "#e8eaed",
-      "foreground": "#e8eaed",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "GoogleDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "g",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#202124",
-        "#ea4335",
-        "#34a853",
-        "#fbbc04",
-        "#4285f4",
-        "#a142f4",
-        "#24c1e0",
-        "#e8eaed"
-      ],
       "background": "#ffffff",
       "brights": [
         "#5f6368",
@@ -11677,8 +11785,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "GoogleLight (Gogh)",
+      "aliases": [
+        "GoogleLight (Gogh)"
+      ],
+      "name": "Google Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -11715,10 +11825,10 @@
     },
     "metadata": {
       "aliases": [
-        "gotham (Gogh)",
-        "Gotham (terminal.sexy)"
+        "Gotham (terminal.sexy)",
+        "gotham (Gogh)"
       ],
-      "name": "gotham (Gogh)",
+      "name": "Gotham (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -11791,7 +11901,9 @@
       "selection_fg": "#171422"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Grape (Gogh)"
+      ],
       "name": "Grape",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -11830,7 +11942,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Grass (Gogh)"
+      ],
       "name": "Grass",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -11912,7 +12026,6 @@
     },
     "metadata": {
       "aliases": [
-        "Grayscale Dark (base16)",
         "Grayscale (dark) (terminal.sexy)"
       ],
       "author": "Alexandre Gavioli (https://github.com/Alexx2/)",
@@ -12009,7 +12122,6 @@
     },
     "metadata": {
       "aliases": [
-        "Green Screen (base16)",
         "Greenscreen (dark) (terminal.sexy)"
       ],
       "author": "Chris Kempson (http://chriskempson.com)",
@@ -12577,7 +12689,9 @@
       "selection_fg": "#ebdbb2"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Gruvbox Dark (Gogh)"
+      ],
       "name": "GruvboxDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
@@ -12733,7 +12847,9 @@
       "selection_fg": "#b6bbc0"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Hardcore (Gogh)"
+      ],
       "name": "Hardcore",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -12913,7 +13029,9 @@
       "selection_fg": "#a8a49d"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Harper (Gogh)"
+      ],
       "author": "Jan T. Sott",
       "name": "Harper",
       "origin_url": "https://github.com/idleberg/Harper-iTerm2",
@@ -13209,8 +13327,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "HemisuDark (Gogh)",
+      "aliases": [
+        "HemisuDark (Gogh)"
+      ],
+      "name": "Hemisu Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -13246,8 +13366,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "HemisuLight (Gogh)",
+      "aliases": [
+        "HemisuLight (Gogh)"
+      ],
+      "name": "Hemisu Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -13285,7 +13407,9 @@
       "selection_fg": "#ededed"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Highway (Gogh)"
+      ],
       "name": "Highway",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -13325,7 +13449,7 @@
     },
     "metadata": {
       "aliases": [
-        "Hipster Green",
+        "Hipster Green (Gogh)",
         "HipsterGreen (Gogh)"
       ],
       "name": "Hipster Green",
@@ -13405,7 +13529,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Homebrew (Gogh)"
+      ],
       "name": "Homebrew",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -13484,13 +13610,51 @@
     },
     "metadata": {
       "aliases": [
-        "Hopscotch.256",
         "Hopscotch (base16)"
       ],
       "name": "Hopscotch.256",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#16161c",
+        "#da103f",
+        "#1eb980",
+        "#f6661e",
+        "#26bbd9",
+        "#ee64ae",
+        "#1d8991",
+        "#fadad1"
+      ],
+      "background": "#fdf0ed",
+      "brights": [
+        "#1a1c23",
+        "#f43e5c",
+        "#07da8c",
+        "#f77d26",
+        "#3fc6de",
+        "#f075b7",
+        "#1eaeae",
+        "#fdf0ed"
+      ],
+      "cursor_bg": "#1c1e26",
+      "cursor_border": "#1c1e26",
+      "cursor_fg": "#1c1e26",
+      "foreground": "#1c1e26",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "HorizonBright (Gogh)"
+      ],
+      "name": "Horizon Bright (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "h",
+      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -13590,6 +13754,45 @@
   {
     "colors": {
       "ansi": [
+        "#16161c",
+        "#e95678",
+        "#29d398",
+        "#fab795",
+        "#26bbd9",
+        "#ee64ae",
+        "#59e3e3",
+        "#fadad1"
+      ],
+      "background": "#1c1e26",
+      "brights": [
+        "#232530",
+        "#ec6a88",
+        "#3fdaa4",
+        "#fbc3a7",
+        "#3fc6de",
+        "#f075b7",
+        "#6be6e6",
+        "#fdf0ed"
+      ],
+      "cursor_bg": "#fdf0ed",
+      "cursor_border": "#fdf0ed",
+      "cursor_fg": "#fdf0ed",
+      "foreground": "#fdf0ed",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "HorizonDark (Gogh)"
+      ],
+      "name": "Horizon Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "h",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#fdf0ed",
         "#f7939b",
         "#94e1b0",
@@ -13677,80 +13880,6 @@
       "author": "Michaël Ball (http://github.com/michael-ball/)",
       "name": "Horizon Light (base16)",
       "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#16161c",
-        "#da103f",
-        "#1eb980",
-        "#f6661e",
-        "#26bbd9",
-        "#ee64ae",
-        "#1d8991",
-        "#fadad1"
-      ],
-      "background": "#fdf0ed",
-      "brights": [
-        "#1a1c23",
-        "#f43e5c",
-        "#07da8c",
-        "#f77d26",
-        "#3fc6de",
-        "#f075b7",
-        "#1eaeae",
-        "#fdf0ed"
-      ],
-      "cursor_bg": "#1c1e26",
-      "cursor_border": "#1c1e26",
-      "cursor_fg": "#1c1e26",
-      "foreground": "#1c1e26",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "HorizonBright (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#16161c",
-        "#e95678",
-        "#29d398",
-        "#fab795",
-        "#26bbd9",
-        "#ee64ae",
-        "#59e3e3",
-        "#fadad1"
-      ],
-      "background": "#1c1e26",
-      "brights": [
-        "#232530",
-        "#ec6a88",
-        "#3fdaa4",
-        "#fbc3a7",
-        "#3fc6de",
-        "#f075b7",
-        "#6be6e6",
-        "#fdf0ed"
-      ],
-      "cursor_bg": "#fdf0ed",
-      "cursor_border": "#fdf0ed",
-      "cursor_fg": "#fdf0ed",
-      "foreground": "#fdf0ed",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "HorizonDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -13916,7 +14045,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Hurtado (Gogh)"
+      ],
       "name": "Hurtado",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "h",
@@ -14072,93 +14203,38 @@
   {
     "colors": {
       "ansi": [
-        "#1a1a1a",
-        "#d88568",
-        "#83a471",
-        "#b99353",
-        "#8eccdd",
-        "#b98eb2",
-        "#7c9cae",
-        "#cccccc"
+        "#000000",
+        "#ff0000",
+        "#00ff00",
+        "#ffff00",
+        "#00bfff",
+        "#ffc0cb",
+        "#40e0d0",
+        "#bebebe"
       ],
-      "background": "#1a1a1a",
+      "background": "#000000",
       "brights": [
-        "#767676",
-        "#d88568",
-        "#83a471",
-        "#b99353",
-        "#8eccdd",
-        "#b98eb2",
-        "#7c9cae",
-        "#f8f8f8"
+        "#414141",
+        "#ffa500",
+        "#98fb98",
+        "#ffff00",
+        "#0000cd",
+        "#a020f0",
+        "#aeeeee",
+        "#ffffff"
       ],
-      "cursor_bg": "#cccccc",
-      "cursor_border": "#cccccc",
-      "cursor_fg": "#1a1a1a",
-      "foreground": "#cccccc",
-      "indexed": {
-        "16": "#d86868",
-        "17": "#8b6c37",
-        "18": "#222222",
-        "19": "#1d414d",
-        "20": "#b8b8b8",
-        "21": "#e8e8e8"
-      },
-      "selection_bg": "#cccccc",
-      "selection_fg": "#1a1a1a"
+      "cursor_bg": "#fdfdfd",
+      "cursor_border": "#fdfdfd",
+      "cursor_fg": "#fdfdfd",
+      "foreground": "#fdfdfd",
+      "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "author": "iA Inc. (modified by aramisgithub)",
-      "name": "iA Dark (base16)",
-      "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
-      "prefix": "i",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#f6f6f6",
-        "#9c5a02",
-        "#38781c",
-        "#c48218",
-        "#48bac2",
-        "#a94598",
-        "#2d6bb1",
-        "#181818"
+      "aliases": [
+        "IBM3270(HighContrast) (Gogh)"
       ],
-      "background": "#f6f6f6",
-      "brights": [
-        "#898989",
-        "#9c5a02",
-        "#38781c",
-        "#c48218",
-        "#48bac2",
-        "#a94598",
-        "#2d6bb1",
-        "#f8f8f8"
-      ],
-      "cursor_bg": "#181818",
-      "cursor_border": "#181818",
-      "cursor_fg": "#f6f6f6",
-      "foreground": "#181818",
-      "indexed": {
-        "16": "#c43e18",
-        "17": "#8b6c37",
-        "18": "#dedede",
-        "19": "#bde5f2",
-        "20": "#767676",
-        "21": "#e8e8e8"
-      },
-      "selection_bg": "#181818",
-      "selection_fg": "#f6f6f6"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "iA Inc. (modified by aramisgithub)",
-      "name": "iA Light (base16)",
-      "origin_url": "https://github.com/aramisgithub/base16-ia-scheme",
+      "name": "Ibm 3270 (High Contrast) (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -14193,8 +14269,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "ibm3270 (Gogh)",
+      "aliases": [
+        "ibm3270 (Gogh)"
+      ],
+      "name": "Ibm3270 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -14203,35 +14281,37 @@
   {
     "colors": {
       "ansi": [
-        "#000000",
-        "#ff0000",
-        "#00ff00",
-        "#ffff00",
-        "#00bfff",
-        "#ffc0cb",
-        "#40e0d0",
-        "#bebebe"
+        "#1f1f1f",
+        "#fb002a",
+        "#339c24",
+        "#659b25",
+        "#149b45",
+        "#53b82c",
+        "#2cb868",
+        "#e0ffef"
       ],
-      "background": "#000000",
+      "background": "#3a3d3f",
       "brights": [
-        "#414141",
-        "#ffa500",
-        "#98fb98",
-        "#ffff00",
-        "#0000cd",
-        "#a020f0",
-        "#aeeeee",
-        "#ffffff"
+        "#032710",
+        "#a7ff3f",
+        "#9fff6d",
+        "#d2ff6d",
+        "#72ffb5",
+        "#50ff3e",
+        "#22ff71",
+        "#daefd0"
       ],
-      "cursor_bg": "#fdfdfd",
-      "cursor_border": "#fdfdfd",
-      "cursor_fg": "#fdfdfd",
-      "foreground": "#fdfdfd",
+      "cursor_bg": "#d9efd3",
+      "cursor_border": "#d9efd3",
+      "cursor_fg": "#d9efd3",
+      "foreground": "#d9efd3",
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "IBM3270(HighContrast) (Gogh)",
+      "aliases": [
+        "ICGreenPPL (Gogh)"
+      ],
+      "name": "Ic Green Ppl (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -14309,8 +14389,8 @@
     },
     "metadata": {
       "aliases": [
-        "IC_Orange_PPL",
-        "ICOrangePPL (Gogh)"
+        "ICOrangePPL (Gogh)",
+        "Ic Orange Ppl (Gogh)"
       ],
       "name": "IC_Orange_PPL",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -14394,43 +14474,6 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1f1f1f",
-        "#fb002a",
-        "#339c24",
-        "#659b25",
-        "#149b45",
-        "#53b82c",
-        "#2cb868",
-        "#e0ffef"
-      ],
-      "background": "#3a3d3f",
-      "brights": [
-        "#032710",
-        "#a7ff3f",
-        "#9fff6d",
-        "#d2ff6d",
-        "#72ffb5",
-        "#50ff3e",
-        "#22ff71",
-        "#daefd0"
-      ],
-      "cursor_bg": "#d9efd3",
-      "cursor_border": "#d9efd3",
-      "cursor_fg": "#d9efd3",
-      "foreground": "#d9efd3",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "ICGreenPPL (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -14552,7 +14595,7 @@
     },
     "metadata": {
       "aliases": [
-        "idleToes",
+        "Idle Toes (Gogh)",
         "IdleToes (Gogh)"
       ],
       "name": "idleToes",
@@ -14716,6 +14759,45 @@
   {
     "colors": {
       "ansi": [
+        "#4e4e4e",
+        "#ff6c60",
+        "#a8ff60",
+        "#ffffb6",
+        "#69cbfe",
+        "#ff73fd",
+        "#c6c5fe",
+        "#eeeeee"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#7c7c7c",
+        "#ffb6b0",
+        "#ceffac",
+        "#ffffcb",
+        "#b5dcfe",
+        "#ff9cfe",
+        "#dfdffe",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffa560",
+      "cursor_border": "#ffa560",
+      "cursor_fg": "#ffa560",
+      "foreground": "#eeeeee",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "IrBlack (Gogh)"
+      ],
+      "name": "Ir Black (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "i",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4f4f4f",
         "#fa6c60",
         "#a8ff60",
@@ -14750,43 +14832,6 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#4e4e4e",
-        "#ff6c60",
-        "#a8ff60",
-        "#ffffb6",
-        "#69cbfe",
-        "#ff73fd",
-        "#c6c5fe",
-        "#eeeeee"
-      ],
-      "background": "#000000",
-      "brights": [
-        "#7c7c7c",
-        "#ffb6b0",
-        "#ceffac",
-        "#ffffcb",
-        "#b5dcfe",
-        "#ff9cfe",
-        "#dfdffe",
-        "#ffffff"
-      ],
-      "cursor_bg": "#ffa560",
-      "cursor_border": "#ffa560",
-      "cursor_fg": "#ffa560",
-      "foreground": "#eeeeee",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "IrBlack (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "i",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -14829,7 +14874,6 @@
     },
     "metadata": {
       "aliases": [
-        "Isotope (base16)",
         "Isotope (dark) (terminal.sexy)"
       ],
       "author": "Jan T. Sott",
@@ -14977,7 +15021,7 @@
     },
     "metadata": {
       "aliases": [
-        "Jackie Brown",
+        "Jackie Brown (Gogh)",
         "JackieBrown (Gogh)"
       ],
       "name": "Jackie Brown",
@@ -15018,7 +15062,9 @@
       "selection_fg": "#f7f6ec"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Japanesque (Gogh)"
+      ],
       "name": "Japanesque",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -15092,7 +15138,9 @@
       "selection_fg": "#f4f4f4"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Jellybeans (Gogh)"
+      ],
       "name": "Jellybeans",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "j",
@@ -15314,8 +15362,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "kanagawa (Gogh)",
+      "aliases": [
+        "kanagawa (Gogh)"
+      ],
+      "name": "Kanagawa (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "k",
       "wezterm_version": "nightly builds only"
@@ -15427,7 +15477,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Kibble (Gogh)"
+      ],
       "name": "Kibble",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "k",
@@ -15511,8 +15563,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "kokuban (Gogh)",
+      "aliases": [
+        "kokuban (Gogh)"
+      ],
+      "name": "Kokuban (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "k",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -15704,8 +15758,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "laserwave (Gogh)",
+      "aliases": [
+        "laserwave (Gogh)"
+      ],
+      "name": "Laserwave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -15744,7 +15800,7 @@
     },
     "metadata": {
       "aliases": [
-        "Later This Evening",
+        "Later This Evening (Gogh)",
         "LaterThisEvening (Gogh)"
       ],
       "name": "Later This Evening",
@@ -15785,7 +15841,9 @@
       "selection_fg": "#8c91fa"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Lavandula (Gogh)"
+      ],
       "name": "Lavandula",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -15859,7 +15917,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Liquid Carbon (Gogh)"
+      ],
       "name": "LiquidCarbon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -15898,7 +15958,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Liquid Carbon Transparent (Gogh)"
+      ],
       "name": "LiquidCarbonTransparent",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "l",
@@ -15984,7 +16046,6 @@
     },
     "metadata": {
       "aliases": [
-        "London Tube (base16)",
         "Londontube (dark) (terminal.sexy)"
       ],
       "author": "Jan T. Sott",
@@ -16203,8 +16264,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "LunariaDark (Gogh)",
+      "aliases": [
+        "LunariaDark (Gogh)"
+      ],
+      "name": "Lunaria Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -16240,8 +16303,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "LunariaEclipse (Gogh)",
+      "aliases": [
+        "LunariaEclipse (Gogh)"
+      ],
+      "name": "Lunaria Eclipse (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -16277,8 +16342,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "LunariaLight (Gogh)",
+      "aliases": [
+        "LunariaLight (Gogh)"
+      ],
+      "name": "Lunaria Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -16401,7 +16468,7 @@
     },
     "metadata": {
       "aliases": [
-        "Man Page",
+        "Man Page (Gogh)",
         "ManPage (Gogh)"
       ],
       "name": "Man Page",
@@ -16526,7 +16593,6 @@
     },
     "metadata": {
       "aliases": [
-        "Marrakesh (base16)",
         "Marrakesh (dark) (terminal.sexy)"
       ],
       "author": "Alexandre Gavioli (http://github.com/Alexx2/)",
@@ -17187,7 +17253,9 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Mathias (Gogh)"
+      ],
       "name": "Mathias",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -17300,7 +17368,9 @@
       "selection_fg": "#cac29a"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Medallion (Gogh)"
+      ],
       "name": "Medallion",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -17581,7 +17651,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Misterioso (Gogh)"
+      ],
       "name": "Misterioso",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -17628,7 +17700,6 @@
     },
     "metadata": {
       "aliases": [
-        "Mocha (base16)",
         "Mocha (dark) (terminal.sexy)"
       ],
       "author": "Chris Kempson (http://chriskempson.com)",
@@ -17781,7 +17852,9 @@
       "selection_fg": "#120b0d"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Mona Lisa (Gogh)"
+      ],
       "name": "MonaLisa",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
@@ -17826,41 +17899,6 @@
   {
     "colors": {
       "ansi": [
-        "#000000",
-        "#6b6b6b",
-        "#c4c4c4",
-        "#b3b3b3",
-        "#999999",
-        "#717171",
-        "#8a8a8a",
-        "#b5cabb"
-      ],
-      "background": "#000000",
-      "brights": [
-        "#202020",
-        "#464646",
-        "#f8f8f8",
-        "#eeeeee",
-        "#7c7c7c",
-        "#adadad",
-        "#c0c0c0",
-        "#99ac9e"
-      ],
-      "foreground": "#ffffff",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "",
-      "name": "Mono Theme (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
-      "prefix": "m",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#402500",
         "#ff9400",
         "#ff9400",
@@ -17888,8 +17926,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-amber (Gogh)",
+      "aliases": [
+        "mono-amber (Gogh)"
+      ],
+      "name": "Mono Amber (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -17925,8 +17965,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-cyan (Gogh)",
+      "aliases": [
+        "mono-cyan (Gogh)"
+      ],
+      "name": "Mono Cyan (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -17962,8 +18004,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-green (Gogh)",
+      "aliases": [
+        "mono-green (Gogh)"
+      ],
+      "name": "Mono Green (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -17999,9 +18043,46 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-red (Gogh)",
+      "aliases": [
+        "mono-red (Gogh)"
+      ],
+      "name": "Mono Red (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#6b6b6b",
+        "#c4c4c4",
+        "#b3b3b3",
+        "#999999",
+        "#717171",
+        "#8a8a8a",
+        "#b5cabb"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#202020",
+        "#464646",
+        "#f8f8f8",
+        "#eeeeee",
+        "#7c7c7c",
+        "#adadad",
+        "#c0c0c0",
+        "#99ac9e"
+      ],
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "",
+      "name": "Mono Theme (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -18036,8 +18117,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-white (Gogh)",
+      "aliases": [
+        "mono-white (Gogh)"
+      ],
+      "name": "Mono White (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -18073,8 +18156,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "mono-yellow (Gogh)",
+      "aliases": [
+        "mono-yellow (Gogh)"
+      ],
+      "name": "Mono Yellow (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -18120,7 +18205,6 @@
     },
     "metadata": {
       "aliases": [
-        "Monokai (base16)",
         "Monokai (dark) (terminal.sexy)"
       ],
       "author": "Wimer Hazenberg (http://www.monokai.nl)",
@@ -18203,6 +18287,123 @@
   {
     "colors": {
       "ansi": [
+        "#75715e",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#2aa198",
+        "#f9f8f5"
+      ],
+      "background": "#272822",
+      "brights": [
+        "#272822",
+        "#f92672",
+        "#a6e22e",
+        "#f4bf75",
+        "#66d9ef",
+        "#ae81ff",
+        "#2aa198",
+        "#f8f8f2"
+      ],
+      "cursor_bg": "#f8f8f2",
+      "cursor_border": "#f8f8f2",
+      "cursor_fg": "#f8f8f2",
+      "foreground": "#f8f8f2",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "MonokaiDark (Gogh)"
+      ],
+      "name": "Monokai Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#363537",
+        "#ff6188",
+        "#a9dc76",
+        "#ffd866",
+        "#fc9867",
+        "#ab9df2",
+        "#78dce8",
+        "#fdf9f3"
+      ],
+      "background": "#363537",
+      "brights": [
+        "#908e8f",
+        "#ff6188",
+        "#a9dc76",
+        "#ffd866",
+        "#fc9867",
+        "#ab9df2",
+        "#78dce8",
+        "#fdf9f3"
+      ],
+      "cursor_bg": "#fdf9f3",
+      "cursor_border": "#fdf9f3",
+      "cursor_fg": "#fdf9f3",
+      "foreground": "#fdf9f3",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "MonokaiPro (Gogh)"
+      ],
+      "name": "Monokai Pro (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3e3838",
+        "#df7484",
+        "#bbd87e",
+        "#edce73",
+        "#dc9373",
+        "#a9aae9",
+        "#a4d7cc",
+        "#fbf2f3"
+      ],
+      "background": "#3e3838",
+      "brights": [
+        "#70696a",
+        "#df7484",
+        "#bbd87e",
+        "#edce73",
+        "#dc9373",
+        "#a9aae9",
+        "#a4d7cc",
+        "#fbf2f3"
+      ],
+      "cursor_bg": "#fbf2f3",
+      "cursor_border": "#fbf2f3",
+      "cursor_fg": "#fbf2f3",
+      "foreground": "#fbf2f3",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "MonokaiProRistretto (Gogh)"
+      ],
+      "name": "Monokai Pro Ristretto (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "m",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1a1a1a",
         "#f4005f",
         "#98e024",
@@ -18272,7 +18473,7 @@
     },
     "metadata": {
       "aliases": [
-        "Monokai Soda",
+        "Monokai Soda (Gogh)",
         "MonokaiSoda (Gogh)"
       ],
       "name": "Monokai Soda",
@@ -18318,117 +18519,6 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "m",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#75715e",
-        "#f92672",
-        "#a6e22e",
-        "#f4bf75",
-        "#66d9ef",
-        "#ae81ff",
-        "#2aa198",
-        "#f9f8f5"
-      ],
-      "background": "#272822",
-      "brights": [
-        "#272822",
-        "#f92672",
-        "#a6e22e",
-        "#f4bf75",
-        "#66d9ef",
-        "#ae81ff",
-        "#2aa198",
-        "#f8f8f2"
-      ],
-      "cursor_bg": "#f8f8f2",
-      "cursor_border": "#f8f8f2",
-      "cursor_fg": "#f8f8f2",
-      "foreground": "#f8f8f2",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "MonokaiDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#363537",
-        "#ff6188",
-        "#a9dc76",
-        "#ffd866",
-        "#fc9867",
-        "#ab9df2",
-        "#78dce8",
-        "#fdf9f3"
-      ],
-      "background": "#363537",
-      "brights": [
-        "#908e8f",
-        "#ff6188",
-        "#a9dc76",
-        "#ffd866",
-        "#fc9867",
-        "#ab9df2",
-        "#78dce8",
-        "#fdf9f3"
-      ],
-      "cursor_bg": "#fdf9f3",
-      "cursor_border": "#fdf9f3",
-      "cursor_fg": "#fdf9f3",
-      "foreground": "#fdf9f3",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "MonokaiPro (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#3e3838",
-        "#df7484",
-        "#bbd87e",
-        "#edce73",
-        "#dc9373",
-        "#a9aae9",
-        "#a4d7cc",
-        "#fbf2f3"
-      ],
-      "background": "#3e3838",
-      "brights": [
-        "#70696a",
-        "#df7484",
-        "#bbd87e",
-        "#edce73",
-        "#dc9373",
-        "#a9aae9",
-        "#a4d7cc",
-        "#fbf2f3"
-      ],
-      "cursor_bg": "#fbf2f3",
-      "cursor_border": "#fbf2f3",
-      "cursor_fg": "#fbf2f3",
-      "foreground": "#fbf2f3",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "MonokaiProRistretto (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "m",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -18570,7 +18660,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "N0Tch2K (Gogh)"
+      ],
       "name": "N0tch2k",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -18911,8 +19003,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "neon-night (Gogh)",
+      "aliases": [
+        "neon-night (Gogh)"
+      ],
+      "name": "Neon Night (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -18950,7 +19044,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Neopolitan (Gogh)"
+      ],
       "name": "Neopolitan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -19026,11 +19122,52 @@
       "selection_fg": "#7d8fa4"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Neutron (Gogh)"
+      ],
       "name": "Neutron",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#011627",
+        "#ef5350",
+        "#22da6e",
+        "#addb67",
+        "#82aaff",
+        "#c792ea",
+        "#21c7a8",
+        "#ffffff"
+      ],
+      "background": "#011627",
+      "brights": [
+        "#575656",
+        "#ef5350",
+        "#22da6e",
+        "#ffeb95",
+        "#82aaff",
+        "#c792ea",
+        "#7fdbca",
+        "#ffffff"
+      ],
+      "cursor_bg": "#d6deeb",
+      "cursor_border": "#d6deeb",
+      "cursor_fg": "#d6deeb",
+      "foreground": "#d6deeb",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "NightOwl (Gogh)"
+      ],
+      "name": "Night Owl (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "n",
+      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -19197,7 +19334,7 @@
     },
     "metadata": {
       "aliases": [
-        "NightLion v1",
+        "Nightlion V1 (Gogh)",
         "NightlionV1 (Gogh)"
       ],
       "name": "NightLion v1",
@@ -19239,50 +19376,13 @@
     },
     "metadata": {
       "aliases": [
-        "NightLion v2",
+        "Nightlion V2 (Gogh)",
         "NightlionV2 (Gogh)"
       ],
       "name": "NightLion v2",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#011627",
-        "#ef5350",
-        "#22da6e",
-        "#addb67",
-        "#82aaff",
-        "#c792ea",
-        "#21c7a8",
-        "#ffffff"
-      ],
-      "background": "#011627",
-      "brights": [
-        "#575656",
-        "#ef5350",
-        "#22da6e",
-        "#ffeb95",
-        "#82aaff",
-        "#c792ea",
-        "#7fdbca",
-        "#ffffff"
-      ],
-      "cursor_bg": "#d6deeb",
-      "cursor_border": "#d6deeb",
-      "cursor_fg": "#d6deeb",
-      "foreground": "#d6deeb",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "NightOwl (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -19315,8 +19415,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "nighty (Gogh)",
+      "aliases": [
+        "nighty (Gogh)"
+      ],
+      "name": "Nighty (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -19394,7 +19496,6 @@
     },
     "metadata": {
       "aliases": [
-        "nord",
         "Nord (Gogh)"
       ],
       "name": "nord",
@@ -19446,6 +19547,45 @@
       "author": "arcticicestudio",
       "name": "Nord (base16)",
       "origin_url": "https://github.com/spejamchr/base16-nord-scheme",
+      "prefix": "n",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#003b4e",
+        "#e64569",
+        "#069f5f",
+        "#dab752",
+        "#439ecf",
+        "#d961dc",
+        "#00b1be",
+        "#b3b3b3"
+      ],
+      "background": "#ebeaf2",
+      "brights": [
+        "#3e89a1",
+        "#e4859a",
+        "#a2cca1",
+        "#e1e387",
+        "#6fbbe2",
+        "#e586e7",
+        "#96dcda",
+        "#dedede"
+      ],
+      "cursor_bg": "#439ecf",
+      "cursor_border": "#439ecf",
+      "cursor_fg": "#439ecf",
+      "foreground": "#004f7c",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "NordLight (Gogh)"
+      ],
+      "name": "Nord Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -19584,43 +19724,6 @@
   {
     "colors": {
       "ansi": [
-        "#003b4e",
-        "#e64569",
-        "#069f5f",
-        "#dab752",
-        "#439ecf",
-        "#d961dc",
-        "#00b1be",
-        "#b3b3b3"
-      ],
-      "background": "#ebeaf2",
-      "brights": [
-        "#3e89a1",
-        "#e4859a",
-        "#a2cca1",
-        "#e1e387",
-        "#6fbbe2",
-        "#e586e7",
-        "#96dcda",
-        "#dedede"
-      ],
-      "cursor_bg": "#439ecf",
-      "cursor_border": "#439ecf",
-      "cursor_fg": "#439ecf",
-      "foreground": "#004f7c",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "NordLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "n",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#3c4c55",
         "#83afe5",
         "#7fc1ca",
@@ -19697,7 +19800,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Novel (Gogh)"
+      ],
       "name": "Novel",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
@@ -19841,7 +19946,9 @@
       "selection_fg": "#dfe1e2"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Obsidian (Gogh)"
+      ],
       "name": "Obsidian",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -19880,7 +19987,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Homebrew Ocean (Gogh)"
+      ],
       "name": "Ocean",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -19927,7 +20036,6 @@
     },
     "metadata": {
       "aliases": [
-        "Ocean (base16)",
         "Ocean (dark) (terminal.sexy)"
       ],
       "author": "Chris Kempson (http://chriskempson.com)",
@@ -20002,8 +20110,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "OceanDark (Gogh)",
+      "aliases": [
+        "OceanDark (Gogh)"
+      ],
+      "name": "Ocean Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -20042,7 +20152,7 @@
     },
     "metadata": {
       "aliases": [
-        "Oceanic-Next",
+        "Oceanic Next (Gogh)",
         "OceanicNext (Gogh)"
       ],
       "name": "Oceanic-Next",
@@ -20169,7 +20279,9 @@
       "selection_fg": "#8a8eac"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Ollie (Gogh)"
+      ],
       "name": "Ollie",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
@@ -20208,6 +20320,84 @@
     "metadata": {
       "aliases": [],
       "name": "Omni (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#e06c75",
+        "#98c379",
+        "#d19a66",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#abb2bf"
+      ],
+      "background": "#1e2127",
+      "brights": [
+        "#5c6370",
+        "#e06c75",
+        "#98c379",
+        "#d19a66",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#fffefe"
+      ],
+      "cursor_bg": "#5c6370",
+      "cursor_border": "#5c6370",
+      "cursor_fg": "#5c6370",
+      "foreground": "#5c6370",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "OneDark (Gogh)"
+      ],
+      "name": "One Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282c34",
+        "#e06c75",
+        "#98c379",
+        "#e5c07b",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#dcdfe4"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#282c34",
+        "#e06c75",
+        "#98c379",
+        "#e5c07b",
+        "#61afef",
+        "#c678dd",
+        "#56b6c2",
+        "#dcdfe4"
+      ],
+      "cursor_bg": "#dcdfe4",
+      "cursor_border": "#dcdfe4",
+      "cursor_fg": "#dcdfe4",
+      "foreground": "#dcdfe4",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "OneHalfBlack (Gogh)"
+      ],
+      "name": "One Half Black (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -20263,6 +20453,45 @@
   {
     "colors": {
       "ansi": [
+        "#000000",
+        "#da3e39",
+        "#41933e",
+        "#855504",
+        "#315eee",
+        "#930092",
+        "#0e6fad",
+        "#8e8f96"
+      ],
+      "background": "#f8f8f8",
+      "brights": [
+        "#2a2b32",
+        "#da3e39",
+        "#41933e",
+        "#855504",
+        "#315eee",
+        "#930092",
+        "#0e6fad",
+        "#fffefe"
+      ],
+      "cursor_bg": "#2a2b32",
+      "cursor_border": "#2a2b32",
+      "cursor_fg": "#2a2b32",
+      "foreground": "#2a2b32",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "OneLight (Gogh)"
+      ],
+      "name": "One Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#282c34",
         "#e06c75",
         "#98c379",
@@ -20303,80 +20532,6 @@
       "author": "Lalit Magant (http://github.com/tilal6991)",
       "name": "OneDark (base16)",
       "origin_url": "https://github.com/tilal6991/base16-onedark-scheme",
-      "prefix": "o",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#000000",
-        "#e06c75",
-        "#98c379",
-        "#d19a66",
-        "#61afef",
-        "#c678dd",
-        "#56b6c2",
-        "#abb2bf"
-      ],
-      "background": "#1e2127",
-      "brights": [
-        "#5c6370",
-        "#e06c75",
-        "#98c379",
-        "#d19a66",
-        "#61afef",
-        "#c678dd",
-        "#56b6c2",
-        "#fffefe"
-      ],
-      "cursor_bg": "#5c6370",
-      "cursor_border": "#5c6370",
-      "cursor_fg": "#5c6370",
-      "foreground": "#5c6370",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "OneDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#282c34",
-        "#e06c75",
-        "#98c379",
-        "#e5c07b",
-        "#61afef",
-        "#c678dd",
-        "#56b6c2",
-        "#dcdfe4"
-      ],
-      "background": "#000000",
-      "brights": [
-        "#282c34",
-        "#e06c75",
-        "#98c379",
-        "#e5c07b",
-        "#61afef",
-        "#c678dd",
-        "#56b6c2",
-        "#dcdfe4"
-      ],
-      "cursor_bg": "#dcdfe4",
-      "cursor_border": "#dcdfe4",
-      "cursor_fg": "#dcdfe4",
-      "foreground": "#dcdfe4",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "OneHalfBlack (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -20459,43 +20614,6 @@
       "origin_url": "https://github.com/sonph/onehalf",
       "prefix": "o",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#000000",
-        "#da3e39",
-        "#41933e",
-        "#855504",
-        "#315eee",
-        "#930092",
-        "#0e6fad",
-        "#8e8f96"
-      ],
-      "background": "#f8f8f8",
-      "brights": [
-        "#2a2b32",
-        "#da3e39",
-        "#41933e",
-        "#855504",
-        "#315eee",
-        "#930092",
-        "#0e6fad",
-        "#fffefe"
-      ],
-      "cursor_bg": "#2a2b32",
-      "cursor_border": "#2a2b32",
-      "cursor_fg": "#2a2b32",
-      "foreground": "#2a2b32",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "OneLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "o",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -20688,8 +20806,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "palenight (Gogh)",
+      "aliases": [
+        "palenight (Gogh)"
+      ],
+      "name": "Palenight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -20932,6 +21052,45 @@
   {
     "colors": {
       "ansi": [
+        "#1c1c1c",
+        "#af005f",
+        "#5faf00",
+        "#d7af5f",
+        "#5fafd7",
+        "#808080",
+        "#d7875f",
+        "#d0d0d0"
+      ],
+      "background": "#1c1c1c",
+      "brights": [
+        "#585858",
+        "#5faf5f",
+        "#afd700",
+        "#af87d7",
+        "#ffaf00",
+        "#ff5faf",
+        "#00afaf",
+        "#5f8787"
+      ],
+      "cursor_bg": "#d0d0d0",
+      "cursor_border": "#d0d0d0",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "PaperColorDark (Gogh)"
+      ],
+      "name": "Papercolor Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "p",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#eeeeee",
         "#bcbcbc",
         "#8700af",
@@ -20979,43 +21138,6 @@
   {
     "colors": {
       "ansi": [
-        "#1c1c1c",
-        "#af005f",
-        "#5faf00",
-        "#d7af5f",
-        "#5fafd7",
-        "#808080",
-        "#d7875f",
-        "#d0d0d0"
-      ],
-      "background": "#1c1c1c",
-      "brights": [
-        "#585858",
-        "#5faf5f",
-        "#afd700",
-        "#af87d7",
-        "#ffaf00",
-        "#ff5faf",
-        "#00afaf",
-        "#5f8787"
-      ],
-      "cursor_bg": "#d0d0d0",
-      "cursor_border": "#d0d0d0",
-      "cursor_fg": "#d0d0d0",
-      "foreground": "#d0d0d0",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "PaperColorDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#eeeeee",
         "#af0000",
         "#008700",
@@ -21043,8 +21165,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "PaperColorLight (Gogh)",
+      "aliases": [
+        "PaperColorLight (Gogh)"
+      ],
+      "name": "Papercolor Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -21118,10 +21242,10 @@
     },
     "metadata": {
       "aliases": [
-        "Paraiso Dark",
         "Paraiso (base16)",
-        "ParaisoDark (Gogh)",
-        "Paraiso (dark) (terminal.sexy)"
+        "Paraiso (dark) (terminal.sexy)",
+        "Paraiso Dark (Gogh)",
+        "ParaisoDark (Gogh)"
       ],
       "author": "Jan T. Sott",
       "name": "Paraiso Dark",
@@ -21253,6 +21377,45 @@
         "#2a2a2a",
         "#ff0000",
         "#79ff0f",
+        "#d3bf00",
+        "#396bd7",
+        "#b449be",
+        "#66ccff",
+        "#bbbbbb"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#666666",
+        "#ff0080",
+        "#66ff66",
+        "#f3d64e",
+        "#709aed",
+        "#db67e6",
+        "#7adff2",
+        "#ffffff"
+      ],
+      "cursor_bg": "#f2f2f2",
+      "cursor_border": "#f2f2f2",
+      "cursor_fg": "#f2f2f2",
+      "foreground": "#f2f2f2",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "PaulMillr (Gogh)"
+      ],
+      "name": "Paul Millr (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "p",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#2a2a2a",
+        "#ff0000",
+        "#79ff0f",
         "#e7bf00",
         "#396bd7",
         "#b449be",
@@ -21289,43 +21452,6 @@
   {
     "colors": {
       "ansi": [
-        "#2a2a2a",
-        "#ff0000",
-        "#79ff0f",
-        "#d3bf00",
-        "#396bd7",
-        "#b449be",
-        "#66ccff",
-        "#bbbbbb"
-      ],
-      "background": "#000000",
-      "brights": [
-        "#666666",
-        "#ff0080",
-        "#66ff66",
-        "#f3d64e",
-        "#709aed",
-        "#db67e6",
-        "#7adff2",
-        "#ffffff"
-      ],
-      "cursor_bg": "#f2f2f2",
-      "cursor_border": "#f2f2f2",
-      "cursor_fg": "#f2f2f2",
-      "foreground": "#f2f2f2",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "PaulMillr (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "p",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#212121",
         "#c30771",
         "#10a778",
@@ -21355,7 +21481,9 @@
       "selection_fg": "#f1f1f1"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Pencil Dark (Gogh)"
+      ],
       "name": "PencilDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -21394,7 +21522,9 @@
       "selection_fg": "#424242"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Pencil Light (Gogh)"
+      ],
       "name": "PencilLight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -21761,7 +21891,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Pnevma (Gogh)"
+      ],
       "name": "Pnevma",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -22111,11 +22243,50 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "PowerShell (Gogh)",
+      "aliases": [
+        "PowerShell (Gogh)"
+      ],
+      "name": "Powershell (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f18260",
+        "#b51a20",
+        "#a6cc75",
+        "#fed33a",
+        "#81b2b1",
+        "#eb6c4e",
+        "#81b2b1",
+        "#eaeaea"
+      ],
+      "background": "#282828",
+      "brights": [
+        "#666666",
+        "#ff000b",
+        "#c4ee94",
+        "#e8e06d",
+        "#a5ebea",
+        "#ef8a50",
+        "#a5ebea",
+        "#ffffff"
+      ],
+      "cursor_bg": "#f1f1f1",
+      "cursor_border": "#f1f1f1",
+      "cursor_fg": "#f1f1f1",
+      "foreground": "#f1f1f1",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Predawn (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "p",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -22224,7 +22395,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Pro (Gogh)"
+      ],
       "name": "Pro",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "p",
@@ -22301,6 +22474,45 @@
       "author": "",
       "name": "Pulp (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "p",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0d1117",
+        "#e34c26",
+        "#238636",
+        "#ed9a51",
+        "#a5d6ff",
+        "#6eb0e8",
+        "#c09aeb",
+        "#c9d1d9"
+      ],
+      "background": "#161b22",
+      "brights": [
+        "#0d1117",
+        "#ff7b72",
+        "#3bab4a",
+        "#ffa657",
+        "#a5d6ff",
+        "#79c0ff",
+        "#b694df",
+        "#c9d1d9"
+      ],
+      "cursor_bg": "#c9d1d9",
+      "cursor_border": "#c9d1d9",
+      "cursor_fg": "#c9d1d9",
+      "foreground": "#c9d1d9",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "PurplePeopleEater (Gogh)"
+      ],
+      "name": "Purple People Eater (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -22387,43 +22599,6 @@
       "author": "malet",
       "name": "Purpledream (base16)",
       "origin_url": "https://github.com/archmalet/base16-purpledream-scheme",
-      "prefix": "p",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#0d1117",
-        "#e34c26",
-        "#238636",
-        "#ed9a51",
-        "#a5d6ff",
-        "#6eb0e8",
-        "#c09aeb",
-        "#c9d1d9"
-      ],
-      "background": "#161b22",
-      "brights": [
-        "#0d1117",
-        "#ff7b72",
-        "#3bab4a",
-        "#ffa657",
-        "#a5d6ff",
-        "#79c0ff",
-        "#b694df",
-        "#c9d1d9"
-      ],
-      "cursor_bg": "#c9d1d9",
-      "cursor_border": "#c9d1d9",
-      "cursor_fg": "#c9d1d9",
-      "foreground": "#c9d1d9",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "PurplePeopleEater (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -22554,7 +22729,6 @@
     },
     "metadata": {
       "aliases": [
-        "Railscasts (base16)",
         "Railscasts (dark) (terminal.sexy)"
       ],
       "author": "Ryan Bates (http://railscasts.com)",
@@ -22870,7 +23044,7 @@
     },
     "metadata": {
       "aliases": [
-        "Red Alert",
+        "Red Alert (Gogh)",
         "RedAlert (Gogh)"
       ],
       "name": "Red Alert",
@@ -22986,7 +23160,7 @@
     },
     "metadata": {
       "aliases": [
-        "Red Sands",
+        "Red Sands (Gogh)",
         "RedSands (Gogh)"
       ],
       "name": "Red Sands",
@@ -23027,7 +23201,9 @@
       "selection_fg": "#d9d9d9"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Relaxed (Gogh)"
+      ],
       "name": "Relaxed",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -23140,7 +23316,9 @@
       "selection_fg": "#f2f2f2"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Rippedcasts (Gogh)"
+      ],
       "name": "Rippedcasts",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -23180,7 +23358,7 @@
     },
     "metadata": {
       "aliases": [
-        "rose-pine",
+        "Rosé Pine (Gogh)",
         "RoséPine (Gogh)"
       ],
       "name": "rose-pine",
@@ -23222,7 +23400,7 @@
     },
     "metadata": {
       "aliases": [
-        "rose-pine-dawn",
+        "Rosé Pine Dawn (Gogh)",
         "RoséPineDawn (Gogh)"
       ],
       "name": "rose-pine-dawn",
@@ -23264,7 +23442,7 @@
     },
     "metadata": {
       "aliases": [
-        "rose-pine-moon",
+        "Rosé Pine Moon (Gogh)",
         "RoséPineMoon (Gogh)"
       ],
       "name": "rose-pine-moon",
@@ -23438,7 +23616,9 @@
       "selection_fg": "#a593cd"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Royal (Gogh)"
+      ],
       "name": "Royal",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
@@ -23843,7 +24023,7 @@
     },
     "metadata": {
       "aliases": [
-        "Seafoam Pastel",
+        "Seafoam Pastel (Gogh)",
         "SeafoamPastel (Gogh)"
       ],
       "name": "Seafoam Pastel",
@@ -23884,7 +24064,9 @@
       "selection_fg": "#fee4ce"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Sea Shells (Gogh)"
+      ],
       "name": "SeaShells",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -24081,7 +24263,9 @@
       "selection_fg": "#cacecd"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Seti (Gogh)"
+      ],
       "name": "Seti",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -24288,7 +24472,9 @@
       "selection_fg": "#5afad6"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Shaman (Gogh)"
+      ],
       "name": "Shaman",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -24645,7 +24831,9 @@
       "selection_fg": "#2dffc0"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Slate (Gogh)"
+      ],
       "name": "Slate",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -24922,7 +25110,9 @@
       "selection_fg": "#effffe"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Soft Server (Gogh)"
+      ],
       "name": "SoftServer",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -25035,6 +25225,41 @@
         "#2aa198",
         "#93a1a1"
       ],
+      "background": "#002b36",
+      "brights": [
+        "#657b83",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#fdf6e3"
+      ],
+      "foreground": "#93a1a1",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Chris Kempson",
+      "name": "Solarized (dark) (terminal.sexy)",
+      "origin_url": "https://github.com/stayradiated/terminal.sexy",
+      "prefix": "s",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#002b36",
+        "#dc322f",
+        "#859900",
+        "#b58900",
+        "#268bd2",
+        "#6c71c4",
+        "#2aa198",
+        "#93a1a1"
+      ],
       "background": "#fdf6e3",
       "brights": [
         "#657b83",
@@ -25091,7 +25316,7 @@
     },
     "metadata": {
       "aliases": [
-        "Solarized Darcula",
+        "Solarized Darcula (Gogh)",
         "SolarizedDarcula (Gogh)"
       ],
       "name": "Solarized Darcula",
@@ -25103,49 +25328,38 @@
   {
     "colors": {
       "ansi": [
-        "#002b36",
+        "#073642",
         "#dc322f",
         "#859900",
-        "#b58900",
+        "#cf9a6b",
         "#268bd2",
-        "#6c71c4",
+        "#d33682",
         "#2aa198",
-        "#93a1a1"
+        "#eee8d5"
       ],
       "background": "#002b36",
       "brights": [
         "#657b83",
-        "#dc322f",
-        "#859900",
-        "#b58900",
-        "#268bd2",
-        "#6c71c4",
-        "#2aa198",
+        "#d87979",
+        "#88cf76",
+        "#657b83",
+        "#2699ff",
+        "#d33682",
+        "#43b8c3",
         "#fdf6e3"
       ],
-      "cursor_bg": "#93a1a1",
-      "cursor_border": "#93a1a1",
-      "cursor_fg": "#002b36",
-      "foreground": "#93a1a1",
-      "indexed": {
-        "16": "#cb4b16",
-        "17": "#d33682",
-        "18": "#073642",
-        "19": "#586e75",
-        "20": "#839496",
-        "21": "#eee8d5"
-      },
-      "selection_bg": "#93a1a1",
-      "selection_fg": "#002b36"
+      "cursor_bg": "#839496",
+      "cursor_border": "#839496",
+      "cursor_fg": "#839496",
+      "foreground": "#839496",
+      "indexed": {}
     },
     "metadata": {
       "aliases": [
-        "Solarized Dark (base16)",
-        "Solarized (dark) (terminal.sexy)"
+        "SolarizedDark (Gogh)"
       ],
-      "author": "Ethan Schoonover (modified by aramisgithub)",
-      "name": "Solarized Dark (base16)",
-      "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
+      "name": "Solarized Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -25222,97 +25436,13 @@
     },
     "metadata": {
       "aliases": [
-        "Solarized Dark Higher Contrast",
+        "Solarized Dark Higher Contrast (Gogh)",
         "SolarizedDarkHigherContrast (Gogh)"
       ],
       "name": "Solarized Dark Higher Contrast",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#fdf6e3",
-        "#dc322f",
-        "#859900",
-        "#b58900",
-        "#268bd2",
-        "#6c71c4",
-        "#2aa198",
-        "#586e75"
-      ],
-      "background": "#fdf6e3",
-      "brights": [
-        "#839496",
-        "#dc322f",
-        "#859900",
-        "#b58900",
-        "#268bd2",
-        "#6c71c4",
-        "#2aa198",
-        "#002b36"
-      ],
-      "cursor_bg": "#586e75",
-      "cursor_border": "#586e75",
-      "cursor_fg": "#fdf6e3",
-      "foreground": "#586e75",
-      "indexed": {
-        "16": "#cb4b16",
-        "17": "#d33682",
-        "18": "#eee8d5",
-        "19": "#93a1a1",
-        "20": "#657b83",
-        "21": "#073642"
-      },
-      "selection_bg": "#586e75",
-      "selection_fg": "#fdf6e3"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Ethan Schoonover (modified by aramisgithub)",
-      "name": "Solarized Light (base16)",
-      "origin_url": "https://github.com/aramisgithub/base16-solarized-scheme",
-      "prefix": "s",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#073642",
-        "#dc322f",
-        "#859900",
-        "#cf9a6b",
-        "#268bd2",
-        "#d33682",
-        "#2aa198",
-        "#eee8d5"
-      ],
-      "background": "#002b36",
-      "brights": [
-        "#657b83",
-        "#d87979",
-        "#88cf76",
-        "#657b83",
-        "#2699ff",
-        "#d33682",
-        "#43b8c3",
-        "#fdf6e3"
-      ],
-      "cursor_bg": "#839496",
-      "cursor_border": "#839496",
-      "cursor_fg": "#839496",
-      "foreground": "#839496",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "SolarizedDark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -25419,7 +25549,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Spacedust (Gogh)"
+      ],
       "name": "Spacedust",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -25458,7 +25590,9 @@
       "selection_fg": "#b3b8c3"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Spacegray (Gogh)"
+      ],
       "name": "SpaceGray",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -25498,8 +25632,8 @@
     },
     "metadata": {
       "aliases": [
-        "SpaceGray Eighties",
-        "SpaceGrayEighties (Gogh)"
+        "SpaceGrayEighties (Gogh)",
+        "Spacegray Eighties (Gogh)"
       ],
       "name": "SpaceGray Eighties",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -25540,8 +25674,8 @@
     },
     "metadata": {
       "aliases": [
-        "SpaceGray Eighties Dull",
-        "SpaceGrayEightiesDull (Gogh)"
+        "SpaceGrayEightiesDull (Gogh)",
+        "Spacegray Eighties Dull (Gogh)"
       ],
       "name": "SpaceGray Eighties Dull",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -25967,8 +26101,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "summer-pop (Gogh)",
+      "aliases": [
+        "summer-pop (Gogh)"
+      ],
+      "name": "Summer Pop (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -26147,7 +26283,9 @@
       "selection_fg": "#c9c9c9"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Sundried (Gogh)"
+      ],
       "name": "Sundried",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "s",
@@ -26192,6 +26330,45 @@
   {
     "colors": {
       "ansi": [
+        "#282c34",
+        "#ed254e",
+        "#71f79f",
+        "#f9dc5c",
+        "#7cb7ff",
+        "#c74ded",
+        "#00c1e4",
+        "#dcdfe4"
+      ],
+      "background": "#282c34",
+      "brights": [
+        "#282c34",
+        "#ed254e",
+        "#71f79f",
+        "#f9dc5c",
+        "#7cb7ff",
+        "#c74ded",
+        "#00c1e4",
+        "#dcdfe4"
+      ],
+      "cursor_bg": "#c3c7d1",
+      "cursor_border": "#c3c7d1",
+      "cursor_fg": "#c3c7d1",
+      "foreground": "#c3c7d1",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "sweet-eliverlara (Gogh)"
+      ],
+      "name": "Sweet Eliverlara (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4a3637",
         "#d17b49",
         "#7b8748",
@@ -26227,43 +26404,6 @@
   {
     "colors": {
       "ansi": [
-        "#282c34",
-        "#ed254e",
-        "#71f79f",
-        "#f9dc5c",
-        "#7cb7ff",
-        "#c74ded",
-        "#00c1e4",
-        "#dcdfe4"
-      ],
-      "background": "#282c34",
-      "brights": [
-        "#282c34",
-        "#ed254e",
-        "#71f79f",
-        "#f9dc5c",
-        "#7cb7ff",
-        "#c74ded",
-        "#00c1e4",
-        "#dcdfe4"
-      ],
-      "cursor_bg": "#c3c7d1",
-      "cursor_border": "#c3c7d1",
-      "cursor_fg": "#c3c7d1",
-      "foreground": "#c3c7d1",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "sweet-eliverlara (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "s",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#3f3f54",
         "#f60055",
         "#06c993",
@@ -26291,8 +26431,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "SweetTerminal (Gogh)",
+      "aliases": [
+        "SweetTerminal (Gogh)"
+      ],
+      "name": "Sweet Terminal (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -26331,7 +26473,6 @@
     },
     "metadata": {
       "aliases": [
-        "Symfonic",
         "Symphonic (Gogh)"
       ],
       "name": "Symfonic",
@@ -26503,11 +26644,52 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "SynthWave (Gogh)",
+      "aliases": [
+        "SynthWave (Gogh)"
+      ],
+      "name": "Synthwave (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#241b30",
+        "#9a0048",
+        "#00986c",
+        "#adad3e",
+        "#6e29ad",
+        "#b300ad",
+        "#00b0b1",
+        "#b9b1bc"
+      ],
+      "background": "#241b30",
+      "brights": [
+        "#7f7094",
+        "#e60a70",
+        "#0ae4a4",
+        "#f9f972",
+        "#aa54f9",
+        "#ff00f6",
+        "#00fbfd",
+        "#f2f2e3"
+      ],
+      "cursor_bg": "#f2f2e3",
+      "cursor_border": "#f2f2e3",
+      "cursor_fg": "#f2f2e3",
+      "foreground": "#f2f2e3",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "SynthwaveAlpha (Gogh)"
+      ],
+      "name": "Synthwave Alpha (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "s",
+      "wezterm_version": "20220903-194523-3bb1ed61"
     }
   },
   {
@@ -26584,43 +26766,6 @@
       "aliases": [],
       "name": "SynthwaveAlpha",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "s",
-      "wezterm_version": "20220903-194523-3bb1ed61"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#241b30",
-        "#9a0048",
-        "#00986c",
-        "#adad3e",
-        "#6e29ad",
-        "#b300ad",
-        "#00b0b1",
-        "#b9b1bc"
-      ],
-      "background": "#241b30",
-      "brights": [
-        "#7f7094",
-        "#e60a70",
-        "#0ae4a4",
-        "#f9f972",
-        "#aa54f9",
-        "#ff00f6",
-        "#00fbfd",
-        "#f2f2e3"
-      ],
-      "cursor_bg": "#f2f2e3",
-      "cursor_border": "#f2f2e3",
-      "cursor_fg": "#f2f2e3",
-      "foreground": "#f2f2e3",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "SynthwaveAlpha (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
       "wezterm_version": "20220903-194523-3bb1ed61"
     }
@@ -26887,7 +27032,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Teerb (Gogh)"
+      ],
       "name": "Teerb",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -27103,7 +27250,7 @@
     },
     "metadata": {
       "aliases": [
-        "Terminal Basic",
+        "Homebrew Light (Gogh)",
         "TerminalBasic (Gogh)"
       ],
       "name": "Terminal Basic",
@@ -27142,8 +27289,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "TerminixDark (Gogh)",
+      "aliases": [
+        "TerminixDark (Gogh)"
+      ],
+      "name": "Terminix Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -27217,7 +27366,7 @@
     },
     "metadata": {
       "aliases": [
-        "Thayer Bright",
+        "Thayer Bright (Gogh)",
         "ThayerBright (Gogh)"
       ],
       "name": "Thayer Bright",
@@ -27488,6 +27637,123 @@
   {
     "colors": {
       "ansi": [
+        "#414868",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#a9b1d6"
+      ],
+      "background": "#1a1b26",
+      "brights": [
+        "#414868",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#c0caf5"
+      ],
+      "cursor_bg": "#c0caf5",
+      "cursor_border": "#c0caf5",
+      "cursor_fg": "#c0caf5",
+      "foreground": "#c0caf5",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TokyoNight (Gogh)"
+      ],
+      "name": "Tokyo Night (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0f0f14",
+        "#8c4351",
+        "#485e30",
+        "#8f5e15",
+        "#34548a",
+        "#5a4a78",
+        "#0f4b6e",
+        "#343b58"
+      ],
+      "background": "#d5d6db",
+      "brights": [
+        "#9699a3",
+        "#8c4351",
+        "#485e30",
+        "#8f5e15",
+        "#34548a",
+        "#5a4a78",
+        "#0f4b6e",
+        "#343b58"
+      ],
+      "cursor_bg": "#565a6e",
+      "cursor_border": "#565a6e",
+      "cursor_fg": "#565a6e",
+      "foreground": "#565a6e",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TokyoNightLight (Gogh)"
+      ],
+      "name": "Tokyo Night Light (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#414868",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#c0caf5"
+      ],
+      "background": "#24283b",
+      "brights": [
+        "#414868",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#c0caf5"
+      ],
+      "cursor_bg": "#c0caf5",
+      "cursor_border": "#c0caf5",
+      "cursor_fg": "#c0caf5",
+      "foreground": "#c0caf5",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TokyoNightStorm (Gogh)"
+      ],
+      "name": "Tokyo Night Storm (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#15161e",
         "#f7768e",
         "#9ece6a",
@@ -27522,43 +27788,6 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#414868",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#a9b1d6"
-      ],
-      "background": "#1a1b26",
-      "brights": [
-        "#414868",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#c0caf5"
-      ],
-      "cursor_bg": "#c0caf5",
-      "cursor_border": "#c0caf5",
-      "cursor_fg": "#c0caf5",
-      "foreground": "#c0caf5",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TokyoNight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -27637,80 +27866,6 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
       "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#0f0f14",
-        "#8c4351",
-        "#485e30",
-        "#8f5e15",
-        "#34548a",
-        "#5a4a78",
-        "#0f4b6e",
-        "#343b58"
-      ],
-      "background": "#d5d6db",
-      "brights": [
-        "#9699a3",
-        "#8c4351",
-        "#485e30",
-        "#8f5e15",
-        "#34548a",
-        "#5a4a78",
-        "#0f4b6e",
-        "#343b58"
-      ],
-      "cursor_bg": "#565a6e",
-      "cursor_border": "#565a6e",
-      "cursor_fg": "#565a6e",
-      "foreground": "#565a6e",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TokyoNightLight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#414868",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#c0caf5"
-      ],
-      "background": "#24283b",
-      "brights": [
-        "#414868",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#c0caf5"
-      ],
-      "cursor_bg": "#c0caf5",
-      "cursor_border": "#c0caf5",
-      "cursor_fg": "#c0caf5",
-      "foreground": "#c0caf5",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TokyoNightStorm (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -27902,6 +28057,45 @@
     "colors": {
       "ansi": [
         "#000000",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c674",
+        "#81a2be",
+        "#b293bb",
+        "#8abeb7",
+        "#fffefe"
+      ],
+      "background": "#1d1f21",
+      "brights": [
+        "#000000",
+        "#cc6666",
+        "#b5bd68",
+        "#f0c574",
+        "#80a1bd",
+        "#b294ba",
+        "#8abdb6",
+        "#fffefe"
+      ],
+      "cursor_bg": "#c4c8c5",
+      "cursor_border": "#c4c8c5",
+      "cursor_fg": "#c4c8c5",
+      "foreground": "#c5c8c6",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TomorrowNight (Gogh)"
+      ],
+      "name": "Tomorrow Night (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
         "#ff9da4",
         "#d1f1a9",
         "#ffeead",
@@ -27941,6 +28135,45 @@
     "colors": {
       "ansi": [
         "#000000",
+        "#ff9da3",
+        "#d1f1a9",
+        "#ffeead",
+        "#bbdaff",
+        "#ebbbff",
+        "#99ffff",
+        "#fffefe"
+      ],
+      "background": "#002451",
+      "brights": [
+        "#000000",
+        "#ff9ca3",
+        "#d0f0a8",
+        "#ffedac",
+        "#badaff",
+        "#ebbaff",
+        "#99ffff",
+        "#fffefe"
+      ],
+      "cursor_bg": "#fffefe",
+      "cursor_border": "#fffefe",
+      "cursor_fg": "#fffefe",
+      "foreground": "#fffefe",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TomorrowNightBlue (Gogh)"
+      ],
+      "name": "Tomorrow Night Blue (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
         "#d54e53",
         "#b9ca4a",
         "#e7c547",
@@ -27974,6 +28207,45 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#d54e53",
+        "#b9ca49",
+        "#e7c547",
+        "#79a6da",
+        "#c397d8",
+        "#70c0b1",
+        "#fffefe"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#000000",
+        "#d44d53",
+        "#b9c949",
+        "#e6c446",
+        "#79a6da",
+        "#c396d7",
+        "#70c0b1",
+        "#fffefe"
+      ],
+      "cursor_bg": "#e9e9e9",
+      "cursor_border": "#e9e9e9",
+      "cursor_fg": "#e9e9e9",
+      "foreground": "#e9e9e9",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [
+        "TomorrowNightBright (Gogh)"
+      ],
+      "name": "Tomorrow Night Bright (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "t",
+      "wezterm_version": "20220807-113146-c2fee766"
     }
   },
   {
@@ -28058,117 +28330,6 @@
     "colors": {
       "ansi": [
         "#000000",
-        "#cc6666",
-        "#b5bd68",
-        "#f0c674",
-        "#81a2be",
-        "#b293bb",
-        "#8abeb7",
-        "#fffefe"
-      ],
-      "background": "#1d1f21",
-      "brights": [
-        "#000000",
-        "#cc6666",
-        "#b5bd68",
-        "#f0c574",
-        "#80a1bd",
-        "#b294ba",
-        "#8abdb6",
-        "#fffefe"
-      ],
-      "cursor_bg": "#c4c8c5",
-      "cursor_border": "#c4c8c5",
-      "cursor_fg": "#c4c8c5",
-      "foreground": "#c5c8c6",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TomorrowNight (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#000000",
-        "#ff9da3",
-        "#d1f1a9",
-        "#ffeead",
-        "#bbdaff",
-        "#ebbbff",
-        "#99ffff",
-        "#fffefe"
-      ],
-      "background": "#002451",
-      "brights": [
-        "#000000",
-        "#ff9ca3",
-        "#d0f0a8",
-        "#ffedac",
-        "#badaff",
-        "#ebbaff",
-        "#99ffff",
-        "#fffefe"
-      ],
-      "cursor_bg": "#fffefe",
-      "cursor_border": "#fffefe",
-      "cursor_fg": "#fffefe",
-      "foreground": "#fffefe",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TomorrowNightBlue (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#000000",
-        "#d54e53",
-        "#b9ca49",
-        "#e7c547",
-        "#79a6da",
-        "#c397d8",
-        "#70c0b1",
-        "#fffefe"
-      ],
-      "background": "#000000",
-      "brights": [
-        "#000000",
-        "#d44d53",
-        "#b9c949",
-        "#e6c446",
-        "#79a6da",
-        "#c396d7",
-        "#70c0b1",
-        "#fffefe"
-      ],
-      "cursor_bg": "#e9e9e9",
-      "cursor_border": "#e9e9e9",
-      "cursor_fg": "#e9e9e9",
-      "foreground": "#e9e9e9",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "TomorrowNightBright (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "t",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#000000",
         "#f27779",
         "#99cc99",
         "#ffcc66",
@@ -28195,8 +28356,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "TomorrowNightEighties (Gogh)",
+      "aliases": [
+        "TomorrowNightEighties (Gogh)"
+      ],
+      "name": "Tomorrow Night Eighties (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -28234,7 +28397,9 @@
       "selection_fg": "#d5d5d5"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Toy Chest (Gogh)"
+      ],
       "name": "ToyChest",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -28273,7 +28438,9 @@
       "selection_fg": "#fac800"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Treehouse (Gogh)"
+      ],
       "name": "Treehouse",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -28347,7 +28514,9 @@
       "selection_fg": "#ffffd4"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Twilight (Gogh)"
+      ],
       "name": "Twilight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
@@ -28394,7 +28563,6 @@
     },
     "metadata": {
       "aliases": [
-        "Twilight (base16)",
         "Twilight (dark) (terminal.sexy)"
       ],
       "author": "David Hart (https://github.com/hartbit)",
@@ -28879,7 +29047,9 @@
       "selection_fg": "#1b1b22"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Urple (Gogh)"
+      ],
       "name": "Urple",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "u",
@@ -28990,7 +29160,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Vaughn (Gogh)"
+      ],
       "name": "Vaughn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -29029,7 +29201,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Vibrant Ink (Gogh)"
+      ],
       "name": "VibrantInk",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "v",
@@ -29039,40 +29213,40 @@
   {
     "colors": {
       "ansi": [
-        "#1b1d24",
+        "#1c1c1c",
         "#ff3d81",
         "#44ffdd",
         "#ffff73",
         "#2fb1d4",
         "#8265ff",
         "#00caff",
-        "#555e70"
+        "#555555"
       ],
-      "background": "#1b1d24",
+      "background": "#1c1c1c",
       "brights": [
-        "#323643",
+        "#323232",
         "#ff3d81",
         "#44ffdd",
         "#ffff73",
         "#2fb1d4",
         "#8265ff",
         "#00caff",
-        "#f4f4f7"
+        "#d1d1d1"
       ],
-      "cursor_bg": "#555e70",
-      "cursor_border": "#555e70",
-      "cursor_fg": "#1b1d24",
-      "foreground": "#555e70",
+      "cursor_bg": "#555555",
+      "cursor_border": "#555555",
+      "cursor_fg": "#1c1c1c",
+      "foreground": "#555555",
       "indexed": {
         "16": "#f67544",
-        "17": "#ff00aa",
-        "18": "#282b36",
-        "19": "#2f303d",
-        "20": "#3f4859",
-        "21": "#b2bfd9"
+        "17": "#f83d80",
+        "18": "#282828",
+        "19": "#2c2c2c",
+        "20": "#3c3c3c",
+        "21": "#b6b6b6"
       },
-      "selection_bg": "#555e70",
-      "selection_fg": "#1b1d24"
+      "selection_bg": "#555555",
+      "selection_fg": "#1c1c1c"
     },
     "metadata": {
       "aliases": [],
@@ -29086,40 +29260,40 @@
   {
     "colors": {
       "ansi": [
-        "#17191e",
+        "#181818",
         "#ff29a8",
         "#0badff",
         "#f0ffaa",
         "#00eaff",
         "#00f6d9",
         "#8265ff",
-        "#8b9cbe"
+        "#818181"
       ],
-      "background": "#17191e",
+      "background": "#181818",
       "brights": [
-        "#383a47",
+        "#3f3f3f",
         "#ff29a8",
         "#0badff",
         "#f0ffaa",
         "#00eaff",
         "#00f6d9",
         "#8265ff",
-        "#f4f4f7"
+        "#e9e9e9"
       ],
-      "cursor_bg": "#8b9cbe",
-      "cursor_border": "#8b9cbe",
-      "cursor_fg": "#17191e",
-      "foreground": "#8b9cbe",
+      "cursor_bg": "#818181",
+      "cursor_border": "#818181",
+      "cursor_fg": "#181818",
+      "foreground": "#818181",
       "indexed": {
         "16": "#85ffe0",
         "17": "#ff3d81",
-        "18": "#22262d",
-        "19": "#3c3f4c",
-        "20": "#555e70",
-        "21": "#b2bfd9"
+        "18": "#222222",
+        "19": "#323232",
+        "20": "#666666",
+        "21": "#c6c6c6"
       },
-      "selection_bg": "#8b9cbe",
-      "selection_fg": "#17191e"
+      "selection_bg": "#818181",
+      "selection_fg": "#181818"
     },
     "metadata": {
       "aliases": [],
@@ -29382,8 +29556,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "VSCodeDark+ (Gogh)",
+      "aliases": [
+        "VSCodeDark+ (Gogh)"
+      ],
+      "name": "Vs Code Dark+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -29419,8 +29595,10 @@
       "indexed": {}
     },
     "metadata": {
-      "aliases": [],
-      "name": "VSCodeLight+ (Gogh)",
+      "aliases": [
+        "VSCodeLight+ (Gogh)"
+      ],
+      "name": "Vs Code Light+ (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
       "wezterm_version": "20220807-113146-c2fee766"
@@ -29540,7 +29718,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Warm Neon (Gogh)"
+      ],
       "name": "WarmNeon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -29579,7 +29759,9 @@
       "selection_fg": "#000000"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Wez (Gogh)"
+      ],
       "name": "Wez",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -29657,7 +29839,9 @@
       "selection_fg": "#e4ffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Wild Cherry (Gogh)"
+      ],
       "name": "WildCherry",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -30111,7 +30295,9 @@
       "selection_fg": "#b6bbc0"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Wombat (Gogh)"
+      ],
       "name": "Wombat",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -30197,7 +30383,9 @@
       "selection_fg": "#ffffff"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Wryan (Gogh)"
+      ],
       "name": "Wryan",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "w",
@@ -30426,7 +30614,6 @@
     },
     "metadata": {
       "aliases": [
-        "zenbones",
         "zenbones_light"
       ],
       "name": "zenbones",
@@ -30477,48 +30664,6 @@
   {
     "colors": {
       "ansi": [
-        "#f0edec",
-        "#a8334c",
-        "#4f6c31",
-        "#944927",
-        "#286486",
-        "#88507d",
-        "#3b8992",
-        "#2c363c"
-      ],
-      "background": "#f0edec",
-      "brights": [
-        "#cfc1ba",
-        "#94253e",
-        "#3f5a22",
-        "#803d1c",
-        "#1d5573",
-        "#7b3b70",
-        "#2b747c",
-        "#4f5e68"
-      ],
-      "cursor_bg": "#2c363c",
-      "cursor_border": "#2c363c",
-      "cursor_fg": "#f0edec",
-      "foreground": "#2c363c",
-      "indexed": {},
-      "selection_bg": "#cbd9e3",
-      "selection_fg": "#2c363c"
-    },
-    "metadata": {
-      "aliases": [
-        "zenbones",
-        "zenbones_light"
-      ],
-      "name": "zenbones_light",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "z",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#4d4d4d",
         "#705050",
         "#60b48a",
@@ -30548,7 +30693,9 @@
       "selection_fg": "#c2d87a"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "Zenburn (Gogh)"
+      ],
       "name": "Zenburn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "z",
