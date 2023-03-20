@@ -292,9 +292,7 @@ function load_scheme_player(ident) {{
                                 if alias_link:
                                     alias_list.append(f"[{a}]({alias_link})")
                                 else:
-                                    alias_list.append(
-                                        f"`{a}` (but that name isn't used here)"
-                                    )
+                                    alias_list.append(f"`{a}`")
                             aliases = ", ".join(alias_list)
                             idx.write(f"This scheme is also known as {aliases}.<br/>\n")
                         else:
