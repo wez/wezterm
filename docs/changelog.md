@@ -77,7 +77,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `CTRL-SHIFT-P` now activates the new [command
   palette](config/lua/keyassignment/ActivateCommandPalette.md)
   [#1485](https://github.com/wez/wezterm/issues/1485)
-* `wezterm sssh` now supports `%l` and `%L` tokens in config files.
+* `wezterm ssh` now supports `%l` and `%L` tokens in config files.
   [#3176](https://github.com/wez/wezterm/issues/3176)
 * [hyperlink_rules](config/lua/config/hyperlink_rules.md) now support
   specifying which capture group should be highlighted.
