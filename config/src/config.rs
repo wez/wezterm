@@ -653,6 +653,9 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub adjust_window_size_when_changing_font_size: bool,
 
+    #[dynamic(default = "default_true")]
+    pub resolve_new_window_geometry_bounds_from_screens: bool,
+
     #[dynamic(default)]
     pub use_resize_increments: bool,
 

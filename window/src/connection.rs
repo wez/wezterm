@@ -82,29 +82,32 @@ pub trait ConnectionOps {
     }
 
     fn resolve_geometry(&self, geometry: RequestedWindowGeometry) -> ResolvedGeometry {
-        let bounds = match self.screens() {
-            Ok(screens) => {
-                log::trace!("{screens:?}");
+        let bounds = match config::configuration().resolve_new_window_geometry_bounds_from_screens {
+            true => match self.screens() {
+                Ok(screens) => {
+                    log::trace!("{screens:?}");
 
-                match geometry.origin {
-                    GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
-                    GeometryOrigin::MainScreen => screens.main.rect,
-                    GeometryOrigin::ActiveScreen => screens.active.rect,
-                    GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
-                        Some(info) => info.rect,
-                        None => {
-                            log::error!(
+                    match geometry.origin {
+                        GeometryOrigin::ScreenCoordinateSystem => screens.virtual_rect,
+                        GeometryOrigin::MainScreen => screens.main.rect,
+                        GeometryOrigin::ActiveScreen => screens.active.rect,
+                        GeometryOrigin::Named(name) => match screens.by_name.get(&name) {
+                            Some(info) => info.rect,
+                            None => {
+                                log::error!(
                             "Requested display {} was not found; available displays are: {:?}. \
                              Using primary display instead",
                             name,
                             screens.by_name,
                         );
-                            screens.main.rect
-                        }
-                    },
+                                screens.main.rect
+                            }
+                        },
+                    }
                 }
-            }
-            Err(_) => euclid::rect(0, 0, 65535, 65535),
+                Err(_) => euclid::rect(0, 0, 65535, 65535),
+            },
+            false => euclid::rect(0, 0, 65535, 65535),
         };
 
         let dpi = self.default_dpi();
