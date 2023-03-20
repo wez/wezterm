@@ -35,17 +35,15 @@ To configure an SSH domain, place something like the following in
 your `.wezterm.lua` file:
 
 ```lua
-return {
-  ssh_domains = {
-    {
-      -- This name identifies the domain
-      name = 'my.server',
-      -- The hostname or address to connect to. Will be used to match settings
-      -- from your ssh config file
-      remote_address = '192.168.1.1',
-      -- The username to use on the remote host
-      username = 'wez',
-    },
+config.ssh_domains = {
+  {
+    -- This name identifies the domain
+    name = 'my.server',
+    -- The hostname or address to connect to. Will be used to match settings
+    -- from your ssh config file
+    remote_address = '192.168.1.1',
+    -- The username to use on the remote host
+    username = 'wez',
   },
 }
 ```
@@ -78,19 +76,17 @@ spawn a server if needed and then connect the gui to it automatically
 when wezterm is launched:
 
 ```lua
-return {
-  unix_domains = {
-    {
-      name = 'unix',
-    },
+config.unix_domains = {
+  {
+    name = 'unix',
   },
-
-  -- This causes `wezterm` to act as though it was started as
-  -- `wezterm connect unix` by default, connecting to the unix
-  -- domain on startup.
-  -- If you prefer to connect manually, leave out this line.
-  default_gui_startup_args = { 'connect', 'unix' },
 }
+
+-- This causes `wezterm` to act as though it was started as
+-- `wezterm connect unix` by default, connecting to the unix
+-- domain on startup.
+-- If you prefer to connect manually, leave out this line.
+config.default_gui_startup_args = { 'connect', 'unix' }
 ```
 
 If you prefer to connect manually, omit the `default_gui_startup_args` setting
@@ -107,30 +103,28 @@ option was shown as the way to connect on startup.  Using
 The possible configuration values are:
 
 ```lua
-return {
-  unix_domains = {
-    {
-      -- The name; must be unique amongst all domains
-      name = 'unix',
+config.unix_domains = {
+  {
+    -- The name; must be unique amongst all domains
+    name = 'unix',
 
-      -- The path to the socket.  If unspecified, a resonable default
-      -- value will be computed.
+    -- The path to the socket.  If unspecified, a resonable default
+    -- value will be computed.
 
-      -- socket_path = "/some/path",
+    -- socket_path = "/some/path",
 
-      -- If true, do not attempt to start this server if we try and fail to
-      -- connect to it.
+    -- If true, do not attempt to start this server if we try and fail to
+    -- connect to it.
 
-      -- no_serve_automatically = false,
+    -- no_serve_automatically = false,
 
-      -- If true, bypass checking for secure ownership of the
-      -- socket_path.  This is not recommended on a multi-user
-      -- system, but is useful for example when running the
-      -- server inside a WSL container but with the socket
-      -- on the host NTFS volume.
+    -- If true, bypass checking for secure ownership of the
+    -- socket_path.  This is not recommended on a multi-user
+    -- system, but is useful for example when running the
+    -- server inside a WSL container but with the socket
+    -- on the host NTFS volume.
 
-      -- skip_permissions_check = false,
-    },
+    -- skip_permissions_check = false,
   },
 }
 ```
@@ -147,12 +141,10 @@ but may help with the WSL 2 issue mentioned below when translated
 to an appropriate invocation of netcat/socat on Windows:
 
 ```lua
-return {
-  unix_domains = {
-    {
-      name = 'unix',
-      proxy_command = { 'nc', '-U', '/Users/wez/.local/share/wezterm/sock' },
-    },
+config.unix_domains = {
+  {
+    name = 'unix',
+    proxy_command = { 'nc', '-U', '/Users/wez/.local/share/wezterm/sock' },
   },
 }
 ```
@@ -167,12 +159,10 @@ result of that prediction locally without waiting, hence hiding latency to the
 user. This option only applies when `multiplexing = "WezTerm"`.
 
 ```lua
-return {
-  unix_domains = {
-    {
-      name = 'unix',
-      local_echo_threshold_ms = 10,
-    },
+config.unix_domains = {
+  {
+    name = 'unix',
+    local_echo_threshold_ms = 10,
   },
 }
 ```
@@ -184,17 +174,15 @@ return {
 Inside your WSL instance, configure `.wezterm.lua` with this snippet:
 
 ```lua
-return {
-  unix_domains = {
-    {
-      name = 'wsl',
-      -- Override the default path to match the default on the host win32
-      -- filesystem.  This will allow the host to connect into the WSL
-      -- container.
-      socket_path = '/mnt/c/Users/USERNAME/.local/share/wezterm/sock',
-      -- NTFS permissions will always be "wrong", so skip that check
-      skip_permissions_check = true,
-    },
+config.unix_domains = {
+  {
+    name = 'wsl',
+    -- Override the default path to match the default on the host win32
+    -- filesystem.  This will allow the host to connect into the WSL
+    -- container.
+    socket_path = '/mnt/c/Users/USERNAME/.local/share/wezterm/sock',
+    -- NTFS permissions will always be "wrong", so skip that check
+    skip_permissions_check = true,
   },
 }
 ```
@@ -202,15 +190,13 @@ return {
 In the host win32 configuration, use this snippet:
 
 ```lua
-return {
-  unix_domains = {
-    {
-      name = 'wsl',
-      serve_command = { 'wsl', 'wezterm-mux-server', '--daemonize' },
-    },
+config.unix_domains = {
+  {
+    name = 'wsl',
+    serve_command = { 'wsl', 'wezterm-mux-server', '--daemonize' },
   },
-  default_gui_startup_args = { 'connect', 'wsl' },
 }
+config.default_gui_startup_args = { 'connect', 'wsl' }
 ```
 
 Now when you start wezterm you'll be presented with a WSL tab.
@@ -239,18 +225,16 @@ server.
 For each server that you wish to connect to, add a client section like this:
 
 ```lua
-return {
-  tls_clients = {
-    {
-      -- A handy alias for this session; you will use `wezterm connect server.name`
-      -- to connect to it.
-      name = 'server.name',
-      -- The host:port for the remote host
-      remote_address = 'server.hostname:8080',
-      -- The value can be "user@host:port"; it accepts the same syntax as the
-      -- `wezterm ssh` subcommand.
-      bootstrap_via_ssh = 'server.hostname',
-    },
+config.tls_clients = {
+  {
+    -- A handy alias for this session; you will use `wezterm connect server.name`
+    -- to connect to it.
+    name = 'server.name',
+    -- The host:port for the remote host
+    remote_address = 'server.hostname:8080',
+    -- The value can be "user@host:port"; it accepts the same syntax as the
+    -- `wezterm ssh` subcommand.
+    bootstrap_via_ssh = 'server.hostname',
   },
 }
 ```
@@ -261,13 +245,11 @@ settings.
 ### Configuring the server
 
 ```lua
-return {
-  tls_servers = {
-    {
-      -- The host:port combination on which the server will listen
-      -- for connections
-      bind_address = 'server.hostname:8080',
-    },
+config.tls_servers = {
+  {
+    -- The host:port combination on which the server will listen
+    -- for connections
+    bind_address = 'server.hostname:8080',
   },
 }
 ```
