@@ -5,24 +5,41 @@ use serde::Deserialize;
 #[allow(non_snake_case)]
 pub struct GoghTheme {
     name: String,
+    #[serde(rename = "color_01")]
     black: String,
+    #[serde(rename = "color_02")]
     red: String,
+    #[serde(rename = "color_03")]
     green: String,
+    #[serde(rename = "color_04")]
     yellow: String,
+    #[serde(rename = "color_05")]
     blue: String,
+    #[serde(rename = "color_06")]
     purple: String,
+    #[serde(rename = "color_07")]
     cyan: String,
+    #[serde(rename = "color_08")]
     white: String,
+    #[serde(rename = "color_09")]
     brightBlack: String,
+    #[serde(rename = "color_10")]
     brightRed: String,
+    #[serde(rename = "color_11")]
     brightGreen: String,
+    #[serde(rename = "color_12")]
     brightYellow: String,
+    #[serde(rename = "color_13")]
     brightBlue: String,
+    #[serde(rename = "color_14")]
     brightPurple: String,
+    #[serde(rename = "color_15")]
     brightCyan: String,
+    #[serde(rename = "color_16")]
     brightWhite: String,
     foreground: String,
     background: String,
+    #[serde(rename = "cursor")]
     cursorColor: String,
 }
 
