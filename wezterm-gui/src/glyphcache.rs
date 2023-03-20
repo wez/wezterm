@@ -384,6 +384,12 @@ impl FrameState {
                         self.current_frame.duration = Duration::from_secs(86400);
                         self.frames.push(self.current_frame.clone());
                         false
+                    } else if self.frames.len() == 1 {
+                        // If there's only a single frame, we may as well ensure
+                        // that it has a long duration so that we don't waste
+                        // resources ticking to the same frame over and over
+                        self.frames[0].duration = Duration::from_secs(86400);
+                        true
                     } else {
                         true
                     }
