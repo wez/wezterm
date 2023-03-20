@@ -111,7 +111,7 @@ on most Linux systems.
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
 |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |No longer provided|
-|Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
+|Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |No longer provided|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
 |Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
 |Fedora37    |Nightly builds only |[{{ fedora37_rpm_nightly_asset }}]({{ fedora37_rpm_nightly }})|
@@ -155,9 +155,9 @@ APKs are built out from the `main` branch.
 
 |Version | Stable        | Nightly |
 |--------|---------------|---------|
-| 3.12   |[{{ alpine3_12_apk_stable_asset }}]({{ alpine3_12_apk_stable }})|[{{ alpine3_12_apk_nightly_asset }}]({{ alpine3_12_apk_nightly }})|
-| 3.13   |[{{ alpine3_13_apk_stable_asset }}]({{ alpine3_13_apk_stable }})|[{{ alpine3_13_apk_nightly_asset }}]({{ alpine3_13_apk_nightly }})|
-| 3.14   |[{{ alpine3_14_apk_stable_asset }}]({{ alpine3_14_apk_stable }})|[{{ alpine3_14_apk_nightly_asset }}]({{ alpine3_14_apk_nightly }})|
+| 3.12   |[{{ alpine3_12_apk_stable_asset }}]({{ alpine3_12_apk_stable }})|no longer provided|
+| 3.13   |[{{ alpine3_13_apk_stable_asset }}]({{ alpine3_13_apk_stable }})|no longer provided|
+| 3.14   |[{{ alpine3_14_apk_stable_asset }}]({{ alpine3_14_apk_stable }})|no longer provided|
 | 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|[{{ alpine3_15_apk_nightly_asset }}]({{ alpine3_15_apk_nightly }})|
 
 ## Linuxbrew Tap
