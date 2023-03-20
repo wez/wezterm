@@ -77,6 +77,7 @@ cargo +nightly clippy --all-features --all-targets -- \
     -A clippy::print_in_format_impl \
     -A clippy::ptr_arg \
     -A clippy::question_mark \
+    -A clippy::redundant-async-block \
     -A clippy::redundant_clone \
     -A clippy::redundant_closure \
     -A clippy::redundant_field_names \

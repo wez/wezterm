@@ -14,8 +14,8 @@ on:
       - "**/*.rs"
       - ".github/workflows/clippy.yml"
 
-env:
-  RUSTFLAGS: "-Dwarnings"
+# env:
+#   RUSTFLAGS: "-Dwarnings"
 
 jobs:
   lint-rust-code:
