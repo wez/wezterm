@@ -20,18 +20,61 @@ env:
 jobs:
   lint-rust-code:
     runs-on: ubuntu-latest
+    container:
+      image: "ubuntu:22.04"
+      options: --privileged
+
     steps:
-      - uses: actions/checkout@v3
+      - name: "set APT to non-interactive"
+        shell: bash
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install git"
+        shell: bash
+        run: "apt-get install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "apt-get install -y openssh-server"
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
       - name: "Install Rust"
         uses: actions-rs/toolchain@v1
         with:
           profile: "minimal"
           toolchain: "nightly"
           override: true
-          components: clippy
+          components: "clippy"
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: "clippy-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env PATH=$PATH ./get-deps"
       - name: Run Clippy # Allow lints with -A lint_name
+        shell: bash
         run: |
           source $HOME/.cargo/env
           ./clippy.sh
