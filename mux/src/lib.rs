@@ -419,7 +419,13 @@ impl Mux {
         for window in self.windows.read().values() {
             let workspace = window.get_workspace();
             for tab in window.iter() {
-                *count.entry(workspace.to_string()).or_insert(0) += tab.count_panes();
+                *count.entry(workspace.to_string()).or_insert(0) += match tab.count_panes() {
+                    Some(n) => n,
+                    None => {
+                        // Busy: abort this and we'll retry later
+                        return;
+                    }
+                };
             }
         }
         *self.num_panes_by_workspace.write() = count;

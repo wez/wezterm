@@ -39,7 +39,7 @@ pub struct LauncherTabEntry {
     pub title: String,
     pub tab_id: TabId,
     pub tab_idx: usize,
-    pub pane_count: usize,
+    pub pane_count: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -277,7 +277,10 @@ impl LauncherState {
 
         for tab in &args.tabs {
             self.entries.push(Entry {
-                label: format!("{}. {} panes", tab.title, tab.pane_count),
+                label: match tab.pane_count {
+                    Some(pane_count) => format!("{}. {pane_count} panes", tab.title),
+                    None => format!("{}.", tab.title),
+                },
                 action: KeyAssignment::ActivateTab(tab.tab_idx as isize),
             });
         }

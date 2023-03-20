@@ -547,8 +547,8 @@ impl Tab {
     }
 
     /// Returns a count of how many panes are in this tab
-    pub fn count_panes(&self) -> usize {
-        self.inner.lock().count_panes()
+    pub fn count_panes(&self) -> Option<usize> {
+        self.inner.try_lock().map(|mut inner| inner.count_panes())
     }
 
     /// Sets the zoom state, returns the prior state

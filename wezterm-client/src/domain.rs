@@ -392,9 +392,9 @@ impl ClientDomain {
     }
 
     pub async fn resync(&self) -> anyhow::Result<()> {
-        if let Some(inner) = self.inner.lock().unwrap().as_ref() {
+        if let Some(inner) = self.inner() {
             let panes = inner.client.list_panes().await?;
-            Self::process_pane_list(Arc::clone(inner), panes, None)?;
+            Self::process_pane_list(inner, panes, None)?;
         }
         Ok(())
     }
