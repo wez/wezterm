@@ -148,6 +148,14 @@ fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
             if let Some(version) = version_by_color_scheme
                 .get(&ident)
                 .or_else(|| version_by_name.get(&scheme.name))
+                .or_else(|| {
+                    for a in &scheme.data.metadata.aliases {
+                        if let Some(v) = version_by_name.get(a) {
+                            return Some(v);
+                        }
+                    }
+                    None
+                })
             {
                 scheme
                     .data
@@ -225,7 +233,7 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
         }
     }
     if !new_items.is_empty() {
-        println!("* Color schemes: {}", new_items.join(", "));
+        println!("* Color schemes: {}", new_items.join(",\n  "));
     }
 
     // And the data for the docs
@@ -371,6 +379,13 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     sync_toml(
         "https://github.com/olivercederborg/poimandres.nvim",
+        "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
+    sync_toml(
+        "https://github.com/folke/tokyonight.nvim",
         "main",
         "",
         &mut schemeses,

@@ -56,7 +56,8 @@ As features stabilize some brief notes about them will accumulate here.
   [rose-pine](colorschemes/r/index.md#rose-pine),
   [rose-pine-dawn](colorschemes/r/index.md#rose-pine-dawn),
   [rose-pine-moon](colorschemes/r/index.md#rose-pine-moon),
-  [Solarized (dark) (terminal.sexy)](colorschemes/s/index.md#solarized-dark-terminal-sexy)
+  [Solarized (dark) (terminal.sexy)](colorschemes/s/index.md#solarized-dark-terminal-sexy),
+  [tokyonight_moon](colorschemes/t/index.md#tokyonight-moon)
 * [window:focus()](config/lua/window/focus.md),
   [ActivateWindow](config/lua/keyassignment/ActivateWindow.md),
   [ActivateWindowRelative](config/lua/keyassignment/ActivateWindowRelative.md),

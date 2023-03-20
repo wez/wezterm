@@ -27754,45 +27754,6 @@
   {
     "colors": {
       "ansi": [
-        "#15161e",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#a9b1d6"
-      ],
-      "background": "#1a1b26",
-      "brights": [
-        "#414868",
-        "#f7768e",
-        "#9ece6a",
-        "#e0af68",
-        "#7aa2f7",
-        "#bb9af7",
-        "#7dcfff",
-        "#c0caf5"
-      ],
-      "cursor_bg": "#c0caf5",
-      "cursor_border": "#c0caf5",
-      "cursor_fg": "#15161e",
-      "foreground": "#c0caf5",
-      "indexed": {},
-      "selection_bg": "#33467c",
-      "selection_fg": "#c0caf5"
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "tokyonight",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "t",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#e9e9ed",
         "#f52a65",
         "#587539",
@@ -27819,12 +27780,226 @@
       "foreground": "#3760bf",
       "indexed": {},
       "selection_bg": "#99a7df",
-      "selection_fg": "#3760bf"
+      "selection_fg": "#3760bf",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#e1e2e7",
+          "fg_color": "#2e7de9",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#191b28",
+        "inactive_tab": {
+          "bg_color": "#e9e9ec",
+          "fg_color": "#8990b3",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#e9e9ec",
+        "inactive_tab_hover": {
+          "bg_color": "#e9e9ec",
+          "fg_color": "#2e7de9",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#191b28",
+          "fg_color": "#2e7de9",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#2e7de9",
+          "fg_color": "#e9e9ec",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      }
+    },
+    "metadata": {
+      "aliases": [
+        "tokyonight-day"
+      ],
+      "name": "tokyonight_day",
+      "origin_url": "https://github.com/folke/tokyonight.nvim",
+      "prefix": "t",
+      "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1b1d2b",
+        "#ff757f",
+        "#c3e88d",
+        "#ffc777",
+        "#82aaff",
+        "#c099ff",
+        "#86e1fc",
+        "#828bb8"
+      ],
+      "background": "#222436",
+      "brights": [
+        "#444a73",
+        "#ff757f",
+        "#c3e88d",
+        "#ffc777",
+        "#82aaff",
+        "#c099ff",
+        "#86e1fc",
+        "#c8d3f5"
+      ],
+      "cursor_bg": "#c8d3f5",
+      "cursor_border": "#c8d3f5",
+      "cursor_fg": "#222436",
+      "foreground": "#c8d3f5",
+      "indexed": {},
+      "selection_bg": "#3654a7",
+      "selection_fg": "#c8d3f5",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#222436",
+          "fg_color": "#82aaff",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#191b28",
+        "inactive_tab": {
+          "bg_color": "#1e2030",
+          "fg_color": "#545c7e",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#1e2030",
+        "inactive_tab_hover": {
+          "bg_color": "#1e2030",
+          "fg_color": "#82aaff",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#191b28",
+          "fg_color": "#82aaff",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#82aaff",
+          "fg_color": "#1e2030",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      }
     },
     "metadata": {
       "aliases": [],
-      "name": "tokyonight-day",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "name": "tokyonight_moon",
+      "origin_url": "https://github.com/folke/tokyonight.nvim",
+      "prefix": "t",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#15161e",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#a9b1d6"
+      ],
+      "background": "#1a1b26",
+      "brights": [
+        "#414868",
+        "#f7768e",
+        "#9ece6a",
+        "#e0af68",
+        "#7aa2f7",
+        "#bb9af7",
+        "#7dcfff",
+        "#c0caf5"
+      ],
+      "cursor_bg": "#c0caf5",
+      "cursor_border": "#c0caf5",
+      "cursor_fg": "#1a1b26",
+      "foreground": "#c0caf5",
+      "indexed": {},
+      "selection_bg": "#33467c",
+      "selection_fg": "#c0caf5",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#1a1b26",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#191b28",
+        "inactive_tab": {
+          "bg_color": "#16161e",
+          "fg_color": "#545c7e",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#16161e",
+        "inactive_tab_hover": {
+          "bg_color": "#16161e",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#191b28",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#7aa2f7",
+          "fg_color": "#16161e",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      }
+    },
+    "metadata": {
+      "aliases": [
+        "tokyonight"
+      ],
+      "name": "tokyonight_night",
+      "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
       "wezterm_version": "Always"
     }
@@ -27854,16 +28029,62 @@
       ],
       "cursor_bg": "#c0caf5",
       "cursor_border": "#c0caf5",
-      "cursor_fg": "#1d202f",
+      "cursor_fg": "#24283b",
       "foreground": "#c0caf5",
       "indexed": {},
       "selection_bg": "#364a82",
-      "selection_fg": "#c0caf5"
+      "selection_fg": "#c0caf5",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#24283b",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#191b28",
+        "inactive_tab": {
+          "bg_color": "#1f2335",
+          "fg_color": "#545c7e",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#1f2335",
+        "inactive_tab_hover": {
+          "bg_color": "#1f2335",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#191b28",
+          "fg_color": "#7aa2f7",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#7aa2f7",
+          "fg_color": "#1f2335",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      }
     },
     "metadata": {
-      "aliases": [],
-      "name": "tokyonight-storm",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "aliases": [
+        "tokyonight-storm"
+      ],
+      "name": "tokyonight_storm",
+      "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
       "wezterm_version": "Always"
     }
