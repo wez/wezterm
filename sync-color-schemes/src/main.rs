@@ -103,61 +103,52 @@ fn make_prefix(key: &str) -> (char, String) {
     panic!("no good prefix");
 }
 
-const KNOWN_NAMESPACES: &[&str] = &[" (base16)", " (terminal.sexy)", " (Gogh)"];
-
-fn known_namespace(name: &str) -> bool {
-    for ns in KNOWN_NAMESPACES {
-        if name.ends_with(ns) {
-            return true;
-        }
-    }
-    false
-}
-
-fn suffixed_alias_matches_name(alias: &str, name: &str) -> bool {
-    for ns in KNOWN_NAMESPACES {
-        if let Some(stripped) = alias.strip_suffix(ns) {
-            return stripped == name;
-        }
-    }
-    false
-}
-
 fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
     let json_file_name = "docs/colorschemes/data.json";
 
+    let mut version_by_color_scheme = BTreeMap::new();
+    let mut names_by_color_scheme = BTreeMap::new();
     let mut version_by_name = BTreeMap::new();
+
     if let Ok(data) = std::fs::read_to_string(&json_file_name) {
         #[derive(Deserialize)]
-        struct MetaOnly {
+        struct Entry {
+            colors: serde_json::Value,
             metadata: MetaData,
         }
         #[derive(Deserialize)]
         struct MetaData {
             name: String,
+            aliases: Vec<String>,
             wezterm_version: Option<String>,
         }
 
-        let existing: Vec<MetaOnly> = serde_json::from_str(&data)?;
-        for item in &existing {
+        let existing: Vec<Entry> = serde_json::from_str(&data)?;
+        for item in existing {
             if let Some(version) = &item.metadata.wezterm_version {
+                let ident = serde_json::to_string(&item.colors)?;
+                version_by_color_scheme.insert(ident.to_string(), version.to_string());
                 version_by_name.insert(item.metadata.name.to_string(), version.to_string());
-            }
-        }
 
-        if version_by_name.is_empty() {
-            // We're bootstrapping the version info
-            for item in &existing {
-                let name = &item.metadata.name;
-                if known_namespace(name) {
-                    continue;
+                let mut names = item.metadata.aliases;
+                names.insert(0, item.metadata.name);
+
+                for name in names {
+                    names_by_color_scheme
+                        .entry(ident.to_string())
+                        .or_insert_with(Vec::new)
+                        .push(name);
                 }
-                version_by_name.insert(name.to_string(), "Always".to_string());
             }
         }
 
         for scheme in &mut schemeses {
-            if let Some(version) = version_by_name.get(&scheme.name) {
+            let json = scheme.to_json_value()?;
+            let ident = serde_json::to_string(json.get("colors").unwrap())?;
+            if let Some(version) = version_by_color_scheme
+                .get(&ident)
+                .or_else(|| version_by_name.get(&scheme.name))
+            {
                 scheme
                     .data
                     .metadata
@@ -171,31 +162,23 @@ fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
     for s in &schemeses {
         // Only interested in aliases with different-enough names
         let mut aliases = s.data.metadata.aliases.clone();
-        aliases.retain(|name| !suffixed_alias_matches_name(&name, &s.name));
 
-        // Normalize the list of aliases so that the canonical
-        // name is included in the list at the start.
-        let mut s = s.clone();
-        s.data.metadata.aliases = aliases.clone();
-        if !aliases.is_empty() {
-            s.data.metadata.aliases.insert(0, s.name.clone());
-        }
-
-        all.push(s.clone());
-
-        // Only instantiate aliases in our scheme data if
-        // we had previously shipped a version with that
-        // name in use
-        for name in aliases {
-            if version_by_name.get(&name).is_some() {
-                let mut alias = Scheme {
-                    name: name.clone(),
-                    ..s.clone()
-                };
-                alias.data.metadata.name.replace(name.clone());
-                all.push(alias);
+        let json = s.to_json_value()?;
+        let ident = serde_json::to_string(json.get("colors").unwrap())?;
+        if let Some(more_aliases) = names_by_color_scheme.get(&ident) {
+            for a in more_aliases {
+                aliases.push(a.to_string());
             }
         }
+
+        aliases.sort();
+        aliases.dedup();
+        aliases.retain(|name| name != &s.name);
+
+        let mut s = s.clone();
+        s.data.metadata.aliases = aliases.clone();
+
+        all.push(s.clone());
     }
     all.sort_by_key(|s| make_prefix(&s.name));
 
@@ -252,7 +235,6 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
         doc_data.push(s.to_json_value()?);
     }
 
-    let json_file_name = "docs/colorschemes/data.json";
     let json = serde_json::to_string_pretty(&doc_data)?;
     let update = match std::fs::read_to_string(json_file_name) {
         Ok(existing) => existing != json,
