@@ -1,6 +1,6 @@
 # tab:rotate_clockwise()
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Rotates the panes in the clockwise direction.
 

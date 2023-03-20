@@ -1,6 +1,6 @@
 # `pane:get_semantic_zones([zone_type])`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 When *zone_type* is omitted, returns the list of all semantic zones defined in the pane.
 

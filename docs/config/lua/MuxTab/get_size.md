@@ -1,6 +1,6 @@
 # `tab:get_size()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns the overall size of the tab, taking into account all of the contained
 panes.

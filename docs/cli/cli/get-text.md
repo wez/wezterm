@@ -1,6 +1,6 @@
 # `wezterm cli get-text`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 *Run `wezterm cli get-text --help` to see more help*
 

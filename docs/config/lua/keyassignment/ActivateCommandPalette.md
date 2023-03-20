@@ -1,6 +1,6 @@
 # ActivateCommandPalette
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Activates the Command Palette, a modal overlay that enables discovery and activation of various commands.
 

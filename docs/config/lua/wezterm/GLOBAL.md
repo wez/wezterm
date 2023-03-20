@@ -66,7 +66,7 @@ tab_titles['T0'] = 'Test'
 wezterm.GLOBAL.tab_titles = tab_titles
 ```
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 You no longer need to split apart read/modify/write and the simple assignment
 now works as you would expect:

@@ -12,7 +12,7 @@ assumes that Black+Bold renders as a Dark Grey which is
 legible on a Black background, but if this option is set to
 false, it would render as Black on Black.
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 This option can now have one of three values:
 

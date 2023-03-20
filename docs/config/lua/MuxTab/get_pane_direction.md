@@ -1,6 +1,6 @@
 # `tab:get_pane_direction(direction)`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns pane adjacent to the active pane in *tab* in the direction *direction*.
 

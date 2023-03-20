@@ -7,16 +7,8 @@ Copy the selection to the clipboard.
 This action is considered to be deprecated and will be removed in
 a future release; please use [CopyTo](CopyTo.md) instead.
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
-This action has been removed. Please use [CopyTo](CopyTo.md) instead.
-
-## Example
-
-
-```lua
-config.keys = {
-  { key = 'C', mods = 'CTRL', action = wezterm.action.Copy },
-}
-```
+!!! warning
+    This action has been removed. Please use [CopyTo](CopyTo.md) instead.
 

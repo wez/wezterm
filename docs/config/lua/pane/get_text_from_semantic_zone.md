@@ -1,6 +1,6 @@
 # `pane:get_text_from_semantic_zone(zone)`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 This is a convenience method that calls [pane:get_text_from_region()](get_text_from_region.md) on the supplied *zone* parameter.
 

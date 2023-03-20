@@ -1,6 +1,6 @@
 # `wezterm.mux.set_default_domain(MuxDomain)`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Assign a new default domain in the mux.
 

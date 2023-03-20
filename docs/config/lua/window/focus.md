@@ -1,6 +1,6 @@
 # window:focus()
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Attempts to focus and activate the window.
 

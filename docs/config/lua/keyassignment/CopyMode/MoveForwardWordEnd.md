@@ -1,6 +1,6 @@
 # CopyMode 'MoveForwardWord'
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Moves the CopyMode cursor position forward to the end of word.
 

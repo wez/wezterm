@@ -1,6 +1,6 @@
 # wezterm.config_builder()
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns a config builder object that can be used to define your configuration:
 

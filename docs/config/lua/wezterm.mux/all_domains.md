@@ -1,6 +1,6 @@
 # `wezterm.mux.all_domains()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns an array table holding all of the known
 [MuxDomain](../MuxDomain/index.md) objects.

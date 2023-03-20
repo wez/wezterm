@@ -1,6 +1,6 @@
 # `domain:attach()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Attempts to attach the domain.
 

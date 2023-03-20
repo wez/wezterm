@@ -1,6 +1,6 @@
 # `domain:domain_id()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns the domain id.
 

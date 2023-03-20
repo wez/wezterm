@@ -1,6 +1,6 @@
 # `pane:get_semantic_zone_at(x, y)`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Resolves the semantic zone that encapsulates the supplied *x* and *y* coordinates.
 

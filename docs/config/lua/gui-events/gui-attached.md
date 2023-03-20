@@ -1,6 +1,6 @@
 # `gui-attached`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 This event is triggered when the GUI is starting up after attaching the
 selected domain.  For example, when you use `wezterm connect DOMAIN` or

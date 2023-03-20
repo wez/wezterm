@@ -65,6 +65,7 @@ plugins:
         - "SUMMARY.md"
         - "book.toml"
         - "overrides/**"
+        - "_snippets/**"
 
 extra_css:
   - style.css
@@ -92,8 +93,13 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.pathconverter:
+      base_path: "./docs"
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path:
+        - "./docs/_snippets"
+      check_paths: true
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg

@@ -1,6 +1,6 @@
 # MuxDomain
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 `MuxDomain` represents a domain that is managed by the multiplexer.
 

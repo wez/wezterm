@@ -1,6 +1,6 @@
 # `domain:detach()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Attempts to detach the domain.
 

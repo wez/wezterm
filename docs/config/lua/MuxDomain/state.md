@@ -1,6 +1,6 @@
 # `domain:state()`
 
-*Since: nightly builds only*
+--8<-- "nightly-only.md"
 
 Returns whether the domain is attached or not.  The result is a string that is either:
 
