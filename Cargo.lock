@@ -106,7 +106,7 @@ dependencies = [
  "anstyle",
  "doc-comment",
  "globwalk",
- "predicates 3.0.1",
+ "predicates",
  "predicates-core",
  "predicates-tree",
  "tempfile",
@@ -3763,28 +3763,17 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "predicates"
-version = "2.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59230a63c37f3e18569bdb90e4a89cbf5bf8b06fea0b84e65ea10cc4df47addd"
-dependencies = [
- "difflib",
- "float-cmp",
- "itertools",
- "normalize-line-endings",
- "predicates-core",
- "regex",
-]
-
-[[package]]
-name = "predicates"
 version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ba7d6ead3e3966038f68caa9fc1f860185d95a793180bbcfe0d0da47b3961ed"
 dependencies = [
  "anstyle",
  "difflib",
+ "float-cmp",
  "itertools",
+ "normalize-line-endings",
  "predicates-core",
+ "regex",
 ]
 
 [[package]]
@@ -6133,7 +6122,7 @@ dependencies = [
  "log",
  "once_cell",
  "portable-pty",
- "predicates 2.1.5",
+ "predicates",
  "regex",
  "rstest",
  "shell-words",
