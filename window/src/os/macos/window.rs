@@ -19,8 +19,9 @@ use cocoa::appkit::{
     self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
     NSOpenGLContext, NSOpenGLPixelFormat, NSPasteboard, NSRunningApplication, NSScreen, NSView,
-    NSViewHeightSizable, NSViewWidthSizable, NSVisualEffectBlendingMode, NSVisualEffectMaterial,
-    NSVisualEffectState, NSVisualEffectView, NSWindow, NSWindowOrderingMode, NSWindowStyleMask,
+    NSViewHeightSizable, NSViewLayerContentsPlacement, NSViewWidthSizable,
+    NSVisualEffectBlendingMode, NSVisualEffectMaterial, NSVisualEffectState, NSVisualEffectView,
+    NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{
@@ -572,33 +573,27 @@ impl Window {
                 setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
             ];
 
+            let blurred_view = StrongPtr::new(NSVisualEffectView::initWithFrame_(
+                NSVisualEffectView::alloc(nil),
+                rect,
+            ));
+            blurred_view.setMaterial_(NSVisualEffectMaterial::HudWindow);
+            blurred_view.setBlendingMode_(NSVisualEffectBlendingMode::BehindWindow);
+            blurred_view.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable);
+            blurred_view.setLayerContentsPlacement(
+                NSViewLayerContentsPlacement::NSViewLayerContentsPlacementTopLeft,
+            );
+            background_view.addSubview_(*blurred_view);
+
             if config
                 .window_decorations
                 .contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR)
             {
-                let blurred_view =
-                    NSVisualEffectView::initWithFrame_(NSVisualEffectView::alloc(nil), rect);
-                blurred_view.autorelease();
-
-                blurred_view.setMaterial_(NSVisualEffectMaterial::HudWindow);
-                blurred_view.setBlendingMode_(NSVisualEffectBlendingMode::BehindWindow);
                 blurred_view.setState_(NSVisualEffectState::Active);
-                blurred_view.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable);
-
-                let _: () = msg_send![
-                    *background_view,
-                    addSubview: blurred_view
-                    positioned: NSWindowOrderingMode::NSWindowBelow
-                    relativeTo: 0
-                ];
+            } else {
+                blurred_view.setState_(NSVisualEffectState::Inactive)
             }
-
-            let _: () = msg_send![
-                *background_view,
-                addSubview: *draw_view
-                positioned: NSWindowOrderingMode::NSWindowAbove
-                relativeTo: 0
-            ];
+            blurred_view.addSubview_(*draw_view);
 
             window.setContentView_(*background_view);
             window.setDelegate_(*background_view);
@@ -1064,6 +1059,22 @@ impl WindowInner {
             self.window.setHasShadow_(shadow);
         }
     }
+
+    fn update_window_background_blur(&mut self) {
+        unsafe {
+            if self
+                .config
+                .window_decorations
+                .contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR)
+            {
+                let blur_view: id = msg_send![*self.view, superview];
+                blur_view.setState_(NSVisualEffectState::Active);
+            } else {
+                let blur_view: id = msg_send![*self.view, superview];
+                blur_view.setState_(NSVisualEffectState::Inactive);
+            }
+        }
+    }
 }
 
 impl WindowInner {
@@ -1232,6 +1243,7 @@ impl WindowInner {
             window_view.inner.borrow_mut().config = config.clone();
         }
         self.update_window_shadow();
+        self.update_window_background_blur();
         self.apply_decorations();
     }
 }
