@@ -12,11 +12,9 @@ spawned by the multiplexer server.
 The default value for this is:
 
 ```lua
-return {
-  mux_env_remove = {
-    'SSH_AUTH_SOCK',
-    'SSH_CLIENT',
-    'SSH_CONNECTION',
-  },
+config.mux_env_remove = {
+  'SSH_AUTH_SOCK',
+  'SSH_CLIENT',
+  'SSH_CONNECTION',
 }
 ```

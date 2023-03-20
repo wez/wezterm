@@ -20,9 +20,7 @@ If you want to disable ligatures in most fonts, then you may want to
 use a setting like this:
 
 ```lua
-return {
-  harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
-}
+config.harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' }
 ```
 
 Some fonts make available extended options via stylistic sets.
@@ -33,11 +31,9 @@ it lists available stylistic sets here:
 and you can set them in wezterm:
 
 ```lua
-return {
-  -- Use this for a zero with a dot rather than a line through it
-  -- when using the Fira Code font
-  harfbuzz_features = { 'zero' },
-}
+-- Use this for a zero with a dot rather than a line through it
+-- when using the Fira Code font
+config.harfbuzz_features = { 'zero' }
 ```
 
 *Since: 20220101-133340-7edc5b5a*
@@ -46,12 +42,9 @@ You can specify `harfbuzz_features` on a per-font basis, rather than
 globally for all fonts:
 
 ```lua
-local wezterm = require 'wezterm'
-return {
-  font = wezterm.font {
-    family = 'JetBrains Mono',
-    harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
-  },
+config.font = wezterm.font {
+  family = 'JetBrains Mono',
+  harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
 }
 ```
 
@@ -59,18 +52,14 @@ and this example disables ligatures for JetBrains Mono,
 but keeps the default for the other fonts in the fallback:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  font = wezterm.font_with_fallback {
-    {
-      family = 'JetBrains Mono',
-      weight = 'Medium',
-      harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
-    },
-    { family = 'Terminus', weight = 'Bold' },
-    'Noto Color Emoji',
+config.font = wezterm.font_with_fallback {
+  {
+    family = 'JetBrains Mono',
+    weight = 'Medium',
+    harfbuzz_features = { 'calt=0', 'clig=0', 'liga=0' },
   },
+  { family = 'Terminus', weight = 'Bold' },
+  'Noto Color Emoji',
 }
 ```
 

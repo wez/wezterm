@@ -13,15 +13,13 @@ configuration:
 ```lua
 local wezterm = require 'wezterm'
 
-return {
-  keys = {
-    {
-      key = 'P',
-      mods = 'CTRL',
-      action = wezterm.action.QuickSelectArgs {
-        patterns = {
-          'https?://\\S+',
-        },
+config.keys = {
+  {
+    key = 'P',
+    mods = 'CTRL',
+    action = wezterm.action.QuickSelectArgs {
+      patterns = {
+        'https?://\\S+',
       },
     },
   },
@@ -43,22 +41,20 @@ the selected URL using the web browser:
 ```lua
 local wezterm = require 'wezterm'
 
-return {
-  keys = {
-    {
-      key = 'P',
-      mods = 'CTRL',
-      action = wezterm.action.QuickSelectArgs {
-        label = 'open url',
-        patterns = {
-          'https?://\\S+',
-        },
-        action = wezterm.action_callback(function(window, pane)
-          local url = window:get_selection_text_for_pane(pane)
-          wezterm.log_info('opening: ' .. url)
-          wezterm.open_with(url)
-        end),
+config.keys = {
+  {
+    key = 'P',
+    mods = 'CTRL',
+    action = wezterm.action.QuickSelectArgs {
+      label = 'open url',
+      patterns = {
+        'https?://\\S+',
       },
+      action = wezterm.action_callback(function(window, pane)
+        local url = window:get_selection_text_for_pane(pane)
+        wezterm.log_info('opening: ' .. url)
+        wezterm.open_with(url)
+      end),
     },
   },
 }

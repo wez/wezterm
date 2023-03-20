@@ -9,9 +9,7 @@ event loop schedulers manage timers; non-zero values will be at least the
 interval specified with some degree of slop.
 
 ```lua
-return {
-  text_blink_rate_rapid = 250,
-}
+config.text_blink_rate_rapid = 250
 ```
 
 *Since: 20220319-142410-0fcdea07*

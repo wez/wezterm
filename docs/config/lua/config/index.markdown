@@ -1,3 +1,8 @@
+---
+search:
+  exclude: true
+---
+
 # `Config` struct
 
 The `return` statement at the end of your `wezterm.lua` file returns

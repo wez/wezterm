@@ -38,10 +38,8 @@ the argument array; the array allows specifying the program and arguments
 portably:
 
 ```lua
-return {
-  -- Spawn a fish shell in login mode
-  default_prog = { '/usr/local/bin/fish', '-l' },
-}
+-- Spawn a fish shell in login mode
+config.default_prog = { '/usr/local/bin/fish', '-l' }
 ```
 
 ## Launching a different program as a one off via the CLI
@@ -64,9 +62,7 @@ directory you can do so via the config, CLI, and when using
 * Setting the [`default_cwd`](lua/config/default_cwd.md) via the config:
 
   ```lua
-  return {
-    default_cwd = "/some/path",
-  }
+  config.default_cwd = "/some/path"
   ```
 
 * One off program in a specific working directory via the CLI:
@@ -108,13 +104,11 @@ The behavior is to take the environment of the `wezterm` process
 and then set the specified variables for the spawned process.
 
 ```lua
-return {
-  set_environment_variables = {
-    -- This changes the default prompt for cmd.exe to report the
-    -- current directory using OSC 7, show the current time and
-    -- the current directory colored in the prompt.
-    prompt = '$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m ',
-  },
+config.set_environment_variables = {
+  -- This changes the default prompt for cmd.exe to report the
+  -- current directory using OSC 7, show the current time and
+  -- the current directory colored in the prompt.
+  prompt = '$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m ',
 }
 ```
 
@@ -140,30 +134,28 @@ Each entry in `launch_menu` is an instance of a
 [SpawnCommand](lua/SpawnCommand.md) object.
 
 ```lua
-return {
-  launch_menu = {
-    {
-      args = { 'top' },
-    },
-    {
-      -- Optional label to show in the launcher. If omitted, a label
-      -- is derived from the `args`
-      label = 'Bash',
-      -- The argument array to spawn.  If omitted the default program
-      -- will be used as described in the documentation above
-      args = { 'bash', '-l' },
+config.launch_menu = {
+  {
+    args = { 'top' },
+  },
+  {
+    -- Optional label to show in the launcher. If omitted, a label
+    -- is derived from the `args`
+    label = 'Bash',
+    -- The argument array to spawn.  If omitted the default program
+    -- will be used as described in the documentation above
+    args = { 'bash', '-l' },
 
-      -- You can specify an alternative current working directory;
-      -- if you don't specify one then a default based on the OSC 7
-      -- escape sequence will be used (see the Shell Integration
-      -- docs), falling back to the home directory.
-      -- cwd = "/some/path"
+    -- You can specify an alternative current working directory;
+    -- if you don't specify one then a default based on the OSC 7
+    -- escape sequence will be used (see the Shell Integration
+    -- docs), falling back to the home directory.
+    -- cwd = "/some/path"
 
-      -- You can override environment variables just for this command
-      -- by setting this here.  It has the same semantics as the main
-      -- set_environment_variables configuration option described above
-      -- set_environment_variables = { FOO = "bar" },
-    },
+    -- You can override environment variables just for this command
+    -- by setting this here.  It has the same semantics as the main
+    -- set_environment_variables configuration option described above
+    -- set_environment_variables = { FOO = "bar" },
   },
 }
 ```
@@ -175,7 +167,6 @@ menu when running on Windows:
 
 ```lua
 local wezterm = require 'wezterm'
-
 local launch_menu = {}
 
 if wezterm.target_triple == 'x86_64-pc-windows-msvc' then

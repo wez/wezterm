@@ -5,17 +5,13 @@ The default key table assignments can be overridden or extended using the
 disable a default assignment like this:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    -- Turn off the default CMD-m Hide action, allowing CMD-m to
-    -- be potentially recognized and handled by the tab
-    {
-      key = 'm',
-      mods = 'CMD',
-      action = wezterm.action.DisableDefaultAssignment,
-    },
+config.keys = {
+  -- Turn off the default CMD-m Hide action, allowing CMD-m to
+  -- be potentially recognized and handled by the tab
+  {
+    key = 'm',
+    mods = 'CMD',
+    action = wezterm.action.DisableDefaultAssignment,
   },
 }
 ```
@@ -142,23 +138,19 @@ milliseconds).  While `LEADER` is active, the `|` key (with no other modifiers)
 will trigger the current pane to be split.
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  -- timeout_milliseconds defaults to 1000 and can be omitted
-  leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 },
-  keys = {
-    {
-      key = '|',
-      mods = 'LEADER|SHIFT',
-      action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' },
-    },
-    -- Send "CTRL-A" to the terminal when pressing CTRL-A, CTRL-A
-    {
-      key = 'a',
-      mods = 'LEADER|CTRL',
-      action = wezterm.action.SendString '\x01',
-    },
+-- timeout_milliseconds defaults to 1000 and can be omitted
+config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
+config.keys = {
+  {
+    key = '|',
+    mods = 'LEADER|SHIFT',
+    action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' },
+  },
+  -- Send "CTRL-A" to the terminal when pressing CTRL-A, CTRL-A
+  {
+    key = 'a',
+    mods = 'LEADER|CTRL',
+    action = wezterm.action.SendString '\x01',
   },
 }
 ```
@@ -174,23 +166,19 @@ uses `CapsLock` as a `LEADER` without it affecting the shift / capital state as
 long as you have `setxkbmap -option caps:none` configured.
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  -- timeout_milliseconds defaults to 1000 and can be omitted
-  -- for this example use `setxkbmap -option caps:none` in your terminal.
-  leader = { key = 'VoidSymbol', mods = '', timeout_milliseconds = 1000 },
-  keys = {
-    {
-      key = '|',
-      mods = 'LEADER|SHIFT',
-      action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' },
-    },
-    {
-      key = '-',
-      mods = 'LEADER',
-      action = wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' },
-    },
+-- timeout_milliseconds defaults to 1000 and can be omitted
+-- for this example use `setxkbmap -option caps:none` in your terminal.
+config.leader = { key = 'VoidSymbol', mods = '', timeout_milliseconds = 1000 }
+config.keys = {
+  {
+    key = '|',
+    mods = 'LEADER|SHIFT',
+    action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' },
+  },
+  {
+    key = '-',
+    mods = 'LEADER',
+    action = wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' },
   },
 }
 ```

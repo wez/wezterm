@@ -12,11 +12,9 @@ There are three fields supported:
 * `stderr` - specifies where a log of the stderr stream from the daemon will be placed.  The default is `$XDG_RUNTIME_DIR/wezterm/stderr` on X11/Wayland systems, or `$HOME/.local/share/wezterm/stderr`.
 
 ```lua
-return {
-  daemon_options = {
-    stdout = '/some/where/stdout',
-    stderr = '/some/where/stderr',
-    pid_file = '/some/where/pid_file',
-  },
+config.daemon_options = {
+  stdout = '/some/where/stdout',
+  stderr = '/some/where/stderr',
+  pid_file = '/some/where/pid_file',
 }
 ```

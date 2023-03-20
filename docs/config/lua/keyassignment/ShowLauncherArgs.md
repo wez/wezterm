@@ -35,15 +35,11 @@ This example shows how to make `ALT-9` activate the launcher directly in fuzzy
 matching mode, and have it show only tabs:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    {
-      key = '9',
-      mods = 'ALT',
-      action = wezterm.action.ShowLauncherArgs { flags = 'FUZZY|TABS' },
-    },
+config.keys = {
+  {
+    key = '9',
+    mods = 'ALT',
+    action = wezterm.action.ShowLauncherArgs { flags = 'FUZZY|TABS' },
   },
 }
 ```

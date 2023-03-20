@@ -15,11 +15,8 @@ This action has been removed. Please use [CopyTo](CopyTo.md) instead.
 
 
 ```lua
-local wezterm = require 'wezterm'
-return {
-  keys = {
-    { key = 'C', mods = 'CTRL', action = wezterm.action.Copy },
-  },
+config.keys = {
+  { key = 'C', mods = 'CTRL', action = wezterm.action.Copy },
 }
 ```
 

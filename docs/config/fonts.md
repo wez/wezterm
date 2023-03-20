@@ -9,14 +9,11 @@ If you wish to use a different font face, then you can use
 the [wezterm.font](lua/wezterm/font.md) function to specify it:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  font = wezterm.font 'Fira Code',
-  -- You can specify some parameters to influence the font selection;
-  -- for example, this selects a Bold, Italic font variant.
-  font = wezterm.font('JetBrains Mono', { weight = 'Bold', italic = true }),
-}
+config.font = wezterm.font 'Fira Code'
+-- You can specify some parameters to influence the font selection;
+-- for example, this selects a Bold, Italic font variant.
+config.font =
+  wezterm.font('JetBrains Mono', { weight = 'Bold', italic = true })
 ```
 
 #### Fallback
@@ -35,12 +32,9 @@ monospace font, but it doesn't have glyphs for the asian script that you
 sometimes work with:
 
 ```lua
-local wezterm = require 'wezterm'
-return {
-  font = wezterm.font_with_fallback {
-    'Fira Code',
-    'DengXian',
-  },
+config.font = wezterm.font_with_fallback {
+  'Fira Code',
+  'DengXian',
 }
 ```
 

@@ -19,21 +19,17 @@ entries with this action.
 The example below shows how to bind a key to trigger attaching to an ssh domain:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  ssh_domains = {
-    {
-      name = 'devhost',
-      remote_address = 'devhost.example.com',
-    },
+config.ssh_domains = {
+  {
+    name = 'devhost',
+    remote_address = 'devhost.example.com',
   },
-  keys = {
-    {
-      key = 'U',
-      mods = 'CTRL|SHIFT',
-      action = wezterm.action.AttachDomain 'devhost',
-    },
+}
+config.keys = {
+  {
+    key = 'U',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.AttachDomain 'devhost',
   },
 }
 ```

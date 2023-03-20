@@ -9,20 +9,16 @@ Possible values for source are:
 * `Clipboard` - paste from the system clipboard
 * `PrimarySelection` - paste from the primary selection buffer
 
-See also [Paste](Paste.md).
-
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
 
-return {
-  keys = {
-    -- paste from the clipboard
-    { key = 'V', mods = 'CTRL', action = act.PasteFrom 'Clipboard' },
+config.keys = {
+  -- paste from the clipboard
+  { key = 'V', mods = 'CTRL', action = act.PasteFrom 'Clipboard' },
 
-    -- paste from the primary selection
-    { key = 'V', mods = 'CTRL', action = act.PasteFrom 'PrimarySelection' },
-  },
+  -- paste from the primary selection
+  { key = 'V', mods = 'CTRL', action = act.PasteFrom 'PrimarySelection' },
 }
 ```
 

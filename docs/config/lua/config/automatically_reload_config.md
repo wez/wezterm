@@ -10,7 +10,5 @@ with a key bound to the action [ReloadConfiguration](../keyassignment/ReloadConf
 For example, to disable auto config reload:
 
 ```lua
-return {
-  automatically_reload_config = false,
-}
+config.automatically_reload_config = false
 ```

@@ -109,10 +109,8 @@ with no composition effects, while the right `Option` key performs composition
 You can control this behavior in your configuration:
 
 ```lua
-return {
-  send_composed_key_when_left_alt_is_pressed = false,
-  send_composed_key_when_right_alt_is_pressed = true,
-}
+config.send_composed_key_when_left_alt_is_pressed = false
+config.send_composed_key_when_right_alt_is_pressed = true
 ```
 
 *since: 20210203-095643-70a364eb*
@@ -153,9 +151,7 @@ You can tell WezTerm to disable dead keys by setting this in your configuration
 file:
 
 ```lua
-return {
-  use_dead_keys = false,
-}
+config.use_dead_keys = false
 ```
 
 Note that for X11 systems with `use_ime=true`, depending on the configured IME,

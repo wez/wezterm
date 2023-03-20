@@ -13,9 +13,7 @@ If you know that you always want to use wezterm's ssh client to login to a
 particular host, then you might consider using this configuration:
 
 ```lua
-return {
-  default_gui_startup_args = { 'ssh', 'some-host' },
-}
+config.default_gui_startup_args = { 'ssh', 'some-host' }
 ```
 
 which will cause `wezterm` with no additional subcommand arguments to be

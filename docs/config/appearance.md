@@ -9,9 +9,12 @@ WezTerm ships with over 700 color schemes available from
 You can select a color scheme with a line like this:
 
 ```lua
-return {
-  color_scheme = 'Batman',
-}
+local wezterm = require 'wezterm'
+local config = {}
+
+config.color_scheme = 'Batman'
+
+return config
 ```
 
 You can find a list of available color schemes and screenshots
@@ -49,84 +52,87 @@ you can use `#RRGGBB` to specify a color code using the
 usual hex notation; eg: `#000000` is equivalent to `black`:
 
 ```lua
-return {
-  colors = {
-    -- The default text color
-    foreground = 'silver',
-    -- The default background color
-    background = 'black',
+local wezterm = require 'wezterm'
+local config = {}
 
-    -- Overrides the cell background color when the current cell is occupied by the
-    -- cursor and the cursor style is set to Block
-    cursor_bg = '#52ad70',
-    -- Overrides the text color when the current cell is occupied by the cursor
-    cursor_fg = 'black',
-    -- Specifies the border color of the cursor when the cursor style is set to Block,
-    -- or the color of the vertical or horizontal bar when the cursor style is set to
-    -- Bar or Underline.
-    cursor_border = '#52ad70',
+config.colors = {
+  -- The default text color
+  foreground = 'silver',
+  -- The default background color
+  background = 'black',
 
-    -- the foreground color of selected text
-    selection_fg = 'black',
-    -- the background color of selected text
-    selection_bg = '#fffacd',
+  -- Overrides the cell background color when the current cell is occupied by the
+  -- cursor and the cursor style is set to Block
+  cursor_bg = '#52ad70',
+  -- Overrides the text color when the current cell is occupied by the cursor
+  cursor_fg = 'black',
+  -- Specifies the border color of the cursor when the cursor style is set to Block,
+  -- or the color of the vertical or horizontal bar when the cursor style is set to
+  -- Bar or Underline.
+  cursor_border = '#52ad70',
 
-    -- The color of the scrollbar "thumb"; the portion that represents the current viewport
-    scrollbar_thumb = '#222222',
+  -- the foreground color of selected text
+  selection_fg = 'black',
+  -- the background color of selected text
+  selection_bg = '#fffacd',
 
-    -- The color of the split lines between panes
-    split = '#444444',
+  -- The color of the scrollbar "thumb"; the portion that represents the current viewport
+  scrollbar_thumb = '#222222',
 
-    ansi = {
-      'black',
-      'maroon',
-      'green',
-      'olive',
-      'navy',
-      'purple',
-      'teal',
-      'silver',
-    },
-    brights = {
-      'grey',
-      'red',
-      'lime',
-      'yellow',
-      'blue',
-      'fuchsia',
-      'aqua',
-      'white',
-    },
+  -- The color of the split lines between panes
+  split = '#444444',
 
-    -- Arbitrary colors of the palette in the range from 16 to 255
-    indexed = { [136] = '#af8700' },
-
-    -- Since: 20220319-142410-0fcdea07
-    -- When the IME, a dead key or a leader key are being processed and are effectively
-    -- holding input pending the result of input composition, change the cursor
-    -- to this color to give a visual cue about the compose state.
-    compose_cursor = 'orange',
-
-    -- Colors for copy_mode and quick_select
-    -- available since: 20220807-113146-c2fee766
-    -- In copy_mode, the color of the active text is:
-    -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
-    -- 2. selection_* otherwise
-    copy_mode_active_highlight_bg = { Color = '#000000' },
-    -- use `AnsiColor` to specify one of the ansi color palette values
-    -- (index 0-15) using one of the names "Black", "Maroon", "Green",
-    --  "Olive", "Navy", "Purple", "Teal", "Silver", "Grey", "Red", "Lime",
-    -- "Yellow", "Blue", "Fuchsia", "Aqua" or "White".
-    copy_mode_active_highlight_fg = { AnsiColor = 'Black' },
-    copy_mode_inactive_highlight_bg = { Color = '#52ad70' },
-    copy_mode_inactive_highlight_fg = { AnsiColor = 'White' },
-
-    quick_select_label_bg = { Color = 'peru' },
-    quick_select_label_fg = { Color = '#ffffff' },
-    quick_select_match_bg = { AnsiColor = 'Navy' },
-    quick_select_match_fg = { Color = '#ffffff' },
+  ansi = {
+    'black',
+    'maroon',
+    'green',
+    'olive',
+    'navy',
+    'purple',
+    'teal',
+    'silver',
   },
+  brights = {
+    'grey',
+    'red',
+    'lime',
+    'yellow',
+    'blue',
+    'fuchsia',
+    'aqua',
+    'white',
+  },
+
+  -- Arbitrary colors of the palette in the range from 16 to 255
+  indexed = { [136] = '#af8700' },
+
+  -- Since: 20220319-142410-0fcdea07
+  -- When the IME, a dead key or a leader key are being processed and are effectively
+  -- holding input pending the result of input composition, change the cursor
+  -- to this color to give a visual cue about the compose state.
+  compose_cursor = 'orange',
+
+  -- Colors for copy_mode and quick_select
+  -- available since: 20220807-113146-c2fee766
+  -- In copy_mode, the color of the active text is:
+  -- 1. copy_mode_active_highlight_* if additional text was selected using the mouse
+  -- 2. selection_* otherwise
+  copy_mode_active_highlight_bg = { Color = '#000000' },
+  -- use `AnsiColor` to specify one of the ansi color palette values
+  -- (index 0-15) using one of the names "Black", "Maroon", "Green",
+  --  "Olive", "Navy", "Purple", "Teal", "Silver", "Grey", "Red", "Lime",
+  -- "Yellow", "Blue", "Fuchsia", "Aqua" or "White".
+  copy_mode_active_highlight_fg = { AnsiColor = 'Black' },
+  copy_mode_inactive_highlight_bg = { Color = '#52ad70' },
+  copy_mode_inactive_highlight_fg = { AnsiColor = 'White' },
+
+  quick_select_label_bg = { Color = 'peru' },
+  quick_select_label_fg = { Color = '#ffffff' },
+  quick_select_match_bg = { AnsiColor = 'Navy' },
+  quick_select_match_fg = { Color = '#ffffff' },
 }
+
+return config
 ```
 
 *Since: 20220101-133340-7edc5b5a*
@@ -134,16 +140,14 @@ return {
 You may specify colors in the HSL color space, if you prefer that over RGB, by using:
 
 ```lua
-return {
-  colors = {
-    -- the first number is the hue measured in degrees with a range
-    -- of 0-360.
-    -- The second number is the saturation measured in percentage with
-    -- a range of 0-100.
-    -- The third number is the lightness measured in percentage with
-    -- a range of 0-100.
-    foreground = 'hsl:235 100 50',
-  },
+config.colors = {
+  -- the first number is the hue measured in degrees with a range
+  -- of 0-360.
+  -- The second number is the saturation measured in percentage with
+  -- a range of 0-100.
+  -- The third number is the lightness measured in percentage with
+  -- a range of 0-100.
+  foreground = 'hsl:235 100 50',
 }
 ```
 
@@ -174,16 +178,14 @@ The alpha value is ignored except when used with `selection_fg` and
 `selection_bg`:
 
 ```lua
-return {
-  colors = {
-    -- Make the selection text color fully transparent.
-    -- When fully transparent, the current text color will be used.
-    selection_fg = 'none',
-    -- Set the selection background color with alpha.
-    -- When selection_bg is transparent, it will be alpha blended over
-    -- the current cell background color, rather than replace it
-    selection_bg = 'rgba(50% 50% 50% 50%)',
-  },
+config.colors = {
+  -- Make the selection text color fully transparent.
+  -- When fully transparent, the current text color will be used.
+  selection_fg = 'none',
+  -- Set the selection background color with alpha.
+  -- When selection_bg is transparent, it will be alpha blended over
+  -- the current cell background color, rather than replace it
+  selection_bg = 'rgba(50% 50% 50% 50%)',
 }
 ```
 
@@ -201,16 +203,14 @@ All of the settings available from the `colors` section are available
 to use in the `color_schemes` sections.
 
 ```lua
-return {
-  color_scheme = 'Red Scheme',
+config.color_scheme = 'Red Scheme'
 
-  color_schemes = {
-    ['Red Scheme'] = {
-      background = 'red',
-    },
-    ['Blue Scheme'] = {
-      background = 'blue',
-    },
+config.color_schemes = {
+  ['Red Scheme'] = {
+    background = 'red',
+  },
+  ['Blue Scheme'] = {
+    background = 'blue',
   },
 }
 ```
@@ -236,9 +236,7 @@ will need to instruct wezterm where to look for your scheme files; the
 `color_scheme_dirs` setting specifies a list of directories to be searched:
 
 ```lua
-return {
-  color_scheme_dirs = { '/some/path/to/my/color/schemes' },
-}
+config.color_scheme_dirs = { '/some/path/to/my/color/schemes' }
 ```
 
 Color scheme names that are defined in files in your `color_scheme_dirs` list
@@ -253,14 +251,14 @@ of the color scheme repo contains shell scripts that can change the color
 scheme immediately on the fly.  This can be used in your own scripts to alter
 the terminal appearance programmatically:
 
-```bash
+```console
 $ git clone https://github.com/mbadolato/iTerm2-Color-Schemes.git
 $ cd iTerm2-Color-Schemes/dynamic-colors
 $ for scheme in *.sh ; do ; echo $scheme ; \
    bash "$scheme" ; ../tools/screenshotTable.sh; sleep 0.5; done
 ```
 
-  <video width="80%" controls src="../../screenshots/wezterm-dynamic-colors.mp4" loop></video>
+  <video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
 ### Tab Bar Appearance & Colors
 
@@ -285,36 +283,32 @@ details.
 The following options affect the fancy tab bar:
 
 ```lua
-local wezterm = require 'wezterm'
+config.window_frame = {
+  -- The font used in the tab bar.
+  -- Roboto Bold is the default; this font is bundled
+  -- with wezterm.
+  -- Whatever font is selected here, it will have the
+  -- main font setting appended to it to pick up any
+  -- fallback fonts you may have used there.
+  font = wezterm.font { family = 'Roboto', weight = 'Bold' },
 
-return {
-  window_frame = {
-    -- The font used in the tab bar.
-    -- Roboto Bold is the default; this font is bundled
-    -- with wezterm.
-    -- Whatever font is selected here, it will have the
-    -- main font setting appended to it to pick up any
-    -- fallback fonts you may have used there.
-    font = wezterm.font { family = 'Roboto', weight = 'Bold' },
+  -- The size of the font in the tab bar.
+  -- Default to 10. on Windows but 12.0 on other systems
+  font_size = 12.0,
 
-    -- The size of the font in the tab bar.
-    -- Default to 10. on Windows but 12.0 on other systems
-    font_size = 12.0,
+  -- The overall background color of the tab bar when
+  -- the window is focused
+  active_titlebar_bg = '#333333',
 
-    -- The overall background color of the tab bar when
-    -- the window is focused
-    active_titlebar_bg = '#333333',
+  -- The overall background color of the tab bar when
+  -- the window is not focused
+  inactive_titlebar_bg = '#333333',
+}
 
-    -- The overall background color of the tab bar when
-    -- the window is not focused
-    inactive_titlebar_bg = '#333333',
-  },
-
-  colors = {
-    tab_bar = {
-      -- The color of the inactive tab bar edge/divider
-      inactive_tab_edge = '#575757',
-    },
+window.colors = {
+  tab_bar = {
+    -- The color of the inactive tab bar edge/divider
+    inactive_tab_edge = '#575757',
   },
 }
 ```
@@ -327,78 +321,76 @@ to the items displayed in the tab bar.
 The following options control the appearance of the tab bar:
 
 ```lua
-return {
-  colors = {
-    tab_bar = {
-      -- The color of the strip that goes along the top of the window
-      -- (does not apply when fancy tab bar is in use)
-      background = '#0b0022',
+config.colors = {
+  tab_bar = {
+    -- The color of the strip that goes along the top of the window
+    -- (does not apply when fancy tab bar is in use)
+    background = '#0b0022',
 
-      -- The active tab is the one that has focus in the window
-      active_tab = {
-        -- The color of the background area for the tab
-        bg_color = '#2b2042',
-        -- The color of the text for the tab
-        fg_color = '#c0c0c0',
+    -- The active tab is the one that has focus in the window
+    active_tab = {
+      -- The color of the background area for the tab
+      bg_color = '#2b2042',
+      -- The color of the text for the tab
+      fg_color = '#c0c0c0',
 
-        -- Specify whether you want "Half", "Normal" or "Bold" intensity for the
-        -- label shown for this tab.
-        -- The default is "Normal"
-        intensity = 'Normal',
+      -- Specify whether you want "Half", "Normal" or "Bold" intensity for the
+      -- label shown for this tab.
+      -- The default is "Normal"
+      intensity = 'Normal',
 
-        -- Specify whether you want "None", "Single" or "Double" underline for
-        -- label shown for this tab.
-        -- The default is "None"
-        underline = 'None',
+      -- Specify whether you want "None", "Single" or "Double" underline for
+      -- label shown for this tab.
+      -- The default is "None"
+      underline = 'None',
 
-        -- Specify whether you want the text to be italic (true) or not (false)
-        -- for this tab.  The default is false.
-        italic = false,
+      -- Specify whether you want the text to be italic (true) or not (false)
+      -- for this tab.  The default is false.
+      italic = false,
 
-        -- Specify whether you want the text to be rendered with strikethrough (true)
-        -- or not for this tab.  The default is false.
-        strikethrough = false,
-      },
+      -- Specify whether you want the text to be rendered with strikethrough (true)
+      -- or not for this tab.  The default is false.
+      strikethrough = false,
+    },
 
-      -- Inactive tabs are the tabs that do not have focus
-      inactive_tab = {
-        bg_color = '#1b1032',
-        fg_color = '#808080',
+    -- Inactive tabs are the tabs that do not have focus
+    inactive_tab = {
+      bg_color = '#1b1032',
+      fg_color = '#808080',
 
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `inactive_tab`.
-      },
+      -- The same options that were listed under the `active_tab` section above
+      -- can also be used for `inactive_tab`.
+    },
 
-      -- You can configure some alternate styling when the mouse pointer
-      -- moves over inactive tabs
-      inactive_tab_hover = {
-        bg_color = '#3b3052',
-        fg_color = '#909090',
-        italic = true,
+    -- You can configure some alternate styling when the mouse pointer
+    -- moves over inactive tabs
+    inactive_tab_hover = {
+      bg_color = '#3b3052',
+      fg_color = '#909090',
+      italic = true,
 
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `inactive_tab_hover`.
-      },
+      -- The same options that were listed under the `active_tab` section above
+      -- can also be used for `inactive_tab_hover`.
+    },
 
-      -- The new tab button that let you create new tabs
-      new_tab = {
-        bg_color = '#1b1032',
-        fg_color = '#808080',
+    -- The new tab button that let you create new tabs
+    new_tab = {
+      bg_color = '#1b1032',
+      fg_color = '#808080',
 
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `new_tab`.
-      },
+      -- The same options that were listed under the `active_tab` section above
+      -- can also be used for `new_tab`.
+    },
 
-      -- You can configure some alternate styling when the mouse pointer
-      -- moves over the new tab button
-      new_tab_hover = {
-        bg_color = '#3b3052',
-        fg_color = '#909090',
-        italic = true,
+    -- You can configure some alternate styling when the mouse pointer
+    -- moves over the new tab button
+    new_tab_hover = {
+      bg_color = '#3b3052',
+      fg_color = '#909090',
+      italic = true,
 
-        -- The same options that were listed under the `active_tab` section above
-        -- can also be used for `new_tab_hover`.
-      },
+      -- The same options that were listed under the `active_tab` section above
+      -- can also be used for `new_tab_hover`.
     },
   },
 }
@@ -424,11 +416,9 @@ In this example, inactive panes will be slightly de-saturated and dimmed;
 this is the default configuration:
 
 ```lua
-return {
-  inactive_pane_hsb = {
-    saturation = 0.9,
-    brightness = 0.8,
-  },
+config.inactive_pane_hsb = {
+  saturation = 0.9,
+  brightness = 0.8,
 }
 ```
 
@@ -458,9 +448,7 @@ reduce it by half, and 2.0 will double the value.
 You can attach an image to the background of the wezterm window:
 
 ```lua
-return {
-  window_background_image = '/path/to/wallpaper.jpg',
-}
+config.window_background_image = '/path/to/wallpaper.jpg'
 ```
 
 If the path is a relative path then it will be expanded relative
@@ -478,20 +466,18 @@ You can optionally transform the background image by specifying
 a hue, saturation, brightness multiplier:
 
 ```lua
-return {
-  window_background_image = '/path/to/wallpaper.jpg',
+config.window_background_image = '/path/to/wallpaper.jpg'
 
-  window_background_image_hsb = {
-    -- Darken the background image by reducing it to 1/3rd
-    brightness = 0.3,
+config.window_background_image_hsb = {
+  -- Darken the background image by reducing it to 1/3rd
+  brightness = 0.3,
 
-    -- You can adjust the hue by scaling its value.
-    -- a multiplier of 1.0 leaves the value unchanged.
-    hue = 1.0,
+  -- You can adjust the hue by scaling its value.
+  -- a multiplier of 1.0 leaves the value unchanged.
+  hue = 1.0,
 
-    -- You can adjust the saturation also.
-    saturation = 1.0,
-  },
+  -- You can adjust the saturation also.
+  saturation = 1.0,
 }
 ```
 
@@ -533,9 +519,7 @@ Setting this to a value other than the default `1.0` may impact render
 performance.
 
 ```lua
-return {
-  window_background_opacity = 1.0,
-}
+config.window_background_opacity = 1.0
 ```
 
 ## Text Background Opacity
@@ -556,8 +540,6 @@ The range of values permitted are `0.0` (completely translucent)
 through to `1.0` (completely opaque).
 
 ```lua
-return {
-  text_background_opacity = 0.3,
-}
+config.text_background_opacity = 0.3
 ```
 

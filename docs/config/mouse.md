@@ -28,7 +28,11 @@ of that triple click, so for a triple click both
 `SelectTextAtMouseCursor="Line"` and `CompleteSelection` will be triggered in
 that order.
 
-NOTE: In the action column, `act` is an alias to `wezterm.action` (to avoid repetition).
+NOTE: In the action column, `act` is an alias to `wezterm.action` (to avoid repetition):
+
+```lua
+local act = wezterm.action
+```
 
 | Event | Modifiers | Action |
 | --------- | --- | ------ |
@@ -57,9 +61,7 @@ disable all of them with this configuration; if you chose to do this,
 you must explicitly register every binding.
 
 ```lua
-return {
-  disable_default_mouse_bindings = true,
-}
+config.disable_default_mouse_bindings = true
 ```
 
 ## Configuring Mouse Assignments
@@ -71,34 +73,35 @@ You can define mouse actions using the `mouse_bindings` configuration section:
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  mouse_bindings = {
-    -- Right click sends "woot" to the terminal
-    {
-      event = { Down = { streak = 1, button = 'Right' } },
-      mods = 'NONE',
-      action = act.SendString 'woot',
-    },
-
-    -- Change the default click behavior so that it only selects
-    -- text and doesn't open hyperlinks
-    {
-      event = { Up = { streak = 1, button = 'Left' } },
-      mods = 'NONE',
-      action = act.CompleteSelection 'ClipboardAndPrimarySelection',
-    },
-
-    -- and make CTRL-Click open hyperlinks
-    {
-      event = { Up = { streak = 1, button = 'Left' } },
-      mods = 'CTRL',
-      action = act.OpenLinkAtMouseCursor,
-    },
-    -- NOTE that binding only the 'Up' event can give unexpected behaviors.
-    -- Read more below on the gotcha of binding an 'Up' event only.
+config.mouse_bindings = {
+  -- Right click sends "woot" to the terminal
+  {
+    event = { Down = { streak = 1, button = 'Right' } },
+    mods = 'NONE',
+    action = act.SendString 'woot',
   },
+
+  -- Change the default click behavior so that it only selects
+  -- text and doesn't open hyperlinks
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'NONE',
+    action = act.CompleteSelection 'ClipboardAndPrimarySelection',
+  },
+
+  -- and make CTRL-Click open hyperlinks
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'CTRL',
+    action = act.OpenLinkAtMouseCursor,
+  },
+  -- NOTE that binding only the 'Up' event can give unexpected behaviors.
+  -- Read more below on the gotcha of binding an 'Up' event only.
 }
+
+return config
 ```
 
 Each entry in the mouse binding table can have the following fields:
@@ -160,24 +163,25 @@ delta scroll value while handling the event.
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  mouse_bindings = {
-    -- Scrolling up while holding CTRL increases the font size
-    {
-      event = { Down = { streak = 1, button = { WheelUp = 1 } } },
-      mods = 'CTRL',
-      action = act.IncreaseFontSize,
-    },
+config.mouse_bindings = {
+  -- Scrolling up while holding CTRL increases the font size
+  {
+    event = { Down = { streak = 1, button = { WheelUp = 1 } } },
+    mods = 'CTRL',
+    action = act.IncreaseFontSize,
+  },
 
-    -- Scrolling down while holding CTRL decreases the font size
-    {
-      event = { Down = { streak = 1, button = { WheelDown = 1 } } },
-      mods = 'CTRL',
-      action = act.DecreaseFontSize,
-    },
+  -- Scrolling down while holding CTRL decreases the font size
+  {
+    event = { Down = { streak = 1, button = { WheelDown = 1 } } },
+    mods = 'CTRL',
+    action = act.DecreaseFontSize,
   },
 }
+
+return config
 ```
 
 
@@ -194,23 +198,23 @@ be sent to the running program), for example:
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  mouse_bindings = {
-    -- Bind 'Up' event of CTRL-Click to open hyperlinks
-    {
-      event = { Up = { streak = 1, button = 'Left' } },
-      mods = 'CTRL',
-      action = act.OpenLinkAtMouseCursor,
-    },
-    -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
-    {
-      event = { Down = { streak = 1, button = 'Left' } },
-      mods = 'CTRL',
-      action = act.Nop,
-    },
+config.mouse_bindings = {
+  -- Bind 'Up' event of CTRL-Click to open hyperlinks
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'CTRL',
+    action = act.OpenLinkAtMouseCursor,
+  },
+  -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
+  {
+    event = { Down = { streak = 1, button = 'Left' } },
+    mods = 'CTRL',
+    action = act.Nop,
   },
 }
+return config
 ```
 
 

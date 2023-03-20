@@ -73,6 +73,7 @@ tab in the tab bar when there is unseen output.
 
 ```lua
 local wezterm = require 'wezterm'
+local config = {}
 
 wezterm.on(
   'format-tab-title',
@@ -100,7 +101,7 @@ wezterm.on(
   end
 )
 
-return {}
+return config
 ```
 
 *Since: 20220624-141144-bd1b7c5d*
@@ -111,6 +112,7 @@ This example shows the domain name of the active pane appended to the tab title:
 
 ```lua
 local wezterm = require 'wezterm'
+local config = {}
 
 wezterm.on('format-tab-title', function(tab)
   local pane = tab.active_pane
@@ -121,6 +123,6 @@ wezterm.on('format-tab-title', function(tab)
   return title
 end)
 
-return {}
+return config
 ```
 

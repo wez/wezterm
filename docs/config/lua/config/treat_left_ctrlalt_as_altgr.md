@@ -11,7 +11,5 @@ To fix this behavior you can tell WezTerm to treat left *Ctrl-Alt* keys as
 bindings using separate Ctrl and Alt won't be triggered anymore.
 
 ```lua
-return {
-  treat_left_ctrlalt_as_altgr = true,
-}
+config.treat_left_ctrlalt_as_altgr = true
 ```

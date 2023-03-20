@@ -6,20 +6,20 @@ from the left, and so on.
 
 ```lua
 local wezterm = require 'wezterm'
+local config = {}
 
-local mykeys = {}
+config.keys = {}
+
 for i = 1, 8 do
   -- CTRL+ALT + number to move to that position
-  table.insert(mykeys, {
+  table.insert(config.keys, {
     key = tostring(i),
     mods = 'CTRL|ALT',
     action = wezterm.action.MoveTab(i - 1),
   })
 end
 
-return {
-  keys = mykeys,
-}
+return config
 ```
 
 

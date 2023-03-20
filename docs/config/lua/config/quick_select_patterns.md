@@ -6,12 +6,10 @@ Specify additional patterns to match when in [quick select mode](../../../quicks
 This setting is a table listing out a set of regular expressions.
 
 ```lua
-return {
-  quick_select_patterns = {
-    -- match things that look like sha1 hashes
-    -- (this is actually one of the default patterns)
-    '[0-9a-f]{7,40}',
-  },
+config.quick_select_patterns = {
+  -- match things that look like sha1 hashes
+  -- (this is actually one of the default patterns)
+  '[0-9a-f]{7,40}',
 }
 ```
 

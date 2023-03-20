@@ -16,13 +16,13 @@ windows:
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  keys = {
-    { key = 'r', mods = 'ALT', action = act.ActivateWindowRelative(1) },
-    { key = 'e', mods = 'ALT', action = act.ActivateWindowRelative(-1) },
-  },
+config.keys = {
+  { key = 'r', mods = 'ALT', action = act.ActivateWindowRelative(1) },
+  { key = 'e', mods = 'ALT', action = act.ActivateWindowRelative(-1) },
 }
+return config
 ```
 
 See also [ActivateWindowRelativeNoWrap](ActivateWindowRelativeNoWrap.md),

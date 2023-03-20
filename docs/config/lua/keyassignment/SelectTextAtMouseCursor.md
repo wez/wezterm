@@ -14,15 +14,11 @@ automatically select the entire command output when clicking
 on any character withing that region:
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  mouse_bindings = {
-    {
-      event = { Down = { streak = 3, button = 'Left' } },
-      action = wezterm.action.SelectTextAtMouseCursor 'SemanticZone',
-      mods = 'NONE',
-    },
+config.mouse_bindings = {
+  {
+    event = { Down = { streak = 3, button = 'Left' } },
+    action = wezterm.action.SelectTextAtMouseCursor 'SemanticZone',
+    mods = 'NONE',
   },
 }
 ```

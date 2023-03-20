@@ -9,28 +9,6 @@ a future release; please use [PasteFrom](PasteFrom.md) instead.
 
 *Since: nightly builds only*
 
-This action has been removed. Please use [PasteFrom](PasteFrom.md) instead.
-
-## Example
-
-```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    { key = 'v', mods = 'SHIFT|CTRL', action = wezterm.action.Paste },
-  },
-
-  -- Middle mouse button pastes the clipboard.
-  -- Note that this is the default so you needn't copy this.
-  mouse_bindings = {
-    {
-      event = { Up = { streak = 1, button = 'Middle' } },
-      mods = 'NONE',
-      action = wezterm.action.Paste,
-    },
-  },
-}
-```
-
+!!! warning
+    This action has been removed. Please use [PasteFrom](PasteFrom.md) instead.
 

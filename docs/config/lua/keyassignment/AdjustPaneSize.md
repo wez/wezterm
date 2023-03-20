@@ -19,26 +19,26 @@ respectively.
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  leader = { key = 'a', mods = 'CTRL' },
-  keys = {
-    {
-      key = 'H',
-      mods = 'LEADER',
-      action = act.AdjustPaneSize { 'Left', 5 },
-    },
-    {
-      key = 'J',
-      mods = 'LEADER',
-      action = act.AdjustPaneSize { 'Down', 5 },
-    },
-    { key = 'K', mods = 'LEADER', action = act.AdjustPaneSize { 'Up', 5 } },
-    {
-      key = 'L',
-      mods = 'LEADER',
-      action = act.AdjustPaneSize { 'Right', 5 },
-    },
+config.leader = { key = 'a', mods = 'CTRL' }
+config.keys = {
+  {
+    key = 'H',
+    mods = 'LEADER',
+    action = act.AdjustPaneSize { 'Left', 5 },
+  },
+  {
+    key = 'J',
+    mods = 'LEADER',
+    action = act.AdjustPaneSize { 'Down', 5 },
+  },
+  { key = 'K', mods = 'LEADER', action = act.AdjustPaneSize { 'Up', 5 } },
+  {
+    key = 'L',
+    mods = 'LEADER',
+    action = act.AdjustPaneSize { 'Right', 5 },
   },
 }
+return config
 ```

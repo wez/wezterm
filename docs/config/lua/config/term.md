@@ -8,8 +8,8 @@ data.
 If you want to get the most application support out of wezterm, then you may
 wish to install a copy of the `wezterm` TERM definition:
 
-```
-tempfile=$(mktemp) \
+```console
+$ tempfile=$(mktemp) \
   && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo \
   && tic -x -o ~/.terminfo $tempfile \
   && rm $tempfile
@@ -29,11 +29,9 @@ If your package manager installed the terminfo data in a non-standard location, 
 The following snippet works if you installed `wezterm.terminfo` with nix into your user profile. Update the path to `TERMINFO_DIRS` to match the location on your system.
 
 ```lua
-return {
-  set_environment_variables = {
-    TERMINFO_DIRS = '/home/user/.nix-profile/share/terminfo',
-    WSLENV = 'TERMINFO_DIRS',
-  },
-  term = 'wezterm',
+config.set_environment_variables = {
+  TERMINFO_DIRS = '/home/user/.nix-profile/share/terminfo',
+  WSLENV = 'TERMINFO_DIRS',
 }
+config.term = 'wezterm'
 ```

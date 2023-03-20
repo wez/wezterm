@@ -15,9 +15,7 @@ with SIGINT, but that bash itself wasn't.  In that situation you may wish
 to set this config to treat `130` as OK:
 
 ```lua
-return {
-  clean_exit_codes = { 130 },
-}
+config.clean_exit_codes = { 130 }
 ```
 
 Note that `0` is always treated as a clean exit code and can be omitted

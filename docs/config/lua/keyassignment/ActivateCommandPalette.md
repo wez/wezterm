@@ -5,13 +5,11 @@
 Activates the Command Palette, a modal overlay that enables discovery and activation of various commands.
 
 ```lua
-return {
-  keys = {
-    {
-      key = 'P',
-      mods = 'CTRL',
-      action = wezterm.action.ActivateCommandPalette,
-    },
+config.keys = {
+  {
+    key = 'P',
+    mods = 'CTRL',
+    action = wezterm.action.ActivateCommandPalette,
   },
 }
 ```

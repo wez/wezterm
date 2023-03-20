@@ -12,31 +12,28 @@ here](https://docs.rs/regex/1.3.9/regex/#syntax).
 
 
 ```lua
-local wezterm = require 'wezterm'
 local act = wezterm.action
 
-return {
-  keys = {
-    -- search for things that look like git hashes
-    {
-      key = 'H',
-      mods = 'SHIFT|CTRL',
-      action = act.Search {
-        Regex = '[a-f0-9]{6,}',
-      },
+config.keys = {
+  -- search for things that look like git hashes
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search {
+      Regex = '[a-f0-9]{6,}',
     },
-    -- search for the lowercase string "hash" matching the case exactly
-    {
-      key = 'H',
-      mods = 'SHIFT|CTRL',
-      action = act.Search { CaseSensitiveString = 'hash' },
-    },
-    -- search for the string "hash" matching regardless of case
-    {
-      key = 'H',
-      mods = 'SHIFT|CTRL',
-      action = act.Search { CaseInSensitiveString = 'hash' },
-    },
+  },
+  -- search for the lowercase string "hash" matching the case exactly
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search { CaseSensitiveString = 'hash' },
+  },
+  -- search for the string "hash" matching regardless of case
+  {
+    key = 'H',
+    mods = 'SHIFT|CTRL',
+    action = act.Search { CaseInSensitiveString = 'hash' },
   },
 }
 ```

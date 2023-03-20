@@ -11,12 +11,13 @@ panes, respectively:
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  keys = {
-    { key = 'a', mods = 'ALT', action = act.ActivatePaneByIndex(0) },
-    { key = 'b', mods = 'ALT', action = act.ActivatePaneByIndex(1) },
-    { key = 'c', mods = 'ALT', action = act.ActivatePaneByIndex(2) },
-  },
+config.keys = {
+  { key = 'a', mods = 'ALT', action = act.ActivatePaneByIndex(0) },
+  { key = 'b', mods = 'ALT', action = act.ActivatePaneByIndex(1) },
+  { key = 'c', mods = 'ALT', action = act.ActivatePaneByIndex(2) },
 }
+
+return config
 ```

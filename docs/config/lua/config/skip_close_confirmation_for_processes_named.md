@@ -15,40 +15,18 @@ not prompt for closing that particular pane.
 The default value for this setting is shown below:
 
 ```lua
-return {
-  skip_close_confirmation_for_processes_named = {
-    'bash',
-    'sh',
-    'zsh',
-    'fish',
-    'tmux',
-  },
+config.skip_close_confirmation_for_processes_named = {
+  'bash',
+  'sh',
+  'zsh',
+  'fish',
+  'tmux',
+  'nu',
+  'cmd.exe',
+  'pwsh.exe',
+  'powershell.exe',
 }
 ```
-
-*Since: 20210814-124438-54e29167*:
-
-This option now also works on Windows (prior versions only worked on Linux and
-macOS), and the default value for this setting now includes some windows shell
-processes:
-
-```lua
-return {
-  skip_close_confirmation_for_processes_named = {
-    'bash',
-    'sh',
-    'zsh',
-    'fish',
-    'tmux',
-    'nu',
-    'cmd.exe',
-    'pwsh.exe',
-    'powershell.exe',
-  },
-}
-```
-
-*Since: 20220101-133340-7edc5b5a*
 
 More advanced control over this behavior can be achieved by defining a
 [mux-is-process-stateful](../mux-events/mux-is-process-stateful.md) event handler.

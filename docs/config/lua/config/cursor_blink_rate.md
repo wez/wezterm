@@ -11,9 +11,7 @@ It is recommended to avoid blinking cursors when on battery power, as it is
 relatively costly to keep re-rendering for the blink!
 
 ```lua
-return {
-  cursor_blink_rate = 800,
-}
+config.cursor_blink_rate = 800
 ```
 
 *Since: 20220319-142410-0fcdea07*

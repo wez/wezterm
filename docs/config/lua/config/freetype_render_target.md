@@ -13,9 +13,7 @@ For example, this configuration uses light hinting but produces
 subpixel-antialiased glyph bitmaps:
 
 ```lua
-return {
-  freetype_load_target = 'Light',
-  freetype_render_target = 'HorizontalLcd',
-}
+config.freetype_load_target = 'Light'
+config.freetype_render_target = 'HorizontalLcd'
 ```
 

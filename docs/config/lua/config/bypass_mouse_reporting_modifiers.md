@@ -16,8 +16,6 @@ as though `SHIFT` was not pressed and then match it against the mouse
 assignments.
 
 ```lua
-return {
-  -- Use ALT instead of SHIFT to bypass application mouse reporting
-  bypass_mouse_reporting_modifiers = 'ALT',
-}
+-- Use ALT instead of SHIFT to bypass application mouse reporting
+config.bypass_mouse_reporting_modifiers = 'ALT'
 ```

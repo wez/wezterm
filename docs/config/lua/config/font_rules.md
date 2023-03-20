@@ -59,66 +59,62 @@ font-weights that are either too bold or too light for the default rules to
 produce great results, hence this set of rules.
 
 ```lua
-local wezterm = require 'wezterm'
+config.font = wezterm.font_with_fallback 'Operator Mono SSm Lig Medium'
+config.font_rules = {
+  -- For Bold-but-not-italic text, use this relatively bold font, and override
+  -- its color to a tomato-red color to make bold text really stand out.
+  {
+    intensity = 'Bold',
+    italic = false,
+    font = wezterm.font_with_fallback(
+      'Operator Mono SSm Lig',
+      -- Override the color specified by the terminal output and force
+      -- it to be tomato-red.
+      -- The color value you set here can be any CSS color name or
+      -- RGB color string.
+      { foreground = 'tomato' }
+    ),
+  },
 
-return {
-  font = wezterm.font_with_fallback 'Operator Mono SSm Lig Medium',
-  font_rules = {
-    -- For Bold-but-not-italic text, use this relatively bold font, and override
-    -- its color to a tomato-red color to make bold text really stand out.
-    {
-      intensity = 'Bold',
-      italic = false,
-      font = wezterm.font_with_fallback(
-        'Operator Mono SSm Lig',
-        -- Override the color specified by the terminal output and force
-        -- it to be tomato-red.
-        -- The color value you set here can be any CSS color name or
-        -- RGB color string.
-        { foreground = 'tomato' }
-      ),
-    },
-
-    -- Bold-and-italic
-    {
-      intensity = 'Bold',
+  -- Bold-and-italic
+  {
+    intensity = 'Bold',
+    italic = true,
+    font = wezterm.font_with_fallback {
+      family = 'Operator Mono SSm Lig',
       italic = true,
-      font = wezterm.font_with_fallback {
-        family = 'Operator Mono SSm Lig',
-        italic = true,
-      },
     },
+  },
 
-    -- normal-intensity-and-italic
-    {
-      intensity = 'Normal',
+  -- normal-intensity-and-italic
+  {
+    intensity = 'Normal',
+    italic = true,
+    font = wezterm.font_with_fallback {
+      family = 'Operator Mono SSm Lig',
+      weight = 'DemiLight',
       italic = true,
-      font = wezterm.font_with_fallback {
-        family = 'Operator Mono SSm Lig',
-        weight = 'DemiLight',
-        italic = true,
-      },
     },
+  },
 
-    -- half-intensity-and-italic (half-bright or dim); use a lighter weight font
-    {
-      intensity = 'Half',
+  -- half-intensity-and-italic (half-bright or dim); use a lighter weight font
+  {
+    intensity = 'Half',
+    italic = true,
+    font = wezterm.font_with_fallback {
+      family = 'Operator Mono SSm Lig',
+      weight = 'Light',
       italic = true,
-      font = wezterm.font_with_fallback {
-        family = 'Operator Mono SSm Lig',
-        weight = 'Light',
-        italic = true,
-      },
     },
+  },
 
-    -- half-intensity-and-not-italic
-    {
-      intensity = 'Half',
-      italic = false,
-      font = wezterm.font_with_fallback {
-        family = 'Operator Mono SSm Lig',
-        weight = 'Light',
-      },
+  -- half-intensity-and-not-italic
+  {
+    intensity = 'Half',
+    italic = false,
+    font = wezterm.font_with_fallback {
+      family = 'Operator Mono SSm Lig',
+      weight = 'Light',
     },
   },
 }
@@ -127,37 +123,33 @@ return {
 Here's another example combining `FiraCode` with `Victor Mono`, using `Victor Mono` only for italics:
 
 ```lua
-local wezterm = require 'wezterm'
+config.font = wezterm.font { family = 'FiraCode' }
 
-return {
-  font = wezterm.font { family = 'FiraCode' },
-
-  font_rules = {
-    {
-      intensity = 'Bold',
-      italic = true,
-      font = wezterm.font {
-        family = 'VictorMono',
-        weight = 'Bold',
-        style = 'Italic',
-      },
+config.font_rules = {
+  {
+    intensity = 'Bold',
+    italic = true,
+    font = wezterm.font {
+      family = 'VictorMono',
+      weight = 'Bold',
+      style = 'Italic',
     },
-    {
-      italic = true,
-      intensity = 'Half',
-      font = wezterm.font {
-        family = 'VictorMono',
-        weight = 'DemiBold',
-        style = 'Italic',
-      },
+  },
+  {
+    italic = true,
+    intensity = 'Half',
+    font = wezterm.font {
+      family = 'VictorMono',
+      weight = 'DemiBold',
+      style = 'Italic',
     },
-    {
-      italic = true,
-      intensity = 'Normal',
-      font = wezterm.font {
-        family = 'VictorMono',
-        style = 'Italic',
-      },
+  },
+  {
+    italic = true,
+    intensity = 'Normal',
+    font = wezterm.font {
+      family = 'VictorMono',
+      style = 'Italic',
     },
   },
 }
@@ -168,7 +160,7 @@ return {
 You can run `wezterm ls-fonts` to summarize the font rules and the fonts that
 match them:
 
-```bash
+```console
 $ wezterm ls-fonts
 Primary font:
 wezterm.font_with_fallback({

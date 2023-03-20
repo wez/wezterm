@@ -13,8 +13,6 @@ Set `check_for_updates` to `false` to disable this completely or set
 `check_for_updates_interval_seconds` for an alternative update interval.
 
 ```lua
-return {
-  check_for_updates = true,
-  check_for_updates_interval_seconds = 86400,
-}
+config.check_for_updates = true
+config.check_for_updates_interval_seconds = 86400
 ```

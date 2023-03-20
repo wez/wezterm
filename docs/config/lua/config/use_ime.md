@@ -16,9 +16,7 @@ IME support is a platform dependent feature
 You can control whether the IME is enabled in your configuration file:
 
 ```lua
-return {
-  use_ime = false,
-}
+config.use_ime = false
 ```
 
 Changing `use_ime` usually requires re-launching WezTerm to take full effect.

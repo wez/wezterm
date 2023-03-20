@@ -35,6 +35,7 @@ This basic example splits an initial window into thirds:
 ```lua
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
+local config = {}
 
 wezterm.on('gui-startup', function(cmd)
   local tab, pane, window = mux.spawn_window(cmd or {})
@@ -46,7 +47,7 @@ wezterm.on('gui-startup', function(cmd)
   pane:split { size = 0.5 }
 end)
 
-return {}
+return config
 ```
 
 This example creates a default window but makes it maximize on startup:
@@ -54,13 +55,14 @@ This example creates a default window but makes it maximize on startup:
 ```lua
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
+local config = {}
 
 wezterm.on('gui-startup', function(cmd)
   local tab, pane, window = mux.spawn_window(cmd or {})
   window:gui_window():maximize()
 end)
 
-return {}
+return config
 ```
 
 Here's a more elaborate example that configures two workspaces:
@@ -68,6 +70,7 @@ Here's a more elaborate example that configures two workspaces:
 ```lua
 local wezterm = require 'wezterm'
 local mux = wezterm.mux
+local config = {}
 
 wezterm.on('gui-startup', function(cmd)
   -- allow `wezterm start -- something` to affect what we spawn
@@ -104,7 +107,7 @@ wezterm.on('gui-startup', function(cmd)
   mux.set_active_workspace 'coding'
 end)
 
-return {}
+return config
 ```
 
 See also:

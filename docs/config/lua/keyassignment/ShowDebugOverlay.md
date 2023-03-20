@@ -15,12 +15,8 @@ to dynamically assign event handlers for example.  It is primarily useful for
 prototyping lua snippets before you integrate them fully into your config.
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    -- CTRL-SHIFT-l activates the debug overlay
-    { key = 'L', mods = 'CTRL', action = wezterm.action.ShowDebugOverlay },
-  },
+config.keys = {
+  -- CTRL-SHIFT-l activates the debug overlay
+  { key = 'L', mods = 'CTRL', action = wezterm.action.ShowDebugOverlay },
 }
 ```

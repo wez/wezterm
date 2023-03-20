@@ -10,9 +10,7 @@ There are three possible values:
 * `"CloseOnCleanExit"` - if the shell program exited with a successful status, behave like `"Close"`, otherwise, behave like `"Hold"`.  This is the default setting.
 
 ```lua
-return {
-  exit_behavior = 'Hold',
-}
+console.exit_behavior = 'Hold'
 ```
 
 Note that most unix shells will exit with the status of the last command that
@@ -22,9 +20,9 @@ For example, if you interrupt a command and then use `exit` (with no arguments),
 CTRL-D to send EOF to the shell, the shell will return an unsuccessful exit
 status.  The same thing holds if you were to run:
 
-```
-false
-exit
+```console
+$ false
+$ exit
 ```
 
 With the default `exit_behavior="CloseOnCleanExit"` setting, that will cause

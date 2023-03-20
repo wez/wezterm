@@ -85,9 +85,7 @@ disable all of them with this configuration; if you chose to do this,
 you must explicitly register every binding.
 
 ```lua
-return {
-  disable_default_key_bindings = true,
-}
+config.disable_default_key_bindings = true
 ```
 
 !!! tip

@@ -12,31 +12,31 @@ by the [`unzoom_on_switch_pane`](../config/unzoom_on_switch_pane.md) flag.
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local config = {}
 
-return {
-  keys = {
-    {
-      key = 'LeftArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.ActivatePaneDirection 'Left',
-    },
-    {
-      key = 'RightArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.ActivatePaneDirection 'Right',
-    },
-    {
-      key = 'UpArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.ActivatePaneDirection 'Up',
-    },
-    {
-      key = 'DownArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.ActivatePaneDirection 'Down',
-    },
+config.keys = {
+  {
+    key = 'LeftArrow',
+    mods = 'CTRL|SHIFT',
+    action = act.ActivatePaneDirection 'Left',
+  },
+  {
+    key = 'RightArrow',
+    mods = 'CTRL|SHIFT',
+    action = act.ActivatePaneDirection 'Right',
+  },
+  {
+    key = 'UpArrow',
+    mods = 'CTRL|SHIFT',
+    action = act.ActivatePaneDirection 'Up',
+  },
+  {
+    key = 'DownArrow',
+    mods = 'CTRL|SHIFT',
+    action = act.ActivatePaneDirection 'Down',
   },
 }
+return config
 ```
 
 *Since: 20220101-133340-7edc5b5a*

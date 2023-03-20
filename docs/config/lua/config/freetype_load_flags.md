@@ -21,10 +21,8 @@ Available flags are:
 * `NO_AUTOHINT` - don't use the freetype auto-hinter
 
 ```lua
-return {
-  -- You probably don't want to do this, but this demonstrates
-  -- that the flags can be combined
-  freetype_load_flags = 'NO_HINTING|MONOCHROME',
-}
+-- You probably don't want to do this, but this demonstrates
+-- that the flags can be combined
+config.freetype_load_flags = 'NO_HINTING|MONOCHROME'
 ```
 

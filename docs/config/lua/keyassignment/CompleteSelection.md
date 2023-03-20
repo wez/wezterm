@@ -11,19 +11,15 @@ which clipboard buffer the selection will populate; the copy action
 is now equivalent to [CopyTo](CopyTo.md).
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  mouse_bindings = {
-    -- Change the default click behavior so that it only selects
-    -- text and doesn't open hyperlinks, and that it populates
-    -- the Clipboard rather the PrimarySelection which is part
-    -- of the default assignment for a left mouse click.
-    {
-      event = { Up = { streak = 1, button = 'Left' } },
-      mods = 'NONE',
-      action = wezterm.action.CompleteSelection 'Clipboard',
-    },
+config.mouse_bindings = {
+  -- Change the default click behavior so that it only selects
+  -- text and doesn't open hyperlinks, and that it populates
+  -- the Clipboard rather the PrimarySelection which is part
+  -- of the default assignment for a left mouse click.
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'NONE',
+    action = wezterm.action.CompleteSelection 'Clipboard',
   },
 }
 ```

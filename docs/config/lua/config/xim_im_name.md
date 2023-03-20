@@ -13,9 +13,7 @@ to quickly evaluate a different input method server, then you could
 update your config to specify it explicitly:
 
 ```lua
-return {
-  xim_im_name = 'fcitx',
-}
+config.xim_im_name = 'fcitx'
 ```
 
 will cause wezterm to connect to fcitx regardless of the value of `XMODIFIERS`.

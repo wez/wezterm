@@ -12,19 +12,15 @@ This assignment has a number of fields that control the overall action:
 * `top_level` - if set to `true`, rather than splitting the active pane, the split will be made at the root of the tab and effectively split the entire tab across the full extent possible.  The default is `false`.
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    -- This will create a new split and run the `top` program inside it
-    {
-      key = '%',
-      mods = 'CTRL|SHIFT|ALT',
-      action = wezterm.action.SplitPane {
-        direction = 'Left',
-        command = { args = { 'top' } },
-        size = { Percent = 50 },
-      },
+config.keys = {
+  -- This will create a new split and run the `top` program inside it
+  {
+    key = '%',
+    mods = 'CTRL|SHIFT|ALT',
+    action = wezterm.action.SplitPane {
+      direction = 'Left',
+      command = { args = { 'top' } },
+      size = { Percent = 50 },
     },
   },
 }

@@ -14,27 +14,25 @@ error log/debug overlay.
 local wezterm = require 'wezterm'
 local act = wezterm.action
 
-return {
-  ssh_domains = {
-    {
-      name = 'devhost',
-      remote_address = 'devhost.example.com',
-    },
+config.ssh_domains = {
+  {
+    name = 'devhost',
+    remote_address = 'devhost.example.com',
   },
-  keys = {
-    { key = 'U', mods = 'CTRL|SHIFT', action = act.AttachDomain 'devhost' },
-    -- Detaches the domain associated with the current pane
-    {
-      key = 'D',
-      mods = 'CTRL|SHIFT',
-      action = act.DetachDomain 'CurrentPaneDomain',
-    },
-    -- Detaches the "devhost" domain
-    {
-      key = 'E',
-      mods = 'CTRL|SHIFT',
-      action = act.DetachDomain { DomainName = 'devhost' },
-    },
+}
+config.keys = {
+  { key = 'U', mods = 'CTRL|SHIFT', action = act.AttachDomain 'devhost' },
+  -- Detaches the domain associated with the current pane
+  {
+    key = 'D',
+    mods = 'CTRL|SHIFT',
+    action = act.DetachDomain 'CurrentPaneDomain',
+  },
+  -- Detaches the "devhost" domain
+  {
+    key = 'E',
+    mods = 'CTRL|SHIFT',
+    action = act.DetachDomain { DomainName = 'devhost' },
   },
 }
 ```

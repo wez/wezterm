@@ -48,32 +48,28 @@ Based on that list, I might choose to explicitly target the discrete Gpu like
 this (but note that this would be the default selection anyway):
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  webgpu_preferred_adapter = {
-    backend = 'Vulkan',
-    device = 29730,
-    device_type = 'DiscreteGpu',
-    driver = 'radv',
-    driver_info = 'Mesa 22.3.4',
-    name = 'AMD Radeon Pro W6400 (RADV NAVI24)',
-    vendor = 4098,
-  },
-  front_end = 'WebGpu',
+config.webgpu_preferred_adapter = {
+  backend = 'Vulkan',
+  device = 29730,
+  device_type = 'DiscreteGpu',
+  driver = 'radv',
+  driver_info = 'Mesa 22.3.4',
+  name = 'AMD Radeon Pro W6400 (RADV NAVI24)',
+  vendor = 4098,
 }
+config.front_end = 'WebGpu'
 ```
 
 alternatively, I might use:
 
 ```lua
 local wezterm = require 'wezterm'
+local config = {}
 local gpus = wezterm.gui.enumerate_gpus()
 
-return {
-  webgpu_preferred_adapter = gpus[1],
-  front_end = 'WebGpu',
-}
+config.webgpu_preferred_adapter = gpus[1]
+config.front_end = 'WebGpu'
+return config
 ```
 
 If you have a more complex situation you can get a bit more elaborate; this
@@ -82,21 +78,17 @@ Vulkan drivers:
 
 ```lua
 local wezterm = require 'wezterm'
-local adapter = nil
-local front_end = nil
+local config = {}
 
 for _, gpu in ipairs(wezterm.gui.enumerate_gpus()) do
   if gpu.backend == 'Vulkan' and gpu.device_type == 'Integrated' then
-    adapter = gpu
-    front_end = 'WebGpu'
+    config.webgpu_preferred_adapter = gpu
+    config.front_end = 'WebGpu'
     break
   end
 end
 
-return {
-  webgpu_preferred_adapter = adapter,
-  front_end = front_end,
-}
+return config
 ```
 
 See also [webgpu_power_preference](webgpu_power_preference.md),

@@ -4,12 +4,8 @@ Sends the string specified argument to the terminal in the current tab, as
 though that text were literally typed into the terminal.
 
 ```lua
-local wezterm = require 'wezterm'
-
-return {
-  keys = {
-    { key = 'm', mods = 'CMD', action = wezterm.action.SendString 'Hello' },
-  },
+config.keys = {
+  { key = 'm', mods = 'CMD', action = wezterm.action.SendString 'Hello' },
 }
 ```
 
@@ -20,16 +16,13 @@ keybinding for moving backwards/forwards through a word in a line editor.
 `\x1b` is the ESC character:
 
 ```lua
-local wezterm = require 'wezterm'
 local act = wezterm.action
 
-return {
-  keys = {
-    -- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
-    { key = 'LeftArrow', mods = 'OPT', action = act.SendString '\x1bb' },
-    -- Make Option-Right equivalent to Alt-f; forward-word
-    { key = 'RightArrow', mods = 'OPT', action = act.SendString '\x1bf' },
-  },
+config.keys = {
+  -- Make Option-Left equivalent to Alt-b which many line editors interpret as backward-word
+  { key = 'LeftArrow', mods = 'OPT', action = act.SendString '\x1bb' },
+  -- Make Option-Right equivalent to Alt-f; forward-word
+  { key = 'RightArrow', mods = 'OPT', action = act.SendString '\x1bf' },
 }
 ```
 

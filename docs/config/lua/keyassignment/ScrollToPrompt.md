@@ -21,14 +21,11 @@ For the purposes of scrolling, the "current zone" is considered to be the one
 closest to the top of the viewport.
 
 ```lua
-local wezterm = require 'wezterm'
 local act = wezterm.action
 
-return {
-  keys = {
-    { key = 'UpArrow', mods = 'SHIFT', action = act.ScrollToPrompt(-1) },
-    { key = 'DownArrow', mods = 'SHIFT', action = act.ScrollToPrompt(1) },
-  },
+config.keys = {
+  { key = 'UpArrow', mods = 'SHIFT', action = act.ScrollToPrompt(-1) },
+  { key = 'DownArrow', mods = 'SHIFT', action = act.ScrollToPrompt(1) },
 }
 ```
 

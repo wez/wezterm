@@ -27,9 +27,7 @@ then wezterm will by default create a `WslDomain` with the name `"WSL:Ubuntu-18.
 and if I set my config like this:
 
 ```lua
-return {
-  default_domain = 'WSL:Ubuntu-18.04',
-}
+config.default_domain = 'WSL:Ubuntu-18.04'
 ```
 
 then when wezterm starts up, it will open with a shell running inside that Ubuntu

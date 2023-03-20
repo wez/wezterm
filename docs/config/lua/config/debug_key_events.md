@@ -8,9 +8,7 @@ This can be helpful in figuring out how keys are being decoded on your system,
 or for discovering the system-dependent "raw" key code values.
 
 ```lua
-return {
-  debug_key_events = true,
-}
+config.debug_key_events = true
 ```
 
 Produces logs like the following when typing `ls`: (artificially wrapped
