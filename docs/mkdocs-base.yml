@@ -8,6 +8,7 @@ repo_name: wez/wezterm
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: gh_pages
+strict: true
 theme:
   name: material
   logo: favicon.svg

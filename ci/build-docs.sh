@@ -33,7 +33,7 @@ function ghapi() {
 python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
 
-mdbook-linkcheck --standalone docs
+#mdbook-linkcheck --standalone docs
 
 # Adjust path to pick up pip-installed binaries
 PATH="$HOME/.local/bin;$PATH"
