@@ -50,9 +50,9 @@ def build_subst(subst, stable, categorized):
             continue
         url, name, dir = info
         kind = f"{kind}_{stable}"
-        subst["{{ %s }}" % kind] = url
-        subst["{{ %s_asset }}" % kind] = name
-        subst["{{ %s_dir }}" % kind] = dir
+        subst[kind] = url
+        subst[f"{kind}_asset"] = name
+        subst[f"{kind}_dir"] = dir
 
 
 def load_release_info():
@@ -83,21 +83,9 @@ def load_release_info():
     subst = {}
     build_subst(subst, "stable", latest)
     build_subst(subst, "nightly", nightly)
-    # print(pretty(subst))
 
-    for name in [
-        "install/windows",
-        "install/macos",
-        "install/linux",
-        "install/source",
-        "install/freebsd",
-    ]:
-        with open(f"docs/{name}.markdown", "r") as input:
-            with open(f"docs/{name}.md", "w") as output:
-                for line in input:
-                    for search, replace in subst.items():
-                        line = line.replace(search, replace)
-                    output.write(line)
+    with open(f"docs/releases.json", "w") as output:
+        json.dump(subst, output)
 
 
 def main():

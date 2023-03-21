@@ -305,7 +305,7 @@ function load_scheme_player(ident) {{
                     idx.write(
                         f"""
 ```lua
-config.color_scheme = "{title}"
+config.color_scheme = '{title}'
 ```
 
 """

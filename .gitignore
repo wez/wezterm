@@ -15,8 +15,8 @@ dhat-heap.json
 /termwiz/codegen/target
 /termwiz/codegen/Cargo.lock
 /gh_pages/
+/docs/releases.json
 /docs/SUMMARY.md
-/docs/install/*.md
 /docs/cli/cli/index.md
 /docs/recipes/index.md
 /docs/colorschemes/**/index.md

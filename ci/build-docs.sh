@@ -8,7 +8,7 @@ done
 
 tracked_markdown=$(mktemp)
 trap "rm ${tracked_markdown}" "EXIT"
-git ls-tree -r HEAD --name-only docs | egrep '\.(markdown|md)$' > $tracked_markdown
+find docs -type f | egrep '\.(markdown|md)$' > $tracked_markdown
 
 gelatyx --language lua --file-list $tracked_markdown --language-config ci/stylua.toml
 gelatyx --language lua --file-list $tracked_markdown --language-config ci/stylua.toml --check || exit 1
