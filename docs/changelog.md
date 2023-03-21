@@ -17,6 +17,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Not Yet
+
+### 20230320-124340-559cb7b0
+
 #### New
 * Copy Mode now supports using `CTRL-u` and `CTRL-d` to move by half a page at
   a time. Thanks to [@pengux](https://github.com/pengux)!
