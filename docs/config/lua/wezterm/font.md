@@ -1,3 +1,9 @@
+---
+search:
+  boost: 20000
+keywords: font
+---
+
 # `wezterm.font(family [, attributes])`
 
 This function constructs a lua table that corresponds to the internal `FontAttributes`
