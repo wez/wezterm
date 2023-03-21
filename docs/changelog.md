@@ -163,9 +163,6 @@ As features stabilize some brief notes about them will accumulate here.
   [#3113](https://github.com/wez/wezterm/issues/3113)
 
 #### Changed
-* `CTRL-SHIFT-P` now activates the new [command
-  palette](config/lua/keyassignment/ActivateCommandPalette.md), instead of
-  `PaneSelect` [#1485](https://github.com/wez/wezterm/issues/1485)
 * Window title reporting escape sequences are now disabled by default.
   [See here for more details](https://marc.info/?l=bugtraq&m=104612710031920&w=2)
 * Withdraw DEC private SGR escapes that affect superscript and
