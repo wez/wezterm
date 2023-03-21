@@ -1,4 +1,4 @@
-# `scroll_tabs`
+# `mouse_wheel_scrolls_tabs`
 
 *Since: nightly builds only*
 
@@ -9,6 +9,6 @@ The default is `true`. Set to `false` to disable this behavior.
 
 ```lua
 return {
-  scroll_tabs = true,
+  mouse_wheel_scrolls_tabs = true,
 }
 ```
