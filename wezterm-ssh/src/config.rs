@@ -238,10 +238,7 @@ impl ParsedConfigFile {
                 continue;
             }
 
-            if let Some(sep) = line
-                .find('=')
-                .or_else(|| line.find(|c: char| c.is_whitespace()))
-            {
+            if let Some(sep) = line.find(|c: char| c == '=' || c.is_whitespace()) {
                 let (k, v) = line.split_at(sep);
                 let k = k.trim().to_lowercase();
                 let v = v[1..].trim();
@@ -738,6 +735,54 @@ impl Config {
 mod test {
     use super::*;
     use k9::snapshot;
+
+    #[test]
+    fn parse_proxy_command() {
+        let mut config = Config::new();
+        config.add_config_string(
+            r#"
+        Host foo
+            ProxyCommand /usr/bin/ssh-proxy-helper -oX=Y host 22
+            "#,
+        );
+
+        snapshot!(
+            &config,
+            r#"
+Config {
+    config_files: [
+        ParsedConfigFile {
+            options: {},
+            groups: [
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^foo$",
+                                    original: "foo",
+                                    is_literal: true,
+                                },
+                            ],
+                        ),
+                    ],
+                    context: FirstPass,
+                    options: {
+                        "proxycommand": "/usr/bin/ssh-proxy-helper -oX=Y host 22",
+                    },
+                },
+            ],
+            loaded_files: [],
+        },
+    ],
+    options: {},
+    tokens: {},
+    environment: None,
+}
+"#
+        );
+    }
 
     #[test]
     fn parse_user() {

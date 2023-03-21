@@ -1,6 +1,6 @@
 # `wezterm cli move-pane-to-new-tab`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 *Run `wezterm cli move-pane-to-new-tab --help` to see more help*
 

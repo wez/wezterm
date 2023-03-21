@@ -1,6 +1,6 @@
 # `wezterm.gui.enumerate_gpus()`
 
-*Since: 20221119-145034-49b9839f*
+{{since('20221119-145034-49b9839f')}}
 
 Returns the list of available Gpus supported by WebGpu.
 

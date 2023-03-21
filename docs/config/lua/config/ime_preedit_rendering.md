@@ -1,6 +1,6 @@
 # `ime_preedit_rendering`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Control IME preedit rendering.
 IME preedit is an area that is used to display the string being preedited in IME.

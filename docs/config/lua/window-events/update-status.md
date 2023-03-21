@@ -1,6 +1,6 @@
 # `update-status`
 
-*Since: 20220903-194523-3bb1ed61*
+{{since('20220903-194523-3bb1ed61')}}
 
 The `update-status` event is emitted periodically (based on the
 interval specified by the [status_update_interval](../config/status_update_interval.md)

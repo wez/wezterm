@@ -1,6 +1,6 @@
 # `wezterm.utf16_to_utf8(str)`
 
-*Since: 20200503-171512-b13ef15f*
+{{since('20200503-171512-b13ef15f')}}
 
 This function is overly specific and exists primarily to workaround
 [this wsl.exe issue](https://github.com/microsoft/WSL/issues/4456).

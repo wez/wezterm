@@ -2,7 +2,7 @@
 
 **NOTE: You probably want to use [wezterm.gui.get_appearance()](../wezterm.gui/get_appearance.md) instead, as it is easier to use!**
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 This method returns the appearance of the window environment.  The appearance
 can be one of the following 4 values:
@@ -45,7 +45,7 @@ return {}
 
 ### Wayland GNOME Appearance
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 wezterm uses [XDG Desktop
 Portal](https://flatpak.github.io/xdg-desktop-portal/) to determine the

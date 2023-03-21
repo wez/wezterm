@@ -20,7 +20,7 @@ The `PaneInformation` struct contains the following fields:
 * `title` - the title of the pane, per [pane:get_title()](pane/get_title.md) at the time the pane information was captured
 * `user_vars` - the user variables defined for the pane, per [pane:get_user_vars()](pane/get_user_vars.md) at the time the pane information was captured.
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 Additional fields are available; note that accessing these may not be cheap to
 compute and may slow down wezterm.  Unlike the fields listed above, these are
@@ -63,7 +63,7 @@ wezterm.on(
 return {}
 ```
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 The `has_unseen_output` field returns true if the there has been output
 in the pane since the last time it was focused.
@@ -104,7 +104,7 @@ wezterm.on(
 return config
 ```
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 The `domain_name` field returns the name of the domain with which the pane is associated.
 

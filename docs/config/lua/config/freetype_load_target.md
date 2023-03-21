@@ -1,6 +1,6 @@
 # `freetype_load_target = "Normal"`
 
-*Since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 Configures the hinting and (potentially) the rendering mode used with the
 freetype rasterizer.  The following values are possible:

@@ -1,6 +1,6 @@
 ## `color:complement_ryb()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns the complement of the color using the [RYB color
 model](https://en.wikipedia.org/wiki/RYB_color_model), which more closely

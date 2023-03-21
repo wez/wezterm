@@ -211,15 +211,6 @@ class GenColorScheme(object):
             by_prefix[prefix].append(scheme)
             by_name[scheme["name"]] = scheme
 
-        def scheme_link(name):
-            if name in by_name:
-                scheme = by_name[name]
-                prefix = scheme["prefix"]
-                ident = scheme["ident"]
-                return f"../{prefix}/index.md#{ident}"
-            else:
-                return None
-
         style_filename = f"{self.dirname}/scheme.css"
         with open(style_filename, "w") as style_file:
             for scheme in by_name.values():
@@ -279,33 +270,21 @@ function load_scheme_player(ident) {{
                         idx.write(f"Source: <{origin_url}><br/>\n")
                     version = scheme["metadata"].get("wezterm_version", None)
                     if version and version != "Always":
-                        idx.write(f"Since: *{version}*<br/>\n")
+                        idx.write(f"{{{{since('{version}')}}}}<br/>\n")
 
                     aliases = scheme["metadata"]["aliases"]
-                    if len(aliases) > 1:
-                        canon_name = aliases[0]
-                        am_canon = title == canon_name
-                        if am_canon:
-                            alias_list = []
-                            for a in aliases[1:]:
-                                alias_link = scheme_link(a)
-                                if alias_link:
-                                    alias_list.append(f"[{a}]({alias_link})")
-                                else:
-                                    alias_list.append(f"`{a}`")
-                            aliases = ", ".join(alias_list)
-                            idx.write(f"This scheme is also known as {aliases}.<br/>\n")
-                        else:
-                            canon_link = scheme_link(canon_name)
-                            idx.write(
-                                f"This scheme is the same as [{canon_name}]({canon_link}).<br/>\n"
-                            )
+                    if len(aliases) > 0:
+                        alias_list = []
+                        for a in aliases:
+                            alias_list.append(f"`{a}`")
+                        aliases = ", ".join(alias_list)
+                        idx.write(f"This scheme is also known as {aliases}.<br/>\n")
 
                     idx.write("\nTo use this scheme, add this to your config:\n")
                     idx.write(
                         f"""
 ```lua
-config.color_scheme = "{title}"
+config.color_scheme = '{title}'
 ```
 
 """

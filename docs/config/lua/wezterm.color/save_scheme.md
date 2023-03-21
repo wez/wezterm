@@ -1,6 +1,6 @@
 # `wezterm.color.save_scheme(colors, metadata, file_name)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Saves a color scheme as a wezterm TOML file.
 This is useful when sharing your custom color scheme with others.

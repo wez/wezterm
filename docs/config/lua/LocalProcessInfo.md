@@ -1,6 +1,6 @@
 # `LocalProcessInfo`
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 `LocalProcessInfo` represents a process running on the local machine.
 

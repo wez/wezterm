@@ -1,6 +1,6 @@
 # use_resize_increments = false
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 When set to `true`, prefer to snap the window size to a multiple of the
 terminal cell size. The default is `false`, which allows sizing the window to

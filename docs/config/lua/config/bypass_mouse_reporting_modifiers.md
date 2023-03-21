@@ -1,6 +1,6 @@
 # bypass_mouse_reporting_modifiers = "SHIFT"
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 If an application has enabled mouse reporting mode, mouse events are sent
 directly to the application, and do not get routed through the mouse

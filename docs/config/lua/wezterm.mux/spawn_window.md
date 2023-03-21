@@ -1,6 +1,6 @@
 ## `wezterm.mux.spawn_window{}`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Spawns a program into a new window, returning the [MuxTab](../MuxTab/index.md),
 [Pane](../pane/index.md) and [MuxWindow](../mux-window/index.md) objects
@@ -77,7 +77,7 @@ wezterm.mux.spawn_window { workspace = { 'coding' } }
 
 ### position
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Specify the initial position for the GUI window that will be created to display
 this mux window.

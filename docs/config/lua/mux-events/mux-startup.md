@@ -1,6 +1,6 @@
 # `mux-startup`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 The `mux-startup` event is emitted once when the mux server is starting up.
 It is triggered before any default program is started.

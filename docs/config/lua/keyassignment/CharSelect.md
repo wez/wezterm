@@ -1,6 +1,6 @@
 # CharSelect
 
-*Since: 20220903-194523-3bb1ed61*
+{{since('20220903-194523-3bb1ed61')}}
 
 Activates *Character Selection Mode*, which is a pop-over modal that allows you
 to browse characters by category as well as fuzzy search by name or hex unicode

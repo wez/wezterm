@@ -39,6 +39,7 @@ More complex configurations that need to span multiple files can be placed in
 `$XDG_CONFIG_HOME/wezterm/wezterm.lua` (for X11/Wayland) or
 `$HOME/.config/wezterm/wezterm.lua` (for all other systems).
 
+{% raw %}
 ```mermaid
 graph TD
   X[Locate Configuration file] --> A{{--config-file CLI argument specified?}}
@@ -56,6 +57,7 @@ graph TD
   K -->|Yes| B
   K -->|No| J[Use $HOME/.wezterm.lua]
 ```
+{% endraw %}
 
 Prior to version 20210314-114017-04b7cedd, if the candidate file exists but
 failed to parse, wezterm would treat it as though it didn't exist and continue
@@ -84,7 +86,7 @@ to force the configuration to be reloaded.
 
 ### Configuration Overrides
 
-*since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 `wezterm` allows overriding configuration values via the command line; here are
 a couple of examples:

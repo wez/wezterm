@@ -1,6 +1,6 @@
 # window:mux_window()
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns the [MuxWindow](../mux-window/index.md) representation of this window.
 

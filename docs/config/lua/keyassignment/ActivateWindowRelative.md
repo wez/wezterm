@@ -1,6 +1,6 @@
 # ActivateWindowRelative(delta)
 
-*since: nightly builds only*
+{{since('20230320-124340-559cb7b0')}}
 
 Activates a GUI window relative to the current window.
 

@@ -1,6 +1,6 @@
 # pane:mux_pane()
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 *Deprecated Since: 20221119-145034-49b9839f*
 

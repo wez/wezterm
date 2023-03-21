@@ -1,6 +1,6 @@
 ## `color:adjust_hue_fixed_ryb(degrees)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Adjust the hue angle by the specified number of degrees.
 

@@ -1,6 +1,6 @@
 # wezterm.enumerate_ssh_hosts(\[ssh_config_file_name, ...\])
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 This function will parse your ssh configuration file(s) and extract from them
 the set of literal (non-pattern, non-negated) host names that are specified in

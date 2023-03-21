@@ -1,6 +1,6 @@
 ### warn_about_missing_glyphs = true
 
-*Since: 20210502-130208-bff6815d*
+{{since('20210502-130208-bff6815d')}}
 
 When set to true, if a glyph cannot be found for a given codepoint, then
 the configuration error window will be shown with a pointer to the font

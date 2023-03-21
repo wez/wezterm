@@ -1,6 +1,6 @@
 # `wezterm.glob(pattern [, relative_to])`
 
-*Since: 20200503-171512-b13ef15f*
+{{since('20200503-171512-b13ef15f')}}
 
 This function evalutes the glob `pattern` and returns an array containing the
 absolute file names of the matching results.  Due to limitations in the lua

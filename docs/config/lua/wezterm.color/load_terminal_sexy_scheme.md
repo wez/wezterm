@@ -1,6 +1,6 @@
 # `wezterm.color.load_terminal_sexy_scheme(file_name)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Loads a json file exported from [terminal.sexy](https://terminal.sexy/)
 and returns it as a wezterm color scheme.

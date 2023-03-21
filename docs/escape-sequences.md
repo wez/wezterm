@@ -198,9 +198,9 @@ It is valid to omit the code number; for example `CSI m` is equivalent to `CSI
 |53  |OverlineOn|Renders text with a single overline/overbar|
 |55  |OverlineOff|Cancels OverlineOn|
 |59  |UnderlineColorDefault|Resets the underline color to default, which is to match the foreground color|
-|73  |VerticalAlignSuperScript|Adjusts the baseline of the text so that it renders as superscript (*Since: 20221119-145034-49b9839f*)|
-|74  |VerticalAlignSubScript|Adjusts the baseline of the text so that it renders as subscript (*Since: 20221119-145034-49b9839f*)|
-|75  |VerticalAlignBaseLine|Reset the baseline of the text to normal (*Since: 20221119-145034-49b9839f*)|
+|73  |VerticalAlignSuperScript|Adjusts the baseline of the text so that it renders as superscript {{since('20221119-145034-49b9839f', inline=True)}}|
+|74  |VerticalAlignSubScript|Adjusts the baseline of the text so that it renders as subscript {{since('20221119-145034-49b9839f', inline=True)}}|
+|75  |VerticalAlignBaseLine|Reset the baseline of the text to normal {{since('20221119-145034-49b9839f', inline=True)}}|
 |90  |ForegroundBrightBlack|Sets the foreground color to Bright Black, which is palette index 8|
 |91  |ForegroundBrightRed|Sets the foreground color to Bright Red, which is palette index 9|
 |92  |ForegroundBrightGreen|Sets the foreground color to Bright Green, which is palette index 10|
@@ -278,7 +278,7 @@ CSI 38 : 2 : R : G : B m
 
 ##### CSI 38:6 - foreground color: RGBA
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
@@ -306,7 +306,7 @@ CSI 48 : 2 : R : G : B m
 
 ##### CSI 48:6 - background color: RGBA
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
@@ -334,7 +334,7 @@ CSI 58 : 2 : R : G : B m
 
 ##### CSI 58:6 - underline color: RGBA
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This is a wezterm extension: wezterm considers color mode `6` as RGBA,
 allowing you to specify the alpha channel in addition to the RGB channels.
@@ -349,7 +349,7 @@ CSI 58 : 6 : : R : G : B : A m
 
 #### Mode Functions
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 WezTerm supports [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036).
 DECSET 2026 is set to batch (hold) rendering until DECSET 2026 is reset to flush the queued screen data.

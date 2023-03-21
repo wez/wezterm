@@ -1,6 +1,6 @@
 # `wezterm.time.parse_rfc3339(str)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Parses a string that is formatted according to [RFC
 3339](https://datatracker.ietf.org/doc/html/rfc3339) and returns a

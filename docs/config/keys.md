@@ -64,7 +64,7 @@ Pay attention to the case of the text that you use and the state of the `SHIFT` 
 
 ### Physical vs Mapped Key Assignments
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 The `key` value can refer either to the physical position of a key on an ANSI
 US keyboard or to the post-keyboard-layout-mapped value produced by a key
@@ -89,7 +89,7 @@ your config, you will need to change it to either
 `{key="N", mods="CMD|SHIFT", ..}` or `{key="mapped:N", mods="CMD", ..}`
 in order to continue to respect the `SHIFT` modifier.
 
-*Since: 20220408-101518-b908e2dd*
+{{since('20220408-101518-b908e2dd')}}
 
 A new `key_map_preference` option controls how keys without an explicit `phys:`
 or `mapped:` prefix are treated. If `key_map_preference = "Mapped"` (the
@@ -117,7 +117,7 @@ rather than one of the other key values.
 
 ### Leader Key
 
-*Since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 A *leader* key is a a modal modifier key.  If leader is specified in the
 configuration then pressing that key combination will enable a virtual `LEADER`
@@ -157,7 +157,7 @@ config.keys = {
 
 ### VoidSymbol
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 On X11 systems, If you decide to change certain keys on the keyboard to
 `VoidSymbol` (like `CapsLock`), then you can utilize it as a `LEADER` or any

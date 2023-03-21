@@ -1,6 +1,6 @@
 # `wezterm.battery_info()`
 
-*Since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 This function returns battery information for each of the installed
 batteries on the system.  This is useful for example to assemble

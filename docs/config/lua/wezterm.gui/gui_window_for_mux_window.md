@@ -1,6 +1,6 @@
 # `wezterm.gui.gui_window_for_mux_window(window_id)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Attempts to resolve a mux window to its corresponding [Gui Window](../window/index.md).
 

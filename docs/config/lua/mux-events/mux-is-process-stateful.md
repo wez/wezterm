@@ -1,6 +1,6 @@
 # `mux-is-process-stateful`
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 The `mux-is-process-stateful` event is emitted when the multiplexer layer wants
 to determine whether a given Pane can be closed without prompting the user.

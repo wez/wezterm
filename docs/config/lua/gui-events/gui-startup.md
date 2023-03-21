@@ -1,6 +1,6 @@
 # `gui-startup`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 The `gui-startup` event is emitted once when the GUI server is starting up
 when running the `wezterm start` subcommand.
@@ -19,7 +19,7 @@ This event fires before [gui-attached](gui-attached.md).
 
 This event does not fire for `wezterm connect` invocations.
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 The event receives an optional [SpawnCommand](../SpawnCommand.md) argument that
 corresponds to any arguments that may have been passed via `wezterm start`.

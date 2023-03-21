@@ -1,6 +1,6 @@
 # ActivateLastTab
 
-*Since: 20210404-112810-b63a949d*
+{{since('20210404-112810-b63a949d')}}
 
 Activate the previously active tab. If there is none, it will do nothing.
 

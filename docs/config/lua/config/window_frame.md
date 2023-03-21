@@ -1,6 +1,6 @@
 # window_frame
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 This setting is applicable primarily on Wayland systems when client side
 decorations are in use.
@@ -24,7 +24,7 @@ config.window_frame = {
 }
 ```
 
-*Since: 20220903-194523-3bb1ed61*
+{{since('20220903-194523-3bb1ed61')}}
 
 You may explicitly add a border around the window area:
 

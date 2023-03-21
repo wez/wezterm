@@ -1,6 +1,6 @@
 # SendKey
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 Send the specified key press to the current pane.  This is useful to rebind
 the effect of a key combination.

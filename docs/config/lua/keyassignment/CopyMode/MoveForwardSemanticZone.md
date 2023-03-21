@@ -1,6 +1,6 @@
 # CopyMode 'MoveForewardSemanticZone'
 
-*Since: 20220903-194523-3bb1ed61*
+{{since('20220903-194523-3bb1ed61')}}
 
 Moves the CopyMode cursor position one semantic zone to the right.
 

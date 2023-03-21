@@ -1,6 +1,6 @@
 # `wezterm.gui.screens()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns information about the screens connected to the system.
 
@@ -52,4 +52,4 @@ The screen information is a table with the following keys:
 
 * `name` - the name of the screen.
 * `x`, `y`, `width`, `height` - the bounds of this screen
-* `max_fps` - the maximum refresh rate supported by the screen, if known, or `nil` otherwise. (*Since: 20220903-194523-3bb1ed61*)
+* `max_fps` - the maximum refresh rate supported by the screen, if known, or `nil` otherwise. {{since('20220903-194523-3bb1ed61', inline=True)}}

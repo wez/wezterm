@@ -1,6 +1,6 @@
 # wezterm.truncate_left(string, max_width)
 
-*Since: 20210502-130208-bff6815d*
+{{since('20210502-130208-bff6815d')}}
 
 Returns a copy of `string` that is no longer than `max_width` columns
 (as measured by [wezterm.column_width](column_width.md)).

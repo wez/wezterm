@@ -1,6 +1,6 @@
 # `wezterm.emit(event_name, args...)`
 
-*Since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 `wezterm.emit` resolves the registered callback(s) for the specified
 event name and calls each of them in turn, passing the additional

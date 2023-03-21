@@ -1,6 +1,6 @@
 # `hide_mouse_cursor_when_typing`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 If `true`, the mouse cursor will be hidden when typing, if your mouse cursor is
 hovering over the window.

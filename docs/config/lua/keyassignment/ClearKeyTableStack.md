@@ -1,6 +1,6 @@
 # ClearKeyTableStack
 
-*Since: 20220408-101518-b908e2dd*
+{{since('20220408-101518-b908e2dd')}}
 
 Clears the entire key table stack.
 

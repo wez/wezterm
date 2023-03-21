@@ -1,6 +1,6 @@
 ## quote_dropped_files = "SpacesOnly"
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Controls how file names are quoted (or not) when dragging and dropping.
 There are five possible values:

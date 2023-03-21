@@ -1,6 +1,6 @@
 # DetachDomain(domain)
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Attempts to detach the specified domain.  Detaching a domain causes
 it to disconnect and remove its set of windows, tabs and panes from

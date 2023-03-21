@@ -1,6 +1,6 @@
 # `selection_word_boundary`
 
-*Since: 20210203-095643-70a364eb*
+{{since('20210203-095643-70a364eb')}}
 
 Configures the boundaries of a word, thus what is selected when doing
 a word selection with the mouse.

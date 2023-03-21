@@ -1,6 +1,6 @@
 # tab:set_zoomed(bool)
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Sets the zoomed state for the active pane within this tab.
 

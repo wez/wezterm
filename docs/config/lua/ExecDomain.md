@@ -1,6 +1,6 @@
 # ExecDomain
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 An `ExecDomain` defines a local-execution multiplexer domain. In simple terms,
 rather than directly executing the requested program, an `ExecDomain` allows
@@ -149,6 +149,7 @@ return config
 Fully working example is yet to be completely fleshed out (volunteers welcome!) but the
 gist of it is:
 
+{% raw %}
 ```lua
 local wezterm = require 'wezterm'
 local config = {}
@@ -205,6 +206,7 @@ end
 config.exec_domains = exec_domains
 return config
 ```
+{% endraw %}
 
 With something like the config above, each time the config is reloaded, the
 list of available domains will be updated.

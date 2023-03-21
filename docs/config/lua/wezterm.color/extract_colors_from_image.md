@@ -1,6 +1,6 @@
 # `wezterm.color.extract_colors_from_image(filename [,params])`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This function loads an image from the specified filename and analyzes it to
 determine a set of distinct colors present in the image, ordered by how often a

@@ -1,6 +1,6 @@
 # `wezterm.color.load_base16_scheme(file_name)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Loads a yaml file in [base16](https://github.com/chriskempson/base16) format
 and returns it as a wezterm color scheme.

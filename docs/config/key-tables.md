@@ -1,4 +1,4 @@
-*Since: 20220408-101518-b908e2dd*
+{{since('20220408-101518-b908e2dd')}}
 
 In addition to the default key table defined by the `keys` configuration
 option, `wezterm` supports defining additional named key tables using the
@@ -120,7 +120,7 @@ The stack is also cleared when the configuration is reloaded, so if you're
 working on a complex key table setup and get stuck, you may be able to unstick
 yourself by re-saving your wezterm configuration to trigger a reload.
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 When resolving a key assignment, the top of stack is first searched for a match,
 and if one is not found, the next entry on the stack is searched and so on until a match is found.

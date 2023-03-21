@@ -8,6 +8,7 @@ repo_name: wez/wezterm
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: gh_pages
+strict: true
 theme:
   name: material
   logo: favicon.svg
@@ -49,7 +50,10 @@ theme:
     - toc.follow
 plugins:
   - include-markdown
-  - search
+  - macros:
+      module_name: mkdocs_macros
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])'
   - social:
       cards: !ENV [CARDS, false]
   #- git-revision-date-localized:
@@ -65,7 +69,6 @@ plugins:
         - "SUMMARY.md"
         - "book.toml"
         - "overrides/**"
-        - "_snippets/**"
 
 extra_css:
   - style.css
@@ -96,10 +99,6 @@ markdown_extensions:
   - pymdownx.pathconverter:
       base_path: "./docs"
   - pymdownx.inlinehilite
-  - pymdownx.snippets:
-      base_path:
-        - "./docs/_snippets"
-      check_paths: true
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg

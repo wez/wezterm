@@ -1,6 +1,6 @@
 # ssh_backend = "libssh"
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 Sets which ssh backend should be used by default for the integrated ssh client.
 

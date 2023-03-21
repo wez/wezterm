@@ -1,6 +1,6 @@
 # `window:current_event()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns the current event.
 For now only implemented for mouse events.

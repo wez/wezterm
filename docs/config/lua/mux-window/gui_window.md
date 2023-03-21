@@ -1,6 +1,6 @@
 # `window:gui_window()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Attempts to resolve this mux window to its corresponding [Gui Window](../window/index.md).
 

@@ -1,6 +1,6 @@
 # mux_env_remove
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 Specifies a list of environment variables that should be removed
 from the environment in the multiplexer server.

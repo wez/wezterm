@@ -1,6 +1,6 @@
 # wezterm.gradient_colors(gradient, num_colors)
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 Given a gradient spec and a number of colors, returns a table
 holding that many colors spaced evenly across the range of
@@ -20,7 +20,7 @@ This example is what you'd see if you opened up the [debug overlay](../keyassign
 ["#6e40aa", "#ff8c38", "#5dea8d", "#6e40aa"]
 ```
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This function has moved to
 [wezterm.color.gradient](../wezterm.color/gradient.md) and that name

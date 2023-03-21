@@ -1,6 +1,6 @@
 # AttachDomain(domain_name)
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Attempts to attach the named multiplexing domain.  The name can be any of the
 names used in you `ssh_domains`, `unix_domains` or `tls_clients`

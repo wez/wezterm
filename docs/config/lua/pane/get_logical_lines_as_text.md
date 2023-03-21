@@ -1,6 +1,6 @@
 # `pane:get_logical_lines_as_text([nlines])`
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 Returns the textual representation (not including color or other attributes) of
 the *logical* lines of text in the viewport as a string.

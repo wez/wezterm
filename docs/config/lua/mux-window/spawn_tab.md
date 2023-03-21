@@ -1,6 +1,6 @@
 ## `window:spawn_tab{}`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Spawns a program into a new tab within this window, returning the
 [MuxTab](../MuxTab/index.md), [Pane](../pane/index.md) and
