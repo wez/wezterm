@@ -46,26 +46,26 @@ range of Linux distributions.
 
 Download and make the file executable and you're ready to run!
 
-[AppImage :material-tray-arrow-down:]({{ ubuntu18_AppImage_stable }}){ .md-button }
-[Nightly AppImage :material-tray-arrow-down:]({{ ubuntu18_AppImage_nightly }}){ .md-button }
+[AppImage :material-tray-arrow-down:]({{ ubuntu20_AppImage_stable }}){ .md-button }
+[Nightly AppImage :material-tray-arrow-down:]({{ ubuntu20_AppImage_nightly }}){ .md-button }
 
 ```console
-$ curl -LO {{ ubuntu18_AppImage_stable }}
-$ chmod +x {{ ubuntu18_AppImage_stable_asset }}
+$ curl -LO {{ ubuntu20_AppImage_stable }}
+$ chmod +x {{ ubuntu20_AppImage_stable_asset }}
 ```
 
 You may then execute the appimage directly to launch wezterm, with no
 specific installation steps required:
 
 ```console
-$ ./{{ ubuntu18_AppImage_stable_asset }}
+$ ./{{ ubuntu20_AppImage_stable_asset }}
 ```
 
 That said, you may wish to make it a bit more convenient:
 
 ```console
 $ mkdir ~/bin
-$ mv ./{{ ubuntu18_AppImage_stable_asset }} ~/bin/wezterm
+$ mv ./{{ ubuntu20_AppImage_stable_asset }} ~/bin/wezterm
 $ ~/bin/wezterm
 ```
 
@@ -81,7 +81,6 @@ you can try the AppImage download which should work on most Linux systems.
 
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
-|Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |No longer supported|
 |Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
 |Ubuntu22    |[{{ ubuntu22_deb_stable_asset }}]({{ ubuntu22_deb_stable }}) |[{{ ubuntu22_deb_nightly_asset }}]({{ ubuntu22_deb_nightly }})|
 |Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
@@ -110,8 +109,6 @@ on most Linux systems.
 |CentOS7     |[{{ centos7_rpm_stable_asset }}]({{ centos7_rpm_stable }}) |[{{ centos7_rpm_nightly_asset }}]({{ centos7_rpm_nightly }})|
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
 |CentOS9     |[{{ centos9_rpm_stable_asset }}]({{ centos9_rpm_stable }})|[{{ centos9_rpm_nightly_asset }}]({{ centos9_rpm_nightly }})|
-|Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |No longer provided|
-|Fedora34    |[{{ fedora34_rpm_stable_asset }}]({{ fedora34_rpm_stable }}) |No longer provided|
 |Fedora35    |[{{ fedora35_rpm_stable_asset }}]({{ fedora35_rpm_stable }}) |[{{ fedora35_rpm_nightly_asset }}]({{ fedora35_rpm_nightly }})|
 |Fedora36    |[{{ fedora36_rpm_stable_asset }}]({{ fedora36_rpm_stable }})|[{{ fedora36_rpm_nightly_asset }}]({{ fedora36_rpm_nightly }})|
 |Fedora37    |Nightly builds only |[{{ fedora37_rpm_nightly_asset }}]({{ fedora37_rpm_nightly }})|
@@ -155,9 +152,6 @@ APKs are built out from the `main` branch.
 
 |Version | Stable        | Nightly |
 |--------|---------------|---------|
-| 3.12   |[{{ alpine3_12_apk_stable_asset }}]({{ alpine3_12_apk_stable }})|no longer provided|
-| 3.13   |[{{ alpine3_13_apk_stable_asset }}]({{ alpine3_13_apk_stable }})|no longer provided|
-| 3.14   |[{{ alpine3_14_apk_stable_asset }}]({{ alpine3_14_apk_stable }})|no longer provided|
 | 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|[{{ alpine3_15_apk_nightly_asset }}]({{ alpine3_15_apk_nightly }})|
 
 ## Linuxbrew Tap
