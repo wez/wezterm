@@ -387,6 +387,7 @@ impl super::TermWindow {
                     if res.is_ok() {
                         if is_down
                             && !keycode.is_modifier()
+                            && *keycode != KeyCode::CapsLock
                             && self.pane_state(pane.pane_id()).overlay.is_none()
                         {
                             self.maybe_scroll_to_bottom_for_input(&pane);
