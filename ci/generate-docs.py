@@ -211,15 +211,6 @@ class GenColorScheme(object):
             by_prefix[prefix].append(scheme)
             by_name[scheme["name"]] = scheme
 
-        def scheme_link(name):
-            if name in by_name:
-                scheme = by_name[name]
-                prefix = scheme["prefix"]
-                ident = scheme["ident"]
-                return f"../{prefix}/index.md#{ident}"
-            else:
-                return None
-
         style_filename = f"{self.dirname}/scheme.css"
         with open(style_filename, "w") as style_file:
             for scheme in by_name.values():
@@ -285,11 +276,7 @@ function load_scheme_player(ident) {{
                     if len(aliases) > 0:
                         alias_list = []
                         for a in aliases:
-                            alias_link = scheme_link(a)
-                            if alias_link:
-                                alias_list.append(f"[{a}]({alias_link})")
-                            else:
-                                alias_list.append(f"`{a}`")
+                            alias_list.append(f"`{a}`")
                         aliases = ", ".join(alias_list)
                         idx.write(f"This scheme is also known as {aliases}.<br/>\n")
 
