@@ -1,7 +1,7 @@
 use crate::domain::DomainId;
 use crate::pane::*;
 use crate::renderable::StableCursorPosition;
-use crate::{Mux, WindowId};
+use crate::{Mux, MuxNotification, WindowId};
 use bintree::PathBranch;
 use config::configuration;
 use config::keyassignment::PaneDirection;
@@ -1417,6 +1417,8 @@ impl TabInner {
         if let Some(panel_idx) = self.get_pane_direction(direction, false) {
             self.set_active_idx(panel_idx);
         }
+        let mux = Mux::get();
+        mux.notify(MuxNotification::WindowInvalidated(self.id));
     }
 
     fn get_pane_direction(&mut self, direction: PaneDirection, ignore_zoom: bool) -> Option<usize> {
