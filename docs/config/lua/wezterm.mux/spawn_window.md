@@ -77,7 +77,7 @@ wezterm.mux.spawn_window { workspace = { 'coding' } }
 
 ### position
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Specify the initial position for the GUI window that will be created to display
 this mux window.

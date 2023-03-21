@@ -1,6 +1,6 @@
 # wezterm.config_builder()
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Returns a config builder object that can be used to define your configuration:
 

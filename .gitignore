@@ -57,3 +57,4 @@ dhat-heap.json
 .idea/
 /winget-pkgs
 /assets/flatpak/generated-sources.json
+/__pycache__/

@@ -1,6 +1,6 @@
 # `wezterm.mux.set_default_domain(MuxDomain)`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Assign a new default domain in the mux.
 

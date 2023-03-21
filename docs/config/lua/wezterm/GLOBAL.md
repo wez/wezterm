@@ -1,6 +1,6 @@
 # `wezterm.GLOBAL`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Provides global, in-process, in-memory, data storage for json-like variables
 that persists across config reloads.
@@ -66,7 +66,7 @@ tab_titles['T0'] = 'Test'
 wezterm.GLOBAL.tab_titles = tab_titles
 ```
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 You no longer need to split apart read/modify/write and the simple assignment
 now works as you would expect:

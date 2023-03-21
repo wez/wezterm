@@ -13,7 +13,7 @@ The value is a list of rule entries. Each entry has the following fields:
   the first capture group.  In the example below, `mailto:$0` is
   used to prefix a protocol to the text to make it into an URL.
 
---8<-- "nightly-only-inline.md"
+{{since('20230320-124340-559cb7b0', inline=True)}}
     * `highlight` - specifies the range of the matched text that should be
       highlighted/underlined when the mouse hovers over the link.  The value is
       a number that corresponds to a capture group in the regex.  The default

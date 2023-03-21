@@ -8,7 +8,7 @@ On other systems, this behaves identically to [Paste](Paste.md).
 This action is considered to be deprecated and will be removed in
 a future release; please use [PasteFrom](PasteFrom.md) instead.
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 This action has been removed. Please use [PasteFrom](PasteFrom.md) instead.
 

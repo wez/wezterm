@@ -1,6 +1,6 @@
 # `pane:get_semantic_zones([zone_type])`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 When *zone_type* is omitted, returns the list of all semantic zones defined in the pane.
 

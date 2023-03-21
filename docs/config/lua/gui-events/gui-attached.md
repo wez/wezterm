@@ -1,6 +1,6 @@
 # `gui-attached`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 This event is triggered when the GUI is starting up after attaching the
 selected domain.  For example, when you use `wezterm connect DOMAIN` or

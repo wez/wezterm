@@ -149,6 +149,7 @@ return config
 Fully working example is yet to be completely fleshed out (volunteers welcome!) but the
 gist of it is:
 
+{% raw %}
 ```lua
 local wezterm = require 'wezterm'
 local config = {}
@@ -205,6 +206,7 @@ end
 config.exec_domains = exec_domains
 return config
 ```
+{% endraw %}
 
 With something like the config above, each time the config is reloaded, the
 list of available domains will be updated.

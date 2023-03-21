@@ -1,6 +1,6 @@
 # `pane:get_semantic_zone_at(x, y)`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Resolves the semantic zone that encapsulates the supplied *x* and *y* coordinates.
 

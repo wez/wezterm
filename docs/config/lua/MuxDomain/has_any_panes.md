@@ -1,6 +1,6 @@
 # `domain:has_any_panes()`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Returns `true` if the mux has any panes that belong to this domain.
 

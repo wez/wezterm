@@ -24,6 +24,7 @@ local Pane. If no `cwd` can be resolved, then the `default_cwd` will be used.
 If `default_cwd` is not specified, then the home directory of the user will be
 used.
 
+{% raw %}
 ```mermaid
 graph TD
     X[Determine current working directory for new pane] --> A{{Is initial window?}}
@@ -42,6 +43,7 @@ graph TD
     L -->|No| F
 
 ```
+{% endraw %}
 
 On macOS and Linux, `wezterm` can attempt to resolve the process group leader
 and then attempt to resolve its current working directory. This is not

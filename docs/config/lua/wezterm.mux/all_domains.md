@@ -1,6 +1,6 @@
 # `wezterm.mux.all_domains()`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Returns an array table holding all of the known
 [MuxDomain](../MuxDomain/index.md) objects.

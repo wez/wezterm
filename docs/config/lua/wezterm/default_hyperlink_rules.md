@@ -1,6 +1,6 @@
 # `wezterm.default_hyperlink_rules()`
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 Returns the compiled-in default values for [hyperlink_rules](../config/hyperlink_rules.md).
 

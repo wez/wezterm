@@ -1,6 +1,6 @@
 # `wezterm.time.call_after(interval_seconds, function)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Arranges to call your callback function after the specified number of seconds
 have elapsed.
@@ -36,6 +36,6 @@ With great power comes great responsibility: if you schedule a lot of frequent
 callbacks, or frequently reload your configuration in this way, you may
 increase the CPU load on your system because you are asking it to work harder.
 
---8<-- "nightly-only.md"
+{{since('20230320-124340-559cb7b0')}}
 
 You can use fractional seconds to delay by more precise intervals.

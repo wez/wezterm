@@ -37,6 +37,7 @@ And then some wezterm concepts:
 
 This schematic depicts the processing flow for keyboard events in `wezterm`:
 
+{% raw %}
 ```mermaid
 flowchart TD
 A[OS Generates a Key Event]
@@ -72,6 +73,7 @@ RAWDONE1 --> RAWDONE3[Perform assignment action]
 RAWDONE2 --> RAWDONE3
 
 ```
+{% endraw %}
 
 ## Alt / Option Key Behavior & Composed Keys
 
