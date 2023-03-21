@@ -1,5 +1,10 @@
 #!/bin/bash
 
+SERVE=no
+if [ "$1" == "serve" ] ; then
+  SERVE=yes
+fi
+
 for util in mdbook-linkcheck gelatyx ; do
   if ! hash $util 2>/dev/null ; then
     cargo install $util --locked
@@ -55,7 +60,8 @@ cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
 mkdir -p docs/fonts
 cp assets/fonts/Symbols-Nerd-Font-Mono.ttf docs/fonts/
 
-mkdocs build
-
-# mdbook-mermaid install docs
-# mdbook build docs
+if [ "$SERVE" == "yes" ] ; then
+  mkdocs "$@"
+else
+  mkdocs build
+fi
