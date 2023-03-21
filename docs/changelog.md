@@ -17,7 +17,8 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-#### Not Yet
+#### Fixed
+* ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
 
 ### 20230320-124340-559cb7b0
 
