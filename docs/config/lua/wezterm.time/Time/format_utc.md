@@ -1,6 +1,6 @@
 # `Time:format_utc(format)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Formats the time object as a string, using UTC date/time representation of the time.
 

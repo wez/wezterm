@@ -1,6 +1,6 @@
 # ActivatePaneByIndex
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 `ActivatePaneByIndex` activates the pane with the specified index within
 the current tab.  Invalid indices are ignored.

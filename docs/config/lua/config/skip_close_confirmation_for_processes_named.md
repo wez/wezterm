@@ -1,6 +1,6 @@
 # skip_close_confirmation_for_processes_named
 
-*Since: 20210404-112810-b63a949d*
+{{since('20210404-112810-b63a949d')}}
 
 This configuration specifies a list of process names that are
 considered to be "stateless" and that are safe to close without

@@ -1,6 +1,6 @@
 # `pane:is_alt_screen_active()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns whether the alternate screen is active for the pane.
 

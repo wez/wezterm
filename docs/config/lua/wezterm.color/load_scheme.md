@@ -1,6 +1,6 @@
 # `wezterm.color.load_scheme(file_name)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Loads a wezterm color scheme from a TOML file.  This function
 returns a tuple of the the color definitions and the metadata:

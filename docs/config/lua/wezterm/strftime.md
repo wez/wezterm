@@ -1,6 +1,6 @@
 # `wezterm.strftime(format)`
 
-*Since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 Formats the current local date/time into a string using [the Rust chrono
 strftime syntax](https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html).

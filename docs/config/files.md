@@ -86,7 +86,7 @@ to force the configuration to be reloaded.
 
 ### Configuration Overrides
 
-*since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 `wezterm` allows overriding configuration values via the command line; here are
 a couple of examples:

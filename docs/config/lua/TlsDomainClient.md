@@ -68,7 +68,7 @@ config.tls_domains = {
 }
 ```
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 You may now specify the round-trip latency threshold for enabling predictive
 local echo using `local_echo_threshold_ms`. If the measured round-trip latency
@@ -88,7 +88,7 @@ config.tls_domains = {
 }
 ```
 
-*Since: 20221119-145034-49b9839f*
+{{since('20221119-145034-49b9839f')}}
 
 The lag indicator now defaults to disabled. It is recommended to display
 the lag information in your status bar using [this

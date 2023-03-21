@@ -4,7 +4,7 @@ Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of `Cell`, `Word` or `Line` to control
 the scope of the selection.
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 The mode argument can also be `"Block"` to enable a rectangular block selection.
 

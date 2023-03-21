@@ -1,4 +1,4 @@
-*since: 20200607-144723-74889cd4*
+{{since('20200607-144723-74889cd4')}}
 
 Copy mode allows you to make selections using the keyboard; no need to reach
 for your mouse or trackpad.  Copy mode is similar to [quick select
@@ -34,7 +34,7 @@ The default key assignments in copy mode are as follows:
 |                | <kbd>q</kbd>        |
 | Cell selection | <kbd>v</kbd> |
 | Line selection | <kbd>Shift</kbd> + <kbd>V</kbd> |
-| Rectangular selection | <kbd>Ctrl</kbd> + <kbd>V</kbd> (*since: 20220624-141144-bd1b7c5d*)|
+| Rectangular selection | <kbd>Ctrl</kbd> + <kbd>V</kbd> {{since('20220624-141144-bd1b7c5d', inline=True)}}|
 | Move Left      | <kbd>LeftArrow</kbd> |
 |                | <kbd>h</kbd>        |
 | Move Down      | <kbd>DownArrow</kbd> |
@@ -51,7 +51,7 @@ The default key assignments in copy mode are as follows:
 |                       | <kbd>Alt</kbd> + <kbd>B</kbd>         |
 |                       | <kbd>Shift</kbd> + <kbd>Tab</kbd>     |
 |                       | <kbd>b</kbd>             |
-| Move forward one word end    | <kbd>e</kbd> (*since: nightly builds only*)|
+| Move forward one word end    | <kbd>e</kbd> {{since('20230320-124340-559cb7b0', inline=True)}}|
 | Move to start of this line     | <kbd>0</kbd> |
 |                                | <kbd>Home</kbd> |
 | Move to start of next line     | <kbd>Enter</kbd> |
@@ -66,16 +66,16 @@ The default key assignments in copy mode are as follows:
 | Move to bottom of viewport     | <kbd>Shift</kbd> + <kbd>L</kbd> |
 | Move up one screen             | <kbd>PageUp</kbd> |
 |                                | <kbd>Ctrl</kbd> + <kbd>B</kbd> |
-| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> (*since: nightly builds only*)|
+| Move up half a screen          | <kbd>Ctrl</kbd> + <kbd>U</kbd> {{since('20230320-124340-559cb7b0', inline=True)}}|
 | Move down one screen           | <kbd>PageDown</kbd> |
 |                                | <kbd>Ctrl</kbd> + <kbd>F</kbd>   |
-| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> (*since: nightly builds only*)|
+| Move down half a screen        | <kbd>Ctrl</kbd> + <kbd>D</kbd> {{since('20230320-124340-559cb7b0', inline=True)}}|
 | Move to other end of the selection| <kbd>o</kbd> |
 | Move to other end of the selection horizontally| <kbd>Shift</kbd> + <kbd>O</kbd> (useful in Rectangular mode) |
 
 ### Configurable Key Assignments
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 The key assignments for copy mode are specified by the `copy_mode` [Key Table](config/key-tables.md).
 

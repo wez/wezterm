@@ -102,7 +102,7 @@ enable
 
 ### macOS Left and Right Option Key
 
-*since: 20200620-160318-e00b076c*
+{{since('20200620-160318-e00b076c')}}
 
 The default behavior is to treat the left `Option` key as the `Alt` modifier
 with no composition effects, while the right `Option` key performs composition
@@ -115,7 +115,7 @@ config.send_composed_key_when_left_alt_is_pressed = false
 config.send_composed_key_when_right_alt_is_pressed = true
 ```
 
-*since: 20210203-095643-70a364eb*
+{{since('20210203-095643-70a364eb')}}
 
 WezTerm is now able to perform dead-key expansion when `use_ime = false`.  Dead
 keys are treated as composition effects, so with the default settings of
@@ -137,7 +137,7 @@ some operating systems.
 
 ### Dead Keys
 
-*since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 By default, if you are using a layout with *dead keys* (eg: US International
 layout, or a number of European layouts such as German or French) pressing

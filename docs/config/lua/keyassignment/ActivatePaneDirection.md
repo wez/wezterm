@@ -1,6 +1,6 @@
 # ActivatePaneDirection
 
-*Since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 `ActivatePaneDirection` activate an adjacent pane in the specified direction.
 In cases where there are multiple adjacent panes in the intended direction,
@@ -39,7 +39,7 @@ config.keys = {
 return config
 ```
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 You may now use `"Next"` and `"Prev"` as directions.  These cycle
 through the panes according to their position in the pane tree.
@@ -50,7 +50,7 @@ if the active pane is already the highest pane index.
 `"Prev"` moves to the next lowest pane index, wrapping around to
 the highest of the active pane is already the lowest pane index.
 
-*Since: 20220903-194523-3bb1ed61*
+{{since('20220903-194523-3bb1ed61')}}
 
 Ambiguous moves are now resolved by selecting the most recently activated pane
 in a given direction, instead of based on the edge intersection.

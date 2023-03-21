@@ -1,6 +1,6 @@
 # `ShowDebugOverlay`
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 Overlays the current tab with the debug overlay, which is a combination
 of a debug log and a lua [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop).

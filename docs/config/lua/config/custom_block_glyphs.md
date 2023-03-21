@@ -1,6 +1,6 @@
 ## `custom_block_glyphs = true`
 
-*Since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 When set to `true` (the default), WezTerm will compute its own idea of what the glyphs
 in the following unicode ranges should be, instead of using glyphs resolved from a font.

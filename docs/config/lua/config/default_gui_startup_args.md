@@ -1,6 +1,6 @@
 # `default_gui_startup_args = {"start"}`
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 When launching the GUI using either `wezterm` or `wezterm-gui` (with no
 subcommand explicitly specified), wezterm will use the value of

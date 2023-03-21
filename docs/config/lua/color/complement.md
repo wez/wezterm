@@ -1,6 +1,6 @@
 ## `color:complement()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Returns the complement of the color. The complement is computed
 by converting to HSL, rotating by 180 degrees and converting back

@@ -1,6 +1,6 @@
 # `wezterm.read_dir(path)`
 
-*Since: 20200503-171512-b13ef15f*
+{{since('20200503-171512-b13ef15f')}}
 
 This function returns an array containing the absolute file names of the
 directory specified.  Due to limitations in the lua bindings, all of the paths

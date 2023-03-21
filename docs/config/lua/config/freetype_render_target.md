@@ -1,6 +1,6 @@
 # `freetype_render_target = "Normal"`
 
-*Since: 20210502-130208-bff6815d*
+{{since('20210502-130208-bff6815d')}}
 
 Configures the *rendering* mode used with the freetype rasterizer.
 

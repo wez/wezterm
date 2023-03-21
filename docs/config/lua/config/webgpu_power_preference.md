@@ -1,6 +1,6 @@
 # `webgpu_power_preference = "LowPower"`
 
-*Since: 20221119-145034-49b9839f*
+{{since('20221119-145034-49b9839f')}}
 
 Specifies the power preference when selecting a webgpu GPU instance.
 This option is only applicable when you have configured `front_end = "WebGpu"`.

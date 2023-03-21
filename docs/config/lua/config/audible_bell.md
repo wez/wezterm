@@ -1,6 +1,6 @@
 # audible_bell
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 When the BEL ascii sequence is sent to a pane, the bell is "rung" in that pane.
 

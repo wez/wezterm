@@ -1,6 +1,6 @@
 # CopyMode 'ClearSelectionMode'
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Clears the current CopyMode selection mode without leaving CopyMode.
 

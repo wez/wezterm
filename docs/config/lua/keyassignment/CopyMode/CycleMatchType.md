@@ -1,6 +1,6 @@
 # CopyMode 'CycleMatchType'
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Move the CopyMode/SearchMode cycle between case-sensitive, case-insensitive
 and regular expression match types.

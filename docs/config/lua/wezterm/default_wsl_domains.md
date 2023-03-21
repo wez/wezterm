@@ -1,6 +1,6 @@
 # wezterm.default_wsl_domains()
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Computes a list of [WslDomain](../WslDomain.md) objects, each one
 representing an installed

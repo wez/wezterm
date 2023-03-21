@@ -7,7 +7,7 @@ exist in your configuration file.
 
 ## Constructor Syntax
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 `wezterm.action` is a special enum constructor type that makes it bit
 more ergonomic to express the various actions than in earlier releases.

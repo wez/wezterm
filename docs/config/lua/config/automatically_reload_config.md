@@ -1,6 +1,6 @@
 # `automatically_reload_config`
 
-*Since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 When true (the default), watch the config file and reload it
 automatically when it is detected as changing.

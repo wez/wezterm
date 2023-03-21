@@ -1,6 +1,6 @@
 # SwitchWorkspaceRelative
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Switch to the workspace relative to the current workspace.  Workspaces are ordered
 lexicographically based on their names.

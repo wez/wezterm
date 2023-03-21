@@ -26,7 +26,7 @@ and preserves your tabs.
 The [ssh_backend](config/lua/config/ssh_backend.md) configuration can
 be used to specify which ssh library is used.
 
-*Since: 20210404-112810-b63a949d*
+{{since('20210404-112810-b63a949d')}}
 
 wezterm is now able to parse `~/.ssh/config` and `/etc/ssh/ssh_config`
 and respects the following options:
@@ -44,13 +44,13 @@ and respects the following options:
 All other options are parsed but have no effect.  Notably, neither `Match` or
 `Include` will do anything.
 
-*Since: 20210502-154244-3f7122cb:*
+{{since('20210502-154244-3f7122cb:')}}
 
 `Match` is now recognized but currently supports only single-phase (`final`,
 `canonical` are not supported) configuration parsing for `Host` and
 `LocalUser`.  `Exec` based matches are recognized but not supported.
 
-*Since: 20210814-124438-54e29167:*
+{{since('20210814-124438-54e29167:')}}
 
 `Include` is now supported.
 

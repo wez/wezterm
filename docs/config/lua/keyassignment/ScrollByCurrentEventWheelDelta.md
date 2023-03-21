@@ -1,6 +1,6 @@
 # ScrollByCurrentEventWheelDelta
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Adjusts the scroll position by the number of lines in the vertical mouse
 wheel delta field of the current mouse event, provided that it is a

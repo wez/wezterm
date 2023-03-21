@@ -1,6 +1,6 @@
 # window:active_workspace()
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Returns the name of the active workspace.
 

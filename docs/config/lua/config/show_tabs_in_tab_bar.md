@@ -1,6 +1,6 @@
 # `show_tabs_in_tab_bar = true`
 
-*Since: 20221119-145034-49b9839f*
+{{since('20221119-145034-49b9839f')}}
 
 When set to `true` (the default), the tab bar will display the tabs associated
 with the current window.

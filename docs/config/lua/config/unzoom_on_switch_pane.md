@@ -1,6 +1,6 @@
 # `unzoom_on_switch_pane = true`
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 If set to `false`, the 
 [`ActivatePaneDirection`](../keyassignment/ActivatePaneDirection.md) command

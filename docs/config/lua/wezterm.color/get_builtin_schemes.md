@@ -1,6 +1,6 @@
 # `wezterm.color.get_builtin_schemes()`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 (In earlier releases, you can use [wezterm.get_builtin_color_schemes()](../wezterm/get_builtin_color_schemes.md))
 

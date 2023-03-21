@@ -1,6 +1,6 @@
 # canonicalize_pasted_newlines
 
-*Since: 20211204-082213-a66c61ee9*
+{{since('20211204-082213-a66c61ee9')}}
 
 Controls whether pasted text will have newlines normalized.
 
@@ -11,12 +11,12 @@ The following values are accepted:
 
 |value|meaning|version|
 |-----|-------|---------------|
-|`true` |same as `"CarriageReturnAndLineFeed"`|*Since: 20211204-082213-a66c61ee9*|
-|`false` |same as `"None"`|*Since: 20211204-082213-a66c61ee9*|
-|`"None"` |The text is passed through unchanged|*Since: 20220319-142410-0fcdea07*|
-|`"LineFeed"` |Newlines of any style are rewritten as LF|*Since: 20220319-142410-0fcdea07*|
-|`"CarriageReturn"` |Newlines of any style are rewritten as CR|*Since: 20220319-142410-0fcdea07*|
-|`"CarriageReturnAndLineFeed"` |Newlines of any style are rewritten as CRLF|*Since: 20220319-142410-0fcdea07*|
+|`true` |same as `"CarriageReturnAndLineFeed"`|{{since('20211204-082213-a66c61ee9', inline=True)}}|
+|`false` |same as `"None"`|{{since('20211204-082213-a66c61ee9', inline=True)}}|
+|`"None"` |The text is passed through unchanged|{{since('20220319-142410-0fcdea07', inline=True)}}|
+|`"LineFeed"` |Newlines of any style are rewritten as LF|{{since('20220319-142410-0fcdea07', inline=True)}}|
+|`"CarriageReturn"` |Newlines of any style are rewritten as CR|{{since('20220319-142410-0fcdea07', inline=True)}}|
+|`"CarriageReturnAndLineFeed"` |Newlines of any style are rewritten as CRLF|{{since('20220319-142410-0fcdea07', inline=True)}}|
 
 Note that the string forms of these values are accepted in 20220319-142410-0fcdea07,
 however, `true` in all prior versions behaves the same way as

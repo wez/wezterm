@@ -279,7 +279,7 @@ function load_scheme_player(ident) {{
                         idx.write(f"Source: <{origin_url}><br/>\n")
                     version = scheme["metadata"].get("wezterm_version", None)
                     if version and version != "Always":
-                        idx.write(f"Since: *{version}*<br/>\n")
+                        idx.write(f"{{{{since('{version}')}}}}<br/>\n")
 
                     aliases = scheme["metadata"]["aliases"]
                     if len(aliases) > 1:

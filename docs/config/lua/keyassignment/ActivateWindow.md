@@ -1,6 +1,6 @@
 # ActivateWindow(n)
 
-*since: nightly builds only*
+{{since('20230320-124340-559cb7b0')}}
 
 Activates the *nth* GUI window, zero-based.
 

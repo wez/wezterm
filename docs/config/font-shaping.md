@@ -36,7 +36,7 @@ and you can set them in wezterm:
 config.harfbuzz_features = { 'zero' }
 ```
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 You can specify `harfbuzz_features` on a per-font basis, rather than
 globally for all fonts:

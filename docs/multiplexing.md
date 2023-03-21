@@ -129,7 +129,7 @@ config.unix_domains = {
 }
 ```
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 It is now possible to specify a `proxy_command` that will be used
 in place of making a direct unix connection.  When `proxy_command`
@@ -149,7 +149,7 @@ config.unix_domains = {
 }
 ```
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 You may now specify the round-trip latency threshold for enabling predictive
 local echo using `local_echo_threshold_ms`. If the measured round-trip latency

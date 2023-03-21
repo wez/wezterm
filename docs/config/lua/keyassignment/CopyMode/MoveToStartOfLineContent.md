@@ -1,6 +1,6 @@
 # CopyMode 'MoveToStartOfLineContent'
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Moves the CopyMode cursor position to the first non-space cell in the current
 line.

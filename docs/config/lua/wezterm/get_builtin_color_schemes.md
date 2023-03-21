@@ -1,6 +1,6 @@
 # `wezterm.get_builtin_color_schemes()`
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 Returns a lua table keyed by color scheme name and whose values are
 the color scheme definition of the builtin color schemes.
@@ -103,7 +103,7 @@ end)
 return {}
 ```
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 This function moved to
 [wezterm.color.get_builtin_schemes()](../wezterm.color/get_builtin_schemes.md)

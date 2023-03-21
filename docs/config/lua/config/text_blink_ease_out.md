@@ -1,6 +1,6 @@
 # text_blink_ease_out = "Linear"
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Specifies the *easing function* to use when computing the color
 for text that has the blinking attribute in the fading-out

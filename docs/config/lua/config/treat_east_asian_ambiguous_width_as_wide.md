@@ -1,6 +1,6 @@
 # `treat_east_asian_ambiguous_width_as_wide = false`
 
-*Since: 20220624-141144-bd1b7c5d*
+{{since('20220624-141144-bd1b7c5d')}}
 
 Unicode defines a number of codepoints as having [Ambiguous
 Width](http://www.unicode.org/reports/tr11/#Ambiguous). These are characters

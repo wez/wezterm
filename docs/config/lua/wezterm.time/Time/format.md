@@ -1,6 +1,6 @@
 # `Time:format(format)`
 
-*Since: 20220807-113146-c2fee766*
+{{since('20220807-113146-c2fee766')}}
 
 Formats the time object as a string, using the local date/time representation of the time.
 

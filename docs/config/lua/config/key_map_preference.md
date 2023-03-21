@@ -1,6 +1,6 @@
 # `key_map_preference = "Mapped"`
 
-*Since: 20220408-101518-b908e2dd*
+{{since('20220408-101518-b908e2dd')}}
 
 Controls how keys without an explicit `phys:` or `mapped:` prefix are treated.
 

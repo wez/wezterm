@@ -1,6 +1,6 @@
 # `pane:get_dimensions()`
 
-*Since: 20201031-154415-9614e117*
+{{since('20201031-154415-9614e117')}}
 
 Returns a lua representation of the `RenderableDimensions` struct
 that identifies the dimensions and position of the viewport as

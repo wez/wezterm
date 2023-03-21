@@ -114,7 +114,7 @@ return {
 }
 ```
 
-*Since: 20220101-133340-7edc5b5a*
+{{since('20220101-133340-7edc5b5a')}}
 
 You can use the expanded form mentioned above to override freetype and harfbuzz
 settings just for the specified font; this examples shows how to disable the
@@ -136,5 +136,5 @@ The following options can be specified in the same way:
 * [freetype_load_target](../config/freetype_load_target.md)
 * [freetype_render_target](../config/freetype_render_target.md)
 * [freetype_load_flags](../config/freetype_load_flags.md)
-* `assume_emoji_presentation = true` or `assume_emoji_presentation = false` to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. (*Since: 20220807-113146-c2fee766*)
+* `assume_emoji_presentation = true` or `assume_emoji_presentation = false` to control whether a font is considered to have emoji (rather than text) presentation glyphs for emoji. {{since('20220807-113146-c2fee766', inline=True)}}
 

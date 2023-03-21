@@ -1,6 +1,6 @@
 # `wezterm.format({})`
 
-*Since: 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 `wezterm.format` can be used to produce a formatted string
 with terminal graphic attributes such as bold, italic and colors.
@@ -48,7 +48,7 @@ Possible values for the `FormatItem` elements are:
 * `{Foreground={Color="yellow"}}` - set foreground color to a named color or rgb value like `#ffffff`.
 * `{Background={AnsiColor="Black"}}` - set the background color to an ansi color as per `Foreground` above.
 * `{Background={Color="blue"}}` - set the background color to a named color or rgb value as per `Foreground` above.
-* `"ResetAttributes"` - reset all attributes to default. (*Since: 20220807-113146-c2fee766*)
+* `"ResetAttributes"` - reset all attributes to default. {{since('20220807-113146-c2fee766', inline=True)}}
 
 This example shows how to use arbitrary escape sequences to change the underline color:
 

@@ -1,6 +1,6 @@
 # `wezterm cli activate-pane-direction DIRECTION`
 
-*Since: 20221119-145034-49b9839f*
+{{since('20221119-145034-49b9839f')}}
 
 *Run `wezterm cli activate-pane-direction --help` to see more help*
 

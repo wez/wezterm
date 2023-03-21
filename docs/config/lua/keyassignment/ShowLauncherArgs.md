@@ -1,6 +1,6 @@
 # ShowLauncherArgs
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Activate the [Launcher Menu](../../launch.md#the-launcher-menu)
 in the current tab, scoping it to a set of items and with an optional title.
@@ -25,7 +25,7 @@ an empty launcher:
 * `"DOMAINS"` - include multiplexing domains
 * `"KEY_ASSIGNMENTS"` - include items taken from your key assignments
 * `"WORKSPACES"` - include workspaces
-* `"COMMANDS"` - include a number of default commands (*Since: 20220408-101518-b908e2dd*)
+* `"COMMANDS"` - include a number of default commands {{since('20220408-101518-b908e2dd', inline=True)}}
 
 The flags can be joined together using a `|` character, so `"TABS|DOMAINS"` is
 an example of a set of flags that will include both tabs and domains in the

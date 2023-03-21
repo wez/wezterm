@@ -1,6 +1,6 @@
 # `text_blink_rate`
 
-*Since: 20210814-124438-54e29167*
+{{since('20210814-124438-54e29167')}}
 
 Specifies how often blinking text (normal speed) transitions between visible
 and invisible, expressed in milliseconds.  Setting this to 0 disables slow text
@@ -12,7 +12,7 @@ interval specified with some degree of slop.
 config.text_blink_rate = 500
 ```
 
-*Since: 20220319-142410-0fcdea07*
+{{since('20220319-142410-0fcdea07')}}
 
 Blinking is no longer a binary blink, but interpolates between invisible and
 visible text using an easing function.  See

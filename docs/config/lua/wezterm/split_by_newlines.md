@@ -1,6 +1,6 @@
 # `wezterm.split_by_newlines(str)`
 
-*Since: 20200503-171512-b13ef15f*
+{{since('20200503-171512-b13ef15f')}}
 
 This function takes the input string and splits it by newlines (both `\n` and `\r\n`
 are recognized as newlines) and returns the result as an array of strings that
