@@ -238,9 +238,7 @@ impl ParsedConfigFile {
                 continue;
             }
 
-            if let Some(sep) = line
-                .find(|c: char| c == '=' || c.is_whitespace())
-            {
+            if let Some(sep) = line.find(|c: char| c == '=' || c.is_whitespace()) {
                 let (k, v) = line.split_at(sep);
                 let k = k.trim().to_lowercase();
                 let v = v[1..].trim();
