@@ -573,27 +573,26 @@ impl Window {
                 setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
             ];
 
-            let blurred_view = StrongPtr::new(NSVisualEffectView::initWithFrame_(
-                NSVisualEffectView::alloc(nil),
-                rect,
-            ));
-            blurred_view.setMaterial_(NSVisualEffectMaterial::HudWindow);
-            blurred_view.setBlendingMode_(NSVisualEffectBlendingMode::BehindWindow);
-            blurred_view.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable);
-            blurred_view.setLayerContentsPlacement(
-                NSViewLayerContentsPlacement::NSViewLayerContentsPlacementTopLeft,
-            );
-            background_view.addSubview_(*blurred_view);
-
             if config
                 .window_decorations
                 .contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR)
             {
-                blurred_view.setState_(NSVisualEffectState::Active);
+                let blur_view = StrongPtr::new(NSVisualEffectView::initWithFrame_(
+                    NSVisualEffectView::alloc(nil),
+                    rect,
+                ));
+                blur_view.setMaterial_(NSVisualEffectMaterial::HudWindow);
+                blur_view.setBlendingMode_(NSVisualEffectBlendingMode::WithinWindow);
+                blur_view.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable);
+                blur_view.setLayerContentsPlacement(
+                    NSViewLayerContentsPlacement::NSViewLayerContentsPlacementTopLeft,
+                );
+                blur_view.setState_(NSVisualEffectState::Active);
+                blur_view.addSubview_(*draw_view);
+                background_view.addSubview_(*blur_view);
             } else {
-                blurred_view.setState_(NSVisualEffectState::Inactive)
+                background_view.addSubview_(*draw_view);
             }
-            blurred_view.addSubview_(*draw_view);
 
             window.setContentView_(*background_view);
             window.setDelegate_(*background_view);
@@ -1067,11 +1066,32 @@ impl WindowInner {
                 .window_decorations
                 .contains(WindowDecorations::MACOS_NS_VISUAL_EFFECT_MATERIAL_BLUR)
             {
-                let blur_view: id = msg_send![*self.view, superview];
-                blur_view.setState_(NSVisualEffectState::Active);
+                let super_view: id = msg_send![*self.view, superview];
+                if (*super_view).class().name() != "NSVisualEffectView" {
+                    let frame = NSWindow::frame(*self.view);
+                    let blur_view = StrongPtr::new(NSVisualEffectView::initWithFrame_(
+                        NSVisualEffectView::alloc(nil),
+                        frame,
+                    ));
+                    blur_view.setMaterial_(NSVisualEffectMaterial::HudWindow);
+                    blur_view.setBlendingMode_(NSVisualEffectBlendingMode::WithinWindow);
+                    blur_view.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable);
+                    blur_view.setLayerContentsPlacement(
+                        NSViewLayerContentsPlacement::NSViewLayerContentsPlacementTopLeft,
+                    );
+                    blur_view.setState_(NSVisualEffectState::Active);
+                    let () = msg_send![*self.view, removeFromSuperview];
+                    let () = msg_send![*blur_view, addSubview: *self.view];
+                    let () = msg_send![super_view, addSubview: *blur_view];
+                }
             } else {
-                let blur_view: id = msg_send![*self.view, superview];
-                blur_view.setState_(NSVisualEffectState::Inactive);
+                let super_view: id = msg_send![*self.view, superview];
+                if (*super_view).class().name() == "NSVisualEffectView" {
+                    let background_view: id = msg_send![super_view, superview];
+                    let () = msg_send![*self.view, removeFromSuperview];
+                    let () = msg_send![super_view, removeFromSuperview];
+                    let () = msg_send![background_view, addSubview: *self.view];
+                }
             }
         }
     }
