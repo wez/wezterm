@@ -52,7 +52,8 @@ plugins:
   - include-markdown
   - macros:
       module_name: mkdocs_macros
-  - search
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])'
   - social:
       cards: !ENV [CARDS, false]
   #- git-revision-date-localized:

@@ -4,6 +4,10 @@ hide:
 toc_depth: 3
 ---
 
+<p style="display:none">
+changelog
+</p>
+
 ## Changes
 
 Releases are named using the date, time and git commit hash.
