@@ -25,9 +25,12 @@ As features stabilize some brief notes about them will accumulate here.
 * [mouse_wheel_scrolls_tabs](config/lua/config/mouse_wheel_scrolls_tabs.md) option
   to control whether the mouse wheel can be used to activate tabs when hovering
   over the tab bar. Thanks to @eaglgenes101! #3227
+
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
 * `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods
+* `wezterm --skip-config` resulted in an `unexpected argument` error, while
+  `wezterm -n` still worked as intended. #3325
 
 ### 20230320-124340-559cb7b0
 
