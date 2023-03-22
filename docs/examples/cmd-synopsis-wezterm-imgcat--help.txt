@@ -1,0 +1,25 @@
+
+Output an image to the terminal
+
+Usage: wezterm imgcat [OPTIONS] [FILE_NAME]
+
+Arguments:
+  [FILE_NAME]  The name of the image file to be displayed. If omitted, will
+               attempt to read it from stdin
+
+Options:
+      --width <WIDTH>
+          Specify the display width; defaults to "auto" which automatically
+          selects an appropriate size.  You may also use an integer value `N` to
+          specify the number of cells, or `Npx` to specify the number of pixels,
+          or `N%` to size relative to the terminal width
+      --height <HEIGHT>
+          Specify the display height; defaults to "auto" which automatically
+          selects an appropriate size.  You may also use an integer value `N` to
+          specify the number of cells, or `Npx` to specify the number of pixels,
+          or `N%` to size relative to the terminal height
+      --no-preserve-aspect-ratio
+          Do not respect the aspect ratio.  The default is to respect the aspect
+          ratio
+  -h, --help
+          Print help

@@ -447,7 +447,16 @@ TOC = [
         "cli/general.md",
         children=[
             Gen("wezterm cli", "cli/cli"),
+            Page("wezterm connect", "cli/connect.md"),
+            Page("wezterm imgcat", "cli/imgcat.md"),
+            Page("wezterm ls-fonts", "cli/ls-fonts.md"),
+            Page("wezterm record", "cli/record.md"),
+            Page("wezterm replay", "cli/replay.md"),
+            Page("wezterm serial", "cli/serial.md"),
+            Page("wezterm set-working-directory", "cli/set-working-directory.md"),
             Page("wezterm show-keys", "cli/show-keys.md"),
+            Page("wezterm ssh", "cli/ssh.md"),
+            Page("wezterm start", "cli/start.md"),
         ],
     ),
     Page(

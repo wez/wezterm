@@ -15,3 +15,10 @@ for mode in copy_mode search_mode ; do
   target/debug/wezterm -n show-keys --lua --key-table $mode >> $fname
   echo "\`\`\`" >> $fname
 done
+
+cargo run --example narrow $PWD/target/debug/wezterm --help | ./target/debug/strip-ansi-escapes > docs/examples/cmd-synopsis-wezterm--help.txt
+
+for cmd in start ssh serial connect ls-fonts show-keys imgcat set-working-directory record replay  ; do
+  fname="docs/examples/cmd-synopsis-wezterm-${cmd}--help.txt"
+  cargo run --example narrow $PWD/target/debug/wezterm $cmd --help | ./target/debug/strip-ansi-escapes > $fname
+done

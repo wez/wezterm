@@ -17,9 +17,15 @@ If you are are setting up a launcher for wezterm to run in the Windows GUI
 environment then you will want to explicitly target `wezterm-gui` so that
 Windows itself doesn't pop up a console host for its logging output.
 
-Note that `wezterm-gui.exe --help` will not output anything to a console when
-run on Windows systems, because it runs in the Windows GUI subsystem and has no
-connection to the console.  You can use `wezterm.exe --help` to see information
-about the various commands; it will delegate to `wezterm-gui.exe` when
-appropriate.
+!!! note
+    `wezterm-gui.exe --help` will not output anything to a console when
+    run on Windows systems, because it runs in the Windows GUI subsystem and has no
+    connection to the console.  You can use `wezterm.exe --help` to see information
+    about the various commands; it will delegate to `wezterm-gui.exe` when
+    appropriate.
 
+## Synopsis
+
+```console
+{% include "../examples/cmd-synopsis-wezterm--help.txt" %}
+```
