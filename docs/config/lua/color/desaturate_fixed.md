@@ -1,4 +1,4 @@
-## `color:desaturate_fixed(amount)`
+# `color:desaturate_fixed(amount)`
 
 {{since('20220807-113146-c2fee766')}}
 

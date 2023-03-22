@@ -1,4 +1,4 @@
-# wezterm.color.parse(string)
+# `wezterm.color.parse(string)`
 
 {{since('20220807-113146-c2fee766')}}
 

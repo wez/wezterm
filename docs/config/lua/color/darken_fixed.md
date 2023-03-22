@@ -1,4 +1,4 @@
-## `color:darken_fixed(amount)`
+# `color:darken_fixed(amount)`
 
 {{since('20220807-113146-c2fee766')}}
 

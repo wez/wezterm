@@ -1,4 +1,4 @@
-## `color:srgba_u8()`
+# `color:srgba_u8()`
 
 {{since('20220807-113146-c2fee766')}}
 

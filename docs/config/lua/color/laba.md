@@ -1,4 +1,4 @@
-### `color:laba()`
+# `color:laba()`
 
 {{since('20220807-113146-c2fee766')}}
 
