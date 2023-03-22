@@ -1,4 +1,4 @@
-# bypass_mouse_reporting_modifiers = "SHIFT"
+# `bypass_mouse_reporting_modifiers = "SHIFT"`
 
 {{since('20210814-124438-54e29167')}}
 

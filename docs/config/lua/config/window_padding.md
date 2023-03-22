@@ -1,4 +1,4 @@
-# window_padding
+# `window_padding`
 
 Controls the amount of padding between the window border and the
 terminal cells.

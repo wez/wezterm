@@ -1,4 +1,4 @@
-# launch_menu
+# `launch_menu`
 
 *Since 20200503-171512-b13ef15f*
 

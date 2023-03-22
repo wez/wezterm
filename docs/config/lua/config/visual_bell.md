@@ -1,4 +1,4 @@
-# visual_bell
+# `visual_bell`
 
 {{since('20211204-082213-a66c61ee9')}}
 
