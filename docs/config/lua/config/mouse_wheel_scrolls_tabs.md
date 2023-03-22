@@ -1,6 +1,6 @@
 # `mouse_wheel_scrolls_tabs`
 
-*Since: nightly builds only*
+{{since('nightly')}}
 
 If `true`, the vertical mouse wheel will switch between tabs when the mouse 
 cursor is over the tab bar. 
@@ -8,7 +8,5 @@ cursor is over the tab bar.
 The default is `true`. Set to `false` to disable this behavior.
 
 ```lua
-return {
-  mouse_wheel_scrolls_tabs = true,
-}
+config.mouse_wheel_scrolls_tabs = true
 ```
