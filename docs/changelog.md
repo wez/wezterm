@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
+* `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods
 
 ### 20230320-124340-559cb7b0
 
