@@ -248,6 +248,14 @@ function load_scheme_player(ident) {{
             with open(scheme_filename, "w") as idx:
                 idents_to_load = []
 
+                idx.write(
+                    f"""---
+title: Color Schemes with first letter "{scheme_prefix}"
+---
+
+"""
+                )
+
                 for scheme in by_prefix[scheme_prefix]:
                     title = scheme["name"]
                     idx.write(f"# {title}\n")
