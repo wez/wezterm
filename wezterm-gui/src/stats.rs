@@ -245,16 +245,26 @@ impl Recorder for Stats {
     }
 
     fn increment_counter(&self, key: &Key, value: u64) {
+        if !is_enabled() {
+            return;
+        }
+
         let mut inner = self.inner.lock().unwrap();
         let counter = inner.counters.entry(key.clone()).or_insert_with(|| 0);
         *counter = *counter + value;
     }
 
     fn update_gauge(&self, key: &Key, value: GaugeValue) {
-        log::trace!("gauge '{}' -> {:?}", key, value);
+        if is_enabled() {
+            log::trace!("gauge '{}' -> {:?}", key, value);
+        }
     }
 
     fn record_histogram(&self, key: &Key, value: f64) {
+        if !is_enabled() {
+            return;
+        }
+
         let mut inner = self.inner.lock().unwrap();
         if key.name().ends_with(".rate") {
             let tput = inner
@@ -365,4 +375,8 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
     Ok(())
+}
+
+fn is_enabled() -> bool {
+    config::configuration().record_statistics
 }

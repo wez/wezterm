@@ -756,6 +756,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
+
+    #[dynamic(default)]
+    pub record_statistics: bool,
 }
 impl_lua_conversion_dynamic!(Config);
 
