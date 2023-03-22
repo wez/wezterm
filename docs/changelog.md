@@ -28,7 +28,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
-* `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods
+* `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods, as well
+  as being passed to `wezterm.json_encode`
 * `wezterm --skip-config` resulted in an `unexpected argument` error, while
   `wezterm -n` still worked as intended. #3325
 

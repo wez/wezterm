@@ -2413,6 +2413,7 @@ dependencies = [
  "config",
  "luahelper",
  "serde_json",
+ "wezterm-dynamic",
 ]
 
 [[package]]
