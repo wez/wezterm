@@ -1,4 +1,4 @@
-# ReloadConfiguration
+# `ReloadConfiguration`
 
 Explicitly reload the configuration.
 

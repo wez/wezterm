@@ -1,4 +1,4 @@
-# window:active_workspace()
+# `window:active_workspace()`
 
 {{since('20220319-142410-0fcdea07')}}
 

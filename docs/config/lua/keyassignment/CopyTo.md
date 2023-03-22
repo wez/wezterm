@@ -1,4 +1,4 @@
-# CopyTo(destination)
+# `CopyTo(destination)`
 
 Copy the selection to the specified clipboard buffer.
 

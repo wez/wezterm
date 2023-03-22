@@ -1,4 +1,4 @@
-## Lua Reference
+# Lua Reference
 
 This section documents the various lua functions and types that are provided to
 the configuration file.  These are provided by the `wezterm` module that must

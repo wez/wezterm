@@ -1,4 +1,4 @@
-# Paste
+# `Paste`
 
 Paste the clipboard to the current pane.
 

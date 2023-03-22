@@ -1,4 +1,4 @@
-# cursor_blink_ease_out = "Linear"
+# `cursor_blink_ease_out = "Linear"`
 
 {{since('20220319-142410-0fcdea07')}}
 

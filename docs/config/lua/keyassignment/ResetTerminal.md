@@ -1,4 +1,4 @@
-# ResetTerminal
+# `ResetTerminal`
 
 {{since('20221119-145034-49b9839f')}}
 

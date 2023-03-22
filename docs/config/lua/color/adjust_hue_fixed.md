@@ -1,4 +1,4 @@
-## `color:adjust_hue_fixed(degrees)`
+# `color:adjust_hue_fixed(degrees)`
 
 {{since('20220807-113146-c2fee766')}}
 

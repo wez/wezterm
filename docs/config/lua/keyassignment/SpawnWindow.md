@@ -1,4 +1,4 @@
-# SpawnWindow
+# `SpawnWindow`
 
 Create a new window containing a tab from the default tab domain.
 

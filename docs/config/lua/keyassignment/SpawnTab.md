@@ -1,4 +1,4 @@
-# SpawnTab
+# `SpawnTab`
 
 Create a new tab in the current window.  The argument defines to which *domain* the tab belongs:
 

@@ -1,4 +1,4 @@
-# force_reverse_video_cursor = false
+# `force_reverse_video_cursor = false`
 
 {{since('20210502-130208-bff6815d')}}
 

@@ -1,4 +1,4 @@
-# `normalize_to_nfc = false`
+# `normalize_output_to_unicode_nfc = false`
 
 {{since('20221119-145034-49b9839f')}}
 

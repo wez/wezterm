@@ -1,4 +1,4 @@
-# ShowLauncher
+# `ShowLauncher`
 
 Activate the [Launcher Menu](../../launch.md#the-launcher-menu)
 in the current tab.

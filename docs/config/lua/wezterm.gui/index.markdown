@@ -1,3 +1,5 @@
+# `wezterm.gui` module
+
 {{since('20220807-113146-c2fee766')}}
 
 The `wezterm.gui` module exposes functions that operate on the gui layer.

@@ -1,4 +1,4 @@
-# ToggleFullScreen
+# `ToggleFullScreen`
 
 Toggles full screen mode for the current window.
 

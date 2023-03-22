@@ -1,4 +1,4 @@
-# HideApplication
+# `HideApplication`
 
 On macOS, hide the WezTerm application.
 

@@ -1,4 +1,4 @@
-# quick_select_alphabet
+# `quick_select_alphabet`
 
 {{since('20210502-130208-bff6815d')}}
 
@@ -18,4 +18,6 @@ accessible characters in a `qwerty` keyboard layout.
 |`dvorak`       |`"aoeuqjkxpyhtnsgcrlmwvzfidb"`|
 |`colemak`      |`"arstqwfpzxcvneioluymdhgjbk"`|
 
-
+The suggested alphabet in the above table uses the left 4 fingers on the home row, top row, bottom
+row, then the right 4 fingers on the home raw, top row, bottom row, followed by the characters in
+the middle of the keyboard that may be harder to reach.

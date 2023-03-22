@@ -1,4 +1,4 @@
-# Copy
+# `Copy`
 
 Copy the selection to the clipboard.
 

@@ -1,4 +1,4 @@
-# QuickSelectArgs
+# `QuickSelectArgs`
 
 {{since('20220101-133340-7edc5b5a')}}
 

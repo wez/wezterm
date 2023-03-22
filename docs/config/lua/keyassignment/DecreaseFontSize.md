@@ -1,4 +1,4 @@
-# DecreaseFontSize
+# `DecreaseFontSize`
 
 Decreases the font size of the current window by 10%
 

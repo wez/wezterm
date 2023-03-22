@@ -1,4 +1,4 @@
-# ActivateLastTab
+# `ActivateLastTab`
 
 {{since('20210404-112810-b63a949d')}}
 

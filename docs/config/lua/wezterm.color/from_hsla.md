@@ -1,4 +1,4 @@
-## `wezterm.color.from_hsla(h, s, l, a)`
+# `wezterm.color.from_hsla(h, s, l, a)`
 
 {{since('20220807-113146-c2fee766')}}
 
