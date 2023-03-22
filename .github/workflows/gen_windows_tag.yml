@@ -16,12 +16,8 @@ jobs:
         with:
           submodules: "recursive"
       - name: "Install Rust"
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: "minimal"
-          toolchain: "stable"
-          override: true
-          components: "rustfmt"
           target: "x86_64-pc-windows-msvc"
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
