@@ -1,4 +1,4 @@
-# `require wezterm`
+# `wezterm` module
 
 The wezterm module is the primary module that exposes wezterm configuration
 and control to your config file.
