@@ -31,7 +31,7 @@ jobs:
         run: "rustup target add aarch64-apple-darwin"
       - name: "Install System Deps"
         shell: bash
-        run: "env PATH=$PATH ./get-deps"
+        run: "env CI=yes PATH=$PATH ./get-deps"
       - name: "Build (Release mode Intel)"
         shell: bash
         run: "cargo build --target x86_64-apple-darwin --all --release"
