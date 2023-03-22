@@ -804,4 +804,8 @@ _wezterm__help__cli__tlscreds_commands() {
     _describe -t commands 'wezterm help cli tlscreds commands' commands "$@"
 }
 
-_wezterm "$@"
+if [ "$funcstack[1]" = "_wezterm" ]; then
+    _wezterm "$@"
+else
+    compdef _wezterm wezterm
+fi
