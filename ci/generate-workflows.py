@@ -336,7 +336,6 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
                 name="Install Rust",
                 action=f"dtolnay/rust-toolchain@{toolchain}",
                 params=params,
-                env={"ACTIONS_ALLOW_UNSECURE_COMMANDS": "true"},
             ),
         ]
         if "macos" in self.name:

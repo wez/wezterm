@@ -31,8 +31,6 @@ jobs:
           submodules: "recursive"
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: "Install Rust (ARM)"
         shell: bash
         run: "rustup target add aarch64-apple-darwin"

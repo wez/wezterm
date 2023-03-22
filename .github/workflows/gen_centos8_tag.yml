@@ -38,8 +38,6 @@ jobs:
           submodules: "recursive"
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: "Cache cargo"
         uses: actions/cache@v3
         with:
