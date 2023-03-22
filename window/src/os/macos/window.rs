@@ -1230,7 +1230,8 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
 
 fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
     let decorations = decorations.difference(
-        WindowDecorations::MACOS_FORCE_DISABLE_SHADOW | WindowDecorations::MACOS_FORCE_ENABLE_SHADOW
+        WindowDecorations::MACOS_FORCE_DISABLE_SHADOW
+            | WindowDecorations::MACOS_FORCE_ENABLE_SHADOW,
     );
     if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
         NSWindowStyleMask::NSTitledWindowMask
