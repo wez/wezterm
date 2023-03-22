@@ -1,4 +1,4 @@
-# SpawnCommandInNewWindow
+# `SpawnCommandInNewWindow`
 
 Spawn a new tab into a brand new window.
 The argument is a `SpawnCommand` struct that is discussed in more

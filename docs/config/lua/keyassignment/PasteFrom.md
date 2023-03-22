@@ -1,4 +1,4 @@
-# PasteFrom(source)
+# `PasteFrom(source)`
 
 Paste the specified clipboard to the current pane.
 

@@ -1,4 +1,4 @@
-# CopyMode { MoveBackwardSemanticZone = ZONE }
+# CopyMode `{ MoveBackwardSemanticZone = ZONE }`
 
 {{since('20220903-194523-3bb1ed61')}}
 

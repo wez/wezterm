@@ -1,4 +1,4 @@
-# SendString
+# `SendString`
 
 Sends the string specified argument to the terminal in the current tab, as
 though that text were literally typed into the terminal.

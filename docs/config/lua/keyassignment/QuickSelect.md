@@ -1,4 +1,4 @@
-# QuickSelect
+# `QuickSelect`
 
 {{since('20210502-130208-bff6815d')}}
 

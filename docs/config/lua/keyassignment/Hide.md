@@ -1,4 +1,4 @@
-# Hide
+# `Hide`
 
 Hides (or minimizes, depending on the platform) the current window.
 

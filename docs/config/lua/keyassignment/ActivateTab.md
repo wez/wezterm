@@ -1,4 +1,4 @@
-# ActivateTab
+# `ActivateTab`
 
 Activate the tab specified by the argument value. eg: `0` activates the
 leftmost tab, while `1` activates the second tab from the left, and so on.

@@ -1,4 +1,4 @@
-# ActivateCommandPalette
+# `ActivateCommandPalette`
 
 {{since('20230320-124340-559cb7b0')}}
 

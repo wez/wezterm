@@ -1,4 +1,4 @@
-# CloseCurrentPane
+# `CloseCurrentPane`
 
 Closes the current pane.  If that was the last pane in the tab, closes the tab.
 If that was the last tab, closes that window.  If that was the last window,

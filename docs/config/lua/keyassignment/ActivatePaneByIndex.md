@@ -1,4 +1,4 @@
-# ActivatePaneByIndex
+# `ActivatePaneByIndex`
 
 {{since('20220319-142410-0fcdea07')}}
 

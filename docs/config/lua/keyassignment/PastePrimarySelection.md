@@ -1,4 +1,4 @@
-# PastePrimarySelection
+# `PastePrimarySelection`
 
 X11: Paste the Primary Selection to the current tab.
 On other systems, this behaves identically to [Paste](Paste.md).
