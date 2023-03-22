@@ -1,4 +1,4 @@
-# pane:mux_pane()
+# `pane:mux_pane()`
 
 {{since('20220807-113146-c2fee766')}}
 
