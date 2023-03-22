@@ -319,6 +319,8 @@ if test -e /etc/os-release; then
   . /etc/os-release
 fi
 
+set -e
+
 case $ID in
   centos|fedora|rhel)
     fedora_deps
