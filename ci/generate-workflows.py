@@ -325,21 +325,16 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
 
         return steps
 
-    def install_rust(self, cache=True):
+    def install_rust(self, cache=True, toolchain="stable"):
         salt = "2"
         key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
-        params = {
-            "profile": "minimal",
-            "toolchain": "stable",
-            "override": True,
-            "components": "rustfmt",
-        }
+        params = dict()
         if self.rust_target:
             params["target"] = self.rust_target
         steps = [
             ActionStep(
                 name="Install Rust",
-                action="actions-rs/toolchain@v1",
+                action=f"dtolnay/rust-toolchain@{toolchain}",
                 params=params,
                 env={"ACTIONS_ALLOW_UNSECURE_COMMANDS": "true"},
             ),
