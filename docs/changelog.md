@@ -32,6 +32,9 @@ As features stabilize some brief notes about them will accumulate here.
   as being passed to `wezterm.json_encode`
 * `wezterm --skip-config` resulted in an `unexpected argument` error, while
   `wezterm -n` still worked as intended. #3325
+* Using `RESIZE|MACOS_FORCE_DISABLE_SHADOW` or
+  `RESIZE|MACOS_FORCE_ENABLE_SHADOW` would cause a spooky titlebar to appear.
+  Thanks to @noefroidevaux! #3330
 
 ### 20230320-124340-559cb7b0
 
