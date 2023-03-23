@@ -338,6 +338,25 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
                 params=params,
             ),
         ]
+        if "centos7" in self.name:
+            steps = [
+                RunStep(
+                    name="Install Rustup",
+                    run = """
+if ! command -v rustup &>/dev/null; then
+  curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+  echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+fi
+"""
+                ),
+                RunStep(
+                    name="Setup Toolchain",
+                    run =f"""
+rustup toolchain install {toolchain} --profile minimal --no-self-update
+rustup default {toolchain}
+"""
+                ),
+            ]
         if "macos" in self.name:
             steps += [
                 RunStep(

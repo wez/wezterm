@@ -67,15 +67,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: "recursive"
-      - name: "Install Rust"
+      - name: "Install Rustup"
+        shell: bash
         run: |
-          : install rustup if needed
+
           if ! command -v rustup &>/dev/null; then
             curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
       - name: "Setup Toolchain"
+        shell: bash
         run: |
+
           rustup toolchain install stable --profile minimal --no-self-update
           rustup default stable
       - name: "Cache cargo"
