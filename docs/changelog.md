@@ -47,6 +47,8 @@ As features stabilize some brief notes about them will accumulate here.
   the window, or when applying font scaling to a window. #3333
 * `RIS` escape sequence (and `ResetTerminal` action) didn't disable mouse
   event reporting.
+* Unblock all signals when spawning programs, to avoid strangess when the
+  parent of the wezterm process spawns wezterm with an unusual signal mask.
 
 ### 20230320-124340-559cb7b0
 
