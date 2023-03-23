@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
@@ -100,18 +100,28 @@ const BUFSIZE: usize = 1024 * 1024;
 
 /// This function applies parsed actions to the pane and notifies any
 /// mux subscribers about the output event
-fn send_actions_to_mux(pane: &Arc<dyn Pane>, actions: Vec<Action>) {
+fn send_actions_to_mux(pane: &Weak<dyn Pane>, dead: &Arc<AtomicBool>, actions: Vec<Action>) {
     let start = Instant::now();
-    pane.perform_actions(actions);
-    histogram!(
-        "send_actions_to_mux.perform_actions.latency",
-        start.elapsed()
-    );
-    Mux::notify_from_any_thread(MuxNotification::PaneOutput(pane.pane_id()));
+    match pane.upgrade() {
+        Some(pane) => {
+            pane.perform_actions(actions);
+            histogram!(
+                "send_actions_to_mux.perform_actions.latency",
+                start.elapsed()
+            );
+            Mux::notify_from_any_thread(MuxNotification::PaneOutput(pane.pane_id()));
+        }
+        None => {
+            // Something else removed the pane from
+            // the mux, so signal that we should stop
+            // trying to process it in read_from_pane_pty.
+            dead.store(true, Ordering::Relaxed);
+        }
+    }
     histogram!("send_actions_to_mux.rate", 1.);
 }
 
-fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: FileDescriptor) {
+fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: FileDescriptor) {
     let mut buf = vec![0; configuration().mux_output_parser_buffer_size];
     let mut parser = termwiz::escape::parser::Parser::new();
     let mut actions = vec![];
@@ -140,7 +150,7 @@ fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: File
 
                             // Flush prior actions
                             if !actions.is_empty() {
-                                send_actions_to_mux(&pane, std::mem::take(&mut actions));
+                                send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
                                 action_size = 0;
                             }
                         }
@@ -159,7 +169,7 @@ fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: File
                     action.append_to(&mut actions);
 
                     if flush && !actions.is_empty() {
-                        send_actions_to_mux(&pane, std::mem::take(&mut actions));
+                        send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
                         action_size = 0;
                     }
                 });
@@ -187,7 +197,7 @@ fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: File
                         }
                     }
 
-                    send_actions_to_mux(&pane, std::mem::take(&mut actions));
+                    send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
                     action_size = 0;
                 }
 
@@ -203,7 +213,7 @@ fn parse_buffered_data(pane: Arc<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: File
     // for very short lived commands so that we don't forget to
     // display what they displayed.
     if !actions.is_empty() {
-        send_actions_to_mux(&pane, std::mem::take(&mut actions));
+        send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
     }
 }
 
@@ -237,7 +247,7 @@ fn allocate_socketpair() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
 /// all platforms and pty/tty types), parse the escape sequences and
 /// relay the actions to the mux thread to apply them to the pane.
 fn read_from_pane_pty(
-    pane: Arc<dyn Pane>,
+    pane: Weak<dyn Pane>,
     banner: Option<String>,
     mut reader: Box<dyn std::io::Read>,
 ) {
@@ -247,7 +257,10 @@ fn read_from_pane_pty(
     // or in the main mux thread.  If `true`, this thread will terminate.
     let dead = Arc::new(AtomicBool::new(false));
 
-    let pane_id = pane.pane_id();
+    let pane_id = match pane.upgrade() {
+        Some(pane) => pane.pane_id(),
+        None => return,
+    };
 
     let (mut tx, rx) = match allocate_socketpair() {
         Ok(pair) => pair,
@@ -669,7 +682,7 @@ impl Mux {
         let pane_id = pane.pane_id();
         if let Some(reader) = pane.reader()? {
             let banner = self.banner.read().clone();
-            let pane = Arc::clone(pane);
+            let pane = Arc::downgrade(pane);
             thread::spawn(move || read_from_pane_pty(pane, banner, reader));
         }
         self.recompute_pane_count();
