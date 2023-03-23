@@ -21,14 +21,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: "Install Rust"
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: "minimal"
-          toolchain: "nightly"
-          override: true
           components: rustfmt
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: Build
         run: |
           source $HOME/.cargo/env
