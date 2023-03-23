@@ -72,7 +72,14 @@ jobs:
         with:
           submodules: "recursive"
       - name: "Install Rust"
-        uses: dtolnay/rust-toolchain@stable
+        run: |
+          : install rustup if needed
+          if ! command -v rustup &>/dev/null; then
+            curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+          fi
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
       - name: "Cache cargo"
         uses: actions/cache@v3
         with:
