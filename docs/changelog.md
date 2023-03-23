@@ -45,6 +45,8 @@ As features stabilize some brief notes about them will accumulate here.
   #3303 #2879 #3323
 * `window_frame.border_XXX` not correctly accounted for when initially sizing
   the window, or when applying font scaling to a window. #3333
+* `RIS` escape sequence (and `ResetTerminal` action) didn't disable mouse
+  event reporting.
 
 ### 20230320-124340-559cb7b0
 
