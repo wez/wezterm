@@ -149,9 +149,32 @@ impl<'a> Performer<'a> {
                 // resized.
                 {
                     let y = self.cursor.y;
+                    let is_conpty = self.state.enable_conpty_quirks;
+                    let is_alt = self.state.screen.alt_screen_is_active;
                     let screen = self.screen_mut();
                     let y = screen.phys_row(y);
-                    screen.line_mut(y).set_last_cell_was_wrapped(true, seqno);
+
+                    fn makes_sense_to_wrap(s: &str) -> bool {
+                        let len = s.len();
+                        match (len, s.chars().next()) {
+                            (1, Some(c)) => {
+                                c.is_alphanumeric() || c.is_ascii_punctuation()
+                            }
+                            _ => true
+                        }
+                    }
+
+                    let should_mark_wrapped = !is_alt
+                        && (!is_conpty
+                            || screen
+                                .line_mut(y)
+                                .visible_cells()
+                                .last()
+                                .map(|cell| makes_sense_to_wrap(cell.str()))
+                                .unwrap_or(false));
+                    if should_mark_wrapped {
+                        screen.line_mut(y).set_last_cell_was_wrapped(true, seqno);
+                    }
                 }
                 self.new_line(true);
             }

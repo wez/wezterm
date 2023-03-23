@@ -35,6 +35,11 @@ As features stabilize some brief notes about them will accumulate here.
 * Using `RESIZE|MACOS_FORCE_DISABLE_SHADOW` or
   `RESIZE|MACOS_FORCE_ENABLE_SHADOW` would cause a spooky titlebar to appear.
   Thanks to @noefroidevaux! #3330
+* ConPTY: logical line wrapping falsely joining long runs of output from classic
+  windows console subsystem programs. The behavior now is to only mark long lines
+  as wrapped if the last character on the prior line is alphanumeric or ascii
+  punctuation. Other characters will cause the logical line to break.
+  #3278 #3177
 
 ### 20230320-124340-559cb7b0
 
