@@ -3,10 +3,10 @@ use assert_fs::TempDir;
 use once_cell::sync::Lazy;
 use rstest::*;
 use std::collections::HashMap;
+use std::io::Result as IoResult;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::time::Duration;
-use std::{fmt, io, thread};
 use wezterm_ssh::{Config, Session, SessionEvent};
 
 #[cfg(unix)]
@@ -30,7 +30,7 @@ pub struct SshKeygen;
 
 impl SshKeygen {
     // ssh-keygen -t rsa -f $ROOT/id_rsa -N "" -q
-    pub fn generate_rsa(path: impl AsRef<Path>, passphrase: impl AsRef<str>) -> io::Result<bool> {
+    pub fn generate_rsa(path: impl AsRef<Path>, passphrase: impl AsRef<str>) -> IoResult<bool> {
         let res = Command::new("ssh-keygen")
             .args(&["-m", "PEM"])
             .args(&["-t", "rsa"])
@@ -58,10 +58,10 @@ impl SshKeygen {
 pub struct SshAgent;
 
 impl SshAgent {
-    pub fn generate_shell_env() -> io::Result<HashMap<String, String>> {
+    pub fn generate_shell_env() -> IoResult<HashMap<String, String>> {
         let output = Command::new("ssh-agent").arg("-s").output()?;
         let stdout = String::from_utf8(output.stdout)
-            .map_err(|x| io::Error::new(io::ErrorKind::InvalidData, x))?;
+            .map_err(|x| std::io::Error::new(std::io::ErrorKind::InvalidData, x))?;
         Ok(stdout
             .split(";")
             .map(str::trim)
@@ -79,7 +79,7 @@ impl SshAgent {
             .collect::<HashMap<String, String>>())
     }
 
-    pub fn update_tests_with_shell_env() -> io::Result<()> {
+    pub fn update_tests_with_shell_env() -> IoResult<()> {
         let env_map = Self::generate_shell_env()?;
         for (key, value) in env_map {
             std::env::set_var(key, value);
@@ -223,8 +223,8 @@ impl SshdConfig {
     }
 }
 
-impl fmt::Display for SshdConfig {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for SshdConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for (keyword, values) in self.0.iter() {
             writeln!(
                 f,
@@ -300,8 +300,9 @@ impl Sshd {
 
         // Generate $ROOT/sshd_config based on config
         let sshd_config_file = tmp.child("sshd_config");
-        sshd_config_file.write_str(&config.to_string())?;
-        std::fs::write("/dev/stderr", &config.to_string())?;
+        let config_string = config.to_string();
+        sshd_config_file.write_str(&config_string)?;
+        eprintln!("{config_string}");
 
         let sshd_log_file = tmp.child("sshd.log");
 
@@ -314,7 +315,7 @@ impl Sshd {
     fn try_spawn_next(
         config_path: impl AsRef<Path>,
         log_path: impl AsRef<Path>,
-    ) -> io::Result<(Child, u16)> {
+    ) -> IoResult<(Child, u16)> {
         let mut err = None;
 
         for _ in 0..100 {
@@ -337,7 +338,7 @@ impl Sshd {
         port: u16,
         config_path: impl AsRef<Path>,
         log_path: impl AsRef<Path>,
-    ) -> io::Result<Child> {
+    ) -> IoResult<Child> {
         let mut child = Command::new(BIN_PATH_STR)
             .arg("-D")
             .arg("-p")
@@ -348,15 +349,15 @@ impl Sshd {
             .arg(log_path.as_ref())
             .spawn()
             .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::Other,
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
                     format!("spawning {} failed {:#}", BIN_PATH_STR, e),
                 )
             })?;
 
         for _ in 0..10 {
             // Wait until the port is up
-            thread::sleep(Duration::from_millis(100));
+            std::thread::sleep(Duration::from_millis(100));
 
             // If the server exited already, then we know something is wrong!
             if let Some(exit_status) = child.try_wait()? {
@@ -368,8 +369,8 @@ impl Sshd {
                     String::from_utf8(output.stderr).unwrap(),
                 );
 
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
                     format!(
                         "{} failed [{}]: {}",
                         BIN_PATH_STR,
@@ -386,8 +387,8 @@ impl Sshd {
             }
         }
 
-        Err(io::Error::new(
-            io::ErrorKind::Other,
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
             "ran out of ports when spawning sshd",
         ))
     }
