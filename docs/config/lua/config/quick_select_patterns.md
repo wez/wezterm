@@ -1,4 +1,4 @@
-# quick_select_patterns
+# `quick_select_patterns`
 
 {{since('20210502-130208-bff6815d')}}
 

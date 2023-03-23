@@ -1,4 +1,4 @@
-# DisableDefaultAssignment
+# `DisableDefaultAssignment`
 
 Has no special meaning of its own; this action will undo the registration
 of a default assignment if that key/mouse/modifier combination is one of the

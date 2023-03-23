@@ -1,4 +1,4 @@
-# IncreaseFontSize
+# `IncreaseFontSize`
 
 Increases the font size of the current window by 10%
 

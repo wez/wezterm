@@ -1,4 +1,4 @@
-## `color:complement_ryb()`
+# `color:complement_ryb()`
 
 {{since('20220807-113146-c2fee766')}}
 

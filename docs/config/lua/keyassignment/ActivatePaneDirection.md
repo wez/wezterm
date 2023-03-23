@@ -1,4 +1,4 @@
-# ActivatePaneDirection
+# `ActivatePaneDirection`
 
 {{since('20201031-154415-9614e117')}}
 

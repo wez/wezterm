@@ -1,4 +1,4 @@
-# tab:set_title(TITLE)
+# `tab:set_title(TITLE)`
 
 {{since('20220807-113146-c2fee766')}}
 

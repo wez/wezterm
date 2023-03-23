@@ -1,4 +1,4 @@
-# MoveTab
+# `MoveTab`
 
 Move the tab so that it has the index specified by the argument. eg: `0`
 moves the tab to be  leftmost, while `1` moves the tab so that it is second tab

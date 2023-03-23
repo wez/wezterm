@@ -367,7 +367,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
             return []
         sudo = "sudo -n " if self.needs_sudo() else ""
         return [
-            RunStep(name="Install System Deps", run=f"{sudo}env PATH=$PATH ./get-deps")
+            RunStep(name="Install System Deps", run=f"{sudo}env CI=yes PATH=$PATH ./get-deps")
         ]
 
     def build_all_release(self):

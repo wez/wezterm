@@ -73,7 +73,7 @@ jobs:
           key: "fedora37-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: "env PATH=$PATH ./get-deps"
+        run: "env CI=yes PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
         run: "cargo build --all --release"

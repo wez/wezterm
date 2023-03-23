@@ -1,4 +1,4 @@
-# ScrollByPage
+# `ScrollByPage`
 
 Adjusts the scroll position by the number of pages specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.

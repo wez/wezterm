@@ -70,7 +70,7 @@ pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DAT
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[arg(name = "skip-config", short = 'n')]
+    #[arg(long, short = 'n')]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
@@ -78,7 +78,7 @@ struct Opt {
     #[arg(
         long = "config-file",
         value_parser,
-        conflicts_with = "skip-config",
+        conflicts_with = "skip_config",
         value_hint=ValueHint::FilePath,
     )]
     config_file: Option<OsString>,

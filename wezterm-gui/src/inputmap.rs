@@ -668,13 +668,51 @@ fn luaify(value: Value, is_top: bool) -> String {
 }
 
 fn quote_lua_string(s: &str) -> String {
-    if s.contains('\'') && !s.contains('"') {
-        format!("\"{s}\"")
-    } else if s.contains('\'') {
-        format!("\"{}\"", s.escape_debug())
-    } else {
-        format!("'{s}'")
+    let mut result = String::new();
+    result.push('\'');
+    for c in s.chars() {
+        match c {
+            '\u{07}' => {
+                result.push_str("\\a");
+            }
+            '\u{08}' => {
+                result.push_str("\\b");
+            }
+            '\u{0c}' => {
+                result.push_str("\\f");
+            }
+            '\n' => {
+                result.push_str("\\n");
+            }
+            '\r' => {
+                result.push_str("\\r");
+            }
+            '\t' => {
+                result.push_str("\\t");
+            }
+            '\u{0b}' => {
+                result.push_str("\\v");
+            }
+            '\\' => {
+                result.push_str("\\\\");
+            }
+            '"' => {
+                result.push_str("\\\"");
+            }
+            '\'' => {
+                result.push_str("\\'");
+            }
+            c if c.is_alphanumeric() || c.is_ascii_punctuation() => {
+                result.push(c);
+            }
+            _ => {
+                let b = c as u32;
+                result.push_str(&format!("\\u{{{b:x}}}"));
+            }
+        }
     }
+    result.push('\'');
+    result
 }
 
 fn lua_key(key: &KeyCode, mods: Modifiers, action: &KeyAssignment) -> String {

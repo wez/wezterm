@@ -1,4 +1,4 @@
-### `color:contrast_ratio(color)`
+# `color:contrast_ratio(color)`
 
 {{since('20220807-113146-c2fee766')}}
 

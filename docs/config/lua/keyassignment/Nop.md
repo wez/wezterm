@@ -1,4 +1,4 @@
-# Nop
+# `Nop`
 
 Causes the key press to have no effect; it behaves as though those
 keys were not pressed.

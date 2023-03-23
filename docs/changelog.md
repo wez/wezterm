@@ -21,8 +21,25 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### New
+* [mouse_wheel_scrolls_tabs](config/lua/config/mouse_wheel_scrolls_tabs.md) option
+  to control whether the mouse wheel can be used to activate tabs when hovering
+  over the tab bar. Thanks to @eaglgenes101! #3227
+
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
+* `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods, as well
+  as being passed to `wezterm.json_encode`
+* `wezterm --skip-config` resulted in an `unexpected argument` error, while
+  `wezterm -n` still worked as intended. #3325
+* Using `RESIZE|MACOS_FORCE_DISABLE_SHADOW` or
+  `RESIZE|MACOS_FORCE_ENABLE_SHADOW` would cause a spooky titlebar to appear.
+  Thanks to @noefroidevaux! #3330
+* ConPTY: logical line wrapping falsely joining long runs of output from classic
+  windows console subsystem programs. The behavior now is to only mark long lines
+  as wrapped if the last character on the prior line is alphanumeric or ascii
+  punctuation. Other characters will cause the logical line to break.
+  #3278 #3177
 
 ### 20230320-124340-559cb7b0
 

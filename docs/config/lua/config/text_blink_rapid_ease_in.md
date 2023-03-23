@@ -1,4 +1,4 @@
-# text_blink_rapid_ease_in = "Linear"
+# `text_blink_rapid_ease_in = "Linear"`
 
 {{since('20220319-142410-0fcdea07')}}
 

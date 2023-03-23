@@ -1,4 +1,4 @@
-# QuitApplication
+# `QuitApplication`
 
 Terminate the WezTerm application, killing all tabs.
 

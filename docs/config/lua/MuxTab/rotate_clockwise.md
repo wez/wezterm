@@ -1,4 +1,4 @@
-# tab:rotate_clockwise()
+# `tab:rotate_clockwise()`
 
 {{since('20230320-124340-559cb7b0')}}
 

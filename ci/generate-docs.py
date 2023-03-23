@@ -248,6 +248,14 @@ function load_scheme_player(ident) {{
             with open(scheme_filename, "w") as idx:
                 idents_to_load = []
 
+                idx.write(
+                    f"""---
+title: Color Schemes with first letter "{scheme_prefix}"
+---
+
+"""
+                )
+
                 for scheme in by_prefix[scheme_prefix]:
                     title = scheme["name"]
                     idx.write(f"# {title}\n")
@@ -439,7 +447,16 @@ TOC = [
         "cli/general.md",
         children=[
             Gen("wezterm cli", "cli/cli"),
+            Page("wezterm connect", "cli/connect.md"),
+            Page("wezterm imgcat", "cli/imgcat.md"),
+            Page("wezterm ls-fonts", "cli/ls-fonts.md"),
+            Page("wezterm record", "cli/record.md"),
+            Page("wezterm replay", "cli/replay.md"),
+            Page("wezterm serial", "cli/serial.md"),
+            Page("wezterm set-working-directory", "cli/set-working-directory.md"),
             Page("wezterm show-keys", "cli/show-keys.md"),
+            Page("wezterm ssh", "cli/ssh.md"),
+            Page("wezterm start", "cli/start.md"),
         ],
     ),
     Page(

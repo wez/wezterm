@@ -272,6 +272,75 @@ impl UserData for Value {
             |lua: &Lua, this, _: ()| -> mlua::Result<mlua::Value> { gvalue_to_lua(lua, this) },
         );
         methods.add_meta_method(
+            mlua::MetaMethod::Len,
+            |lua: &Lua, this, _: ()| -> mlua::Result<mlua::Value> {
+                match this {
+                    Value::Array(arr) => arr.inner.lock().unwrap().len().to_lua(lua),
+                    Value::Object(obj) => obj.inner.lock().unwrap().len().to_lua(lua),
+                    Value::String(s) => s.to_string().to_lua(lua),
+                    _ => Err(mlua::Error::external(
+                        "invalid type for len operator".to_string(),
+                    )),
+                }
+            },
+        );
+
+        methods.add_meta_method(mlua::MetaMethod::Pairs, |lua, this, ()| match this {
+            Value::Array(_) => {
+                let stateless_iter =
+                    lua.create_function(|lua, (this, i): (Value, usize)| match this {
+                        Value::Array(arr) => {
+                            let arr = arr.inner.lock().unwrap();
+                            let i = i + 1;
+
+                            if i <= arr.len() {
+                                return Ok(mlua::Variadic::from_iter(vec![
+                                    i.to_lua(lua)?,
+                                    arr[i - 1].clone().to_lua(lua)?,
+                                ]));
+                            }
+                            return Ok(mlua::Variadic::new());
+                        }
+                        _ => unreachable!(),
+                    })?;
+                Ok((stateless_iter, this.clone(), 0.to_lua(lua)?))
+            }
+            Value::Object(_) => {
+                let stateless_iter =
+                    lua.create_function(|lua, (this, key): (Value, Option<String>)| match this {
+                        Value::Object(obj) => {
+                            let obj = obj.inner.lock().unwrap();
+                            let mut iter = obj.iter();
+
+                            let mut this_is_key = false;
+
+                            if key.is_none() {
+                                this_is_key = true;
+                            }
+
+                            while let Some((this_key, value)) = iter.next() {
+                                if this_is_key {
+                                    return Ok(mlua::MultiValue::from_vec(vec![
+                                        this_key.clone().to_lua(lua)?,
+                                        value.clone().to_lua(lua)?,
+                                    ]));
+                                }
+                                if Some(this_key.as_str()) == key.as_deref() {
+                                    this_is_key = true;
+                                }
+                            }
+                            return Ok(mlua::MultiValue::new());
+                        }
+                        _ => unreachable!(),
+                    })?;
+                Ok((stateless_iter, this.clone(), LuaValue::Nil))
+            }
+            _ => Err(mlua::Error::external(
+                "invalid type for __ipairs metamethod".to_string(),
+            )),
+        });
+
+        methods.add_meta_method(
             mlua::MetaMethod::Index,
             |lua: &Lua, this, key: LuaValue| -> mlua::Result<mlua::Value> {
                 match this {

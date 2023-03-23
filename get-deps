@@ -102,8 +102,12 @@ fedora_deps() {
 
 suse_deps() {
   ZYPPER="$SUDO zypper"
-  $ZYPPER install -yl 'perl-FindBin' 'perl-File-Compare' || true
-  $ZYPPER install -yl \
+  RESOLVE=""
+  if [ "${CI}" == "yes" ] ; then
+    RESOLVE="--allow-downgrade"
+  fi
+  $ZYPPER install $RESOLVE -yl 'perl-FindBin' 'perl-File-Compare' || true
+  $ZYPPER install $RESOLVE -yl \
     'make' \
     'gcc' \
     'gcc-c++' \
@@ -123,7 +127,7 @@ suse_deps() {
     'rpm-build'
 
   if test_flag; then
-    $ZYPPER install -yl 'openssh-server'
+    $ZYPPER install $RESOLVE -yl 'openssh-server'
   fi
 }
 
@@ -318,6 +322,8 @@ fallback_method() {
 if test -e /etc/os-release; then
   . /etc/os-release
 fi
+
+set -e
 
 case $ID in
   centos|fedora|rhel)

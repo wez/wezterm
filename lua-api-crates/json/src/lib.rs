@@ -1,7 +1,9 @@
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Lua, ToLua, Value as LuaValue};
+use luahelper::lua_value_to_dynamic;
 use serde_json::{Map, Value as JValue};
 use std::collections::HashSet;
+use wezterm_dynamic::{FromDynamic, Value as DynValue};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
@@ -51,6 +53,36 @@ fn json_parse<'lua>(lua: &'lua Lua, text: String) -> mlua::Result<LuaValue> {
     json_value_to_lua_value(lua, value)
 }
 
+fn dyn_to_json(value: DynValue) -> anyhow::Result<JValue> {
+    Ok(match value {
+        DynValue::Null => JValue::Null,
+        DynValue::Bool(b) => JValue::Bool(b),
+        DynValue::String(s) => JValue::String(s),
+        DynValue::Array(a) => {
+            let mut result = vec![];
+            for item in a {
+                result.push(dyn_to_json(item)?);
+            }
+            JValue::Array(result)
+        }
+        DynValue::Object(o) => {
+            let mut result = vec![];
+            for (k, v) in o {
+                let k = String::from_dynamic(&k, Default::default())?;
+                let v = dyn_to_json(v)?;
+                result.push((k, v));
+            }
+            JValue::Object(result.into_iter().collect())
+        }
+        DynValue::U64(u) => JValue::Number(u.into()),
+        DynValue::I64(u) => JValue::Number(u.into()),
+        DynValue::F64(u) => JValue::Number(
+            serde_json::Number::from_f64(*u)
+                .ok_or_else(|| anyhow::anyhow!("number {u:?} cannot be represented in json"))?,
+        ),
+    })
+}
+
 fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlua::Result<JValue> {
     if let LuaValue::Table(_) = &value {
         let ptr = value.to_pointer() as usize;
@@ -77,9 +109,45 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
                 });
             }
         }
+        LuaValue::UserData(ud) => match ud.get_metatable() {
+            Ok(mt) => {
+                if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
+                    mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
+                ) {
+                    match to_dynamic.call(LuaValue::UserData(ud.clone())) {
+                        Ok(value) => {
+                            let dyn_value = lua_value_to_dynamic(value)?;
+                            return dyn_to_json(dyn_value).map_err(mlua::Error::external);
+                        }
+                        Err(err) => {
+                            return Err(mlua::Error::FromLuaConversionError {
+                                from: "userdata",
+                                to: "wezterm_dynamic::Value",
+                                message: Some(format!(
+                                    "error calling __wezterm_to_dynamic: {err:#}"
+                                )),
+                            })
+                        }
+                    }
+                } else {
+                    return Err(mlua::Error::FromLuaConversionError {
+                        from: "userdata",
+                        to: "wezterm_dynamic::Value",
+                        message: Some(format!("no __wezterm_to_dynamic metadata")),
+                    });
+                }
+            }
+            Err(err) => {
+                return Err(mlua::Error::FromLuaConversionError {
+                    from: "userdata",
+                    to: "wezterm_dynamic::Value",
+                    message: Some(format!("error getting metatable: {err:#}")),
+                })
+            }
+        },
         // Handle our special Null userdata case and map it to Null
         LuaValue::LightUserData(ud) if ud.0.is_null() => JValue::Null,
-        LuaValue::LightUserData(_) | LuaValue::UserData(_) => {
+        LuaValue::LightUserData(_) => {
             return Err(mlua::Error::FromLuaConversionError {
                 from: "userdata",
                 to: "JsonValue",

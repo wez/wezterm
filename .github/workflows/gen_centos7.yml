@@ -86,7 +86,7 @@ jobs:
           key: "centos7-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: "env PATH=$PATH ./get-deps"
+        run: "env CI=yes PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
         run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"

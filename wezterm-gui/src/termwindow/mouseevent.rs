@@ -448,8 +448,10 @@ impl super::TermWindow {
                 TabBarItem::Tab { .. } | TabBarItem::NewTabButton { .. } => {}
             },
             WMEK::VertWheel(n) => {
-                self.activate_tab_relative(if n < 1 { 1 } else { -1 }, true)
-                    .ok();
+                if self.config.mouse_wheel_scrolls_tabs {
+                    self.activate_tab_relative(if n < 1 { 1 } else { -1 }, true)
+                        .ok();
+                }
             }
             _ => {}
         }

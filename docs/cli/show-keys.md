@@ -42,3 +42,9 @@ Mouse
         ALT            Down { streak: 1, button: Left }     ->   SelectTextAtMouseCursor(Block)
         ...
 ```
+
+## Synopsis
+
+```console
+{% include "../examples/cmd-synopsis-wezterm-show-keys--help.txt" %}
+```

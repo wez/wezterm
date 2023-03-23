@@ -1,4 +1,4 @@
-# font_dirs
+# `font_dirs`
 
 By default, wezterm will use an appropriate system-specific method for
 locating the fonts that you specify using the options below.  In addition,

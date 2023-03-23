@@ -1,4 +1,4 @@
-# ExtendSelectionToMouseCursor
+# `ExtendSelectionToMouseCursor`
 
 Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of `Cell`, `Word` or `Line` to control
