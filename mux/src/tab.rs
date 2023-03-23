@@ -1418,8 +1418,8 @@ impl TabInner {
             self.set_active_idx(panel_idx);
         }
         let mux = Mux::get();
-        for pane in mux.iter_panes() {
-            mux.notify(MuxNotification::PaneOutput(pane.pane_id()));
+        if let Some(window_id) = mux.window_containing_tab(self.id) {
+            mux.notify(MuxNotification::WindowInvalidated(window_id));
         }
     }
 
