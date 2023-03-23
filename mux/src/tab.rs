@@ -1418,7 +1418,9 @@ impl TabInner {
             self.set_active_idx(panel_idx);
         }
         let mux = Mux::get();
-        mux.notify(MuxNotification::WindowInvalidated(self.id));
+        for pane in mux.iter_panes() {
+            mux.notify(MuxNotification::PaneOutput(pane.pane_id()));
+        }
     }
 
     fn get_pane_direction(&mut self, direction: PaneDirection, ignore_zoom: bool) -> Option<usize> {
