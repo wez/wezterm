@@ -74,6 +74,8 @@ jobs:
             curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
+      - name: "Setup Toolchain"
+        run: |
           rustup toolchain install stable --profile minimal --no-self-update
           rustup default stable
       - name: "Cache cargo"
