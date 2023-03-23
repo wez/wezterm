@@ -216,6 +216,9 @@ impl PtyFd {
                         libc::signal(*signo, libc::SIG_DFL);
                     }
 
+                    let empty_set: libc::sigset_t = std::mem::zeroed();
+                    libc::sigprocmask(libc::SIG_SETMASK, &empty_set, std::ptr::null_mut());
+
                     // Establish ourselves as a session leader.
                     if libc::setsid() == -1 {
                         return Err(io::Error::last_os_error());
