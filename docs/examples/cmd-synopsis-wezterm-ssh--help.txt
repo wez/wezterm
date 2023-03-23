@@ -1,4 +1,3 @@
-
 Establish an ssh session
 
 Usage: wezterm ssh [OPTIONS] <USER_AT_HOST_AND_PORT> [PROG]...

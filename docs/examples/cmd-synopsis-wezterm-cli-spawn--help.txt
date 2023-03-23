@@ -1,0 +1,31 @@
+Spawn a command into a new window or tab
+Outputs the pane-id for the newly created pane on success
+
+Usage: wezterm cli spawn [OPTIONS] [PROG]...
+
+Arguments:
+  [PROG]...  Instead of executing your shell, run PROG. For example: `wezterm
+             cli spawn -- bash -l` will spawn bash as if it were a login shell
+
+Options:
+      --pane-id <PANE_ID>
+          Specify the current pane. The default is to use the current pane based
+          on the environment variable WEZTERM_PANE. The pane is used to
+          determine the current domain and window
+      --domain-name <DOMAIN_NAME>
+          
+      --window-id <WINDOW_ID>
+          Specify the window into which to spawn a tab. If omitted, the window
+          associated with the current pane is used. Cannot be used with
+          `--workspace` or `--new-window`
+      --new-window
+          Spawn into a new window, rather than a new tab
+      --cwd <CWD>
+          Specify the current working directory for the initially spawned
+          program
+      --workspace <WORKSPACE>
+          When creating a new window, override the default workspace name with
+          the provided name.  The default name is "default". Requires
+          `--new-window`
+  -h, --help
+          Print help

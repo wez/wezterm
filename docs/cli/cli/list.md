@@ -43,3 +43,9 @@ $ wezterm cli list --format json
   }
 ]
 ```
+
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-list--help.txt" %}
+```

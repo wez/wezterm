@@ -1,4 +1,3 @@
-
 Replay an asciicast terminal session
 
 Usage: wezterm replay [OPTIONS] <CAST_FILE>

@@ -1,4 +1,3 @@
-
 Open a serial port
 
 Usage: wezterm serial [OPTIONS] <PORT>

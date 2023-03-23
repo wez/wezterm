@@ -25,3 +25,9 @@ The default capture region is the main terminal screen, not including the scroll
 You may use the `--start-line` and `--end-line` parameters to set the range.
 Both of these accept integer values, where `0` refers to the top of the non-scrollback
 screen area, and negative numbers index backwards into the scrollback.
+
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-get-text--help.txt" %}
+```

@@ -1,0 +1,17 @@
+Move a pane into a new tab
+
+Usage: wezterm cli move-pane-to-new-tab [OPTIONS]
+
+Options:
+      --pane-id <PANE_ID>      Specify the pane that should be moved. The
+                               default is to use the current pane based on the
+                               environment variable WEZTERM_PANE
+      --window-id <WINDOW_ID>  Specify the window into which the new tab will be
+                               created. If omitted, the window associated with
+                               the current pane is used
+      --new-window             Create tab in a new window, rather than the
+                               window currently containing the pane
+      --workspace <WORKSPACE>  If creating a new window, override the default
+                               workspace name with the provided name.  The
+                               default name is "default"
+  -h, --help                   Print help

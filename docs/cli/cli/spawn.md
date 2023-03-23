@@ -41,3 +41,9 @@ The following options affect the behavior:
 * `--workspace WORKSPACE` - when using `--new-window`, set the workspace name rather than using the default name of `"default"`.
 * `--window-id WINDOW_ID` - Spawn the tab into the specified window, rather than using the current window
 
+
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-spawn--help.txt" %}
+```

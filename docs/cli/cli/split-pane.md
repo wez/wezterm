@@ -48,3 +48,8 @@ The following options affect the behavior:
 * `--top` - Split vertically, with the new pane on the top.
 * `--top-level` - Rather than splitting the active pane, split the entire window.
 
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-split-pane--help.txt" %}
+```

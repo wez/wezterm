@@ -23,3 +23,9 @@ The following arguments modify the behavior:
 
 * `--no-paste` - Send the text directly, rather than as a bracketed paste. {{since('20220624-141144-bd1b7c5d', inline=True)}}
 * `--pane-id` - Specifies which pane to send the text to. See also [Targeting Panes](index.md#targeting-panes).
+
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-send-text--help.txt" %}
+```

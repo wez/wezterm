@@ -12,3 +12,8 @@ ignoring case so you can use `left` rather than `Left`:
 * `Left`, `Right`, `Up`, `Down` to activate based on direction
 * `Next`, `Prev` to cycle based on the ordinal position in the pane tree.
 
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-activate-pane-direction--help.txt" %}
+```

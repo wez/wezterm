@@ -13,3 +13,9 @@ The following arguments modify the behavior:
 * `--window-id WINDOW_ID` - Create the new tab in the specified window id rather than the current window.
 * `--workspace WORKSPACE` - When using `--new-window`, use `WORKSPACE` as the name of the workspace for the newly created window rather than the default workspace name `"default"`.
 * `--pane-id` - Specifies which pane to move. See also [Targeting Panes](index.md#targeting-panes).
+
+## Synopsis
+
+```console
+{% include "../../examples/cmd-synopsis-wezterm-cli-move-pane-to-new-tab--help.txt" %}
+```
