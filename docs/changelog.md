@@ -49,6 +49,7 @@ As features stabilize some brief notes about them will accumulate here.
   event reporting.
 * Unblock all signals when spawning programs, to avoid strangess when the
   parent of the wezterm process spawns wezterm with an unusual signal mask.
+* Lingering openconsole.exe processes on Windows. Thanks to @mbikovitsky! #3339
 
 ### 20230320-124340-559cb7b0
 
