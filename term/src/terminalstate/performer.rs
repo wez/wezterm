@@ -157,10 +157,8 @@ impl<'a> Performer<'a> {
                     fn makes_sense_to_wrap(s: &str) -> bool {
                         let len = s.len();
                         match (len, s.chars().next()) {
-                            (1, Some(c)) => {
-                                c.is_alphanumeric() || c.is_ascii_punctuation()
-                            }
-                            _ => true
+                            (1, Some(c)) => c.is_alphanumeric() || c.is_ascii_punctuation(),
+                            _ => true,
                         }
                     }
 
