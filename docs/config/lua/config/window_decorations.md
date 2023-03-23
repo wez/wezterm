@@ -1,6 +1,6 @@
 # `window_decorations = "TITLE | RESIZE"`
 
-*Since 20210314-114017-04b7cedd*
+{{since('20210314-114017-04b7cedd')}}
 
 Configures whether the window has a title bar and/or resizable border.
 
@@ -13,6 +13,16 @@ The value is a set of of flags:
 * `window_decorations = "TITLE"` - disable the resizable border and enable only the title bar
 * `window_decorations = "RESIZE"` - disable the title bar but enable the resizable border
 * `window_decorations = "TITLE | RESIZE"` - Enable titlebar and border.  This is the default.
+
+{{since('20230320-124340-559cb7b0', outline=true)}}
+    The following flags are also supported on macOS:
+
+    * `MACOS_FORCE_DISABLE_SHADOW` - disable the window shadow effect
+    * `MACOS_FORCE_ENABLE_SHADOW` - enable the window shadow effect.
+
+    The window shadow effect is normally disabled by wezterm when the
+    [window_background_opacity](../../appearance.md#window-background-opacity) is set
+    to less than `1.0`.
 
 On X11 and Wayland, the windowing system may override the window decorations.
 
@@ -33,10 +43,11 @@ desktop environment to resize the window.  Windows users may wish to consider
     problems with resizing and minimizing the window. You usually want to keep
     `RESIZE` enabled.
 
-If you just want to remove the title bar, set `window_decorations = "RESIZE"`
-as you will run into problems if you remove `RESIZE` from the set of
-decorations.
+!!! danger
+    If you just want to remove the title bar, set `window_decorations = "RESIZE"`
+    as you will run into problems if you remove `RESIZE` from the set of
+    decorations.
 
-!!! info
+!!! tip
     You probably always want `RESIZE` to be listed in your `window_decorations`.
 
