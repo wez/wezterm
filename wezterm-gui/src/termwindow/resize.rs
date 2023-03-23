@@ -200,10 +200,12 @@ impl super::TermWindow {
 
             let pixel_height = (rows * self.render_metrics.cell_size.height as usize)
                 + (padding_top + padding_bottom)
+                + (border.top + border.bottom).get() as usize
                 + tab_bar_height as usize;
 
             let pixel_width = (cols * self.render_metrics.cell_size.width as usize)
-                + (padding_left + padding_right);
+                + (padding_left + padding_right)
+                + (border.left + border.right).get() as usize;
 
             let dims = Dimensions {
                 pixel_width: pixel_width as usize,

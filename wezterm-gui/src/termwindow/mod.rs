@@ -628,7 +628,7 @@ impl TermWindow {
         let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as usize;
         let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as usize;
 
-        let dimensions = Dimensions {
+        let mut dimensions = Dimensions {
             pixel_width: (terminal_size.pixel_width + padding_left + padding_right) as usize,
             pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as usize)
                 + padding_top
@@ -636,6 +636,11 @@ impl TermWindow {
                 + tab_bar_height,
             dpi,
         };
+
+        let border = Self::get_os_order_impl(&None, &config, &dimensions, &render_metrics);
+
+        dimensions.pixel_height += (border.top + border.bottom).get() as usize;
+        dimensions.pixel_width += (border.left + border.right).get() as usize;
 
         let window_background = load_background_image(&config, &dimensions, &render_metrics);
 
