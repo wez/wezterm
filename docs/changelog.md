@@ -40,6 +40,9 @@ As features stabilize some brief notes about them will accumulate here.
   as wrapped if the last character on the prior line is alphanumeric or ascii
   punctuation. Other characters will cause the logical line to break.
   #3278 #3177
+* `wezterm cli activate-pane-direction` didn't cause the gui to repaint, making
+  it difficult to notice that the active pane had changed. Thanks to @ir-ae!
+  #3303 #2879 #3323
 
 ### 20230320-124340-559cb7b0
 
