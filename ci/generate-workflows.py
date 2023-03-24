@@ -331,15 +331,10 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
         params = dict()
         if self.rust_target:
             params["target"] = self.rust_target
-        steps = [
-            ActionStep(
-                name="Install Rust",
-                action=f"dtolnay/rust-toolchain@{toolchain}",
-                params=params,
-            ),
-        ]
+        steps = []
+        # Manually setup rust toolchain in CentOS7 curl is too old for the action
         if "centos7" in self.name:
-            steps = [
+            steps += [
                 RunStep(
                     name="Install Rustup",
                     run = """
@@ -355,6 +350,14 @@ fi
 rustup toolchain install {toolchain} --profile minimal --no-self-update
 rustup default {toolchain}
 """
+                ),
+            ]
+        else:
+            steps += [
+                ActionStep(
+                    name="Install Rust",
+                    action=f"dtolnay/rust-toolchain@{toolchain}",
+                    params=params,
                 ),
             ]
         if "macos" in self.name:
