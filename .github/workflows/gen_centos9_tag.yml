@@ -41,7 +41,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "centos9-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "centos9-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
