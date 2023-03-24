@@ -48,8 +48,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          # TODO: Use dtonlay/rust-toolchain rustc key for caching
-          key: "termwiz-fuzz-nightly-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "termwiz-fuzz-${{ runner.os }}"
       - name: Install fuzzer
         run: |
           source $HOME/.cargo/env
