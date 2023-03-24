@@ -337,19 +337,19 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
             steps += [
                 RunStep(
                     name="Install Rustup",
-                    run = """
+                    run="""
 if ! command -v rustup &>/dev/null; then
   curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
   echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
 fi
-"""
+""",
                 ),
                 RunStep(
                     name="Setup Toolchain",
-                    run =f"""
+                    run=f"""
 rustup toolchain install {toolchain} --profile minimal --no-self-update
 rustup default {toolchain}
-"""
+""",
                 ),
             ]
         else:
@@ -383,7 +383,10 @@ rustup default {toolchain}
             return []
         sudo = "sudo -n " if self.needs_sudo() else ""
         return [
-            RunStep(name="Install System Deps", run=f"{sudo}env CI=yes PATH=$PATH ./get-deps")
+            RunStep(
+                name="Install System Deps",
+                run=f"{sudo}env CI=yes PATH=$PATH ./get-deps",
+            )
         ]
 
     def build_all_release(self):
