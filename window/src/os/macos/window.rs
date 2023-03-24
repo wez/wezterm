@@ -59,7 +59,11 @@ const NSViewLayerContentsRedrawDuringViewResize: NSInteger = 2;
 #[link(name = "CoreGraphics", kind = "framework")]
 extern "C" {
     fn CGSMainConnectionID() -> id;
-    fn CGSSetWindowBackgroundBlurRadius(connect_id: id, window_id: NSInteger, radius: i64) -> i32;
+    fn CGSSetWindowBackgroundBlurRadius(
+        connection_id: id,
+        window_id: NSInteger,
+        radius: i64,
+    ) -> i32;
 }
 
 fn round_away_from_zerof(value: f64) -> f64 {
@@ -570,7 +574,7 @@ impl Window {
             CGSSetWindowBackgroundBlurRadius(
                 CGSMainConnectionID(),
                 window.windowNumber(),
-                config.window_background_blur,
+                config.macos_window_background_blur,
             );
             window.setContentView_(*view);
             window.setDelegate_(*view);
@@ -1043,7 +1047,7 @@ impl WindowInner {
             CGSSetWindowBackgroundBlurRadius(
                 CGSMainConnectionID(),
                 self.window.windowNumber(),
-                self.config.window_background_blur,
+                self.config.macos_window_background_blur,
             );
         }
     }
