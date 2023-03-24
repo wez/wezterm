@@ -78,6 +78,7 @@ pub enum MuxNotification {
         window_id: WindowId,
     },
     PaneFocused(PaneId),
+    TabResized(TabId),
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);

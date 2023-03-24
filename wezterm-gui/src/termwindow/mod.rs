@@ -1162,7 +1162,10 @@ impl TermWindow {
                     // Handled by frontend
                 }
                 MuxNotification::PaneFocused(_) => {
-                    // Handled by frontend
+                    // Handled by clientpane
+                }
+                MuxNotification::TabResized(_) => {
+                    // Handled by wezterm-client
                 }
                 MuxNotification::PaneAdded(_)
                 | MuxNotification::PaneRemoved(_)
@@ -1349,6 +1352,7 @@ impl TermWindow {
             | MuxNotification::AssignClipboard { .. }
             | MuxNotification::SaveToDownloads { .. }
             | MuxNotification::PaneFocused(_)
+            | MuxNotification::TabResized(_)
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)

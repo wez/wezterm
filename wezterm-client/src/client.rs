@@ -220,6 +220,26 @@ fn process_unilateral(
 
             return Ok(());
         }
+        Pdu::TabResized(TabResized { tab_id }) => {
+            log::trace!("TabResized {tab_id}");
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                        })?;
+
+                client_domain.resync().await
+            })
+            .detach();
+
+            return Ok(());
+        }
         _ => {}
     }
 

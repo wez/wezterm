@@ -469,6 +469,7 @@ pdu! {
     GetPaneRenderableDimensions: 51,
     GetPaneRenderableDimensionsResponse: 52,
     PaneFocused: 53,
+    TabResized: 54,
 }
 
 impl Pdu {
@@ -733,6 +734,11 @@ pub struct SetPalette {
 pub struct NotifyAlert {
     pub pane_id: PaneId,
     pub alert: Alert,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct TabResized {
+    pub tab_id: TabId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

@@ -893,6 +893,7 @@ impl TabInner {
                 self.zoomed.replace(pane);
             }
         }
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn contains_pane(&self, pane: PaneId) -> bool {
@@ -981,6 +982,7 @@ impl TabInner {
                 }
             }
         }
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn iter_panes_impl(&mut self, respect_zoom_state: bool) -> Vec<PositionedPane> {
@@ -1160,6 +1162,8 @@ impl TabInner {
             // And then resize the individual panes to match
             apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
         }
+
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn apply_pane_size(&mut self, pane_size: TerminalSize, cursor: &mut Cursor) {
@@ -1229,6 +1233,7 @@ impl TabInner {
                 self.size = size;
             }
         }
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn resize_split_by(&mut self, split_index: usize, delta: isize) {
@@ -1261,6 +1266,7 @@ impl TabInner {
         // Now cursor is looking at the split
         self.adjust_node_at_cursor(&mut cursor, delta);
         self.cascade_size_from_cursor(cursor);
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn adjust_node_at_cursor(&mut self, cursor: &mut Cursor, delta: isize) {
@@ -1343,6 +1349,7 @@ impl TabInner {
                 }
             }
         }
+        Mux::get().notify(MuxNotification::TabResized(self.id));
     }
 
     fn adjust_pane_size(&mut self, direction: PaneDirection, amount: usize) {
