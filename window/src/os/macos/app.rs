@@ -81,7 +81,7 @@ extern "C" fn application_open_untitled_file(
     _app: *mut Object,
 ) -> BOOL {
     let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    log::debug!("application_open_file launched={launched}");
+    log::debug!("application_open_untitled_file launched={launched}");
     if let Some(conn) = Connection::get() {
         if launched == YES {
             conn.dispatch_app_event(ApplicationEvent::PerformKeyAssignment(
@@ -136,14 +136,18 @@ extern "C" fn wezterm_show_about(_self: &mut Object, _sel: Sel, _menu_item: *mut
 }
 
 extern "C" fn application_open_file(
-    _self: &mut Object,
+    this: &mut Object,
     _sel: Sel,
     _app: *mut Object,
     file_name: *mut Object,
 ) {
-    let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
-    if let Some(conn) = Connection::get() {
-        conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
+    let launched: BOOL = unsafe { *this.get_ivar("launched") };
+    if launched {
+        let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
+        if let Some(conn) = Connection::get() {
+            log::debug!("application_open_file {file_name}");
+            conn.dispatch_app_event(ApplicationEvent::OpenCommandScript(file_name));
+        }
     }
 }
 

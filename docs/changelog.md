@@ -50,6 +50,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Unblock all signals when spawning programs, to avoid strangess when the
   parent of the wezterm process spawns wezterm with an unusual signal mask.
 * Lingering openconsole.exe processes on Windows. Thanks to @mbikovitsky! #3339
+* macos: command line parameters beyond the first were treated as terminal
+  command scripts and opened spurious windows. #3340
 
 ### 20230320-124340-559cb7b0
 
