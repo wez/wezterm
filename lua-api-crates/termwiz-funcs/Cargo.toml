@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "1.0"
 config = { path = "../../config" }
 finl_unicode = "1.2"
-terminfo = "0.7"
+terminfo = "0.8"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
 luahelper = { path = "../../luahelper" }
 termwiz = { path = "../../termwiz", features=["use_serde"] }
