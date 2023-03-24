@@ -27,7 +27,7 @@ TRIGGER_PATHS_UNIX = [
     "assets/wezterm.appdata.xml",
     "assets/wezterm.desktop",
     "get-deps",
-    "tag-name.sh",
+    "ci/tag-name.sh",
     "termwiz/data/wezterm.terminfo",
 ]
 
@@ -35,7 +35,7 @@ TRIGGER_PATHS_MAC = [
     "assets/macos/**/*",
     "ci/macos-entitlement.plist",
     "get-deps",
-    "tag-name.sh",
+    "ci/tag-name.sh",
 ]
 
 TRIGGER_PATHS_WIN = [
