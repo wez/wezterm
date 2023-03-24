@@ -483,6 +483,10 @@ pub struct Config {
     #[dynamic(default)]
     pub background: Vec<BackgroundLayer>,
 
+    /// Only works on MacOS
+    #[dynamic(default)]
+    pub window_background_blur: i64,
+
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the
     /// window_background_image, or if there is none, the background

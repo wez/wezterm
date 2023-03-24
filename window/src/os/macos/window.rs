@@ -56,6 +56,12 @@ const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsRedrawDuringViewResize: NSInteger = 2;
 
+#[link(name = "CoreGraphics", kind = "framework")]
+extern "C" {
+    fn CGSMainConnectionID() -> id;
+    fn CGSSetWindowBackgroundBlurRadius(connect_id: id, window_id: NSInteger, radius: i64) -> i32;
+}
+
 fn round_away_from_zerof(value: f64) -> f64 {
     if value > 0. {
         value.max(1.).round()
@@ -561,6 +567,11 @@ impl Window {
                 setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
             ];
 
+            CGSSetWindowBackgroundBlurRadius(
+                CGSMainConnectionID(),
+                window.windowNumber(),
+                config.window_background_blur,
+            );
             window.setContentView_(*view);
             window.setDelegate_(*view);
 
@@ -1026,6 +1037,16 @@ impl WindowInner {
             self.window.setHasShadow_(shadow);
         }
     }
+
+    fn update_window_background_blur(&mut self) {
+        unsafe {
+            CGSSetWindowBackgroundBlurRadius(
+                CGSMainConnectionID(),
+                self.window.windowNumber(),
+                self.config.window_background_blur,
+            );
+        }
+    }
 }
 
 impl WindowInner {
@@ -1194,6 +1215,7 @@ impl WindowInner {
             window_view.inner.borrow_mut().config = config.clone();
         }
         self.update_window_shadow();
+        self.update_window_background_blur();
         self.apply_decorations();
     }
 }
