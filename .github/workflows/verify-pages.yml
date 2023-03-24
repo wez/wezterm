@@ -20,13 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: "Install Rust"
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: "minimal"
-          toolchain: "stable"
-          override: true
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+        uses: dtolnay/rust-toolchain@stable
       - name: Install gelatyx
         uses: baptiste0928/cargo-install@v1
         with:

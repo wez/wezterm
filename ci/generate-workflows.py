@@ -325,25 +325,41 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
 
         return steps
 
-    def install_rust(self, cache=True):
+    def install_rust(self, cache=True, toolchain="stable"):
         salt = "2"
         key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
-        params = {
-            "profile": "minimal",
-            "toolchain": "stable",
-            "override": True,
-            "components": "rustfmt",
-        }
+        params = dict()
         if self.rust_target:
             params["target"] = self.rust_target
-        steps = [
-            ActionStep(
-                name="Install Rust",
-                action="actions-rs/toolchain@v1",
-                params=params,
-                env={"ACTIONS_ALLOW_UNSECURE_COMMANDS": "true"},
-            ),
-        ]
+        steps = []
+        # Manually setup rust toolchain in CentOS7 curl is too old for the action
+        if "centos7" in self.name:
+            steps += [
+                RunStep(
+                    name="Install Rustup",
+                    run = """
+if ! command -v rustup &>/dev/null; then
+  curl --proto '=https' --tlsv1.2 --retry 10 -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+  echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+fi
+"""
+                ),
+                RunStep(
+                    name="Setup Toolchain",
+                    run =f"""
+rustup toolchain install {toolchain} --profile minimal --no-self-update
+rustup default {toolchain}
+"""
+                ),
+            ]
+        else:
+            steps += [
+                ActionStep(
+                    name="Install Rust",
+                    action=f"dtolnay/rust-toolchain@{toolchain}",
+                    params=params,
+                ),
+            ]
         if "macos" in self.name:
             steps += [
                 RunStep(

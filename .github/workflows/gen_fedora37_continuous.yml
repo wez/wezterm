@@ -55,14 +55,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: "Install Rust"
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: "minimal"
-          toolchain: "stable"
-          override: true
-          components: "rustfmt"
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+        uses: dtolnay/rust-toolchain@stable
       - name: "Cache cargo"
         uses: actions/cache@v3
         with:
