@@ -72,7 +72,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          key: "ubuntu22.04"
+          cache-key: "ubuntu22.04"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"

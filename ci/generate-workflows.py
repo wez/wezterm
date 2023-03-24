@@ -143,7 +143,7 @@ class CheckoutStep(ActionStep):
 
 class InstallCrateStep(ActionStep):
     def __init__(self, crate: str, key: str, version=None):
-        params = {"crate": crate, "key": key}
+        params = {"crate": crate, "cache-key": key}
         if version is not None:
             params["version"] = version
         super().__init__(

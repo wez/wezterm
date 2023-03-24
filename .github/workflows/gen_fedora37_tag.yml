@@ -49,7 +49,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          key: "fedora37"
+          cache-key: "fedora37"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
