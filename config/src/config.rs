@@ -485,7 +485,7 @@ pub struct Config {
 
     /// Only works on MacOS
     #[dynamic(default)]
-    pub window_background_blur: i64,
+    pub macos_window_background_blur: i64,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the
