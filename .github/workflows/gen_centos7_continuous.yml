@@ -99,6 +99,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
+          key: "centos7"
       - name: "Test (Release mode)"
         shell: bash
         run: |
