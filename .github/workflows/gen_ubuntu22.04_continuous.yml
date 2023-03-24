@@ -72,9 +72,13 @@ jobs:
       - name: "Build (Release mode)"
         shell: bash
         run: "cargo build --all --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
       - name: "Test (Release mode)"
         shell: bash
-        run: "cargo test --all --release"
+        run: "cargo nextest run --all --release"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
