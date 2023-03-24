@@ -142,8 +142,8 @@ class CheckoutStep(ActionStep):
 
 
 class InstallCrateStep(ActionStep):
-    def __init__(self, crate: str, version=None):
-        params = {"crate": crate}
+    def __init__(self, crate: str, key: str, version=None):
+        params = {"crate": crate, "key": key}
         if version is not None:
             params["version"] = version
         super().__init__(
@@ -444,7 +444,7 @@ cargo build --all --release""",
             run = "source /opt/rh/devtoolset-9/enable\n" + run
         return [
             # Install cargo-nextest
-            InstallCrateStep("cargo-nextest"),
+            InstallCrateStep("cargo-nextest", key=self.name),
             # Run tests
             RunStep(
                 name="Test (Release mode)",
