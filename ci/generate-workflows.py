@@ -333,7 +333,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
 
     def install_rust(self, cache=True, toolchain="stable"):
         salt = "2"
-        key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
+        key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}"
         params = dict()
         if self.rust_target:
             params["target"] = self.rust_target
