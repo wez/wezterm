@@ -142,7 +142,7 @@ extern "C" fn application_open_file(
     file_name: *mut Object,
 ) {
     let launched: BOOL = unsafe { *this.get_ivar("launched") };
-    if launched {
+    if launched == YES {
         let file_name = unsafe { nsstring_to_str(file_name) }.to_string();
         if let Some(conn) = Connection::get() {
             log::debug!("application_open_file {file_name}");
