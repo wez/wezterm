@@ -1988,6 +1988,8 @@ impl TermWindow {
             .get_window_mut(self.mux_window_id)
             .ok_or_else(|| anyhow!("no such window"))?;
 
+        // This logic is coupled with the CliSubCommand::ActivateTab
+        // logic in wezterm/src/main.rs. If you update this, update that!
         let max = window.len();
 
         let tab_idx = if tab_idx < 0 {
@@ -2020,6 +2022,8 @@ impl TermWindow {
         let max = window.len();
         ensure!(max > 0, "no more tabs");
 
+        // This logic is coupled with the CliSubCommand::ActivateTab
+        // logic in wezterm/src/main.rs. If you update this, update that!
         let active = window.get_active_idx() as isize;
         let tab = active + delta;
         let tab = if wrap {

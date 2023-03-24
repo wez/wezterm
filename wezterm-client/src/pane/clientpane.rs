@@ -182,31 +182,9 @@ impl ClientPane {
                 log::trace!("advised of remote pane focus: {pane_id}");
 
                 let mux = Mux::get();
-                let (_domain, window_id, tab_id) = mux
-                    .resolve_pane_id(self.local_pane_id)
-                    .ok_or_else(|| anyhow::anyhow!("can't find myself in the mux"))?;
-
-                // Focus/activate the containing tab within its window
-                {
-                    let mut win = mux
-                        .get_window_mut(window_id)
-                        .ok_or_else(|| anyhow::anyhow!("window_id {window_id} not found"))?;
-                    let tab_idx = win
-                        .idx_by_id(tab_id)
-                        .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not in {window_id}"))?;
-                    win.save_and_then_set_active(tab_idx);
+                if let Err(err) = mux.focus_pane_and_containing_tab(self.local_pane_id) {
+                    log::error!("Error reconciling remote PaneFocused notification: {err:#}");
                 }
-
-                // Focus/activate the pane locally
-                let tab = mux
-                    .get_tab(tab_id)
-                    .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
-
-                let pane = mux.get_pane(self.local_pane_id).ok_or_else(|| {
-                    anyhow::anyhow!("pane {} not found. That's me?", self.local_pane_id)
-                })?;
-
-                tab.set_active_pane(&pane);
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };

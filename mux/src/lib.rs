@@ -485,6 +485,38 @@ impl Mux {
         }
     }
 
+    /// Called by PaneFocused event handlers to reconcile a remote
+    /// pane focus event and apply its effects locally
+    pub fn focus_pane_and_containing_tab(&self, pane_id: PaneId) -> anyhow::Result<()> {
+        let pane = self
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
+
+        let (_domain, window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow::anyhow!("can't find {pane_id} in the mux"))?;
+
+        // Focus/activate the containing tab within its window
+        {
+            let mut win = self
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow::anyhow!("window_id {window_id} not found"))?;
+            let tab_idx = win
+                .idx_by_id(tab_id)
+                .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not in {window_id}"))?;
+            win.save_and_then_set_active(tab_idx);
+        }
+
+        // Focus/activate the pane locally
+        let tab = self
+            .get_tab(tab_id)
+            .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
+
+        tab.set_active_pane(&pane);
+
+        Ok(())
+    }
+
     pub fn register_client(&self, client_id: Arc<ClientId>) {
         self.clients
             .write()

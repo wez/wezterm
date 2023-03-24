@@ -25,7 +25,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [mouse_wheel_scrolls_tabs](config/lua/config/mouse_wheel_scrolls_tabs.md) option
   to control whether the mouse wheel can be used to activate tabs when hovering
   over the tab bar. Thanks to @eaglgenes101! #3227
-* [wezterm cli kill-pane](cli/cli/kill-pane.md) #3352
+* [wezterm cli kill-pane](cli/cli/kill-pane.md),
+  [wezterm cli activate-pane](cli/cli/activate-pane.md) and
+  [wezterm cli activate-tab](cli/cli/activate-tab.md) #3352 #886
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
