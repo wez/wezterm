@@ -141,6 +141,18 @@ class CheckoutStep(ActionStep):
         super().__init__(name, action="actions/checkout@v3", params=params)
 
 
+class InstallCrateStep(ActionStep):
+    def __init__(self, crate: str, version=None):
+        params = {"crate": crate}
+        if version is not None:
+            params["version"] = version
+        super().__init__(
+            f"Install {crate} from Cargo",
+            action="baptiste0928/cargo-install@v2",
+            params=params
+        )
+
+
 class Job(object):
     def __init__(self, runs_on, container=None, steps=None, env=None):
         self.runs_on = runs_on
@@ -425,22 +437,21 @@ cargo build --all --release""",
         ]
 
     def test_all_release(self):
+        run = "cargo nextest run --all --release"
         if "macos" in self.name:
-            return [
-                RunStep(
-                    name="Test (Release mode)",
-                    run="cargo test --target x86_64-apple-darwin --all --release",
-                )
-            ]
+            run += " --target=x86_64-apple-darwin"
         if self.name == "centos7":
-            enable = "source /opt/rh/devtoolset-9/enable && "
-        else:
-            enable = ""
+            run = "source /opt/rh/devtoolset-9/enable\n" + run
         return [
+            # Install cargo-nextest
+            InstallCrateStep("cargo-nextest"),
+            # Run tests
             RunStep(
-                name="Test (Release mode)", run=enable + "cargo test --all --release"
-            )
+                name="Test (Release mode)",
+                run=run,
+            ),
         ]
+        
 
     def package(self, trusted=False):
         steps = []
