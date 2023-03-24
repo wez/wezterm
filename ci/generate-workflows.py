@@ -437,7 +437,7 @@ cargo build --all --release""",
         ]
 
     def test_all_release(self):
-        run = "cargo nextest run --all --release"
+        run = "cargo nextest run --all --release --no-fail-fast"
         if "macos" in self.name:
             run += " --target=x86_64-apple-darwin"
         if self.name == "centos7":

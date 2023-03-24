@@ -37,7 +37,7 @@ jobs:
           crate: "cargo-nextest"
       - name: "Test (Release mode)"
         shell: bash
-        run: "cargo nextest run --all --release --target=x86_64-apple-darwin"
+        run: "cargo nextest run --all --release --no-fail-fast --target=x86_64-apple-darwin"
       - name: "Package"
         env:
           MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}

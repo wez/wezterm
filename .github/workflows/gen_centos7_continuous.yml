@@ -103,7 +103,7 @@ jobs:
         shell: bash
         run: |
           source /opt/rh/devtoolset-9/enable
-          cargo nextest run --all --release
+          cargo nextest run --all --release --no-fail-fast
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"

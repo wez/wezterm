@@ -42,7 +42,7 @@ jobs:
         run: |
           source $HOME/.cargo/env
           cargo build -p termwiz --all-features
-          cargo nextest run --package termwiz --all-features
+          cargo nextest run --no-fail-fast --package termwiz --all-features
 
   fuzz-termwiz:
     runs-on: ubuntu-latest
