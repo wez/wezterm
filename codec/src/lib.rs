@@ -417,7 +417,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 33;
+pub const CODEC_VERSION: usize = 34;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -468,6 +468,7 @@ pdu! {
     ActivatePaneDirection: 50,
     GetPaneRenderableDimensions: 51,
     GetPaneRenderableDimensionsResponse: 52,
+    PaneFocused: 53,
 }
 
 impl Pdu {
@@ -543,6 +544,7 @@ impl Pdu {
             | Pdu::SetPalette(SetPalette { pane_id, .. })
             | Pdu::NotifyAlert(NotifyAlert { pane_id, .. })
             | Pdu::SetClipboard(SetClipboard { pane_id, .. })
+            | Pdu::PaneFocused(PaneFocused { pane_id })
             | Pdu::PaneRemoved(PaneRemoved { pane_id }) => Some(*pane_id),
             _ => None,
         }
@@ -731,6 +733,11 @@ pub struct SetPalette {
 pub struct NotifyAlert {
     pub pane_id: PaneId,
     pub alert: Alert,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct PaneFocused {
+    pub pane_id: PaneId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

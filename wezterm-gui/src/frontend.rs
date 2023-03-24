@@ -64,6 +64,7 @@ impl GuiFrontEnd {
                     })
                     .detach();
                 }
+                MuxNotification::PaneFocused(_) => {}
                 MuxNotification::TabAddedToWindow { .. } => {}
                 MuxNotification::PaneRemoved(_) => {}
                 MuxNotification::WindowInvalidated(_) => {}

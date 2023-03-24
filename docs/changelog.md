@@ -53,6 +53,8 @@ As features stabilize some brief notes about them will accumulate here.
 * macos: command line parameters beyond the first were treated as terminal
   command scripts and opened spurious windows. #3340
 * imgcat broken with multiplexer protocol #3343
+* `wezterm cli activate-pane-direction` would not cause the focus to change
+  in the GUI when explicitly using multiplexing domains. #2863
 
 ### 20230320-124340-559cb7b0
 

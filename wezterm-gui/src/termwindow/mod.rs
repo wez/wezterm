@@ -1161,6 +1161,9 @@ impl TermWindow {
                 MuxNotification::SaveToDownloads { .. } => {
                     // Handled by frontend
                 }
+                MuxNotification::PaneFocused(_) => {
+                    // Handled by frontend
+                }
                 MuxNotification::PaneAdded(_)
                 | MuxNotification::PaneRemoved(_)
                 | MuxNotification::WindowWorkspaceChanged(_)
@@ -1345,6 +1348,7 @@ impl TermWindow {
             }
             | MuxNotification::AssignClipboard { .. }
             | MuxNotification::SaveToDownloads { .. }
+            | MuxNotification::PaneFocused(_)
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)

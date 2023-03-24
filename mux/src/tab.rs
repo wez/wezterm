@@ -1715,14 +1715,17 @@ impl TabInner {
     }
 
     fn advise_focus_change(&mut self, prior: Option<Arc<dyn Pane>>) {
+        let mux = Mux::get();
         let current = self.get_active_pane();
         match (prior, current) {
             (Some(prior), Some(current)) if prior.pane_id() != current.pane_id() => {
                 prior.focus_changed(false);
                 current.focus_changed(true);
+                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
             }
             (None, Some(current)) => {
                 current.focus_changed(true);
+                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
             }
             (Some(prior), None) => {
                 prior.focus_changed(false);

@@ -301,6 +301,7 @@ impl SessionHandler {
                     let mux = Mux::get();
                     let _identity = mux.with_identity(client_id);
                     mux.record_focus_for_current_identity(pane_id);
+                    mux.notify(mux::MuxNotification::PaneFocused(pane_id));
                 })
                 .detach();
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
@@ -746,6 +747,7 @@ impl SessionHandler {
             | Pdu::GetTlsCredsResponse { .. }
             | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
+            | Pdu::PaneFocused { .. }
             | Pdu::GetImageCellResponse { .. }
             | Pdu::MovePaneToNewTabResponse { .. }
             | Pdu::GetPaneRenderableDimensionsResponse { .. }
