@@ -23,8 +23,8 @@ on:
       - "ci/appstreamcli"
       - "ci/deploy.sh"
       - "ci/source-archive.sh"
+      - "ci/tag-name.sh"
       - "get-deps"
-      - "tag-name.sh"
       - "termwiz/data/wezterm.terminfo"
 
 jobs:

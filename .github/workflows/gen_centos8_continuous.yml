@@ -20,8 +20,8 @@ on:
       - "assets/wezterm.appdata.xml"
       - "assets/wezterm.desktop"
       - "ci/deploy.sh"
+      - "ci/tag-name.sh"
       - "get-deps"
-      - "tag-name.sh"
       - "termwiz/data/wezterm.terminfo"
 
 jobs:
