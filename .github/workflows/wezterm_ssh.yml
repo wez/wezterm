@@ -33,6 +33,8 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
+          workspaces: |
+            wezterm-ssh
           key: "wezterm-ssh-libssh-rs-${{ runner.os }}"
       - name: Build
         run: |
@@ -49,6 +51,8 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
+          workspaces: |
+            wezterm-ssh
           key: "wezterm-ssh-ssh2-${{ runner.os }}"
       - name: Build
         run: |
