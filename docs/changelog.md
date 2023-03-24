@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Lingering openconsole.exe processes on Windows. Thanks to @mbikovitsky! #3339
 * macos: command line parameters beyond the first were treated as terminal
   command scripts and opened spurious windows. #3340
+* imgcat broken with multiplexer protocol #3343
 
 ### 20230320-124340-559cb7b0
 

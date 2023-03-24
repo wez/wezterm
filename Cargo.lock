@@ -5045,7 +5045,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "termwiz"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
@@ -6106,6 +6106,7 @@ dependencies = [
  "portable-pty",
  "promise",
  "umask",
+ "wezterm-blob-leases",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
  "wezterm-term",

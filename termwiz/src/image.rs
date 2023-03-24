@@ -471,20 +471,35 @@ impl ImageDataType {
     }
 }
 
-static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
-
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug)]
 pub struct ImageData {
-    id: usize,
     data: Mutex<ImageDataType>,
     hash: [u8; 32],
+}
+
+struct HexSlice<'a>(&'a [u8]);
+impl<'a> std::fmt::Display for HexSlice<'a> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for byte in self.0 {
+            write!(fmt, "{byte:x}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Debug for ImageData {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("ImageData")
+            .field("data", &self.data)
+            .field("hash", &format_args!("{}", HexSlice(&self.hash)))
+            .finish()
+    }
 }
 
 impl Eq for ImageData {}
 impl PartialEq for ImageData {
     fn eq(&self, rhs: &Self) -> bool {
-        self.id == rhs.id
+        self.hash == rhs.hash
     }
 }
 
@@ -496,19 +511,15 @@ impl ImageData {
     }
 
     fn with_data_and_hash(data: ImageDataType, hash: [u8; 32]) -> Self {
-        let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
         Self {
-            id,
             data: Mutex::new(data),
             hash,
         }
     }
 
     pub fn with_data(data: ImageDataType) -> Self {
-        let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
         let hash = data.compute_hash();
         Self {
-            id,
             data: Mutex::new(data),
             hash,
         }
@@ -526,10 +537,6 @@ impl ImageData {
 
     pub fn data(&self) -> MutexGuard<ImageDataType> {
         self.data.lock().unwrap()
-    }
-
-    pub fn id(&self) -> usize {
-        self.id
     }
 
     pub fn hash(&self) -> [u8; 32] {

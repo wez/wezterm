@@ -49,5 +49,5 @@ env_logger = "0.10"
 rstest = "0.17"
 shell-words = "1.1"
 smol-potat = "1.1.2"
-termwiz = { version = "0.21", path = "../termwiz" }
+termwiz = { version = "0.22", path = "../termwiz" }
 whoami = "1.1"

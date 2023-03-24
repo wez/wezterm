@@ -60,9 +60,11 @@ struct Opt {
 
 fn main() {
     if let Err(err) = run() {
+        wezterm_blob_leases::clear_storage();
         log::error!("{:#}", err);
         std::process::exit(1);
     }
+    wezterm_blob_leases::clear_storage();
 }
 
 fn run() -> anyhow::Result<()> {
@@ -158,6 +160,10 @@ fn run() -> anyhow::Result<()> {
     for name in &config::configuration().mux_env_remove {
         std::env::remove_var(name);
     }
+
+    wezterm_blob_leases::register_storage(Arc::new(
+        wezterm_blob_leases::simple_tempdir::SimpleTempDir::new()?,
+    ))?;
 
     let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
 

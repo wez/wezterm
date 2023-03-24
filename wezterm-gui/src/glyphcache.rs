@@ -9,7 +9,7 @@ use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use image::io::Limits;
 use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageFormat, ImageResult};
-use lfucache::LfuCacheU64;
+use lfucache::LfuCache;
 use once_cell::sync::Lazy;
 use ordered_float::NotNan;
 use std::cell::RefCell;
@@ -441,27 +441,33 @@ impl DecodedImage {
         }
     }
 
+    fn start_frame_decoder(lease: BlobLease, image_data: &Arc<ImageData>) -> Self {
+        match FrameDecoder::start(lease.clone()) {
+            Ok(rx) => Self {
+                frame_start: RefCell::new(Instant::now()),
+                current_frame: RefCell::new(0),
+                image: Arc::clone(image_data),
+                frames: RefCell::new(Some(FrameState::new(rx))),
+            },
+            Err(err) => {
+                log::error!("failed to start FrameDecoder: {err:#}");
+                Self::placeholder()
+            }
+        }
+    }
+
     fn load(image_data: &Arc<ImageData>) -> Self {
         match &*image_data.data() {
-            ImageDataType::EncodedLease(lease) => match FrameDecoder::start(lease.clone()) {
-                Ok(rx) => Self {
-                    frame_start: RefCell::new(Instant::now()),
-                    current_frame: RefCell::new(0),
-                    image: Arc::clone(image_data),
-                    frames: RefCell::new(Some(FrameState::new(rx))),
-                },
+            ImageDataType::EncodedLease(lease) => {
+                Self::start_frame_decoder(lease.clone(), image_data)
+            }
+            ImageDataType::EncodedFile(data) => match BlobManager::store(&data) {
+                Ok(lease) => Self::start_frame_decoder(lease, image_data),
                 Err(err) => {
-                    log::error!("failed to start FrameDecoder: {err:#}");
+                    log::error!("Unable to move file data to blob manager: {err:#}");
                     Self::placeholder()
                 }
             },
-            ImageDataType::EncodedFile(_) => {
-                log::error!("Unexpected EncodedFile; should have File here");
-                // The swap_out call happens in the terminal layer
-                // when normalizing/caching the data just prior to
-                // applying it to the terminal model
-                Self::placeholder()
-            }
             ImageDataType::AnimRgba8 { durations, .. } => {
                 let current_frame = if durations.len() > 1 && durations[0].as_millis() == 0 {
                     // Skip possible 0-duration root frame
@@ -493,7 +499,7 @@ pub struct GlyphCache {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph>>,
     pub atlas: Atlas,
     pub fonts: Rc<FontConfiguration>,
-    pub image_cache: LfuCacheU64<DecodedImage>,
+    pub image_cache: LfuCache<[u8; 32], DecodedImage>,
     frame_cache: HashMap<[u8; 32], Sprite>,
     line_glyphs: HashMap<LineKey, Sprite>,
     pub block_glyphs: HashMap<SizedBlockKey, Sprite>,
@@ -510,7 +516,7 @@ impl GlyphCache {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LfuCacheU64::new(
+            image_cache: LfuCache::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
                 |config| config.glyph_cache_image_cache_size,
@@ -539,7 +545,7 @@ impl GlyphCache {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LfuCacheU64::new(
+            image_cache: LfuCache::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
                 |config| config.glyph_cache_image_cache_size,
@@ -947,9 +953,9 @@ impl GlyphCache {
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite, Option<Instant>)> {
-        let id = image_data.id() as u64;
+        let hash = image_data.hash();
 
-        if let Some(decoded) = self.image_cache.get(&id) {
+        if let Some(decoded) = self.image_cache.get(&hash) {
             Self::cached_image_impl(
                 &mut self.frame_cache,
                 &mut self.atlas,
@@ -966,7 +972,7 @@ impl GlyphCache {
                 padding,
                 self.min_frame_duration,
             )?;
-            self.image_cache.put(id, decoded);
+            self.image_cache.put(hash, decoded);
             Ok(res)
         }
     }
