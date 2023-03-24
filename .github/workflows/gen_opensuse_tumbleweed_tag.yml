@@ -42,12 +42,8 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
           key: "opensuse_tumbleweed-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash

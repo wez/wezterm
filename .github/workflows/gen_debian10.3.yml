@@ -59,12 +59,8 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
           key: "debian10.3-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
