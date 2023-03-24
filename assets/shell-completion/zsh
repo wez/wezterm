@@ -210,6 +210,13 @@ _arguments "${_arguments_options[@]}" \
 ':direction -- The direction to switch to:(Up Down Left Right Next Prev)' \
 && ret=0
 ;;
+(kill-pane)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_wezterm__cli__help_commands" \
@@ -259,6 +266,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (activate-pane-direction)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(kill-pane)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -402,6 +413,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(kill-pane)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -488,6 +503,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'kill-pane:Kill a pane' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"
@@ -507,6 +523,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'kill-pane:Kill a pane' \
     )
     _describe -t commands 'wezterm help cli commands' commands "$@"
 }
@@ -550,6 +567,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'kill-pane:Kill a pane' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli help commands' commands "$@"
@@ -592,6 +610,21 @@ _wezterm__help__imgcat_commands() {
 _wezterm__imgcat_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm imgcat commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__kill-pane_commands] )) ||
+_wezterm__cli__help__kill-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help kill-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__kill-pane_commands] )) ||
+_wezterm__cli__kill-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli kill-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__kill-pane_commands] )) ||
+_wezterm__help__cli__kill-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli kill-pane commands' commands "$@"
 }
 (( $+functions[_wezterm__cli__help__list_commands] )) ||
 _wezterm__cli__help__list_commands() {

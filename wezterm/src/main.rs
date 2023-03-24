@@ -408,6 +408,16 @@ Outputs the pane-id for the newly created pane on success"
         #[arg(value_parser=PaneDirectionParser{})]
         direction: PaneDirection,
     },
+
+    /// Kill a pane
+    #[command(name = "kill-pane", rename_all = "kebab")]
+    KillPane {
+        /// Specify the target pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[arg(long)]
+        pane_id: Option<PaneId>,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -1287,6 +1297,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             client
                 .activate_pane_direction(codec::ActivatePaneDirection { pane_id, direction })
                 .await?;
+        }
+        CliSubCommand::KillPane { pane_id } => {
+            let pane_id = resolve_pane_id(&client, pane_id).await?;
+            client.kill_pane(codec::KillPane { pane_id }).await?;
         }
     }
     Ok(())
