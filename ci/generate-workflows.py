@@ -127,6 +127,12 @@ class CacheStep(ActionStep):
             name, action="actions/cache@v3", params={"path": path, "key": key}
         )
 
+class CacheRustStep(ActionStep):
+    def __init__(self, name,  key):
+        super().__init__(
+            name, action="Swatinem/rust-cache@v2", params={"key": key}
+        )
+
 
 class CheckoutStep(ActionStep):
     def __init__(self, name="checkout repo", submodules=True):
@@ -368,11 +374,9 @@ rustup default {toolchain}
                 )
             ]
         if cache:
-            cache_paths = ["~/.cargo/registry", "~/.cargo/git", "target"]
             steps += [
-                CacheStep(
+                CacheRustStep(
                     name="Cache cargo",
-                    path="\n".join(cache_paths),
                     key=f"{key_prefix}-cargo",
                 ),
             ]
