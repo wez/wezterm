@@ -46,9 +46,14 @@ jobs:
       - name: "Build (Release mode ARM)"
         shell: bash
         run: "cargo build --target aarch64-apple-darwin --all --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+          cache-key: "macos"
       - name: "Test (Release mode)"
         shell: bash
-        run: "cargo test --target x86_64-apple-darwin --all --release"
+        run: "cargo nextest run --all --release --no-fail-fast --target=x86_64-apple-darwin"
       - name: "Package"
         env:
           MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}

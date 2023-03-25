@@ -74,9 +74,16 @@ jobs:
       - name: "Build (Release mode)"
         shell: bash
         run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+          cache-key: "centos7"
       - name: "Test (Release mode)"
         shell: bash
-        run: "source /opt/rh/devtoolset-9/enable && cargo test --all --release"
+        run: |
+          source /opt/rh/devtoolset-9/enable
+          cargo nextest run --all --release --no-fail-fast
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"

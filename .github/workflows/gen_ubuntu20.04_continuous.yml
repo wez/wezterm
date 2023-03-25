@@ -77,9 +77,14 @@ jobs:
       - name: "Build (Release mode)"
         shell: bash
         run: "cargo build --all --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+          cache-key: "ubuntu20.04"
       - name: "Test (Release mode)"
         shell: bash
-        run: "cargo test --all --release"
+        run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
