@@ -1,8 +1,7 @@
-use crate::termwindow::TermWindowNotif;
 use crate::tabbar::TabBarItem;
 use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
 use crate::termwindow::{
-    GuiWin, MouseCapture, PositionedSplit, ScrollHit, UIItem, UIItemType, TMB,
+    GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
 };
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
@@ -440,7 +439,10 @@ impl super::TermWindow {
             };
             if let (true, Some(assignment)) = (default_action, action) {
                 log::info!("do it {assignment:?}");
-                window.window.notify(TermWindowNotif::PerformAssignment{ pane_id: pane.0, assignment });
+                window.window.notify(TermWindowNotif::PerformAssignment {
+                    pane_id: pane.0,
+                    assignment,
+                });
             }
             Ok(())
         }
