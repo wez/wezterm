@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "registry.opensuse.org/opensuse/leap:15.3"
+    container: "registry.opensuse.org/opensuse/leap:15.4"
 
     steps:
       - name: "Seed GITHUB_PATH to work around possible @action/core bug"
