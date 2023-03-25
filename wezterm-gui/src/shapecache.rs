@@ -223,28 +223,28 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 180,
+        glyph_idx: 189,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 637,
+        glyph_idx: 896,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -15.0,
@@ -332,14 +332,14 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 180,
+        glyph_idx: 189,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 205,
+        glyph_idx: 214,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
@@ -354,21 +354,21 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 180,
+        glyph_idx: 189,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 686,
+        glyph_idx: 958,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 205,
+        glyph_idx: 214,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
@@ -383,28 +383,28 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 180,
+        glyph_idx: 189,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 637,
+        glyph_idx: 896,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -15.0,
@@ -419,35 +419,35 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 216,
+        glyph_idx: 225,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 610,
+        glyph_idx: 860,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 9,
     },
     GlyphPosition {
-        glyph_idx: 279,
+        glyph_idx: 290,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 308,
+        glyph_idx: 320,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 610,
+        glyph_idx: 860,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
@@ -462,28 +462,28 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 180,
+        glyph_idx: 189,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
         bitmap_pixel_width: 8,
     },
     GlyphPosition {
-        glyph_idx: 686,
+        glyph_idx: 958,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 686,
+        glyph_idx: 958,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 205,
+        glyph_idx: 214,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 1.0,
@@ -498,14 +498,14 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1065,
+        glyph_idx: 1588,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -9.0,
@@ -520,14 +520,14 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1089,
+        glyph_idx: 1613,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -8.0,
@@ -542,21 +542,21 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1040,
+        glyph_idx: 1562,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -18.0,
@@ -578,7 +578,7 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 790,
+        glyph_idx: 1178,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
@@ -615,28 +615,28 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1212,
+        glyph_idx: 1742,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: 0.0,
         bitmap_pixel_width: 0,
     },
     GlyphPosition {
-        glyph_idx: 1071,
+        glyph_idx: 1595,
         num_cells: 1,
         x_offset: 0.0,
         bearing_x: -28.0,
