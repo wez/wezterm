@@ -506,54 +506,134 @@ impl Into<String> for &Modifiers {
     }
 }
 
+pub struct ModifierToStringArgs<'a> {
+    /// How to join two modifier keys. Can be empty.
+    pub separator: &'a str,
+    /// Whether to output NONE when no modifiers are present
+    pub want_none: bool,
+    /// How to render the keycaps for the UI
+    pub ui_key_cap_rendering: Option<UIKeyCapRendering>,
+}
+
 impl Modifiers {
-    pub fn to_string_with_separator(&self, separator: &str, want_none: bool, ui: bool) -> String {
+    pub fn to_string_with_separator(&self, args: ModifierToStringArgs) -> String {
         let mut s = String::new();
-        if want_none && *self == Self::NONE {
+        if args.want_none && *self == Self::NONE {
             s.push_str("NONE");
         }
 
-        for (value, label) in [
-            (Self::SHIFT, if ui { "Shift" } else { "SHIFT" }),
+        // The unicode escapes here are nerdfont symbols; we use those because
+        // we're guaranteed to have them available, and the symbols are
+        // very legible
+
+        for (value, label, unix, emacs, apple, windows, win_sym) in [
             (
-                Self::ALT,
-                if ui && cfg!(target_os = "macos") {
-                    "Opt"
-                } else if ui {
-                    "Alt"
-                } else {
-                    "ALT"
-                },
+                Self::SHIFT,
+                "SHIFT",
+                "Shift",
+                "S",
+                "\u{fb35}",
+                "Shift",
+                "Shift",
             ),
-            (Self::CTRL, if ui { "Ctrl" } else { "CTRL" }),
+            (Self::ALT, "ALT", "Alt", "M", "\u{fb34}", "Alt", "Alt"),
+            (Self::CTRL, "CTRL", "Ctrl", "C", "\u{fb33}", "Ctrl", "Ctrl"),
             (
                 Self::SUPER,
-                if ui && cfg!(target_os = "macos") {
-                    "Cmd"
-                } else if ui && cfg!(windows) {
-                    "Win"
-                } else if ui {
-                    "Super"
-                } else {
-                    "SUPER"
-                },
+                "SUPER",
+                "Super",
+                "Super",
+                "\u{fb32}",
+                "Win",
+                "\u{fab2}",
             ),
-            (Self::LEFT_ALT, if ui { "LAlt" } else { "LEFT_ALT" }),
-            (Self::RIGHT_ALT, if ui { "RAlt" } else { "RIGHT_ALT" }),
-            (Self::LEADER, if ui { "Leader" } else { "LEADER" }),
-            (Self::LEFT_CTRL, if ui { "LCtrl" } else { "LEFT_CTRL" }),
-            (Self::RIGHT_CTRL, if ui { "RCtrl" } else { "RIGHT_CTRL" }),
-            (Self::LEFT_SHIFT, if ui { "LShift" } else { "LEFT_SHIFT" }),
-            (Self::RIGHT_SHIFT, if ui { "RShift" } else { "RIGHT_SHIFT" }),
-            (Self::ENHANCED_KEY, "ENHANCED_KEY"),
+            (
+                Self::LEFT_ALT,
+                "LEFT_ALT",
+                "Alt",
+                "M",
+                "\u{fb34}",
+                "Alt",
+                "Alt",
+            ),
+            (
+                Self::RIGHT_ALT,
+                "RIGHT_ALT",
+                "Alt",
+                "M",
+                "\u{fb34}",
+                "Alt",
+                "Alt",
+            ),
+            (
+                Self::LEADER,
+                "LEADER",
+                "Leader",
+                "Leader",
+                "Leader",
+                "Leader",
+                "Leader",
+            ),
+            (
+                Self::LEFT_CTRL,
+                "LEFT_CTRL",
+                "Ctrl",
+                "C",
+                "\u{fb33}",
+                "Ctrl",
+                "Ctrl",
+            ),
+            (
+                Self::RIGHT_CTRL,
+                "RIGHT_CTRL",
+                "Ctrl",
+                "C",
+                "\u{fb33}",
+                "Ctrl",
+                "Ctrl",
+            ),
+            (
+                Self::LEFT_SHIFT,
+                "LEFT_SHIFT",
+                "Shift",
+                "S",
+                "\u{fb35}",
+                "Shift",
+                "Shift",
+            ),
+            (
+                Self::RIGHT_SHIFT,
+                "RIGHT_SHIFT",
+                "Shift",
+                "S",
+                "\u{fb35}",
+                "Shift",
+                "Shift",
+            ),
+            (
+                Self::ENHANCED_KEY,
+                "ENHANCED_KEY",
+                "ENHANCED_KEY",
+                "ENHANCED_KEY",
+                "ENHANCED_KEY",
+                "ENHANCED_KEY",
+                "ENHANCED_KEY",
+            ),
         ] {
             if !self.contains(value) {
                 continue;
             }
             if !s.is_empty() {
-                s.push_str(separator);
+                s.push_str(args.separator);
             }
-            s.push_str(label);
+            s.push_str(match args.ui_key_cap_rendering {
+                Some(UIKeyCapRendering::UnixLong) => unix,
+                Some(UIKeyCapRendering::Emacs) => emacs,
+                Some(UIKeyCapRendering::AppleSymbols) => apple,
+                Some(UIKeyCapRendering::WindowsLong) => windows,
+                Some(UIKeyCapRendering::WindowsSymbols) => win_sym,
+                None => label,
+            });
         }
 
         s
@@ -562,7 +642,11 @@ impl Modifiers {
 
 impl ToString for Modifiers {
     fn to_string(&self) -> String {
-        self.to_string_with_separator("|", true, false)
+        self.to_string_with_separator(ModifierToStringArgs {
+            separator: "|",
+            want_none: true,
+            ui_key_cap_rendering: None,
+        })
     }
 }
 
@@ -1409,4 +1493,30 @@ fn ctrl_mapping(c: char) -> Option<char> {
         '8' | '?' => '\x7f', // `Delete`
         _ => return None,
     })
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]
+pub enum UIKeyCapRendering {
+    /// Super, Meta, Ctrl, Shift
+    UnixLong,
+    /// Super, M, C, S
+    Emacs,
+    /// Apple macOS style symbols
+    AppleSymbols,
+    /// Win, Alt, Ctrl, Shift
+    WindowsLong,
+    /// Like WindowsLong, but using a logo for the Win key
+    WindowsSymbols,
+}
+
+impl Default for UIKeyCapRendering {
+    fn default() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::AppleSymbols
+        } else if cfg!(windows) {
+            Self::WindowsSymbols
+        } else {
+            Self::UnixLong
+        }
+    }
 }

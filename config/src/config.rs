@@ -41,7 +41,7 @@ use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_input_types::{Modifiers, WindowDecorations};
+use wezterm_input_types::{Modifiers, UIKeyCapRendering, WindowDecorations};
 use wezterm_term::TerminalSize;
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic, ConfigMeta)]
@@ -760,6 +760,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub quote_dropped_files: DroppedFileQuoting,
+
+    #[dynamic(default)]
+    pub ui_key_cap_rendering: UIKeyCapRendering,
 }
 impl_lua_conversion_dynamic!(Config);
 

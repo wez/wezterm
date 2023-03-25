@@ -266,11 +266,26 @@ impl CommandPalette {
                 String::new()
             } else {
                 let (mods, keycode) = &command.keys[0];
-                let mut mod_string = mods.to_string_with_separator("-", false, true);
+
+                let separator = if term_window.config.ui_key_cap_rendering
+                    == ::window::UIKeyCapRendering::AppleSymbols
+                {
+                    ""
+                } else {
+                    "-"
+                };
+
+                let mut mod_string =
+                    mods.to_string_with_separator(::window::ModifierToStringArgs {
+                        separator,
+                        want_none: false,
+                        ui_key_cap_rendering: Some(term_window.config.ui_key_cap_rendering),
+                    });
                 if !mod_string.is_empty() {
-                    mod_string.push_str("-");
+                    mod_string.push_str(separator);
                 }
-                let keycode = crate::inputmap::ui_key(keycode);
+                let keycode =
+                    crate::inputmap::ui_key(keycode, term_window.config.ui_key_cap_rendering);
                 format!("{mod_string}{keycode}")
             };
 

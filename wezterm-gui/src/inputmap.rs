@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 use wezterm_dynamic::{ToDynamic, Value};
 use wezterm_term::input::MouseButton;
-use window::{KeyCode, Modifiers};
+use window::{KeyCode, Modifiers, PhysKeyCode, UIKeyCapRendering};
 
 pub struct InputMap {
     pub keys: KeyTables,
@@ -572,16 +572,49 @@ fn section_header(title: &str) {
     println!();
 }
 
-pub fn ui_key(key: &KeyCode) -> String {
+pub fn ui_key(key: &KeyCode, ui_key_cap_rendering: UIKeyCapRendering) -> String {
     match key {
-        KeyCode::Char('\x1b') => "Esc".to_string(),
-        KeyCode::Char('\x7f') => "Esc".to_string(),
+        KeyCode::Char('\x1b') | KeyCode::Char('\x7f')
+            if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols =>
+        {
+            "\u{238b}".to_string()
+        }
+        KeyCode::Char('\x1b') | KeyCode::Char('\x7f') => "Esc".to_string(),
+        KeyCode::Char('\x08') if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols => {
+            "\u{232b}".to_string()
+        }
         KeyCode::Char('\x08') => "Del".to_string(),
+        KeyCode::Char('\r') if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols => {
+            "\u{21b5}".to_string()
+        }
         KeyCode::Char('\r') => "Enter".to_string(),
+        KeyCode::Physical(PhysKeyCode::Space) | KeyCode::Char(' ')
+            if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols =>
+        {
+            "\u{2423}".to_string()
+        }
         KeyCode::Char(' ') => "Space".to_string(),
+        KeyCode::Char('\t') if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols => {
+            "\u{21e5}".to_string()
+        }
         KeyCode::Char('\t') => "Tab".to_string(),
         KeyCode::Char(c) if c.is_ascii_control() => c.escape_debug().to_string(),
         KeyCode::Char(c) => c.to_uppercase().to_string(),
+
+        KeyCode::Physical(PhysKeyCode::PageUp) | KeyCode::PageUp
+            if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols =>
+        {
+            "\u{21de}".to_string()
+        }
+        KeyCode::Physical(PhysKeyCode::PageDown) | KeyCode::PageDown
+            if ui_key_cap_rendering == UIKeyCapRendering::AppleSymbols =>
+        {
+            "\u{21df}".to_string()
+        }
+        KeyCode::Physical(PhysKeyCode::LeftArrow) | KeyCode::LeftArrow => "\u{2190}".to_string(),
+        KeyCode::Physical(PhysKeyCode::UpArrow) | KeyCode::UpArrow => "\u{2191}".to_string(),
+        KeyCode::Physical(PhysKeyCode::RightArrow) | KeyCode::RightArrow => "\u{2192}".to_string(),
+        KeyCode::Physical(PhysKeyCode::DownArrow) | KeyCode::DownArrow => "\u{2193}".to_string(),
         KeyCode::Function(n) => format!("F{n}"),
         KeyCode::Numpad(n) => format!("Numpad{n}"),
         KeyCode::Physical(phys) => phys.to_string(),
