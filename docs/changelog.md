@@ -58,6 +58,8 @@ As features stabilize some brief notes about them will accumulate here.
 * imgcat broken with multiplexer protocol #3343
 * `wezterm cli activate-pane-direction` would not cause the focus to change
   in the GUI when explicitly using multiplexing domains. #2863
+* macOS: update entitlements so that macOS will prompt the user when they
+  spawn an app that wants to use the microphone and other resources. #3359
 
 ### 20230320-124340-559cb7b0
 
