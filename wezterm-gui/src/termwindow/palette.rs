@@ -262,9 +262,13 @@ impl CommandPalette {
                 format!("{group}{}. {}", command.brief, command.doc)
             };
 
-            let key_label = if command.keys.is_empty() {
-                String::new()
-            } else {
+            let mut row = vec![
+                Element::new(&font, ElementContent::Text(icon.to_string()))
+                    .min_width(Some(Dimension::Cells(2.))),
+                Element::new(&font, ElementContent::Text(label)),
+            ];
+
+            if !command.keys.is_empty() {
                 let (mods, keycode) = &command.keys[0];
 
                 let separator = if term_window.config.ui_key_cap_rendering
@@ -286,45 +290,41 @@ impl CommandPalette {
                 }
                 let keycode =
                     crate::inputmap::ui_key(keycode, term_window.config.ui_key_cap_rendering);
-                format!("{mod_string}{keycode}")
-            };
+                let key_label = format!("{mod_string}{keycode}");
+
+                row.push(
+                    Element::new(&font, ElementContent::Text(key_label))
+                        .float(Float::Right)
+                        .padding(BoxDimension {
+                            left: Dimension::Cells(1.25),
+                            right: Dimension::Cells(0.5),
+                            top: Dimension::Cells(0.),
+                            bottom: Dimension::Cells(0.),
+                        })
+                        .zindex(10)
+                        .colors(ElementColors {
+                            border: BorderColor::default(),
+                            bg: label_bg.clone(),
+                            text: label_text.clone(),
+                        }),
+                );
+            }
 
             elements.push(
-                Element::new(
-                    &font,
-                    ElementContent::Children(vec![
-                        Element::new(&font, ElementContent::Text(icon.to_string()))
-                            .min_width(Some(Dimension::Cells(2.))),
-                        Element::new(&font, ElementContent::Text(label)),
-                        Element::new(&font, ElementContent::Text(key_label))
-                            .float(Float::Right)
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(1.25),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .zindex(10)
-                            .colors(ElementColors {
-                                border: BorderColor::default(),
-                                bg: label_bg.clone(),
-                                text: label_text.clone(),
-                            }),
-                    ]),
-                )
-                .colors(ElementColors {
-                    border: BorderColor::default(),
-                    bg,
-                    text,
-                })
-                .padding(BoxDimension {
-                    left: Dimension::Cells(0.25),
-                    right: Dimension::Cells(0.25),
-                    top: Dimension::Cells(0.),
-                    bottom: Dimension::Cells(0.),
-                })
-                .min_width(Some(Dimension::Percent(1.)))
-                .display(DisplayType::Block),
+                Element::new(&font, ElementContent::Children(row))
+                    .colors(ElementColors {
+                        border: BorderColor::default(),
+                        bg,
+                        text,
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.25),
+                        right: Dimension::Cells(0.25),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .min_width(Some(Dimension::Percent(1.)))
+                    .display(DisplayType::Block),
             );
         }
 
