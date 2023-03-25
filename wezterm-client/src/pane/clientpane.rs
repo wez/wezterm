@@ -169,6 +169,23 @@ impl ClientPane {
 
                 self.client.expire_stale_mappings();
             }
+            Pdu::PaneFocused(PaneFocused { pane_id }) => {
+                // We get here whenever the pane focus is changed on the
+                // server. That might be due to the user here in the GUI
+                // doing things, or it may be due to a "remote"
+                // `wezterm cli activate-pane-direction` or similar call
+                // from some other actor.
+                // The latter case is the important one: it is desirable
+                // for the focus change to be reflected locally after it
+                // has been changed on the server, so we work to apply
+                // it here.
+                log::trace!("advised of remote pane focus: {pane_id}");
+
+                let mux = Mux::get();
+                if let Err(err) = mux.focus_pane_and_containing_tab(self.local_pane_id) {
+                    log::error!("Error reconciling remote PaneFocused notification: {err:#}");
+                }
+            }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };
         Ok(())

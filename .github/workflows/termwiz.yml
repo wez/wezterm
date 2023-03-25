@@ -57,11 +57,10 @@ jobs:
           workspaces: |
             termwiz
           key: "termwiz-fuzz-${{ runner.os }}"
-      - name: Install fuzzer
-        run: |
-          source $HOME/.cargo/env
-          cargo install cargo-fuzz
-          cd termwiz/fuzz
+      - name: "Install cargo-fuzz from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-fuzz"
       - name: Fuzz
         run: |
           source $HOME/.cargo/env
