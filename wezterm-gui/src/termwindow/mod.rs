@@ -888,6 +888,7 @@ impl TermWindow {
             WindowEvent::PerformKeyAssignment(action) => {
                 if let Some(pane) = self.get_active_pane_or_overlay() {
                     self.perform_key_assignment(&pane, &action)?;
+                    window.invalidate();
                 }
                 Ok(true)
             }

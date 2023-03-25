@@ -67,6 +67,9 @@ As features stabilize some brief notes about them will accumulate here.
   spawn an app that wants to use the microphone and other resources. #3359
 * Command palette didn't show command label or arguments for entries constructed
   from your key assignments, making it difficult to distinguish them from each other. #3252
+* macOS: key assignments that were routed via the macOS menubar didn't guarantee
+  to invalidate the associated window, making it look like they had no effect
+  or hung. #3365
 
 #### Updated
 * Bundled JetBrainsMono to 2.304. #3362
