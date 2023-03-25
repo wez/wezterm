@@ -127,11 +127,10 @@ class CacheStep(ActionStep):
             name, action="actions/cache@v3", params={"path": path, "key": key}
         )
 
+
 class CacheRustStep(ActionStep):
-    def __init__(self, name,  key):
-        super().__init__(
-            name, action="Swatinem/rust-cache@v2", params={"key": key}
-        )
+    def __init__(self, name, key):
+        super().__init__(name, action="Swatinem/rust-cache@v2", params={"key": key})
 
 
 class CheckoutStep(ActionStep):
