@@ -763,8 +763,15 @@ pub struct Config {
 
     #[dynamic(default)]
     pub ui_key_cap_rendering: UIKeyCapRendering,
+
+    #[dynamic(default = "default_one")]
+    pub palette_max_key_assigments_for_action: usize,
 }
 impl_lua_conversion_dynamic!(Config);
+
+fn default_one() -> usize {
+    1
+}
 
 impl Default for Config {
     fn default() -> Self {

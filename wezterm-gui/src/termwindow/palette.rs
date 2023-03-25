@@ -20,6 +20,7 @@ use std::path::PathBuf;
 use termwiz::nerdfonts::NERD_FONTS;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
+use window::Modifiers;
 
 struct MatchResults {
     selection: String,
@@ -269,7 +270,31 @@ impl CommandPalette {
             ];
 
             if !command.keys.is_empty() {
-                let (mods, keycode) = &command.keys[0];
+                let mut keys = command.keys.clone();
+
+                keys.sort_by(|(a_mods, a_key), (b_mods, b_key)| {
+                    fn score_mods(mods: &Modifiers) -> usize {
+                        let mut score: usize = mods.bits() as usize;
+                        // Prefer keys with CMD on macOS, but not on other systems,
+                        // where CMD tends to be reserved by the desktop environment
+                        if cfg!(target_os = "macos") && mods.contains(Modifiers::SUPER) {
+                            score += 1000;
+                        } else if !cfg!(target_os = "macos") && !mods.contains(Modifiers::SUPER) {
+                            score += 1000;
+                        }
+                        score
+                    }
+
+                    let a_mods = score_mods(a_mods);
+                    let b_mods = score_mods(b_mods);
+
+                    match b_mods.cmp(&a_mods) {
+                        Ordering::Equal => {}
+                        ordering => return ordering,
+                    }
+
+                    a_key.cmp(&b_key)
+                });
 
                 let separator = if term_window.config.ui_key_cap_rendering
                     == ::window::UIKeyCapRendering::AppleSymbols
@@ -279,18 +304,30 @@ impl CommandPalette {
                     "-"
                 };
 
-                let mut mod_string =
-                    mods.to_string_with_separator(::window::ModifierToStringArgs {
-                        separator,
-                        want_none: false,
-                        ui_key_cap_rendering: Some(term_window.config.ui_key_cap_rendering),
-                    });
-                if !mod_string.is_empty() {
-                    mod_string.push_str(separator);
-                }
-                let keycode =
-                    crate::inputmap::ui_key(keycode, term_window.config.ui_key_cap_rendering);
-                let key_label = format!("{mod_string}{keycode}");
+                let mut keys = keys
+                    .into_iter()
+                    .map(|(mods, keycode)| {
+                        let mut mod_string =
+                            mods.to_string_with_separator(::window::ModifierToStringArgs {
+                                separator,
+                                want_none: false,
+                                ui_key_cap_rendering: Some(term_window.config.ui_key_cap_rendering),
+                            });
+                        if !mod_string.is_empty() {
+                            mod_string.push_str(separator);
+                        }
+                        let keycode = crate::inputmap::ui_key(
+                            &keycode,
+                            term_window.config.ui_key_cap_rendering,
+                        );
+                        format!("{mod_string}{keycode}")
+                    })
+                    .collect::<Vec<_>>();
+
+                keys.dedup();
+                keys.truncate(term_window.config.palette_max_key_assigments_for_action);
+
+                let key_label = keys.join(", ");
 
                 row.push(
                     Element::new(&font, ElementContent::Text(key_label))
