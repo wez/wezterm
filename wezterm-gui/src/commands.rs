@@ -316,7 +316,7 @@ impl CommandDef {
 
         // And sweep to pick up stuff from their key assignments
         let inputmap = InputMap::new(config);
-        for entry in inputmap.keys.default.values() {
+        for ((keycode, mods), entry) in inputmap.keys.default.iter() {
             if result
                 .iter()
                 .position(|cmd| cmd.action == entry.action)
@@ -328,7 +328,7 @@ impl CommandDef {
                 result.push(ExpandedCommand {
                     brief: cmd.brief.into(),
                     doc: cmd.doc.into(),
-                    keys: vec![],
+                    keys: vec![(*mods, keycode.clone())],
                     action: entry.action.clone(),
                     menubar: cmd.menubar,
                     icon: cmd.icon,

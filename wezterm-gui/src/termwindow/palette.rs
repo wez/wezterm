@@ -230,28 +230,27 @@ impl CommandPalette {
                 None => &' ',
             };
 
+            let solid_bg_color: InheritableColor = term_window
+                .config
+                .command_palette_bg_color
+                .to_linear()
+                .into();
+            let solid_fg_color: InheritableColor = term_window
+                .config
+                .command_palette_fg_color
+                .to_linear()
+                .into();
+
             let (bg, text) = if display_idx == selected_row {
-                (
-                    term_window
-                        .config
-                        .command_palette_fg_color
-                        .to_linear()
-                        .into(),
-                    term_window
-                        .config
-                        .command_palette_bg_color
-                        .to_linear()
-                        .into(),
-                )
+                (solid_fg_color.clone(), solid_bg_color.clone())
             } else {
-                (
-                    LinearRgba::TRANSPARENT.into(),
-                    term_window
-                        .config
-                        .command_palette_fg_color
-                        .to_linear()
-                        .into(),
-                )
+                (LinearRgba::TRANSPARENT.into(), solid_fg_color.clone())
+            };
+
+            let (label_bg, label_text) = if display_idx == selected_row {
+                (solid_fg_color.clone(), solid_bg_color.clone())
+            } else {
+                (solid_bg_color.clone(), solid_fg_color.clone())
             };
 
             // DRY if the brief and doc are the same
@@ -263,6 +262,18 @@ impl CommandPalette {
                 format!("{group}{}. {}", command.brief, command.doc)
             };
 
+            let key_label = if command.keys.is_empty() {
+                String::new()
+            } else {
+                let (mods, keycode) = &command.keys[0];
+                let mut mod_string = mods.to_string_with_separator("-", false, true);
+                if !mod_string.is_empty() {
+                    mod_string.push_str("-");
+                }
+                let keycode = crate::inputmap::ui_key(keycode);
+                format!("{mod_string}{keycode}")
+            };
+
             elements.push(
                 Element::new(
                     &font,
@@ -270,6 +281,20 @@ impl CommandPalette {
                         Element::new(&font, ElementContent::Text(icon.to_string()))
                             .min_width(Some(Dimension::Cells(2.))),
                         Element::new(&font, ElementContent::Text(label)),
+                        Element::new(&font, ElementContent::Text(key_label))
+                            .float(Float::Right)
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(1.25),
+                                right: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .zindex(10)
+                            .colors(ElementColors {
+                                border: BorderColor::default(),
+                                bg: label_bg.clone(),
+                                text: label_text.clone(),
+                            }),
                     ]),
                 )
                 .colors(ElementColors {
@@ -292,7 +317,7 @@ impl CommandPalette {
         let size = term_window.terminal_size;
 
         // Avoid covering the entire width
-        let desired_width = (size.cols / 3).max(75).min(size.cols);
+        let desired_width = (size.cols / 3).max(120).min(size.cols);
 
         // Center it
         let avail_pixel_width =

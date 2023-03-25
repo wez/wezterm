@@ -506,37 +506,63 @@ impl Into<String> for &Modifiers {
     }
 }
 
-impl ToString for Modifiers {
-    fn to_string(&self) -> String {
+impl Modifiers {
+    pub fn to_string_with_separator(&self, separator: &str, want_none: bool, ui: bool) -> String {
         let mut s = String::new();
-        if *self == Self::NONE {
+        if want_none && *self == Self::NONE {
             s.push_str("NONE");
         }
 
         for (value, label) in [
-            (Self::SHIFT, "SHIFT"),
-            (Self::ALT, "ALT"),
-            (Self::CTRL, "CTRL"),
-            (Self::SUPER, "SUPER"),
-            (Self::LEFT_ALT, "LEFT_ALT"),
-            (Self::RIGHT_ALT, "RIGHT_ALT"),
-            (Self::LEADER, "LEADER"),
-            (Self::LEFT_CTRL, "LEFT_CTRL"),
-            (Self::RIGHT_CTRL, "RIGHT_CTRL"),
-            (Self::LEFT_SHIFT, "LEFT_SHIFT"),
-            (Self::RIGHT_SHIFT, "RIGHT_SHIFT"),
+            (Self::SHIFT, if ui { "Shift" } else { "SHIFT" }),
+            (
+                Self::ALT,
+                if ui && cfg!(target_os = "macos") {
+                    "Opt"
+                } else if ui {
+                    "Alt"
+                } else {
+                    "ALT"
+                },
+            ),
+            (Self::CTRL, if ui { "Ctrl" } else { "CTRL" }),
+            (
+                Self::SUPER,
+                if ui && cfg!(target_os = "macos") {
+                    "Cmd"
+                } else if ui && cfg!(windows) {
+                    "Win"
+                } else if ui {
+                    "Super"
+                } else {
+                    "SUPER"
+                },
+            ),
+            (Self::LEFT_ALT, if ui { "LAlt" } else { "LEFT_ALT" }),
+            (Self::RIGHT_ALT, if ui { "RAlt" } else { "RIGHT_ALT" }),
+            (Self::LEADER, if ui { "Leader" } else { "LEADER" }),
+            (Self::LEFT_CTRL, if ui { "LCtrl" } else { "LEFT_CTRL" }),
+            (Self::RIGHT_CTRL, if ui { "RCtrl" } else { "RIGHT_CTRL" }),
+            (Self::LEFT_SHIFT, if ui { "LShift" } else { "LEFT_SHIFT" }),
+            (Self::RIGHT_SHIFT, if ui { "RShift" } else { "RIGHT_SHIFT" }),
             (Self::ENHANCED_KEY, "ENHANCED_KEY"),
         ] {
             if !self.contains(value) {
                 continue;
             }
             if !s.is_empty() {
-                s.push('|');
+                s.push_str(separator);
             }
             s.push_str(label);
         }
 
         s
+    }
+}
+
+impl ToString for Modifiers {
+    fn to_string(&self) -> String {
+        self.to_string_with_separator("|", true, false)
     }
 }
 

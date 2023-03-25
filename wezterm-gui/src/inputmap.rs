@@ -572,7 +572,24 @@ fn section_header(title: &str) {
     println!();
 }
 
-fn human_key(key: &KeyCode) -> String {
+pub fn ui_key(key: &KeyCode) -> String {
+    match key {
+        KeyCode::Char('\x1b') => "Esc".to_string(),
+        KeyCode::Char('\x7f') => "Esc".to_string(),
+        KeyCode::Char('\x08') => "Del".to_string(),
+        KeyCode::Char('\r') => "Enter".to_string(),
+        KeyCode::Char(' ') => "Space".to_string(),
+        KeyCode::Char('\t') => "Tab".to_string(),
+        KeyCode::Char(c) if c.is_ascii_control() => c.escape_debug().to_string(),
+        KeyCode::Char(c) => c.to_uppercase().to_string(),
+        KeyCode::Function(n) => format!("F{n}"),
+        KeyCode::Numpad(n) => format!("Numpad{n}"),
+        KeyCode::Physical(phys) => phys.to_string(),
+        _ => format!("{key:?}"),
+    }
+}
+
+pub fn human_key(key: &KeyCode) -> String {
     match key {
         KeyCode::Char('\x1b') => "Escape".to_string(),
         KeyCode::Char('\x7f') => "Escape".to_string(),
