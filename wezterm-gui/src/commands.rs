@@ -581,6 +581,25 @@ fn english_ordinal(n: isize) -> String {
     }
 }
 
+fn spawn_command_from_action(action: &KeyAssignment) -> Option<&SpawnCommand> {
+    match action {
+        SplitPane(config::keyassignment::SplitPane { command, .. }) => Some(command),
+        SplitHorizontal(command)
+        | SplitVertical(command)
+        | SpawnCommandInNewWindow(command)
+        | SpawnCommandInNewTab(command) => Some(command),
+        _ => None,
+    }
+}
+
+fn label_string(action: &KeyAssignment, candidate: String) -> String {
+    if let Some(label) = spawn_command_from_action(action).and_then(|cmd| cmd.label_for_palette()) {
+        label
+    } else {
+        candidate
+    }
+}
+
 /// Describes a key assignment action; returns a bunch
 /// of metadata that is useful in the command palette/menubar context.
 /// This function will be called for the result of compute_default_actions(),
@@ -823,7 +842,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("mdi_tab_plus"),
         },
         SpawnCommandInNewTab(cmd) => CommandDef {
-            brief: format!("Spawn a new Tab with {cmd:?}").into(),
+            brief: label_string(action, format!("Spawn a new Tab with {cmd:?}").to_string()).into(),
             doc: format!("Spawn a new Tab with {cmd:?}").into(),
             keys: vec![],
             args: &[],
@@ -831,7 +850,11 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("mdi_tab_plus"),
         },
         SpawnCommandInNewWindow(cmd) => CommandDef {
-            brief: format!("Spawn a new Window with {cmd:?}").into(),
+            brief: label_string(
+                action,
+                format!("Spawn a new Window with {cmd:?}").to_string(),
+            )
+            .into(),
             doc: format!("Spawn a new Window with {cmd:?}").into(),
             keys: vec![],
             args: &[],
@@ -1296,7 +1319,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..
         }) => CommandDef {
-            brief: "Split Vertically (Top/Bottom)".into(),
+            brief: label_string(action, "Split Vertically (Top/Bottom)".to_string()).into(),
             doc: "Split the current pane vertically into two panes, by spawning \
             the default program into the bottom half"
                 .into(),
@@ -1314,7 +1337,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             domain: SpawnTabDomain::CurrentPaneDomain,
             ..
         }) => CommandDef {
-            brief: "Split Horizontally (Left/Right)".into(),
+            brief: label_string(action, "Split Horizontally (Left/Right)".to_string()).into(),
             doc: "Split the current pane horizontally into two panes, by spawning \
             the default program into the right hand side"
                 .into(),
@@ -1329,7 +1352,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("cod_split_horizontal"),
         },
         SplitHorizontal(_) => CommandDef {
-            brief: "Split Horizontally (Left/Right)".into(),
+            brief: label_string(action, "Split Horizontally (Left/Right)".to_string()).into(),
             doc: "Split the current pane horizontally into two panes, by spawning \
             the default program into the right hand side"
                 .into(),
@@ -1339,7 +1362,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("cod_split_horizontal"),
         },
         SplitVertical(_) => CommandDef {
-            brief: "Split Vertically (Top/Bottom)".into(),
+            brief: label_string(action, "Split Vertically (Top/Bottom)".to_string()).into(),
             doc: "Split the current pane veritically into two panes, by spawning \
             the default program into the bottom"
                 .into(),
@@ -1827,7 +1850,7 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
         SplitPane(split) => {
             let direction = split.direction;
             CommandDef {
-                brief: format!("Split the current pane {direction:?}").into(),
+                brief: label_string(action, format!("Split the current pane {direction:?}")).into(),
                 doc: format!("Split the current pane {direction:?}").into(),
                 keys: vec![],
                 args: &[ArgType::ActivePane],

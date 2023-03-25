@@ -224,6 +224,16 @@ impl std::fmt::Display for SpawnCommand {
 }
 
 impl SpawnCommand {
+    pub fn label_for_palette(&self) -> Option<String> {
+        if let Some(label) = &self.label {
+            Some(label.to_string())
+        } else if let Some(args) = &self.args {
+            Some(shlex::join(args.iter().map(|s| s.as_str())))
+        } else {
+            None
+        }
+    }
+
     pub fn from_command_builder(cmd: &CommandBuilder) -> anyhow::Result<Self> {
         let mut args = vec![];
         let mut set_environment_variables = HashMap::new();

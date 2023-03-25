@@ -63,6 +63,8 @@ As features stabilize some brief notes about them will accumulate here.
   in the GUI when explicitly using multiplexing domains. #2863
 * macOS: update entitlements so that macOS will prompt the user when they
   spawn an app that wants to use the microphone and other resources. #3359
+* Command palette didn't show command label or arguments for entries constructed
+  from your key assignments, making it difficult to distinguish them from each other. #3252
 
 ### 20230320-124340-559cb7b0
 
