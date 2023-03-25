@@ -716,6 +716,8 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
             font!("../../assets/fonts/JetBrainsMono-MediumItalic.ttf"),
             font!("../../assets/fonts/JetBrainsMono-Medium.ttf"),
             font!("../../assets/fonts/JetBrainsMono-Regular.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-SemiBoldItalic.ttf"),
+            font!("../../assets/fonts/JetBrainsMono-SemiBold.ttf"),
             font!("../../assets/fonts/JetBrainsMono-ThinItalic.ttf"),
             font!("../../assets/fonts/JetBrainsMono-Thin.ttf"),
         ],

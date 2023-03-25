@@ -66,6 +66,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Command palette didn't show command label or arguments for entries constructed
   from your key assignments, making it difficult to distinguish them from each other. #3252
 
+#### Updated
+* Bundled JetBrainsMono to 2.304. #3362
+
 ### 20230320-124340-559cb7b0
 
 #### New
