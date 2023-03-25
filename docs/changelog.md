@@ -31,6 +31,8 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS:
   [macos_window_background_blur](config/lua/config/macos_window_background_blur.md)
   enables a nice translucent window effect. Thanks to @Gkirito! #3344
+* [new-tab-button-click event](config/lua/window-events/new-tab-button-click.md)
+  allows overriding the effect of clicking the New Tab button. #323
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
