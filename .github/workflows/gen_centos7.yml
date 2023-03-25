@@ -82,13 +82,9 @@ jobs:
           rustup toolchain install stable --profile minimal --no-self-update
           rustup default stable
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: "centos7-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "centos7-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"

@@ -32,6 +32,12 @@ jobs:
         uses: actions/checkout@v3
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
+      - name: "Cache cargo"
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            termwiz
+          key: "termwiz-${{ runner.os }}"
       - name: Build
         run: |
           source $HOME/.cargo/env
@@ -46,13 +52,11 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@nightly
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: "ubuntu-latest-termwiz-fuzz-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          workspaces: |
+            termwiz
+          key: "termwiz-fuzz-${{ runner.os }}"
       - name: "Install cargo-fuzz from Cargo"
         uses: baptiste0928/cargo-install@v2
         with:

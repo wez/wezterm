@@ -41,13 +41,9 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: "alpine3.15-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "alpine3.15-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"

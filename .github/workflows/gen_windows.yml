@@ -30,13 +30,9 @@ jobs:
         with:
           target: "x86_64-pc-windows-msvc"
       - name: "Cache cargo"
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: "windows-x86_64-pc-windows-msvc-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+          key: "windows-x86_64-pc-windows-msvc-2-${{ runner.os }}-cargo"
       - name: "Build (Release mode)"
         shell: cmd
         run: |
