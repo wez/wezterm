@@ -28,6 +28,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm cli kill-pane](cli/cli/kill-pane.md),
   [wezterm cli activate-pane](cli/cli/activate-pane.md) and
   [wezterm cli activate-tab](cli/cli/activate-tab.md) #3352 #886
+* macOS:
+  [macos_window_background_blur](config/lua/config/macos_window_background_blur.md)
+  enables a nice translucent window effect. Thanks to @Gkirito! #3344
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
