@@ -110,7 +110,7 @@ impl TerminalState {
         let first_row = self.screen().visible_row_to_stable_row(self.cursor.y);
 
         let mut ypos = NotNan::new(params.source_origin_y as f32 / params.image_height as f32)
-            .context("computing ypos")?;
+            .with_context(|| format!("computing ypos {params:#?}"))?;
         let start_xpos = NotNan::new(params.source_origin_x as f32 / params.image_width as f32)
             .context("computing xpos")?;
 
@@ -256,9 +256,13 @@ pub(crate) fn check_image_dimensions(width: u32, height: u32) -> anyhow::Result<
             SizeFormatter::new(MAX_IMAGE_SIZE, DECIMAL),
         );
     }
+    if size == 0 {
+        anyhow::bail!("Ignoring image with 0x0 dimensions");
+    }
     Ok(())
 }
 
+#[derive(Debug)]
 pub(crate) struct ImageInfo {
     pub width: u32,
     pub height: u32,

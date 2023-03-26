@@ -35,7 +35,15 @@ impl TerminalState {
         };
 
         if let Err(err) = check_image_dimensions(info.width, info.height) {
-            log::error!("{}", err);
+            log::error!("{err:#}, {info:#?}");
+            return;
+        }
+
+        if self.pixel_width == 0 || self.pixel_height == 0 {
+            error!(
+                "my pixel dimensions are wacky! {}x{}",
+                self.pixel_width, self.pixel_height
+            );
             return;
         }
 
