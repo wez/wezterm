@@ -5,22 +5,11 @@ on:
     branches:
       - main
     paths:
-      - "**/*.rs"
-      - "**/Cargo.lock"
-      - "**/Cargo.toml"
       - ".github/workflows/gen_alpine3.15.yml"
-      - "assets/fonts/**/*"
-      - "assets/icon/*"
-      - "assets/open-wezterm-here"
-      - "assets/shell-completion/**/*"
-      - "assets/shell-integration/**/*"
-      - "assets/wezterm-nautilus.py"
-      - "assets/wezterm.appdata.xml"
-      - "assets/wezterm.desktop"
-      - "ci/deploy.sh"
-      - "ci/tag-name.sh"
-      - "get-deps"
-      - "termwiz/data/wezterm.terminfo"
+  workflow_run:
+    types: [completed]
+    branches: [main]
+    workflows: ['ubuntu22.04', 'macos', 'windows']
 
 jobs:
   build:
