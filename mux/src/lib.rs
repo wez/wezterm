@@ -1134,9 +1134,21 @@ impl Mux {
         window_id: Option<WindowId>,
         workspace_for_new_window: Option<String>,
     ) -> anyhow::Result<(Arc<Tab>, WindowId)> {
-        let (_domain, _src_window, src_tab) = self
+        let (domain_id, _src_window, src_tab) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow::anyhow!("pane {} not found", pane_id))?;
+
+        let domain = self
+            .get_domain(domain_id)
+            .ok_or_else(|| anyhow::anyhow!("domain {domain_id} of pane {pane_id} not found"))?;
+
+        if let Some((tab, window_id)) = domain
+            .move_pane_to_new_tab(pane_id, window_id, workspace_for_new_window.clone())
+            .await?
+        {
+            return Ok((tab, window_id));
+        }
+
         let src_tab = match self.get_tab(src_tab) {
             Some(t) => t,
             None => anyhow::bail!("Invalid tab id {}", src_tab),

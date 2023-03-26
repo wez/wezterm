@@ -80,6 +80,9 @@ As features stabilize some brief notes about them will accumulate here.
   in incorrect image scaling for imgcat. #3366
 * mux: `wezterm cli move-pane-to-new-tab` didn't resync new window structure
   and would appear to have had no effect until you detached and re-attached. #3219
+* mux: `wezterm cli move-pane-to-new-tab` didn't forward the structural change
+  to a remote mux, so if you ran it against the mux in your GUI, the state on
+  the actual mux server was not updated. #3374
 
 #### Updated
 * Bundled JetBrainsMono to 2.304. #3362

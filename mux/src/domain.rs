@@ -135,6 +135,19 @@ pub trait Domain: Downcast + Send + Sync {
         command_dir: Option<String>,
     ) -> anyhow::Result<Arc<dyn Pane>>;
 
+    /// The mux will call this method on the domain of the pane that
+    /// is being moved to give the domain a chance to handle the movement.
+    /// If this method returns Ok(None), then the mux will handle the
+    /// movement itself by mutating its local Tabs and Windows.
+    async fn move_pane_to_new_tab(
+        &self,
+        _pane_id: PaneId,
+        _window_id: Option<WindowId>,
+        _workspace_for_new_window: Option<String>,
+    ) -> anyhow::Result<Option<(Arc<Tab>, WindowId)>> {
+        Ok(None)
+    }
+
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
     /// pre-created with local UI that we do not want to allow
