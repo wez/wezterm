@@ -975,7 +975,7 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
 
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
         trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
-        on_workflow = "" if t.hi_pri or is_continuous or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
+        on_workflow = "" if t.hi_pri or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
 
         with open(file_name, "w") as f:
             f.write(
