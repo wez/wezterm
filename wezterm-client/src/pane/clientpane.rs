@@ -344,9 +344,15 @@ impl Pane for ClientPane {
         let cols = size.cols as usize;
         let rows = size.rows as usize;
 
-        if inner.dimensions.cols != cols || inner.dimensions.viewport_rows != rows {
+        if inner.dimensions.cols != cols
+            || inner.dimensions.viewport_rows != rows
+            || inner.dimensions.pixel_width != size.pixel_width
+            || inner.dimensions.pixel_height != size.pixel_height
+        {
             inner.dimensions.cols = cols;
             inner.dimensions.viewport_rows = rows;
+            inner.dimensions.pixel_width = size.pixel_width;
+            inner.dimensions.pixel_height = size.pixel_height;
 
             // Invalidate any cached rows on a resize
             inner.make_all_stale();

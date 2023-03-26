@@ -1142,8 +1142,13 @@ impl TermWindow {
 
                         if size.rows != self.terminal_size.rows
                             || size.cols != self.terminal_size.cols
+                            || size.pixel_width != self.terminal_size.pixel_width
+                            || size.pixel_height != self.terminal_size.pixel_height
                         {
                             self.set_window_size(size, window)?;
+                        } else if tab_size.dpi == 0 {
+                            log::debug!("fixup dpi in newly added tab");
+                            tab.resize(self.terminal_size);
                         }
                     }
                 }

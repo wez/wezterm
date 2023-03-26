@@ -73,6 +73,11 @@ As features stabilize some brief notes about them will accumulate here.
 * `CTRL-SHIFT-R` assignment in `CharSelect` mode didn't cycle back through
   the emoji categories as intended, but performed the global `ReloadConfiguration`
   action instead. #2947
+* mux: resizing the window larger, then spawning a tab, would result in the new
+  tab having pixel dimensions of 0 and prevent imgcat from functioning until the
+  tab was explicitly resized. #3366
+* mux: initial attach and spawn would leave the dpi at the assumed dpi resulting
+  in incorrect image scaling for imgcat. #3366
 
 #### Updated
 * Bundled JetBrainsMono to 2.304. #3362
