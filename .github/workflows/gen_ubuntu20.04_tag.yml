@@ -125,3 +125,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync *.sha256"
+      - name: "Checkout flathub/org.wezfurlong.wezterm"
+        uses: actions/checkout@v3
+        with:
+          repository: "flathub/org.wezfurlong.wezterm"
+          path: "flathub"
+          token: "${{ secrets.GH_PAT }}"
+      - name: "Create flathub commit and push"
+        shell: bash
+        run: "bash ci/make-flathub-pr.sh"
+      - name: "Submit PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        shell: bash
+        run: 'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"'

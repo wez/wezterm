@@ -149,7 +149,7 @@ class InstallCrateStep(ActionStep):
         super().__init__(
             f"Install {crate} from Cargo",
             action="baptiste0928/cargo-install@v2",
-            params=params
+            params=params,
         )
 
 
@@ -451,7 +451,6 @@ cargo build --all --release""",
                 run=run,
             ),
         ]
-        
 
     def package(self, trusted=False):
         steps = []
@@ -635,6 +634,32 @@ cargo build --all --release""",
                 f"bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) {glob}",
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+                },
+            ),
+        ]
+
+    def create_flathub_pr(self):
+        if not self.app_image:
+            return []
+        return [
+            ActionStep(
+                "Checkout flathub/org.wezfurlong.wezterm",
+                action="actions/checkout@v3",
+                params={
+                    "repository": "flathub/org.wezfurlong.wezterm",
+                    "path": "flathub",
+                    "token": "${{ secrets.GH_PAT }}",
+                },
+            ),
+            RunStep(
+                "Create flathub commit and push",
+                "bash ci/make-flathub-pr.sh",
+            ),
+            RunStep(
+                "Submit PR",
+                'cd flathub && gh pr create --fill --body "PR automatically created by release automation in the wezterm repo"',
+                env={
+                    "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                 },
             ),
         ]
@@ -885,7 +910,8 @@ cargo build --all --release""",
             runs_on="ubuntu-latest",
             steps=self.checkout(submodules=False)
             + self.upload_asset_tag()
-            + self.create_winget_pr(),
+            + self.create_winget_pr()
+            + self.create_flathub_pr(),
         )
 
         return (
