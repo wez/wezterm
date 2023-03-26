@@ -978,15 +978,16 @@ def generate_actions(namer, jobber, is_continuous, is_tag=False):
             container = ""
 
         triggers = []
-        if is_continuous and not t.hi_pri and not is_tag:
+        if is_continuous and not is_tag:
             triggers.append(SCHED_TRIGGER)
 
         if is_tag:
             triggers.append(TAG_TRIGGER)
 
-        if t.hi_pri and not is_tag and not is_continuous:
+        if t.hi_pri and not is_tag:
             triggers.append(PUSH_TRIGGER)
-            triggers.append(PULL_REQ_TRIGGER)
+            if not is_continuous:
+                triggers.append(PULL_REQ_TRIGGER)
 
         if not (t.hi_pri or is_tag):
             triggers.append(PRIO_TRIGGER)

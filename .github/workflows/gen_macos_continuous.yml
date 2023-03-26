@@ -1,7 +1,22 @@
 name: macos_continuous
 
 on:
-
+  schedule:
+    - cron: "10 3 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_macos_continuous.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/macos/**/*"
+      - "ci/deploy.sh"
+      - "ci/macos-entitlement.plist"
+      - "ci/tag-name.sh"
+      - "get-deps"
 
 jobs:
   build:
