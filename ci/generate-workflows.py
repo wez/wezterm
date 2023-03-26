@@ -961,8 +961,9 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
         else:
             container = ""
 
-        trigger_paths = [file_name]
+        trigger_paths = []
         if t.priorize or is_continuous or is_tag:
+            trigger_paths = [file_name]
             trigger_paths += TRIGGER_PATHS
             if "win" in name:
                 trigger_paths += TRIGGER_PATHS_WIN
@@ -973,8 +974,10 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
             if t.app_image:
                 trigger_paths += TRIGGER_PATHS_APPIMAGE
 
-        trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
-        trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
+        trigger_with_paths = trigger.replace("@PATHS@", "") 
+        if trigger_paths:
+            trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
+            trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
         on_workflow = "" if t.priorize or is_continuous or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
 
         with open(file_name, "w") as f:

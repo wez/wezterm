@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/gen_fedora36.yml"
+      
   workflow_run:
     types: [completed]
     branches: [main]

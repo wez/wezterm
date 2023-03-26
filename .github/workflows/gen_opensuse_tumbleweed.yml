@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/gen_opensuse_tumbleweed.yml"
+      
   workflow_run:
     types: [completed]
     branches: [main]
