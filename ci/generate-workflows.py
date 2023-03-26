@@ -935,9 +935,25 @@ TARGETS = [
 ]
 
 PRIORITY_TARGETS = [target.name for target in TARGETS if target.hi_pri]
+PULL_REQ_TRIGGER = """  pull_request:
+    branches: [main]
+    paths:
+      @PATHS@"""
+PUSH_TRIGGER = """  push:
+    branches: [main]
+    paths:
+      @PATHS@"""
+SCHED_TRIGGER = """  schedule:
+    - cron: "10 3 * * *\""""
+TAG_TRIGGER = """  push:
+    tags:
+      - "20*\""""
+PRIO_TRIGGER = f"""  workflow_run:
+    types: [completed]
+    branches: [main]
+    workflows: {yv(PRIORITY_TARGETS)}"""
 
-
-def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
+def generate_actions(namer, jobber, is_continuous, is_tag=False):
     for t in TARGETS:
         # Clone the definition, as some Target methods called
         # in the body below have side effects that we don't
@@ -961,6 +977,22 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
         else:
             container = ""
 
+        triggers = []
+        if is_continuous and not t.hi_pri and not is_tag:
+            triggers.append(SCHED_TRIGGER)
+
+        if is_tag:
+            triggers.append(TAG_TRIGGER)
+
+        if t.hi_pri and not is_tag and not is_continuous:
+            triggers.append(PUSH_TRIGGER)
+            triggers.append(PULL_REQ_TRIGGER)
+
+        if not (t.hi_pri or is_tag):
+            triggers.append(PRIO_TRIGGER)
+            triggers.append(PULL_REQ_TRIGGER)
+
+
         trigger_paths = [file_name]
         if t.hi_pri or is_continuous or is_tag:
             trigger_paths += TRIGGER_PATHS
@@ -973,21 +1005,21 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
             if t.app_image:
                 trigger_paths += TRIGGER_PATHS_APPIMAGE
 
+        trigger = "on:\n" + "\n".join(triggers)
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
         trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
-        on_workflow = "" if t.hi_pri or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
+        action_yml = f"""name: {name}
 
-        with open(file_name, "w") as f:
-            f.write(
-                f"""name: {name}
 {trigger_with_paths}
-{on_workflow}
+
 jobs:
   build:
     runs-on: {yv(job.runs_on)}
     {container}
 """
-            )
+
+        with open(file_name, "w") as f:
+            f.write(action_yml)
 
             t.render_env(f)
 
@@ -1021,13 +1053,6 @@ def generate_pr_actions():
     generate_actions(
         lambda t: f"{t.name}",
         lambda t: t.pull_request(),
-        trigger="""
-on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      @PATHS@""",
         is_continuous=False,
     )
 
@@ -1036,15 +1061,6 @@ def continuous_actions():
     generate_actions(
         lambda t: f"{t.name}_continuous",
         lambda t: t.continuous(),
-        trigger="""
-on:
-  schedule:
-    - cron: "10 3 * * *"
-  push:
-    branches:
-      - main
-    paths:
-      @PATHS@""",
         is_continuous=True,
     )
 
@@ -1053,11 +1069,6 @@ def tag_actions():
     generate_actions(
         lambda t: f"{t.name}_tag",
         lambda t: t.tag(),
-        trigger="""
-on:
-  push:
-    tags:
-      - "20*\"""",
         is_continuous=True,
         is_tag=True,
     )
