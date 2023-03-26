@@ -190,7 +190,7 @@ impl Modal for PaneSelector {
         key: KeyCode,
         mods: KeyModifiers,
         term_window: &mut TermWindow,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         match (key, mods) {
             (KeyCode::Escape, KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CTRL) => {
                 term_window.cancel_modal();
@@ -203,7 +203,8 @@ impl Modal for PaneSelector {
                 // and if we have a complete match, activate that pane
                 if let Some(pane_index) = self.labels.borrow().iter().position(|s| s == &*selection)
                 {
-                    return self.perform_selection(pane_index, term_window);
+                    self.perform_selection(pane_index, term_window)?;
+                    return Ok(true);
                 }
             }
             (KeyCode::Backspace, KeyModifiers::NONE) => {
@@ -216,9 +217,9 @@ impl Modal for PaneSelector {
                 let mut selection = self.selection.borrow_mut();
                 selection.clear();
             }
-            _ => {}
+            _ => return Ok(false),
         }
-        Ok(())
+        Ok(true)
     }
 
     fn computed_element(

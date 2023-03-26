@@ -554,7 +554,7 @@ impl Modal for CharSelector {
         key: KeyCode,
         mods: KeyModifiers,
         term_window: &mut TermWindow,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         const CTRL_AND_SHIFT: Modifiers = KeyModifiers::CTRL.union(KeyModifiers::SHIFT);
 
         match (key, mods) {
@@ -603,10 +603,10 @@ impl Modal for CharSelector {
                 // Enter the selected character to the current pane
                 let selected_idx = *self.selected_row.borrow();
                 let alias_idx = match self.matches.borrow().as_ref() {
-                    None => return Ok(()),
+                    None => return Ok(true),
                     Some(results) => match results.matches.get(selected_idx) {
                         Some(i) => *i,
-                        None => return Ok(()),
+                        None => return Ok(true),
                     },
                 };
                 let item = &self.aliases[alias_idx];
@@ -627,12 +627,12 @@ impl Modal for CharSelector {
                     pane.writer().write_all(glyph.as_bytes()).ok();
                 }
                 term_window.cancel_modal();
-                return Ok(());
+                return Ok(true);
             }
-            _ => return Ok(()),
+            _ => return Ok(false),
         }
         term_window.invalidate_modal();
-        Ok(())
+        Ok(true)
     }
 
     fn computed_element(

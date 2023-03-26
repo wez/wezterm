@@ -533,7 +533,7 @@ impl Modal for CommandPalette {
         key: KeyCode,
         mods: KeyModifiers,
         term_window: &mut TermWindow,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         match (key, mods) {
             (KeyCode::Escape, KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CTRL) => {
                 term_window.cancel_modal();
@@ -566,10 +566,10 @@ impl Modal for CommandPalette {
                 // Enter the selected character to the current pane
                 let selected_idx = *self.selected_row.borrow();
                 let alias_idx = match self.matches.borrow().as_ref() {
-                    None => return Ok(()),
+                    None => return Ok(true),
                     Some(results) => match results.matches.get(selected_idx) {
                         Some(i) => *i,
-                        None => return Ok(()),
+                        None => return Ok(true),
                     },
                 };
                 let item = &self.commands[alias_idx];
@@ -583,12 +583,12 @@ impl Modal for CommandPalette {
                         log::error!("Error while performing {item:?}: {err:#}");
                     }
                 }
-                return Ok(());
+                return Ok(true);
             }
-            _ => return Ok(()),
+            _ => return Ok(false),
         }
         term_window.invalidate_modal();
-        Ok(())
+        Ok(true)
     }
 
     fn computed_element(

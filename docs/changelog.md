@@ -70,6 +70,9 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: key assignments that were routed via the macOS menubar didn't guarantee
   to invalidate the associated window, making it look like they had no effect
   or hung. #3365
+* `CTRL-SHIFT-R` assignment in `CharSelect` mode didn't cycle back through
+  the emoji categories as intended, but performed the global `ReloadConfiguration`
+  action instead. #2947
 
 #### Updated
 * Bundled JetBrainsMono to 2.304. #3362

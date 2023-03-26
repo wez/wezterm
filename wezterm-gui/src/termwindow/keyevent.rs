@@ -287,6 +287,20 @@ impl super::TermWindow {
         }
 
         if is_down {
+            if let Some(modal) = self.get_modal() {
+                if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
+                    let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
+                    match modal.key_down(term_key, tw_raw_modifiers, self) {
+                        Ok(true) => return true,
+                        Ok(false) => {}
+                        Err(err) => {
+                            log::error!("Error dispatching key to modal: {err:#}");
+                            return true;
+                        }
+                    }
+                }
+            }
+
             if let Some((entry, table_name)) = self.lookup_key(
                 pane,
                 &keycode,
@@ -369,13 +383,6 @@ impl super::TermWindow {
                             term_key,
                             tw_raw_modifiers
                         );
-                    }
-
-                    if let Some(modal) = self.get_modal() {
-                        if is_down {
-                            return modal.key_down(term_key, tw_raw_modifiers, self).is_ok();
-                        }
-                        return false;
                     }
 
                     let res = if is_down {

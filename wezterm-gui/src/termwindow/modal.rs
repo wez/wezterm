@@ -19,7 +19,7 @@ pub trait Modal: Downcast {
         key: KeyCode,
         mods: KeyModifiers,
         term_window: &mut TermWindow,
-    ) -> anyhow::Result<()>;
+    ) -> anyhow::Result<bool>;
     fn computed_element(
         &self,
         term_window: &mut TermWindow,
