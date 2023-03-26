@@ -5,7 +5,7 @@ clickable links.
 
 The value is a list of rule entries. Each entry has the following fields:
 
-* `regex` - the regular expression to match
+* `regex` - the regular expression to match (see supported [Regex syntax](https://docs.rs/regex/latest/regex/#syntax))
 * `format` - Controls what will be used to form the link. The string
   can use placeholders like `$0`, `$1`, `$2` etc. that will be replaced
   with that numbered capture group.  So, `$0` will take the entire
