@@ -1,0 +1,44 @@
+name: flatpak
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    tags:
+      - "20*"
+
+jobs:
+  update-generated-sources:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: "Install curl"
+        run: "sudo apt-get install -y curl"
+      - name: "checkout repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: "checkout flathub repo"
+        uses: actions/checkout@v3
+        with:
+          repository: flathub/org.wezfurlong.wezterm
+          path: flathub
+          token: ${{ secrets.GH_PAT }}
+      - name: "Update Flatpak Generated Sources"
+        run: |
+          python3 -m pip install toml aiohttp
+          curl -L 'https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py' > /tmp/flatpak-cargo-generator.py
+          python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o flathub/generated-sources.json
+      - name: "Setup email for PR"
+        run: "cd flathub && git config user.email wez@wezfurlong.org"
+      - name: "Setup name for PR"
+        run: "cd flathub && git config user.name 'Wez Furlong'"
+      - name: "Prep Commit for PR"
+        run: "./ci/make-flathub-pr.sh"
+      - name: "Submit PR"
+        run: "cd flathub && gh pr create --fill --body 'PR automatically created by release automation in the wezterm repo'"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+

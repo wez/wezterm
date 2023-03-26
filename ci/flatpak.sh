@@ -10,4 +10,11 @@ flatpak run --env=G_DEBUG=fatal-criticals org.freedesktop.appstream-glib validat
 python3 -m pip install toml aiohttp
 curl -L 'https://github.com/flatpak/flatpak-builder-tools/raw/master/cargo/flatpak-cargo-generator.py' > /tmp/flatpak-cargo-generator.py
 python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o assets/flatpak/generated-sources.json
-flatpak-builder --state-dir /var/tmp/wezterm-flatpak-builder --install /var/tmp/wezterm-flatpak-repo assets/flatpak/org.wezfurlong.wezterm.json --force-clean --user -y
+
+if [ "${CI}" != "yes" ] ; then
+  flatpak-builder \
+    --state-dir /var/tmp/wezterm-flatpak-builder \
+    --install /var/tmp/wezterm-flatpak-repo \
+    assets/flatpak/org.wezfurlong.wezterm.json \
+    --force-clean --user -y
+fi
