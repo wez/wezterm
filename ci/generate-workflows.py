@@ -177,7 +177,7 @@ class Target(object):
         continuous_only=False,
         app_image=False,
         is_tag=False,
-        priorize=False,
+        hi_pri=False,
     ):
         if not name:
             if container:
@@ -193,7 +193,7 @@ class Target(object):
         self.app_image = app_image
         self.env = {}
         self.is_tag = is_tag
-        self.priorize = priorize
+        self.hi_pri = hi_pri
 
     def render_env(self, f, depth=0):
         self.global_env()
@@ -903,7 +903,7 @@ cargo build --all --release""",
 
 TARGETS = [
     Target(container="ubuntu:20.04", continuous_only=True, app_image=True),
-    Target(container="ubuntu:22.04", continuous_only=True, priorize=True),
+    Target(container="ubuntu:22.04", continuous_only=True, hi_pri=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     # harfbuzz's C++ is too new for debian 9's toolchain
@@ -915,7 +915,7 @@ TARGETS = [
     ),
     Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
-    Target(name="macos", os="macos-11", priorize=True),
+    Target(name="macos", os="macos-11", hi_pri=True),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:35"),
     Target(container="fedora:36"),
@@ -930,11 +930,11 @@ TARGETS = [
         name="windows",
         os="windows-latest",
         rust_target="x86_64-pc-windows-msvc",
-        priorize=True
+        hi_pri=True
     ),
 ]
 
-PRIORITY_TARGETS = [target.name for target in TARGETS if target.priorize]
+PRIORITY_TARGETS = [target.name for target in TARGETS if target.hi_pri]
 
 
 def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
@@ -962,7 +962,7 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
             container = ""
 
         trigger_paths = [file_name]
-        if t.priorize or is_continuous or is_tag:
+        if t.hi_pri or is_continuous or is_tag:
             trigger_paths += TRIGGER_PATHS
             if "win" in name:
                 trigger_paths += TRIGGER_PATHS_WIN
@@ -975,7 +975,7 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
 
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
         trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
-        on_workflow = "" if t.priorize or is_continuous or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
+        on_workflow = "" if t.hi_pri or is_continuous or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
 
         with open(file_name, "w") as f:
             f.write(
