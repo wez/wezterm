@@ -1,0 +1,11 @@
+on:
+  workflow_run:
+    workflows: [Trigger]
+    types: [completed]
+
+jobs:
+  triggered:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm Trigger
+        run: echo 'Was triggered'

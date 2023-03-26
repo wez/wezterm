@@ -1,0 +1,11 @@
+name: Trigger
+
+on:
+  pull_request:
+
+jobs:
+  trigger_delayed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delay completion
+        run: sleep 30
