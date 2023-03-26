@@ -1,5 +1,5 @@
 name: ubuntu22.04
-# Trigger
+
 on:
   pull_request:
     branches:
