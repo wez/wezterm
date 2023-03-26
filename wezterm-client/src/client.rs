@@ -220,8 +220,8 @@ fn process_unilateral(
 
             return Ok(());
         }
-        Pdu::TabResized(TabResized { tab_id }) => {
-            log::trace!("TabResized {tab_id}");
+        Pdu::TabResized(_) | Pdu::TabAddedToWindow(_) => {
+            log::trace!("resync due to {:?}", decoded.pdu);
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
                 let client_domain = mux

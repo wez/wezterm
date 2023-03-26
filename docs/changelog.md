@@ -78,6 +78,8 @@ As features stabilize some brief notes about them will accumulate here.
   tab was explicitly resized. #3366
 * mux: initial attach and spawn would leave the dpi at the assumed dpi resulting
   in incorrect image scaling for imgcat. #3366
+* mux: `wezterm cli move-pane-to-new-tab` didn't resync new window structure
+  and would appear to have had no effect until you detached and re-attached. #3219
 
 #### Updated
 * Bundled JetBrainsMono to 2.304. #3362

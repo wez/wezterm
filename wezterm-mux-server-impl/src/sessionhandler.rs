@@ -751,6 +751,7 @@ impl SessionHandler {
             | Pdu::TabResized { .. }
             | Pdu::GetImageCellResponse { .. }
             | Pdu::MovePaneToNewTabResponse { .. }
+            | Pdu::TabAddedToWindow { .. }
             | Pdu::GetPaneRenderableDimensionsResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))

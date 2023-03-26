@@ -139,7 +139,12 @@ where
                 .await?;
                 stream.flush().await.context("flushing PDU to client")?;
             }
-            Ok(Item::Notif(MuxNotification::TabAddedToWindow { .. })) => {}
+            Ok(Item::Notif(MuxNotification::TabAddedToWindow { tab_id, window_id })) => {
+                Pdu::TabAddedToWindow(codec::TabAddedToWindow { tab_id, window_id })
+                    .encode_async(&mut stream, 0)
+                    .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+            }
             Ok(Item::Notif(MuxNotification::WindowRemoved(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowInvalidated(_window_id))) => {}
