@@ -177,6 +177,7 @@ class Target(object):
         continuous_only=False,
         app_image=False,
         is_tag=False,
+        priorize=False,
     ):
         if not name:
             if container:
@@ -192,6 +193,7 @@ class Target(object):
         self.app_image = app_image
         self.env = {}
         self.is_tag = is_tag
+        self.priorize = priorize
 
     def render_env(self, f, depth=0):
         self.global_env()
@@ -901,7 +903,7 @@ cargo build --all --release""",
 
 TARGETS = [
     Target(container="ubuntu:20.04", continuous_only=True, app_image=True),
-    Target(container="ubuntu:22.04", continuous_only=True),
+    Target(container="ubuntu:22.04", continuous_only=True, priorize=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     # harfbuzz's C++ is too new for debian 9's toolchain
@@ -913,7 +915,7 @@ TARGETS = [
     ),
     Target(name="centos8", container="quay.io/centos/centos:stream8"),
     Target(name="centos9", container="quay.io/centos/centos:stream9"),
-    Target(name="macos", os="macos-11"),
+    Target(name="macos", os="macos-11", priorize=True),
     # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:35"),
     Target(container="fedora:36"),
@@ -924,8 +926,15 @@ TARGETS = [
         name="opensuse_tumbleweed",
         container="registry.opensuse.org/opensuse/tumbleweed",
     ),
-    Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
+    Target(
+        name="windows",
+        os="windows-latest",
+        rust_target="x86_64-pc-windows-msvc",
+        priorize=True
+    ),
 ]
+
+PRIORITY_TARGETS = [target.name for target in TARGETS if target.priorize]
 
 
 def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
@@ -953,23 +962,26 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
             container = ""
 
         trigger_paths = [file_name]
-        trigger_paths += TRIGGER_PATHS
-        if "win" in name:
-            trigger_paths += TRIGGER_PATHS_WIN
-        elif "macos" in name:
-            trigger_paths += TRIGGER_PATHS_MAC
-        else:
-            trigger_paths += TRIGGER_PATHS_UNIX
-        if t.app_image:
-            trigger_paths += TRIGGER_PATHS_APPIMAGE
+        if t.priorize or is_continuous or is_tag:
+            trigger_paths += TRIGGER_PATHS
+            if "win" in name:
+                trigger_paths += TRIGGER_PATHS_WIN
+            elif "macos" in name:
+                trigger_paths += TRIGGER_PATHS_MAC
+            else:
+                trigger_paths += TRIGGER_PATHS_UNIX
+            if t.app_image:
+                trigger_paths += TRIGGER_PATHS_APPIMAGE
 
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
         trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
+        on_workflow = "" if t.priorize or is_continuous or is_tag else f"  workflow_run:\n    types: [completed]\n    branches: [main]\n    workflows: {yv(PRIORITY_TARGETS)}\n"
 
         with open(file_name, "w") as f:
             f.write(
                 f"""name: {name}
 {trigger_with_paths}
+{on_workflow}
 jobs:
   build:
     runs-on: {yv(job.runs_on)}
@@ -1015,8 +1027,7 @@ on:
     branches:
       - main
     paths:
-      @PATHS@
-""",
+      @PATHS@""",
         is_continuous=False,
     )
 
@@ -1033,8 +1044,7 @@ on:
     branches:
       - main
     paths:
-      @PATHS@
-""",
+      @PATHS@""",
         is_continuous=True,
     )
 
@@ -1047,8 +1057,7 @@ def tag_actions():
 on:
   push:
     tags:
-      - "20*"
-""",
+      - "20*\"""",
         is_continuous=True,
         is_tag=True,
     )
