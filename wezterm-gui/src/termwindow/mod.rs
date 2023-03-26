@@ -569,7 +569,7 @@ impl TermWindow {
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),
             None => {
-                log::error!("new_window has no tabs... yet?");
+                log::debug!("new_window has no tabs... yet?");
                 Default::default()
             }
         };
