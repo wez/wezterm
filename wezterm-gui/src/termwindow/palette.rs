@@ -75,8 +75,16 @@ fn save_recent(command: &ExpandedCommand) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn build_commands() -> Vec<ExpandedCommand> {
+fn build_commands(filter_copy_mode: bool) -> Vec<ExpandedCommand> {
     let mut commands = CommandDef::actions_for_palette_and_menubar(&config::configuration());
+
+    commands.retain(|cmd| {
+        if filter_copy_mode {
+            !matches!(cmd.action, KeyAssignment::CopyMode(_))
+        } else {
+            true
+        }
+    });
 
     let mut scores: HashMap<&str, f64> = HashMap::new();
     let recents = load_recents();
@@ -156,8 +164,18 @@ fn compute_matches(selection: &str, commands: &[ExpandedCommand]) -> Vec<usize> 
 }
 
 impl CommandPalette {
-    pub fn new(_term_window: &mut TermWindow) -> Self {
-        let commands = build_commands();
+    pub fn new(term_window: &mut TermWindow) -> Self {
+        // Showing the CopyMode actions in the palette is useless
+        // if the CopyOverlay isn't active, so figure out if that
+        // is the case so that we can filter them out in build_commands.
+        let filter_copy_mode = term_window
+            .get_active_pane_or_overlay()
+            .map(|pane| {
+                pane.downcast_ref::<crate::termwindow::CopyOverlay>()
+                    .is_none()
+            })
+            .unwrap_or(true);
+        let commands = build_commands(filter_copy_mode);
 
         Self {
             element: RefCell::new(None),
