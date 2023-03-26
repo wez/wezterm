@@ -353,6 +353,32 @@ impl UserData for MuxPane {
             };
             this.get_text_from_semantic_zone(zone)
         });
+
+        methods.add_async_method("move_to_new_tab", |_lua, this, ()| async move {
+            let mux = Mux::get();
+            let (_domain, window_id, _tab) = mux
+                .resolve_pane_id(this.0)
+                .ok_or_else(|| mlua::Error::external(format!("pane {} not found", this.0)))?;
+            let (tab, window) = mux
+                .move_pane_to_new_tab(this.0, Some(window_id), None)
+                .await
+                .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;
+
+            Ok((MuxTab(tab.tab_id()), MuxWindow(window)))
+        });
+
+        methods.add_async_method(
+            "move_to_new_window",
+            |_lua, this, workspace: Option<String>| async move {
+                let mux = Mux::get();
+                let (tab, window) = mux
+                    .move_pane_to_new_tab(this.0, None, workspace)
+                    .await
+                    .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;
+
+                Ok((MuxTab(tab.tab_id()), MuxWindow(window)))
+            },
+        );
     }
 }
 

@@ -14,6 +14,9 @@ The following arguments modify the behavior:
 * `--workspace WORKSPACE` - When using `--new-window`, use `WORKSPACE` as the name of the workspace for the newly created window rather than the default workspace name `"default"`.
 * `--pane-id` - Specifies which pane to move. See also [Targeting Panes](index.md#targeting-panes).
 
+See also: [pane:move_to_new_window()](../../config/lua/pane/move_to_new_window.md),
+[pane:move_to_new_tab()](../../config/lua/pane/move_to_new_tab.md).
+
 ## Synopsis
 
 ```console

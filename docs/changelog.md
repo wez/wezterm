@@ -33,6 +33,8 @@ As features stabilize some brief notes about them will accumulate here.
   enables a nice translucent window effect. Thanks to @Gkirito! #3344
 * [new-tab-button-click event](config/lua/window-events/new-tab-button-click.md)
   allows overriding the effect of clicking the New Tab button. #323
+* [pane:move_to_new_window()](config/lua/pane/move_to_new_window.md),
+  [pane:move_to_new_tab()](config/lua/pane/move_to_new_tab.md). #3374
 
 #### Fixed
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
