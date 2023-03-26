@@ -1,9 +1,20 @@
 name: windows
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_windows.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/windows/**/*"
+      - "ci/deploy.sh"
+      - "ci/windows-installer.iss"
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "**/*.rs"
       - "**/Cargo.lock"

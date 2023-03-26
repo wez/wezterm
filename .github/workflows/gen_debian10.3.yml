@@ -1,15 +1,14 @@
 name: debian10.3
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/gen_debian10.3.yml"
   workflow_run:
     types: [completed]
     branches: [main]
     workflows: ['ubuntu22.04', 'macos', 'windows']
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/gen_debian10.3.yml"
 
 jobs:
   build:

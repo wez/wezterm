@@ -1,9 +1,27 @@
 name: ubuntu22.04
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_ubuntu22.04.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "**/*.rs"
       - "**/Cargo.lock"

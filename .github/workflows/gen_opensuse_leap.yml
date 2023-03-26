@@ -1,15 +1,14 @@
 name: opensuse_leap
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/gen_opensuse_leap.yml"
   workflow_run:
     types: [completed]
     branches: [main]
     workflows: ['ubuntu22.04', 'macos', 'windows']
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/gen_opensuse_leap.yml"
 
 jobs:
   build:

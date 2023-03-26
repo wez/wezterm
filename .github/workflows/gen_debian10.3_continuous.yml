@@ -3,9 +3,12 @@ name: debian10.3_continuous
 on:
   schedule:
     - cron: "10 3 * * *"
-  push:
-    branches:
-      - main
+  workflow_run:
+    types: [completed]
+    branches: [main]
+    workflows: ['ubuntu22.04', 'macos', 'windows']
+  pull_request:
+    branches: [main]
     paths:
       - "**/*.rs"
       - "**/Cargo.lock"

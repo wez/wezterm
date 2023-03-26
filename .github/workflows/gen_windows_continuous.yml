@@ -1,21 +1,7 @@
 name: windows_continuous
 
 on:
-  schedule:
-    - cron: "10 3 * * *"
-  push:
-    branches:
-      - main
-    paths:
-      - "**/*.rs"
-      - "**/Cargo.lock"
-      - "**/Cargo.toml"
-      - ".github/workflows/gen_windows_continuous.yml"
-      - "assets/fonts/**/*"
-      - "assets/icon/*"
-      - "assets/windows/**/*"
-      - "ci/deploy.sh"
-      - "ci/windows-installer.iss"
+
 
 jobs:
   build:
