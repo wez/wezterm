@@ -232,7 +232,8 @@ impl UnixTerminal {
         let input_queue = VecDeque::new();
 
         let (sigwinch_pipe, sigwinch_pipe_write) = UnixStream::pair()?;
-        let sigwinch_id = signal_hook::low_level::pipe::register(libc::SIGWINCH, sigwinch_pipe_write)?;
+        let sigwinch_id =
+            signal_hook::low_level::pipe::register(libc::SIGWINCH, sigwinch_pipe_write)?;
         sigwinch_pipe.set_nonblocking(true)?;
         let (wake_pipe, wake_pipe_write) = UnixStream::pair()?;
         wake_pipe.set_nonblocking(true)?;
