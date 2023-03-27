@@ -50,7 +50,7 @@ wezterm-dynamic = { path = "../wezterm-dynamic", version="0.1" }
 
 [features]
 widgets = ["cassowary", "fnv"]
-use_serde = ["serde", "wezterm-color-types/use_serde", "wezterm-blob-leases/serde"]
+use_serde = ["serde", "wezterm-color-types/use_serde", "wezterm-blob-leases/serde", "bitflags/serde"]
 use_image = ["image"]
 docs = ["widgets", "use_serde"]
 
