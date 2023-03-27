@@ -5,7 +5,7 @@ if [ "$1" == "serve" ] ; then
   SERVE=yes
 fi
 
-for util in mdbook-linkcheck gelatyx ; do
+for util in gelatyx ; do
   if ! hash $util 2>/dev/null ; then
     cargo install $util --locked
   fi
@@ -37,8 +37,6 @@ function ghapi() {
 [[ -f /tmp/wezterm.nightly.json ]] || ghapi /repos/wez/wezterm/releases/tags/nightly > /tmp/wezterm.nightly.json
 python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
-
-#mdbook-linkcheck --standalone docs
 
 # Adjust path to pick up pip-installed binaries
 PATH="$HOME/.local/bin;$PATH"

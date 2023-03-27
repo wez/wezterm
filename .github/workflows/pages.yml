@@ -34,15 +34,9 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: Install gelatyx
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v2
         with:
           crate: gelatyx
-          args: --locked
-      - name: Install mdbook-linkcheck
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: mdbook-linkcheck
-          args: --locked
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
