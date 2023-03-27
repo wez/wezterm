@@ -65,7 +65,7 @@ features = ["full-syntax"]
 version = "0.3"
 
 [target."cfg(unix)".dependencies]
-signal-hook = "0.1"
+signal-hook = "0.3"
 termios = "0.3"
 nix = "0.26"
 
