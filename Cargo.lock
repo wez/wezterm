@@ -5820,7 +5820,7 @@ dependencies = [
  "mac_address",
  "once_cell",
  "serde",
- "sha2 0.9.9",
+ "sha2 0.10.6",
  "tempfile",
  "thiserror",
  "uuid",
