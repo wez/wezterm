@@ -1,6 +1,6 @@
 # `pane:move_to_new_window([WORKSPACE])`
 
-{{since('nightly')}}
+{{since('20230326-111934-3666303c')}}
 
 Creates a window and moves `pane` into that window.
 

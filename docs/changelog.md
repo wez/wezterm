@@ -22,6 +22,11 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### New
+* Not yet
+
+### 20230326-111934-3666303c
+
+#### New
 * [mouse_wheel_scrolls_tabs](config/lua/config/mouse_wheel_scrolls_tabs.md) option
   to control whether the mouse wheel can be used to activate tabs when hovering
   over the tab bar. Thanks to @eaglgenes101! #3227

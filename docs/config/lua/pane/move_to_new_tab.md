@@ -1,6 +1,6 @@
 # `pane:move_to_new_tab()`
 
-{{since('nightly')}}
+{{since('20230326-111934-3666303c')}}
 
 Creates a new tab in the window that contains `pane`, and moves `pane` into that tab.
 

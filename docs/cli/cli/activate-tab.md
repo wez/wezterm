@@ -1,6 +1,6 @@
 # `wezterm cli activate-tab`
 
-{{since('nightly')}}
+{{since('20230326-111934-3666303c')}}
 
 ## Synopsis
 
