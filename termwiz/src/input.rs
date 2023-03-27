@@ -44,7 +44,7 @@ use winapi::um::wincon::{
 
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
-    #[derive(Default)]
+    #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const SHIFT = 1<<1;
@@ -58,7 +58,7 @@ bitflags! {
 }
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
-    #[derive(Default)]
+    #[derive(Debug, Default, Clone, PartialEq, Eq)]
     pub struct MouseButtons: u8 {
         const NONE = 0;
         const LEFT = 1<<1;

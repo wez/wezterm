@@ -53,6 +53,7 @@ fn csi_size() {
 }
 
 bitflags::bitflags! {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KittyKeyboardFlags: u16 {
     const NONE = 0;
     const DISAMBIGUATE_ESCAPE_CODES = 1;

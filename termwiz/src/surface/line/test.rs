@@ -288,7 +288,9 @@ Line {
     ),
     zones: [],
     seqno: 1,
-    bits: NONE,
+    bits: LineBits(
+        0x0,
+    ),
     appdata: Mutex {
         data: None,
         poisoned: false,
@@ -598,7 +600,9 @@ Line {
     ),
     zones: [],
     seqno: 5,
-    bits: NONE,
+    bits: LineBits(
+        0x0,
+    ),
     appdata: Mutex {
         data: None,
         poisoned: false,
