@@ -5065,7 +5065,7 @@ dependencies = [
  "semver 0.11.0",
  "serde",
  "sha2",
- "signal-hook 0.1.17",
+ "signal-hook",
  "siphasher",
  "tempfile",
  "terminfo",
