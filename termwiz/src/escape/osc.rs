@@ -72,6 +72,7 @@ pub struct ChangeColorPair {
 }
 
 bitflags! {
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Selection :u16{
     const NONE = 0;
     const CLIPBOARD = 1<<1;

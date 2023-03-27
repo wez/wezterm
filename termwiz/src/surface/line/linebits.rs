@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) struct LineBits : u16 {
         const NONE = 0;
         /// The line contains 1+ cells with explicit hyperlinks set
@@ -26,9 +27,9 @@ bitflags! {
         const DOUBLE_HEIGHT_BOTTOM = 1<<6;
 
         const DOUBLE_WIDTH_HEIGHT_MASK =
-            Self::DOUBLE_WIDTH.bits |
-            Self::DOUBLE_HEIGHT_TOP.bits |
-            Self::DOUBLE_HEIGHT_BOTTOM.bits;
+            Self::DOUBLE_WIDTH.bits() |
+            Self::DOUBLE_HEIGHT_TOP.bits() |
+            Self::DOUBLE_HEIGHT_BOTTOM.bits();
 
         /// true if the line should have the bidi algorithm
         /// applied as part of presentation.
