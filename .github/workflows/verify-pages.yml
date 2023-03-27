@@ -22,12 +22,12 @@ jobs:
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: Install gelatyx
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v2
         with:
           crate: gelatyx
           args: --locked
       - name: Install mdbook-linkcheck
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook-linkcheck
           args: --locked
