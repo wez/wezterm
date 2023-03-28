@@ -593,7 +593,7 @@ impl Reconnectable {
             format!("{} cli --prefer-mux --no-auto-start proxy", proxy_bin)
         };
         ui.output_str(&format!("Running: {}\n", cmd));
-        log::info!("going to run {}", cmd);
+        log::debug!("going to run {}", cmd);
 
         let exec = smol::block_on(sess.exec(&cmd, None))?;
 
