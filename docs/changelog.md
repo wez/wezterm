@@ -22,7 +22,7 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### New
-* Not yet
+* [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217
 
 ### 20230326-111934-3666303c
 
