@@ -24,6 +24,9 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217
 
+#### Fixed
+* mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759
+
 ### 20230326-111934-3666303c
 
 #### New

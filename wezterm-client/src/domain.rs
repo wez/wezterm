@@ -13,7 +13,7 @@ use mux::window::WindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::CommandBuilder;
 use promise::spawn::spawn_into_new_thread;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use wezterm_term::TerminalSize;
 
@@ -411,6 +411,30 @@ impl ClientDomain {
             panes
         );
 
+        // "Mark" the current set of known remote ids, so that we can "Sweep"
+        // any unreferenced ids at the bottom, garbage collection style
+        let mut remote_windows_to_forget: HashSet<WindowId> = inner
+            .remote_to_local_window
+            .lock()
+            .unwrap()
+            .keys()
+            .copied()
+            .collect();
+        let mut remote_tabs_to_forget: HashSet<WindowId> = inner
+            .remote_to_local_tab
+            .lock()
+            .unwrap()
+            .keys()
+            .copied()
+            .collect();
+        let mut remote_panes_to_forget: HashSet<WindowId> = inner
+            .remote_to_local_pane
+            .lock()
+            .unwrap()
+            .keys()
+            .copied()
+            .collect();
+
         for tabroot in panes.tabs {
             let root_size = match tabroot.root_size() {
                 Some(size) => size,
@@ -419,6 +443,9 @@ impl ClientDomain {
 
             if let Some((remote_window_id, remote_tab_id)) = tabroot.window_and_tab_ids() {
                 let tab;
+
+                remote_windows_to_forget.remove(&remote_window_id);
+                remote_tabs_to_forget.remove(&remote_tab_id);
 
                 if let Some(tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
                     match mux.get_tab(tab_id) {
@@ -448,6 +475,7 @@ impl ClientDomain {
                 let mut workspace = None;
                 tab.sync_with_pane_tree(root_size, tabroot, |entry| {
                     workspace.replace(entry.workspace.clone());
+                    remote_panes_to_forget.remove(&entry.pane_id);
                     if let Some(pane_id) = inner.remote_to_local_pane_id(entry.pane_id) {
                         match mux.get_pane(pane_id) {
                             Some(pane) => pane,
@@ -534,6 +562,32 @@ impl ClientDomain {
                 let local_window_id = mux.new_empty_window(workspace.take(), position);
                 inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
                 mux.add_tab_to_window(&tab, *local_window_id)?;
+            }
+        }
+
+        // "Sweep" away our mapping for ids that are no longer present in the
+        // latest sync
+        log::debug!(
+            "after sync, remote_windows_to_forget={remote_windows_to_forget:?}, \
+                    remote_tabs_to_forget={remote_tabs_to_forget:?}, \
+                    remote_panes_to_forget={remote_panes_to_forget:?}"
+        );
+        if !remote_windows_to_forget.is_empty() {
+            let mut windows = inner.remote_to_local_window.lock().unwrap();
+            for w in remote_windows_to_forget {
+                windows.remove(&w);
+            }
+        }
+        if !remote_tabs_to_forget.is_empty() {
+            let mut tabs = inner.remote_to_local_tab.lock().unwrap();
+            for t in remote_tabs_to_forget {
+                tabs.remove(&t);
+            }
+        }
+        if !remote_panes_to_forget.is_empty() {
+            let mut panes = inner.remote_to_local_pane.lock().unwrap();
+            for p in remote_panes_to_forget {
+                panes.remove(&p);
             }
         }
 
