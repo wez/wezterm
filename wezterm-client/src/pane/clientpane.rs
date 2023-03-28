@@ -1,4 +1,4 @@
-use crate::domain::{ClientDomain, ClientInner};
+use crate::domain::ClientInner;
 use crate::pane::mousestate::MouseState;
 use crate::pane::renderable::{hydrate_lines, RenderableInner, RenderableState};
 use anyhow::bail;
