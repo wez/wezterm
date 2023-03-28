@@ -825,6 +825,11 @@ impl Config {
                     )
                 })?;
             }
+        }
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            use nix::sys::resource::{getrlimit, setrlimit, Resource};
 
             let (nproc_soft, nproc_hard) = getrlimit(Resource::RLIMIT_NPROC)?;
 
