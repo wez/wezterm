@@ -4,7 +4,7 @@ use crate::{
     Config, FontAttributes, FontStretch, FontStyle, FontWeight, FreeTypeLoadTarget, RgbaColor,
     TextStyle,
 };
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use luahelper::{dynamic_to_lua_value, from_lua_value_dynamic, lua_value_to_dynamic, to_lua};
 use mlua::{
     FromLua, Lua, MetaMethod, Table, ToLuaMulti, UserData, UserDataMethods, Value, Variadic,
@@ -237,8 +237,8 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         // This table will be the `wezterm` module in the script
         let wezterm_mod = get_or_create_module(&lua, "wezterm")?;
 
-        let package: Table = globals.get("package")?;
-        let package_path: String = package.get("path")?;
+        let package: Table = globals.get("package").context("get _G.package")?;
+        let package_path: String = package.get("path").context("get package.path as String")?;
         let mut path_array: Vec<String> = package_path.split(";").map(|s| s.to_owned()).collect();
 
         fn prefix_path(array: &mut Vec<String>, path: &Path) {
@@ -257,11 +257,13 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         if let Ok(exe) = std::env::current_exe() {
             if let Some(path) = exe.parent() {
-                wezterm_mod.set(
-                    "executable_dir",
-                    path.to_str()
-                        .ok_or_else(|| anyhow!("current_exe path is not UTF-8"))?,
-                )?;
+                wezterm_mod
+                    .set(
+                        "executable_dir",
+                        path.to_str()
+                            .ok_or_else(|| anyhow!("current_exe path is not UTF-8"))?,
+                    )
+                    .context("set wezterm.executable_dir")?;
                 if cfg!(windows) {
                     // For a portable windows install, force in this path ahead
                     // of the rest
@@ -293,7 +295,8 @@ end
         "#,
         )
         .set_name("=searcher")?
-        .eval()?;
+        .eval()
+        .context("replace package.searchers")?;
 
         wezterm_mod.set(
             "config_builder",
@@ -307,13 +310,17 @@ end
                 Ok(())
             })?,
         )?;
-        wezterm_mod.set("config_file", config_file_str)?;
-        wezterm_mod.set(
-            "config_dir",
-            config_dir
-                .to_str()
-                .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
-        )?;
+        wezterm_mod
+            .set("config_file", config_file_str)
+            .context("set wezterm.config_file")?;
+        wezterm_mod
+            .set(
+                "config_dir",
+                config_dir
+                    .to_str()
+                    .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
+            )
+            .context("set wezterm.config_dir")?;
 
         lua.set_named_registry_value("wezterm-watch-paths", Vec::<String>::new())?;
         wezterm_mod.set(
@@ -368,11 +375,13 @@ end
         // those values since wezterm was started
         get_or_create_module(&lua, "os")?.set("getenv", lua.create_function(getenv)?)?;
 
-        package.set("path", path_array.join(";"))?;
+        package
+            .set("path", path_array.join(";"))
+            .context("assign package.path")?;
     }
 
     for func in SETUP_FUNCS.lock().unwrap().iter() {
-        func(&lua)?;
+        func(&lua).context("calling SETUP_FUNCS")?;
     }
 
     Ok(lua)
