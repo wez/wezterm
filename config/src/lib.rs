@@ -269,9 +269,9 @@ where
 
 fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     // Cause the default config to be re-evaluated with the overrides applied
-    let lua = lua::make_lua_context(Path::new("override"))?;
+    let lua = lua::make_lua_context(Path::new("override")).context("make_lua_context")?;
     let table = mlua::Value::Table(lua.create_table()?);
-    let config = Config::apply_overrides_to(&lua, table)?;
+    let config = Config::apply_overrides_to(&lua, table).context("apply_overrides_to")?;
 
     let dyn_config = luahelper::lua_value_to_dynamic(config)?;
 
@@ -287,7 +287,7 @@ fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
     // problems earlier than we use them.
     let _ = cfg.key_bindings();
 
-    cfg.check_consistency()?;
+    cfg.check_consistency().context("check_consistency")?;
 
     Ok(cfg)
 }
@@ -303,7 +303,7 @@ pub fn common_init(
         CONFIG_SKIP.store(true, Ordering::Relaxed);
     }
 
-    set_config_overrides(overrides)?;
+    set_config_overrides(overrides).context("common_init: set_config_overrides")?;
     reload();
     Ok(())
 }

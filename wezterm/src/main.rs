@@ -633,7 +633,8 @@ fn run() -> anyhow::Result<()> {
         opts.config_file.as_ref(),
         &opts.config_override,
         opts.skip_config,
-    )?;
+    )
+    .context("config::common_init")?;
     let config = config::configuration();
     config.update_ulimit()?;
 
