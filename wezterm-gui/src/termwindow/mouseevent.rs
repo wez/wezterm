@@ -438,7 +438,6 @@ impl super::TermWindow {
                 None => true,
             };
             if let (true, Some(assignment)) = (default_action, action) {
-                log::info!("do it {assignment:?}");
                 window.window.notify(TermWindowNotif::PerformAssignment {
                     pane_id: pane.0,
                     assignment,
