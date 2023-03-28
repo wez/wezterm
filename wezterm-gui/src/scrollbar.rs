@@ -38,7 +38,8 @@ impl ScrollHit {
 
         let scroll_percent =
             1.0 - (scroll_top / (render_dims.physical_top - render_dims.scrollback_top) as f32);
-        let thumb_top = (scroll_percent * (max_thumb_height - thumb_size) as f32).ceil() as usize;
+        let thumb_top =
+            (scroll_percent * (max_thumb_height.saturating_sub(thumb_size)) as f32).ceil() as usize;
 
         Self {
             top: thumb_top,
