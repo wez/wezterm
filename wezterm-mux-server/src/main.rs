@@ -82,6 +82,9 @@ fn run() -> anyhow::Result<()> {
     )?;
 
     let config = config::configuration();
+
+    config.update_ulimit()?;
+
     #[cfg(unix)]
     {
         if opts.daemonize {

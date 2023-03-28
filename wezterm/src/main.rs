@@ -635,6 +635,7 @@ fn run() -> anyhow::Result<()> {
         opts.skip_config,
     )?;
     let config = config::configuration();
+    config.update_ulimit()?;
 
     match opts
         .cmd

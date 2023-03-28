@@ -291,6 +291,7 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
     }
 
     let config = config::configuration();
+    config.update_ulimit()?;
 
     let _config_subscription = config::subscribe_to_config_reload(move || {
         promise::spawn::spawn_into_main_thread(async move {

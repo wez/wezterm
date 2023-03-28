@@ -766,11 +766,25 @@ pub struct Config {
 
     #[dynamic(default = "default_one")]
     pub palette_max_key_assigments_for_action: usize,
+
+    #[dynamic(default = "default_ulimit_nofile")]
+    pub ulimit_nofile: u64,
+
+    #[dynamic(default = "default_ulimit_nproc")]
+    pub ulimit_nproc: u64,
 }
 impl_lua_conversion_dynamic!(Config);
 
 fn default_one() -> usize {
     1
+}
+
+fn default_ulimit_nofile() -> u64 {
+    2048
+}
+
+fn default_ulimit_nproc() -> u64 {
+    2048
 }
 
 impl Default for Config {
@@ -789,6 +803,47 @@ impl Default for Config {
 impl Config {
     pub fn load() -> LoadedConfig {
         Self::load_with_overrides(&wezterm_dynamic::Value::default())
+    }
+
+    pub fn update_ulimit(&self) -> anyhow::Result<()> {
+        #[cfg(unix)]
+        {
+            use nix::sys::resource::{getrlimit, setrlimit, Resource};
+
+            let (no_file_soft, no_file_hard) = getrlimit(Resource::RLIMIT_NOFILE)?;
+
+            if no_file_soft < self.ulimit_nofile {
+                setrlimit(
+                    Resource::RLIMIT_NOFILE,
+                    self.ulimit_nofile.min(no_file_hard),
+                    no_file_hard,
+                )
+                .with_context(|| {
+                    format!(
+                        "raise RLIMIT_NOFILE from {no_file_soft} to ulimit_nofile {}",
+                        self.ulimit_nofile
+                    )
+                })?;
+            }
+
+            let (nproc_soft, nproc_hard) = getrlimit(Resource::RLIMIT_NPROC)?;
+
+            if nproc_soft < self.ulimit_nproc {
+                setrlimit(
+                    Resource::RLIMIT_NPROC,
+                    self.ulimit_nproc.min(nproc_hard),
+                    nproc_hard,
+                )
+                .with_context(|| {
+                    format!(
+                        "raise RLIMIT_NPROC from {nproc_soft} to ulimit_nproc {}",
+                        self.ulimit_nproc
+                    )
+                })?;
+            }
+        }
+
+        Ok(())
     }
 
     pub fn load_with_overrides(overrides: &wezterm_dynamic::Value) -> LoadedConfig {

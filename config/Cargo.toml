@@ -45,5 +45,8 @@ wezterm-bidi = { path = "../bidi" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
+[target."cfg(unix)".dependencies]
+nix = "0.26"
+
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}

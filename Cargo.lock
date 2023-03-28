@@ -798,6 +798,7 @@ dependencies = [
  "log",
  "luahelper",
  "mlua",
+ "nix 0.26.2",
  "notify",
  "ordered-float",
  "portable-pty",
