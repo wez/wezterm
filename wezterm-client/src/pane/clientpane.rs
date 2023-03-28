@@ -466,39 +466,10 @@ impl Pane for ClientPane {
                     .kill_pane(KillPane {
                         pane_id: remote_pane_id,
                     })
-                    .await?;
-
-                // Arrange to resync the layout, to avoid artifacts
-                // <https://github.com/wez/wezterm/issues/1277>.
-                // We need a short delay to avoid racing with the observable
-                // effects of killing the pane.
-                // <https://github.com/wez/wezterm/issues/1752#issuecomment-1088269363>
-                smol::Timer::after(std::time::Duration::from_millis(200)).await;
-                let mux = Mux::get();
-                let client_domain = mux
-                    .get_domain(local_domain_id)
-                    .ok_or_else(|| anyhow::anyhow!("no such domain {}", local_domain_id))?;
-                let client_domain =
-                    client_domain
-                        .downcast_ref::<ClientDomain>()
-                        .ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "domain {} is not a ClientDomain instance",
-                                local_domain_id
-                            )
-                        })?;
-
-                client_domain.resync().await?;
-                anyhow::Result::<()>::Ok(())
+                    .await
             })
             .detach();
         }
-        // Explicitly mark ourselves as dead.
-        // Ideally we'd discover this later when polling the
-        // status, but killing the pane prevents the server
-        // side from sending us further data.
-        // <https://github.com/wez/wezterm/issues/1752>
-        self.renderable.lock().inner.borrow_mut().dead = true;
     }
 
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {

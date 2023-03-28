@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759
+* mux: Splitting then killing a pane could result in incorrect pane sizes. #3386
 
 ### 20230326-111934-3666303c
 

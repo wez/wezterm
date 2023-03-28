@@ -142,6 +142,7 @@ async fn process_unilateral_inner_async(
     let local_pane_id = match client_domain.remote_to_local_pane_id(pane_id) {
         Some(p) => p,
         None => {
+            log::debug!("got {decoded:?}, pane not found locally, resync");
             client_domain.resync().await?;
             client_domain
                 .remote_to_local_pane_id(pane_id)
@@ -151,9 +152,23 @@ async fn process_unilateral_inner_async(
         }
     };
 
-    let pane = mux
-        .get_pane(local_pane_id)
-        .ok_or_else(|| anyhow!("no such pane {}", local_pane_id))?;
+    let pane = match mux.get_pane(local_pane_id) {
+        Some(p) => p,
+        None => {
+            log::debug!("got {decoded:?}, but local pane {local_pane_id} no longer exists; resync");
+            client_domain.resync().await?;
+
+            let local_pane_id =
+                client_domain
+                    .remote_to_local_pane_id(pane_id)
+                    .ok_or_else(|| {
+                        anyhow!("remote pane id {} does not have a local pane id", pane_id)
+                    })?;
+
+            mux.get_pane(local_pane_id)
+                .ok_or_else(|| anyhow!("local pane {local_pane_id} not found"))?
+        }
+    };
     let client_pane = pane.downcast_ref::<ClientPane>().ok_or_else(|| {
         log::error!(
             "received unilateral PDU for pane {} which is \
