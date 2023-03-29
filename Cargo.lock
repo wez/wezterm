@@ -1350,9 +1350,9 @@ checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
 
 [[package]]
 name = "embed-resource"
-version = "1.8.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e62abb876c07e4754fae5c14cafa77937841f01740637e17d78dc04352f32a5e"
+checksum = "dfa45bbf655db75e0be9c80a9d6ed2f5f58d321a623af660f74fd83e0eec07f0"
 dependencies = [
  "cc",
  "rustc_version",
@@ -6091,8 +6091,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
+ "cc",
  "clap 4.1.13",
  "config",
+ "embed-resource",
  "env-bootstrap",
  "libc",
  "log",
