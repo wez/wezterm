@@ -5,6 +5,13 @@ fn main() {
     {
         use std::io::Write;
         use std::path::Path;
+
+        let repo_dir = std::env::current_dir()
+            .ok()
+            .and_then(|cwd| cwd.parent().map(|p| p.to_path_buf()))
+            .unwrap();
+        let windows_dir = repo_dir.join("assets").join("windows");
+
         let rcfile_name = Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("resource.rc");
         let mut rcfile = std::fs::File::create(&rcfile_name).unwrap();
         write!(
@@ -14,7 +21,6 @@ fn main() {
 1 RT_MANIFEST "{win}\\console.manifest"
 "#,
             win = windows_dir.display().to_string().replace("\\", "\\\\"),
-            version = version,
         )
         .unwrap();
         drop(rcfile);
