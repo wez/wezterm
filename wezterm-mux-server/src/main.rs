@@ -51,6 +51,10 @@ struct Opt {
     #[arg(long = "cwd", value_parser, value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
+    #[cfg(unix)]
+    #[arg(long, hide = true)]
+    pid_file_fd: Option<i32>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -75,6 +79,16 @@ fn run() -> anyhow::Result<()> {
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::parse();
+
+    #[cfg(unix)]
+    {
+        // Ensure that we set CLOEXEC on the inherited lock file
+        // before we have an opportunity to spawn any child processes.
+        if let Some(fd) = opts.pid_file_fd {
+            daemonize::set_cloexec(fd, true);
+        }
+    }
+
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,
@@ -86,9 +100,12 @@ fn run() -> anyhow::Result<()> {
     config.update_ulimit()?;
 
     #[cfg(unix)]
+    let mut pid_file = None;
+
+    #[cfg(unix)]
     {
         if opts.daemonize {
-            daemonize::daemonize(&config)?;
+            pid_file = daemonize::daemonize(&config)?;
             // When we reach this line, we are in a forked child process,
             // and the fork will have broken the async-io/reactor state
             // of the smol runtime.
@@ -103,6 +120,17 @@ fn run() -> anyhow::Result<()> {
         // On Unix, forking breaks the global state maintained by `smol`,
         // so we need to re-exec ourselves to start things back up properly.
         let mut cmd = Command::new(std::env::current_exe().unwrap());
+
+        #[cfg(unix)]
+        {
+            // Inform the new version of ourselves that we already
+            // locked the pidfile so that it can prevent it from
+            // being propagated to its children when they spawn
+            if let Some(fd) = pid_file {
+                cmd.arg("--pid-file-fd");
+                cmd.arg(&fd.to_string());
+            }
+        }
         if opts.skip_config {
             cmd.arg("-n");
         }

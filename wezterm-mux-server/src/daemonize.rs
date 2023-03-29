@@ -2,7 +2,7 @@
 use anyhow::Context;
 use libc::pid_t;
 use std::io::Write;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
 enum Fork {
     Child(pid_t),
@@ -63,7 +63,7 @@ fn lock_pid_file(config: &config::ConfigHandle) -> anyhow::Result<std::fs::File>
     Ok(file)
 }
 
-pub fn daemonize(config: &config::ConfigHandle) -> anyhow::Result<()> {
+pub fn daemonize(config: &config::ConfigHandle) -> anyhow::Result<Option<RawFd>> {
     let pid_file = if !config::running_under_wsl() {
         // pid file locking is only partly functional when running under
         // WSL 1; it is possible for the pid file to exist after a reboot
@@ -96,16 +96,40 @@ pub fn daemonize(config: &config::ConfigHandle) -> anyhow::Result<()> {
         Fork::Child(_) => {}
     }
 
-    if let Some(mut pid_file) = pid_file {
+    let pid_file_fd = pid_file.map(|mut pid_file| {
         writeln!(pid_file, "{}", unsafe { libc::getpid() }).ok();
         // Leak it so that the descriptor remains open for the duration
         // of the process runtime
-        std::mem::forget(pid_file);
-    }
+        let fd = pid_file.into_raw_fd();
+
+        // Since we will always re-exec, we need to clear FD_CLOEXEC
+        // in order for the pidfile to be inherited in our newly
+        // exec'd self
+        set_cloexec(fd, false);
+
+        fd
+    });
 
     unsafe { libc::dup2(devnull.as_raw_fd(), libc::STDIN_FILENO) };
     unsafe { libc::dup2(stdout.as_raw_fd(), libc::STDOUT_FILENO) };
     unsafe { libc::dup2(stderr.as_raw_fd(), libc::STDERR_FILENO) };
 
-    Ok(())
+    Ok(pid_file_fd)
+}
+
+pub fn set_cloexec(fd: RawFd, enable: bool) {
+    unsafe {
+        let flags = libc::fcntl(fd, libc::F_GETFD);
+        if flags == -1 {
+            return;
+        }
+
+        let flags = if enable {
+            flags | libc::FD_CLOEXEC
+        } else {
+            flags & !libc::FD_CLOEXEC
+        };
+
+        libc::fcntl(fd, libc::F_SETFD, flags);
+    }
 }
