@@ -3,6 +3,8 @@ fn main() {
 
     #[cfg(windows)]
     {
+        use std::io::Write;
+        use std::path::Path;
         let rcfile_name = Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("resource.rc");
         let mut rcfile = std::fs::File::create(&rcfile_name).unwrap();
         write!(
