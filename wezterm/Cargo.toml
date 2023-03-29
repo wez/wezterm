@@ -6,9 +6,6 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[build-dependencies]
-anyhow = "1.0"
-
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
@@ -55,3 +52,7 @@ features = [
     "synchapi",
 ]
 version = "0.3"
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.7"
+cc = "1.0"

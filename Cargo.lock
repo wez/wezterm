@@ -5805,12 +5805,14 @@ name = "wezterm"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cc",
  "chrono",
  "clap 4.1.13",
  "clap_complete",
  "clap_complete_fig",
  "codec",
  "config",
+ "embed-resource",
  "env-bootstrap",
  "filedescriptor",
  "hostname",
