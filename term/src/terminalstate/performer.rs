@@ -752,12 +752,15 @@ impl<'a> Performer<'a> {
                 self.set_hyperlink(link);
             }
             OperatingSystemCommand::Unspecified(unspec) => {
-                let mut output = String::new();
-                write!(&mut output, "Unhandled OSC ").ok();
-                for item in unspec {
-                    write!(&mut output, " {}", String::from_utf8_lossy(&item)).ok();
+                if self.config.log_unknown_escape_sequences() {
+                    let mut output = String::new();
+                    write!(&mut output, "Unhandled OSC ").ok();
+
+                    for item in unspec {
+                        write!(&mut output, " {}", String::from_utf8_lossy(&item)).ok();
+                    }
+                    log::warn!("{}", output);
                 }
-                log::warn!("{}", output);
             }
 
             OperatingSystemCommand::ClearSelection(selection) => {
