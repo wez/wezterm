@@ -15,7 +15,7 @@ hide:
 * [Multiplex terminal panes, tabs and windows on local and remote hosts, with native mouse and scrollback](multiplexing.md)
 * <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](config/appearance.md#colors).
 * [Hyperlinks](hyperlinks.md)
-* <a href="features.md">a full list of features can be found here</a>
+* [A full list of features can be found here](features.md)
 
 Looking for a [configuration reference?](config/files.md)
 
