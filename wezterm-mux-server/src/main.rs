@@ -106,6 +106,14 @@ fn run() -> anyhow::Result<()> {
         if opts.skip_config {
             cmd.arg("-n");
         }
+        if let Some(f) = &opts.config_file {
+            cmd.arg("--config-file");
+            cmd.arg(f);
+        }
+        for (name, value) in &opts.config_override {
+            cmd.arg("--config");
+            cmd.arg(&format!("{name}={value}"));
+        }
         if let Some(cwd) = opts.cwd {
             cmd.arg("--cwd");
             cmd.arg(cwd);

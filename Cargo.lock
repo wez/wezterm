@@ -6091,8 +6091,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
+ "cc",
  "clap 4.1.13",
  "config",
+ "embed-resource",
  "env-bootstrap",
  "libc",
  "log",

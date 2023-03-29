@@ -31,6 +31,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: "error converting Lua string to &str" on systems with an ACP that
   was not compatible with UTF-8 when wezterm was placed in a directory with
   a non UTF-8, non-ASCII name. #3390
+* mux: `--config` related command line options passed to `wezterm-mux-server` were
+  not propagated when using `--daemonize`. #3397 #2686
 
 ### 20230326-111934-3666303c
 
