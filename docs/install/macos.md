@@ -33,6 +33,7 @@ $ brew install --cask wezterm
 If you'd like to use a nightly build:
 
 ```console
+$ brew tap homebrew/cask-versions
 $ brew install --cask wezterm-nightly
 ```
 
