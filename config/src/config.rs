@@ -305,7 +305,7 @@ pub struct Config {
     #[dynamic(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
-    #[dynamic(default)]
+    #[dynamic(default = "SshDomain::default_domains")]
     pub ssh_domains: Vec<SshDomain>,
 
     #[dynamic(default)]

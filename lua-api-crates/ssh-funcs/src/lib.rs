@@ -8,6 +8,10 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         "enumerate_ssh_hosts",
         lua.create_function(enumerate_ssh_hosts)?,
     )?;
+    wezterm_mod.set(
+        "default_ssh_domains",
+        lua.create_function(|_, ()| Ok(config::SshDomain::default_domains()))?,
+    )?;
     Ok(())
 }
 

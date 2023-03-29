@@ -1,5 +1,6 @@
 use crate::config::validate_domain_name;
 use crate::*;
+use luahelper::impl_lua_conversion_dynamic;
 use std::fmt::Display;
 use std::str::FromStr;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
@@ -100,6 +101,35 @@ pub struct SshDomain {
 
     #[dynamic(default)]
     pub assume_shell: Shell,
+}
+impl_lua_conversion_dynamic!(SshDomain);
+
+impl SshDomain {
+    pub fn default_domains() -> Vec<Self> {
+        let mut config = wezterm_ssh::Config::new();
+        config.add_default_config_files();
+
+        let mut plain_ssh = vec![];
+        let mut mux_ssh = vec![];
+        for host in config.enumerate_hosts() {
+            plain_ssh.push(Self {
+                name: format!("SSH:{host}"),
+                remote_address: host.to_string(),
+                multiplexing: SshMultiplexing::None,
+                ..SshDomain::default()
+            });
+
+            mux_ssh.push(Self {
+                name: format!("SSHMUX:{host}"),
+                remote_address: host.to_string(),
+                multiplexing: SshMultiplexing::WezTerm,
+                ..SshDomain::default()
+            });
+        }
+
+        plain_ssh.append(&mut mux_ssh);
+        plain_ssh
+    }
 }
 
 #[derive(Clone, Debug)]

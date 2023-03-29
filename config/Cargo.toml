@@ -43,6 +43,7 @@ wezterm-config-derive = { version="0.1", path="derive" }
 wezterm-dynamic = { path = "../wezterm-dynamic" }
 wezterm-bidi = { path = "../bidi" }
 wezterm-input-types = { path = "../wezterm-input-types" }
+wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(unix)".dependencies]
