@@ -13,7 +13,7 @@ hide:
 * xterm style selection of text with mouse; paste selection via `Shift-Insert` (bracketed paste is supported!)
 * SGR style mouse reporting (works in vim and tmux)
 * Render underline, double-underline, italic, bold, strikethrough (most other terminal emulators do not support as many render attributes)
-* Configuration via a <a href="config/files.md">configuration file</a> with hot reloading
+* Configuration via a [configuration file](config/files.md) with hot reloading
 * Multiple Windows (Hotkey: `Super-N`)
 * Splits/Panes (Split horizontally/vertically: `Ctrl-Shift-Alt-%` and `Ctrl-Shift-Alt-"`, move between panes: `Ctrl-Shift-ArrowKey`)
 * Tabs (Hotkey: `Super-T`, next/prev: `Super-Shift-[` and `Super-Shift-]`, go-to: `Super-[1-9]`)
