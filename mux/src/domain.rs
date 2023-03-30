@@ -13,7 +13,7 @@ use crate::Mux;
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
-use config::{configuration, ExecDomain, ValueOrFunc, WslDomain};
+use config::{configuration, ExecDomain, SerialDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use parking_lot::Mutex;
 use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
@@ -227,6 +227,16 @@ impl LocalDomain {
 
     pub fn new_exec_domain(exec_domain: ExecDomain) -> anyhow::Result<Self> {
         Self::new(&exec_domain.name)
+    }
+
+    pub fn new_serial_domain(serial_domain: SerialDomain) -> anyhow::Result<Self> {
+        let port = serial_domain.port.as_ref().unwrap_or(&serial_domain.name);
+        let mut serial = portable_pty::serial::SerialTty::new(&port);
+        if let Some(baud) = serial_domain.baud {
+            serial.set_baud_rate(serial::BaudRate::from_speed(baud));
+        }
+        let pty_system = Box::new(serial);
+        Ok(Self::with_pty_system(&serial_domain.name, pty_system))
     }
 
     #[cfg(unix)]

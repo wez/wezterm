@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217
 * [ulimit_nofile](config/lua/config/ulimit_nofile.md) and [ulimint_nproc](config/lua/config/ulimit_nproc.md) options. ?3353
+* [serial_ports](config/lua/config/serial_ports.md) for more convenient access to serial ports
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

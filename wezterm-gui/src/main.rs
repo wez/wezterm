@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context};
 use clap::builder::ValueParser;
 use clap::{Parser, ValueHint};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
-use config::{ConfigHandle, SshDomain, SshMultiplexing};
+use config::{ConfigHandle, SerialDomain, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
@@ -201,13 +201,14 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
         set_window_position(pos.clone());
     }
 
-    let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
-    if let Some(baud) = opts.baud {
-        serial.set_baud_rate(serial::BaudRate::from_speed(baud));
-    }
+    let serial_domain = SerialDomain {
+        name: "local".into(),
+        port: Some(opts.port.clone()),
+        baud: opts.baud,
+    };
 
-    let pty_system = Box::new(serial);
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_serial_domain(serial_domain)?);
+
     let mux = setup_mux(domain.clone(), &config, Some("local"), None)?;
 
     let gui = crate::frontend::try_new()?;
@@ -351,6 +352,15 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
         }
 
         let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_exec_domain(exec_dom.clone())?);
+        mux.add_domain(&domain);
+    }
+
+    for serial in &config.serial_ports {
+        if mux.get_domain_by_name(&serial.name).is_some() {
+            continue;
+        }
+
+        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_serial_domain(serial.clone())?);
         mux.add_domain(&domain);
     }
 

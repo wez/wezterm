@@ -193,7 +193,7 @@ pub struct SerialCommand {
     /// On Windows systems this can be a name like `COM0`.
     /// On posix systems this will be something like `/dev/ttyUSB0`
     #[arg(value_parser)]
-    pub port: OsString,
+    pub port: String,
 }
 
 #[derive(Debug, Parser, Clone)]
