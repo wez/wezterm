@@ -490,7 +490,7 @@ impl RenderableInner {
     }
 
     fn schedule_fetch_lines(&mut self, to_fetch: RangeSet<StableRowIndex>, now: Instant) {
-        if to_fetch.is_empty() {
+        if to_fetch.is_empty() || self.dead {
             return;
         }
 
