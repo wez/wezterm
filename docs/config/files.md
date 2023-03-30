@@ -1,7 +1,7 @@
 
 ## Quick Start
 
-Create a file named `wezterm.lua` in your home directory, with the following
+Create a file named `.wezterm.lua` in your home directory, with the following
 contents:
 
 ```lua
