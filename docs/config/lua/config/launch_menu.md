@@ -1,6 +1,6 @@
 # `launch_menu`
 
-*Since 20200503-171512-b13ef15f*
+{{since('20200503-171512-b13ef15f')}}
 
 You can define your own entries for the [Launcher Menu](../../launch.md)
 using this configuration setting.  The snippet below adds two new entries to

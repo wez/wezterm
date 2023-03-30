@@ -1,6 +1,6 @@
 # `log_unknown_escape_sequences = false`
 
-*Since nightly builds only*
+{{since('20230320-124340-559cb7b0')}}
 
 When set to true, wezterm will log warnings when it receives escape
 sequences which it does not understand.  Those warnings are harmless
