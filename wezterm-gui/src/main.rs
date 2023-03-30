@@ -193,7 +193,35 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     gui.run_forever()
 }
 
-fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Result<()> {
+async fn async_run_serial(opts: SerialCommand) -> anyhow::Result<()> {
+    let serial_domain = SerialDomain {
+        name: format!("Serial Port {}", opts.port),
+        port: Some(opts.port.clone()),
+        baud: opts.baud,
+    };
+
+    let start_command = StartCommand {
+        always_new_process: true,
+        class: opts.class,
+        cwd: None,
+        no_auto_connect: true,
+        position: opts.position,
+        workspace: None,
+        domain: Some(serial_domain.name.clone()),
+        ..Default::default()
+    };
+
+    let cmd = None;
+
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_serial_domain(serial_domain)?);
+    let mux = Mux::get();
+    mux.add_domain(&domain);
+
+    let should_publish = false;
+    async_run_terminal_gui(cmd, start_command, should_publish).await
+}
+
+fn run_serial(config: config::ConfigHandle, opts: SerialCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
@@ -201,27 +229,16 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
         set_window_position(pos.clone());
     }
 
-    let serial_domain = SerialDomain {
-        name: "local".into(),
-        port: Some(opts.port.clone()),
-        baud: opts.baud,
-    };
-
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_serial_domain(serial_domain)?);
-
-    let mux = setup_mux(domain.clone(), &config, Some("local"), None)?;
+    build_initial_mux(&config, None, None)?;
 
     let gui = crate::frontend::try_new()?;
-    let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as u32;
-    {
-        let workspace = None;
-        let position = None;
-        let window_id = mux.new_empty_window(workspace, position);
-        block_on(domain.attach(Some(*window_id)))?; // FIXME: blocking
 
-        // FIXME: blocking
-        let _tab = block_on(domain.spawn(config.initial_size(dpi), None, None, *window_id))?;
-    }
+    promise::spawn::spawn(async {
+        if let Err(err) = async_run_serial(opts).await {
+            terminate_with_error(err);
+        }
+    })
+    .detach();
 
     maybe_show_configuration_error_window();
     gui.run_forever()
@@ -1220,7 +1237,7 @@ fn run() -> anyhow::Result<()> {
             res
         }
         SubCommand::Ssh(ssh) => run_ssh(ssh),
-        SubCommand::Serial(serial) => run_serial(config, &serial),
+        SubCommand::Serial(serial) => run_serial(config, serial),
         SubCommand::Connect(connect) => run_terminal_gui(
             StartCommand {
                 domain: Some(connect.domain_name.clone()),
