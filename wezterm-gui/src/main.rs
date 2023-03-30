@@ -816,7 +816,15 @@ fn terminate_with_error_message(err: &str) -> ! {
 }
 
 fn terminate_with_error(err: anyhow::Error) -> ! {
-    terminate_with_error_message(&format!("{:#}", err));
+    let mut err_text = format!("{err:#}");
+
+    let warnings = config::configuration_warnings_and_errors();
+    if !warnings.is_empty() {
+        let err = warnings.join("\n");
+        err_text = format!("{err_text}\nConfiguration Error: {err}");
+    }
+
+    terminate_with_error_message(&err_text)
 }
 
 fn main() {
