@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
   not propagated when using `--daemonize`. #3397 #2686
 * mux: server would lock and then unlock the pid/lock file when it re-executed,
   rendering it useless.
+* `tab:panes_with_info()` reported incorrect `is_zoomed` value. #3404
 
 ### 20230326-111934-3666303c
 

@@ -1008,6 +1008,7 @@ impl TabInner {
         }
 
         let active_idx = self.active;
+        let zoomed_id = self.zoomed.as_ref().map(|p| p.pane_id());
         let root_size = self.size;
         let mut cursor = self.pane.take().unwrap().cursor();
 
@@ -1039,7 +1040,7 @@ impl TabInner {
                 panes.push(PositionedPane {
                     index,
                     is_active: index == active_idx,
-                    is_zoomed: false,
+                    is_zoomed: zoomed_id == Some(pane.pane_id()),
                     left,
                     top,
                     width: dims.cols as _,
