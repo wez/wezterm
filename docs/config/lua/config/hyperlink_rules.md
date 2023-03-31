@@ -6,8 +6,10 @@ clickable links.
 The value is a list of rule entries. Each entry has the following fields:
 
 * `regex` - the regular expression to match (see supported [Regex syntax](https://docs.rs/regex/latest/regex/#syntax))
-* `format` - Controls what will be used to form the link. The string
-  can use placeholders like `$0`, `$1`, `$2` etc. that will be replaced
+* `format` - Controls which parts of the regex match will be used to form the link.
+  Must have a `prefix:` signaling the protocol type (e.g., `https:`/`mailto:`),
+  which can either come from the regex match or needs to be explicitly added.
+  The format string can use placeholders like `$0`, `$1`, `$2` etc. that will be replaced
   with that numbered capture group.  So, `$0` will take the entire
   region of text matched by the whole regex, while `$1` matches out
   the first capture group.  In the example below, `mailto:$0` is
