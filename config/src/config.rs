@@ -387,6 +387,9 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub send_composed_key_when_right_alt_is_pressed: bool,
 
+    #[dynamic(default = "default_macos_forward_mods")]
+    pub macos_forward_to_ime_modifier_mask: Modifiers,
+
     #[dynamic(default)]
     pub treat_left_ctrlalt_as_altgr: bool,
 
@@ -1908,4 +1911,11 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+/// <https://github.com/wez/wezterm/pull/2435>
+/// <https://github.com/wez/wezterm/issues/2771>
+/// <https://github.com/wez/wezterm/issues/2630>
+fn default_macos_forward_mods() -> Modifiers {
+    Modifiers::SHIFT
 }

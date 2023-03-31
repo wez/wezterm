@@ -2384,7 +2384,8 @@ impl WindowView {
             } else if only_right_alt && !send_composed_key_when_right_alt_is_pressed {
                 false
             } else {
-                true
+                modifiers.is_empty()
+                    || modifiers.intersects(config_handle.macos_forward_to_ime_modifier_mask)
             }
         };
 

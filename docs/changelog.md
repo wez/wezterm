@@ -21,6 +21,13 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Changed
+* macOS: Japanese IME users: CTRL-modified keys are no long routed to the IME
+  by default, as it introduced problems with CTRL-key combinations for other users.
+  A new [macos_forward_to_ime_modifier_mask](config/lua/config/macos_forward_to_ime_modifier_mask.md)
+  option has been introduced to allow you to control which modifier keys get routed
+  to the IME, so that you can opt back in to that behavior. #2630 #2771 #2435
+
 #### New
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217
 * [ulimit_nofile](config/lua/config/ulimit_nofile.md) and [ulimint_nproc](config/lua/config/ulimit_nproc.md) options. ?3353
@@ -46,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
   respect to the dispatch of the assignment. #3405
 * [window:perform_action()](config/lua/window/perform_action.md) now correctly
   resolves overlay panes such as Copy Mode. #3209
+* macOS: CTRL-Q had to be pressed twice to register when `use_ime=true`. #2630
 
 ### 20230326-111934-3666303c
 
