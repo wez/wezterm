@@ -31,6 +31,7 @@ config.ime_preedit_rendering = 'System'
 Otherwise, the default is `"Builtin"`.
 
 Note:
+
 * Changing `ime_preedit_rendering` usually requires re-launching WezTerm to take full effect.
 * In macOS, `ime_preedit_rendering` has effected nothing yet.
   IME preedit is always rendered by WezTerm itself.
