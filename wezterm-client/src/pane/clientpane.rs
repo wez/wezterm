@@ -26,7 +26,8 @@ use url::Url;
 use wezterm_dynamic::Value;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalSize,
+    Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+    TerminalConfiguration, TerminalSize,
 };
 
 pub struct ClientPane {
@@ -35,13 +36,16 @@ pub struct ClientPane {
     pub remote_pane_id: PaneId,
     pub remote_tab_id: TabId,
     pub renderable: Mutex<RenderableState>,
+    configured_palette: Mutex<ColorPalette>,
     palette: Mutex<ColorPalette>,
+    application_palette: Mutex<bool>,
     writer: Mutex<PaneWriter>,
     mouse: Arc<Mutex<MouseState>>,
     clipboard: Mutex<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: Mutex<bool>,
     ignore_next_kill: Mutex<bool>,
     user_vars: Mutex<HashMap<String, String>>,
+    config: Mutex<Option<Arc<dyn TerminalConfiguration>>>,
 }
 
 impl ClientPane {
@@ -90,19 +94,38 @@ impl ClientPane {
         let config = configuration();
         let palette: ColorPalette = config.resolved_palette.clone().into();
 
+        // Advise the server of our palette preference
+        promise::spawn::spawn({
+            let palette = palette.clone();
+            let client = Arc::clone(client);
+            async move {
+                client
+                    .client
+                    .set_configured_palette_for_pane(SetPalette {
+                        pane_id: remote_pane_id,
+                        palette,
+                    })
+                    .await
+            }
+        })
+        .detach();
+
         Self {
             client: Arc::clone(client),
             mouse,
             remote_pane_id,
             local_pane_id,
             remote_tab_id,
+            application_palette: Mutex::new(false),
             renderable: Mutex::new(render),
             writer: Mutex::new(writer),
+            configured_palette: Mutex::new(palette.clone()),
             palette: Mutex::new(palette),
             clipboard: Mutex::new(None),
             mouse_grabbed: Mutex::new(false),
             ignore_next_kill: Mutex::new(false),
             user_vars: Mutex::new(HashMap::new()),
+            config: Mutex::new(None),
         }
     }
 
@@ -141,8 +164,11 @@ impl ClientPane {
                 }
             },
             Pdu::SetPalette(SetPalette { palette, .. }) => {
+                *self.application_palette.lock() = palette != *self.configured_palette.lock();
+
                 *self.palette.lock() = palette;
                 let mux = Mux::get();
+                self.renderable.lock().inner.borrow_mut().make_all_stale();
                 mux.notify(MuxNotification::Alert {
                     pane_id: self.local_pane_id,
                     alert: Alert::PaletteChanged,
@@ -539,6 +565,36 @@ impl Pane for ClientPane {
 
     fn copy_user_vars(&self) -> HashMap<String, String> {
         self.user_vars.lock().clone()
+    }
+
+    fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {
+        let palette = config.color_palette();
+        // If the application running in the pane hasn't changed the
+        // palette through escape sequences, speculatively adopt the
+        // new palette so that it updates with the lowest latency.
+        if !*self.application_palette.lock() {
+            *self.palette.lock() = palette.clone();
+        }
+        *self.configured_palette.lock() = palette.clone();
+
+        // and now send the color palette to the server
+        let client = Arc::clone(&self.client);
+        let remote_pane_id = self.remote_pane_id;
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .set_configured_palette_for_pane(SetPalette {
+                    pane_id: remote_pane_id,
+                    palette,
+                })
+                .await
+        })
+        .detach();
+        self.config.lock().replace(config);
+    }
+
+    fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
+        self.config.lock().clone()
     }
 }
 

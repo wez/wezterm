@@ -6251,6 +6251,7 @@ dependencies = [
  "anyhow",
  "bitflags 1.3.2",
  "csscolorparser",
+ "downcast-rs",
  "env_logger",
  "finl_unicode",
  "hex",

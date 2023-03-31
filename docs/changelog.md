@@ -27,6 +27,9 @@ As features stabilize some brief notes about them will accumulate here.
   A new [macos_forward_to_ime_modifier_mask](config/lua/config/macos_forward_to_ime_modifier_mask.md)
   option has been introduced to allow you to control which modifier keys get routed
   to the IME, so that you can opt back in to that behavior. #2630 #2771 #2435
+* Multiplexer client can now send the locally configured color palette to the
+  mux server, which makes it more straightforward to configure color schemes
+  when using multiplexing.
 
 #### New
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217

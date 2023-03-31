@@ -1,12 +1,13 @@
 use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
+use config::TermConfig;
 use mux::client::ClientId;
 use mux::domain::SplitSource;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
-use mux::Mux;
+use mux::{Mux, MuxNotification};
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -729,13 +730,51 @@ impl SessionHandler {
                     send_response,
                 );
             }
+            Pdu::SetPalette(SetPalette { pane_id, palette }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+
+                            match pane.get_config() {
+                                Some(config) => match config.downcast_ref::<TermConfig>() {
+                                    Some(tc) => tc.set_client_palette(palette),
+                                    None => {
+                                        log::error!(
+                                            "pane {pane_id} doesn't \
+                                            have TermConfig as its config! \
+                                            Ignoring client palette update"
+                                        );
+                                    }
+                                },
+                                None => {
+                                    let config = TermConfig::new();
+                                    config.set_client_palette(palette);
+                                    pane.set_config(Arc::new(config));
+                                }
+                            }
+
+                            mux.notify(MuxNotification::Alert {
+                                pane_id,
+                                alert: Alert::PaletteChanged,
+                            });
+
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
 
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::NotifyAlert { .. }
-            | Pdu::SetPalette { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetPaneRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
