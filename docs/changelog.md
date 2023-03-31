@@ -43,7 +43,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:perform_action()](config/lua/window/perform_action.md) now awaits the
   dispatch of the key assignment action, making it less racy to script multiple
   actions in a row. Note that clipboard operations are still asynchronous with
-  respect to the dispatch of the assignment.
+  respect to the dispatch of the assignment. #3405
+* [window:perform_action()](config/lua/window/perform_action.md) now correctly
+  resolves overlay panes such as Copy Mode. #3209
 
 ### 20230326-111934-3666303c
 

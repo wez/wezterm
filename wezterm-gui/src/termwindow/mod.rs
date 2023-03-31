@@ -1025,9 +1025,21 @@ impl TermWindow {
             } => {
                 let mux = Mux::get();
                 let result = || -> anyhow::Result<()> {
-                    let pane = mux
-                        .get_pane(pane_id)
-                        .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
+                    // The CopyMode overlay doesn't exist in the mux, but aliases
+                    // itself with the overlaid pane's pane_id.
+                    // So we do a bit of fancy footwork here to resolve the overlay
+                    // and use that if it has the same pane_id, but otherwise fall
+                    // back to what we get from the mux.
+                    // <https://github.com/wez/wezterm/issues/3209>
+                    let active_pane = self
+                        .get_active_pane_or_overlay()
+                        .ok_or_else(|| anyhow!("there is no active pane!?"))?;
+                    let pane = if active_pane.pane_id() == pane_id {
+                        active_pane
+                    } else {
+                        mux.get_pane(pane_id)
+                            .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?
+                    };
                     self.perform_key_assignment(&pane, &assignment)
                         .context("perform_key_assignment")?;
                     Ok(())
