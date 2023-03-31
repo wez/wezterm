@@ -427,6 +427,7 @@ impl LauncherState {
             self.window.notify(TermWindowNotif::PerformAssignment {
                 pane_id: self.pane_id,
                 assignment,
+                tx: None,
             });
             true
         } else {

@@ -115,6 +115,7 @@ pub enum TermWindowNotif {
     PerformAssignment {
         pane_id: PaneId,
         assignment: KeyAssignment,
+        tx: Option<Sender<anyhow::Result<()>>>,
     },
     SetLeftStatus(String),
     SetRightStatus(String),
@@ -1020,14 +1021,21 @@ impl TermWindow {
             TermWindowNotif::PerformAssignment {
                 pane_id,
                 assignment,
+                tx,
             } => {
                 let mux = Mux::get();
-                let pane = mux
-                    .get_pane(pane_id)
-                    .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
-                self.perform_key_assignment(&pane, &assignment)
-                    .context("perform_key_assignment")?;
+                let result = || -> anyhow::Result<()> {
+                    let pane = mux
+                        .get_pane(pane_id)
+                        .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
+                    self.perform_key_assignment(&pane, &assignment)
+                        .context("perform_key_assignment")?;
+                    Ok(())
+                }();
                 window.invalidate();
+                if let Some(tx) = tx {
+                    tx.try_send(result).ok();
+                }
             }
             TermWindowNotif::SetRightStatus(status) => {
                 if status != self.right_status {

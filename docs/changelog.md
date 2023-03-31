@@ -40,6 +40,10 @@ As features stabilize some brief notes about them will accumulate here.
 * mux: server would lock and then unlock the pid/lock file when it re-executed,
   rendering it useless.
 * `tab:panes_with_info()` reported incorrect `is_zoomed` value. #3404
+* [window:perform_action()](config/lua/window/perform_action.md) now awaits the
+  dispatch of the key assignment action, making it less racy to script multiple
+  actions in a row. Note that clipboard operations are still asynchronous with
+  respect to the dispatch of the assignment.
 
 ### 20230326-111934-3666303c
 

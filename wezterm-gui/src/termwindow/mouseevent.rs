@@ -441,6 +441,7 @@ impl super::TermWindow {
                 window.window.notify(TermWindowNotif::PerformAssignment {
                     pane_id: pane.0,
                     assignment,
+                    tx: None,
                 });
             }
             Ok(())

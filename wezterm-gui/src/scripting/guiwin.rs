@@ -148,14 +148,17 @@ impl UserData for GuiWin {
             let result = rx.recv().await.map_err(mlua::Error::external)?;
             luahelper::dynamic_to_lua_value(lua, result)
         });
-        methods.add_method(
+        methods.add_async_method(
             "perform_action",
-            |_, this, (assignment, pane): (KeyAssignment, MuxPane)| {
+            |_, this, (assignment, pane): (KeyAssignment, MuxPane)| async move {
+                let (tx, rx) = smol::channel::bounded(1);
                 this.window.notify(TermWindowNotif::PerformAssignment {
                     pane_id: pane.0,
                     assignment,
+                    tx: Some(tx),
                 });
-                Ok(())
+                let result = rx.recv().await.map_err(mlua::Error::external)?;
+                result.map_err(mlua::Error::external)
             },
         );
         methods.add_async_method("effective_config", |_, this, _: ()| async move {
