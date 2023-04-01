@@ -50,7 +50,7 @@ use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::color::LinearRgba;
-use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment};
+use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
     path: &[PolyCommand::PushOval {
@@ -1258,14 +1258,16 @@ impl super::TermWindow {
             );
         }
 
-        let window_buttons_at_left = self.config.window_decorations
-            == window::WindowDecorations::INTEGRATED_BUTTONS
+        let window_buttons_at_left = self
+            .config
+            .window_decorations
+            .contains(window::WindowDecorations::INTEGRATED_BUTTONS)
             && (self.config.integrated_title_button_alignment
                 == IntegratedTitleButtonAlignment::Left
-                || (cfg!(target_os = "macos")));
+                || self.config.integrated_title_button_style == IntegratedTitleButtonStyle::Native);
 
         let left_padding = if window_buttons_at_left {
-            if cfg!(target_os = "macos") {
+            if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::Native {
                 if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
                     Dimension::Pixels(70.0)
                 } else {

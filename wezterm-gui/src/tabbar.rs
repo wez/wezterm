@@ -10,9 +10,7 @@ use termwiz::escape::{Action, ControlCode, CSI};
 use termwiz::surface::SEQ_ZERO;
 use termwiz_funcs::{format_as_escapes, FormatItem};
 use wezterm_term::Line;
-use window::IntegratedTitleButton;
-#[cfg(not(target_os = "macos"))]
-use window::IntegratedTitleButtonAlignment;
+use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabBarState {
@@ -183,8 +181,6 @@ impl TabBarState {
         &self.items
     }
 
-    // MacOS uses native buttons.
-    #[cfg(not(target_os = "macos"))]
     fn integrated_title_buttons(
         mouse_x: Option<usize>,
         x: &mut usize,
@@ -362,8 +358,8 @@ impl TabBarState {
         let mut x = 0;
         let mut items = vec![];
 
-        #[cfg(not(target_os = "macos"))]
         if use_integrated_title_buttons
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
         {
             Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
@@ -375,8 +371,10 @@ impl TabBarState {
                 .clone(),
         );
 
-        #[cfg(target_os = "macos")]
-        if use_integrated_title_buttons && config.use_fancy_tab_bar == false {
+        if use_integrated_title_buttons
+            && config.integrated_title_button_style == IntegratedTitleButtonStyle::Native
+            && config.use_fancy_tab_bar == false
+        {
             for _ in 0..10 as usize {
                 line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
                 x += 1;
@@ -471,10 +469,9 @@ impl TabBarState {
         }
 
         // Reserve place for integrated title buttons
-        #[cfg(not(target_os = "macos"))]
         let title_width = if use_integrated_title_buttons
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
-            && !cfg!(target_os = "macos")
         {
             let window_hide =
                 parse_status_text(&config.tab_bar_style.window_hide, CellAttributes::default());
@@ -539,8 +536,8 @@ impl TabBarState {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
-        #[cfg(not(target_os = "macos"))]
         if use_integrated_title_buttons
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
         {
             x = title_width;
