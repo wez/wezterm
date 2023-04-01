@@ -53,7 +53,7 @@ use window::color::LinearRgba;
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
 pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[PolyCommand::PushOval {
+    path: &[PolyCommand::Oval {
         center: (BlockCoord::One, BlockCoord::One),
         radiuses: (BlockCoord::One, BlockCoord::One),
     }],
@@ -62,7 +62,7 @@ pub const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
 }];
 
 pub const BOTTOM_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[PolyCommand::PushOval {
+    path: &[PolyCommand::Oval {
         center: (BlockCoord::One, BlockCoord::Zero),
         radiuses: (BlockCoord::One, BlockCoord::One),
     }],
@@ -71,7 +71,7 @@ pub const BOTTOM_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
 }];
 
 pub const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[PolyCommand::PushOval {
+    path: &[PolyCommand::Oval {
         center: (BlockCoord::Zero, BlockCoord::One),
         radiuses: (BlockCoord::One, BlockCoord::One),
     }],
@@ -80,7 +80,7 @@ pub const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
 }];
 
 pub const BOTTOM_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
-    path: &[PolyCommand::PushOval {
+    path: &[PolyCommand::Oval {
         center: (BlockCoord::Zero, BlockCoord::Zero),
         radiuses: (BlockCoord::One, BlockCoord::One),
     }],

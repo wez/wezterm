@@ -180,7 +180,7 @@ pub enum PolyCommand {
         control: BlockPoint,
         to: BlockPoint,
     },
-    PushOval {
+    Oval {
         center: BlockPoint,
         radiuses: BlockPoint,
     },
@@ -207,7 +207,7 @@ impl PolyCommand {
                 x.to_pixel(width, underline_height),
                 y.to_pixel(height, underline_height),
             ),
-            Self::PushOval {
+            Self::Oval {
                 center: (x, y),
                 radiuses: (w, h),
             } => {
