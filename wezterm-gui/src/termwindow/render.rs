@@ -320,12 +320,12 @@ mod window_buttons {
             WindowButtonColors {
                 colors: ElementColors {
                     border: BorderColor::new(foreground.mul_alpha(0.1)),
-                    bg: LinearRgba::TRANSPARENT.into(),
+                    bg: foreground.mul_alpha(0.1).into(),
                     text: foreground.into(),
                 },
                 hover_colors: ElementColors {
                     border: BorderColor::new(foreground.mul_alpha(0.15)),
-                    bg: LinearRgba::TRANSPARENT.into(),
+                    bg: foreground.mul_alpha(0.15).into(),
                     text: foreground.into(),
                 },
             }
@@ -407,15 +407,16 @@ fn window_button_element(
                 })
         }
         Style::Gnome => {
+            let dim = Dimension::Pixels(7.);
             let border_corners_size = Dimension::Pixels(12.);
             element
                 .zindex(1)
                 .vertical_align(VerticalAlign::Middle)
                 .padding(BoxDimension {
-                    left: Dimension::Pixels(7.),
-                    right: Dimension::Pixels(7.),
-                    top: Dimension::Pixels(7.),
-                    bottom: Dimension::Pixels(7.),
+                    left: dim,
+                    right: dim,
+                    top: dim,
+                    bottom: dim,
                 })
                 .border(BoxDimension::new(Dimension::Pixels(1.)))
                 .border_corners(Some(Corners {
@@ -441,10 +442,10 @@ fn window_button_element(
                     },
                 }))
                 .margin(BoxDimension {
-                    left: Dimension::Pixels(7.),
-                    right: Dimension::Pixels(7.),
-                    top: Dimension::Pixels(7.),
-                    bottom: Dimension::Pixels(7.),
+                    left: dim,
+                    right: dim,
+                    top: dim,
+                    bottom: dim,
                 })
         }
         Style::MacOsNative => unreachable!(),
