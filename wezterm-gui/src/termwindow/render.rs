@@ -452,16 +452,9 @@ fn window_button_element(
 
     let foreground = config.integrated_title_button_color.clone();
     let background_lightness = {
-        let (r, g, b) = config
-            .window_frame
-            .active_titlebar_bg
-            .to_tuple_rgb8()
-            .clone();
-
-        let max = r.max(g.max(b)) as f64;
-        let min = r.min(g.min(b)) as f64;
-
-        (max + min) / 510.0
+        let bg: config::RgbaColor = config.window_frame.active_titlebar_bg.into();
+        let (_h, _s, l, _a) = bg.to_hsla();
+        l
     };
 
     let window_button_colors_fn = match style {
