@@ -527,9 +527,7 @@ impl super::TermWindow {
                     context.set_window_drag_position(event.screen_coords);
                 }
                 TabBarItem::WindowButton(window::IntegratedTitleButton::Maximize) => {
-                    if let Some(ref window) = self.window {
-                        window.hover_maximize_button();
-                    }
+                    context.set_maximize_button_position(event.screen_coords);
                 }
                 TabBarItem::WindowButton(_)
                 | TabBarItem::Tab { .. }

@@ -104,6 +104,7 @@ pub(crate) struct WindowInner {
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
     window_drag_position: Option<ScreenPoint>,
+    maximize_button_position: Option<ScreenPoint>,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -473,6 +474,7 @@ impl Window {
             saved_placement: None,
             track_mouse_leave: false,
             window_drag_position: None,
+            maximize_button_position: None,
             config: config.clone(),
             paint_throttled: false,
             invalidated: true,
@@ -861,10 +863,11 @@ impl WindowOps for Window {
         });
     }
 
-    fn hover_maximize_button(&self) {
-        unsafe {
-            MAXBTN_HOVERED = true;
-        }
+    fn set_maximize_button_position(&self, coords: ScreenPoint) {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.maximize_button_position = Some(coords);
+            Ok(())
+        });
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -1088,8 +1091,6 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     Some(0)
 }
 
-static mut MAXBTN_HOVERED: bool = false;
-
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
@@ -1168,9 +1169,12 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     }
 
     let use_snap_layouts = !*IS_WIN10;
-    if use_snap_layouts && MAXBTN_HOVERED {
-        MAXBTN_HOVERED = false;
-        return Some(HTMAXBUTTON);
+    if use_snap_layouts {
+        if let Some(coords) = inner.maximize_button_position {
+            if coords == screen_point {
+                return Some(HTMAXBUTTON);
+            }
+        }
     }
 
     Some(HTCLIENT)

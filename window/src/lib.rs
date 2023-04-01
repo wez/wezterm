@@ -257,7 +257,7 @@ pub trait WindowOps {
     fn set_inner_size(&self, width: usize, height: usize);
 
     /// Use for windows snap layouts
-    fn hover_maximize_button(&self) {}
+    fn set_maximize_button_position(&self, _coords: ScreenPoint) {}
 
     /// Requests the windowing system to start a window drag.
     ///
