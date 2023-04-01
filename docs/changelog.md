@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `ssh_domains` now auto-populate from your `~/.ssh/config` file. You can use
   [wezterm.default_ssh_domains()](config/lua/wezterm/default_ssh_domains.md) to
   obtain that same information and amend/extend it.
+* In progress: integrated title and tab bar. Thanks to @yuraiz for getting things moving! #2722
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759
