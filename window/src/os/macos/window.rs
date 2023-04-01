@@ -2710,6 +2710,12 @@ impl WindowView {
 
             let live_resizing = inner.live_resizing;
 
+            let is_zoomed = !is_full_screen
+                && inner.window.as_ref().map_or(false, |window| {
+                    let window = window.load();
+                    unsafe { msg_send![*window, isZoomed] }
+                });
+
             inner.events.dispatch(WindowEvent::Resized {
                 dimensions: Dimensions {
                     pixel_width: width as usize,
@@ -2719,6 +2725,8 @@ impl WindowView {
                 },
                 window_state: if is_full_screen {
                     WindowState::FULL_SCREEN
+                } else if is_zoomed {
+                    WindowState::MAXIMIZED
                 } else {
                     WindowState::default()
                 },
