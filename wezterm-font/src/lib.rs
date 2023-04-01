@@ -5,8 +5,8 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, PresentationWidth};
 use anyhow::{Context, Error};
 use config::{
-    configuration, BoldBrightening, ConfigHandle, FontAttributes, FontRasterizerSelection,
-    FontStretch, FontStyle, FontWeight, TextStyle,
+    configuration, BoldBrightening, ConfigHandle, DisplayPixelGeometry, FontAttributes,
+    FontRasterizerSelection, FontStretch, FontStyle, FontWeight, TextStyle,
 };
 use rangeset::RangeSet;
 use std::cell::RefCell;
@@ -57,6 +57,7 @@ pub struct LoadedFont {
     handles: RefCell<Vec<ParsedFont>>,
     shaper: RefCell<Box<dyn FontShaper>>,
     metrics: FontMetrics,
+    pixel_geometry: DisplayPixelGeometry,
     font_size: f64,
     dpi: u32,
     font_config: Weak<FontConfigInner>,
@@ -276,7 +277,11 @@ impl LoadedFont {
                 .map_or(FontRasterizerSelection::default(), |c| {
                     c.config.borrow().font_rasterizer
                 });
-            let raster = new_rasterizer(raster_selection, &(self.handles.borrow())[fallback])?;
+            let raster = new_rasterizer(
+                raster_selection,
+                &(self.handles.borrow())[fallback],
+                self.pixel_geometry,
+            )?;
             let result = raster.rasterize_glyph(glyph_pos, self.font_size, self.dpi);
             rasterizers.insert(fallback, raster);
             result
@@ -619,6 +624,7 @@ impl FontConfigInner {
             text_style: text_style.clone(),
             id: alloc_font_id(),
             tried_glyphs: RefCell::new(HashSet::new()),
+            pixel_geometry: config.display_pixel_geometry,
         });
 
         Ok(loaded)
@@ -918,6 +924,7 @@ impl FontConfigInner {
             text_style: style.clone(),
             id: alloc_font_id(),
             tried_glyphs: RefCell::new(HashSet::new()),
+            pixel_geometry: config.display_pixel_geometry,
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));

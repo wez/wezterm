@@ -4,7 +4,7 @@ use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
 use ::freetype::{FT_GlyphSlotRec_, FT_Glyph_Format, FT_Matrix};
 use anyhow::bail;
-use config::{FreeTypeLoadFlags, FreeTypeLoadTarget};
+use config::{DisplayPixelGeometry, FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
 use std::{mem, slice};
 use wezterm_color_types::linear_u8_to_srgb8;
@@ -18,6 +18,7 @@ pub struct FreeTypeRasterizer {
     freetype_load_target: Option<FreeTypeLoadTarget>,
     freetype_render_target: Option<FreeTypeLoadTarget>,
     freetype_load_flags: Option<FreeTypeLoadFlags>,
+    display_pixel_geometry: DisplayPixelGeometry,
     scale: f64,
 }
 
@@ -183,6 +184,11 @@ impl FreeTypeRasterizer {
                 let green = linear_u8_to_srgb8(green);
                 let blue = linear_u8_to_srgb8(blue);
 
+                let (red, blue) = match self.display_pixel_geometry {
+                    DisplayPixelGeometry::RGB => (red, blue),
+                    DisplayPixelGeometry::BGR => (blue, red),
+                };
+
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;
                 rgba[dest_offset + (x * 4) + 2] = blue;
@@ -295,7 +301,10 @@ impl FreeTypeRasterizer {
         }
     }
 
-    pub fn from_locator(parsed: &ParsedFont) -> anyhow::Result<Self> {
+    pub fn from_locator(
+        parsed: &ParsedFont,
+        display_pixel_geometry: DisplayPixelGeometry,
+    ) -> anyhow::Result<Self> {
         log::trace!("Rasterizier wants {:?}", parsed);
         let lib = ftwrap::Library::new()?;
         let mut face = lib.face_from_locator(&parsed.handle)?;
@@ -321,6 +330,7 @@ impl FreeTypeRasterizer {
             freetype_load_flags: parsed.freetype_load_flags,
             freetype_load_target: parsed.freetype_load_target,
             freetype_render_target: parsed.freetype_render_target,
+            display_pixel_geometry,
             scale: parsed.scale.unwrap_or(1.),
         })
     }

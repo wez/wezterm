@@ -219,6 +219,13 @@ impl FontWeight {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
+pub enum DisplayPixelGeometry {
+    #[default]
+    RGB,
+    BGR,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub enum FreeTypeLoadTarget {
     /// This corresponds to the default hinting algorithm, optimized
     /// for standard gray-level rendering.

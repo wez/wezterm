@@ -89,10 +89,11 @@ pub trait FontRasterizer {
 pub fn new_rasterizer(
     rasterizer: FontRasterizerSelection,
     handle: &ParsedFont,
+    pixel_geometry: config::DisplayPixelGeometry,
 ) -> anyhow::Result<Box<dyn FontRasterizer>> {
     match rasterizer {
         FontRasterizerSelection::FreeType => Ok(Box::new(
-            freetype::FreeTypeRasterizer::from_locator(handle)?,
+            freetype::FreeTypeRasterizer::from_locator(handle, pixel_geometry)?,
         )),
     }
 }

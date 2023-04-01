@@ -6,8 +6,8 @@ use crate::color::{
 use crate::daemon::DaemonOptions;
 use crate::exec_domain::ExecDomain;
 use crate::font::{
-    AllowSquareGlyphOverflow, FontLocatorSelection, FontRasterizerSelection, FontShaperSelection,
-    FreeTypeLoadFlags, FreeTypeLoadTarget, StyleRule, TextStyle,
+    AllowSquareGlyphOverflow, DisplayPixelGeometry, FontLocatorSelection, FontRasterizerSelection,
+    FontShaperSelection, FreeTypeLoadFlags, FreeTypeLoadTarget, StyleRule, TextStyle,
 };
 use crate::frontend::FrontEndSelection;
 use crate::keyassignment::{
@@ -243,6 +243,8 @@ pub struct Config {
     #[dynamic(default)]
     pub font_shaper: FontShaperSelection,
 
+    #[dynamic(default)]
+    pub display_pixel_geometry: DisplayPixelGeometry,
     #[dynamic(default)]
     pub freetype_load_target: FreeTypeLoadTarget,
     #[dynamic(default)]
