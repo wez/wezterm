@@ -1252,7 +1252,7 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
         } else {
             appkit::NSWindowTitleVisibility::NSWindowTitleHidden
         });
-        if decorations == WindowDecorations::INTEGRATED_BUTTONS {
+        if decorations.contains(WindowDecorations::INTEGRATED_BUTTONS) {
             window.setTitlebarAppearsTransparent_(YES);
         } else {
             window.setTitlebarAppearsTransparent_(hidden);
@@ -1272,6 +1272,7 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
             | NSWindowStyleMask::NSResizableWindowMask
     } else if decorations == WindowDecorations::RESIZE
         || decorations == WindowDecorations::INTEGRATED_BUTTONS
+        || decorations == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
     {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
