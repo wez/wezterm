@@ -3,25 +3,24 @@ use crate::termwindow::box_model::*;
 use crate::termwindow::render::corners::*;
 use crate::termwindow::{TabBarItem, UIItemType};
 use crate::utilsprites::RenderMetrics;
-use config::{ConfigHandle, Dimension};
+use config::{ConfigHandle, Dimension, IntegratedTitleButtonColor};
 use std::rc::Rc;
 use wezterm_font::LoadedFont;
 use window::color::LinearRgba;
-use window::IntegratedTitleButton;
+use window::{IntegratedTitleButton, IntegratedTitleButtonStyle as Style};
 
 pub struct WindowButtonColors {
-    pub(super) colors: ElementColors,
-    pub(super) hover_colors: ElementColors,
+    pub colors: ElementColors,
+    pub hover_colors: ElementColors,
 }
 
-pub(super) fn auto_button_color(
+fn auto_button_color(
     background_lightness: f64,
-    foreground: config::IntegratedTitleButtonColor,
+    foreground: IntegratedTitleButtonColor,
 ) -> LinearRgba {
-    use config::IntegratedTitleButtonColor as Color;
     match foreground {
-        Color::Custom(color) => color.to_linear(),
-        Color::Auto => {
+        IntegratedTitleButtonColor::Custom(color) => color.to_linear(),
+        IntegratedTitleButtonColor::Auto => {
             if background_lightness > 0.5 {
                 LinearRgba(0.0, 0.0, 0.0, 1.0)
             } else {
@@ -31,8 +30,9 @@ pub(super) fn auto_button_color(
     }
 }
 
-pub(super) mod windows {
+mod windows {
     use super::*;
+
     pub const CLOSE: &[Poly] = &[Poly {
         path: &[
             PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
@@ -139,8 +139,9 @@ pub(super) mod windows {
     }
 }
 
-pub(super) mod gnome {
+mod gnome {
     use super::*;
+
     pub const CLOSE: &[Poly] = &[Poly {
         path: &[
             PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
@@ -220,9 +221,6 @@ pub fn window_button_element(
     metrics: &RenderMetrics,
     config: &ConfigHandle,
 ) -> Element {
-    use window::IntegratedTitleButtonStyle as Style;
-    use IntegratedTitleButton as Button;
-
     let style = config.integrated_title_button_style;
 
     if style == Style::MacOsNative {
@@ -242,15 +240,15 @@ pub fn window_button_element(
             Style::MacOsNative => unreachable!(),
         };
         let poly = match window_button {
-            Button::Hide => hide,
-            Button::Maximize => {
+            IntegratedTitleButton::Hide => hide,
+            IntegratedTitleButton::Maximize => {
                 if is_maximized {
                     restore
                 } else {
                     maximize
                 }
             }
-            Button::Close => close,
+            IntegratedTitleButton::Close => close,
         };
 
         match style {
@@ -271,7 +269,7 @@ pub fn window_button_element(
     let element = match style {
         Style::Windows => {
             let left_padding = match window_button {
-                Button::Hide => 17.0,
+                IntegratedTitleButton::Hide => 17.0,
                 _ => 18.0,
             };
             let scale = 72.0 / 96.0;
