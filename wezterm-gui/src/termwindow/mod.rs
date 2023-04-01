@@ -638,7 +638,7 @@ impl TermWindow {
             dpi,
         };
 
-        let border = Self::get_os_order_impl(&None, &config, &dimensions, &render_metrics);
+        let border = Self::get_os_border_impl(&None, &config, &dimensions, &render_metrics);
 
         dimensions.pixel_height += (border.top + border.bottom).get() as usize;
         dimensions.pixel_width += (border.left + border.right).get() as usize;
