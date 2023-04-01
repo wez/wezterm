@@ -1042,16 +1042,18 @@ unsafe fn wm_ncdestroy(
     None
 }
 
+fn no_native_title_bar(decorations: WindowDecorations) -> bool {
+    decorations == WindowDecorations::RESIZE
+        || decorations.contains(WindowDecorations::INTEGRATED_BUTTONS)
+}
+
 unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
     let inner = inner.borrow_mut();
 
-    if !(wparam == 1
-        && (matches!(
-            inner.config.window_decorations,
-            WindowDecorations::RESIZE | WindowDecorations::INTEGRATED_BUTTONS
-        )))
-    {
+    let no_native_title_bar = no_native_title_bar(inner.config.window_decorations);
+
+    if !(wparam == 1 && no_native_title_bar) {
         return None;
     }
 
@@ -1093,11 +1095,11 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let inner = inner.borrow_mut();
+    let mut inner = inner.borrow_mut();
 
-    match inner.config.window_decorations {
-        WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE => {}
-        _ => return None,
+    let no_native_title_bar = no_native_title_bar(inner.config.window_decorations);
+    if !no_native_title_bar {
+        return None;
     }
 
     // Let the default procedure handle resizing areas
@@ -1170,10 +1172,8 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
     let use_snap_layouts = !*IS_WIN10;
     if use_snap_layouts {
-        if let Some(coords) = inner.maximize_button_position {
-            if coords == screen_point {
-                return Some(HTMAXBUTTON);
-            }
+        if inner.maximize_button_position.take().is_some() {
+            return Some(HTMAXBUTTON);
         }
     }
 
