@@ -218,10 +218,11 @@ impl FontWeight {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromDynamic, ToDynamic)]
 pub enum FreeTypeLoadTarget {
     /// This corresponds to the default hinting algorithm, optimized
     /// for standard gray-level rendering.
+    #[default]
     Normal,
     /// A lighter hinting algorithm for non-monochrome modes. Many
     /// generated glyphs are more fuzzy but better resemble its
@@ -236,12 +237,6 @@ pub enum FreeTypeLoadTarget {
     HorizontalLcd,
     /// A variant of Normal optimized for vertically decimated LCD displays.
     VerticalLcd,
-}
-
-impl Default for FreeTypeLoadTarget {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 bitflags! {
