@@ -358,13 +358,6 @@ impl TabBarState {
         let mut x = 0;
         let mut items = vec![];
 
-        if use_integrated_title_buttons
-            && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
-            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
-        {
-            Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
-        }
-
         let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
                 .set_background(ColorSpec::TrueColor(*colors.background()))
@@ -376,9 +369,16 @@ impl TabBarState {
             && config.use_fancy_tab_bar == false
         {
             for _ in 0..10 as usize {
-                line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
+                line.insert_cell(0, black_cell.clone(), title_width, SEQ_ZERO);
                 x += 1;
             }
+        }
+
+        if use_integrated_title_buttons
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
+            && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
+        {
+            Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
         }
 
         let left_status_line = parse_status_text(left_status, black_cell.attrs().clone());
@@ -549,17 +549,15 @@ impl TabBarState {
 
     pub fn compute_ui_items(&self, y: usize, cell_height: usize, cell_width: usize) -> Vec<UIItem> {
         let mut items = vec![];
-        let mut last_x = 0;
 
         for entry in self.items.iter() {
             items.push(UIItem {
-                x: last_x * cell_width,
+                x: entry.x * cell_width,
                 width: entry.width * cell_width,
                 y,
                 height: cell_height,
                 item_type: UIItemType::TabBar(entry.item),
             });
-            last_x += entry.width;
         }
 
         items

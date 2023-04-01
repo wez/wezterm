@@ -1156,6 +1156,23 @@ impl super::TermWindow {
             - (1.5 * metrics.cell_size.width as f32))
             .max(0.);
 
+        // Reserve space for the native titlebar buttons
+        if self
+            .config
+            .window_decorations
+            .contains(::window::WindowDecorations::INTEGRATED_BUTTONS)
+            && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+        {
+            left_status.push(
+                Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
+                    left: Dimension::Cells(4.0), // FIXME: determine exact width of macos ... buttons
+                    right: Dimension::Cells(0.),
+                    top: Dimension::Cells(0.),
+                    bottom: Dimension::Cells(0.),
+                }),
+            );
+        }
+
         for item in items {
             match item.item {
                 TabBarItem::LeftStatus => left_status.push(item_to_elem(item)),
