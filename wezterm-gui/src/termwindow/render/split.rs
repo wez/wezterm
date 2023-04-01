@@ -5,7 +5,7 @@ use mux::tab::{PositionedSplit, SplitDirection};
 use std::sync::Arc;
 
 impl crate::TermWindow {
-    pub fn paint_split_opengl(
+    pub fn paint_split(
         &mut self,
         layers: &mut TripleLayerQuadAllocator,
         split: &PositionedSplit,

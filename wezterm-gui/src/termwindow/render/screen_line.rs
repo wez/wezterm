@@ -2,7 +2,7 @@ use crate::quad::{QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorT
 use crate::termwindow::render::{
     resolve_fg_color_attr, same_hyperlink, update_next_frame_time, ClusterStyleCache,
     ComputeCellFgBgParams, ComputeCellFgBgResult, LineToElementParams, LineToElementShape,
-    RenderScreenLineOpenGLParams, RenderScreenLineOpenGLResult,
+    RenderScreenLineParams, RenderScreenLineResult,
 };
 use crate::termwindow::LineToElementShapeItem;
 use ::window::DeadKeyStatus;
@@ -21,16 +21,16 @@ impl crate::TermWindow {
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
     /// of extra complexity to deal with multi-cell glyphs.
-    pub fn render_screen_line_opengl(
+    pub fn render_screen_line(
         &self,
-        params: RenderScreenLineOpenGLParams,
+        params: RenderScreenLineParams,
         layers: &mut TripleLayerQuadAllocator,
-    ) -> anyhow::Result<RenderScreenLineOpenGLResult> {
+    ) -> anyhow::Result<RenderScreenLineResult> {
         if params.line.is_double_height_bottom() {
             // The top and bottom lines are required to have the same content.
             // For the sake of simplicity, we render both of them as part of
             // rendering the top row, so we have nothing more to do here.
-            return Ok(RenderScreenLineOpenGLResult {
+            return Ok(RenderScreenLineResult {
                 invalidate_on_hover_change: false,
             });
         }
@@ -694,9 +694,9 @@ impl crate::TermWindow {
             )?;
         }
 
-        metrics::histogram!("render_screen_line_opengl", start.elapsed());
+        metrics::histogram!("render_screen_line", start.elapsed());
 
-        Ok(RenderScreenLineOpenGLResult {
+        Ok(RenderScreenLineResult {
             invalidate_on_hover_change,
         })
     }

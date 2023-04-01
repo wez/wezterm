@@ -121,11 +121,11 @@ pub struct LineToElementShape {
     pub cluster: CellCluster,
 }
 
-pub struct RenderScreenLineOpenGLResult {
+pub struct RenderScreenLineResult {
     pub invalidate_on_hover_change: bool,
 }
 
-pub struct RenderScreenLineOpenGLParams<'a> {
+pub struct RenderScreenLineParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
     /// needs to be rendered, measured in pixels
     pub top_pixel_y: f32,
@@ -382,7 +382,7 @@ impl crate::TermWindow {
         gl_state: &RenderState,
         quads: &mut dyn QuadAllocator,
         pos_x: f32,
-        params: &RenderScreenLineOpenGLParams,
+        params: &RenderScreenLineParams,
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
     ) -> anyhow::Result<()> {
@@ -412,7 +412,7 @@ impl crate::TermWindow {
         layers: &mut TripleLayerQuadAllocator,
         layer_num: usize,
         cell_idx: usize,
-        params: &RenderScreenLineOpenGLParams,
+        params: &RenderScreenLineParams,
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
     ) -> anyhow::Result<()> {

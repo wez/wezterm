@@ -3,7 +3,7 @@ use crate::selection::SelectionRange;
 use crate::termwindow::box_model::*;
 use crate::termwindow::render::{
     same_hyperlink, CursorProperties, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
-    RenderScreenLineOpenGLParams,
+    RenderScreenLineParams,
 };
 use crate::termwindow::{ScrollHit, UIItem, UIItemType};
 use ::window::bitmaps::TextureRect;
@@ -20,7 +20,7 @@ use wezterm_term::{Line, StableRowIndex};
 use window::color::LinearRgba;
 
 impl crate::TermWindow {
-    fn paint_pane_opengl_new(
+    fn paint_pane_box_model(
         &mut self,
         pos: &PositionedPane,
         num_panes: usize,
@@ -32,14 +32,14 @@ impl crate::TermWindow {
         self.render_element(&computed, gl_state, None)
     }
 
-    pub fn paint_pane_opengl(
+    pub fn paint_pane(
         &mut self,
         pos: &PositionedPane,
         num_panes: usize,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         if self.config.use_box_model_render {
-            return self.paint_pane_opengl_new(pos, num_panes);
+            return self.paint_pane_box_model(pos, num_panes);
         }
 
         self.check_for_dirty_lines_and_invalidate_selection(&pos.pane);
@@ -481,8 +481,8 @@ impl crate::TermWindow {
                         },
                     };
 
-                    let render_result = self.term_window.render_screen_line_opengl(
-                        RenderScreenLineOpenGLParams {
+                    let render_result = self.term_window.render_screen_line(
+                        RenderScreenLineParams {
                             top_pixel_y: *quad_key.top_pixel_y,
                             left_pixel_x: self.left_pixel_x,
                             pixel_width: self.dims.cols as f32
@@ -568,7 +568,7 @@ impl crate::TermWindow {
             // TODO: render a thingy to jump to prior prompt
         }
         */
-        metrics::histogram!("paint_pane_opengl.lines", start.elapsed());
+        metrics::histogram!("paint_pane.lines", start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());
 
         Ok(())

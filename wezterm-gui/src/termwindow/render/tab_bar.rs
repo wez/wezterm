@@ -1,5 +1,5 @@
 use crate::quad::TripleLayerQuadAllocator;
-use crate::termwindow::render::RenderScreenLineOpenGLParams;
+use crate::termwindow::render::RenderScreenLineParams;
 use crate::utilsprites::RenderMetrics;
 use config::ConfigHandle;
 use mux::renderable::RenderableDimensions;
@@ -51,8 +51,8 @@ impl crate::TermWindow {
                 self.config.text_background_opacity
             });
 
-        self.render_screen_line_opengl(
-            RenderScreenLineOpenGLParams {
+        self.render_screen_line(
+            RenderScreenLineParams {
                 top_pixel_y: tab_bar_y,
                 left_pixel_x: 0.,
                 pixel_width: self.dimensions.pixel_width as f32,

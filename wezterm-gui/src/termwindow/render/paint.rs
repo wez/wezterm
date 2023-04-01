@@ -27,7 +27,7 @@ impl crate::TermWindow {
         }
 
         'pass: for pass in 0.. {
-            match self.paint_opengl_pass() {
+            match self.paint_pass() {
                 Ok(_) => match self.render_state.as_mut().unwrap().allocated_more_quads() {
                     Ok(allocated) => {
                         if !allocated {
@@ -83,7 +83,7 @@ impl crate::TermWindow {
                         self.shape_cache.borrow_mut().clear();
                         self.line_to_ele_shape_cache.borrow_mut().clear();
                     } else {
-                        log::error!("paint_opengl_pass failed: {:#}", err);
+                        log::error!("paint_pass failed: {:#}", err);
                         break 'pass;
                     }
                 }
@@ -98,8 +98,8 @@ impl crate::TermWindow {
             self.last_frame_duration,
             self.fps
         );
-        metrics::histogram!("gui.paint.opengl", self.last_frame_duration);
-        metrics::histogram!("gui.paint.opengl.rate", 1.);
+        metrics::histogram!("gui.paint.impl", self.last_frame_duration);
+        metrics::histogram!("gui.paint.impl.rate", 1.);
         self.update_title_post_status();
 
         // If self.has_animation is some, then the last render detected
@@ -145,7 +145,7 @@ impl crate::TermWindow {
         Ok(())
     }
 
-    pub fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
+    pub fn paint_pass(&mut self) -> anyhow::Result<()> {
         {
             let gl_state = self.render_state.as_ref().unwrap();
             for layer in gl_state.layers.borrow().iter() {
@@ -224,13 +224,13 @@ impl crate::TermWindow {
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            self.paint_pane_opengl(&pos, num_panes, &mut layers)?;
+            self.paint_pane(&pos, num_panes, &mut layers)?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
             for split in &splits {
-                self.paint_split_opengl(&mut layers, split, &pane)?;
+                self.paint_split(&mut layers, split, &pane)?;
             }
         }
 
