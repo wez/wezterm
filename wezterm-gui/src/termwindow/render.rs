@@ -345,7 +345,7 @@ fn window_button_element(
 
     let style = config.integrated_title_button_style;
 
-    if style == Style::Native {
+    if style == Style::MacOsNative {
         return Element::new(font, ElementContent::Text(String::new()));
     }
 
@@ -359,7 +359,7 @@ fn window_button_element(
                 use window_buttons::gnome::{CLOSE, HIDE, MAXIMIZE, RESTORE};
                 (CLOSE, HIDE, MAXIMIZE, RESTORE)
             }
-            Style::Native => unreachable!(),
+            Style::MacOsNative => unreachable!(),
         };
         let poly = match window_button {
             Button::Hide => hide,
@@ -376,7 +376,7 @@ fn window_button_element(
         match style {
             Style::Windows => window_buttons::windows::sized_poly(poly),
             Style::Gnome => window_buttons::gnome::sized_poly(poly),
-            Style::Native => unreachable!(),
+            Style::MacOsNative => unreachable!(),
         }
     };
 
@@ -447,7 +447,7 @@ fn window_button_element(
                     bottom: Dimension::Pixels(7.),
                 })
         }
-        Style::Native => unreachable!(),
+        Style::MacOsNative => unreachable!(),
     };
 
     let foreground = config.integrated_title_button_color.clone();
@@ -467,7 +467,7 @@ fn window_button_element(
     let window_button_colors_fn = match style {
         Style::Windows => window_buttons::windows::window_button_colors,
         Style::Gnome => window_buttons::gnome::window_button_colors,
-        Style::Native => unreachable!(),
+        Style::MacOsNative => unreachable!(),
     };
 
     let colors = window_button_colors_fn(background_lightness, foreground, window_button);
@@ -1264,10 +1264,12 @@ impl super::TermWindow {
             .contains(window::WindowDecorations::INTEGRATED_BUTTONS)
             && (self.config.integrated_title_button_alignment
                 == IntegratedTitleButtonAlignment::Left
-                || self.config.integrated_title_button_style == IntegratedTitleButtonStyle::Native);
+                || self.config.integrated_title_button_style
+                    == IntegratedTitleButtonStyle::MacOsNative);
 
         let left_padding = if window_buttons_at_left {
-            if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::Native {
+            if self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            {
                 if !self.window_state.contains(window::WindowState::FULL_SCREEN) {
                     Dimension::Pixels(70.0)
                 } else {

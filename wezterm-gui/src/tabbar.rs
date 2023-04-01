@@ -359,7 +359,7 @@ impl TabBarState {
         let mut items = vec![];
 
         if use_integrated_title_buttons
-            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
         {
             Self::integrated_title_buttons(mouse_x, &mut x, config, &mut items, &mut line, &colors);
@@ -372,7 +372,7 @@ impl TabBarState {
         );
 
         if use_integrated_title_buttons
-            && config.integrated_title_button_style == IntegratedTitleButtonStyle::Native
+            && config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             && config.use_fancy_tab_bar == false
         {
             for _ in 0..10 as usize {
@@ -470,7 +470,7 @@ impl TabBarState {
 
         // Reserve place for integrated title buttons
         let title_width = if use_integrated_title_buttons
-            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
         {
             let window_hide =
@@ -537,7 +537,7 @@ impl TabBarState {
         }
 
         if use_integrated_title_buttons
-            && config.integrated_title_button_style != IntegratedTitleButtonStyle::Native
+            && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
         {
             x = title_width;

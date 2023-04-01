@@ -1470,8 +1470,7 @@ pub enum IntegratedTitleButtonStyle {
     #[default]
     Windows,
     Gnome,
-    // macos only
-    Native,
+    MacOsNative,
 }
 
 impl FromDynamic for IntegratedTitleButtonStyle {
@@ -1488,17 +1487,12 @@ impl FromDynamic for IntegratedTitleButtonStyle {
             let style = match string.as_str() {
                 "Windows" => Self::Windows,
                 "Gnome" => Self::Gnome,
-                "Native" if cfg!(target_os = "macos") => Self::Native,
+                "MacOsNative" if cfg!(target_os = "macos") => Self::MacOsNative,
                 _ => {
-                    let possible: &[&str] = if cfg!(target_os = "macos") {
-                        &["Windows", "Gnome", "Native"]
-                    } else {
-                        &["Windows", "Gnome"]
-                    };
                     return Err(wezterm_dynamic::Error::InvalidVariantForType {
                         variant_name: string.to_string(),
                         type_name,
-                        possible,
+                        possible: &["Windows", "Gnome", "MacOsNative"],
                     });
                 }
             };

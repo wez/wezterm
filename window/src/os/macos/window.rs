@@ -49,7 +49,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::is_ascii_control;
+use wezterm_input_types::{is_ascii_control, IntegratedTitleButtonStyle};
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -452,7 +452,10 @@ impl Window {
         };
 
         unsafe {
-            let style_mask = decoration_to_mask(config.window_decorations);
+            let style_mask = decoration_to_mask(
+                config.window_decorations,
+                config.integrated_title_button_style,
+            );
             let rect = NSRect::new(
                 NSPoint::new(0., 0.),
                 NSSize::new(width as f64, height as f64),
@@ -496,7 +499,11 @@ impl Window {
                 NO,
             ));
 
-            apply_decorations_to_window(&window, config.window_decorations);
+            apply_decorations_to_window(
+                &window,
+                config.window_decorations,
+                config.integrated_title_button_style,
+            );
 
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
@@ -925,7 +932,11 @@ impl WindowInner {
 
     fn apply_decorations(&mut self) {
         if !self.is_fullscreen() {
-            apply_decorations_to_window(&self.window, self.config.window_decorations);
+            apply_decorations_to_window(
+                &self.window,
+                self.config.window_decorations,
+                self.config.integrated_title_button_style,
+            );
         }
     }
 
@@ -974,7 +985,11 @@ impl WindowInner {
                 Some(saved_rect) => unsafe {
                     // Restore prior dimensions
                     self.window.orderOut_(nil);
-                    apply_decorations_to_window(&self.window, self.config.window_decorations);
+                    apply_decorations_to_window(
+                        &self.window,
+                        self.config.window_decorations,
+                        self.config.integrated_title_button_style,
+                    );
                     self.window.setFrame_display_(saved_rect, YES);
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
@@ -1065,7 +1080,11 @@ impl WindowInner {
             // stuck with a scale factor of 2 despite us having configured 1.
             self.window
                 .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
-            apply_decorations_to_window(&self.window, self.config.window_decorations);
+            apply_decorations_to_window(
+                &self.window,
+                self.config.window_decorations,
+                self.config.integrated_title_button_style,
+            );
 
             self.window.makeKeyAndOrderFront_(nil)
         }
@@ -1224,8 +1243,23 @@ impl WindowInner {
     }
 }
 
-fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecorations) {
-    let mask = decoration_to_mask(decorations);
+fn effective_decorations(
+    mut decorations: WindowDecorations,
+    integrated_title_button_style: IntegratedTitleButtonStyle,
+) -> WindowDecorations {
+    if integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative {
+        decorations.remove(WindowDecorations::INTEGRATED_BUTTONS);
+    }
+    decorations
+}
+
+fn apply_decorations_to_window(
+    window: &StrongPtr,
+    decorations: WindowDecorations,
+    integrated_title_button_style: IntegratedTitleButtonStyle,
+) {
+    let mask = decoration_to_mask(decorations, integrated_title_button_style);
+    let decorations = effective_decorations(decorations, integrated_title_button_style);
     unsafe {
         window.setStyleMask_(mask);
 
@@ -1260,7 +1294,11 @@ fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecoration
     }
 }
 
-fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
+fn decoration_to_mask(
+    decorations: WindowDecorations,
+    integrated_title_button_style: IntegratedTitleButtonStyle,
+) -> NSWindowStyleMask {
+    let decorations = effective_decorations(decorations, integrated_title_button_style);
     let decorations = decorations.difference(
         WindowDecorations::MACOS_FORCE_DISABLE_SHADOW
             | WindowDecorations::MACOS_FORCE_ENABLE_SHADOW,
