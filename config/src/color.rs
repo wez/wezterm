@@ -459,7 +459,7 @@ impl TryFrom<String> for IntegratedTitleButtonColor {
     type Error = <RgbaColor as TryFrom<String>>::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.to_lowercase() == "auto" {
+        if value.eq_ignore_ascii_case("auto") {
             Ok(Self::Auto)
         } else {
             Ok(Self::Custom(RgbaColor::try_from(value)?))
