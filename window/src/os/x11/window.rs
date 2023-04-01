@@ -953,7 +953,7 @@ impl XWindowInner {
             FUNC_ALL
         } else if decorations == WindowDecorations::RESIZE
             || decorations == WindowDecorations::INTEGRATED_BUTTONS
-            || decorations == WindowDecorations::INTEGRATED_BUTTONS|WindowDecorations::RESIZE
+            || decorations == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
         {
             FUNC_RESIZE
         } else if decorations == WindowDecorations::TITLE {
