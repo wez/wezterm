@@ -1465,12 +1465,21 @@ pub enum IntegratedTitleButtonAlignment {
     Left,
 }
 
-#[derive(Debug, Default, ToDynamic, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, ToDynamic, PartialEq, Eq, Clone, Copy)]
 pub enum IntegratedTitleButtonStyle {
-    #[default]
     Windows,
     Gnome,
     MacOsNative,
+}
+
+impl Default for IntegratedTitleButtonStyle {
+    fn default() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::MacOsNative
+        } else {
+            Self::Windows
+        }
+    }
 }
 
 impl FromDynamic for IntegratedTitleButtonStyle {
