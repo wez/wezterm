@@ -91,14 +91,21 @@ impl LauncherArgs {
             window
                 .iter()
                 .enumerate()
-                .map(|(tab_idx, tab)| LauncherTabEntry {
-                    title: tab
-                        .get_active_pane()
-                        .expect("tab to have a pane")
-                        .get_title(),
-                    tab_id: tab.tab_id(),
-                    tab_idx,
-                    pane_count: tab.count_panes(),
+                .map(|(tab_idx, tab)| {
+                    let tab_title = tab.get_title();
+                    let title = if tab_title.is_empty() {
+                        tab.get_active_pane()
+                            .expect("tab to have a pane")
+                            .get_title()
+                    } else {
+                        tab_title
+                    };
+                    LauncherTabEntry {
+                        title,
+                        tab_id: tab.tab_id(),
+                        tab_idx,
+                        pane_count: tab.count_panes(),
+                    }
                 })
                 .collect()
         } else {
