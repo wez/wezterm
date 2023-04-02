@@ -84,6 +84,12 @@ _wezterm() {
             wezterm__cli,send-text)
                 cmd="wezterm__cli__send__text"
                 ;;
+            wezterm__cli,set-tab-title)
+                cmd="wezterm__cli__set__tab__title"
+                ;;
+            wezterm__cli,set-window-title)
+                cmd="wezterm__cli__set__window__title"
+                ;;
             wezterm__cli,spawn)
                 cmd="wezterm__cli__spawn"
                 ;;
@@ -125,6 +131,12 @@ _wezterm() {
                 ;;
             wezterm__cli__help,send-text)
                 cmd="wezterm__cli__help__send__text"
+                ;;
+            wezterm__cli__help,set-tab-title)
+                cmd="wezterm__cli__help__set__tab__title"
+                ;;
+            wezterm__cli__help,set-window-title)
+                cmd="wezterm__cli__help__set__window__title"
                 ;;
             wezterm__cli__help,spawn)
                 cmd="wezterm__cli__help__spawn"
@@ -204,6 +216,12 @@ _wezterm() {
             wezterm__help__cli,send-text)
                 cmd="wezterm__help__cli__send__text"
                 ;;
+            wezterm__help__cli,set-tab-title)
+                cmd="wezterm__help__cli__set__tab__title"
+                ;;
+            wezterm__help__cli,set-window-title)
+                cmd="wezterm__help__cli__set__window__title"
+                ;;
             wezterm__help__cli,spawn)
                 cmd="wezterm__help__cli__spawn"
                 ;;
@@ -242,7 +260,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli)
-            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab help"
+            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab set-tab-title set-window-title help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -348,7 +366,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli__help)
-            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab help"
+            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab set-tab-title set-window-title help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -502,6 +520,34 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli__help__send__text)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__cli__help__set__tab__title)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__cli__help__set__window__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -669,6 +715,50 @@ _wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wezterm__cli__set__tab__title)
+            opts="-h --tab-id --pane-id --help <TITLE>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --tab-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__cli__set__window__title)
+            opts="-h --window-id --pane-id --help <TITLE>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --window-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wezterm__cli__spawn)
             opts="-h --pane-id --domain-name --window-id --new-window --cwd --workspace --help [PROG]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -792,7 +882,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__help__cli)
-            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab"
+            opts="list list-clients proxy tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab set-tab-title set-window-title"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -932,6 +1022,34 @@ _wezterm() {
             return 0
             ;;
         wezterm__help__cli__send__text)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__help__cli__set__tab__title)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wezterm__help__cli__set__window__title)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

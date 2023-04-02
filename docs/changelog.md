@@ -46,6 +46,8 @@ As features stabilize some brief notes about them will accumulate here.
   [mux_window:active_pane()](config/lua/mux-window/active_pane.md),
   [tab:active_pane()](config/lua/MuxTab/active_pane.md) methods for conveniently getting at the active tab/pane
   from a window/tab.
+* [wezterm cli set-tab-title](cli/cli/set-tab-title.md) and
+  [wezterm cli set-window-title](cli/cli/set-window-title.md). #522 #1598
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

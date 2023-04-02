@@ -12,6 +12,7 @@ use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use serde::Serializer as _;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -468,6 +469,43 @@ Outputs the pane-id for the newly created pane on success"
         /// contains appropriate tabs
         #[arg(long)]
         pane_id: Option<PaneId>,
+    },
+
+    /// Change the title of a tab
+    #[command(name = "set-tab-title", rename_all = "kebab")]
+    SetTabTitle {
+        /// Specify the target tab by its id
+        #[arg(long, conflicts_with_all=&["pane_id"])]
+        tab_id: Option<TabId>,
+        /// Specify the current pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        ///
+        /// The pane is used to figure out which tab should be renamed.
+        #[arg(long)]
+        pane_id: Option<PaneId>,
+
+        /// The new title for the tab
+        title: String,
+    },
+
+    /// Change the title of a window
+    #[command(name = "set-window-title", rename_all = "kebab")]
+    SetWindowTitle {
+        /// Specify the target window by its id
+        #[arg(long, conflicts_with_all=&["pane_id"])]
+        window_id: Option<WindowId>,
+        /// Specify the current pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        ///
+        /// The pane is used to figure out which window
+        /// should be renamed.
+        #[arg(long)]
+        pane_id: Option<PaneId>,
+
+        /// The new title for the window
+        title: String,
     },
 }
 
@@ -1382,7 +1420,6 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             pane_id,
         } => {
             let panes = client.list_panes().await?;
-            use std::collections::HashMap;
 
             let mut pane_id_to_tab_id = HashMap::new();
             let mut tab_id_to_active_pane_id = HashMap::new();
@@ -1491,6 +1528,82 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 .set_focused_pane_id(codec::SetFocusedPane {
                     pane_id: target_pane,
                 })
+                .await?;
+        }
+        CliSubCommand::SetTabTitle {
+            tab_id,
+            pane_id,
+            title,
+        } => {
+            let panes = client.list_panes().await?;
+
+            let mut pane_id_to_tab_id = HashMap::new();
+
+            for tabroot in panes.tabs {
+                let mut cursor = tabroot.into_tree().cursor();
+
+                loop {
+                    if let Some(entry) = cursor.leaf_mut() {
+                        pane_id_to_tab_id.insert(entry.pane_id, entry.tab_id);
+                    }
+                    match cursor.preorder_next() {
+                        Ok(c) => cursor = c,
+                        Err(_) => break,
+                    }
+                }
+            }
+
+            let tab_id = if let Some(tab_id) = tab_id {
+                tab_id
+            } else {
+                // Find the current tab from the pane id
+                let pane_id = resolve_pane_id(&client, pane_id).await?;
+                pane_id_to_tab_id
+                    .get(&pane_id)
+                    .copied()
+                    .ok_or_else(|| anyhow::anyhow!("unable to resolve current tab"))?
+            };
+
+            client
+                .set_tab_title(codec::TabTitleChanged { tab_id, title })
+                .await?;
+        }
+        CliSubCommand::SetWindowTitle {
+            window_id,
+            pane_id,
+            title,
+        } => {
+            let panes = client.list_panes().await?;
+
+            let mut pane_id_to_window_id = HashMap::new();
+
+            for tabroot in panes.tabs {
+                let mut cursor = tabroot.into_tree().cursor();
+
+                loop {
+                    if let Some(entry) = cursor.leaf_mut() {
+                        pane_id_to_window_id.insert(entry.pane_id, entry.window_id);
+                    }
+                    match cursor.preorder_next() {
+                        Ok(c) => cursor = c,
+                        Err(_) => break,
+                    }
+                }
+            }
+
+            let window_id = if let Some(window_id) = window_id {
+                window_id
+            } else {
+                // Find the current tab from the pane id
+                let pane_id = resolve_pane_id(&client, pane_id).await?;
+                pane_id_to_window_id
+                    .get(&pane_id)
+                    .copied()
+                    .ok_or_else(|| anyhow::anyhow!("unable to resolve current window"))?
+            };
+
+            client
+                .set_window_title(codec::WindowTitleChanged { window_id, title })
                 .await?;
         }
     }

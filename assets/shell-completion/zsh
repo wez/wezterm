@@ -235,6 +235,24 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
+(set-tab-title)
+_arguments "${_arguments_options[@]}" \
+'(--pane-id)--tab-id=[Specify the target tab by its id]:TAB_ID: ' \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':title -- The new title for the tab:' \
+&& ret=0
+;;
+(set-window-title)
+_arguments "${_arguments_options[@]}" \
+'(--pane-id)--window-id=[Specify the target window by its id]:WINDOW_ID: ' \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':title -- The new title for the window:' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_wezterm__cli__help_commands" \
@@ -296,6 +314,14 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (activate-tab)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(set-tab-title)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(set-window-title)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -451,6 +477,14 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(set-tab-title)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(set-window-title)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -570,6 +604,8 @@ Outputs the pane-id for the newly created pane on success' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \
+'set-tab-title:Change the title of a tab' \
+'set-window-title:Change the title of a window' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"
@@ -592,6 +628,8 @@ Outputs the pane-id for the newly created pane on success' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \
+'set-tab-title:Change the title of a tab' \
+'set-window-title:Change the title of a window' \
     )
     _describe -t commands 'wezterm help cli commands' commands "$@"
 }
@@ -638,6 +676,8 @@ Outputs the pane-id for the newly created pane on success' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \
+'set-tab-title:Change the title of a tab' \
+'set-window-title:Change the title of a window' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli help commands' commands "$@"
@@ -810,6 +850,36 @@ _wezterm__help__serial_commands() {
 _wezterm__serial_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm serial commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__set-tab-title_commands] )) ||
+_wezterm__cli__help__set-tab-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help set-tab-title commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__set-tab-title_commands] )) ||
+_wezterm__cli__set-tab-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli set-tab-title commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__set-tab-title_commands] )) ||
+_wezterm__help__cli__set-tab-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli set-tab-title commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__set-window-title_commands] )) ||
+_wezterm__cli__help__set-window-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help set-window-title commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__set-window-title_commands] )) ||
+_wezterm__cli__set-window-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli set-window-title commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__set-window-title_commands] )) ||
+_wezterm__help__cli__set-window-title_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli set-window-title commands' commands "$@"
 }
 (( $+functions[_wezterm__help__set-working-directory_commands] )) ||
 _wezterm__help__set-working-directory_commands() {
