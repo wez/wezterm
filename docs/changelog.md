@@ -80,6 +80,7 @@ As features stabilize some brief notes about them will accumulate here.
   the remote server, so any tab title changes were lost when reconnecting. #1598
 * `wezterm connect --workspace WS DOM` didn't use the provided workspace when
   starting up the mux server. #2734
+* mux: `ClearScrollback` was not forwarded to remote server. #2624
 
 ### 20230326-111934-3666303c
 

@@ -387,6 +387,25 @@ impl SessionHandler {
                 })
                 .detach();
             }
+            Pdu::EraseScrollbackRequest(EraseScrollbackRequest {
+                pane_id,
+                erase_mode,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.erase_scrollback(erase_mode);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    );
+                })
+                .detach();
+            }
             Pdu::KillPane(KillPane { pane_id }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);

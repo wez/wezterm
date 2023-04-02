@@ -5,6 +5,7 @@ use anyhow::bail;
 use async_trait::async_trait;
 use codec::*;
 use config::configuration;
+use config::keyassignment::ScrollbackEraseMode;
 use mux::domain::DomainId;
 use mux::pane::{
     alloc_pane_id, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId, Pattern,
@@ -535,6 +536,21 @@ impl Pane for ClientPane {
         if focused {
             self.advise_focus();
         }
+    }
+
+    fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
+        let client = Arc::clone(&self.client);
+        let remote_pane_id = self.remote_pane_id;
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .erase_scrollback(EraseScrollbackRequest {
+                    pane_id: remote_pane_id,
+                    erase_mode,
+                })
+                .await
+        })
+        .detach();
     }
 
     fn advise_focus(&self) {

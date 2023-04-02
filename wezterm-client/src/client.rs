@@ -1317,4 +1317,5 @@ impl Client {
     rpc!(set_tab_title, TabTitleChanged, UnitResponse);
     rpc!(set_window_title, WindowTitleChanged, UnitResponse);
     rpc!(rename_workspace, RenameWorkspace, UnitResponse);
+    rpc!(erase_scrollback, EraseScrollbackRequest, UnitResponse);
 }

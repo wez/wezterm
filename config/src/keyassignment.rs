@@ -291,7 +291,7 @@ impl PaneDirection {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, FromDynamic, ToDynamic)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromDynamic, ToDynamic, Serialize, Deserialize)]
 pub enum ScrollbackEraseMode {
     ScrollbackOnly,
     ScrollbackAndViewport,

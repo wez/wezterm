@@ -12,7 +12,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
 use anyhow::{bail, Context as _, Error};
-use config::keyassignment::PaneDirection;
+use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -418,7 +418,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 38;
+pub const CODEC_VERSION: usize = 39;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -475,6 +475,7 @@ pdu! {
     TabTitleChanged: 56,
     WindowTitleChanged: 57,
     RenameWorkspace: 58,
+    EraseScrollbackRequest: 59,
 }
 
 impl Pdu {
@@ -1044,6 +1045,12 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
 pub struct GetLinesResponse {
     pub pane_id: PaneId,
     pub lines: SerializedLines,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct EraseScrollbackRequest {
+    pub pane_id: PaneId,
+    pub erase_mode: ScrollbackEraseMode,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
