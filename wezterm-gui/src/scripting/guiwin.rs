@@ -45,6 +45,14 @@ impl UserData for GuiWin {
         methods.add_method("mux_window", |_, this, _: ()| {
             Ok(mux_lua::MuxWindow(this.mux_window_id))
         });
+        methods.add_method("active_tab", |_, this, _: ()| {
+            let mux = Mux::try_get().ok_or_else(|| mlua::Error::external("cannot get Mux!?"))?;
+            let window = mux.get_window(this.mux_window_id).ok_or_else(|| {
+                mlua::Error::external(format!("invalid window {}", this.mux_window_id))
+            })?;
+            Ok(window.get_active().map(|tab| mux_lua::MuxTab(tab.tab_id())))
+        });
+
         methods.add_method(
             "set_inner_size",
             |_, this, (width, height): (usize, usize)| {

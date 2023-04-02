@@ -40,6 +40,12 @@ As features stabilize some brief notes about them will accumulate here.
   obtain that same information and amend/extend it.
 * [display_pixel_geometry](config/lua/config/display_pixel_geometry.md) to specify subpixel antialiasing geometry. ?3422
 * In progress: integrated title and tab bar. Thanks to @yuraiz for getting things moving! #2722
+* Lua: [gui_window:active_tab()](config/lua/window/active_tab.md),
+  [gui_window:active_pane()](config/lua/window/active_pane.md) (surprise! this was already there, just undocumented!),
+  [mux_window:active_tab()](config/lua/mux-window/active_tab.md),
+  [mux_window:active_pane()](config/lua/mux-window/active_pane.md),
+  [tab:active_pane()](config/lua/MuxTab/active_pane.md) methods for conveniently getting at the active tab/pane
+  from a window/tab.
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

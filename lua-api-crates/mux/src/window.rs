@@ -93,5 +93,17 @@ impl UserData for MuxWindow {
             }
             Ok(result)
         });
+        methods.add_method("active_tab", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let window = this.resolve(&mux)?;
+            Ok(window.get_active().map(|tab| MuxTab(tab.tab_id())))
+        });
+        methods.add_method("active_pane", |_, this, _: ()| {
+            let mux = get_mux()?;
+            let window = this.resolve(&mux)?;
+            Ok(window
+                .get_active()
+                .and_then(|tab| tab.get_active_pane().map(|pane| MuxPane(pane.pane_id()))))
+        });
     }
 }
