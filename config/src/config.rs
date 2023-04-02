@@ -325,8 +325,8 @@ pub struct Config {
     #[dynamic(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
-    #[dynamic(default = "SshDomain::default_domains")]
-    pub ssh_domains: Vec<SshDomain>,
+    #[dynamic(default)]
+    pub ssh_domains: Option<Vec<SshDomain>>,
 
     #[dynamic(default)]
     pub ssh_backend: SshBackend,
@@ -828,6 +828,17 @@ impl Config {
         Self::load_with_overrides(&wezterm_dynamic::Value::default())
     }
 
+    /// It is relatively expensive to parse all the ssh config files,
+    /// so we defer producing the default list until someone explicitly
+    /// asks for it
+    pub fn ssh_domains(&self) -> Vec<SshDomain> {
+        if let Some(domains) = &self.ssh_domains {
+            domains.clone()
+        } else {
+            SshDomain::default_domains()
+        }
+    }
+
     pub fn update_ulimit(&self) -> anyhow::Result<()> {
         #[cfg(unix)]
         {
@@ -1127,8 +1138,10 @@ impl Config {
         for d in &self.unix_domains {
             check_domain(&d.name, "unix domain")?;
         }
-        for d in &self.ssh_domains {
-            check_domain(&d.name, "ssh domain")?;
+        if let Some(domains) = &self.ssh_domains {
+            for d in domains {
+                check_domain(&d.name, "ssh domain")?;
+            }
         }
         for d in &self.exec_domains {
             check_domain(&d.name, "exec domain")?;

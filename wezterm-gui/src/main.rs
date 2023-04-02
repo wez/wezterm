@@ -250,7 +250,7 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
         domains.push(ClientDomainConfig::Unix(unix_dom.clone()));
     }
 
-    for ssh_dom in &config.ssh_domains {
+    for ssh_dom in config.ssh_domains().into_iter() {
         if ssh_dom.multiplexing == SshMultiplexing::WezTerm {
             domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
         }
@@ -341,7 +341,7 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
         mux.add_domain(&domain);
     }
 
-    for ssh_dom in &config.ssh_domains {
+    for ssh_dom in config.ssh_domains().into_iter() {
         if ssh_dom.multiplexing != SshMultiplexing::None {
             continue;
         }
