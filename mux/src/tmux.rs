@@ -227,6 +227,10 @@ impl Domain for TmuxDomain {
         Ok(())
     }
 
+    fn detachable(&self) -> bool {
+        false
+    }
+
     fn detach(&self) -> anyhow::Result<()> {
         anyhow::bail!("detach not implemented for TmuxDomain");
     }

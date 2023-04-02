@@ -30,6 +30,13 @@ As features stabilize some brief notes about them will accumulate here.
 * Multiplexer client can now send the locally configured color palette to the
   mux server, which makes it more straightforward to configure color schemes
   when using multiplexing.
+* Multiplexer: closing a window that has any mux client panes will now detach
+  the associated domain(s) on close. Previous behavior was to treat just the
+  panes in the window as detached without actually detaching the whole domain,
+  which would cause the window to recycle and activate a different workspace.
+  With a definitive detach, the window will close and wezterm will terminate if
+  the only panes were associated with that domain, which is what most users
+  expect. #2644
 
 #### New
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217

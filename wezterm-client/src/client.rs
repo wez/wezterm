@@ -264,6 +264,7 @@ fn process_unilateral(
             let new_workspace = new_workspace.to_string();
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
+                log::debug!("got a rename {old_workspace} -> {new_workspace}");
                 mux.rename_workspace(&old_workspace, &new_workspace);
                 anyhow::Result::<()>::Ok(())
             })

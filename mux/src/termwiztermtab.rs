@@ -71,6 +71,10 @@ impl Domain for TermWizTerminalDomain {
         Ok(())
     }
 
+    fn detachable(&self) -> bool {
+        false
+    }
+
     fn detach(&self) -> anyhow::Result<()> {
         bail!("detach not implemented for TermWizTerminalDomain");
     }

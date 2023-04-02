@@ -293,16 +293,19 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
             new_workspace,
         } => {
             if let Some(inner) = client_domain.inner() {
-                promise::spawn::spawn(async move {
-                    inner
-                        .client
-                        .rename_workspace(codec::RenameWorkspace {
-                            old_workspace,
-                            new_workspace,
-                        })
-                        .await
-                })
-                .detach();
+                let workspaces = Mux::get().iter_workspaces();
+                if workspaces.contains(&old_workspace) {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .rename_workspace(codec::RenameWorkspace {
+                                old_workspace,
+                                new_workspace,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
             }
         }
         MuxNotification::WindowWorkspaceChanged(window_id) => {
@@ -973,22 +976,8 @@ impl Domain for ClientDomain {
         Ok(())
     }
 
-    fn local_window_is_closing(&self, window_id: WindowId) {
-        let mux = Mux::get();
-        let window = match mux.get_window(window_id) {
-            Some(w) => w,
-            None => return,
-        };
-
-        for tab in window.iter() {
-            for pos in tab.iter_panes_ignoring_zoom() {
-                if pos.pane.domain_id() == self.local_domain_id {
-                    if let Some(client_pane) = pos.pane.downcast_ref::<ClientPane>() {
-                        client_pane.ignore_next_kill();
-                    }
-                }
-            }
-        }
+    fn detachable(&self) -> bool {
+        true
     }
 
     fn detach(&self) -> anyhow::Result<()> {

@@ -16,7 +16,7 @@ use parking_lot::{
 };
 use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -610,16 +610,15 @@ impl Mux {
         if old_workspace == new_workspace {
             return;
         }
+        self.notify(MuxNotification::WorkspaceRenamed {
+            old_workspace: old_workspace.to_string(),
+            new_workspace: new_workspace.to_string(),
+        });
 
-        let mut renamed_any = false;
         for window in self.windows.write().values_mut() {
             if window.get_workspace() == old_workspace {
-                renamed_any = true;
                 window.set_workspace(new_workspace);
             }
-        }
-        if !renamed_any {
-            return;
         }
         self.recompute_pane_count();
         for client in self.clients.write().values_mut() {
@@ -630,11 +629,6 @@ impl Mux {
                 ));
             }
         }
-
-        self.notify(MuxNotification::WorkspaceRenamed {
-            old_workspace: old_workspace.to_string(),
-            new_workspace: new_workspace.to_string(),
-        });
     }
 
     /// Overrides the current client identity.
@@ -816,12 +810,31 @@ impl Mux {
 
     fn remove_window_internal(&self, window_id: WindowId) {
         log::debug!("remove_window_internal {}", window_id);
-        let domains: Vec<Arc<dyn Domain>> = self.domains.read().values().cloned().collect();
-        for dom in domains {
-            dom.local_window_is_closing(window_id);
-        }
+
         let window = self.windows.write().remove(&window_id);
         if let Some(window) = window {
+            // Gather all the domains referenced by this window
+            let mut domains_of_window = HashSet::new();
+            for tab in window.iter() {
+                for pane in tab.iter_panes_ignoring_zoom() {
+                    domains_of_window.insert(pane.pane.domain_id());
+                }
+            }
+
+            for domain_id in domains_of_window {
+                if let Some(domain) = self.get_domain(domain_id) {
+                    if domain.detachable() {
+                        log::info!("detaching domain");
+                        if let Err(err) = domain.detach() {
+                            log::error!(
+                                "while detaching domain {domain_id} {}: {err:#}",
+                                domain.domain_name()
+                            );
+                        }
+                    }
+                }
+            }
+
             for tab in window.iter() {
                 self.remove_tab_internal(tab.tab_id());
             }

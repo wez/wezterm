@@ -156,6 +156,12 @@ pub trait Domain: Downcast + Send + Sync {
         true
     }
 
+    /// Returns true if the `detach` method can be used
+    /// to detach the domain, preserving the associated
+    /// panes, or false if the `detach` method will never
+    /// succeed
+    fn detachable(&self) -> bool;
+
     /// Returns the domain id, which is useful for obtaining
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
@@ -177,11 +183,6 @@ pub trait Domain: Downcast + Send + Sync {
 
     /// Indicates the state of the domain
     fn state(&self) -> DomainState;
-
-    /// Called to advise the domain that a local window is closing.
-    /// This allows the domain the opportunity to eg: detach/hide
-    /// its tabs/panes rather than actually killing them off
-    fn local_window_is_closing(&self, _window_id: WindowId) {}
 }
 impl_downcast!(Domain);
 
@@ -605,6 +606,10 @@ impl Domain for LocalDomain {
 
     async fn attach(&self, _window_id: Option<WindowId>) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    fn detachable(&self) -> bool {
+        false
     }
 
     fn detach(&self) -> anyhow::Result<()> {

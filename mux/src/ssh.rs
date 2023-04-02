@@ -706,6 +706,10 @@ impl Domain for RemoteSshDomain {
         Ok(())
     }
 
+    fn detachable(&self) -> bool {
+        false
+    }
+
     fn detach(&self) -> anyhow::Result<()> {
         bail!("detach not implemented for RemoteSshDomain");
     }
