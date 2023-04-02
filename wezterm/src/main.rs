@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 use clap::builder::ValueParser;
 use clap::{Parser, ValueEnum, ValueHint};
 use clap_complete::{generate as generate_completion, shells, Generator as CompletionGenerator};
-use config::wezterm_version;
+use config::{wezterm_version, ConfigHandle};
 use mux::Mux;
 use std::ffi::OsString;
 use std::io::Read;
@@ -242,12 +242,7 @@ fn main() {
     Mux::shutdown();
 }
 
-fn run() -> anyhow::Result<()> {
-    env_bootstrap::bootstrap();
-
-    let saver = UmaskSaver::new();
-
-    let opts = Opt::parse();
+fn init_config(opts: &Opt) -> anyhow::Result<ConfigHandle> {
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,
@@ -256,6 +251,15 @@ fn run() -> anyhow::Result<()> {
     .context("config::common_init")?;
     let config = config::configuration();
     config.update_ulimit()?;
+    Ok(config)
+}
+
+fn run() -> anyhow::Result<()> {
+    env_bootstrap::bootstrap();
+
+    let saver = UmaskSaver::new();
+
+    let opts = Opt::parse();
 
     match opts
         .cmd
@@ -271,8 +275,8 @@ fn run() -> anyhow::Result<()> {
         | SubCommand::Connect(_) => delegate_to_gui(saver),
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::SetCwd(cmd) => cmd.run(),
-        SubCommand::Cli(cli) => cli::run_cli(config, cli),
-        SubCommand::Record(cmd) => cmd.run(config),
+        SubCommand::Cli(cli) => cli::run_cli(init_config(&opts)?, cli),
+        SubCommand::Record(cmd) => cmd.run(init_config(&opts)?),
         SubCommand::Replay(cmd) => cmd.run(),
         SubCommand::ShellCompletion { shell } => {
             use clap::CommandFactory;
