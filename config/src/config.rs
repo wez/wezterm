@@ -1539,7 +1539,7 @@ fn default_mux_output_parser_buffer_size() -> usize {
 }
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {
-    10
+    20
 }
 
 fn default_cursor_blink_rate() -> u64 {

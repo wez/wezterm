@@ -100,11 +100,15 @@ impl PerPane {
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
-            .map(|(idx, mut line)| {
+            .filter_map(|(idx, mut line)| {
                 let stable_row = first_line + idx as StableRowIndex;
-                all_dirty_lines.remove(stable_row);
-                line.compress_for_scrollback();
-                (stable_row, line)
+                if all_dirty_lines.contains(stable_row) {
+                    all_dirty_lines.remove(stable_row);
+                    line.compress_for_scrollback();
+                    Some((stable_row, line))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
 
