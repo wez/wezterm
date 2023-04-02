@@ -205,6 +205,7 @@ pub struct TabInformation {
     pub is_active: bool,
     pub active_pane: Option<PaneInformation>,
     pub window_id: MuxWindowId,
+    pub tab_title: String,
 }
 
 impl UserData for TabInformation {
@@ -232,13 +233,7 @@ impl UserData for TabInformation {
             Ok(panes)
         });
         fields.add_field_method_get("window_id", |_, this| Ok(this.window_id));
-        fields.add_field_method_get("tab_title", |_, this| {
-            let mux = Mux::get();
-            let tab = mux
-                .get_tab(this.tab_id)
-                .ok_or_else(|| mlua::Error::external(format!("tab {} not found", this.tab_id)))?;
-            Ok(tab.get_title())
-        });
+        fields.add_field_method_get("tab_title", |_, this| Ok(this.tab_title.clone()));
         fields.add_field_method_get("window_title", |_, this| {
             let mux = Mux::get();
             let window = mux.get_window(this.window_id).ok_or_else(|| {
@@ -3169,6 +3164,7 @@ impl TermWindow {
                     tab_id: tab.tab_id(),
                     is_active: tab_index == idx,
                     window_id: self.mux_window_id,
+                    tab_title: tab.get_title(),
                     active_pane: panes
                         .iter()
                         .find(|p| p.is_active)
@@ -3178,14 +3174,14 @@ impl TermWindow {
             .collect()
     }
 
-    fn get_pane_information(&mut self) -> Vec<PaneInformation> {
+    fn get_pane_information(&self) -> Vec<PaneInformation> {
         self.get_panes_to_render()
             .iter()
             .map(Self::pos_pane_to_pane_info)
             .collect()
     }
 
-    fn get_pos_panes_for_tab(&mut self, tab: &Arc<Tab>) -> Vec<PositionedPane> {
+    fn get_pos_panes_for_tab(&self, tab: &Arc<Tab>) -> Vec<PositionedPane> {
         let tab_id = tab.tab_id();
 
         if let Some(pane) = self
@@ -3218,7 +3214,7 @@ impl TermWindow {
         }
     }
 
-    fn get_panes_to_render(&mut self) -> Vec<PositionedPane> {
+    fn get_panes_to_render(&self) -> Vec<PositionedPane> {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,

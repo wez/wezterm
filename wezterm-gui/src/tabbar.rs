@@ -116,7 +116,11 @@ fn compute_tab_title(
         Some(title) => title,
         None => {
             let title = if let Some(pane) = &tab.active_pane {
-                let mut title = pane.title.clone();
+                let mut title = if tab.tab_title.is_empty() {
+                    pane.title.clone()
+                } else {
+                    tab.tab_title.clone()
+                };
                 let classic_spacing = if config.use_fancy_tab_bar { "" } else { " " };
                 if config.show_tab_index_in_tab_bar {
                     title = format!(
@@ -128,7 +132,7 @@ fn compute_tab_title(
                             } else {
                                 1
                             },
-                        pane.title,
+                        title,
                         classic_spacing,
                     );
                 }
