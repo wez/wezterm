@@ -266,6 +266,7 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
     cmd: Option<CommandBuilder>,
     is_connecting: bool,
     domain: Option<Arc<dyn Domain>>,
+    workspace: Option<String>,
 ) -> anyhow::Result<()> {
     let mux = Mux::get();
 
@@ -290,7 +291,6 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         // from the size specified in the remote mux.
         // We use the TabAddedToWindow mux notification
         // to detect and adjust the size later on.
-        let workspace = None;
         let position = None;
         let builder = mux.new_empty_window(workspace, position);
         *builder
@@ -520,7 +520,7 @@ async fn async_run_terminal_gui(
             trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
         }
     }
-    spawn_tab_in_domain_if_mux_is_empty(cmd, is_connecting, domain).await
+    spawn_tab_in_domain_if_mux_is_empty(cmd, is_connecting, domain, opts.workspace).await
 }
 
 #[derive(Debug)]
