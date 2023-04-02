@@ -774,10 +774,12 @@ struct CliListResultItem {
     left_col: usize,
     /// Number of rows from the top of the tab area to the top of this pane
     top_row: usize,
+    tab_title: String,
+    window_title: String,
 }
 
-impl From<mux::tab::PaneEntry> for CliListResultItem {
-    fn from(pane: mux::tab::PaneEntry) -> CliListResultItem {
+impl CliListResultItem {
+    fn from(pane: mux::tab::PaneEntry, tab_title: &str, window_title: &str) -> CliListResultItem {
         let mux::tab::PaneEntry {
             window_id,
             tab_id,
@@ -824,6 +826,8 @@ impl From<mux::tab::PaneEntry> for CliListResultItem {
             cursor_visibility: cursor_pos.visibility,
             left_col,
             top_row,
+            tab_title: tab_title.to_string(),
+            window_title: window_title.to_string(),
         }
     }
 }
@@ -976,12 +980,21 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             let mut output_items = vec![];
             let panes = client.list_panes().await?;
 
-            for tabroot in panes.tabs {
+            for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
                 let mut cursor = tabroot.into_tree().cursor();
 
                 loop {
                     if let Some(entry) = cursor.leaf_mut() {
-                        output_items.push(CliListResultItem::from(entry.clone()));
+                        let window_title = panes
+                            .window_titles
+                            .get(&entry.window_id)
+                            .map(|s| s.as_str())
+                            .unwrap_or("");
+                        output_items.push(CliListResultItem::from(
+                            entry.clone(),
+                            tab_title,
+                            window_title,
+                        ));
                     }
                     match cursor.preorder_next() {
                         Ok(c) => cursor = c,

@@ -1097,7 +1097,8 @@ impl TermWindow {
                 } => {
                     self.emit_user_var_event(pane_id, name, value);
                 }
-                MuxNotification::Alert {
+                MuxNotification::WindowTitleChanged { .. }
+                | MuxNotification::Alert {
                     alert:
                         Alert::OutputSinceFocusLost
                         | Alert::CurrentWorkingDirectoryChanged
@@ -1187,6 +1188,9 @@ impl TermWindow {
                 }
                 MuxNotification::TabResized(_) => {
                     // Handled by wezterm-client
+                }
+                MuxNotification::TabTitleChanged { .. } => {
+                    self.update_title_post_status();
                 }
                 MuxNotification::PaneAdded(_)
                 | MuxNotification::PaneRemoved(_)
@@ -1374,6 +1378,8 @@ impl TermWindow {
             | MuxNotification::SaveToDownloads { .. }
             | MuxNotification::PaneFocused(_)
             | MuxNotification::TabResized(_)
+            | MuxNotification::TabTitleChanged { .. }
+            | MuxNotification::WindowTitleChanged { .. }
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)

@@ -100,6 +100,16 @@ impl ClientInner {
         );
     }
 
+    fn local_to_remote_tab(&self, local_tab_id: TabId) -> Option<TabId> {
+        let map = self.remote_to_local_tab.lock().unwrap();
+        for (remote, local) in map.iter() {
+            if *local == local_tab_id {
+                return Some(*remote);
+            }
+        }
+        None
+    }
+
     fn local_to_remote_window(&self, local_window_id: WindowId) -> Option<WindowId> {
         let map = self.remote_to_local_window.lock().unwrap();
         for (remote, local) in map.iter() {
@@ -269,9 +279,11 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
         Some(domain) => domain,
         None => return false,
     };
-    if domain.downcast_ref::<ClientDomain>().is_none() {
-        return false;
-    }
+    let client_domain = match domain.downcast_ref::<ClientDomain>() {
+        Some(c) => c,
+        None => return false,
+    };
+
     match notif {
         MuxNotification::ActiveWorkspaceChanged(_client_id) => {
             // TODO: advice remote host of interesting workspaces
@@ -312,6 +324,38 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                 }
             })
             .detach();
+        }
+        MuxNotification::TabTitleChanged { tab_id, title } => {
+            if let Some(remote_tab_id) = client_domain.local_to_remote_tab_id(tab_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_tab_title(codec::TabTitleChanged {
+                                tab_id: remote_tab_id,
+                                title,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
+            }
+        }
+        MuxNotification::WindowTitleChanged { window_id, title } => {
+            if let Some(remote_window_id) = client_domain.local_to_remote_window_id(window_id) {
+                if let Some(inner) = client_domain.inner() {
+                    promise::spawn::spawn(async move {
+                        inner
+                            .client
+                            .set_window_title(codec::WindowTitleChanged {
+                                window_id: remote_window_id,
+                                title,
+                            })
+                            .await
+                    })
+                    .detach();
+                }
+            }
         }
         _ => {}
     }
@@ -361,6 +405,11 @@ impl ClientDomain {
         inner.local_to_remote_window(local_window_id)
     }
 
+    pub fn local_to_remote_tab_id(&self, local_tab_id: TabId) -> Option<TabId> {
+        let inner = self.inner()?;
+        inner.local_to_remote_tab(local_tab_id)
+    }
+
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
         let mux = Mux::get();
         let domain = mux
@@ -399,6 +448,26 @@ impl ClientDomain {
         Ok(())
     }
 
+    pub fn process_remote_window_title_change(&self, remote_window_id: WindowId, title: String) {
+        if let Some(inner) = self.inner() {
+            if let Some(local_window_id) = inner.remote_to_local_window(remote_window_id) {
+                if let Some(mut window) = Mux::get().get_window_mut(local_window_id) {
+                    window.set_title(&title);
+                }
+            }
+        }
+    }
+
+    pub fn process_remote_tab_title_change(&self, remote_tab_id: TabId, title: String) {
+        if let Some(inner) = self.inner() {
+            if let Some(local_tab_id) = inner.remote_to_local_tab_id(remote_tab_id) {
+                if let Some(tab) = Mux::get().get_tab(local_tab_id) {
+                    tab.set_title(&title);
+                }
+            }
+        }
+    }
+
     fn process_pane_list(
         inner: Arc<ClientInner>,
         panes: ListPanesResponse,
@@ -435,7 +504,7 @@ impl ClientDomain {
             .copied()
             .collect();
 
-        for tabroot in panes.tabs {
+        for (tabroot, tab_title) in panes.tabs.into_iter().zip(panes.tab_titles.iter()) {
             let root_size = match tabroot.root_size() {
                 Some(size) => size,
                 None => continue,
@@ -470,6 +539,8 @@ impl ClientDomain {
                     mux.add_tab_no_panes(&tab);
                     inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                 }
+
+                tab.set_title(tab_title);
 
                 log::debug!("domain: {} tree: {:#?}", inner.local_domain_id, tabroot);
                 let mut workspace = None;
@@ -562,6 +633,15 @@ impl ClientDomain {
                 let local_window_id = mux.new_empty_window(workspace.take(), position);
                 inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
                 mux.add_tab_to_window(&tab, *local_window_id)?;
+            }
+        }
+
+        for (remote_window_id, window_title) in panes.window_titles {
+            if let Some(local_window_id) = inner.remote_to_local_window(remote_window_id) {
+                let mut window = mux
+                    .get_window_mut(local_window_id)
+                    .expect("no such window!?");
+                window.set_title(&window_title);
             }
         }
 

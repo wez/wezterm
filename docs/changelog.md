@@ -65,6 +65,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:perform_action()](config/lua/window/perform_action.md) now correctly
   resolves overlay panes such as Copy Mode. #3209
 * macOS: CTRL-Q had to be pressed twice to register when `use_ime=true`. #2630
+* mux: [tab:set_title()](config/lua/MuxTab/set_title.md) didn't get passed to
+  the remote server, so any tab title changes were lost when reconnecting. #1598
 
 ### 20230326-111934-3666303c
 

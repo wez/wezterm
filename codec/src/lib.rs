@@ -23,6 +23,7 @@ use rangeset::*;
 use serde::{Deserialize, Serialize};
 use smol::io::AsyncWriteExt;
 use smol::prelude::*;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::Cursor;
 use std::ops::Range;
@@ -417,7 +418,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 36;
+pub const CODEC_VERSION: usize = 37;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -471,6 +472,8 @@ pdu! {
     PaneFocused: 53,
     TabResized: 54,
     TabAddedToWindow: 55,
+    TabTitleChanged: 56,
+    WindowTitleChanged: 57,
 }
 
 impl Pdu {
@@ -597,6 +600,8 @@ pub struct ListPanes {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
     pub tabs: Vec<PaneNode>,
+    pub tab_titles: Vec<String>,
+    pub window_titles: HashMap<WindowId, String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -749,6 +754,18 @@ pub struct TabAddedToWindow {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct TabResized {
     pub tab_id: TabId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct TabTitleChanged {
+    pub tab_id: TabId,
+    pub title: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct WindowTitleChanged {
+    pub window_id: WindowId,
+    pub title: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

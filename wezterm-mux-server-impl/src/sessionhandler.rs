@@ -328,14 +328,22 @@ impl SessionHandler {
                         move || {
                             let mux = Mux::get();
                             let mut tabs = vec![];
+                            let mut tab_titles = vec![];
+                            let mut window_titles = HashMap::new();
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
+                                window_titles.insert(window_id, window.get_title().to_string());
                                 for tab in window.iter() {
                                     tabs.push(tab.codec_pane_tree());
+                                    tab_titles.push(tab.get_title());
                                 }
                             }
-                            log::trace!("ListPanes {:#?}", tabs);
-                            Ok(Pdu::ListPanesResponse(ListPanesResponse { tabs }))
+                            log::trace!("ListPanes {tabs:#?} {tab_titles:?}");
+                            Ok(Pdu::ListPanesResponse(ListPanesResponse {
+                                tabs,
+                                tab_titles,
+                                window_titles,
+                            }))
                         },
                         send_response,
                     )
@@ -729,6 +737,42 @@ impl SessionHandler {
                     },
                     send_response,
                 );
+            }
+            Pdu::WindowTitleChanged(WindowTitleChanged { window_id, title }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let mut window = mux
+                                .get_window_mut(window_id)
+                                .ok_or_else(|| anyhow!("no such window {window_id}"))?;
+
+                            window.set_title(&title);
+
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+            Pdu::TabTitleChanged(TabTitleChanged { tab_id, title }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {tab_id}"))?;
+
+                            tab.set_title(&title);
+
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
             }
             Pdu::SetPalette(SetPalette { pane_id, palette }) => {
                 spawn_into_main_thread(async move {

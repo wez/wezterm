@@ -521,7 +521,15 @@ impl Tab {
 
     pub fn set_title(&self, title: &str) {
         let mut inner = self.inner.lock();
-        inner.title = title.to_string();
+        if inner.title != title {
+            inner.title = title.to_string();
+            Mux::try_get().map(|mux| {
+                mux.notify(MuxNotification::TabTitleChanged {
+                    tab_id: inner.id,
+                    title: title.to_string(),
+                })
+            });
+        }
     }
 
     /// Called by the multiplexer client when building a local tab to

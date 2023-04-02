@@ -38,7 +38,15 @@ impl Window {
     }
 
     pub fn set_title(&mut self, title: &str) {
-        self.title = title.to_string();
+        if self.title != title {
+            self.title = title.to_string();
+            Mux::try_get().map(|mux| {
+                mux.notify(MuxNotification::WindowTitleChanged {
+                    window_id: self.id,
+                    title: title.to_string(),
+                })
+            });
+        }
     }
 
     pub fn get_title(&self) -> &str {
