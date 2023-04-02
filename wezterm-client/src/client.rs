@@ -440,7 +440,7 @@ pub fn unix_connect_with_retry(
 
     for iter in 0..max_attempts {
         if iter > 0 {
-            std::thread::sleep(std::time::Duration::from_millis(iter * 10));
+            std::thread::sleep(std::time::Duration::from_millis(iter * 50));
         }
         match target {
             UnixTarget::Socket(path) => match UnixStream::connect(path) {
