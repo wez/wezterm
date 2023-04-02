@@ -396,6 +396,7 @@ impl InputMap {
     /// This is used to figure out whether an application-wide keyboard shortcut
     /// can be safely configured for this action, without interfering with any
     /// transient key_table mappings.
+    #[allow(dead_code)]
     pub fn locate_app_wide_key_assignment(
         &self,
         action: &KeyAssignment,
