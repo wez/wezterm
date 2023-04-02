@@ -1193,6 +1193,7 @@ impl TermWindow {
                     self.update_title_post_status();
                 }
                 MuxNotification::PaneAdded(_)
+                | MuxNotification::WorkspaceRenamed { .. }
                 | MuxNotification::PaneRemoved(_)
                 | MuxNotification::WindowWorkspaceChanged(_)
                 | MuxNotification::ActiveWorkspaceChanged(_)
@@ -1383,6 +1384,7 @@ impl TermWindow {
             | MuxNotification::PaneRemoved(_)
             | MuxNotification::WindowCreated(_)
             | MuxNotification::ActiveWorkspaceChanged(_)
+            | MuxNotification::WorkspaceRenamed { .. }
             | MuxNotification::Empty
             | MuxNotification::WindowWorkspaceChanged(_) => return true,
         }

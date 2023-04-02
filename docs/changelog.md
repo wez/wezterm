@@ -48,6 +48,7 @@ As features stabilize some brief notes about them will accumulate here.
   from a window/tab.
 * [wezterm cli set-tab-title](cli/cli/set-tab-title.md) and
   [wezterm cli set-window-title](cli/cli/set-window-title.md). #522 #1598
+* [wezterm cli rename-workspace](cli/cli/rename-workspace.md). #2787
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

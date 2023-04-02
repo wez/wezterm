@@ -253,6 +253,15 @@ _arguments "${_arguments_options[@]}" \
 ':title -- The new title for the window:' \
 && ret=0
 ;;
+(rename-workspace)
+_arguments "${_arguments_options[@]}" \
+'--workspace=[Specify the workspace to rename]:WORKSPACE: ' \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':new_workspace -- The new name for the workspace:' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_wezterm__cli__help_commands" \
@@ -322,6 +331,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (set-window-title)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(rename-workspace)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -485,6 +498,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(rename-workspace)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -606,6 +623,7 @@ Outputs the pane-id for the newly created pane on success' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
+'rename-workspace:Rename a workspace' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"
@@ -630,6 +648,7 @@ Outputs the pane-id for the newly created pane on success' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
+'rename-workspace:Rename a workspace' \
     )
     _describe -t commands 'wezterm help cli commands' commands "$@"
 }
@@ -678,6 +697,7 @@ Outputs the pane-id for the newly created pane on success' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
+'rename-workspace:Rename a workspace' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli help commands' commands "$@"
@@ -815,6 +835,21 @@ _wezterm__help__record_commands() {
 _wezterm__record_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm record commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__rename-workspace_commands] )) ||
+_wezterm__cli__help__rename-workspace_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help rename-workspace commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__rename-workspace_commands] )) ||
+_wezterm__cli__rename-workspace_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli rename-workspace commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__rename-workspace_commands] )) ||
+_wezterm__help__cli__rename-workspace_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli rename-workspace commands' commands "$@"
 }
 (( $+functions[_wezterm__help__replay_commands] )) ||
 _wezterm__help__replay_commands() {

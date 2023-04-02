@@ -351,6 +351,23 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::RenameWorkspace(RenameWorkspace {
+                old_workspace,
+                new_workspace,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            mux.rename_workspace(&old_workspace, &new_workspace);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    );
+                })
+                .detach();
+            }
+
             Pdu::WriteToPane(WriteToPane { pane_id, data }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);

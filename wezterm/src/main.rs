@@ -507,6 +507,26 @@ Outputs the pane-id for the newly created pane on success"
         /// The new title for the window
         title: String,
     },
+
+    /// Rename a workspace
+    #[command(name = "rename-workspace", rename_all = "kebab")]
+    RenameWorkspace {
+        /// Specify the workspace to rename
+        #[arg(long)]
+        workspace: Option<String>,
+
+        /// Specify the current pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        ///
+        /// The pane is used to figure out which workspace
+        /// should be renamed.
+        #[arg(long)]
+        pane_id: Option<PaneId>,
+
+        /// The new name for the workspace
+        new_workspace: String,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -1604,6 +1624,47 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
             client
                 .set_window_title(codec::WindowTitleChanged { window_id, title })
+                .await?;
+        }
+        CliSubCommand::RenameWorkspace {
+            workspace,
+            pane_id,
+            new_workspace,
+        } => {
+            let panes = client.list_panes().await?;
+
+            let mut pane_id_to_workspace = HashMap::new();
+
+            for tabroot in panes.tabs {
+                let mut cursor = tabroot.into_tree().cursor();
+
+                loop {
+                    if let Some(entry) = cursor.leaf_mut() {
+                        pane_id_to_workspace.insert(entry.pane_id, entry.workspace.to_string());
+                    }
+                    match cursor.preorder_next() {
+                        Ok(c) => cursor = c,
+                        Err(_) => break,
+                    }
+                }
+            }
+
+            let old_workspace = if let Some(workspace) = workspace {
+                workspace
+            } else {
+                // Find the current tab from the pane id
+                let pane_id = resolve_pane_id(&client, pane_id).await?;
+                pane_id_to_workspace
+                    .get(&pane_id)
+                    .ok_or_else(|| anyhow::anyhow!("unable to resolve current workspace"))?
+                    .to_string()
+            };
+
+            client
+                .rename_workspace(codec::RenameWorkspace {
+                    old_workspace,
+                    new_workspace,
+                })
                 .await?;
         }
     }

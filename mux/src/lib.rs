@@ -87,6 +87,10 @@ pub enum MuxNotification {
         window_id: WindowId,
         title: String,
     },
+    WorkspaceRenamed {
+        old_workspace: String,
+        new_workspace: String,
+    },
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -600,6 +604,37 @@ impl Mux {
         if let Some(ident) = self.identity.read().clone() {
             self.set_active_workspace_for_client(&ident, workspace);
         }
+    }
+
+    pub fn rename_workspace(&self, old_workspace: &str, new_workspace: &str) {
+        if old_workspace == new_workspace {
+            return;
+        }
+
+        let mut renamed_any = false;
+        for window in self.windows.write().values_mut() {
+            if window.get_workspace() == old_workspace {
+                renamed_any = true;
+                window.set_workspace(new_workspace);
+            }
+        }
+        if !renamed_any {
+            return;
+        }
+        self.recompute_pane_count();
+        for client in self.clients.write().values_mut() {
+            if client.active_workspace.as_deref() == Some(old_workspace) {
+                client.active_workspace.replace(new_workspace.to_string());
+                self.notify(MuxNotification::ActiveWorkspaceChanged(
+                    client.client_id.clone(),
+                ));
+            }
+        }
+
+        self.notify(MuxNotification::WorkspaceRenamed {
+            old_workspace: old_workspace.to_string(),
+            new_workspace: new_workspace.to_string(),
+        });
     }
 
     /// Overrides the current client identity.

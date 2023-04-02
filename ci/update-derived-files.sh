@@ -23,7 +23,22 @@ for cmd in start ssh serial connect ls-fonts show-keys imgcat set-working-direct
   cargo run --example narrow $PWD/target/debug/wezterm $cmd --help | ./target/debug/strip-ansi-escapes > $fname
 done
 
-for cmd in list list-clients move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction kill-pane activate-pane activate-tab set-tab-title set-window-title ; do
+for cmd in \
+    activate-pane \
+    activate-pane-direction \
+    activate-tab \
+    get-text \
+    kill-pane \
+    list \
+    list-clients \
+    move-pane-to-new-tab \
+    rename-workspace \
+    send-text \
+    set-tab-title \
+    set-window-title \
+    spawn \
+    split-pane \
+    ; do
   fname="docs/examples/cmd-synopsis-wezterm-cli-${cmd}--help.txt"
   cargo run --example narrow $PWD/target/debug/wezterm cli $cmd --help | ./target/debug/strip-ansi-escapes > $fname
 done

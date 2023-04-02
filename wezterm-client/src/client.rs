@@ -256,6 +256,20 @@ fn process_unilateral(
             .detach();
             return Ok(());
         }
+        Pdu::RenameWorkspace(RenameWorkspace {
+            old_workspace,
+            new_workspace,
+        }) => {
+            let old_workspace = old_workspace.to_string();
+            let new_workspace = new_workspace.to_string();
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::try_get().ok_or_else(|| anyhow!("no more mux"))?;
+                mux.rename_workspace(&old_workspace, &new_workspace);
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+            return Ok(());
+        }
         Pdu::TabTitleChanged(TabTitleChanged { tab_id, title }) => {
             let title = title.to_string();
             let tab_id = *tab_id;
@@ -1301,4 +1315,5 @@ impl Client {
     rpc!(set_configured_palette_for_pane, SetPalette, UnitResponse);
     rpc!(set_tab_title, TabTitleChanged, UnitResponse);
     rpc!(set_window_title, WindowTitleChanged, UnitResponse);
+    rpc!(rename_workspace, RenameWorkspace, UnitResponse);
 }

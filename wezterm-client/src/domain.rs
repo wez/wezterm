@@ -288,6 +288,23 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
         MuxNotification::ActiveWorkspaceChanged(_client_id) => {
             // TODO: advice remote host of interesting workspaces
         }
+        MuxNotification::WorkspaceRenamed {
+            old_workspace,
+            new_workspace,
+        } => {
+            if let Some(inner) = client_domain.inner() {
+                promise::spawn::spawn(async move {
+                    inner
+                        .client
+                        .rename_workspace(codec::RenameWorkspace {
+                            old_workspace,
+                            new_workspace,
+                        })
+                        .await
+                })
+                .detach();
+            }
+        }
         MuxNotification::WindowWorkspaceChanged(window_id) => {
             // Mux::get_window() may trigger a borrow error if called
             // immediately; defer the bulk of this work.
@@ -317,7 +334,7 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                         .detach();
                     }
                 } else {
-                    log::warn!(
+                    log::debug!(
                         "local window id {window_id} has no known remote window \
                         id while reconciling a local WindowWorkspaceChanged event"
                     );

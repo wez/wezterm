@@ -418,7 +418,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 37;
+pub const CODEC_VERSION: usize = 38;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -474,6 +474,7 @@ pdu! {
     TabAddedToWindow: 55,
     TabTitleChanged: 56,
     WindowTitleChanged: 57,
+    RenameWorkspace: 58,
 }
 
 impl Pdu {
@@ -728,6 +729,12 @@ pub struct SetClipboard {
 pub struct SetWindowWorkspace {
     pub window_id: WindowId,
     pub workspace: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct RenameWorkspace {
+    pub old_workspace: String,
+    pub new_workspace: String,
 }
 
 /// This is used both as a notification from server->client

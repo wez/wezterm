@@ -52,6 +52,20 @@ impl GuiFrontEnd {
 
         mux.subscribe(move |n| {
             match n {
+                MuxNotification::WorkspaceRenamed {
+                    old_workspace,
+                    new_workspace,
+                } => {
+                    let mux = Mux::get();
+                    let active = mux.active_workspace();
+                    if active == old_workspace || active == new_workspace {
+                        let switcher = WorkspaceSwitcher::new(&new_workspace);
+                        promise::spawn::spawn_into_main_thread(async move {
+                            drop(switcher);
+                        })
+                        .detach();
+                    }
+                }
                 MuxNotification::WindowWorkspaceChanged(_)
                 | MuxNotification::ActiveWorkspaceChanged(_)
                 | MuxNotification::WindowCreated(_)
