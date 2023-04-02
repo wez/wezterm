@@ -831,20 +831,28 @@ impl Config {
     pub fn update_ulimit(&self) -> anyhow::Result<()> {
         #[cfg(unix)]
         {
-            use nix::sys::resource::{getrlimit, setrlimit, Resource};
+            use nix::sys::resource::{getrlimit, rlim_t, setrlimit, Resource};
+            use std::convert::TryInto;
 
             let (no_file_soft, no_file_hard) = getrlimit(Resource::RLIMIT_NOFILE)?;
 
-            if no_file_soft < self.ulimit_nofile {
+            let ulimit_nofile: rlim_t = self.ulimit_nofile.try_into().with_context(|| {
+                format!(
+                    "ulimit_nofile value {} is out of range for this system",
+                    self.ulimit_nofile
+                )
+            })?;
+
+            if no_file_soft < ulimit_nofile {
                 setrlimit(
                     Resource::RLIMIT_NOFILE,
-                    self.ulimit_nofile.min(no_file_hard),
+                    ulimit_nofile.min(no_file_hard),
                     no_file_hard,
                 )
                 .with_context(|| {
                     format!(
                         "raise RLIMIT_NOFILE from {no_file_soft} to ulimit_nofile {}",
-                        self.ulimit_nofile
+                        ulimit_nofile
                     )
                 })?;
             }
@@ -852,20 +860,28 @@ impl Config {
 
         #[cfg(all(unix, not(target_os = "macos")))]
         {
-            use nix::sys::resource::{getrlimit, setrlimit, Resource};
+            use nix::sys::resource::{getrlimit, rlim_t, setrlimit, Resource};
+            use std::convert::TryInto;
 
             let (nproc_soft, nproc_hard) = getrlimit(Resource::RLIMIT_NPROC)?;
 
-            if nproc_soft < self.ulimit_nproc {
+            let ulimit_nproc: rlim_t = self.ulimit_nproc.try_into().with_context(|| {
+                format!(
+                    "ulimit_nproc value {} is out of range for this system",
+                    self.ulimit_nproc
+                )
+            })?;
+
+            if nproc_soft < ulimit_nproc {
                 setrlimit(
                     Resource::RLIMIT_NPROC,
-                    self.ulimit_nproc.min(nproc_hard),
+                    ulimit_nproc.min(nproc_hard),
                     nproc_hard,
                 )
                 .with_context(|| {
                     format!(
                         "raise RLIMIT_NPROC from {nproc_soft} to ulimit_nproc {}",
-                        self.ulimit_nproc
+                        ulimit_nproc
                     )
                 })?;
             }
