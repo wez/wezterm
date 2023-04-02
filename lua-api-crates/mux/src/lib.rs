@@ -63,6 +63,15 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     )?;
 
     mux_mod.set(
+        "rename_workspace",
+        lua.create_function(|_, (old_workspace, new_workspace): (String, String)| {
+            let mux = get_mux()?;
+            mux.rename_workspace(&old_workspace, &new_workspace);
+            Ok(())
+        })?,
+    )?;
+
+    mux_mod.set(
         "get_window",
         lua.create_function(|_, window_id: WindowId| {
             let mux = get_mux()?;
