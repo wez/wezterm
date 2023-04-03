@@ -262,6 +262,35 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     domains
 }
 
+fn have_panes_in_domain_and_ws(domain: &Arc<dyn Domain>, workspace: &Option<String>) -> bool {
+    let mux = Mux::get();
+    let have_panes_in_domain = mux
+        .iter_panes()
+        .iter()
+        .any(|p| p.domain_id() == domain.domain_id());
+
+    if !have_panes_in_domain {
+        return false;
+    }
+
+    if let Some(ws) = &workspace {
+        for window_id in mux.iter_windows_in_workspace(ws) {
+            if let Some(win) = mux.get_window(window_id) {
+                for t in win.iter() {
+                    for p in t.iter_panes_ignoring_zoom() {
+                        if p.pane.domain_id() == domain.domain_id() {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        false
+    } else {
+        true
+    }
+}
+
 async fn spawn_tab_in_domain_if_mux_is_empty(
     cmd: Option<CommandBuilder>,
     is_connecting: bool,
@@ -273,12 +302,7 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
     let domain = domain.unwrap_or_else(|| mux.default_domain());
 
     if !is_connecting {
-        let have_panes_in_domain = mux
-            .iter_panes()
-            .iter()
-            .any(|p| p.domain_id() == domain.domain_id());
-
-        if have_panes_in_domain {
+        if have_panes_in_domain_and_ws(&domain, &workspace) {
             return Ok(());
         }
     }
@@ -292,24 +316,19 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         // We use the TabAddedToWindow mux notification
         // to detect and adjust the size later on.
         let position = None;
-        let builder = mux.new_empty_window(workspace, position);
+        let builder = mux.new_empty_window(workspace.clone(), position);
         *builder
     };
 
+    let config = config::configuration();
+    config.update_ulimit()?;
+
     domain.attach(Some(window_id)).await?;
 
-    let have_panes_in_domain = mux
-        .iter_panes()
-        .iter()
-        .any(|p| p.domain_id() == domain.domain_id());
-
-    if have_panes_in_domain {
+    if have_panes_in_domain_and_ws(&domain, &workspace) {
         trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
         return Ok(());
     }
-
-    let config = config::configuration();
-    config.update_ulimit()?;
 
     let _config_subscription = config::subscribe_to_config_reload(move || {
         promise::spawn::spawn_into_main_thread(async move {
