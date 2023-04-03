@@ -32,4 +32,9 @@ If you use and like WezTerm, please consider sponsoring it: your support helps
 to cover the fees required to maintain the project and to validate the time
 spent working on it!
 
-[![Sponsor WezTerm](https://img.shields.io/github/sponsors/wez?label=Sponsor%20WezTerm&logo=github&style=for-the-badge)](https://github.com/sponsors/wez)
+[Read more about sponsoring](https://wezfurlong.org/wezterm/sponsor.html).
+
+* [![Sponsor WezTerm](https://img.shields.io/github/sponsors/wez?label=Sponsor%20WezTerm&logo=github&style=for-the-badge)](https://github.com/sponsors/wez)
+* [Patreon](https://patreon.com/WezFurlong)
+* [Ko-Fi](https://ko-fi.com/wezfurlong)
+* [Liberapay](https://liberapay.com/wez)
