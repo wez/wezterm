@@ -5166,6 +5166,7 @@ dependencies = [
  "terminfo",
  "termwiz",
  "wezterm-dynamic",
+ "wezterm-input-types",
 ]
 
 [[package]]

@@ -11,6 +11,7 @@ config = { path = "../../config" }
 finl_unicode = "1.2"
 terminfo = "0.8"
 wezterm-dynamic = { path = "../../wezterm-dynamic" }
+wezterm-input-types = { path = "../../wezterm-input-types" }
 luahelper = { path = "../../luahelper" }
 termwiz = { path = "../../termwiz", features=["use_serde"] }
 lazy_static = "1.4"

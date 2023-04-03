@@ -204,6 +204,8 @@ fn permute_mods<'lua>(
     item: mlua::Table,
     allow_none: bool,
 ) -> mlua::Result<Vec<mlua::Value<'lua>>> {
+    use wezterm_input_types::Modifiers;
+
     let mut result = vec![];
     for ctrl in &[Modifiers::NONE, Modifiers::CTRL] {
         for shift in &[Modifiers::NONE, Modifiers::SHIFT] {
@@ -219,7 +221,7 @@ fn permute_mods<'lua>(
                         let (k, v) = pair?;
                         new_item.set(k, v)?;
                     }
-                    new_item.set("mods", format!("{:?}", flags))?;
+                    new_item.set("mods", flags.to_string())?;
                     result.push(new_item.to_lua(lua)?);
                 }
             }
