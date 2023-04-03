@@ -30,5 +30,5 @@ wezterm-term = { path = "../term" }
 winapi = { version = "0.3", features = [ "winuser" ]}
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
+embed-resource = "2.1"
 cc = "1.0"
