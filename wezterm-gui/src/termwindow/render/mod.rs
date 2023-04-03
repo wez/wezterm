@@ -324,6 +324,7 @@ impl crate::TermWindow {
         );
         quad.set_texture(sprite);
         quad.set_fg_color(color);
+        quad.set_alt_color_and_mix_value(color, 0.);
         quad.set_hsv(None);
         quad.set_has_color(false);
         Ok(quad)
