@@ -528,7 +528,7 @@ impl CharSelector {
         {
             let mut row = self.selected_row.borrow_mut();
             let mut top_row = self.top_row.borrow_mut();
-            *row = row.min(limit-1);
+            *row = row.min(limit.saturating_sub(1));
             if *row < *top_row {
                 *top_row = *row;
             }
