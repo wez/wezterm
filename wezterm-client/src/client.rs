@@ -391,7 +391,11 @@ async fn client_thread_async(
             Ok(ReaderMessage::Readable) => {
                 match Pdu::decode_async(&mut stream, Some(next_serial)).await {
                     Ok(decoded) => {
-                        log::trace!("decoded serial {}", decoded.serial);
+                        log::debug!(
+                            "decoded serial {} {}",
+                            decoded.serial,
+                            decoded.pdu.pdu_name()
+                        );
                         if decoded.serial == 0 {
                             process_unilateral(local_domain_id, decoded)
                                 .context("processing unilateral PDU from server")

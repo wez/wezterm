@@ -361,17 +361,37 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
                 }
             }
         }
-        MuxNotification::WindowTitleChanged { window_id, title } => {
+        MuxNotification::WindowTitleChanged {
+            window_id,
+            title: _,
+        } => {
             if let Some(remote_window_id) = client_domain.local_to_remote_window_id(window_id) {
                 if let Some(inner) = client_domain.inner() {
-                    promise::spawn::spawn(async move {
-                        inner
-                            .client
-                            .set_window_title(codec::WindowTitleChanged {
-                                window_id: remote_window_id,
-                                title,
-                            })
-                            .await
+                    promise::spawn::spawn_into_main_thread(async move {
+                        // De-bounce the title propagation.
+                        // There is a bit of a race condition with these async
+                        // updates that can trigger a cycle of WindowTitleChanged
+                        // PDUs being exchanged between client and server if the
+                        // title is changed twice in quick succession.
+                        // To avoid that, here on the client, we wait a second
+                        // and then report the now-current name of the window, rather
+                        // than propagating the title encoded in the MuxNotification.
+                        smol::Timer::after(std::time::Duration::from_secs(1)).await;
+                        if let Some(mux) = Mux::try_get() {
+                            let title = mux
+                                .get_window(window_id)
+                                .map(|win| win.get_title().to_string());
+                            if let Some(title) = title {
+                                inner
+                                    .client
+                                    .set_window_title(codec::WindowTitleChanged {
+                                        window_id: remote_window_id,
+                                        title,
+                                    })
+                                    .await?;
+                            }
+                        }
+                        anyhow::Result::<()>::Ok(())
                     })
                     .detach();
                 }

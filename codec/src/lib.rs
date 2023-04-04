@@ -339,6 +339,7 @@ macro_rules! pdu {
                         Pdu::$name(s) => {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw($vers, serial, &data, is_compressed, w)?;
+                            log::debug!("encode {} size={encoded_size}", stringify!($name));
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
                             metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
@@ -354,9 +355,21 @@ macro_rules! pdu {
                         Pdu::$name(s) => {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw_async($vers, serial, &data, is_compressed, w).await?;
+                            log::debug!("encode_async {} size={encoded_size}", stringify!($name));
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
                             metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
+                        }
+                    ,)*
+                }
+            }
+
+            pub fn pdu_name(&self) -> &'static str {
+                match self {
+                    Pdu::Invalid{..} => "Invalid",
+                    $(
+                        Pdu::$name(_) => {
+                            stringify!($name)
                         }
                     ,)*
                 }
