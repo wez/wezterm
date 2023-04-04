@@ -510,12 +510,30 @@ impl CharSelector {
 
     fn move_up(&self, count: usize) {
         {
+            let count = if count==0 {
+                *self.max_rows_on_screen.borrow()
+            } else {
+                count
+            };
             let mut row = self.selected_row.borrow_mut();
             *row = row.saturating_sub(count);
         }
         self.nav_selection()
     }
 
+    fn move_down(&self, count: usize) {
+        {
+            let count = if count==0 {
+                *self.max_rows_on_screen.borrow()
+            } else {
+                count
+            };
+            let mut row = self.selected_row.borrow_mut();
+            *row = row.saturating_add(count);
+        }
+        self.nav_selection()
+    }
+    
     // handles selection constraints, moving list, keeping selection centered  
     fn nav_selection(&self) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
@@ -538,13 +556,6 @@ impl CharSelector {
         }
     }
 
-    fn move_down(&self, count: usize) {
-        {
-            let mut row = self.selected_row.borrow_mut();
-            *row = row.saturating_add(count);
-        }
-        self.nav_selection()
-    }
 }
 
 impl Modal for CharSelector {
@@ -587,10 +598,10 @@ impl Modal for CharSelector {
                 self.updated_input();
             }
             (KeyCode::PageUp, KeyModifiers::NONE) => {
-                self.move_up(6);
+                self.move_up(0);
             }
             (KeyCode::PageDown, KeyModifiers::NONE) => {
-                self.move_down(6);
+                self.move_down(0);
             }
             (KeyCode::UpArrow, KeyModifiers::NONE) => {
                 self.move_up(1);
