@@ -81,6 +81,8 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm connect --workspace WS DOM` didn't use the provided workspace when
   starting up the mux server. #2734
 * mux: `ClearScrollback` was not forwarded to remote server. #2624
+* ssh: `%r` `%h` and `%p` tokens were implicitly supported by libssh but stopped
+  working in `ProxyCommand` when we took over running the proxy command. #3437
 
 ### 20230326-111934-3666303c
 
