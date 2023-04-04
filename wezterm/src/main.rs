@@ -19,7 +19,7 @@ mod cli;
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
     version = wezterm_version()
 )]
-struct Opt {
+pub struct Opt {
     /// Skip loading wezterm.lua
     #[arg(long, short = 'n')]
     skip_config: bool,
@@ -275,7 +275,7 @@ fn run() -> anyhow::Result<()> {
         | SubCommand::Connect(_) => delegate_to_gui(saver),
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::SetCwd(cmd) => cmd.run(),
-        SubCommand::Cli(cli) => cli::run_cli(init_config(&opts)?, cli),
+        SubCommand::Cli(cli) => cli::run_cli(&opts, cli),
         SubCommand::Record(cmd) => cmd.run(init_config(&opts)?),
         SubCommand::Replay(cmd) => cmd.run(),
         SubCommand::ShellCompletion { shell } => {

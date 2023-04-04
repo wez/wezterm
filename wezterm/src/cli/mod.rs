@@ -148,7 +148,7 @@ Outputs the pane-id for the newly created pane on success"
     RenameWorkspace(rename_workspace::RenameWorkspace),
 }
 
-async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
+async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()> {
     let mut ui = mux::connui::ConnectionUI::new_headless();
     let initial = true;
 
@@ -169,8 +169,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
         CliSubCommand::SplitPane(cmd) => cmd.run(client).await,
         CliSubCommand::SendText(cmd) => cmd.run(client).await,
         CliSubCommand::GetText(cmd) => cmd.run(client).await,
-        CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &config).await,
-        CliSubCommand::Proxy(cmd) => cmd.run(client, &config).await,
+        CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
+        CliSubCommand::Proxy(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::TlsCreds(cmd) => cmd.run(client).await,
         CliSubCommand::ActivatePaneDirection(cmd) => cmd.run(client).await,
         CliSubCommand::KillPane(cmd) => cmd.run(client).await,
@@ -182,9 +182,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
     }
 }
 
-pub fn run_cli(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
+pub fn run_cli(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()> {
     let executor = promise::spawn::ScopedExecutor::new();
-    match promise::spawn::block_on(executor.run(async move { run_cli_async(config, cli).await })) {
+    match promise::spawn::block_on(executor.run(async move { run_cli_async(opts, cli).await })) {
         Ok(_) => Ok(()),
         Err(err) => crate::terminate_with_error(err),
     }
