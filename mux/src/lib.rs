@@ -1101,10 +1101,11 @@ impl Mux {
         &self,
         command_dir: Option<String>,
         pane: Option<Arc<dyn Pane>>,
+        target_domain: DomainId,
     ) -> Option<String> {
         command_dir.or_else(|| {
             match pane {
-                Some(pane) => pane
+                Some(pane) if pane.domain_id() == target_domain => pane
                     .get_current_working_dir()
                     .and_then(|url| {
                         percent_decode_str(url.path())
@@ -1123,7 +1124,7 @@ impl Mux {
                             path
                         }
                     }),
-                None => None,
+                _ => None,
             }
         })
     }
@@ -1159,7 +1160,11 @@ impl Mux {
                 command_dir,
             } => SplitSource::Spawn {
                 command,
-                command_dir: self.resolve_cwd(command_dir, Some(Arc::clone(&current_pane))),
+                command_dir: self.resolve_cwd(
+                    command_dir,
+                    Some(Arc::clone(&current_pane)),
+                    domain.domain_id(),
+                ),
             },
             other => other,
         };
@@ -1303,6 +1308,7 @@ impl Mux {
                 }
                 None => None,
             },
+            domain.domain_id(),
         );
 
         let tab = domain

@@ -87,6 +87,9 @@ As features stabilize some brief notes about them will accumulate here.
 * mux: [pane:has_unseen_output()](config/lua/pane/has_unseen_output.md) and
   [PaneInformation.has_unseen_output](config/lua/PaneInformation.md) now work
   with multiplexer panes. #2625
+* mux: attempting to split a remote pane into a different target domain could
+  produce a warning about the remote home directory not being readable to
+  the local machine or vice versa. #3442
 
 ### 20230326-111934-3666303c
 
