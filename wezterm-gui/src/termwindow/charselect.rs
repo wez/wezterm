@@ -510,7 +510,7 @@ impl CharSelector {
 
     fn move_up(&self, count: usize) {
         {
-            let count = if count==0 {
+            let count = if count == 0 {
                 *self.max_rows_on_screen.borrow()
             } else {
                 count
@@ -523,7 +523,7 @@ impl CharSelector {
 
     fn move_down(&self, count: usize) {
         {
-            let count = if count==0 {
+            let count = if count == 0 {
                 *self.max_rows_on_screen.borrow()
             } else {
                 count
@@ -533,8 +533,8 @@ impl CharSelector {
         }
         self.nav_selection()
     }
-    
-    // handles selection constraints, moving list, keeping selection centered  
+
+    // handles selection constraints, moving list, keeping selection centered
     fn nav_selection(&self) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
         let limit = self
@@ -555,7 +555,6 @@ impl CharSelector {
             }
         }
     }
-
 }
 
 impl Modal for CharSelector {
