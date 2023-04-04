@@ -509,30 +509,42 @@ impl CharSelector {
     }
 
     fn move_up(&self, count: usize) {
-        let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_sub(count);
-
-        let mut top_row = self.top_row.borrow_mut();
-        if *row < *top_row {
-            *top_row = *row;
+        {
+            let mut row = self.selected_row.borrow_mut();
+            *row = row.saturating_sub(count);
         }
+        self.nav_selection()
     }
 
-    fn move_down(&self, count:usize) {
+    // handles selection constraints, moving list, keeping selection centered  
+    fn nav_selection(&self) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
         let limit = self
             .matches
             .borrow()
             .as_ref()
             .map(|m| m.matches.len())
-            .unwrap_or_else(|| self.aliases.len())
-            .saturating_sub(count);
-        let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_add(count).min(limit);
-        let mut top_row = self.top_row.borrow_mut();
-        if *row + *top_row > max_rows_on_screen - count {
-            *top_row = row.saturating_sub(max_rows_on_screen - count);
+            .unwrap_or_else(|| self.aliases.len());
+        {
+            let mut row = self.selected_row.borrow_mut();
+            let mut top_row = self.top_row.borrow_mut();
+            *row = row.min(limit-1);
+            if *row < *top_row {
+                *top_row = *row;
+            }
+            // *row = row.saturating_add(count).min(limit);
+            if *row + *top_row > max_rows_on_screen / 2 {
+                *top_row = row.saturating_sub(max_rows_on_screen / 2);
+            }
         }
+    }
+
+    fn move_down(&self, count: usize) {
+        {
+            let mut row = self.selected_row.borrow_mut();
+            *row = row.saturating_add(count);
+        }
+        self.nav_selection()
     }
 }
 
