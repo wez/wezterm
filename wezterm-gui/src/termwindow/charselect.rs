@@ -508,9 +508,9 @@ impl CharSelector {
         *self.top_row.borrow_mut() = 0;
     }
 
-    fn move_up(&self) {
+    fn move_up(&self, count: usize) {
         let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_sub(1);
+        *row = row.saturating_sub(count);
 
         let mut top_row = self.top_row.borrow_mut();
         if *row < *top_row {
@@ -518,7 +518,7 @@ impl CharSelector {
         }
     }
 
-    fn move_down(&self) {
+    fn move_down(&self, count:usize) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
         let limit = self
             .matches
@@ -526,12 +526,12 @@ impl CharSelector {
             .as_ref()
             .map(|m| m.matches.len())
             .unwrap_or_else(|| self.aliases.len())
-            .saturating_sub(1);
+            .saturating_sub(count);
         let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_add(1).min(limit);
+        *row = row.saturating_add(count).min(limit);
         let mut top_row = self.top_row.borrow_mut();
-        if *row + *top_row > max_rows_on_screen - 1 {
-            *top_row = row.saturating_sub(max_rows_on_screen - 1);
+        if *row + *top_row > max_rows_on_screen - count {
+            *top_row = row.saturating_sub(max_rows_on_screen - count);
         }
     }
 }
@@ -575,11 +575,17 @@ impl Modal for CharSelector {
                 self.selection.borrow_mut().clear();
                 self.updated_input();
             }
+            (KeyCode::PageUp, KeyModifiers::NONE) => {
+                self.move_up(6);
+            }
+            (KeyCode::PageDown, KeyModifiers::NONE) => {
+                self.move_down(6);
+            }
             (KeyCode::UpArrow, KeyModifiers::NONE) => {
-                self.move_up();
+                self.move_up(1);
             }
             (KeyCode::DownArrow, KeyModifiers::NONE) => {
-                self.move_down();
+                self.move_down(1);
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                 // Type to add to the selection
