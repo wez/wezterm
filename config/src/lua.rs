@@ -5,17 +5,15 @@ use crate::{
     TextStyle,
 };
 use anyhow::{anyhow, Context};
-use luahelper::{dynamic_to_lua_value, from_lua_value_dynamic, lua_value_to_dynamic, to_lua};
-use mlua::{
-    FromLua, Lua, MetaMethod, Table, ToLuaMulti, UserData, UserDataMethods, Value, Variadic,
-};
+use luahelper::{from_lua_value_dynamic, lua_value_to_dynamic, to_lua};
+use mlua::{FromLua, Lua, Table, ToLuaMulti, Value, Variadic};
 use ordered_float::NotNan;
 use portable_pty::CommandBuilder;
 use std::convert::TryFrom;
 use std::path::Path;
 use std::sync::Mutex;
 use wezterm_dynamic::{
-    FromDynamic, FromDynamicOptions, Object, ToDynamic, UnknownFieldAction, Value as DynValue,
+    FromDynamic, FromDynamicOptions, ToDynamic, UnknownFieldAction, Value as DynValue,
 };
 
 pub use mlua;
@@ -74,131 +72,117 @@ pub fn get_or_create_sub_module<'lua>(
     }
 }
 
-#[derive(Default)]
-struct ConfigHelper {
-    object: Object,
-    options: FromDynamicOptions,
+fn config_builder_set_strict_mode<'lua>(
+    _lua: &'lua Lua,
+    (myself, strict): (Table, bool),
+) -> mlua::Result<()> {
+    let mt = myself
+        .get_metatable()
+        .ok_or_else(|| mlua::Error::external("impossible that we have no metatable"))?;
+    mt.set("__strict_mode", strict)
 }
 
-impl ConfigHelper {
-    fn new() -> Self {
-        Self {
-            object: Object::default(),
-            options: FromDynamicOptions {
-                unknown_fields: UnknownFieldAction::Deny,
-                deprecated_fields: UnknownFieldAction::Warn,
-            },
-        }
+fn config_builder_index<'lua>(
+    _lua: &'lua Lua,
+    (myself, key): (Table<'lua>, mlua::Value<'lua>),
+) -> mlua::Result<mlua::Value<'lua>> {
+    let mt = myself
+        .get_metatable()
+        .ok_or_else(|| mlua::Error::external("impossible that we have no metatable"))?;
+    match mt.get(key.clone()) {
+        Ok(value) => Ok(value),
+        _ => myself.raw_get(key),
     }
+}
 
-    fn index<'lua>(&self, lua: &'lua Lua, key: String) -> mlua::Result<Value<'lua>> {
-        match self.object.get_by_str(&key) {
-            Some(value) => dynamic_to_lua_value(lua, value.clone()),
-            None => Ok(Value::Nil),
+fn config_builder_new_index<'lua>(
+    lua: &'lua Lua,
+    (myself, key, value): (Table, String, Value),
+) -> mlua::Result<()> {
+    let stub_config = lua.create_table()?;
+    stub_config.set(key.clone(), value.clone())?;
+
+    let dvalue = lua_value_to_dynamic(Value::Table(stub_config)).map_err(|e| {
+        mlua::Error::FromLuaConversionError {
+            from: "table",
+            to: "Config",
+            message: Some(format!("lua_value_to_dynamic: {e}")),
         }
-    }
+    })?;
 
-    fn new_index<'lua>(&mut self, lua: &'lua Lua, key: String, value: Value) -> mlua::Result<()> {
-        let stub_config = lua.create_table()?;
-        stub_config.set(key.clone(), value.clone())?;
+    let mt = myself
+        .get_metatable()
+        .ok_or_else(|| mlua::Error::external("impossible that we have no metatable"))?;
+    let strict = match mt.get("__strict_mode") {
+        Ok(Value::Boolean(b)) => b,
+        _ => true,
+    };
 
-        let value = lua_value_to_dynamic(Value::Table(stub_config)).map_err(|e| {
-            mlua::Error::FromLuaConversionError {
-                from: "table",
-                to: "Config",
-                message: Some(format!("lua_value_to_dynamic: {e}")),
-            }
-        })?;
+    let options = FromDynamicOptions {
+        unknown_fields: if strict {
+            UnknownFieldAction::Deny
+        } else {
+            UnknownFieldAction::Warn
+        },
+        deprecated_fields: UnknownFieldAction::Warn,
+    };
 
-        let config_object = Config::from_dynamic(&value, self.options).map_err(|e| {
-            mlua::Error::FromLuaConversionError {
-                from: "table",
-                to: "Config",
-                message: Some(format!("Config::from_dynamic: {e}")),
-            }
-        })?;
+    let config_object = Config::from_dynamic(&dvalue, options).map_err(|e| {
+        mlua::Error::FromLuaConversionError {
+            from: "table",
+            to: "Config",
+            message: Some(format!("Config::from_dynamic: {e}")),
+        }
+    })?;
 
-        match config_object.to_dynamic() {
-            DynValue::Object(obj) => {
-                match obj.get_by_str(&key) {
-                    None => {
-                        // Show a stack trace to help them figure out where they made
-                        // a mistake. This path is taken when they are not in strict
-                        // mode, and we want to print some more context after the from_dynamic
-                        // impl has logged a warning and suggested alternative field names.
-                        let mut message =
-                            format!("Attempted to set invalid config option `{key}` at:\n");
-                        // Start at frame 1, our caller, as the frame for invoking this
-                        // metamethod is not interesting
-                        for i in 1.. {
-                            if let Some(debug) = lua.inspect_stack(i) {
-                                let names = debug.names();
-                                let name = names.name.map(String::from_utf8_lossy);
-                                let name_what = names.name_what.map(String::from_utf8_lossy);
+    match config_object.to_dynamic() {
+        DynValue::Object(obj) => {
+            match obj.get_by_str(&key) {
+                None => {
+                    // Show a stack trace to help them figure out where they made
+                    // a mistake. This path is taken when they are not in strict
+                    // mode, and we want to print some more context after the from_dynamic
+                    // impl has logged a warning and suggested alternative field names.
+                    let mut message =
+                        format!("Attempted to set invalid config option `{key}` at:\n");
+                    // Start at frame 1, our caller, as the frame for invoking this
+                    // metamethod is not interesting
+                    for i in 1.. {
+                        if let Some(debug) = lua.inspect_stack(i) {
+                            let names = debug.names();
+                            let name = names.name.map(String::from_utf8_lossy);
+                            let name_what = names.name_what.map(String::from_utf8_lossy);
 
-                                let dbg_source = debug.source();
-                                let source = dbg_source
-                                    .source
-                                    .and_then(|b| String::from_utf8(b.to_vec()).ok())
-                                    .unwrap_or_default();
-                                let func_name = match (name, name_what) {
-                                    (Some(name), Some(name_what)) => format!("{name_what} {name}"),
-                                    (Some(name), None) => format!("{name}"),
-                                    _ => "".to_string(),
-                                };
+                            let dbg_source = debug.source();
+                            let source = dbg_source
+                                .source
+                                .and_then(|b| String::from_utf8(b.to_vec()).ok())
+                                .unwrap_or_default();
+                            let func_name = match (name, name_what) {
+                                (Some(name), Some(name_what)) => {
+                                    format!("{name_what} {name}")
+                                }
+                                (Some(name), None) => format!("{name}"),
+                                _ => "".to_string(),
+                            };
 
-                                let line = debug.curr_line();
-                                message
-                                    .push_str(&format!("    [{i}] {source}:{line} {func_name}\n"));
-                            } else {
-                                break;
-                            }
+                            let line = debug.curr_line();
+                            message.push_str(&format!("    [{i}] {source}:{line} {func_name}\n"));
+                        } else {
+                            break;
                         }
-                        wezterm_dynamic::Error::warn(message);
                     }
-                    Some(value) => {
-                        self.object.insert(DynValue::String(key), value.clone());
-                    }
-                };
-                Ok(())
-            }
-            _ => Err(mlua::Error::external(
-                "computed config object is, impossibly, not an object",
-            )),
-        }
-    }
-}
-
-impl UserData for ConfigHelper {
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method_mut(
-            MetaMethod::NewIndex,
-            |lua, this, (key, value): (String, Value)| -> mlua::Result<()> {
-                Self::new_index(this, lua, key, value)
-            },
-        );
-
-        methods.add_meta_method(
-            MetaMethod::Index,
-            |lua, this, key: String| -> mlua::Result<Value> { Self::index(this, lua, key) },
-        );
-
-        methods.add_meta_method(
-            MetaMethod::Custom("__wezterm_to_dynamic".into()),
-            |lua, this, _: ()| -> mlua::Result<Value> {
-                let value = DynValue::Object(this.object.clone());
-                to_lua(lua, value)
-            },
-        );
-
-        methods.add_method_mut("set_strict_mode", |_, this, strict: bool| {
-            this.options.unknown_fields = if strict {
-                UnknownFieldAction::Deny
-            } else {
-                UnknownFieldAction::Warn
+                    wezterm_dynamic::Error::warn(message);
+                }
+                Some(_dvalue) => {
+                    myself.raw_set(key, value)?;
+                }
             };
             Ok(())
-        });
+        }
+        _ => Err(mlua::Error::external(
+            "computed config object is, impossibly, not an object",
+        )),
     }
 }
 
@@ -300,7 +284,21 @@ end
 
         wezterm_mod.set(
             "config_builder",
-            lua.create_function(|_, _: ()| Ok(ConfigHelper::new()))?,
+            lua.create_function(|lua, _: ()| {
+                let config = lua.create_table()?;
+                let mt = lua.create_table()?;
+
+                mt.set("__index", lua.create_function(config_builder_index)?)?;
+                mt.set("__newindex", lua.create_function(config_builder_new_index)?)?;
+                mt.set(
+                    "set_strict_mode",
+                    lua.create_function(config_builder_set_strict_mode)?,
+                )?;
+
+                config.set_metatable(Some(mt));
+
+                Ok(config)
+            })?,
         )?;
 
         wezterm_mod.set(

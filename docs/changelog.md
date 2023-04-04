@@ -90,6 +90,7 @@ As features stabilize some brief notes about them will accumulate here.
 * mux: attempting to split a remote pane into a different target domain could
   produce a warning about the remote home directory not being readable to
   the local machine or vice versa. #3442
+* `wezterm.config_builder` now works with `table.insert(config.keys, {..})`
 
 ### 20230326-111934-3666303c
 
