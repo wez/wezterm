@@ -47,6 +47,7 @@ pub struct ClientPane {
     ignore_next_kill: Mutex<bool>,
     user_vars: Mutex<HashMap<String, String>>,
     config: Mutex<Option<Arc<dyn TerminalConfiguration>>>,
+    unseen_output: Mutex<bool>,
 }
 
 impl ClientPane {
@@ -125,6 +126,7 @@ impl ClientPane {
             clipboard: Mutex::new(None),
             mouse_grabbed: Mutex::new(false),
             ignore_next_kill: Mutex::new(false),
+            unseen_output: Mutex::new(false),
             user_vars: Mutex::new(HashMap::new()),
             config: Mutex::new(None),
         }
@@ -180,6 +182,13 @@ impl ClientPane {
                 match &alert {
                     Alert::SetUserVar { name, value } => {
                         self.user_vars.lock().insert(name.clone(), value.clone());
+                    }
+                    Alert::OutputSinceFocusLost => {
+                        *self.unseen_output.lock() = true;
+                        mux.notify(MuxNotification::Alert {
+                            pane_id: self.local_pane_id,
+                            alert: Alert::OutputSinceFocusLost,
+                        });
                     }
                     _ => {}
                 }
@@ -535,6 +544,7 @@ impl Pane for ClientPane {
     fn focus_changed(&self, focused: bool) {
         if focused {
             self.advise_focus();
+            *self.unseen_output.lock() = false;
         }
     }
 
@@ -569,6 +579,10 @@ impl Pane for ClientPane {
             })
             .detach();
         }
+    }
+
+    fn has_unseen_output(&self) -> bool {
+        *self.unseen_output.lock()
     }
 
     fn can_close_without_prompting(&self, reason: CloseReason) -> bool {

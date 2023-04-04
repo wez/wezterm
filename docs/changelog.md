@@ -84,6 +84,9 @@ As features stabilize some brief notes about them will accumulate here.
 * ssh: `%r` `%h` and `%p` tokens were implicitly supported by libssh but stopped
   working in `ProxyCommand` when we took over running the proxy command. #3437
 * mux: Improved latency for large window sizes. #1872
+* mux: [pane:has_unseen_output()](config/lua/pane/has_unseen_output.md) and
+  [PaneInformation.has_unseen_output](config/lua/PaneInformation.md) now work
+  with multiplexer panes. #2625
 
 ### 20230326-111934-3666303c
 
