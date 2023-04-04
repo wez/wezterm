@@ -532,7 +532,6 @@ impl CharSelector {
             if *row < *top_row {
                 *top_row = *row;
             }
-            // *row = row.saturating_add(count).min(limit);
             if *row + *top_row > max_rows_on_screen / 2 {
                 *top_row = row.saturating_sub(max_rows_on_screen / 2);
             }
