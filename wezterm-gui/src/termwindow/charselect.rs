@@ -508,30 +508,51 @@ impl CharSelector {
         *self.top_row.borrow_mut() = 0;
     }
 
-    fn move_up(&self) {
-        let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_sub(1);
-
-        let mut top_row = self.top_row.borrow_mut();
-        if *row < *top_row {
-            *top_row = *row;
+    fn move_up(&self, count: usize) {
+        {
+            let count = if count == 0 {
+                *self.max_rows_on_screen.borrow()
+            } else {
+                count
+            };
+            let mut row = self.selected_row.borrow_mut();
+            *row = row.saturating_sub(count);
         }
+        self.nav_selection()
     }
 
-    fn move_down(&self) {
+    fn move_down(&self, count: usize) {
+        {
+            let count = if count == 0 {
+                *self.max_rows_on_screen.borrow()
+            } else {
+                count
+            };
+            let mut row = self.selected_row.borrow_mut();
+            *row = row.saturating_add(count);
+        }
+        self.nav_selection()
+    }
+
+    // handles selection constraints, moving list, keeping selection centered
+    fn nav_selection(&self) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
         let limit = self
             .matches
             .borrow()
             .as_ref()
             .map(|m| m.matches.len())
-            .unwrap_or_else(|| self.aliases.len())
-            .saturating_sub(1);
-        let mut row = self.selected_row.borrow_mut();
-        *row = row.saturating_add(1).min(limit);
-        let mut top_row = self.top_row.borrow_mut();
-        if *row + *top_row > max_rows_on_screen - 1 {
-            *top_row = row.saturating_sub(max_rows_on_screen - 1);
+            .unwrap_or_else(|| self.aliases.len());
+        {
+            let mut row = self.selected_row.borrow_mut();
+            let mut top_row = self.top_row.borrow_mut();
+            *row = row.min(limit.saturating_sub(1));
+            if *row < *top_row {
+                *top_row = *row;
+            }
+            if *row + *top_row > max_rows_on_screen / 2 {
+                *top_row = row.saturating_sub(max_rows_on_screen / 2);
+            }
         }
     }
 }
@@ -575,11 +596,17 @@ impl Modal for CharSelector {
                 self.selection.borrow_mut().clear();
                 self.updated_input();
             }
+            (KeyCode::PageUp, KeyModifiers::NONE) => {
+                self.move_up(0);
+            }
+            (KeyCode::PageDown, KeyModifiers::NONE) => {
+                self.move_down(0);
+            }
             (KeyCode::UpArrow, KeyModifiers::NONE) => {
-                self.move_up();
+                self.move_up(1);
             }
             (KeyCode::DownArrow, KeyModifiers::NONE) => {
-                self.move_down();
+                self.move_down(1);
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                 // Type to add to the selection
