@@ -27,6 +27,7 @@ for cmd in \
     activate-pane \
     activate-pane-direction \
     activate-tab \
+    get-pane-direction \
     get-text \
     kill-pane \
     list \

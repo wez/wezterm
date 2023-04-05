@@ -7,6 +7,7 @@ use wezterm_client::client::Client;
 mod activate_pane;
 mod activate_pane_direction;
 mod activate_tab;
+mod get_pane_direction;
 mod get_text;
 mod kill_pane;
 mod list;
@@ -123,6 +124,13 @@ Outputs the pane-id for the newly created pane on success"
     #[command(name = "activate-pane-direction", rename_all = "kebab")]
     ActivatePaneDirection(activate_pane_direction::ActivatePaneDirection),
 
+    /// Determine the adjacent pane in the specified direction.
+    ///
+    /// Prints the pane id in that direction, or nothing if there
+    /// is no pane in that direction.
+    #[command(name = "get-pane-direction", rename_all = "kebab")]
+    GetPaneDirection(get_pane_direction::GetPaneDirection),
+
     /// Kill a pane
     #[command(name = "kill-pane", rename_all = "kebab")]
     KillPane(kill_pane::KillPane),
@@ -173,6 +181,7 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::Proxy(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::TlsCreds(cmd) => cmd.run(client).await,
         CliSubCommand::ActivatePaneDirection(cmd) => cmd.run(client).await,
+        CliSubCommand::GetPaneDirection(cmd) => cmd.run(client).await,
         CliSubCommand::KillPane(cmd) => cmd.run(client).await,
         CliSubCommand::ActivatePane(cmd) => cmd.run(client).await,
         CliSubCommand::ActivateTab(cmd) => cmd.run(client).await,

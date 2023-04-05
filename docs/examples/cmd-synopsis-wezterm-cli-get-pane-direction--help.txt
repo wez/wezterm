@@ -1,0 +1,20 @@
+Determine the adjacent pane in the specified direction.
+
+Prints the pane id in that direction, or nothing if there is no pane in that
+direction.
+
+Usage: wezterm cli get-pane-direction [OPTIONS] <DIRECTION>
+
+Arguments:
+  <DIRECTION>
+          The direction to consider
+          
+          [possible values: Up, Down, Left, Right, Next, Prev]
+
+Options:
+      --pane-id <PANE_ID>
+          Specify the current pane. The default is to use the current pane based
+          on the environment variable WEZTERM_PANE
+
+  -h, --help
+          Print help (see a summary with '-h')

@@ -1322,4 +1322,9 @@ impl Client {
     rpc!(set_window_title, WindowTitleChanged, UnitResponse);
     rpc!(rename_workspace, RenameWorkspace, UnitResponse);
     rpc!(erase_scrollback, EraseScrollbackRequest, UnitResponse);
+    rpc!(
+        get_pane_direction,
+        GetPaneDirection,
+        GetPaneDirectionResponse
+    );
 }

@@ -542,6 +542,32 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::GetPaneDirection(GetPaneDirection { pane_id, direction }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let (_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            let panes = tab.iter_panes_ignoring_zoom();
+                            let pane_id = tab
+                                .get_pane_direction(direction, true)
+                                .map(|pane_index| panes[pane_index].pane.pane_id());
+
+                            Ok(Pdu::GetPaneDirectionResponse(GetPaneDirectionResponse {
+                                pane_id,
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::ActivatePaneDirection(ActivatePaneDirection { pane_id, direction }) => {
                 spawn_into_main_thread(async move {
                     catch(
@@ -896,6 +922,7 @@ impl SessionHandler {
             | Pdu::GetPaneRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::LivenessResponse { .. }
+            | Pdu::GetPaneDirectionResponse { .. }
             | Pdu::SearchScrollbackResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }

@@ -205,9 +205,18 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (activate-pane-direction)
 _arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
 '-h[Print help]' \
 '--help[Print help]' \
 ':direction -- The direction to switch to:(Up Down Left Right Next Prev)' \
+&& ret=0
+;;
+(get-pane-direction)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':direction -- The direction to consider:(Up Down Left Right Next Prev)' \
 && ret=0
 ;;
 (kill-pane)
@@ -311,6 +320,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (activate-pane-direction)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(get-pane-direction)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -478,6 +491,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(get-pane-direction)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (kill-pane)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -618,6 +635,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \
@@ -643,6 +661,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \
@@ -661,6 +680,21 @@ _wezterm__connect_commands() {
 _wezterm__help__connect_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm help connect commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__get-pane-direction_commands] )) ||
+_wezterm__cli__get-pane-direction_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli get-pane-direction commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__get-pane-direction_commands] )) ||
+_wezterm__cli__help__get-pane-direction_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help get-pane-direction commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__get-pane-direction_commands] )) ||
+_wezterm__help__cli__get-pane-direction_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli get-pane-direction commands' commands "$@"
 }
 (( $+functions[_wezterm__cli__get-text_commands] )) ||
 _wezterm__cli__get-text_commands() {
@@ -692,6 +726,7 @@ Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
+'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
 'activate-tab:Activate a tab' \

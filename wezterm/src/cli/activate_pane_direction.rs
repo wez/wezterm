@@ -32,7 +32,7 @@ impl ActivatePaneDirection {
 }
 
 #[derive(Clone, Copy)]
-struct PaneDirectionParser {}
+pub struct PaneDirectionParser {}
 
 impl clap::builder::TypedValueParser for PaneDirectionParser {
     type Value = PaneDirection;
