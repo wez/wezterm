@@ -42,6 +42,13 @@ pub struct CharSelector {
     copy_to: ClipboardCopyDestination,
 }
 
+enum Move {
+    Up(usize),
+    Down(usize),
+    PageUp,
+    PageDown,
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Character {
     Unicode { name: &'static str, value: char },
@@ -508,33 +515,20 @@ impl CharSelector {
         *self.top_row.borrow_mut() = 0;
     }
 
-    fn move_up(&self, count: usize) {
-        {
-            let count = if count == 0 {
-                *self.max_rows_on_screen.borrow()
-            } else {
-                count
-            };
-            let mut row = self.selected_row.borrow_mut();
-            *row = row.saturating_sub(count);
-        }
-        self.nav_selection()
+    fn do_move(&self, how: Move) {
+        let page_size = *self.max_rows_on_screen.borrow();
+        let current_row = *self.selected_row.borrow();
+        let dest = match how {
+            Move::Up(n) => current_row.saturating_sub(n),
+            Move::PageUp => current_row.saturating_sub(page_size),
+            Move::Down(n) => current_row.saturating_add(n),
+            Move::PageDown => current_row.saturating_add(page_size),
+        };
+        *self.selected_row.borrow_mut() = dest;
+        self.nav_selection();
     }
 
-    fn move_down(&self, count: usize) {
-        {
-            let count = if count == 0 {
-                *self.max_rows_on_screen.borrow()
-            } else {
-                count
-            };
-            let mut row = self.selected_row.borrow_mut();
-            *row = row.saturating_add(count);
-        }
-        self.nav_selection()
-    }
-
-    // handles selection constraints, moving list, keeping selection centered
+    /// handles selection constraints, moving list, keeping selection centered
     fn nav_selection(&self) {
         let max_rows_on_screen = *self.max_rows_on_screen.borrow();
         let limit = self
@@ -597,16 +591,16 @@ impl Modal for CharSelector {
                 self.updated_input();
             }
             (KeyCode::PageUp, KeyModifiers::NONE) => {
-                self.move_up(0);
+                self.do_move(Move::PageUp);
             }
             (KeyCode::PageDown, KeyModifiers::NONE) => {
-                self.move_down(0);
+                self.do_move(Move::PageDown);
             }
             (KeyCode::UpArrow, KeyModifiers::NONE) => {
-                self.move_up(1);
+                self.do_move(Move::Up(1));
             }
             (KeyCode::DownArrow, KeyModifiers::NONE) => {
-                self.move_down(1);
+                self.do_move(Move::Down(1));
             }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                 // Type to add to the selection
