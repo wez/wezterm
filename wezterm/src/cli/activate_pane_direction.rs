@@ -2,10 +2,17 @@ use crate::cli::resolve_pane_id;
 use clap::builder::PossibleValue;
 use clap::Parser;
 use config::keyassignment::PaneDirection;
+use mux::pane::PaneId;
 use wezterm_client::client::Client;
 
 #[derive(Debug, Parser, Clone)]
 pub struct ActivatePaneDirection {
+    /// Specify the current pane.
+    /// The default is to use the current pane based on the
+    /// environment variable WEZTERM_PANE.
+    #[arg(long)]
+    pane_id: Option<PaneId>,
+
     /// The direction to switch to.
     #[arg(value_parser=PaneDirectionParser{})]
     direction: PaneDirection,
@@ -13,7 +20,7 @@ pub struct ActivatePaneDirection {
 
 impl ActivatePaneDirection {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
-        let pane_id = resolve_pane_id(&client, None).await?;
+        let pane_id = resolve_pane_id(&client, self.pane_id).await?;
         client
             .activate_pane_direction(codec::ActivatePaneDirection {
                 pane_id,
