@@ -446,6 +446,14 @@ pub struct QuickSelectArguments {
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+pub struct PromptInputLine {
+    pub action: Box<KeyAssignment>,
+    /// Descriptive text to show ahead of prompt
+    #[dynamic(default)]
+    pub description: String,
+}
+
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -550,6 +558,7 @@ pub enum KeyAssignment {
     ActivateWindow(usize),
     ActivateWindowRelative(isize),
     ActivateWindowRelativeNoWrap(isize),
+    PromptInputLine(PromptInputLine),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

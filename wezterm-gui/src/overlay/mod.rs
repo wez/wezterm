@@ -10,6 +10,7 @@ pub mod confirm_close_pane;
 pub mod copy;
 pub mod debug;
 pub mod launcher;
+pub mod prompt;
 pub mod quickselect;
 
 pub use confirm_close_pane::{

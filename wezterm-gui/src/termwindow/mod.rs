@@ -28,8 +28,8 @@ use ::wezterm_term::input::{ClickPosition, MouseButton as TMB};
 use ::window::*;
 use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
-    KeyAssignment, PaneDirection, Pattern, QuickSelectArguments, RotationDirection, SpawnCommand,
-    SplitSize,
+    KeyAssignment, PaneDirection, Pattern, PromptInputLine, QuickSelectArguments,
+    RotationDirection, SpawnCommand, SplitSize,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, Dimension, DimensionContext, FrontEndSelection,
@@ -2109,6 +2109,30 @@ impl TermWindow {
         Ok(())
     }
 
+    fn show_prompt_input_line(&mut self, args: &PromptInputLine) {
+        let mux = Mux::get();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return,
+        };
+
+        let args = args.clone();
+
+        let gui_win = GuiWin::new(self);
+        let pane = MuxPane(pane.pane_id());
+
+        let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
+            crate::overlay::prompt::show_line_prompt_overlay(term, args, gui_win, pane)
+        });
+        self.assign_overlay(tab.tab_id(), overlay);
+        promise::spawn::spawn(future).detach();
+    }
+
     fn show_debug_overlay(&mut self) {
         let mux = Mux::get();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -2862,6 +2886,7 @@ impl TermWindow {
                 let modal = crate::termwindow::palette::CommandPalette::new(self);
                 self.set_modal(Rc::new(modal));
             }
+            PromptInputLine(args) => self.show_prompt_input_line(args),
         };
         Ok(PerformAssignmentResult::Handled)
     }
