@@ -134,6 +134,13 @@ void main() {
     // Grayscale poly quad for non-aa text render layers
     colorMask = texture(atlas_nearest_sampler, o_tex);
     color = fg_color;
+    // On Intel hardware/drivers, we need to recompute the alpha this way.
+    // We don't know why; it doesn't make sense.
+    // The inputs are already in range and work fine on other platforms.
+    // See discussion starting at:
+    // <https://github.com/wez/wezterm/issues/1180#issuecomment-1496102764>
+    // for the background.
+    color.a = mix(o_fg_color.a, o_fg_color_alt.a, clamp(o_fg_color_mix, 0.0, 1.0));
     color.a *= colorMask.a;
   } else if (o_has_color == 0.0) {
     // the texture is the alpha channel/color mask
