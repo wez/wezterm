@@ -247,7 +247,9 @@ impl SessionHandler {
         let serial = decoded.serial;
 
         if let Some(client_id) = &self.client_id {
-            Mux::get().client_had_input(client_id);
+            if decoded.pdu.is_user_input() {
+                Mux::get().client_had_input(client_id);
+            }
         }
 
         let send_response = move |result: anyhow::Result<Pdu>| {
@@ -303,13 +305,45 @@ impl SessionHandler {
             Pdu::SetFocusedPane(SetFocusedPane { pane_id }) => {
                 let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    let mux = Mux::get();
-                    let _identity = mux.with_identity(client_id);
-                    mux.record_focus_for_current_identity(pane_id);
-                    mux.notify(mux::MuxNotification::PaneFocused(pane_id));
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let _identity = mux.with_identity(client_id);
+                            log::info!("doing SetFocusedPane {pane_id}");
+
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
+
+                            let (_domain_id, window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow::anyhow!("pane {pane_id} not found"))?;
+                            {
+                                let mut window =
+                                    mux.get_window_mut(window_id).ok_or_else(|| {
+                                        anyhow::anyhow!("window {window_id} not found")
+                                    })?;
+                                let tab_idx = window.idx_by_id(tab_id).ok_or_else(|| {
+                                    anyhow::anyhow!(
+                                        "tab {tab_id} isn't really in window {window_id}!?"
+                                    )
+                                })?;
+                                window.save_and_then_set_active(tab_idx);
+                            }
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow::anyhow!("tab {tab_id} not found"))?;
+                            tab.set_active_pane(&pane);
+
+                            mux.record_focus_for_current_identity(pane_id);
+                            mux.notify(mux::MuxNotification::PaneFocused(pane_id));
+
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
                 })
                 .detach();
-                send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
             }
             Pdu::GetClientList(GetClientList) => {
                 spawn_into_main_thread(async move {

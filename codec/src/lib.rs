@@ -492,6 +492,23 @@ pdu! {
 }
 
 impl Pdu {
+    /// Returns true if this type of Pdu represents action taken
+    /// directly by a user, rather than background traffic on
+    /// a live connection
+    pub fn is_user_input(&self) -> bool {
+        match self {
+            Self::WriteToPane(_)
+            | Self::SendKeyDown(_)
+            | Self::SendMouseEvent(_)
+            | Self::SendPaste(_)
+            | Self::Resize(_)
+            | Self::SetClipboard(_)
+            | Self::SetPaneZoomed(_)
+            | Self::SpawnV2(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn stream_decode(buffer: &mut Vec<u8>) -> anyhow::Result<Option<DecodedPdu>> {
         let mut cursor = Cursor::new(buffer.as_slice());
         match Self::decode(&mut cursor) {
