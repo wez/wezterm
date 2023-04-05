@@ -309,7 +309,6 @@ impl SessionHandler {
                         move || {
                             let mux = Mux::get();
                             let _identity = mux.with_identity(client_id);
-                            log::info!("doing SetFocusedPane {pane_id}");
 
                             let pane = mux
                                 .get_pane(pane_id)
