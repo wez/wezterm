@@ -21,16 +21,32 @@ but it demonstrates that it is possible to format more than just the text
 shown in the tab.
 
 ```lua
+-- This function returns the suggested title for a tab.
+-- It prefers the title that was set via `tab:set_title()`
+-- or `wezterm cli set-tab-title`, but falls back to the
+-- title of the active pane in that tab.
+function tab_title(tab_info) 
+    local title = tab_info.tab_title
+    -- if the tab title is explicitly set, take that
+    if title and #title > 0 then
+        return title
+    end
+    -- Otherwise, use the title from the active pane
+    -- in that tab
+    return tab.active_pane.title
+end
+
 wezterm.on(
   'format-tab-title',
   function(tab, tabs, panes, config, hover, max_width)
+    local title = tab_title(tab)
     if tab.is_active then
       return {
         { Background = { Color = 'blue' } },
-        { Text = ' ' .. tab.active_pane.title .. ' ' },
+        { Text = ' ' .. title .. ' ' },
       }
     end
-    return tab.active_pane.title
+    return title
   end
 )
 ```
@@ -70,10 +86,26 @@ A more elaborate example:
 local wezterm = require 'wezterm'
 
 -- The filled in variant of the < symbol
-local SOLID_LEFT_ARROW = utf8.char(0xe0b2)
+local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
 
 -- The filled in variant of the > symbol
-local SOLID_RIGHT_ARROW = utf8.char(0xe0b0)
+local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
+
+-- This function returns the suggested title for a tab.
+-- It prefers the title that was set via `tab:set_title()`
+-- or `wezterm cli set-tab-title`, but falls back to the
+-- title of the active pane in that tab.
+function tab_title(tab_info) 
+    local title = tab_info.tab_title
+    -- if the tab title is explicitly set, take that
+    if title and #title > 0 then
+        return title
+    end
+    -- Otherwise, use the title from the active pane
+    -- in that tab
+    return tab.active_pane.title
+end
+
 
 wezterm.on(
   'format-tab-title',
@@ -92,9 +124,11 @@ wezterm.on(
 
     local edge_foreground = background
 
+    local title = tab_title(tab)
+
     -- ensure that the titles fit in the available space,
     -- and that we have room for the edges.
-    local title = wezterm.truncate_right(tab.active_pane.title, max_width - 2)
+    title = wezterm.truncate_right(title, max_width - 2)
 
     return {
       { Background = { Color = edge_background } },
