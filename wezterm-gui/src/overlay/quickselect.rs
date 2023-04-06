@@ -204,6 +204,14 @@ impl QuickSelectOverlay {
                 have_patterns = true;
             }
         } else {
+            // User-provided patterns take precedence over built-ins
+            for p in &config.quick_select_patterns {
+                if have_patterns {
+                    pattern.push('|');
+                }
+                pattern.push_str(p);
+                have_patterns = true;
+            }
             if !config.disable_default_quick_select_patterns {
                 for p in &PATTERNS {
                     if have_patterns {
@@ -212,13 +220,6 @@ impl QuickSelectOverlay {
                     pattern.push_str(p);
                     have_patterns = true;
                 }
-            }
-            for p in &config.quick_select_patterns {
-                if have_patterns {
-                    pattern.push('|');
-                }
-                pattern.push_str(p);
-                have_patterns = true;
             }
         }
         pattern.push(')');

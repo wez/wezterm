@@ -99,6 +99,8 @@ As features stabilize some brief notes about them will accumulate here.
   the local machine or vice versa. #3442
 * `wezterm.config_builder` now works with `table.insert(config.keys, {..})`
 * mux: `wezterm cli activate-pane-direction` inconsistent behavior with remote mux. #3387 #3448
+* [quick_select_patterns](config/lua/config/quick_select_patterns.md) didn't
+  take precedence over built-in rules. #3456
 
 ### 20230326-111934-3666303c
 
