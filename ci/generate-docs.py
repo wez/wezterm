@@ -258,7 +258,7 @@ title: Color Schemes with first letter "{scheme_prefix}"
 
                 for scheme in by_prefix[scheme_prefix]:
                     title = scheme["name"]
-                    idx.write(f"# {title}\n")
+                    idx.write(f"## {title}\n")
 
                     data = screen_shot_table(scheme)
                     ident = scheme["ident"]
