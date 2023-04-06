@@ -454,6 +454,24 @@ pub struct PromptInputLine {
 }
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+pub struct InputSelectorEntry {
+    pub label: String,
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
+pub struct InputSelector {
+    pub action: Box<KeyAssignment>,
+    #[dynamic(default)]
+    pub title: String,
+
+    pub choices: Vec<InputSelectorEntry>,
+
+    #[dynamic(default)]
+    pub fuzzy: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -559,6 +577,7 @@ pub enum KeyAssignment {
     ActivateWindowRelative(isize),
     ActivateWindowRelativeNoWrap(isize),
     PromptInputLine(PromptInputLine),
+    InputSelector(InputSelector),
 }
 impl_lua_conversion_dynamic!(KeyAssignment);
 

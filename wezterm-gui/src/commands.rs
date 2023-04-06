@@ -736,6 +736,14 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Help"],
             icon: Some("cod_debug"),
         },
+        InputSelector(_) => CommandDef {
+            brief: "Prompt the user to choose from a list".into(),
+            doc: "Activates the selector overlay and wait for input".into(),
+            keys: vec![],
+            args: &[ArgType::ActiveWindow],
+            menubar: &[],
+            icon: None,
+        },
         PromptInputLine(_) => CommandDef {
             brief: "Prompt the user for a line of text".into(),
             doc: "Activates the prompt overlay and wait for input".into(),

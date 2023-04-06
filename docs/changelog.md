@@ -42,6 +42,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [PromptInputLine](config/lua/keyassignment/PromptInputLine.md) action for
   prompting the user for a line of text and then doing something with it.
   Can be used to prompt for (re)naming new or existing tabs, workspaces and so on.
+* [InputSelector](config/lua/keyassignment/InputSelector.md) action for
+  prompting the user to select an item from a list and then doing something
+  with it.
 * [pane:activate()](config/lua/pane/activate.md) and [tab:activate()](config/lua/MuxTab/activate.md). #3217
 * [ulimit_nofile](config/lua/config/ulimit_nofile.md) and [ulimint_nproc](config/lua/config/ulimit_nproc.md) options. ?3353
 * [serial_ports](config/lua/config/serial_ports.md) for more convenient access to serial ports

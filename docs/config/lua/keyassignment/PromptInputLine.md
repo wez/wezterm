@@ -5,7 +5,7 @@
 Activates an overlay to display a prompt and request a line of input
 from the user.
 
-When the user enters the line, emits an event and allows you to act
+When the user enters the line, emits an event that allows you to act
 upon the input.
 
 `PromptInputLine` accepts two fields:
@@ -88,3 +88,5 @@ config.keys = {
 
 return config
 ```
+
+See also [InputSelector](InputSelector.md).
