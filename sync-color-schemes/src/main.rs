@@ -290,7 +290,11 @@ async fn sync_toml(
     suffix: &str,
     schemeses: &mut Vec<Scheme>,
 ) -> anyhow::Result<()> {
-    let tarball_url = format!("{repo_url}/tarball/{branch}");
+    let tarball_url = if repo_url.starts_with("https://codeberg.org/") {
+        format!("{repo_url}/archive/{branch}.tar.gz")
+    } else {
+        format!("{repo_url}/tarball/{branch}")
+    };
     let tar_data = fetch_url(&tarball_url).await?;
     let decoder = libflate::gzip::Decoder::new(tar_data.as_slice())?;
     let mut tar = Archive::new(decoder);
@@ -386,6 +390,13 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     sync_toml(
         "https://github.com/folke/tokyonight.nvim",
+        "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
+    sync_toml(
+        "https://codeberg.org/anhsirk0/wezterm-themes",
         "main",
         "",
         &mut schemeses,

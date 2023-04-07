@@ -69,6 +69,19 @@ As features stabilize some brief notes about them will accumulate here.
   tty name on local unix systems.
 * [wezterm.has_action()](config/lua/wezterm/has_action.md) makes it easier to
   author a wezterm config that works across different wezterm versions. #3454
+* Color schemes: [Ef-Autumn](colorschemes/e/index.md#ef-autumn),
+  [Ef-Bio](colorschemes/e/index.md#ef-bio),
+  [Ef-Cherie](colorschemes/e/index.md#ef-cherie),
+  [Ef-Dark](colorschemes/e/index.md#ef-dark),
+  [Ef-Spring](colorschemes/e/index.md#ef-spring),
+  [Ef-Summer](colorschemes/e/index.md#ef-summer),
+  [Ef-Trio-Dark](colorschemes/e/index.md#ef-trio-dark),
+  [Ef-Trio-Light](colorschemes/e/index.md#ef-trio-light),
+  [Ef-Tritanopia-Dark](colorschemes/e/index.md#ef-tritanopia-dark),
+  [Ef-Winter](colorschemes/e/index.md#ef-winter),
+  [Gruvbox Material (Gogh)](colorschemes/g/index.md#gruvbox-material-gogh),
+  [Modus-Operandi](colorschemes/m/index.md#modus-operandi),
+  [Modus-Vivendi](colorschemes/m/index.md#modus-vivendi)
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

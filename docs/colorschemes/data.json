@@ -9083,6 +9083,406 @@
   {
     "colors": {
       "ansi": [
+        "#46423f",
+        "#ef656a",
+        "#2fa526",
+        "#c48702",
+        "#379cf6",
+        "#d570af",
+        "#4fb0cf",
+        "#cfbcba"
+      ],
+      "background": "#0f0e06",
+      "brights": [
+        "#887c8a",
+        "#f06a3f",
+        "#64aa0f",
+        "#d0730f",
+        "#6a88ff",
+        "#e580ea",
+        "#6fafff",
+        "#70a89f"
+      ],
+      "cursor_bg": "#ffaa33",
+      "cursor_border": "#ffaa33",
+      "cursor_fg": "#cfbcba",
+      "foreground": "#cfbcba",
+      "indexed": {},
+      "selection_bg": "#3f1020",
+      "selection_fg": "#cfbcba"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Autumn",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#404240",
+        "#ef6560",
+        "#3fb83f",
+        "#d4aa02",
+        "#37aff6",
+        "#d38faf",
+        "#6fc5ef",
+        "#cfdfd5"
+      ],
+      "background": "#111111",
+      "brights": [
+        "#808f80",
+        "#ff778f",
+        "#00c089",
+        "#cfc04f",
+        "#32cfef",
+        "#af9fff",
+        "#5dc0aa",
+        "#8fcfaf"
+      ],
+      "cursor_bg": "#35f038",
+      "cursor_border": "#35f038",
+      "cursor_fg": "#cfdfd5",
+      "foreground": "#cfdfd5",
+      "indexed": {},
+      "selection_bg": "#3a3027",
+      "selection_fg": "#cfdfd5"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Bio",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#594a4f",
+        "#ff7359",
+        "#60b444",
+        "#e5b76f",
+        "#8fa5f6",
+        "#ef80bf",
+        "#8fbaef",
+        "#d3cfcf"
+      ],
+      "background": "#190a0f",
+      "brights": [
+        "#5f509f",
+        "#ff78aa",
+        "#60bf88",
+        "#f59280",
+        "#7fa5ff",
+        "#df7fff",
+        "#8fcfdf",
+        "#808898"
+      ],
+      "cursor_bg": "#ff99ff",
+      "cursor_border": "#ff99ff",
+      "cursor_fg": "#d8cfd5",
+      "foreground": "#d3cfcf",
+      "indexed": {},
+      "selection_bg": "#232f3f",
+      "selection_fg": "#d3cfcf"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Cherie",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#4b4b4b",
+        "#ef6560",
+        "#0faa26",
+        "#bf9032",
+        "#3f95f6",
+        "#d369af",
+        "#4fbaef",
+        "#d0d0d0"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#857f8f",
+        "#ff5a7a",
+        "#00a692",
+        "#df8a5a",
+        "#029fff",
+        "#af85ff",
+        "#1dbfcf",
+        "#89afef"
+      ],
+      "cursor_bg": "#ff76ff",
+      "cursor_border": "#ff76ff",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#2a234a",
+      "selection_fg": "#d0d0d0"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Dark",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#d0d6d3",
+        "#c42d2f",
+        "#1a870f",
+        "#a45f22",
+        "#375cc6",
+        "#d5206f",
+        "#1f6fbf",
+        "#34494a"
+      ],
+      "background": "#f6fff9",
+      "brights": [
+        "#777294",
+        "#cf2f4f",
+        "#007f68",
+        "#ae5a30",
+        "#265fbf",
+        "#9435b4",
+        "#0f7b8f",
+        "#34494a"
+      ],
+      "cursor_bg": "#bf005f",
+      "cursor_border": "#bf005f",
+      "cursor_fg": "#34494a",
+      "foreground": "#34494a",
+      "indexed": {},
+      "selection_bg": "#d0e6ff",
+      "selection_fg": "#34494a"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Spring",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#cfb3c4",
+        "#d3303a",
+        "#217a3c",
+        "#a45f22",
+        "#375ce6",
+        "#ba35af",
+        "#1f6fbf",
+        "#4f4073"
+      ],
+      "background": "#fff2f3",
+      "brights": [
+        "#786e74",
+        "#d50f7f",
+        "#007f68",
+        "#b65050",
+        "#065fff",
+        "#8e44f3",
+        "#0f7b8f",
+        "#af4988"
+      ],
+      "cursor_bg": "#cf0090",
+      "cursor_border": "#cf0090",
+      "cursor_fg": "#4f4073",
+      "foreground": "#4f4073",
+      "indexed": {},
+      "selection_bg": "#eecfff",
+      "selection_fg": "#4f4073"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Summer",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#43353d",
+        "#f48359",
+        "#60b444",
+        "#d4a052",
+        "#7fa5f6",
+        "#d37faf",
+        "#8fbaff",
+        "#d8cfd5"
+      ],
+      "background": "#160f0f",
+      "brights": [
+        "#908890",
+        "#ff85aa",
+        "#60bf88",
+        "#ef9680",
+        "#72afff",
+        "#a698ef",
+        "#8fcfdf",
+        "#afdacf"
+      ],
+      "cursor_bg": "#ff99ff",
+      "cursor_border": "#ff99ff",
+      "cursor_fg": "#d8cfd5",
+      "foreground": "#d8cfd5",
+      "indexed": {},
+      "selection_bg": "#16304f",
+      "selection_fg": "#b8c6d5"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Trio-Dark",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#d3d0d9",
+        "#c3303a",
+        "#057800",
+        "#a45f22",
+        "#375cd6",
+        "#ad45ba",
+        "#1f6fbf",
+        "#4f3363"
+      ],
+      "background": "#f8f5ff",
+      "brights": [
+        "#786e74",
+        "#d03033",
+        "#057800",
+        "#b8532f",
+        "#5165e4",
+        "#c035aa",
+        "#3f6faf",
+        "#4f3363"
+      ],
+      "cursor_bg": "#375cd6",
+      "cursor_border": "#375cd6",
+      "cursor_fg": "#4f3363",
+      "foreground": "#4f3363",
+      "indexed": {},
+      "selection_bg": "#eed0ff",
+      "selection_fg": "#4f3363"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Trio-Light",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#352f2f",
+        "#cf4f5f",
+        "#2fa526",
+        "#c48702",
+        "#379cf6",
+        "#b2608f",
+        "#3fafcf",
+        "#908890"
+      ],
+      "background": "#15050f",
+      "brights": [
+        "#554f4f",
+        "#d24f7f",
+        "#00b066",
+        "#df8f6f",
+        "#029fff",
+        "#a6699f",
+        "#4fafaf",
+        "#afdaef"
+      ],
+      "cursor_bg": "#ff99ff",
+      "cursor_border": "#ff99ff",
+      "cursor_fg": "#d8cfd5",
+      "foreground": "#dfd0d5",
+      "indexed": {},
+      "selection_bg": "#202d3f",
+      "selection_fg": "#dfd0d5"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Tritanopia-Dark",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#353554",
+        "#ef6560",
+        "#6aad0f",
+        "#c48052",
+        "#6a9fff",
+        "#d369af",
+        "#6fafdf",
+        "#807c9f"
+      ],
+      "background": "#0f0b15",
+      "brights": [
+        "#807c9f",
+        "#f47359",
+        "#29a444",
+        "#df9080",
+        "#3f95f6",
+        "#e580e0",
+        "#4fbaef",
+        "#b8c6d5"
+      ],
+      "cursor_bg": "#e580e0",
+      "cursor_border": "#e580e0",
+      "cursor_fg": "#b8c6d5",
+      "foreground": "#b8c6d5",
+      "indexed": {},
+      "selection_bg": "#342464",
+      "selection_fg": "#b8c6d5"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Winter",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#2d2d2d",
         "#f2777a",
         "#99cc99",
@@ -12655,6 +13055,43 @@
       "origin_url": "https://github.com/dawikur/base16-gruvbox-scheme",
       "prefix": "g",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#3c3836",
+        "#ea6962",
+        "#a9b665",
+        "#d8a657",
+        "#7daea3",
+        "#d3869b",
+        "#89b482",
+        "#d4be98"
+      ],
+      "background": "#282828",
+      "brights": [
+        "#3c3836",
+        "#ea6962",
+        "#a9b665",
+        "#d8a657",
+        "#7daea3",
+        "#d3869b",
+        "#89b482",
+        "#d4be98"
+      ],
+      "cursor_bg": "#d4be98",
+      "cursor_border": "#d4be98",
+      "cursor_fg": "#d4be98",
+      "foreground": "#d4be98",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Gruvbox Material (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "g",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -17742,6 +18179,86 @@
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#d7d7d7",
+        "#972500",
+        "#315b00",
+        "#70480f",
+        "#2544bb",
+        "#8f0075",
+        "#30517f",
+        "#000000"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#505050",
+        "#a60000",
+        "#005e00",
+        "#813e00",
+        "#0031a9",
+        "#721045",
+        "#00538b",
+        "#000000"
+      ],
+      "cursor_bg": "#282828",
+      "cursor_border": "#282828",
+      "cursor_fg": "#000000",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#bcbcbc",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Operandi",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#323232",
+        "#ff8059",
+        "#44bc44",
+        "#d0bc00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#535353",
+        "#ef8b50",
+        "#70b900",
+        "#c0c530",
+        "#79a8ff",
+        "#f78fe7",
+        "#4ae2f0",
+        "#ffffff"
+      ],
+      "cursor_bg": "#f4f4f4",
+      "cursor_border": "#f4f4f4",
+      "cursor_fg": "#ffffff",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#3c3c3c",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi",
+      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
