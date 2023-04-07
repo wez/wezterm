@@ -327,7 +327,9 @@ async fn sync_toml(
                     };
                     let name = format!("{name}{suffix}");
                     scheme.metadata.name = Some(name.clone());
-                    scheme.metadata.origin_url = Some(repo_url.to_string());
+                    if scheme.metadata.origin_url.is_none() {
+                        scheme.metadata.origin_url = Some(repo_url.to_string());
+                    }
                     apply_nightly_version(&mut scheme.metadata);
 
                     let scheme = Scheme {

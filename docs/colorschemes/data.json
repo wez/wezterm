@@ -9115,7 +9115,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Autumn",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-autumn-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9155,7 +9155,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Bio",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-bio-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9195,7 +9195,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Cherie",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-cherie-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9235,7 +9235,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Dark",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-dark-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9275,7 +9275,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Spring",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-spring-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9315,7 +9315,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Summer",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-summer-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9355,7 +9355,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Trio-Dark",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-trio-dark-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9395,7 +9395,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Trio-Light",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-trio-light-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9435,7 +9435,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Tritanopia-Dark",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-tritanopia-dark-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -9475,7 +9475,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Ef-Winter",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-winter-theme.el",
       "prefix": "e",
       "wezterm_version": "nightly builds only"
     }
@@ -18216,7 +18216,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Modus-Operandi",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-operandi-theme.el",
       "prefix": "m",
       "wezterm_version": "nightly builds only"
     }
@@ -18256,7 +18256,7 @@
       "aliases": [],
       "author": "anhsirk0",
       "name": "Modus-Vivendi",
-      "origin_url": "https://codeberg.org/anhsirk0/wezterm-themes",
+      "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-vivendi-theme.el",
       "prefix": "m",
       "wezterm_version": "nightly builds only"
     }
@@ -22502,7 +22502,7 @@
       "aliases": [],
       "author": "Oliver Cederborg",
       "name": "Poimandres",
-      "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
+      "origin_url": "https://github.com/olivercederborg/poimandres-wezterm",
       "prefix": "p",
       "wezterm_version": "20220903-194523-3bb1ed61"
     }
@@ -22592,7 +22592,7 @@
       "aliases": [],
       "author": "Oliver Cederborg",
       "name": "Poimandres Storm",
-      "origin_url": "https://github.com/olivercederborg/poimandres.nvim",
+      "origin_url": "https://github.com/olivercederborg/poimandres-wezterm",
       "prefix": "p",
       "wezterm_version": "20220903-194523-3bb1ed61"
     }
