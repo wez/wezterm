@@ -346,6 +346,12 @@ end
         )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
         wezterm_mod.set("action", luahelper::enumctor::Enum::<KeyAssignment>::new())?;
+        wezterm_mod.set(
+            "has_action",
+            lua.create_function(|_lua, name: String| {
+                Ok(KeyAssignment::variants().contains(&name.as_str()))
+            })?,
+        )?;
 
         lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, 0)?;
         wezterm_mod.set("action_callback", lua.create_function(action_callback)?)?;

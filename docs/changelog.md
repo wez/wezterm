@@ -67,6 +67,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [pane:get_tty_name()](config/lua/pane/get_tty_name.md) and
   [PaneInformation.tty_name](config/lua/PaneInformation.md) to reason about the
   tty name on local unix systems.
+* [wezterm.has_action()](config/lua/wezterm/has_action.md) makes it easier to
+  author a wezterm config that works across different wezterm versions. #3454
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759
