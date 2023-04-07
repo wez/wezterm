@@ -157,7 +157,6 @@ impl crate::TermWindow {
         self.ui_items.clear();
 
         let panes = self.get_panes_to_render();
-        let num_panes = panes.len();
         let focused = self.focused.is_some();
         let window_is_transparent =
             !self.window_background.is_empty() || self.config.window_background_opacity != 1.0;
@@ -185,7 +184,7 @@ impl crate::TermWindow {
 
                 self.render_backgrounds(bg_color, top)?;
             }
-            _ if window_is_transparent && panes.len() > 1 => {
+            _ if window_is_transparent => {
                 // Avoid doubling up the background color: the panes
                 // will render out through the padding so there
                 // should be no gaps that need filling in
@@ -224,7 +223,7 @@ impl crate::TermWindow {
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            self.paint_pane(&pos, num_panes, &mut layers)?;
+            self.paint_pane(&pos, &mut layers)?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {

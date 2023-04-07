@@ -20,12 +20,8 @@ use wezterm_term::{Line, StableRowIndex};
 use window::color::LinearRgba;
 
 impl crate::TermWindow {
-    fn paint_pane_box_model(
-        &mut self,
-        pos: &PositionedPane,
-        num_panes: usize,
-    ) -> anyhow::Result<()> {
-        let computed = self.build_pane(pos, num_panes)?;
+    fn paint_pane_box_model(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
+        let computed = self.build_pane(pos)?;
         let mut ui_items = computed.ui_items();
         self.ui_items.append(&mut ui_items);
         let gl_state = self.render_state.as_ref().unwrap();
@@ -35,11 +31,10 @@ impl crate::TermWindow {
     pub fn paint_pane(
         &mut self,
         pos: &PositionedPane,
-        num_panes: usize,
         layers: &mut TripleLayerQuadAllocator,
     ) -> anyhow::Result<()> {
         if self.config.use_box_model_render {
-            return self.paint_pane_box_model(pos, num_panes);
+            return self.paint_pane_box_model(pos);
         }
 
         self.check_for_dirty_lines_and_invalidate_selection(&pos.pane);
@@ -154,7 +149,7 @@ impl crate::TermWindow {
             )
         };
 
-        if num_panes > 1 && self.window_background.is_empty() {
+        if self.window_background.is_empty() {
             // Per-pane, palette-specified background
 
             let mut quad = self.filled_rectangle(
@@ -574,11 +569,7 @@ impl crate::TermWindow {
         Ok(())
     }
 
-    pub fn build_pane(
-        &mut self,
-        pos: &PositionedPane,
-        num_panes: usize,
-    ) -> anyhow::Result<ComputedElement> {
+    pub fn build_pane(&mut self, pos: &PositionedPane) -> anyhow::Result<ComputedElement> {
         // First compute the bounds for the pane background
 
         let cell_width = self.render_metrics.cell_size.width as f32;
@@ -664,7 +655,7 @@ impl crate::TermWindow {
             border_corners: None,
             colors: ElementColors {
                 border: BorderColor::default(),
-                bg: if num_panes > 1 && self.window_background.is_empty() {
+                bg: if self.window_background.is_empty() {
                     palette
                         .background
                         .to_linear()

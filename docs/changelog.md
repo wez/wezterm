@@ -104,6 +104,8 @@ As features stabilize some brief notes about them will accumulate here.
 * mux: `wezterm cli activate-pane-direction` inconsistent behavior with remote mux. #3387 #3448
 * [quick_select_patterns](config/lua/config/quick_select_patterns.md) didn't
   take precedence over built-in rules. #3456
+* Painted pane background color behind the tab bar when there was only one
+  pane. Matters when the tab bar is transparent! #3450
 
 ### 20230326-111934-3666303c
 
