@@ -1049,7 +1049,14 @@ fn no_native_title_bar(decorations: WindowDecorations) -> bool {
 
 unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let inner = inner.borrow_mut();
+    let mut inner = match inner.try_borrow_mut() {
+        Ok(inner) => inner,
+        Err(_) => {
+            // We've been called recursively and the upper levels
+            // own the borrow. Just take the default action
+            return None;
+        }
+    };
 
     let no_native_title_bar = no_native_title_bar(inner.config.window_decorations);
 
@@ -1095,7 +1102,14 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let mut inner = inner.borrow_mut();
+    let mut inner = match inner.try_borrow_mut() {
+        Ok(inner) => inner,
+        Err(_) => {
+            // We've been called recursively and the upper levels
+            // own the borrow. Just take the default action
+            return None;
+        }
+    };
 
     let no_native_title_bar = no_native_title_bar(inner.config.window_decorations);
     if !no_native_title_bar {
