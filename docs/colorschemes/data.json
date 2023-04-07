@@ -675,7 +675,7 @@
       "name": "Apple Classic",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -4106,7 +4106,7 @@
       "name": "Breath (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -4143,7 +4143,7 @@
       "name": "Breath Darker (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -4182,7 +4182,7 @@
       "name": "Breath Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -4221,7 +4221,7 @@
       "name": "Breath Silverfox (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -4297,7 +4297,7 @@
       "name": "Breeze (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -5662,7 +5662,7 @@
       "name": "catppuccin-latte",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -10103,7 +10103,7 @@
       "name": "Everblush",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -10142,7 +10142,7 @@
       "name": "Everforest Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -10181,7 +10181,7 @@
       "name": "Everforest Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -12695,7 +12695,7 @@
       "name": "GruvboxDark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -12734,7 +12734,7 @@
       "name": "GruvboxDarkHard",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -15368,7 +15368,7 @@
       "name": "Kanagawa (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "k",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -22286,7 +22286,7 @@
       "name": "Predawn (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -23364,7 +23364,7 @@
       "name": "rose-pine",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -23406,7 +23406,7 @@
       "name": "rose-pine-dawn",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -23448,7 +23448,7 @@
       "name": "rose-pine-moon",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -25245,7 +25245,7 @@
       "name": "Solarized (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -27916,7 +27916,7 @@
       "name": "tokyonight_moon",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
