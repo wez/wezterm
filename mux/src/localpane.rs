@@ -458,8 +458,16 @@ impl Pane for LocalPane {
     }
 
     fn tty_name(&self) -> Option<String> {
-        let name = self.pty.lock().tty_name()?;
-        Some(name.to_string_lossy().into_owned())
+        #[cfg(unix)]
+        {
+            let name = self.pty.lock().tty_name()?;
+            Some(name.to_string_lossy().into_owned())
+        }
+
+        #[cfg(windows)]
+        {
+            None
+        }
     }
 
     fn get_foreground_process_info(&self) -> Option<LocalProcessInfo> {
