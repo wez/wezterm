@@ -52,7 +52,14 @@ As features stabilize some brief notes about them will accumulate here.
   [wezterm.default_ssh_domains()](config/lua/wezterm/default_ssh_domains.md) to
   obtain that same information and amend/extend it.
 * [display_pixel_geometry](config/lua/config/display_pixel_geometry.md) to specify subpixel antialiasing geometry. ?3422
-* In progress: integrated title and tab bar. Thanks to @yuraiz for getting things moving! #2722
+* Integrated title and tab bar.
+  See also [window_decorations](config/lua/config/window_decorations.md),
+  [integrated_title_button_style](config/lua/config/integrated_title_button_style.md),
+  [integrated_title_buttons](config/lua/config/integrated_title_buttons.md),
+  [integrated_title_button_alignment](config/lua/config/integrated_title_button_alignment.md)
+  [integrated_title_button_color](config/lua/config/integrated_title_button_color.md) and,
+  if you are using the retro tab bar, [tab_bar_style](config/lua/config/tab_bar_style.md).
+  Thanks to @yuraiz for getting things moving! #2722 #1180
 * Lua: [gui_window:active_tab()](config/lua/window/active_tab.md),
   [gui_window:active_pane()](config/lua/window/active_pane.md) (surprise! this was already there, just undocumented!),
   [mux_window:active_tab()](config/lua/mux-window/active_tab.md),

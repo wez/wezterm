@@ -24,6 +24,17 @@ The value is a set of of flags:
     [window_background_opacity](../../appearance.md#window-background-opacity) is set
     to less than `1.0`.
 
+{{since('nightly', outline=true)}}
+    * `window_decorations = "INTEGRATED_BUTTONS|RESIZE"` - place window
+      management buttons (minimize, maximize, close) into the tab bar
+      instead of showing a title bar.
+
+      See also [integrated_title_button_style](integrated_title_button_style.md),
+      [integrated_title_buttons](integrated_title_buttons.md),
+      [integrated_title_button_alignment](integrated_title_button_alignment.md)
+      [integrated_title_button_color](integrated_title_button_color.md) and,
+      if you are using the retro tab bar, [tab_bar_style](tab_bar_style.md).
+
 On X11 and Wayland, the windowing system may override the window decorations.
 
 When the titlebar is disabled you can drag the window using the tab bar if it

@@ -70,3 +70,15 @@ config.tab_bar_style = {
 }
 ```
 
+#### Retro Tab Bar with Integrated Window Management Buttons
+
+{{since('nightly')}}
+
+When using [`window_decorations =
+"INTEGRATED_BUTTONS|RESIZE"`](window_decorations.md), you can
+control how the different buttons are drawn for the retro tab bar:
+
+* `window_hide`, `window_hide_hover` - the minimize/hide button
+* `window_maximize`, `window_maximize_hover` - the maximize button
+* `window_close`, `window_close_hover` - the close button
+
