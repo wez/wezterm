@@ -277,6 +277,7 @@ fn pane_tree(
                 physical_top: dims.physical_top,
                 left_col,
                 top_row,
+                tty_name: pane.tty_name(),
             })
         }
     }
@@ -2110,6 +2111,7 @@ pub struct PaneEntry {
     pub physical_top: StableRowIndex,
     pub top_row: usize,
     pub left_col: usize,
+    pub tty_name: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]

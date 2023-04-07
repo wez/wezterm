@@ -345,6 +345,10 @@ pub trait Pane: Downcast + Send + Sync {
         None
     }
 
+    fn tty_name(&self) -> Option<String> {
+        None
+    }
+
     fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {
             // Send it all now

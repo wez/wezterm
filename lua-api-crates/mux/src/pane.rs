@@ -403,6 +403,12 @@ impl UserData for MuxPane {
             tab.set_active_pane(&pane);
             Ok(())
         });
+
+        methods.add_method("get_tty_name", move |_lua, this, ()| {
+            let mux = Mux::get();
+            let pane = this.resolve(&mux)?;
+            Ok(pane.tty_name())
+        });
     }
 }
 

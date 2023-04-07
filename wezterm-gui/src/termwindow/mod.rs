@@ -289,6 +289,15 @@ impl UserData for PaneInformation {
                 None => Ok("".to_string()),
             }
         });
+        fields.add_field_method_get("tty_name", |_, this| {
+            let mut name = None;
+            if let Some(mux) = Mux::try_get() {
+                if let Some(pane) = mux.get_pane(this.pane_id) {
+                    name = pane.tty_name();
+                }
+            }
+            Ok(name)
+        });
         fields.add_field_method_get("current_working_dir", |_, this| {
             let mut name = None;
             if let Some(mux) = Mux::try_get() {

@@ -457,6 +457,11 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
+    fn tty_name(&self) -> Option<String> {
+        let name = self.pty.lock().tty_name()?;
+        Some(name.to_string_lossy().into_owned())
+    }
+
     fn get_foreground_process_info(&self) -> Option<LocalProcessInfo> {
         #[cfg(unix)]
         if let Some(pid) = self.pty.lock().process_group_leader() {

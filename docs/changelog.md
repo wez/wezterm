@@ -64,6 +64,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm cli rename-workspace](cli/cli/rename-workspace.md). #2787
 * [wezterm.mux.rename_workspace](config/lua/wezterm.mux/rename_workspace.md). #2787
 * [wezterm cli get-pane-direction](cli/cli/get-pane-direction.md)
+* [pane:get_tty_name()](config/lua/pane/get_tty_name.md) and
+  [PaneInformation.tty_name](config/lua/PaneInformation.md) to reason about the
+  tty name on local unix systems.
 
 #### Fixed
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759

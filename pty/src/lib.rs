@@ -113,6 +113,9 @@ pub trait MasterPty {
     #[cfg(unix)]
     fn as_raw_fd(&self) -> Option<unix::RawFd>;
 
+    #[cfg(unix)]
+    fn tty_name(&self) -> Option<std::path::PathBuf>;
+
     /// If applicable to the type of the tty, return the termios
     /// associated with the stream
     #[cfg(unix)]
