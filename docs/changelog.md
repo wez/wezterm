@@ -135,6 +135,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: window not repainting consistently when using the keyboard when
   using `front_end="WebGpu"`.  Thanks to @jokeyrhyme for working through
   different iterations of this fix! #3126
+* Windows: reloading the config could partially knock the window out of
+  full screen mode. #3439
 
 ### 20230326-111934-3666303c
 

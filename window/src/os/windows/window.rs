@@ -306,6 +306,16 @@ fn schedule_apply_decoration(hwnd: HWND, decorations: WindowDecorations) {
 }
 
 fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
+    match rc_from_hwnd(hwnd) {
+        Some(inner) => {
+            if inner.borrow().saved_placement.is_some() {
+                // We are full screen; ignore it for now
+                return;
+            }
+        }
+        None => return,
+    };
+
     unsafe {
         let orig_style = GetWindowLongW(hwnd, GWL_STYLE);
         let style = decorations_to_style(decorations);
