@@ -1049,7 +1049,7 @@ fn no_native_title_bar(decorations: WindowDecorations) -> bool {
 
 unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let mut inner = match inner.try_borrow_mut() {
+    let inner = match inner.try_borrow() {
         Ok(inner) => inner,
         Err(_) => {
             // We've been called recursively and the upper levels
