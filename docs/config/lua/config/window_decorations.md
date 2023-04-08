@@ -28,7 +28,7 @@ The value is a set of of flags:
     [window_background_opacity](../../appearance.md#window-background-opacity) is set
     to less than `1.0`.
 
-{{since('nightly', outline=true)}}
+{{since('20230408-112425-69ae8472', outline=true)}}
     * `window_decorations = "INTEGRATED_BUTTONS|RESIZE"` - place window
       management buttons (minimize, maximize, close) into the tab bar
       instead of showing a title bar.

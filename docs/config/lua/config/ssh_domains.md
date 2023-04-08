@@ -10,7 +10,7 @@ Configures SSH multiplexing domains.  [Read more about SSH Domains](
 
 This option accepts a list of [SshDomain](../SshDomain.md) objects.
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 If you don't set `ssh_domains` in your config, wezterm will default
 to configuring it as if you had:

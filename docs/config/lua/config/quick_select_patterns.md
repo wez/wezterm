@@ -17,7 +17,7 @@ config.quick_select_patterns = {
 }
 ```
 
-{{since('nightly', outline=True)}}
+{{since('20230408-112425-69ae8472', outline=True)}}
     The regex syntax now supports backreferences and look around assertions.
     See [Fancy Regex Syntax](https://docs.rs/fancy-regex/latest/fancy_regex/#syntax)
     for the extended syntax, which builds atop the underlying

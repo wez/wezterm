@@ -76,7 +76,7 @@ config.tab_bar_style = {
 
 #### Retro Tab Bar with Integrated Window Management Buttons
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 When using [`window_decorations =
 "INTEGRATED_BUTTONS|RESIZE"`](window_decorations.md), you can

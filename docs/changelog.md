@@ -21,6 +21,8 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+### 20230408-112425-69ae8472
+
 #### Changed
 * macOS: Japanese IME users: CTRL-modified keys are no long routed to the IME
   by default, as it introduced problems with CTRL-key combinations for other users.

@@ -1,6 +1,6 @@
 # `PromptInputLine`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Activates an overlay to display a prompt and request a line of input
 from the user.

@@ -7,7 +7,7 @@ tags:
 
 # wezterm.has_action(NAME)
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Returns true if the string *NAME* is a valid key assignment action variant
 that can be used with [wezterm.action](action.md).

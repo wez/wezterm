@@ -1,6 +1,6 @@
 # `wezterm.mux.rename_workspace(old, new)`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Renames the workspace *old* to *new*.
 

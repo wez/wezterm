@@ -4,7 +4,7 @@ tags:
 ---
 # `integrated_title_button_alignment = "Right"`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Configures the alignment of the set of window management buttons when
 `window_decorations = "INTEGRATED_BUTTONS|RESIZE"`.

@@ -4,7 +4,7 @@ tags:
 ---
 # `serial_ports = {}`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Define a list of serial port(s) that you use regularly.
 Each entry defines a `SerialDomain` with the following fields:

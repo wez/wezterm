@@ -4,7 +4,7 @@ import os
 import re
 import sys
 
-NIGHTLY = '20230326-111934-3666303c'
+NIGHTLY = '20230408-112425-69ae8472'
 
 SINCE = re.compile("\{\{since\('nightly'", re.MULTILINE)
 
@@ -19,3 +19,11 @@ for p in ["docs/**/*.md", "docs/**/*.markdown"]:
             with open(filename, "w") as f:
                 f.truncate()
                 f.write(adjusted)
+
+SCHEME_DATA = 'docs/colorschemes/data.json'
+with open(SCHEME_DATA, 'r') as f:
+    content = f.read()
+with open(SCHEME_DATA, 'w') as f:
+    content = content.replace("nightly builds only", NIGHTLY)
+    f.truncate()
+    f.write(content)

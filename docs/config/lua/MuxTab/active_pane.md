@@ -1,6 +1,6 @@
 # `tab:active_pane()`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 A convenience accessor for returning the active pane in the tab.
 
