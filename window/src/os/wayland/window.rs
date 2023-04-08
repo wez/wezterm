@@ -803,17 +803,25 @@ impl WaylandWindowInner {
         self.invalidated = false;
         self.events.dispatch(WindowEvent::NeedRepaint);
 
-        // Ask the compositor to wake us up when its time to paint
-        // the next frame
-        let window_id = self.window_id;
-        let callback = self.surface.frame();
-        callback.quick_assign(move |_source, _event, _data| {
-            WaylandConnection::with_window_inner(window_id, |inner| {
-                inner.next_frame_is_ready();
-                Ok(())
+        if self.gl_state.is_some() {
+            // Ask the compositor to wake us up when it is time to paint
+            // the next frame.
+            // We don't do this when we're using WebGPU because we don't
+            // always get a timely wakeup. We configure wgpu to use a
+            // vsync-equivalent PresentMode so we should already be
+            // respecting the maximum frame rate, making it less critical
+            // to rely on Wayland's frame scheduling.
+            // <https://github.com/wez/wezterm/issues/3126>
+            let window_id = self.window_id;
+            let callback = self.surface.frame();
+            callback.quick_assign(move |_source, _event, _data| {
+                WaylandConnection::with_window_inner(window_id, |inner| {
+                    inner.next_frame_is_ready();
+                    Ok(())
+                });
             });
-        });
-        self.frame_callback.replace(callback);
+            self.frame_callback.replace(callback);
+        }
 
         Ok(())
     }

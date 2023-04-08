@@ -131,6 +131,9 @@ As features stabilize some brief notes about them will accumulate here.
   take precedence over built-in rules. #3456
 * Painted pane background color behind the tab bar when there was only one
   pane. Matters when the tab bar is transparent! #3450
+* Wayland: window not repainting consistently when using the keyboard when
+  using `front_end="WebGpu"`.  Thanks to @jokeyrhyme for working through
+  different iterations of this fix! #3126
 
 ### 20230326-111934-3666303c
 
