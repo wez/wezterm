@@ -17,6 +17,7 @@ use serial::{
 use std::cell::RefCell;
 use std::ffi::{OsStr, OsString};
 use std::io::{Read, Result as IoResult, Write};
+#[cfg(unix)]
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
