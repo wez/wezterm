@@ -1,11 +1,23 @@
+use once_cell::sync::OnceCell;
+
+static VERSION: OnceCell<&'static str> = OnceCell::new();
+static TRIPLE: OnceCell<&'static str> = OnceCell::new();
+
+pub fn assign_version_info(version: &'static str, triple: &'static str) {
+    VERSION.set(version).unwrap();
+    TRIPLE.set(triple).unwrap();
+}
+
 pub fn wezterm_version() -> &'static str {
-    // See build.rs
-    env!("WEZTERM_CI_TAG")
+    VERSION
+        .get()
+        .unwrap_or(&"someone forgot to call assign_version_info")
 }
 
 pub fn wezterm_target_triple() -> &'static str {
-    // See build.rs
-    env!("WEZTERM_TARGET_TRIPLE")
+    TRIPLE
+        .get()
+        .unwrap_or(&"someone forgot to call assign_version_info")
 }
 
 pub fn running_under_wsl() -> bool {

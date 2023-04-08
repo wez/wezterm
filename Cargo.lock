@@ -846,7 +846,6 @@ dependencies = [
  "dirs-next",
  "enum-display-derive",
  "env_logger",
- "git2",
  "hostname",
  "lazy_static",
  "libc",
@@ -855,6 +854,7 @@ dependencies = [
  "mlua",
  "nix 0.26.2",
  "notify",
+ "once_cell",
  "ordered-float",
  "portable-pty",
  "promise",
@@ -1482,6 +1482,7 @@ dependencies = [
  "termwiz",
  "termwiz-funcs",
  "time-funcs",
+ "wezterm-version",
  "winapi",
 ]
 
@@ -6254,6 +6255,13 @@ dependencies = [
  "xml-rs",
  "zbus",
  "zvariant",
+]
+
+[[package]]
+name = "wezterm-version"
+version = "0.1.0"
+dependencies = [
+ "git2",
 ]
 
 [[package]]
