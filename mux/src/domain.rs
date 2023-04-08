@@ -207,7 +207,7 @@ impl LocalDomain {
 
     fn resolve_wsl_domain(&self) -> Option<WslDomain> {
         config::configuration()
-            .wsl_domains
+            .wsl_domains()
             .iter()
             .find(|d| d.name == self.name)
             .cloned()

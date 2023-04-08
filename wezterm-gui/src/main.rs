@@ -373,7 +373,7 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
         mux.add_domain(&domain);
     }
 
-    for wsl_dom in &config.wsl_domains {
+    for wsl_dom in config.wsl_domains() {
         if mux.get_domain_by_name(&wsl_dom.name).is_some() {
             continue;
         }

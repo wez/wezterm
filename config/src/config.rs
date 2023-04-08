@@ -312,8 +312,8 @@ pub struct Config {
     #[dynamic(default)]
     pub webgpu_preferred_adapter: Option<GpuInfo>,
 
-    #[dynamic(default = "WslDomain::default_domains")]
-    pub wsl_domains: Vec<WslDomain>,
+    #[dynamic(default)]
+    pub wsl_domains: Option<Vec<WslDomain>>,
 
     #[dynamic(default)]
     pub exec_domains: Vec<ExecDomain>,
@@ -839,6 +839,14 @@ impl Config {
         }
     }
 
+    pub fn wsl_domains(&self) -> Vec<WslDomain> {
+        if let Some(domains) = &self.wsl_domains {
+            domains.clone()
+        } else {
+            WslDomain::default_domains()
+        }
+    }
+
     pub fn update_ulimit(&self) -> anyhow::Result<()> {
         #[cfg(unix)]
         {
@@ -1146,8 +1154,10 @@ impl Config {
         for d in &self.exec_domains {
             check_domain(&d.name, "exec domain")?;
         }
-        for d in &self.wsl_domains {
-            check_domain(&d.name, "wsl domain")?;
+        if let Some(domains) = &self.wsl_domains {
+            for d in domains {
+                check_domain(&d.name, "wsl domain")?;
+            }
         }
         for d in &self.tls_clients {
             check_domain(&d.name, "tls domain")?;
