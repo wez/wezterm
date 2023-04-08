@@ -40,7 +40,7 @@ pub enum InternalError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Regex(#[from] regex::Error),
+    Regex(#[from] fancy_regex::Error),
 
     #[error(transparent)]
     FromUtf8(#[from] std::string::FromUtf8Error),

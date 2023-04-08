@@ -1587,6 +1587,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
+name = "fancy-regex"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b95f7c0680e4142284cf8b22c14a476e87d61b004a3a0861872b32ef7ead40a2"
+dependencies = [
+ "bit-set",
+ "regex",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3110,6 +3120,7 @@ dependencies = [
  "config",
  "crossbeam",
  "downcast-rs",
+ "fancy-regex",
  "filedescriptor",
  "finl_unicode",
  "flume",
@@ -3130,7 +3141,6 @@ dependencies = [
  "procinfo",
  "promise",
  "rangeset",
- "regex",
  "serde",
  "serial",
  "shell-words",
@@ -5115,6 +5125,7 @@ dependencies = [
  "cassowary",
  "criterion 0.4.0",
  "env_logger",
+ "fancy-regex",
  "filedescriptor",
  "finl_unicode",
  "fixedbitset",
@@ -5133,7 +5144,6 @@ dependencies = [
  "pest",
  "pest_derive",
  "phf",
- "regex",
  "semver 0.11.0",
  "serde",
  "sha2",

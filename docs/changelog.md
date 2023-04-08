@@ -37,6 +37,9 @@ As features stabilize some brief notes about them will accumulate here.
   With a definitive detach, the window will close and wezterm will terminate if
   the only panes were associated with that domain, which is what most users
   expect. #2644
+* [quick_select_patterns](config/lua/config/quick_select_patterns.md) and
+  [hyperlink_rules](config/lua/config/hyperlink_rules.md) now support
+  backreferences and look around assertions. #3247
 
 #### New
 * [PromptInputLine](config/lua/keyassignment/PromptInputLine.md) action for

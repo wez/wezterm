@@ -16,6 +16,7 @@ base64 = "0.21"
 bitflags = "2.0"
 cassowary = {version="0.3", optional=true}
 anyhow = "1.0"
+fancy-regex = "0.11"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 fixedbitset = "0.4"
@@ -32,7 +33,6 @@ ordered-float = "3.0"
 pest = "2.1"
 pest_derive = "2.1"
 phf = "0.11"
-regex = "1"
 semver = "0.11"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
 siphasher = "0.3"

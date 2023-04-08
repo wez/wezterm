@@ -5,7 +5,7 @@
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
 use crate::{ensure, format_err, Result};
-use regex::{Captures, Regex};
+use fancy_regex::{Captures, Regex};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -244,7 +244,7 @@ impl<'t> Match<'t> {
         c0.start()..c0.end()
     }
 
-    fn highlight(&self) -> Option<regex::Match> {
+    fn highlight(&self) -> Option<fancy_regex::Match> {
         self.captures.get(self.rule.highlight)
     }
 
@@ -285,10 +285,12 @@ impl Rule {
     pub fn match_hyperlinks(line: &str, rules: &[Rule]) -> Vec<RuleMatch> {
         let mut matches = Vec::new();
         for rule in rules.iter() {
-            for captures in rule.regex.captures_iter(line) {
-                let m = Match { rule, captures };
-                if m.highlight().is_some() {
-                    matches.push(m);
+            for capture_result in rule.regex.captures_iter(line) {
+                if let Ok(captures) = capture_result {
+                    let m = Match { rule, captures };
+                    if m.highlight().is_some() {
+                        matches.push(m);
+                    }
                 }
             }
         }

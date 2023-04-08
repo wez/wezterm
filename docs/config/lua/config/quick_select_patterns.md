@@ -13,3 +13,19 @@ config.quick_select_patterns = {
 }
 ```
 
+{{since('nightly', outline=True)}}
+    The regex syntax now supports backreferences and look around assertions.
+    See [Fancy Regex Syntax](https://docs.rs/fancy-regex/latest/fancy_regex/#syntax)
+    for the extended syntax, which builds atop the underlying
+    [Regex syntax](https://docs.rs/regex/latest/regex/#syntax).
+    In prior versions, only the base
+    [Regex syntax](https://docs.rs/regex/latest/regex/#syntax) was supported.
+
+    This example matches the string `"bar"`, but only when not part of the string
+    `"foo:bar"`:
+
+    ```lua
+    config.quick_select_patterns = {
+        "(?<!foo:)bar"
+    }
+    ```

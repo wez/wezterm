@@ -10,6 +10,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
+use fancy_regex::Regex;
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use procinfo::LocalProcessInfo;
@@ -595,7 +596,7 @@ impl Pane for LocalPane {
         enum CompiledPattern {
             CaseSensitiveString(String),
             CaseInSensitiveString(String),
-            Regex(regex::Regex),
+            Regex(Regex),
         }
 
         let pattern = match pattern {
@@ -604,7 +605,7 @@ impl Pane for LocalPane {
                 // normalize the case so we match everything lowercase
                 CompiledPattern::CaseInSensitiveString(s.to_lowercase())
             }
-            Pattern::Regex(r) => CompiledPattern::Regex(regex::Regex::new(&r)?),
+            Pattern::Regex(r) => CompiledPattern::Regex(Regex::new(&r)?),
         };
 
         let mut results = vec![];
@@ -660,22 +661,24 @@ impl Pane for LocalPane {
                 }
                 CompiledPattern::Regex(re) => {
                     // Allow for the regex to contain captures
-                    for c in re.captures_iter(&haystack) {
-                        // Look for the captures in reverse order, as index==0 is
-                        // the whole matched string.  We can't just call
-                        // `c.iter().rev()` as the capture iterator isn't double-ended.
-                        for idx in (0..c.len()).rev() {
-                            if let Some(m) = c.get(idx) {
-                                found_match(
-                                    m.as_str(),
-                                    m.start(),
-                                    lines,
-                                    stable_idx,
-                                    &mut uniq_matches,
-                                    &mut coords,
-                                    &mut results,
-                                );
-                                break;
+                    for capture_res in re.captures_iter(&haystack) {
+                        if let Ok(c) = capture_res {
+                            // Look for the captures in reverse order, as index==0 is
+                            // the whole matched string.  We can't just call
+                            // `c.iter().rev()` as the capture iterator isn't double-ended.
+                            for idx in (0..c.len()).rev() {
+                                if let Some(m) = c.get(idx) {
+                                    found_match(
+                                        m.as_str(),
+                                        m.start(),
+                                        lines,
+                                        stable_idx,
+                                        &mut uniq_matches,
+                                        &mut coords,
+                                        &mut results,
+                                    );
+                                    break;
+                                }
                             }
                         }
                     }
