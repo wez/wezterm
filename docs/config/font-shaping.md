@@ -1,4 +1,19 @@
+---
+tags:
+  - font
+keywords:
+  - ligature
+  - font
+---
+
 ### Advanced Font Shaping Options
+
+Font shaping is the process which expands font ligatures and applies other
+advanced font display features that are encoded in your chosen font, in
+order to correctly position and display the appropriate glyphs on your display.
+
+The [HarfBuzz](https://harfbuzz.github.io/) library is used to perform
+font shaping.
 
 The `harfbuzz_features` option allows specifying the features to enable when
 using harfbuzz for font shaping.
