@@ -1,3 +1,8 @@
+---
+tags:
+  - font
+  - appearance
+---
 # `display_pixel_geometry = "RGB"`
 
 {{since('nightly')}}

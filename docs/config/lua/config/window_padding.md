@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `window_padding`
 
 Controls the amount of padding between the window border and the

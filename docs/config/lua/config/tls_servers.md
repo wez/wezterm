@@ -1,3 +1,7 @@
+---
+tags:
+  - multiplexing
+---
 # `tls_servers`
 
 Configures TLS multiplexing domains.  [Read more about TLS Domains](

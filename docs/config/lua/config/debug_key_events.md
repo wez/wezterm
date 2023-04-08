@@ -1,3 +1,8 @@
+---
+tags:
+  - keys
+  - debug
+---
 # `debug_key_events = false`
 
 When set to true, each key event will be logged by the GUI layer as an INFO

@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `selection_word_boundary`
 
 {{since('20210203-095643-70a364eb')}}

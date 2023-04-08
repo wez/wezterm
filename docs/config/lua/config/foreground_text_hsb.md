@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `foreground_text_hsb`
 
 {{since('20210314-114017-04b7cedd')}}

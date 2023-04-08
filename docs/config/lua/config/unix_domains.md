@@ -1,3 +1,7 @@
+---
+tags:
+  - multiplexing
+---
 # `unix_domains`
 
 Defines a list of multiplexer domains for both the multiplexer

@@ -1,3 +1,7 @@
+---
+tags:
+  - gpu
+---
 # `front_end = "OpenGL"`
 
 Specifies which render front-end to use.  This option used to have

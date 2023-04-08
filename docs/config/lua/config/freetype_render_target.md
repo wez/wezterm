@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `freetype_render_target = "Normal"`
 
 {{since('20210502-130208-bff6815d')}}

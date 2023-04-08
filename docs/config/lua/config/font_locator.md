@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font_locator`
 
 specifies the method by which system fonts are located and loaded.  You may

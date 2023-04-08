@@ -1,3 +1,9 @@
+---
+title: wezterm.permute_any_or_no_mods
+tags:
+ - utility
+ - keys
+---
 # `wezterm.permute_any_or_no_mods(table)`
 
 {{since('20201031-154415-9614e117')}}

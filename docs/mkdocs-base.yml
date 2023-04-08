@@ -50,6 +50,8 @@ theme:
     - toc.follow
 plugins:
   - include-markdown
+  - tags:
+      tags_file: tags.md
   - macros:
       module_name: mkdocs_macros
   - search:

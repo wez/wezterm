@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `freetype_interpreter_version`
 
 Selects the freetype interpret version to use.  Possible values are `35`, `38`

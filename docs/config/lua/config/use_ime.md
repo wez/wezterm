@@ -1,3 +1,7 @@
+---
+tags:
+  - keys
+---
 # `use_ime`
 
 Controls whether the Input Method Editor (IME) will be used to process keyboard

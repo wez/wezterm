@@ -1,3 +1,8 @@
+---
+tags:
+  - multiplexing
+  - wsl
+---
 # `wsl_domains`
 
 {{since('20220319-142410-0fcdea07')}}

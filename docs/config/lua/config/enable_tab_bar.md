@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - tab_bar
+---
 # `enable_tab_bar = true`
 
 Controls whether the tab bar is enabled.

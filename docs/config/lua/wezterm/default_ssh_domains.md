@@ -1,3 +1,10 @@
+---
+title: wezterm.default_ssh_domains
+tags:
+ - ssh
+ - multiplexing
+---
+
 # wezterm.default_ssh_domains()
 
 {{since('nightly')}}

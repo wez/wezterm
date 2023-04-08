@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `text_blink_rate_rapid`
 
 {{since('20210814-124438-54e29167')}}

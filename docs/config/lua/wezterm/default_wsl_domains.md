@@ -1,3 +1,10 @@
+---
+title: wezterm.default_wsl_domains
+tags:
+ - wsl
+ - multiplexing
+---
+
 # wezterm.default_wsl_domains()
 
 {{since('20220319-142410-0fcdea07')}}

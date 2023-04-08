@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font_size = 10.0`
 
 Specifies the size of the font, measured in points.

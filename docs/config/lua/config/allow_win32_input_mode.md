@@ -1,3 +1,7 @@
+---
+tags:
+  - keys
+---
 # `allow_win32_input_mode`
 
 {{since('20220319-142410-0fcdea07')}}

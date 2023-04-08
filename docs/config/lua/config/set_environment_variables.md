@@ -1,3 +1,7 @@
+---
+tags:
+  - spawn
+---
 # `set_environment_variables`
 
 Specifies a map of environment variables that should be set when spawning new

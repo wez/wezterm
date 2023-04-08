@@ -1,3 +1,7 @@
+---
+tags:
+  - serial
+---
 # `serial_ports = {}`
 
 {{since('nightly')}}

@@ -1,3 +1,9 @@
+---
+title: wezterm.font_with_fallback
+tags:
+ - font
+---
+
 # `wezterm.font_with_fallback(families [, attributes])`
 
 This function constructs a lua table that configures a font with fallback processing.

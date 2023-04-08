@@ -1,3 +1,7 @@
+---
+tags:
+  - updates
+---
 # `check_for_updates` & `check_for_updates_interval_seconds`
 
 Wezterm checks regularly if there is a new stable version available

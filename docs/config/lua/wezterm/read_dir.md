@@ -1,3 +1,9 @@
+---
+title: wezterm.read_dir
+tags:
+ - utility
+ - filesystem
+---
 # `wezterm.read_dir(path)`
 
 {{since('20200503-171512-b13ef15f')}}

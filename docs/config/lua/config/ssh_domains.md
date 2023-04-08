@@ -1,3 +1,8 @@
+---
+tags:
+  - ssh
+  - multiplexing
+---
 # `ssh_domains`
 
 Configures SSH multiplexing domains.  [Read more about SSH Domains](

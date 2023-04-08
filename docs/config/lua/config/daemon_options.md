@@ -1,3 +1,7 @@
+---
+tags:
+  - multiplexing
+---
 # `daemon_options`
 
 Allows configuring the multiplexer (mux) server and how it places itself into

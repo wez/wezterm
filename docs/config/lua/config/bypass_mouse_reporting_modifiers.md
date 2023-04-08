@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `bypass_mouse_reporting_modifiers = "SHIFT"`
 
 {{since('20210814-124438-54e29167')}}

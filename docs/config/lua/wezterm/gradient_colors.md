@@ -1,3 +1,9 @@
+---
+title: wezterm.gradient_colors
+tags:
+ - color
+---
+
 # `wezterm.gradient_colors(gradient, num_colors)`
 
 {{since('20210814-124438-54e29167')}}

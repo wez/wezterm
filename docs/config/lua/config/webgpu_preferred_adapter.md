@@ -1,3 +1,7 @@
+---
+tags:
+  - gpu
+---
 # `webgpu_preferred_adapter`
 
 {{since('20221119-145034-49b9839f')}}

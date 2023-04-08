@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `swallow_mouse_click_on_window_focus`
 
 {{since('20220319-142410-0fcdea07')}}

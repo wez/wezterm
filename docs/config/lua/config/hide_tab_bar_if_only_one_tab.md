@@ -1,3 +1,8 @@
+---
+tags:
+  - tab_bar
+  - appearance
+---
 # `hide_tab_bar_if_only_one_tab = false`
 
 If set to true, when there is only a single tab, the tab bar is

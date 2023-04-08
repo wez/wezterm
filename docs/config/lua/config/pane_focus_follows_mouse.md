@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `pane_focus_follows_mouse = false`
 
 {{since('20210502-130208-bff6815d')}}

@@ -1,3 +1,8 @@
+---
+tags:
+  - font
+---
+
 # `adjust_window_size_when_changing_font_size = true`
 
 {{since('20210203-095643-70a364eb')}}

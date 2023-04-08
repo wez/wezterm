@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - text_cursor
+---
 # `default_cursor_style = "SteadyBlock"`
 
 Specifies the default cursor style.  Various escape sequences

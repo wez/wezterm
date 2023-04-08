@@ -1,3 +1,7 @@
+---
+tags:
+  - keys
+---
 # `key_map_preference = "Mapped"`
 
 {{since('20220408-101518-b908e2dd')}}

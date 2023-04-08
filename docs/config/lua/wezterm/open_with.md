@@ -1,3 +1,11 @@
+---
+title: wezterm.open_with
+tags:
+ - utility
+ - open
+ - spawn
+---
+
 # `wezterm.open_with(path_or_url [, application])`
 
 {{since('20220101-133340-7edc5b5a')}}

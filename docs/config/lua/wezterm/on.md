@@ -1,3 +1,9 @@
+---
+title: wezterm.on
+tags:
+ - utility
+ - event
+---
 # `wezterm.on(event_name, callback)`
 
 {{since('20201031-154415-9614e117')}}

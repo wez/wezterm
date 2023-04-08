@@ -1,3 +1,8 @@
+---
+tags:
+  - mouse
+---
+
 Mouse bindings are configurable, and there are a number of default assignments
 described below.
 

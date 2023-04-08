@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - background
+---
 # `window_background_gradient`
 
 {{since('20210814-124438-54e29167')}}

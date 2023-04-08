@@ -1,3 +1,9 @@
+---
+title: wezterm.action
+tags:
+ - keys
+---
+
 # `wezterm.action`
 
 Helper for defining key assignment actions in your configuration file.

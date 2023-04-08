@@ -1,3 +1,7 @@
+---
+tags:
+  - color
+---
 # `colors`
 
 Specifies the color palette.

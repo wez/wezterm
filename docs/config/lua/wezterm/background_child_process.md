@@ -1,3 +1,11 @@
+---
+title: wezterm.background_child_process
+tags:
+ - utility
+ - open
+ - spawn
+---
+
 # `wezterm.background_child_process(args)`
 
 {{since('20211204-082213-a66c61ee9')}}

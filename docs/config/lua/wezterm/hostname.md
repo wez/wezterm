@@ -1,3 +1,9 @@
+---
+title: wezterm.hostname
+tags:
+ - utility
+---
+
 # `wezterm.hostname()`
 
 This function returns the current hostname of the system that is running wezterm.

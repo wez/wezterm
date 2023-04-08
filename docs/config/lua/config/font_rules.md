@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font_rules`
 
 When textual output in the terminal is styled with bold, italic or other

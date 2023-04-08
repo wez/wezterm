@@ -1,3 +1,9 @@
+---
+title: wezterm.battery_info
+tags:
+ - utility
+---
+
 # `wezterm.battery_info()`
 
 {{since('20210314-114017-04b7cedd')}}

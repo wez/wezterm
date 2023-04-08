@@ -1,3 +1,7 @@
+---
+tags:
+  - exit_behavior
+---
 ## `exit_behavior = "CloseOnCleanExit"`
 
 {{since('20210314-114017-04b7cedd')}}

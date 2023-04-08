@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font`
 
 Configures the font to use by default.  The `font` setting can specify

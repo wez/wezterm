@@ -1,3 +1,7 @@
+---
+tags:
+  - exit_behavior
+---
 # `skip_close_confirmation_for_processes_named`
 
 {{since('20210404-112810-b63a949d')}}

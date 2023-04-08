@@ -1,3 +1,8 @@
+---
+tags:
+  - font
+  - appearance
+---
 # `dpi`
 
 Override the detected DPI (dots per inch) for the display.

@@ -1,3 +1,11 @@
+---
+title: wezterm.shell_split
+tags:
+ - utility
+ - open
+ - spawn
+ - string
+---
 # wezterm.shell_split(line)
 
 {{since('20220807-113146-c2fee766')}}

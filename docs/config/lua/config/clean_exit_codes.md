@@ -1,3 +1,7 @@
+---
+tags:
+  - exit_behavior
+---
 ## `clean_exit_codes = { 0 }`
 
 {{since('20220624-141144-bd1b7c5d')}}

@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `text_blink_ease_in = "Linear"`
 
 {{since('20220319-142410-0fcdea07')}}

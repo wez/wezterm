@@ -1,3 +1,7 @@
+---
+tags:
+  - tab_bar
+---
 # `show_tab_index_in_tab_bar = true`
 
 When set to `true` (the default), tab titles show their tab number (tab index) with a

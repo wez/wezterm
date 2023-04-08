@@ -1,3 +1,7 @@
+---
+tags:
+  - spawn
+---
 # `default_prog`
 
 If no `prog` is specified on the command line, use this

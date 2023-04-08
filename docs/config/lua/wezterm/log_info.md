@@ -1,3 +1,10 @@
+---
+title: wezterm.log_info
+tags:
+ - utility
+ - log
+ - debug
+---
 # `wezterm.log_info(arg, ..)`
 
 {{since('20210314-114017-04b7cedd')}}

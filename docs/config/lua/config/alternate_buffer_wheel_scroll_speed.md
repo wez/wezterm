@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `alternate_buffer_wheel_scroll_speed = 3`
 
 {{since('20210203-095643-70a364eb')}}

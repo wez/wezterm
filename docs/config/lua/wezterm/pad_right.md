@@ -1,3 +1,9 @@
+---
+title: wezterm.pad_right
+tags:
+ - utility
+ - string
+---
 # wezterm.pad_right(string, min_width)
 
 {{since('20210502-130208-bff6815d')}}

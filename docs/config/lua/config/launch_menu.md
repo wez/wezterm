@@ -1,3 +1,8 @@
+---
+tags:
+  - spawn
+  - launch_menu
+---
 # `launch_menu`
 
 {{since('20200503-171512-b13ef15f')}}

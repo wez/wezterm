@@ -1,3 +1,7 @@
+---
+tags:
+  - updates
+---
 # `show_update_window`
 
 When Wezterm checks for an update and detects a new version, this

@@ -1,3 +1,10 @@
+---
+title: wezterm.glob
+tags:
+ - utility
+ - filesystem
+---
+
 # `wezterm.glob(pattern [, relative_to])`
 
 {{since('20200503-171512-b13ef15f')}}

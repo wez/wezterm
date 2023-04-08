@@ -1,3 +1,7 @@
+---
+tags:
+  - color
+---
 # `color_schemes`
 
 Specifies various named color schemes in your configuration file.

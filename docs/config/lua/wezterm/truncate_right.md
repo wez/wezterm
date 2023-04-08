@@ -1,3 +1,9 @@
+---
+title: wezterm.truncate_right
+tags:
+ - utility
+ - string
+---
 # wezterm.truncate_right(string, max_width)
 
 {{since('20210502-130208-bff6815d')}}

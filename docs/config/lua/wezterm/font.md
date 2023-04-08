@@ -1,7 +1,10 @@
 ---
 search:
-  boost: 20000
+  boost: 10
 keywords: font
+tags:
+ - font
+title: wezterm.font
 ---
 
 # `wezterm.font(family [, attributes])`

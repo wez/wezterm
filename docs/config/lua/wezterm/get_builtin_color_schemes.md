@@ -1,3 +1,11 @@
+---
+title: wezterm.get_builtin_color_schemes
+tags:
+ - color
+ - scheme
+ - theme
+---
+
 # `wezterm.get_builtin_color_schemes()`
 
 {{since('20220101-133340-7edc5b5a')}}

@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 ### warn_about_missing_glyphs = true
 
 {{since('20210502-130208-bff6815d')}}

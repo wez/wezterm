@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font_dirs`
 
 By default, wezterm will use an appropriate system-specific method for

@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - font
+---
 ## `custom_block_glyphs = true`
 
 {{since('20210314-114017-04b7cedd')}}

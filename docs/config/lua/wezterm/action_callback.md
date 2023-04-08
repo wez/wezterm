@@ -1,3 +1,10 @@
+---
+title: wezterm.action_callback
+tags:
+ - keys
+ - event
+---
+
 # `wezterm.action_callback(callback)`
 
 {{since('20211204-082213-a66c61ee9')}}

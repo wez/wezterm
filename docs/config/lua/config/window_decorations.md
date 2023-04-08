@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `window_decorations = "TITLE | RESIZE"`
 
 {{since('20210314-114017-04b7cedd')}}

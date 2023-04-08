@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `macos_window_background_blur = 0`
 
 {{since('20230326-111934-3666303c')}}

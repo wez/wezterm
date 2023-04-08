@@ -1,3 +1,8 @@
+---
+title: wezterm.running_under_wsl
+tags:
+ - utility
+---
 # `wezterm.running_under_wsl()`
 
 This function returns a boolean indicating whether we believe that we are

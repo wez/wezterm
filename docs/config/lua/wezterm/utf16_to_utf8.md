@@ -1,3 +1,9 @@
+---
+title: wezterm.utf16_to_utf8
+tags:
+ - utility
+ - string
+---
 # `wezterm.utf16_to_utf8(str)`
 
 {{since('20200503-171512-b13ef15f')}}

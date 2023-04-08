@@ -1,3 +1,7 @@
+---
+tags:
+  - exit_behavior
+---
 # `window_close_confirmation`
 
 Whether to display a confirmation prompt when the window is closed by the

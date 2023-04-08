@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `native_macos_fullscreen_mode = false`
 
 Specifies whether the [ToggleFullScreen](../../lua/keyassignment/ToggleFullScreen.md)

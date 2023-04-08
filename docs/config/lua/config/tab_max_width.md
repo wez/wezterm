@@ -1,3 +1,7 @@
+---
+tags:
+  - tab_bar
+---
 # `tab_max_width`
 
 Specifies the maximum width that a tab can have in the

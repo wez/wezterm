@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `font_shaper`
 
 specifies the method by which text is mapped to glyphs in the available fonts.

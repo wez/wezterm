@@ -1,3 +1,10 @@
+---
+title: wezterm.column_width
+tags:
+ - utility
+ - string
+---
+
 # wezterm.column_width(string)
 
 {{since('20210502-130208-bff6815d')}}

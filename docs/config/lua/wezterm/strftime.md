@@ -1,3 +1,10 @@
+---
+title: wezterm.strftime
+tags:
+ - utility
+ - time
+ - string
+---
 # `wezterm.strftime(format)`
 
 {{since('20210314-114017-04b7cedd')}}

@@ -1,3 +1,9 @@
+---
+title: wezterm.version
+tags:
+ - utility
+ - version
+---
 # `wezterm.version`
 
 This constant is set to the `wezterm` version string that is also reported

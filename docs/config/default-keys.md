@@ -1,3 +1,11 @@
+---
+search:
+  boost: 20
+keywords: default keys key
+tags:
+ - keys
+---
+
 The default key assignments are shown in the table below.
 
 You may also use `wezterm show-keys --lua` to see the assignments

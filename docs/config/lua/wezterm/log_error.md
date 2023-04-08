@@ -1,3 +1,11 @@
+---
+title: wezterm.log_error
+tags:
+ - utility
+ - log
+ - debug
+---
+
 # `wezterm.log_error(arg, ..)`
 
 This function logs the provided message string through wezterm's logging layer

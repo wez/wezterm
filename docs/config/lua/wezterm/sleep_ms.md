@@ -1,3 +1,9 @@
+---
+title: wezterm.sleep_ms
+tags:
+ - utility
+ - time
+---
 # `wezterm.sleep_ms(milliseconds)`
 
 {{since('20201031-154415-9614e117')}}

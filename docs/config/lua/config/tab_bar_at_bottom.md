@@ -1,3 +1,7 @@
+---
+tags:
+  - tab_bar
+---
 # `tab_bar_at_bottom = false`
 
 {{since('20210502-130208-bff6815d')}}

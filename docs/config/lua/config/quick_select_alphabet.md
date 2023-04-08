@@ -1,3 +1,7 @@
+---
+tags:
+  - quick_select
+---
 # `quick_select_alphabet`
 
 {{since('20210502-130208-bff6815d')}}

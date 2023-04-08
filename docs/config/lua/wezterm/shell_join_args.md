@@ -1,3 +1,11 @@
+---
+title: wezterm.shell_join_args
+tags:
+ - utility
+ - open
+ - spawn
+ - string
+---
 # wezterm.shell_join_args({"foo", "bar"})
 
 {{since('20220807-113146-c2fee766')}}

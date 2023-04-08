@@ -1,3 +1,7 @@
+---
+tags:
+  - hyperlink
+---
 # `hyperlink_rules`
 
 Defines rules to match text from the terminal output and generate

@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `use_cap_height_to_scale_fallback_fonts = false`
 
 {{since('20210502-130208-bff6815d')}}

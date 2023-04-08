@@ -1,3 +1,7 @@
+---
+tags:
+  - quick_select
+---
 # `disable_default_quick_select_patterns = false`
 
 {{since('20210502-130208-bff6815d')}}

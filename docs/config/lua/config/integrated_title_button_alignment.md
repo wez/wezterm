@@ -1,3 +1,7 @@
+---
+tags:
+  - appearance
+---
 # `integrated_title_button_alignment = "Right"`
 
 {{since('nightly')}}

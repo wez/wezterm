@@ -1,3 +1,7 @@
+---
+tags:
+  - tuning
+---
 # `animation_fps = 10`
 
 {{since('20220319-142410-0fcdea07')}}

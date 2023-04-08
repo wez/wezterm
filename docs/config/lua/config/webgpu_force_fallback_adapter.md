@@ -1,3 +1,7 @@
+---
+tags:
+  - gpu
+---
 # `webgpu_force_fallback_adapter = false`
 
 {{since('20221119-145034-49b9839f')}}

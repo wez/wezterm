@@ -1,3 +1,9 @@
+---
+title: wezterm.config_file
+tags:
+ - filesystem
+---
+
 # `wezterm.config_file`
 
 {{since('20210502-130208-bff6815d')}}

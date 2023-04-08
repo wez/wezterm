@@ -1,3 +1,7 @@
+---
+tags:
+  - keys
+---
 # `treat_left_ctrlalt_as_altgr = false`
 
 {{since('20210314-114017-04b7cedd')}}

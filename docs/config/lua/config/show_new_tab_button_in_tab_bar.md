@@ -1,3 +1,7 @@
+---
+tags:
+  - tab_bar
+---
 # `show_new_tab_button_in_tab_bar = true`
 
 {{since('20221119-145034-49b9839f')}}

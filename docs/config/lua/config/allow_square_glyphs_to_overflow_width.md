@@ -1,3 +1,8 @@
+---
+tags:
+  - font
+---
+
 # `allow_square_glyphs_to_overflow_width = "Never"`
 
 {{since('20210203-095643-70a364eb')}}

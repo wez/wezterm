@@ -1,3 +1,9 @@
+---
+title: wezterm.enumerate_ssh_hosts
+tags:
+ - ssh
+---
+
 # wezterm.enumerate_ssh_hosts(\[ssh_config_file_name, ...\])
 
 {{since('20220319-142410-0fcdea07')}}

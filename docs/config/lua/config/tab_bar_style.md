@@ -1,3 +1,7 @@
+---
+tags:
+  - tab_bar
+---
 # `tab_bar_style`
 
 {{since('20210814-124438-54e29167')}}

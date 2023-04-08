@@ -1,3 +1,10 @@
+---
+title: wezterm.log_warn
+tags:
+ - utility
+ - log
+ - debug
+---
 # `wezterm.log_warn(arg, ..)`
 
 {{since('20210314-114017-04b7cedd')}}

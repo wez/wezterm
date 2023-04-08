@@ -1,3 +1,9 @@
+---
+title: wezterm.config_builder
+tags:
+ - utility
+---
+
 # wezterm.config_builder()
 
 {{since('20230320-124340-559cb7b0')}}

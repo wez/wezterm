@@ -1,3 +1,7 @@
+---
+tags:
+  - status
+---
 # `status_update_interval = 1000`
 
 {{since('20210314-114017-04b7cedd')}}

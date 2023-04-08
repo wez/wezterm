@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - text_cursor
+---
 # `cursor_blink_rate`
 
 Specifies how often a blinking cursor transitions between visible and

@@ -1,3 +1,11 @@
+---
+title: wezterm.shell_quote_arg
+tags:
+ - utility
+ - open
+ - spawn
+ - string
+---
 # wezterm.shell_quote_arg(string)
 
 {{since('20220807-113146-c2fee766')}}

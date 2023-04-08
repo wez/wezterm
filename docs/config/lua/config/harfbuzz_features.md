@@ -1,3 +1,7 @@
+---
+tags:
+  - font
+---
 # `harfbuzz_features`
 
 When `font_shaper = "Harfbuzz"`, this setting affects how font shaping

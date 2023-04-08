@@ -1,3 +1,7 @@
+---
+tags:
+  - keys
+---
 # `enable_csi_u_key_encoding = false`
 
 When set to `true`, the [keyboard encoding](../../key-encoding.md) will be

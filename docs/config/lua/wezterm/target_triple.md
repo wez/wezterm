@@ -1,3 +1,9 @@
+---
+title: wezterm.target_triple
+tags:
+ - utility
+ - version
+---
 # `wezterm.target_triple`
 
 This constant is set to the [Rust target

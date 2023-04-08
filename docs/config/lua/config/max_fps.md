@@ -1,3 +1,7 @@
+---
+tags:
+  - tuning
+---
 # `max_fps = 60`
 
 Limits the maximum number of frames per second that wezterm will

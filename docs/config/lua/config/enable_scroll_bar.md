@@ -1,3 +1,8 @@
+---
+tags:
+  - appearance
+  - scroll_bar
+---
 # `enable_scroll_bar`
 
 Enable the scrollbar.  This is currently disabled by default.

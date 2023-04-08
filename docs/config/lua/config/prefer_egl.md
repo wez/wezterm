@@ -1,3 +1,7 @@
+---
+tags:
+  - tuning
+---
 # `prefer_egl = true`
 
 Depending on the OS and windowing environment, there are a number of different

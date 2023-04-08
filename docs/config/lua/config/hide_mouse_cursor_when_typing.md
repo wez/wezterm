@@ -1,3 +1,8 @@
+---
+tags:
+  - mouse_cursor
+  - appearance
+---
 # `hide_mouse_cursor_when_typing`
 
 {{since('20230320-124340-559cb7b0')}}

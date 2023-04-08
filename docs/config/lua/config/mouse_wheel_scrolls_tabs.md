@@ -1,3 +1,7 @@
+---
+tags:
+  - mouse
+---
 # `mouse_wheel_scrolls_tabs`
 
 {{since('20230326-111934-3666303c')}}

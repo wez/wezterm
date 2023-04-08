@@ -1,3 +1,10 @@
+---
+title: wezterm.has_action
+tags:
+ - utility
+ - version
+---
+
 # wezterm.has_action(NAME)
 
 {{since('nightly')}}
