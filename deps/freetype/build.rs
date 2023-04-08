@@ -5,6 +5,7 @@ fn new_build() -> cc::Build {
     let mut cfg = cc::Build::new();
     cfg.warnings(false);
     cfg.flag_if_supported("-fno-stack-check");
+    cfg.flag_if_supported("-Wno-deprecated-non-prototype");
     cfg
 }
 
