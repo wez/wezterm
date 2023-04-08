@@ -803,17 +803,19 @@ impl WaylandWindowInner {
         self.invalidated = false;
         self.events.dispatch(WindowEvent::NeedRepaint);
 
-        // Ask the compositor to wake us up when its time to paint
-        // the next frame
-        let window_id = self.window_id;
-        let callback = self.surface.frame();
-        callback.quick_assign(move |_source, _event, _data| {
-            WaylandConnection::with_window_inner(window_id, |inner| {
-                inner.next_frame_is_ready();
-                Ok(())
+        if self.gl_state.is_some() {
+            // Ask the compositor to wake us up when its time to paint
+            // the next frame
+            let window_id = self.window_id;
+            let callback = self.surface.frame();
+            callback.quick_assign(move |_source, _event, _data| {
+                WaylandConnection::with_window_inner(window_id, |inner| {
+                    inner.next_frame_is_ready();
+                    Ok(())
+                });
             });
-        });
-        self.frame_callback.replace(callback);
+            self.frame_callback.replace(callback);
+        }
 
         Ok(())
     }
