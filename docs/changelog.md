@@ -21,6 +21,11 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Fixed
+
+* Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
+  OS-level key maps. #3470
+
 ### 20230408-112425-69ae8472
 
 #### Changed
