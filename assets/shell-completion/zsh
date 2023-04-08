@@ -391,6 +391,8 @@ _arguments "${_arguments_options[@]}" \
 (replay)
 _arguments "${_arguments_options[@]}" \
 '--explain[Explain what is being sent/received]' \
+'(--explain)--explain-only[Don'\''t replay, just show the explanation]' \
+'(--explain)--cat[Just emit raw escape sequences all at once, with no timing information]' \
 '-h[Print help]' \
 '--help[Print help]' \
 ':cast_file:_files' \

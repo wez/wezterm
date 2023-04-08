@@ -1450,7 +1450,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__replay)
-            opts="-h --explain --help <CAST_FILE>"
+            opts="-h --explain --explain-only --cat --help <CAST_FILE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

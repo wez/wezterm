@@ -159,6 +159,8 @@ complete -c wezterm -n "__fish_seen_subcommand_from imgcat" -s h -l help -d 'Pri
 complete -c wezterm -n "__fish_seen_subcommand_from set-working-directory" -s h -l help -d 'Print help'
 complete -c wezterm -n "__fish_seen_subcommand_from record" -s h -l help -d 'Print help'
 complete -c wezterm -n "__fish_seen_subcommand_from replay" -l explain -d 'Explain what is being sent/received'
+complete -c wezterm -n "__fish_seen_subcommand_from replay" -l explain-only -d 'Don\'t replay, just show the explanation'
+complete -c wezterm -n "__fish_seen_subcommand_from replay" -l cat -d 'Just emit raw escape sequences all at once, with no timing information'
 complete -c wezterm -n "__fish_seen_subcommand_from replay" -s h -l help -d 'Print help'
 complete -c wezterm -n "__fish_seen_subcommand_from shell-completion" -l shell -d 'Which shell to generate for' -r -f -a "{bash	,elvish	,fish	,power-shell	,zsh	,fig	}"
 complete -c wezterm -n "__fish_seen_subcommand_from shell-completion" -s h -l help -d 'Print help'

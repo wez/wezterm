@@ -6,5 +6,8 @@ Arguments:
   <CAST_FILE>  
 
 Options:
-      --explain  Explain what is being sent/received
-  -h, --help     Print help
+      --explain       Explain what is being sent/received
+      --explain-only  Don't replay, just show the explanation
+      --cat           Just emit raw escape sequences all at once, with no timing
+                      information
+  -h, --help          Print help
