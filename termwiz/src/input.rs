@@ -340,7 +340,10 @@ impl KeyCode {
             c => *c,
         };
 
-        if mods.is_empty() && !flags.contains(KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES) {
+        if mods.is_empty()
+            && !flags.contains(KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES)
+            && is_down
+        {
             // Check for simple text generating keys
             match key {
                 Enter => return Ok("\r".to_string()),
@@ -2075,6 +2078,32 @@ mod test {
                 })
             ],
             res
+        );
+    }
+
+    #[test]
+    fn encode_issue_3220() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(
+                KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KittyKeyboardFlags::REPORT_EVENT_TYPES,
+            ),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Char('o')
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "o".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('o')
+                .encode(Modifiers::NONE, mode, false)
+                .unwrap(),
+            "\x1b[111;1:3u".to_string()
         );
     }
 
