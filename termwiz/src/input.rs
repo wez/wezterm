@@ -397,57 +397,72 @@ impl KeyCode {
             ""
         };
 
+        let is_legacy_key = match key {
+            Char(c) => {
+                c.is_ascii_alphanumeric()
+                    || matches!(
+                        c,
+                        '`' | '-'
+                            | '='
+                            | '['
+                            | ']'
+                            | '\\'
+                            | ';'
+                            | '\''
+                            | ','
+                            | '.'
+                            | '/'
+                            | '~'
+                            | '_'
+                            | '+'
+                            | '{'
+                            | '}'
+                            | '|'
+                            | ':'
+                            | '"'
+                            | '<'
+                            | '>'
+                            | '?'
+                    )
+            }
+            _ => false,
+        };
+
         match key {
             Char(shifted_key) => {
-                if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS) {
-                    if shifted_key.is_ascii_alphanumeric()
-                        || matches!(
-                            shifted_key,
-                            '`' | '-'
-                                | '='
-                                | '['
-                                | ']'
-                                | '\\'
-                                | ';'
-                                | '\''
-                                | ','
-                                | '.'
-                                | '/'
-                                | '~'
-                                | '_'
-                                | '+'
-                                | '{'
-                                | '}'
-                                | '|'
-                                | ':'
-                                | '"'
-                                | '<'
-                                | '>'
-                                | '?'
-                        )
-                    {
-                        // Legacy text key
-                        let mut output = String::new();
-                        if mods.contains(Modifiers::ALT) {
-                            output.push('\x1b');
-                        }
-                        if mods.contains(Modifiers::CTRL) {
-                            csi_u_encode(
-                                &mut output,
-                                shifted_key.to_ascii_uppercase(),
-                                mods,
-                                &KeyCodeEncodeModes {
-                                    encoding: KeyboardEncoding::Xterm,
-                                    newline_mode: false,
-                                    application_cursor_keys: false,
-                                    modify_other_keys: None,
-                                },
-                            )?;
-                        } else {
-                            output.push(shifted_key);
-                        }
-                        return Ok(output);
+                let mut use_legacy = false;
+
+                if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
+                    && event_type.is_empty()
+                    && is_legacy_key
+                    && !(flags.contains(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES)
+                        && (mods.contains(Modifiers::CTRL) || mods.contains(Modifiers::ALT)))
+                {
+                    use_legacy = true;
+                }
+
+                if use_legacy {
+                    // Legacy text key
+                    let mut output = String::new();
+                    if mods.contains(Modifiers::ALT) {
+                        output.push('\x1b');
                     }
+                    if mods.contains(Modifiers::CTRL) {
+                        csi_u_encode(
+                            &mut output,
+                            shifted_key.to_ascii_uppercase(),
+                            mods,
+                            &KeyCodeEncodeModes {
+                                encoding: KeyboardEncoding::Xterm,
+                                newline_mode: false,
+                                application_cursor_keys: false,
+                                modify_other_keys: None,
+                            },
+                        )?;
+                    } else {
+                        output.push(shifted_key);
+                    }
+                    return Ok(output);
                 }
 
                 let c = shifted_key.to_ascii_lowercase();
