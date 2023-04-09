@@ -2134,4 +2134,27 @@ mod test {
             "\x1b[11;1:3~".to_string()
         );
     }
+
+    #[test]
+    fn encode_issue_2546() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Char('i')
+                .encode(Modifiers::ALT | Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\x1b[105;4u".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('1')
+                .encode(Modifiers::ALT | Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\x1b[49;4u".to_string()
+        );
+    }
 }
