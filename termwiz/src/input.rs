@@ -385,7 +385,12 @@ impl KeyCode {
                     // Note: we don't have enough information here to know what the base-layout key
                     // should really be.
                     let base_layout = c;
-                    format!("{}:{}:{}", c, shifted_key, base_layout)
+                    format!(
+                        "{}:{}:{}",
+                        (c as u32),
+                        (shifted_key as u32),
+                        (base_layout as u32)
+                    )
                 } else {
                     (c as u32).to_string()
                 };
@@ -2155,6 +2160,34 @@ mod test {
                 .encode(Modifiers::ALT | Modifiers::SHIFT, mode, true)
                 .unwrap(),
             "\x1b[49;4u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3474() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(
+                KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KittyKeyboardFlags::REPORT_EVENT_TYPES
+                    | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+                    | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            ),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Char('A')
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[97:65:97;1u".to_string()
+        );
+        assert_eq!(
+            KeyCode::Char('A')
+                .encode(Modifiers::NONE, mode, false)
+                .unwrap(),
+            "\u{1b}[97:65:97;1:3u".to_string()
         );
     }
 }
