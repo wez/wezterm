@@ -2495,6 +2495,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             raw: None,
                         }
                         .normalize_shift()
+                        .resurface_positional_modifier_key()
                         .normalize_ctrl();
 
                         inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));

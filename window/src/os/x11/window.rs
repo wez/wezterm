@@ -638,7 +638,8 @@ impl XWindowInner {
             key_is_down: true,
             raw: None,
         }
-        .normalize_shift();
+        .normalize_shift()
+        .resurface_positional_modifier_key();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));
     }
 

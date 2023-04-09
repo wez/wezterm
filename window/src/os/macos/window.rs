@@ -2598,7 +2598,8 @@ impl WindowView {
                 key_is_down,
                 raw: Some(raw_key_event),
             }
-            .normalize_shift();
+            .normalize_shift()
+            .resurface_positional_modifier_key();
 
             log::debug!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?})",

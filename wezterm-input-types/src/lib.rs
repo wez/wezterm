@@ -461,12 +461,17 @@ bitflags! {
         const SUPER = 1<<4;
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
+        /// This is a virtual modifier used by wezterm
         const LEADER = 1<<7;
         const LEFT_CTRL = 1<<8;
         const RIGHT_CTRL = 1<<9;
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
         const ENHANCED_KEY = 1<<12;
+        /// Not really a modifier, but a keyboard driver state
+        const CAPS_LOCK = 1<<13;
+        /// Not really a modifier, but a keyboard driver state
+        const NUM_LOCK = 1<<14;
     }
 }
 
@@ -618,6 +623,24 @@ impl Modifiers {
                 "ENHANCED_KEY",
                 "ENHANCED_KEY",
                 "ENHANCED_KEY",
+            ),
+            (
+                Self::CAPS_LOCK,
+                "CAPS_LOCK",
+                "CAPS_LOCK",
+                "CAPS_LOCK",
+                "CAPS_LOCK",
+                "CAPS_LOCK",
+                "CAPS_LOCK",
+            ),
+            (
+                Self::NUM_LOCK,
+                "NUM_LOCK",
+                "NUM_LOCK",
+                "NUM_LOCK",
+                "NUM_LOCK",
+                "NUM_LOCK",
+                "NUM_LOCK",
             ),
         ] {
             if !self.contains(value) {
@@ -1223,7 +1246,9 @@ pub struct KeyEvent {
 }
 
 fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
-    if modifiers.contains(Modifiers::SHIFT) {
+    if modifiers.contains(Modifiers::SHIFT | Modifiers::CAPS_LOCK) {
+        (key, modifiers - (Modifiers::SHIFT | Modifiers::CAPS_LOCK))
+    } else if modifiers.contains(Modifiers::SHIFT) {
         match key {
             KeyCode::Char(c) if c.is_ascii_uppercase() => (key, modifiers - Modifiers::SHIFT),
             KeyCode::Char(c) if c.is_ascii_lowercase() => (
@@ -1266,6 +1291,84 @@ impl KeyEvent {
         let (key, modifiers) = normalize_shift(self.key, self.modifiers);
         self.key = key;
         self.modifiers = modifiers;
+
+        self
+    }
+
+    /// If the key code is a modifier key (Control, Alt, Shift), check
+    /// the underlying raw event to see if we had a positional version
+    /// of that key.
+    /// If so, switch to the positional version.
+    pub fn resurface_positional_modifier_key(mut self) -> Self {
+        match self.key {
+            KeyCode::Control
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::LeftControl | KeyCode::Physical(PhysKeyCode::LeftControl),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::LeftControl;
+            }
+            KeyCode::Control
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::RightControl | KeyCode::Physical(PhysKeyCode::RightControl),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::RightControl;
+            }
+            KeyCode::Alt
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::LeftAlt | KeyCode::Physical(PhysKeyCode::LeftAlt),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::LeftAlt;
+            }
+            KeyCode::Alt
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::RightAlt | KeyCode::Physical(PhysKeyCode::RightAlt),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::RightAlt;
+            }
+            KeyCode::Shift
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::LeftShift | KeyCode::Physical(PhysKeyCode::LeftShift),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::LeftShift;
+            }
+            KeyCode::Shift
+                if matches!(
+                    self.raw,
+                    Some(RawKeyEvent {
+                        key: KeyCode::RightShift | KeyCode::Physical(PhysKeyCode::RightShift),
+                        ..
+                    })
+                ) =>
+            {
+                self.key = KeyCode::RightShift;
+            }
+            _ => {}
+        }
 
         self
     }

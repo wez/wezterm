@@ -45,15 +45,25 @@ use winapi::um::wincon::{
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Modifiers: u8 {
+    pub struct Modifiers: u16 {
         const NONE = 0;
         const SHIFT = 1<<1;
         const ALT = 1<<2;
         const CTRL = 1<<3;
         const SUPER = 1<<4;
+        const LEFT_ALT = 1<<5;
+        const RIGHT_ALT = 1<<6;
         /// This is a virtual modifier used by wezterm
-        #[doc(hidden)]
-        const LEADER = 1<<5;
+        const LEADER = 1<<7;
+        const LEFT_CTRL = 1<<8;
+        const RIGHT_CTRL = 1<<9;
+        const LEFT_SHIFT = 1<<10;
+        const RIGHT_SHIFT = 1<<11;
+        const ENHANCED_KEY = 1<<12;
+        /// Not really a modifier, but a keyboard driver state
+        const CAPS_LOCK = 1<<13;
+        /// Not really a modifier, but a keyboard driver state
+        const NUM_LOCK = 1<<14;
     }
 }
 bitflags! {
@@ -366,6 +376,12 @@ impl KeyCode {
         }
         if mods.contains(Modifiers::SUPER) {
             modifiers |= 8;
+        }
+        if mods.contains(Modifiers::CAPS_LOCK) {
+            modifiers |= 64;
+        }
+        if mods.contains(Modifiers::NUM_LOCK) {
+            modifiers |= 128;
         }
         modifiers += 1;
 
@@ -2188,6 +2204,46 @@ mod test {
                 .encode(Modifiers::NONE, mode, false)
                 .unwrap(),
             "\u{1b}[97:65:97;1:3u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3476() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(
+                KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KittyKeyboardFlags::REPORT_EVENT_TYPES
+                    | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+                    | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            ),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::LeftShift
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[57441;1u".to_string()
+        );
+        assert_eq!(
+            KeyCode::LeftShift
+                .encode(Modifiers::NONE, mode, false)
+                .unwrap(),
+            "\u{1b}[57441;1:3u".to_string()
+        );
+        assert_eq!(
+            KeyCode::LeftControl
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[57442;1u".to_string()
+        );
+        assert_eq!(
+            KeyCode::LeftControl
+                .encode(Modifiers::NONE, mode, false)
+                .unwrap(),
+            "\u{1b}[57442;1:3u".to_string()
         );
     }
 }

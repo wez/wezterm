@@ -369,7 +369,8 @@ impl Keyboard {
             key_is_down: pressed,
             raw: Some(raw_key_event),
         }
-        .normalize_shift();
+        .normalize_shift()
+        .resurface_positional_modifier_key();
 
         if pressed && want_repeat {
             events.dispatch(WindowEvent::KeyEvent(event.clone()));
@@ -386,6 +387,9 @@ impl Keyboard {
         self.state
             .borrow()
             .mod_name_is_active(modifier, xkb::STATE_MODS_EFFECTIVE)
+    }
+    fn led_is_active(&self, led: &str) -> bool {
+        self.state.borrow().led_name_is_active(led)
     }
 
     pub fn get_key_modifiers(&self) -> Modifiers {
@@ -404,6 +408,12 @@ impl Keyboard {
         if self.mod_is_active(xkb::MOD_NAME_LOGO) {
             // Mod4
             res |= Modifiers::SUPER;
+        }
+        if self.led_is_active(xkb::LED_NAME_NUM) {
+            res |= Modifiers::NUM_LOCK;
+        }
+        if self.led_is_active(xkb::LED_NAME_CAPS) {
+            res |= Modifiers::CAPS_LOCK;
         }
         res
     }
