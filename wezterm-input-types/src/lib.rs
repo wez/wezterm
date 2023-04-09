@@ -111,6 +111,11 @@ pub enum KeyCode {
     ApplicationRightArrow,
     ApplicationUpArrow,
     ApplicationDownArrow,
+    KeyPadHome,
+    KeyPadEnd,
+    KeyPadPageUp,
+    KeyPadPageDown,
+    KeyPadBegin,
 }
 
 impl KeyCode {
@@ -276,6 +281,11 @@ impl KeyCode {
             | Self::ApplicationRightArrow
             | Self::ApplicationUpArrow
             | Self::ApplicationDownArrow
+            | Self::KeyPadHome
+            | Self::KeyPadEnd
+            | Self::KeyPadPageUp
+            | Self::KeyPadPageDown
+            | Self::KeyPadBegin
             | Self::MediaNextTrack
             | Self::MediaPrevTrack
             | Self::MediaStop

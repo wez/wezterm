@@ -221,6 +221,11 @@ pub enum KeyCode {
     ApplicationRightArrow,
     ApplicationUpArrow,
     ApplicationDownArrow,
+    KeyPadHome,
+    KeyPadEnd,
+    KeyPadPageUp,
+    KeyPadPageDown,
+    KeyPadBegin,
 
     #[doc(hidden)]
     InternalPasteStart,
@@ -304,10 +309,11 @@ impl KeyCode {
             ApplicationRightArrow => 57418,
             ApplicationUpArrow => 57419,
             ApplicationDownArrow => 57420,
-            PageUp => 57421,
-            PageDown => 57422,
-            Home => 57423,
-            End => 57424,
+            KeyPadHome => 57423,
+            KeyPadEnd => 57424,
+            KeyPadBegin => 57427,
+            KeyPadPageUp => 57421,
+            KeyPadPageDown => 57422,
             Insert => 57425,
             // KeypadDelete => 57426,
             MediaPlayPause => 57430,
@@ -615,7 +621,9 @@ impl KeyCode {
             }
 
             Home
+            | KeyPadHome
             | End
+            | KeyPadEnd
             | UpArrow
             | DownArrow
             | RightArrow
@@ -663,7 +671,7 @@ impl KeyCode {
                 }
             }
 
-            PageUp | PageDown | Insert | Delete => {
+            PageUp | PageDown | KeyPadPageUp | KeyPadPageDown | Insert | Delete => {
                 let c = match key {
                     Insert => 2,
                     Delete => 3,
@@ -734,9 +742,47 @@ impl KeyCode {
                 }
             }
 
-            // TODO: emit numpad sequences
-            Numpad0 | Numpad1 | Numpad2 | Numpad3 | Numpad4 | Numpad5 | Numpad6 | Numpad7
-            | Numpad8 | Numpad9 | Multiply | Add | Separator | Subtract | Decimal | Divide => {}
+            Numpad0 | Numpad3 | Numpad9 | Decimal => {
+                let intro = match key {
+                    Numpad0 => "\x1b[2",
+                    Numpad3 => "\x1b[6",
+                    Numpad9 => "\x1b[6",
+                    Decimal => "\x1b[3",
+                    _ => unreachable!(),
+                };
+
+                let encoded_mods = encode_modifiers(mods);
+                if encoded_mods == 0 {
+                    // If no modifiers are held, don't send the modifier
+                    // sequence, as the modifier encoding is a CSI-u extension.
+                    write!(buf, "{}~", intro)?;
+                } else {
+                    write!(buf, "{};{}~", intro, 1 + encoded_mods)?;
+                }
+            }
+
+            Numpad1 | Numpad2 | Numpad4 | Numpad5 | KeyPadBegin | Numpad6 | Numpad7 | Numpad8 => {
+                let c = match key {
+                    Numpad1 => "F",
+                    Numpad2 => "B",
+                    Numpad4 => "D",
+                    Numpad5 => "E",
+                    Numpad6 => "C",
+                    Numpad7 => "H",
+                    Numpad8 => "A",
+                    _ => unreachable!(),
+                };
+
+                let encoded_mods = encode_modifiers(mods);
+                if encoded_mods == 0 {
+                    // If no modifiers are held, don't send the modifier
+                    write!(buf, "{}{}", CSI, c)?;
+                } else {
+                    write!(buf, "{}1;{}{}", CSI, 1 + encode_modifiers(mods), c)?;
+                }
+            }
+
+            Multiply | Add | Separator | Subtract | Divide => {}
 
             // Modifier keys pressed on their own don't expand to anything
             Control | LeftControl | RightControl | Alt | LeftAlt | RightAlt | Menu | LeftMenu
@@ -2244,6 +2290,83 @@ mod test {
                 .encode(Modifiers::NONE, mode, false)
                 .unwrap(),
             "\u{1b}[57442;1:3u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3478_xterm() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Xterm,
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Numpad0
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[2~".to_string()
+        );
+        assert_eq!(
+            KeyCode::Numpad0
+                .encode(Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\u{1b}[2;2~".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Numpad1
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[F".to_string()
+        );
+        assert_eq!(
+            KeyCode::Numpad1
+                .encode(Modifiers::NONE | Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\u{1b}[1;2F".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3478_kitty() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(
+                KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KittyKeyboardFlags::REPORT_EVENT_TYPES
+                    | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+                    | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            ),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Numpad0
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[57399;1u".to_string()
+        );
+        assert_eq!(
+            KeyCode::Numpad0
+                .encode(Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\u{1b}[57399;2u".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Numpad1
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\u{1b}[57400;1u".to_string()
+        );
+        assert_eq!(
+            KeyCode::Numpad1
+                .encode(Modifiers::NONE | Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\u{1b}[57400;2u".to_string()
         );
     }
 }

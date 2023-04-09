@@ -851,6 +851,11 @@ impl super::TermWindow {
             WK::ApplicationRightArrow => KC::ApplicationRightArrow,
             WK::ApplicationUpArrow => KC::ApplicationUpArrow,
             WK::ApplicationDownArrow => KC::ApplicationDownArrow,
+            WK::KeyPadHome => KC::KeyPadHome,
+            WK::KeyPadEnd => KC::KeyPadEnd,
+            WK::KeyPadBegin => KC::KeyPadBegin,
+            WK::KeyPadPageUp => KC::KeyPadPageUp,
+            WK::KeyPadPageDown => KC::KeyPadPageDown,
         };
         Key::Code(code)
     }
