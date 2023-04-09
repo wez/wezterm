@@ -320,10 +320,7 @@ impl Keyboard {
                     }
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Composed: \
-                                {:?}, {:?}. kc -> {:?}",
-                        utf8,
-                        sym,
-                        kc
+                                {utf8:?}, {sym:?}. kc -> {kc:?}",
                     );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     sym
@@ -334,10 +331,7 @@ impl Keyboard {
                     }
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Nothing: \
-                                {:?}, {:?}. kc -> {:?}",
-                        utf8,
-                        sym,
-                        kc
+                                {utf8:?}, {sym:?}. kc -> {kc:?}"
                     );
                     sym
                 }
