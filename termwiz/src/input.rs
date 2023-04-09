@@ -399,6 +399,57 @@ impl KeyCode {
 
         match key {
             Char(shifted_key) => {
+                if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS) {
+                    if shifted_key.is_ascii_alphanumeric()
+                        || matches!(
+                            shifted_key,
+                            '`' | '-'
+                                | '='
+                                | '['
+                                | ']'
+                                | '\\'
+                                | ';'
+                                | '\''
+                                | ','
+                                | '.'
+                                | '/'
+                                | '~'
+                                | '_'
+                                | '+'
+                                | '{'
+                                | '}'
+                                | '|'
+                                | ':'
+                                | '"'
+                                | '<'
+                                | '>'
+                                | '?'
+                        )
+                    {
+                        // Legacy text key
+                        let mut output = String::new();
+                        if mods.contains(Modifiers::ALT) {
+                            output.push('\x1b');
+                        }
+                        if mods.contains(Modifiers::CTRL) {
+                            csi_u_encode(
+                                &mut output,
+                                shifted_key.to_ascii_uppercase(),
+                                mods,
+                                &KeyCodeEncodeModes {
+                                    encoding: KeyboardEncoding::Xterm,
+                                    newline_mode: false,
+                                    application_cursor_keys: false,
+                                    modify_other_keys: None,
+                                },
+                            )?;
+                        } else {
+                            output.push(shifted_key);
+                        }
+                        return Ok(output);
+                    }
+                }
+
                 let c = shifted_key.to_ascii_lowercase();
 
                 let key_code = if flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
@@ -468,7 +519,13 @@ impl KeyCode {
             }
 
             _ => {
-                if let Some(code) = key.kitty_function_code() {
+                if key.is_modifier()
+                    && !flags.contains(KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES)
+                {
+                    // Don't report bare modifier only key events unless
+                    // we're reporting all keys with escape codes
+                    Ok(String::new())
+                } else if let Some(code) = key.kitty_function_code() {
                     Ok(format!("\x1b[{code};{modifiers}{event_type}u"))
                 } else {
                     Ok(String::new())
@@ -2367,6 +2424,37 @@ mod test {
                 .encode(Modifiers::NONE | Modifiers::SHIFT, mode, true)
                 .unwrap(),
             "\u{1b}[57400;2u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3315() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Char('"')
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\"".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Char('"')
+                .encode(Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "\"".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::LeftShift
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "".to_string()
         );
     }
 }
