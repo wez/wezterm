@@ -413,38 +413,28 @@ impl KeyCode {
                 Ok(format!("\x1b[{c};{modifiers}{event_type}~"))
             }
             Function(n) if n < 13 => {
-                if mods.is_empty() && n < 5 {
-                    // F1-F4 are encoded using SS3 if there are no modifiers
-                    Ok(format!(
-                        "{}",
-                        match n {
-                            1 => "\x1bOP",
-                            2 => "\x1bOQ",
-                            3 => "\x1bOR",
-                            4 => "\x1bOS",
-                            _ => unreachable!("wat?"),
-                        }
-                    ))
-                } else {
-                    // Higher numbered F-keys plus modified F-keys are encoded
-                    // using CSI instead of SS3.
-                    let intro = match n {
-                        1 => "\x1b[11",
-                        2 => "\x1b[12",
-                        3 => "\x1b[13",
-                        4 => "\x1b[14",
-                        5 => "\x1b[15",
-                        6 => "\x1b[17",
-                        7 => "\x1b[18",
-                        8 => "\x1b[19",
-                        9 => "\x1b[20",
-                        10 => "\x1b[21",
-                        11 => "\x1b[23",
-                        12 => "\x1b[24",
-                        _ => unreachable!(),
-                    };
-                    Ok(format!("{intro};{modifiers}{event_type}~"))
-                }
+                // The spec says that kitty prefers an SS3 form for F1-F4,
+                // but then has some variance in the encoding and cites a
+                // compatibility issue with a cursor position report.
+                // Since it allows reporting these all unambiguously with
+                // the same general scheme, that is what we're using here.
+                let intro = match n {
+                    1 => "\x1b[11",
+                    2 => "\x1b[12",
+                    3 => "\x1b[13",
+                    4 => "\x1b[14",
+                    5 => "\x1b[15",
+                    6 => "\x1b[17",
+                    7 => "\x1b[18",
+                    8 => "\x1b[19",
+                    9 => "\x1b[20",
+                    10 => "\x1b[21",
+                    11 => "\x1b[23",
+                    12 => "\x1b[24",
+                    _ => unreachable!(),
+                };
+
+                Ok(format!("{intro};{modifiers}{event_type}~"))
             }
 
             _ => {
@@ -2085,6 +2075,34 @@ mod test {
                 })
             ],
             res
+        );
+    }
+
+    #[test]
+    fn encode_issue_3473() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Kitty(
+                KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                    | KittyKeyboardFlags::REPORT_EVENT_TYPES
+                    | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+                    | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            ),
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        assert_eq!(
+            KeyCode::Function(1)
+                .encode(Modifiers::NONE, mode, true)
+                .unwrap(),
+            "\x1b[11;1~".to_string()
+        );
+        assert_eq!(
+            KeyCode::Function(1)
+                .encode(Modifiers::NONE, mode, false)
+                .unwrap(),
+            "\x1b[11;1:3~".to_string()
         );
     }
 }

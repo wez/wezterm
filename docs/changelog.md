@@ -25,6 +25,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
   OS-level key maps. #3470
+* key encoding: incorrect F1-F4 representation when using kitty encoding. #3473
 
 ### 20230408-112425-69ae8472
 
