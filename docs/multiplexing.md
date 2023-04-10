@@ -64,6 +64,18 @@ the wezterm multiplexer daemon on the remote host and connect to
 it via a unix domain socket using a similar mechanism to that
 described in the *Unix Domains* section below.
 
+{{since('20230408-112425-69ae8472')}}
+
+Ssh_domains now auto-populate from your `~/.ssh/config` file. Each populated host will have both a plain SSH and a multiplexing SSH domain. Plain SSH hosts are defined with a `SSH:` prefix to their name and multiplexing hosts are defined with a prefix `SSHMUX:`. For example, to connect to a host named `my.server` in your `~/.ssh/config` using a multiplexing domain, run:
+
+```console
+$ wezterm connect SSHMUX:my.server
+# or to spawn into a new tab in an existing wezterm gui instance:
+$ wezterm cli spawn --domain-name SSHMUX:my.server
+```
+
+To customize this functionality, see the example for [wezterm.default_ssh_domains()](config/lua/wezterm/default_ssh_domains.md)
+
 ## Unix Domains
 
 A connection to a multiplexer made via a unix socket is referred to
