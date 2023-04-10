@@ -814,8 +814,12 @@ impl WaylandWindowInner {
         });
         self.frame_callback.replace(callback);
 
-        // commit pending surface state,
-        // ensuring the compositor eventually wakes us up via the above callback
+        // The repaint has the side of effect of committing the surface,
+        // which is necessary for the frame callback to get triggered.
+        // Ordering the repaint after requesting the callback ensures that
+        // we will get woken at the appropriate time.
+        // <https://github.com/wez/wezterm/issues/3468>
+        // <https://github.com/wez/wezterm/issues/3126>
         self.events.dispatch(WindowEvent::NeedRepaint);
 
         Ok(())
