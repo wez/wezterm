@@ -383,6 +383,7 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
         appkit::NSEndFunctionKey => KeyCode::End,
         appkit::NSPageUpFunctionKey => KeyCode::PageUp,
         appkit::NSPageDownFunctionKey => KeyCode::PageDown,
+        appkit::NSClearLineFunctionKey => KeyCode::NumLock,
         value @ appkit::NSF1FunctionKey..=appkit::NSF35FunctionKey => {
             KeyCode::Function((value - appkit::NSF1FunctionKey + 1) as u8)
         }
@@ -1678,6 +1679,9 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
     }
     if flags.contains(NSEventModifierFlags::NSCommandKeyMask) {
         mods |= Modifiers::SUPER;
+    }
+    if flags.bits() & (1 << 16) != 0 {
+        mods |= Modifiers::CAPS_LOCK;
     }
 
     mods
