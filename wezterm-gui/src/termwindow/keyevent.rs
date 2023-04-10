@@ -256,6 +256,17 @@ impl super::TermWindow {
         key.encode_win32_input_mode()
     }
 
+    fn encode_kitty_input(&self, pane: &Arc<dyn Pane>, key: &KeyEvent) -> Option<String> {
+        if !self.config.enable_kitty_keyboard {
+            return None;
+        }
+        if let KeyboardEncoding::Kitty(flags) = pane.get_keyboard_encoding() {
+            Some(key.encode_kitty(flags))
+        } else {
+            None
+        }
+    }
+
     fn lookup_key(
         &mut self,
         pane: &Arc<dyn Pane>,
@@ -294,6 +305,7 @@ impl super::TermWindow {
         leader_mod: Modifiers,
         only_key_bindings: OnlyKeyBindings,
         is_down: bool,
+        key_event: Option<&KeyEvent>,
     ) -> bool {
         if is_down && !leader_active {
             // Check to see if this key-press is the leader activating
@@ -406,23 +418,49 @@ impl super::TermWindow {
             if bypass_compose {
                 if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
                     let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
-                    if self.config.debug_key_events {
-                        log::info!(
-                            "{:?} {:?} -> send to pane {:?} {:?}",
-                            keycode,
-                            raw_modifiers,
-                            term_key,
-                            tw_raw_modifiers
-                        );
-                    }
 
-                    let res = if is_down {
-                        pane.key_down(term_key, tw_raw_modifiers)
-                    } else {
-                        pane.key_up(term_key, tw_raw_modifiers)
+                    let mut did_encode = false;
+                    if let Some(key_event) = key_event {
+                        if let Some(encoded) = self.encode_win32_input(&pane, &key_event) {
+                            if self.config.debug_key_events {
+                                log::info!("win32: Encoded input as {:?}", encoded);
+                            }
+                            pane.writer()
+                                .write_all(encoded.as_bytes())
+                                .context("sending win32-input-mode encoded data")
+                                .ok();
+                            did_encode = true;
+                        } else if let Some(encoded) = self.encode_kitty_input(&pane, &key_event) {
+                            if self.config.debug_key_events {
+                                log::info!("kitty: Encoded input as {:?}", encoded);
+                            }
+                            pane.writer()
+                                .write_all(encoded.as_bytes())
+                                .context("sending kitty encoded data")
+                                .ok();
+                            did_encode = true;
+                        }
+                    };
+                    if !did_encode {
+                        if self.config.debug_key_events {
+                            log::info!(
+                                "{:?} {:?} -> send to pane {:?} {:?}",
+                                keycode,
+                                raw_modifiers,
+                                term_key,
+                                tw_raw_modifiers
+                            );
+                        }
+
+                        did_encode = if is_down {
+                            pane.key_down(term_key, tw_raw_modifiers)
+                        } else {
+                            pane.key_up(term_key, tw_raw_modifiers)
+                        }
+                        .is_ok();
                     };
 
-                    if res.is_ok() {
+                    if did_encode {
                         if is_down
                             && !keycode.is_modifier()
                             && *keycode != KeyCode::CapsLock
@@ -492,6 +530,7 @@ impl super::TermWindow {
                 leader_mod,
                 OnlyKeyBindings::Yes,
                 key.key_is_down,
+                None,
             ) {
                 key.set_handled();
                 return;
@@ -512,6 +551,7 @@ impl super::TermWindow {
             leader_mod,
             OnlyKeyBindings::Yes,
             key.key_is_down,
+            None,
         ) {
             key.set_handled();
             return;
@@ -532,6 +572,7 @@ impl super::TermWindow {
             leader_mod,
             OnlyKeyBindings::Yes,
             key.key_is_down,
+            None,
         ) {
             key.set_handled();
         }
@@ -643,6 +684,7 @@ impl super::TermWindow {
             leader_mod,
             OnlyKeyBindings::No,
             window_key.key_is_down,
+            Some(&window_key),
         ) {
             return;
         }
@@ -669,15 +711,6 @@ impl super::TermWindow {
                     self.key_table_state.did_process_key();
                 }
 
-                if self.config.debug_key_events {
-                    log::info!(
-                        "send to pane {} key={:?} mods={:?}",
-                        if window_key.key_is_down { "DOWN" } else { "UP" },
-                        key,
-                        modifiers
-                    );
-                }
-
                 if let Some(modal) = self.get_modal() {
                     if window_key.key_is_down {
                         modal.key_down(key, modifiers, self).ok();
@@ -687,15 +720,33 @@ impl super::TermWindow {
 
                 let res = if let Some(encoded) = self.encode_win32_input(&pane, &window_key) {
                     if self.config.debug_key_events {
-                        log::info!("Encoded input as {:?}", encoded);
+                        log::info!("win32: Encoded input as {:?}", encoded);
                     }
                     pane.writer()
                         .write_all(encoded.as_bytes())
                         .context("sending win32-input-mode encoded data")
-                } else if window_key.key_is_down {
-                    pane.key_down(key, modifiers)
+                } else if let Some(encoded) = self.encode_kitty_input(&pane, &window_key) {
+                    if self.config.debug_key_events {
+                        log::info!("kitty: Encoded input as {:?}", encoded);
+                    }
+                    pane.writer()
+                        .write_all(encoded.as_bytes())
+                        .context("sending kitty encoded data")
                 } else {
-                    pane.key_up(key, modifiers)
+                    if self.config.debug_key_events {
+                        log::info!(
+                            "send to pane {} key={:?} mods={:?}",
+                            if window_key.key_is_down { "DOWN" } else { "UP" },
+                            key,
+                            modifiers
+                        );
+                    }
+
+                    if window_key.key_is_down {
+                        pane.key_down(key, modifiers)
+                    } else {
+                        pane.key_up(key, modifiers)
+                    }
                 };
 
                 if res.is_ok() {

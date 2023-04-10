@@ -5092,6 +5092,7 @@ dependencies = [
  "wezterm-blob-leases",
  "wezterm-color-types",
  "wezterm-dynamic",
+ "wezterm-input-types",
  "winapi",
 ]
 

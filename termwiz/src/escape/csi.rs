@@ -52,17 +52,7 @@ fn csi_size() {
     assert_eq!(std::mem::size_of::<CSI>(), 32);
 }
 
-bitflags::bitflags! {
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct KittyKeyboardFlags: u16 {
-    const NONE = 0;
-    const DISAMBIGUATE_ESCAPE_CODES = 1;
-    const REPORT_EVENT_TYPES = 2;
-    const REPORT_ALTERNATE_KEYS = 4;
-    const REPORT_ALL_KEYS_AS_ESCAPE_CODES = 8;
-    const REPORT_ASSOCIATED_TEXT = 16;
-}
-}
+pub use wezterm_input_types::KittyKeyboardFlags;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u16)]
