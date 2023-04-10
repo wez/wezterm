@@ -142,7 +142,7 @@ Outputs the pane-id for the newly created pane on success"
 
     /// Adjust the size of a pane directionally
     #[command(name = "adjust-pane-size", rename_all = "kebab")]
-    AdjustPaneSize(adjust_pane_size::AdjustPaneSize),
+    AdjustPaneSize(adjust_pane_size::CliAdjustPaneSize),
 
     /// Activate a tab
     #[command(name = "activate-tab", rename_all = "kebab")]

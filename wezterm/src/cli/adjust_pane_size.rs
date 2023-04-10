@@ -1,13 +1,18 @@
 use crate::cli::activate_pane_direction::PaneDirectionParser;
 use crate::cli::resolve_pane_id;
 use clap::Parser;
-use codec::{AdjustPaneSize, Pdu};
+use codec::AdjustPaneSize;
 use config::keyassignment::PaneDirection;
 use mux::pane::PaneId;
 use wezterm_client::client::Client;
 
 #[derive(Debug, Parser, Clone)]
 pub struct CliAdjustPaneSize {
+    /// Specify the target pane.
+    /// The default is to use the current pane based on the
+    /// environment variable WEZTERM_PANE.
+    #[arg(long)]
+    pane_id: Option<PaneId>,
     /// Specify the direction to resize in
     #[arg(value_parser=PaneDirectionParser{})]
     direction: PaneDirection,
@@ -16,18 +21,19 @@ pub struct CliAdjustPaneSize {
     amount: Option<usize>,
 }
 
-impl Into<AdjustPaneSize> for CliAdjustPaneSize {
-    fn into(self) -> AdjustPaneSize {
-        AdjustPaneSize {
-            direction: self.direction,
-            amount: self.amount.unwrap_or(1),
-        }
-    }
-}
-
 impl CliAdjustPaneSize {
     pub async fn run(&self, client: Client) -> anyhow::Result<()> {
         let pane_id = resolve_pane_id(&client, self.pane_id).await?;
-        client.adjust_pane_size(Pdu::AdjustPaneSize(self.into()))
+        match client
+            .adjust_pane_size(AdjustPaneSize {
+                pane_id,
+                direction: self.direction,
+                amount: self.amount.unwrap_or(1),
+            })
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
     }
 }

@@ -492,7 +492,7 @@ pdu! {
     EraseScrollbackRequest: 59,
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
-    AdjustPaneSize: 61,
+    AdjustPaneSize: 62,
 }
 
 impl Pdu {
@@ -861,6 +861,7 @@ pub struct GetPaneDirection {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct AdjustPaneSize {
+    pub pane_id: PaneId,
     pub direction: PaneDirection,
     pub amount: usize,
 }
