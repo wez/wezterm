@@ -398,33 +398,7 @@ impl KeyCode {
         };
 
         let is_legacy_key = match key {
-            Char(c) => {
-                c.is_ascii_alphanumeric()
-                    || matches!(
-                        c,
-                        '`' | '-'
-                            | '='
-                            | '['
-                            | ']'
-                            | '\\'
-                            | ';'
-                            | '\''
-                            | ','
-                            | '.'
-                            | '/'
-                            | '~'
-                            | '_'
-                            | '+'
-                            | '{'
-                            | '}'
-                            | '|'
-                            | ':'
-                            | '"'
-                            | '<'
-                            | '>'
-                            | '?'
-                    )
-            }
+            Char(c) => c.is_ascii_alphanumeric() || c.is_ascii_punctuation(),
             _ => false,
         };
 
@@ -2463,6 +2437,13 @@ mod test {
                 .encode(Modifiers::SHIFT, mode, true)
                 .unwrap(),
             "\"".to_string()
+        );
+
+        assert_eq!(
+            KeyCode::Char('!')
+                .encode(Modifiers::SHIFT, mode, true)
+                .unwrap(),
+            "!".to_string()
         );
 
         assert_eq!(
