@@ -1681,6 +1681,71 @@ impl KeyEvent {
             _ => false,
         };
 
+        let guess_phys = self
+            .raw
+            .as_ref()
+            .and_then(|raw| raw.phys_code)
+            .or_else(|| self.key.to_phys());
+
+        let is_numpad = guess_phys.and_then(|phys| match phys {
+                PhysKeyCode::Keypad0
+                | PhysKeyCode::Keypad1
+                | PhysKeyCode::Keypad2
+                | PhysKeyCode::Keypad3
+                | PhysKeyCode::Keypad4
+                | PhysKeyCode::Keypad5
+                | PhysKeyCode::Keypad6
+                | PhysKeyCode::Keypad7
+                | PhysKeyCode::Keypad8
+                | PhysKeyCode::Keypad9
+                // | PhysKeyCode::KeypadClear not a physical numpad key?
+                | PhysKeyCode::KeypadDecimal
+                | PhysKeyCode::KeypadDelete
+                | PhysKeyCode::KeypadDivide
+                | PhysKeyCode::KeypadEnter
+                | PhysKeyCode::KeypadEquals
+                | PhysKeyCode::KeypadSubtract
+                | PhysKeyCode::KeypadMultiply
+                | PhysKeyCode::KeypadAdd
+             => Some(phys),
+            _ => None,
+        });
+
+        if let Some(numpad) = is_numpad {
+            let code = match (numpad, self.modifiers.contains(Modifiers::NUM_LOCK)) {
+                (PhysKeyCode::Keypad0, true) => 57399,
+                (PhysKeyCode::Keypad0, false) => 57425,
+                (PhysKeyCode::Keypad1, true) => 57400,
+                (PhysKeyCode::Keypad1, false) => 57424,
+                (PhysKeyCode::Keypad2, true) => 57401,
+                (PhysKeyCode::Keypad2, false) => 57420,
+                (PhysKeyCode::Keypad3, true) => 57402,
+                (PhysKeyCode::Keypad3, false) => 57422,
+                (PhysKeyCode::Keypad4, true) => 57403,
+                (PhysKeyCode::Keypad4, false) => 57417,
+                (PhysKeyCode::Keypad5, true) => 57404,
+                (PhysKeyCode::Keypad5, false) => 57427,
+                (PhysKeyCode::Keypad6, true) => 57405,
+                (PhysKeyCode::Keypad6, false) => 57418,
+                (PhysKeyCode::Keypad7, true) => 57406,
+                (PhysKeyCode::Keypad7, false) => 57423,
+                (PhysKeyCode::Keypad8, true) => 57407,
+                (PhysKeyCode::Keypad8, false) => 57419,
+                (PhysKeyCode::Keypad9, true) => 57408,
+                (PhysKeyCode::Keypad9, false) => 57421,
+                (PhysKeyCode::KeypadDecimal, _) => 57409,
+                (PhysKeyCode::KeypadDelete, _) => 57426,
+                (PhysKeyCode::KeypadDivide, _) => 57410,
+                (PhysKeyCode::KeypadEnter, _) => 57414,
+                (PhysKeyCode::KeypadEquals, _) => 57415,
+                (PhysKeyCode::KeypadSubtract, _) => 57412,
+                (PhysKeyCode::KeypadMultiply, _) => 57411,
+                (PhysKeyCode::KeypadAdd, _) => 57413,
+                _ => unreachable!(),
+            };
+            return format!("\x1b[{code};{modifiers}{event_type}u");
+        }
+
         match &self.key {
             PageUp | PageDown | Insert | Char('\x7f') => {
                 let c = match &self.key {
@@ -2340,7 +2405,7 @@ mod test {
                 None
             )
             .encode_kitty(flags),
-            "\u{1b}[57399;1u".to_string()
+            "\u{1b}[57425;1u".to_string()
         );
         assert_eq!(
             make_event_with_raw(
@@ -2354,7 +2419,7 @@ mod test {
                 None
             )
             .encode_kitty(flags),
-            "\u{1b}[57399;2u".to_string()
+            "\u{1b}[57425;2u".to_string()
         );
 
         assert_eq!(
@@ -2369,7 +2434,7 @@ mod test {
                 None
             )
             .encode_kitty(flags),
-            "\u{1b}[57400;1u".to_string()
+            "\u{1b}[57424;1u".to_string()
         );
         assert_eq!(
             make_event_with_raw(
@@ -2383,7 +2448,36 @@ mod test {
                 None
             )
             .encode_kitty(flags),
-            "\u{1b}[57400;2u".to_string()
+            "\u{1b}[57424;2u".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(0),
+                    modifiers: Modifiers::NUM_LOCK,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad0)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57399;129u".to_string()
+        );
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(0),
+                    modifiers: Modifiers::NUM_LOCK | Modifiers::SHIFT,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad0)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57399;130u".to_string()
         );
     }
 
