@@ -1673,6 +1673,7 @@ fn default_stateless_process_list() -> Vec<String> {
         "fish",
         "tmux",
         "nu",
+        "nu.exe",
         "cmd.exe",
         "pwsh.exe",
         "powershell.exe",
