@@ -1681,6 +1681,25 @@ impl KeyEvent {
             _ => false,
         };
 
+        let generated_text = if flags.contains(KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT) {
+            match &self.key {
+                Char(c) => format!(";{}", *c as u32),
+                Composed(s) => {
+                    let mut codepoints = ";".to_string();
+                    for c in s.chars() {
+                        if codepoints.len() > 1 {
+                            codepoints.push(':');
+                        }
+                        write!(&mut codepoints, "{}", c as u32).ok();
+                    }
+                    codepoints
+                }
+                _ => String::new(),
+            }
+        } else {
+            String::new()
+        };
+
         let guess_phys = self
             .raw
             .as_ref()
@@ -1743,7 +1762,7 @@ impl KeyEvent {
                 (PhysKeyCode::KeypadAdd, _) => 57413,
                 _ => unreachable!(),
             };
-            return format!("\x1b[{code};{modifiers}{event_type}u");
+            return format!("\x1b[{code};{modifiers}{event_type}{generated_text}u");
         }
 
         match &self.key {
@@ -1817,7 +1836,7 @@ impl KeyEvent {
                     }
                 }
 
-                format!("\x1b[{key_code};{modifiers}{event_type}u")
+                format!("\x1b[{key_code};{modifiers}{event_type}{generated_text}u")
             }
             LeftArrow | RightArrow | UpArrow | DownArrow | Home | End => {
                 let c = match &self.key {
@@ -1866,7 +1885,7 @@ impl KeyEvent {
                 } else if let Some(code) =
                     self.raw.as_ref().and_then(|raw| raw.kitty_function_code())
                 {
-                    format!("\x1b[{code};{modifiers}{event_type}u")
+                    format!("\x1b[{code};{modifiers}{event_type}{generated_text}u")
                 } else {
                     String::new()
                 }
@@ -2569,6 +2588,45 @@ mod test {
             )
             .encode_kitty(flags),
             "\x1b[1092:1060:97;6u".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3484() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_EVENT_TYPES
+            | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+            | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT;
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Char('ф'),
+                    modifiers: Modifiers::CTRL,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::A)
+            )
+            .encode_kitty(flags),
+            "\x1b[1092::97;5;1092u".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Char('Ф'),
+                    modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::A)
+            )
+            .encode_kitty(flags),
+            "\x1b[1092:1060:97;6;1060u".to_string()
         );
     }
 }
