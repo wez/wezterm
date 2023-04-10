@@ -29,6 +29,7 @@ use std::io::Cursor;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::usize;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
@@ -491,6 +492,7 @@ pdu! {
     EraseScrollbackRequest: 59,
     GetPaneDirection: 60,
     GetPaneDirectionResponse: 61,
+    AdjustPaneSize: 61,
 }
 
 impl Pdu {
@@ -855,6 +857,12 @@ pub struct SetPaneZoomed {
 pub struct GetPaneDirection {
     pub pane_id: PaneId,
     pub direction: PaneDirection,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct AdjustPaneSize {
+    pub direction: PaneDirection,
+    pub amount: usize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

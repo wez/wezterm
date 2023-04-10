@@ -913,6 +913,26 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::AdjustPaneSize(AdjustPaneSize { direction, amount }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                                Some(tab) => tab,
+                                None => return Ok(Pdu::UnitResponse(UnitResponse {})),
+                            };
+
+                            let tab_id = tab.tab_id();
+
+                            tab.adjust_pane_size(direction, amount);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
+            }
+
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }
