@@ -565,7 +565,9 @@ impl Domain for RemoteSshDomain {
     ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
-        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
+        let (command_line, env) = self
+            .build_command(pane_id, command, command_dir)
+            .context("build_command")?;
 
         let pty: Box<dyn portable_pty::MasterPty + Send>;
         let child: Box<dyn portable_pty::Child + Send>;
@@ -577,18 +579,22 @@ impl Domain for RemoteSshDomain {
             let (concrete_pty, concrete_child) = session
                 .request_pty(
                     &config::configuration().term,
-                    crate::terminal_size_to_pty_size(size)?,
+                    crate::terminal_size_to_pty_size(size)
+                        .context("compute pty size from terminal size")?,
                     command_line.as_ref().map(|s| s.as_str()),
                     Some(env),
                 )
-                .await?;
+                .await
+                .context("request ssh pty")?;
 
             pty = Box::new(concrete_pty);
             child = Box::new(concrete_child);
-            writer = Box::new(pty.take_writer()?);
+            writer = Box::new(pty.take_writer().context("take writer from pty")?);
         } else {
             // We're starting the session
-            let (session, events) = Session::connect(self.ssh_config()?)?;
+            let (session, events) =
+                Session::connect(self.ssh_config().context("obtain ssh config")?)
+                    .context("connect to ssh server")?;
             self.session.lock().unwrap().replace(session.clone());
 
             // We get to establish the session!

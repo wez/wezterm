@@ -256,7 +256,7 @@ impl SessionHandler {
             let pdu = match result {
                 Ok(pdu) => pdu,
                 Err(err) => Pdu::ErrorResponse(ErrorResponse {
-                    reason: format!("Error: {}", err),
+                    reason: format!("Error: {err:#}"),
                 }),
             };
             log::trace!("{} processing time {:?}", serial, start.elapsed());
