@@ -141,7 +141,8 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
     let mut actions = vec![];
     let mut hold = false;
     let mut action_size = 0;
-    let mut delay_ms = configuration().mux_output_parser_coalesce_delay_ms;
+    let mut delay = Duration::from_millis(configuration().mux_output_parser_coalesce_delay_ms);
+    let mut deadline = None;
 
     loop {
         match rx.read(&mut buf) {
@@ -194,13 +195,20 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
                     // that we coalesce a full "frame" from an unoptimized
                     // TUI program
                     if action_size < buf.len() {
-                        if delay_ms > 0 {
+                        let poll_delay = match deadline {
+                            None => {
+                               deadline.replace(Instant::now() + delay);
+                               Some(delay)
+                            },
+                            Some(target) => target.checked_duration_since(Instant::now()),
+                        };
+                        if poll_delay.is_some() {
                             let mut pfd = [pollfd {
                                 fd: rx.as_socket_descriptor(),
                                 events: POLLIN,
                                 revents: 0,
                             }];
-                            if let Ok(1) = poll(&mut pfd, Some(Duration::from_millis(delay_ms))) {
+                            if let Ok(1) = poll(&mut pfd, poll_delay) {
                                 // We can read now without blocking, so accumulate
                                 // more data into actions
                                 continue;
@@ -212,12 +220,13 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
                     }
 
                     send_actions_to_mux(&pane, &dead, std::mem::take(&mut actions));
+                    deadline = None;
                     action_size = 0;
                 }
 
                 let config = configuration();
                 buf.resize(config.mux_output_parser_buffer_size, 0);
-                delay_ms = config.mux_output_parser_coalesce_delay_ms;
+                delay = Duration::from_millis(config.mux_output_parser_coalesce_delay_ms);
             }
         }
     }
