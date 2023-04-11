@@ -26,6 +26,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
   OS-level key maps. #3470
 * key encoding: incorrect F1-F4 representation when using kitty encoding. #3473
+* mux: Attempting to spawn into an ad-hoc SSH domain after the last tab could
+  fail with a cryptic error message. The connection is now re-established. ?3480
 
 ### 20230408-112425-69ae8472
 

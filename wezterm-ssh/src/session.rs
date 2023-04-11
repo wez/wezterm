@@ -45,6 +45,10 @@ impl SessionSender {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+#[error("SSH session is dead")]
+pub struct DeadSession;
+
 #[derive(Debug)]
 pub(crate) enum SessionRequest {
     NewPty(NewPty, Sender<anyhow::Result<(SshPty, SshChildProcess)>>),
@@ -127,7 +131,8 @@ impl Session {
                 },
                 reply,
             ))
-            .await?;
+            .await
+            .map_err(|_| DeadSession)?;
         let (mut ssh_pty, mut child) = rx.recv().await??;
         ssh_pty.tx.replace(self.tx.clone());
         child.tx.replace(self.tx.clone());
@@ -148,7 +153,8 @@ impl Session {
                 },
                 reply,
             ))
-            .await?;
+            .await
+            .map_err(|_| DeadSession)?;
         let mut exec = rx.recv().await??;
         exec.child.tx.replace(self.tx.clone());
         Ok(exec)
