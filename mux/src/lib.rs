@@ -197,9 +197,9 @@ fn parse_buffered_data(pane: Weak<dyn Pane>, dead: &Arc<AtomicBool>, mut rx: Fil
                     if action_size < buf.len() {
                         let poll_delay = match deadline {
                             None => {
-                               deadline.replace(Instant::now() + delay);
-                               Some(delay)
-                            },
+                                deadline.replace(Instant::now() + delay);
+                                Some(delay)
+                            }
                             Some(target) => target.checked_duration_since(Instant::now()),
                         };
                         if poll_delay.is_some() {
