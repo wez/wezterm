@@ -2108,9 +2108,7 @@ fn us_layout_unshift(c: char) -> char {
 /// to US keyboard layout (particularly the punctuation characters
 /// produced in combination with SHIFT) that may not be 100%
 /// the right thing to do here for users with non-US layouts.
-fn ctrl_mapping(c: char) -> Option<char> {
-    // Please also sync with the copy of this function that
-    // lives in termwiz :-/
+pub fn ctrl_mapping(c: char) -> Option<char> {
     Some(match c {
         '@' | '`' | ' ' | '2' => '\x00',
         'A' | 'a' => '\x01',
