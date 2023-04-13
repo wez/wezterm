@@ -1,5 +1,4 @@
 use crate::tabbar::TabBarItem;
-use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
 use crate::termwindow::{
     GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
 };
@@ -984,7 +983,7 @@ impl super::TermWindow {
             y: row,
             x_pixel_offset,
             y_pixel_offset,
-            modifiers: window_mods_to_termwiz_mods(event.modifiers),
+            modifiers: event.modifiers,
         };
 
         if allow_action

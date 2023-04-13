@@ -10,5 +10,8 @@ edition = "2018"
 bitflags = "1.3"
 euclid = "0.22"
 lazy_static = "1.4"
-serde = {version="1.0", features = ["rc", "derive"]}
+serde = {version="1.0", features = ["rc", "derive"], optional=true}
 wezterm-dynamic = {path="../wezterm-dynamic"}
+
+[features]
+default = ["serde"]

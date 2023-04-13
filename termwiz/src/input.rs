@@ -12,6 +12,8 @@ use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 
+pub use wezterm_input_types::Modifiers;
+
 pub const CSI: &str = "\x1b[";
 pub const SS3: &str = "\x1bO";
 
@@ -42,30 +44,6 @@ use winapi::um::wincon::{
     WINDOW_BUFFER_SIZE_EVENT, WINDOW_BUFFER_SIZE_RECORD,
 };
 
-bitflags! {
-    #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
-    #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Modifiers: u16 {
-        const NONE = 0;
-        const SHIFT = 1<<1;
-        const ALT = 1<<2;
-        const CTRL = 1<<3;
-        const SUPER = 1<<4;
-        const LEFT_ALT = 1<<5;
-        const RIGHT_ALT = 1<<6;
-        /// This is a virtual modifier used by wezterm
-        const LEADER = 1<<7;
-        const LEFT_CTRL = 1<<8;
-        const RIGHT_CTRL = 1<<9;
-        const LEFT_SHIFT = 1<<10;
-        const RIGHT_SHIFT = 1<<11;
-        const ENHANCED_KEY = 1<<12;
-        /// Not really a modifier, but a keyboard driver state
-        const CAPS_LOCK = 1<<13;
-        /// Not really a modifier, but a keyboard driver state
-        const NUM_LOCK = 1<<14;
-    }
-}
 bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
     #[derive(Debug, Default, Clone, PartialEq, Eq)]

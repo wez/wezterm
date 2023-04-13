@@ -2521,8 +2521,8 @@ impl TermWindow {
             }
             SendString(s) => pane.writer().write_all(s.as_bytes())?,
             SendKey(key) => {
-                use keyevent::{window_mods_to_termwiz_mods, Key};
-                let mods = window_mods_to_termwiz_mods(key.mods);
+                use keyevent::Key;
+                let mods = key.mods;
                 if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(
                     &key.key.resolve(self.config.key_map_preference),
                 ) {

@@ -172,67 +172,6 @@ impl KeyTableState {
     }
 }
 
-pub fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {
-    let mut result = termwiz::input::Modifiers::NONE;
-
-    if modifiers.contains(::window::Modifiers::SHIFT) {
-        result.insert(termwiz::input::Modifiers::SHIFT);
-    }
-    if modifiers.contains(::window::Modifiers::LEFT_SHIFT) {
-        result.insert(termwiz::input::Modifiers::LEFT_SHIFT);
-    }
-    if modifiers.contains(::window::Modifiers::RIGHT_SHIFT) {
-        result.insert(termwiz::input::Modifiers::RIGHT_SHIFT);
-    }
-
-    if modifiers.contains(::window::Modifiers::LEFT_ALT) {
-        result.insert(termwiz::input::Modifiers::ALT);
-        result.insert(termwiz::input::Modifiers::LEFT_ALT);
-    }
-    if modifiers.contains(::window::Modifiers::RIGHT_ALT) {
-        /* We DONT want to do this: we carry through RIGHT_ALT
-        * only for win32-input mode to track when AltGr was used,
-        * but we don't want that to be treated as regular ALT
-        * when encoding regular input for the terminal.
-        * <https://github.com/wez/wezterm/issues/2127>
-        result.insert(termwiz::input::Modifiers::ALT);
-        */
-
-        // But we do want the positional mod
-        result.insert(termwiz::input::Modifiers::RIGHT_ALT);
-    }
-    if modifiers.contains(::window::Modifiers::ALT) {
-        result.insert(termwiz::input::Modifiers::ALT);
-    }
-
-    if modifiers.contains(::window::Modifiers::CTRL) {
-        result.insert(termwiz::input::Modifiers::CTRL);
-    }
-    if modifiers.contains(::window::Modifiers::LEFT_CTRL) {
-        result.insert(termwiz::input::Modifiers::LEFT_CTRL);
-    }
-    if modifiers.contains(::window::Modifiers::RIGHT_CTRL) {
-        result.insert(termwiz::input::Modifiers::RIGHT_CTRL);
-    }
-
-    if modifiers.contains(::window::Modifiers::SUPER) {
-        result.insert(termwiz::input::Modifiers::SUPER);
-    }
-    if modifiers.contains(::window::Modifiers::LEADER) {
-        result.insert(termwiz::input::Modifiers::LEADER);
-    }
-    if modifiers.contains(::window::Modifiers::ENHANCED_KEY) {
-        result.insert(termwiz::input::Modifiers::ENHANCED_KEY);
-    }
-    if modifiers.contains(::window::Modifiers::CAPS_LOCK) {
-        result.insert(termwiz::input::Modifiers::CAPS_LOCK);
-    }
-    if modifiers.contains(::window::Modifiers::NUM_LOCK) {
-        result.insert(termwiz::input::Modifiers::NUM_LOCK);
-    }
-    result
-}
-
 #[derive(Debug)]
 pub enum Key {
     Code(::termwiz::input::KeyCode),
@@ -334,7 +273,7 @@ impl super::TermWindow {
             if only_key_bindings == OnlyKeyBindings::No {
                 if let Some(modal) = self.get_modal() {
                     if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
-                        let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
+                        let tw_raw_modifiers = raw_modifiers;
                         match modal.key_down(term_key, tw_raw_modifiers, self) {
                             Ok(true) => return true,
                             Ok(false) => {}
@@ -420,7 +359,7 @@ impl super::TermWindow {
 
             if bypass_compose {
                 if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
-                    let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
+                    let tw_raw_modifiers = raw_modifiers;
 
                     let mut did_encode = false;
                     if let Some(key_event) = key_event {
@@ -676,7 +615,7 @@ impl super::TermWindow {
             );
         }
 
-        let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
+        let modifiers = window_key.modifiers;
 
         if self.process_key(
             &pane,

@@ -462,7 +462,8 @@ impl ToString for KeyCode {
 }
 
 bitflags! {
-    #[derive(Default, Deserialize, Serialize, FromDynamic, ToDynamic)]
+    #[cfg_attr(feature="serde", derive(Serialize, Deserialize))]
+    #[derive(Default, FromDynamic, ToDynamic)]
     #[dynamic(into="String", try_from="String")]
     pub struct Modifiers: u16 {
         const NONE = 0;
