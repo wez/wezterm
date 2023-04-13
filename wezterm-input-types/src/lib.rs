@@ -698,6 +698,11 @@ impl Modifiers {
             | Self::RIGHT_SHIFT
             | Self::ENHANCED_KEY)
     }
+
+    /// Remove status indicators that are not true modifiers
+    pub fn remove_keyboard_status_mods(self) -> Self {
+        self - (Self::CAPS_LOCK | Self::NUM_LOCK)
+    }
 }
 
 /// These keycodes identify keys based on their physical
