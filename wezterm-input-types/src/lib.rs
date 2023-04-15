@@ -2644,4 +2644,35 @@ mod test {
             "\x1b[1092:1060:97;6;1060u".to_string()
         );
     }
+
+    #[test]
+    fn encode_issue_3526() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES;
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char(' '),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::NUM_LOCK,
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            " ".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char(' '),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::CAPS_LOCK,
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            " ".to_string()
+        );
+    }
 }
