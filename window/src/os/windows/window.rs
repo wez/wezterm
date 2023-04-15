@@ -2412,6 +2412,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         keys[VK_RCONTROL as usize] = 0;
     }
 
+    let mut leds = KeyboardLedStatus::empty();
+    if keys[VK_CAPITAL as usize] & 1 != 0 {
+        leds |= KeyboardLedStatus::CAPS_LOCK;
+    }
+    if keys[VK_NUMLOCK as usize] & 1 != 0 {
+        leds |= KeyboardLedStatus::NUM_LOCK;
+    }
+
     let handled_raw = Handled::new();
     let raw_key_event = RawKeyEvent {
         key: match phys_code {
@@ -2421,7 +2429,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         phys_code,
         raw_code: wparam as _,
         scan_code: scan_code as _,
-        leds: KeyboardLedStatus::empty(),
+        leds,
         modifiers,
         repeat_count: 1,
         key_is_down: !releasing,
@@ -2493,7 +2501,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         let key = KeyEvent {
                             key: KeyCode::Char(c),
                             modifiers,
-                            leds: KeyboardLedStatus::empty(),
+                            leds,
                             repeat_count: 1,
                             key_is_down: !releasing,
                             raw: None,
@@ -2623,7 +2631,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let key = KeyEvent {
             key,
             modifiers,
-            leds: KeyboardLedStatus::empty(),
+            leds,
             repeat_count: repeat,
             key_is_down: !releasing,
             raw: Some(raw_key_event),
