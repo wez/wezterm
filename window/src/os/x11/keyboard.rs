@@ -269,6 +269,7 @@ impl Keyboard {
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.phys_code_map.borrow().get(&xcode).copied();
         let raw_modifiers = self.get_key_modifiers();
+        let leds = self.get_led_status();
 
         let xsym = self.state.borrow().key_get_one_sym(xcode);
         let handled = Handled::new();
@@ -281,6 +282,7 @@ impl Keyboard {
             phys_code,
             raw_code: xcode,
             modifiers: raw_modifiers,
+            leds,
             repeat_count: 1,
             key_is_down: pressed,
             handled: handled.clone(),
@@ -358,6 +360,7 @@ impl Keyboard {
 
         let event = KeyEvent {
             key: kc,
+            leds,
             modifiers: raw_modifiers,
             repeat_count: 1,
             key_is_down: pressed,
@@ -386,6 +389,19 @@ impl Keyboard {
         self.state.borrow().led_name_is_active(led)
     }
 
+    pub fn get_led_status(&self) -> KeyboardLedStatus {
+        let mut leds = KeyboardLedStatus::empty();
+
+        if self.led_is_active(xkb::LED_NAME_NUM) {
+            leds |= KeyboardLedStatus::NUM_LOCK;
+        }
+        if self.led_is_active(xkb::LED_NAME_CAPS) {
+            leds |= KeyboardLedStatus::CAPS_LOCK;
+        }
+
+        leds
+    }
+
     pub fn get_key_modifiers(&self) -> Modifiers {
         let mut res = Modifiers::default();
 
@@ -402,12 +418,6 @@ impl Keyboard {
         if self.mod_is_active(xkb::MOD_NAME_LOGO) {
             // Mod4
             res |= Modifiers::SUPER;
-        }
-        if self.led_is_active(xkb::LED_NAME_NUM) {
-            res |= Modifiers::NUM_LOCK;
-        }
-        if self.led_is_active(xkb::LED_NAME_CAPS) {
-            res |= Modifiers::CAPS_LOCK;
         }
         res
     }

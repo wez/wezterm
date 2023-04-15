@@ -462,6 +462,14 @@ impl ToString for KeyCode {
 }
 
 bitflags! {
+    #[derive(Default, FromDynamic, ToDynamic)]
+    pub struct KeyboardLedStatus: u8 {
+        const CAPS_LOCK = 1<<1;
+        const NUM_LOCK = 1<<2;
+    }
+}
+
+bitflags! {
     #[cfg_attr(feature="serde", derive(Serialize, Deserialize))]
     #[derive(Default, FromDynamic, ToDynamic)]
     #[dynamic(into="String", try_from="String")]
@@ -480,10 +488,6 @@ bitflags! {
         const LEFT_SHIFT = 1<<10;
         const RIGHT_SHIFT = 1<<11;
         const ENHANCED_KEY = 1<<12;
-        /// Not really a modifier, but a keyboard driver state
-        const CAPS_LOCK = 1<<13;
-        /// Not really a modifier, but a keyboard driver state
-        const NUM_LOCK = 1<<14;
     }
 }
 
@@ -636,24 +640,6 @@ impl Modifiers {
                 "ENHANCED_KEY",
                 "ENHANCED_KEY",
             ),
-            (
-                Self::CAPS_LOCK,
-                "CAPS_LOCK",
-                "CAPS_LOCK",
-                "CAPS_LOCK",
-                "CAPS_LOCK",
-                "CAPS_LOCK",
-                "CAPS_LOCK",
-            ),
-            (
-                Self::NUM_LOCK,
-                "NUM_LOCK",
-                "NUM_LOCK",
-                "NUM_LOCK",
-                "NUM_LOCK",
-                "NUM_LOCK",
-                "NUM_LOCK",
-            ),
         ] {
             if !self.contains(value) {
                 continue;
@@ -698,11 +684,6 @@ impl Modifiers {
             | Self::LEFT_SHIFT
             | Self::RIGHT_SHIFT
             | Self::ENHANCED_KEY)
-    }
-
-    /// Remove status indicators that are not true modifiers
-    pub fn remove_keyboard_status_mods(self) -> Self {
-        self - (Self::CAPS_LOCK | Self::NUM_LOCK)
     }
 }
 
@@ -1217,6 +1198,7 @@ impl Eq for Handled {}
 pub struct RawKeyEvent {
     pub key: KeyCode,
     pub modifiers: Modifiers,
+    pub leds: KeyboardLedStatus,
 
     /// The physical location of the key on an ANSI-Standard US layout
     pub phys_code: Option<PhysKeyCode>,
@@ -1391,6 +1373,8 @@ pub struct KeyEvent {
     /// Which modifiers are down
     pub modifiers: Modifiers,
 
+    pub leds: KeyboardLedStatus,
+
     /// How many times this key repeats
     pub repeat_count: u16,
 
@@ -1402,9 +1386,7 @@ pub struct KeyEvent {
 }
 
 fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
-    if modifiers.contains(Modifiers::SHIFT | Modifiers::CAPS_LOCK) {
-        (key, modifiers - (Modifiers::SHIFT | Modifiers::CAPS_LOCK))
-    } else if modifiers.contains(Modifiers::SHIFT) {
+    if modifiers.contains(Modifiers::SHIFT) {
         match key {
             KeyCode::Char(c) if c.is_ascii_uppercase() => (key, modifiers - Modifiers::SHIFT),
             KeyCode::Char(c) if c.is_ascii_lowercase() => (
@@ -1667,10 +1649,10 @@ impl KeyEvent {
         if self.modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
-        if self.modifiers.contains(Modifiers::CAPS_LOCK) {
+        if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
             modifiers |= 64;
         }
-        if self.modifiers.contains(Modifiers::NUM_LOCK) {
+        if self.leds.contains(KeyboardLedStatus::NUM_LOCK) {
             modifiers |= 128;
         }
         modifiers += 1;
@@ -1737,7 +1719,7 @@ impl KeyEvent {
         });
 
         if let Some(numpad) = is_numpad {
-            let code = match (numpad, self.modifiers.contains(Modifiers::NUM_LOCK)) {
+            let code = match (numpad, self.leds.contains(KeyboardLedStatus::NUM_LOCK)) {
                 (PhysKeyCode::Keypad0, true) => 57399,
                 (PhysKeyCode::Keypad0, false) => 57425,
                 (PhysKeyCode::Keypad1, true) => 57400,
@@ -2186,6 +2168,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('o'),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2197,6 +2180,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('o'),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
                 raw: None
@@ -2217,6 +2201,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Function(1),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2228,6 +2213,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Function(1),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
                 raw: None
@@ -2245,6 +2231,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('i'),
                 modifiers: Modifiers::ALT | Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2256,6 +2243,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('I'),
                 modifiers: Modifiers::ALT | Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2268,6 +2256,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('1'),
                 modifiers: Modifiers::ALT | Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2281,6 +2270,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Char('!'),
                     modifiers: Modifiers::ALT | Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2303,6 +2293,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('A'),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2314,6 +2305,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('A'),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
                 raw: None
@@ -2356,6 +2348,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::LeftShift,
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2370,6 +2363,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::LeftShift,
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: false,
                     raw: None
@@ -2384,6 +2378,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::LeftControl,
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2398,6 +2393,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::LeftControl,
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: false,
                     raw: None
@@ -2421,6 +2417,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Numpad(0),
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2435,6 +2432,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Numpad(0),
                     modifiers: Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2450,6 +2448,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Numpad(1),
                     modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2464,6 +2463,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Numpad(1),
                     modifiers: Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2478,7 +2478,8 @@ mod test {
             make_event_with_raw(
                 KeyEvent {
                     key: KeyCode::Numpad(0),
-                    modifiers: Modifiers::NUM_LOCK,
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2492,7 +2493,8 @@ mod test {
             make_event_with_raw(
                 KeyEvent {
                     key: KeyCode::Numpad(0),
-                    modifiers: Modifiers::NUM_LOCK | Modifiers::SHIFT,
+                    modifiers: Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2512,6 +2514,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('"'),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2524,6 +2527,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('"'),
                 modifiers: Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2536,6 +2540,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::Char('!'),
                 modifiers: Modifiers::SHIFT,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2548,6 +2553,7 @@ mod test {
             KeyEvent {
                 key: KeyCode::LeftShift,
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
@@ -2569,6 +2575,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Char('ф'),
                     modifiers: Modifiers::CTRL,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2584,6 +2591,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Char('Ф'),
                     modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2608,6 +2616,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Char('ф'),
                     modifiers: Modifiers::CTRL,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None
@@ -2623,6 +2632,7 @@ mod test {
                 KeyEvent {
                     key: KeyCode::Char('Ф'),
                     modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+                    leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None

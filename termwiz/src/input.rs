@@ -278,8 +278,6 @@ impl KeyCode {
             _ => mods,
         };
 
-        let mods = mods.remove_keyboard_status_mods();
-
         // Normalize Backspace and Delete
         let key = match key {
             Char('\x7f') => Delete,

@@ -246,9 +246,6 @@ impl super::TermWindow {
         is_down: bool,
         key_event: Option<&KeyEvent>,
     ) -> bool {
-        // We don't allow caps lock or num lock to influence key resolution at the GUI layer.
-        let raw_modifiers = raw_modifiers.remove_keyboard_status_mods();
-
         if is_down && !leader_active {
             // Check to see if this key-press is the leader activating
             if let Some(duration) = self.input_map.is_leader(&keycode, raw_modifiers) {

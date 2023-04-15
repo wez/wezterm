@@ -49,7 +49,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{is_ascii_control, IntegratedTitleButtonStyle};
+use wezterm_input_types::{is_ascii_control, IntegratedTitleButtonStyle, KeyboardLedStatus};
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -1680,9 +1680,6 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
     if flags.contains(NSEventModifierFlags::NSCommandKeyMask) {
         mods |= Modifiers::SUPER;
     }
-    if flags.bits() & (1 << 16) != 0 {
-        mods |= Modifiers::CAPS_LOCK;
-    }
 
     mods
 }
@@ -1813,6 +1810,7 @@ impl WindowView {
             let event = KeyEvent {
                 key,
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down,
                 raw: None,
@@ -2282,6 +2280,11 @@ impl WindowView {
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifier_flags = unsafe { nsevent.modifierFlags() };
         let modifiers = key_modifiers(modifier_flags);
+        let leds = if modifier_flags.bits() & (1 << 16) != 0 {
+            KeyboardLedStatus::CAPS_LOCK
+        } else {
+            KeyboardLedStatus::empty()
+        };
         let virtual_key = unsafe { nsevent.keyCode() };
 
         log::debug!(
@@ -2335,6 +2338,7 @@ impl WindowView {
             },
             phys_code,
             raw_code: virtual_key as _,
+            leds,
             modifiers,
             repeat_count: 1,
             key_is_down,
@@ -2377,6 +2381,7 @@ impl WindowView {
                         let event = KeyEvent {
                             key: KeyCode::composed(&translated),
                             modifiers: Modifiers::NONE,
+                            leds: KeyboardLedStatus::empty(),
                             repeat_count: 1,
                             key_is_down,
                             raw: None,
@@ -2598,6 +2603,7 @@ impl WindowView {
             let event = KeyEvent {
                 key,
                 modifiers,
+                leds,
                 repeat_count: 1,
                 key_is_down,
                 raw: Some(raw_key_event),

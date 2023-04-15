@@ -140,6 +140,7 @@ pub struct WaylandWindowInner {
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     modifiers: Modifiers,
+    leds: KeyboardLedStatus,
     key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
@@ -367,6 +368,7 @@ impl WaylandWindow {
             hscroll_remainder: 0.0,
             vscroll_remainder: 0.0,
             modifiers: Modifiers::NONE,
+            leds: KeyboardLedStatus::empty(),
             pending_event,
             pending_mouse,
             pending_first_configure: Some(pending_first_configure),
@@ -465,6 +467,7 @@ impl WaylandWindowInner {
             } => {
                 mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
                 self.modifiers = mapper.get_key_modifiers();
+                self.leds = mapper.get_led_status();
             }
             _ => {}
         }
