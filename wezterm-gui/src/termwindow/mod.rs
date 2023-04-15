@@ -1759,8 +1759,21 @@ impl TermWindow {
     }
 
     fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
+        let mux = Mux::get();
+
+        let (_domain, window_id, _tab_id) = match mux.resolve_pane_id(pane_id) {
+            Some(tuple) => tuple,
+            None => return,
+        };
+
+        // We only want to emit the event for the window which contains
+        // this pane.
+        if window_id != self.mux_window_id {
+            return;
+        }
+
         let window = GuiWin::new(self);
-        let pane = match Mux::get().get_pane(pane_id) {
+        let pane = match mux.get_pane(pane_id) {
             Some(pane) => mux_lua::MuxPane(pane.pane_id()),
             None => return,
         };

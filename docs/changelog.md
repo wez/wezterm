@@ -32,6 +32,9 @@ As features stabilize some brief notes about them will accumulate here.
   serial data received at a rate of 1 byte just slightly faster than
   `mux_output_parser_coalesce_delay_ms` (`3ms` by default). Thanks to @pcc!
   #3497 #3466 #837.
+* [`user-var-changed` event](config/lua/window-events/user-var-changed.md)
+  would incorrectly trigger for every GUI window, rather than just the GUI
+  window which contained the pane in which the variable was changed. #3524
 
 ### 20230408-112425-69ae8472
 
