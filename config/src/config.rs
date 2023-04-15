@@ -23,8 +23,8 @@ use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
     default_true, GpuInfo, IntegratedTitleButtonColor, KeyMapPreference, LoadedConfig,
-    MouseEventTriggerMods, RgbaColor, SerialDomain, WebGpuPowerPreference, CONFIG_DIRS,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop, WebGpuPowerPreference,
+    CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -509,6 +509,10 @@ pub struct Config {
     /// Only works on MacOS
     #[dynamic(default)]
     pub macos_window_background_blur: i64,
+
+    /// Only works on Windows
+    #[dynamic(default)]
+    pub windows_system_backdrop: SystemBackdrop,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the

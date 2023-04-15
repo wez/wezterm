@@ -291,6 +291,16 @@ impl Default for BackgroundOrigin {
 }
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Default)]
+pub enum SystemBackdrop {
+    #[default]
+    Auto,
+    Disable,
+    Acrylic,
+    Mica,
+    Tabbed,
+}
+
+#[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Default)]
 pub enum Interpolation {
     #[default]
     Linear,

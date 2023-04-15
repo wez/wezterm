@@ -9,7 +9,7 @@ use crate::{
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use config::{ConfigHandle, ImePreeditRendering};
+use config::{ConfigHandle, ImePreeditRendering, SystemBackdrop};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::{
@@ -77,6 +77,18 @@ lazy_static! {
 
         if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
             osver.dwBuildNumber < 22000
+        } else {
+            true
+        }
+    };
+    static ref IS_WIN11_22H2: bool = {
+        let osver = OSVERSIONINFOW {
+            dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as _,
+            ..Default::default()
+        };
+
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+            osver.dwBuildNumber >= 22621
         } else {
             true
         }
@@ -335,6 +347,7 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
                 | SWP_NOOWNERZORDER
                 | SWP_FRAMECHANGED,
         );
+        apply_theme(hwnd);
     }
 }
 
@@ -1289,7 +1302,40 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
         pub fn SetWindowCompositionAttribute(hwnd: HWND, attrib: *mut WINDOWCOMPOSITIONATTRIBDATA) -> BOOL,
     );
 
-    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
+    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 20;
+    const DWMWA_MICA_EFFECT: DWORD = 1029;
+    const DWMWA_SYSTEMBACKDROP_TYPE: DWORD = 38;
+
+    #[allow(non_camel_case_types)]
+    #[allow(dead_code)]
+    #[derive(PartialEq, Eq)]
+    #[repr(C)]
+    enum ACCENT_STATE {
+        ACCENT_DISABLED = 0,
+        ACCENT_ENABLE_BLURBEHIND = 3,
+        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+    }
+
+    #[allow(non_snake_case)]
+    #[repr(C)]
+    struct ACCENT_POLICY {
+        AccentState: u32,
+        AccentFlags: u32,
+        GradientColour: u32,
+        AnimationId: u32,
+    }
+
+    #[allow(non_camel_case_types)]
+    #[allow(dead_code)]
+    #[repr(C)]
+    enum DWM_SYSTEMBACKDROP_TYPE {
+        DWMSBT_AUTO = 0,
+        DWMSBT_NONE = 1,
+        DWMSBT_MAINWINDOW = 2,      // Mica
+        DWMSBT_TRANSIENTWINDOW = 3, // Acrylic
+        DWMSBT_TABBEDWINDOW = 4,    // Tabbed
+    }
+
     unsafe {
         update_title_font(hwnd);
 
@@ -1327,6 +1373,55 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
 
         if let Some(inner) = rc_from_hwnd(hwnd) {
             let mut inner = inner.borrow_mut();
+
+            // Set Arylic or Mica system Backdrop
+            let pv_attribute = match inner.config.windows_system_backdrop {
+                SystemBackdrop::Auto => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_AUTO,
+                SystemBackdrop::Disable => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_NONE,
+                SystemBackdrop::Acrylic => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TRANSIENTWINDOW,
+                SystemBackdrop::Mica => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_MAINWINDOW,
+                SystemBackdrop::Tabbed => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TABBEDWINDOW,
+            };
+
+            // Apply Acrylic or Mica Backdrop
+            if *IS_WIN11_22H2 {
+                DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_SYSTEMBACKDROP_TYPE,
+                    &pv_attribute as *const _ as _,
+                    4,
+                );
+            } else if inner.config.windows_system_backdrop == SystemBackdrop::Acrylic {
+                let colour: [u8; 4] = [40, 40, 40, 1]; // acrylic doesn't like to have 0 alpha
+
+                let mut policy = ACCENT_POLICY {
+                    AccentState: ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND as _,
+                    AccentFlags: 2,
+                    GradientColour: (colour[0] as u32)
+                        | (colour[1] as u32) << 8
+                        | (colour[2] as u32) << 16
+                        | (colour[3] as u32) << 24,
+                    AnimationId: 0,
+                };
+
+                if let Ok(user) = User32::open(std::path::Path::new("user32.dll")) {
+                    (user.SetWindowCompositionAttribute)(
+                        hwnd,
+                        &mut WINDOWCOMPOSITIONATTRIBDATA {
+                            Attrib: 0x13,
+                            pvData: &mut policy as *mut _ as _,
+                            cbData: std::mem::size_of_val(&policy),
+                        },
+                    );
+                };
+            } else if !*IS_WIN10 && !*IS_WIN11_22H2 {
+                // For build versions less than 22h2 but are
+                // still win11
+                if inner.config.windows_system_backdrop == SystemBackdrop::Mica {
+                    DwmSetWindowAttribute(hwnd, DWMWA_MICA_EFFECT, &1 as *const _ as _, 4);
+                }
+            }
+
             if appearance != inner.appearance {
                 inner.appearance = appearance;
                 inner
