@@ -30,6 +30,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
+use wezterm_input_types::KeyboardLedStatus;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -1949,6 +1950,7 @@ unsafe fn ime_composition(
             let key = KeyEvent {
                 key: KeyCode::Composed(s),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None,
@@ -2419,6 +2421,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         phys_code,
         raw_code: wparam as _,
         scan_code: scan_code as _,
+        leds: KeyboardLedStatus::empty(),
         modifiers,
         repeat_count: 1,
         key_is_down: !releasing,
@@ -2490,6 +2493,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         let key = KeyEvent {
                             key: KeyCode::Char(c),
                             modifiers,
+                            leds: KeyboardLedStatus::empty(),
                             repeat_count: 1,
                             key_is_down: !releasing,
                             raw: None,
@@ -2619,6 +2623,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let key = KeyEvent {
             key,
             modifiers,
+            leds: KeyboardLedStatus::empty(),
             repeat_count: repeat,
             key_is_down: !releasing,
             raw: Some(raw_key_event),
