@@ -1,4 +1,5 @@
 use bitflags::*;
+#[cfg(feature = "serde")]
 use serde::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -16,19 +17,8 @@ pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    Deserialize,
-    Serialize,
-    Ord,
-    PartialOrd,
-    FromDynamic,
-    ToDynamic,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, FromDynamic, ToDynamic)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),
@@ -689,20 +679,8 @@ impl Modifiers {
 
 /// These keycodes identify keys based on their physical
 /// position on an ANSI-standard US keyboard.
-#[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    Copy,
-    Ord,
-    PartialOrd,
-    FromDynamic,
-    ToDynamic,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Ord, PartialOrd, FromDynamic, ToDynamic)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum PhysKeyCode {
     A,
     B,
@@ -1906,8 +1884,8 @@ pub struct KittyKeyboardFlags: u16 {
 }
 
 bitflags! {
-    #[derive(Deserialize, Serialize, FromDynamic, ToDynamic)]
-    #[serde(try_from = "String")]
+    #[derive(FromDynamic, ToDynamic)]
+    #[cfg_attr(feature="serde", derive(Serialize, Deserialize), serde(try_from = "String"))]
     #[dynamic(try_from = "String", into = "String")]
     pub struct WindowDecorations: u8 {
         const TITLE = 1;
