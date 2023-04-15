@@ -2324,6 +2324,7 @@ mod test {
         event.raw = Some(RawKeyEvent {
             key: event.key.clone(),
             modifiers: event.modifiers,
+            leds: KeyboardLedStatus::empty(),
             phys_code: phys,
             raw_code: 0,
             #[cfg(windows)]
