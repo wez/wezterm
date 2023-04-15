@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
-use wezterm_input_types::PhysKeyCode;
+use wezterm_input_types::{KeyboardLedStatus, PhysKeyCode};
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
 

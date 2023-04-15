@@ -20,7 +20,7 @@ use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{KeyCode, KeyEvent, Modifiers};
+use wezterm_input_types::{KeyCode, KeyEvent, KeyboardLedStatus, Modifiers};
 use xcb::x::{Atom, PropMode};
 use xcb::{Event, Xid};
 
@@ -633,6 +633,7 @@ impl XWindowInner {
     pub fn dispatch_ime_text(&mut self, text: &str) {
         let key_event = KeyEvent {
             key: KeyCode::Composed(text.into()),
+            leds: KeyboardLedStatus::empty(),
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,

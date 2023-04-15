@@ -14,6 +14,7 @@ use wayland_protocols::unstable::text_input::v3::client::zwp_text_input_manager_
 use wayland_protocols::unstable::text_input::v3::client::zwp_text_input_v3::{
     Event, ZwpTextInputV3,
 };
+use wezterm_input_types::KeyboardLedStatus;
 
 #[derive(Default, Debug)]
 struct PendingState {
@@ -60,6 +61,7 @@ impl Inner {
                     conn.dispatch_to_focused_window(WindowEvent::KeyEvent(KeyEvent {
                         key: KeyCode::composed(&text),
                         modifiers: Modifiers::NONE,
+                        leds: KeyboardLedStatus::empty(),
                         repeat_count: 1,
                         key_is_down: true,
                         raw: None,
