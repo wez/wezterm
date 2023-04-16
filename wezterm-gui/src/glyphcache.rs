@@ -1,3 +1,4 @@
+use image::{ColorType, DynamicImage};
 use super::utilsprites::RenderMetrics;
 use crate::customglyph::*;
 use crate::renderstate::RenderContext;
@@ -262,11 +263,31 @@ impl FrameDecoder {
                     let size = decoder.total_bytes() as usize;
                     let mut buf = vec![0u8; size];
                     let (width, height) = decoder.dimensions();
+                    let color_type = decoder.color_type();
                     let mut reader = decoder.into_reader().context("PngDecoder into_reader")?;
                     reader.read(&mut buf)?;
-                    let buf = image::RgbaImage::from_raw(width, height, buf).ok_or_else(|| {
-                        anyhow::anyhow!("PNG data is inconsistent: {width}x{height}x4 is {} but is we have {size} bytes of data", width*height*4)
-                    })?;
+
+                    let buf: image::RgbaImage = match color_type {
+                        ColorType::Rgb8 => DynamicImage::ImageRgb8(
+                            image::RgbImage::from_raw(width, height, buf).ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
+                                    bytes per pixel",
+                                    size / (width * height) as usize
+                                )
+                            })?,
+                        )
+                        .into_rgba8(),
+                        ColorType::Rgba8 => image::RgbaImage::from_raw(width, height, buf)
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
+                                    bytes per pixel",
+                                    size / (width * height) as usize
+                                )
+                            })?,
+                        _ => anyhow::bail!("unimplemented PNG conversion from {color_type:?}"),
+                    };
                     let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
                     let frame = Frame::from_parts(buf, 0, 0, delay);
                     Frames::new(Box::new(std::iter::once(ImageResult::Ok(frame))))

@@ -35,6 +35,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [`user-var-changed` event](config/lua/window-events/user-var-changed.md)
   would incorrectly trigger for every GUI window, rather than just the GUI
   window which contained the pane in which the variable was changed. #3524
+* PNG images without an alpha channel could not be displayed by in the
+  terminal. #3529.
 
 ### 20230408-112425-69ae8472
 
