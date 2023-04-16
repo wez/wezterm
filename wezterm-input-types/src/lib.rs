@@ -1600,6 +1600,8 @@ impl KeyEvent {
         {
             // Check for simple text generating keys
             match &self.key {
+                Char('\x08') => return '\x7f'.to_string(),
+                Char('\x7f') => return '\x08'.to_string(),
                 Char(c) => return c.to_string(),
                 _ => {}
             }
@@ -1751,6 +1753,12 @@ impl KeyEvent {
             }
             Char(shifted_key) => {
                 let mut use_legacy = false;
+                let shifted_key = if *shifted_key == '\x08' {
+                    // Backspace is really VERASE -> ASCII DEL
+                    '\x7f'
+                } else {
+                    *shifted_key
+                };
 
                 if !flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
                     && event_type.is_empty()
@@ -1775,7 +1783,7 @@ impl KeyEvent {
                             self.modifiers,
                         );
                     } else {
-                        output.push(*shifted_key);
+                        output.push(shifted_key);
                     }
                     return output;
                 }
@@ -1783,7 +1791,7 @@ impl KeyEvent {
                 // FIXME: ideally we'd get the correct unshifted key from
                 // the OS based on the current keyboard layout. That needs
                 // more plumbing, so for now, we're assuming the US layout.
-                let c = us_layout_unshift(*shifted_key);
+                let c = us_layout_unshift(shifted_key);
 
                 let base_layout = self
                     .raw
@@ -1797,11 +1805,11 @@ impl KeyEvent {
                 let mut key_code = format!("{}", (c as u32));
 
                 if flags.contains(KittyKeyboardFlags::REPORT_ALTERNATE_KEYS)
-                    && (c != *shifted_key || base_layout.is_some())
+                    && (c != shifted_key || base_layout.is_some())
                 {
                     key_code.push(':');
-                    if c != *shifted_key {
-                        key_code.push_str(&format!("{}", (*shifted_key as u32)));
+                    if c != shifted_key {
+                        key_code.push_str(&format!("{}", (shifted_key as u32)));
                     }
                     if let Some(base) = base_layout {
                         key_code.push_str(&format!(":{}", (base as u32)));
@@ -2361,6 +2369,36 @@ mod test {
             }
             .encode_kitty(flags),
             "\x1b[105;8u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('\x08'),
+                modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\x7f".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('\x08'),
+                modifiers: Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
+            }
+            .encode_kitty(flags),
+            "\x1b[127;5u".to_string()
         );
     }
 
