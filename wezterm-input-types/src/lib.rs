@@ -1661,24 +1661,26 @@ impl KeyEvent {
             _ => false,
         };
 
-        let generated_text = if flags.contains(KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT) {
-            match &self.key {
-                Char(c) => format!(";{}", *c as u32),
-                Composed(s) => {
-                    let mut codepoints = ";".to_string();
-                    for c in s.chars() {
-                        if codepoints.len() > 1 {
-                            codepoints.push(':');
+        let generated_text =
+            if self.key_is_down && flags.contains(KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT) {
+                match &self.key {
+                    Char(c) => format!(";{}", *c as u32),
+                    KeyCode::Numpad(n) => format!(";{}", '0' as u32 + *n as u32),
+                    Composed(s) => {
+                        let mut codepoints = ";".to_string();
+                        for c in s.chars() {
+                            if codepoints.len() > 1 {
+                                codepoints.push(':');
+                            }
+                            write!(&mut codepoints, "{}", c as u32).ok();
                         }
-                        write!(&mut codepoints, "{}", c as u32).ok();
+                        codepoints
                     }
-                    codepoints
+                    _ => String::new(),
                 }
-                _ => String::new(),
-            }
-        } else {
-            String::new()
-        };
+            } else {
+                String::new()
+            };
 
         let guess_phys = self
             .raw
@@ -1723,7 +1725,14 @@ impl KeyEvent {
                 (PhysKeyCode::Keypad4, true) => 57403,
                 (PhysKeyCode::Keypad4, false) => 57417,
                 (PhysKeyCode::Keypad5, true) => 57404,
-                (PhysKeyCode::Keypad5, false) => 57427,
+                (PhysKeyCode::Keypad5, false) => {
+                    let xt_mods = self.modifiers.encode_xterm();
+                    return if xt_mods == 0 && self.key_is_down {
+                        "\x1b[E".to_string()
+                    } else {
+                        format!("\x1b[1;{}{event_type}E", 1 + xt_mods)
+                    };
+                }
                 (PhysKeyCode::Keypad6, true) => 57405,
                 (PhysKeyCode::Keypad6, false) => 57418,
                 (PhysKeyCode::Keypad7, true) => 57406,
@@ -2494,6 +2503,110 @@ mod test {
             )
             .encode_kitty(flags),
             "\u{1b}[57399;130u".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::NUM_LOCK,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57404;129u".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[E".to_string()
+        );
+    }
+
+    #[test]
+    fn encode_issue_3478_extra() {
+        let flags = KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_EVENT_TYPES
+            | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+            | KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
+            | KittyKeyboardFlags::REPORT_ASSOCIATED_TEXT;
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::NUM_LOCK,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57404;129;53u".to_string()
+        );
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::NUM_LOCK,
+                    repeat_count: 1,
+                    key_is_down: false,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[57404;129:3u".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[E".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::Numpad(5),
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: false,
+                    raw: None
+                },
+                Some(PhysKeyCode::Keypad5)
+            )
+            .encode_kitty(flags),
+            "\u{1b}[1;1:3E".to_string()
         );
     }
 
