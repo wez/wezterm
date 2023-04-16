@@ -2279,6 +2279,56 @@ mod test {
             .encode_kitty(flags),
             "\x1b[49;4u".to_string()
         );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('i'),
+                modifiers: Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            "\x1b[105;6u".to_string()
+        );
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('I'),
+                modifiers: Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            "\x1b[105;6u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('i'),
+                modifiers: Modifiers::ALT | Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            "\x1b[105;8u".to_string()
+        );
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('I'),
+                modifiers: Modifiers::ALT | Modifiers::SHIFT | Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: None
+            }
+            .encode_kitty(flags),
+            "\x1b[105;8u".to_string()
+        );
     }
 
     #[test]
