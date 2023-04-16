@@ -527,6 +527,20 @@ pub struct ModifierToStringArgs<'a> {
 }
 
 impl Modifiers {
+    pub fn encode_xterm(self) -> u8 {
+        let mut number = 0;
+        if self.contains(Self::SHIFT) {
+            number |= 1;
+        }
+        if self.contains(Self::ALT) {
+            number |= 2;
+        }
+        if self.contains(Self::CTRL) {
+            number |= 4;
+        }
+        number
+    }
+
     pub fn to_string_with_separator(&self, args: ModifierToStringArgs) -> String {
         let mut s = String::new();
         if args.want_none && *self == Self::NONE {

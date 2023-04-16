@@ -433,7 +433,7 @@ impl KeyCode {
                     || mods.contains(Modifiers::SHIFT)
                     || mods.contains(Modifiers::CTRL)
                 {
-                    write!(buf, "{}1;{}{}", CSI, 1 + encode_modifiers(mods), c)?;
+                    write!(buf, "{}1;{}{}", CSI, 1 + mods.encode_xterm(), c)?;
                 } else {
                     write!(buf, "{}{}", csi_or_ss3, c)?;
                 }
@@ -452,7 +452,7 @@ impl KeyCode {
                     || mods.contains(Modifiers::SHIFT)
                     || mods.contains(Modifiers::CTRL)
                 {
-                    write!(buf, "\x1b[{};{}~", c, 1 + encode_modifiers(mods))?;
+                    write!(buf, "\x1b[{};{}~", c, 1 + mods.encode_xterm())?;
                 } else {
                     write!(buf, "\x1b[{}~", c)?;
                 }
@@ -481,7 +481,7 @@ impl KeyCode {
                         4 => 'S',
                         _ => unreachable!("wat?"),
                     };
-                    write!(buf, "\x1b[1;{}{code}", 1 + encode_modifiers(mods))?;
+                    write!(buf, "\x1b[1;{}{code}", 1 + mods.encode_xterm())?;
                 } else {
                     // Higher numbered F-keys using CSI instead of SS3.
                     let intro = match n {
@@ -499,7 +499,7 @@ impl KeyCode {
                         12 => "\x1b[24",
                         _ => bail!("unhandled fkey number {}", n),
                     };
-                    let encoded_mods = encode_modifiers(mods);
+                    let encoded_mods = mods.encode_xterm();
                     if encoded_mods == 0 {
                         // If no modifiers are held, don't send the modifier
                         // sequence, as the modifier encoding is a CSI-u extension.
@@ -519,7 +519,7 @@ impl KeyCode {
                     _ => unreachable!(),
                 };
 
-                let encoded_mods = encode_modifiers(mods);
+                let encoded_mods = mods.encode_xterm();
                 if encoded_mods == 0 {
                     // If no modifiers are held, don't send the modifier
                     // sequence, as the modifier encoding is a CSI-u extension.
@@ -541,12 +541,12 @@ impl KeyCode {
                     _ => unreachable!(),
                 };
 
-                let encoded_mods = encode_modifiers(mods);
+                let encoded_mods = mods.encode_xterm();
                 if encoded_mods == 0 {
                     // If no modifiers are held, don't send the modifier
                     write!(buf, "{}{}", CSI, c)?;
                 } else {
-                    write!(buf, "{}1;{}{}", CSI, 1 + encode_modifiers(mods), c)?;
+                    write!(buf, "{}1;{}{}", CSI, 1 + encoded_mods, c)?;
                 }
             }
 
@@ -565,20 +565,6 @@ impl KeyCode {
 
         Ok(buf)
     }
-}
-
-fn encode_modifiers(mods: Modifiers) -> u8 {
-    let mut number = 0;
-    if mods.contains(Modifiers::SHIFT) {
-        number |= 1;
-    }
-    if mods.contains(Modifiers::ALT) {
-        number |= 2;
-    }
-    if mods.contains(Modifiers::CTRL) {
-        number |= 4;
-    }
-    number
 }
 
 /// characters that when masked for CTRL could be an ascii control character
@@ -602,7 +588,7 @@ fn csi_u_encode(
     modes: &KeyCodeEncodeModes,
 ) -> Result<()> {
     if modes.encoding == KeyboardEncoding::CsiU && is_ascii(c) {
-        write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+        write!(buf, "\x1b[{};{}u", c as u32, 1 + mods.encode_xterm())?;
         return Ok(());
     }
 
@@ -612,7 +598,7 @@ fn csi_u_encode(
             // Exclude well-known keys from modifyOtherKeys mode 1
         }
         (c, Some(_)) => {
-            write!(buf, "\x1b[27;{};{}~", 1 + encode_modifiers(mods), c as u32)?;
+            write!(buf, "\x1b[27;{};{}~", 1 + mods.encode_xterm(), c as u32)?;
             return Ok(());
         }
         _ => {}
