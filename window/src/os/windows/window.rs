@@ -4,7 +4,7 @@ use crate::parameters::{self, Parameters};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ULength, WindowDecorations,
+    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ScreenRect, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
@@ -105,7 +105,7 @@ pub(crate) struct WindowInner {
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
     window_drag_position: Option<ScreenPoint>,
-    maximize_button_position: Option<ScreenPoint>,
+    maximize_button_position: Option<ScreenRect>,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -874,7 +874,7 @@ impl WindowOps for Window {
         });
     }
 
-    fn set_maximize_button_position(&self, coords: ScreenPoint) {
+    fn set_maximize_button_position(&self, coords: ScreenRect) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.maximize_button_position = Some(coords);
             Ok(())
@@ -1113,7 +1113,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let mut inner = match inner.try_borrow_mut() {
+    let inner = match inner.try_borrow() {
         Ok(inner) => inner,
         Err(_) => {
             // We've been called recursively and the upper levels
@@ -1197,8 +1197,10 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
     let use_snap_layouts = !*IS_WIN10;
     if use_snap_layouts {
-        if inner.maximize_button_position.take().is_some() {
-            return Some(HTMAXBUTTON);
+        if let Some(max) = inner.maximize_button_position {
+            if max.contains(screen_point) {
+                return Some(HTMAXBUTTON);
+            }
         }
     }
 
