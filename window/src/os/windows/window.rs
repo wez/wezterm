@@ -1586,6 +1586,14 @@ unsafe fn nc_mouse_button(
     lparam: LPARAM,
 ) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
+
+    let no_native_title_bar = no_native_title_bar(inner.borrow().config.window_decorations);
+    if !no_native_title_bar {
+        // Don't mess with this event unless we're doing our own custom
+        // titlebar
+        return None;
+    }
+
     // To support dragging the window, capture when the left
     // button goes down and release when it goes up.
     // Without this, the drag state can be confused when dragging

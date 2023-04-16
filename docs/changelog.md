@@ -39,6 +39,8 @@ As features stabilize some brief notes about them will accumulate here.
   terminal. #3529.
 * tab width calculation when returning a string with embedded escape
   sequences from a `format-tab-title` event handler. #3481
+* Windows: clicking the maximize button didn't work unless using
+  integrated titlebar buttons. #3499
 
 ### 20230408-112425-69ae8472
 
