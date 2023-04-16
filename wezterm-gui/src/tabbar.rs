@@ -84,8 +84,9 @@ fn call_format_tab_title(
                 }
                 _ => {
                     let s = String::from_lua(v, &*lua)?;
+                    let line = parse_status_text(&s, CellAttributes::default());
                     Ok(Some(TitleText {
-                        len: unicode_column_width(&s, None),
+                        len: line.len(),
                         items: vec![FormatItem::Text(s)],
                     }))
                 }
