@@ -1628,17 +1628,23 @@ impl KeyEvent {
             }
         }
 
+        let raw_modifiers = self
+            .raw
+            .as_ref()
+            .map(|raw| raw.modifiers)
+            .unwrap_or(self.modifiers);
+
         let mut modifiers = 0;
-        if self.modifiers.contains(Modifiers::SHIFT) {
+        if raw_modifiers.contains(Modifiers::SHIFT) {
             modifiers |= 1;
         }
-        if self.modifiers.contains(Modifiers::ALT) {
+        if raw_modifiers.contains(Modifiers::ALT) {
             modifiers |= 2;
         }
-        if self.modifiers.contains(Modifiers::CTRL) {
+        if raw_modifiers.contains(Modifiers::CTRL) {
             modifiers |= 4;
         }
-        if self.modifiers.contains(Modifiers::SUPER) {
+        if raw_modifiers.contains(Modifiers::SUPER) {
             modifiers |= 8;
         }
         if self.leds.contains(KeyboardLedStatus::CAPS_LOCK) {
@@ -2300,6 +2306,30 @@ mod test {
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None
+            }
+            .encode_kitty(flags),
+            "\x1b[105;6u".to_string()
+        );
+
+        assert_eq!(
+            KeyEvent {
+                key: KeyCode::Char('I'),
+                modifiers: Modifiers::CTRL,
+                leds: KeyboardLedStatus::empty(),
+                repeat_count: 1,
+                key_is_down: true,
+                raw: Some(RawKeyEvent {
+                    key: KeyCode::Char('I'),
+                    modifiers: Modifiers::SHIFT | Modifiers::CTRL,
+                    handled: Handled::new(),
+                    key_is_down: true,
+                    raw_code: 0,
+                    leds: KeyboardLedStatus::empty(),
+                    phys_code: Some(PhysKeyCode::I),
+                    #[cfg(windows)]
+                    scan_code: 0,
+                    repeat_count: 1,
+                }),
             }
             .encode_kitty(flags),
             "\x1b[105;6u".to_string()
