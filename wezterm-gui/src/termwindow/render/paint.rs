@@ -1,6 +1,7 @@
 use crate::termwindow::{RenderFrame, TermWindowNotif};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::WindowOps;
+use anyhow::Context;
 use smol::Timer;
 use std::time::{Duration, Instant};
 use wezterm_font::ClearShapeCache;
@@ -163,7 +164,9 @@ impl crate::TermWindow {
 
         let start = Instant::now();
         let gl_state = self.render_state.as_ref().unwrap();
-        let layer = gl_state.layer_for_zindex(0)?;
+        let layer = gl_state
+            .layer_for_zindex(0)
+            .context("layer_for_zindex(0)")?;
         let mut layers = layer.quad_allocator();
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
@@ -182,7 +185,8 @@ impl crate::TermWindow {
                     })
                     .unwrap_or(0);
 
-                self.render_backgrounds(bg_color, top)?;
+                self.render_backgrounds(bg_color, top)
+                    .context("render_backgrounds")?;
             }
             _ if window_is_transparent => {
                 // Avoid doubling up the background color: the panes
@@ -211,7 +215,8 @@ impl crate::TermWindow {
                         self.dimensions.pixel_height as f32,
                     ),
                     background,
-                )?;
+                )
+                .context("filled_rectangle for window background")?;
             }
         }
 
@@ -223,23 +228,25 @@ impl crate::TermWindow {
                     mux::Mux::get().record_focus_for_current_identity(pos.pane.pane_id());
                 }
             }
-            self.paint_pane(&pos, &mut layers)?;
+            self.paint_pane(&pos, &mut layers).context("paint_pane")?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
             for split in &splits {
-                self.paint_split(&mut layers, split, &pane)?;
+                self.paint_split(&mut layers, split, &pane)
+                    .context("paint_split")?;
             }
         }
 
         if self.show_tab_bar {
-            self.paint_tab_bar(&mut layers)?;
+            self.paint_tab_bar(&mut layers).context("paint_tab_bar")?;
         }
 
-        self.paint_window_borders(&mut layers)?;
+        self.paint_window_borders(&mut layers)
+            .context("paint_window_borders")?;
         drop(layers);
-        self.paint_modal()?;
+        self.paint_modal().context("paint_modal")?;
 
         Ok(())
     }
