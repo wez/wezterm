@@ -41,6 +41,8 @@ As features stabilize some brief notes about them will accumulate here.
   sequences from a `format-tab-title` event handler. #3481
 * Windows: clicking the maximize button didn't work unless using
   integrated titlebar buttons. #3499
+* Windows: closing a window while the debug overlay was active could
+  leave a lingering wezterm-gui.exe running. #3522
 
 ### 20230408-112425-69ae8472
 

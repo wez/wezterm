@@ -869,7 +869,15 @@ impl TermWindow {
     ) -> anyhow::Result<bool> {
         log::debug!("{event:?}");
         match event {
-            WindowEvent::Destroyed => Ok(false),
+            WindowEvent::Destroyed => {
+                // Ensure that we cancel any overlays we had running, so
+                // that the mux can empty out, otherwise the mux keeps
+                // the TermWindow alive via the frontend even though
+                // the window is gone and we'll linger forever.
+                // <https://github.com/wez/wezterm/issues/3522>
+                self.clear_all_overlays();
+                Ok(false)
+            }
             WindowEvent::CloseRequested => {
                 self.close_requested(window);
                 Ok(true)
