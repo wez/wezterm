@@ -1964,6 +1964,7 @@ unsafe fn ime_composition(
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None,
+                win32_uni_char: None,
             };
             inner
                 .events
@@ -2349,8 +2350,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         return Some(0);
     }
 
-    let mut keys = [0u8; 256];
-    GetKeyboardState(keys.as_mut_ptr());
+    let keys = {
+        let mut keys = [0u8; 256];
+        GetKeyboardState(keys.as_mut_ptr());
+        keys
+    };
 
     let mut modifiers = Modifiers::default();
     if keys[VK_SHIFT as usize] & 0x80 != 0 {
@@ -2410,18 +2414,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         modifiers |= Modifiers::SUPER;
     }
 
-    // If control is pressed, clear that out and remember it in our
-    // own set of modifiers.
-    // We used to also remove shift from this set, but it impacts
-    // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
-    // layout.
-    // The shift normalization is now handled by the normalize_shift() method.
-    if modifiers.contains(Modifiers::CTRL) {
-        keys[VK_CONTROL as usize] = 0;
-        keys[VK_LCONTROL as usize] = 0;
-        keys[VK_RCONTROL as usize] = 0;
-    }
-
     let mut leds = KeyboardLedStatus::empty();
     if keys[VK_CAPITAL as usize] & 1 != 0 {
         leds |= KeyboardLedStatus::CAPS_LOCK;
@@ -2446,11 +2438,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         handled: handled_raw.clone(),
     };
 
-    let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+    let (key, win32_uni_char) = if msg == WM_IME_CHAR || msg == WM_CHAR {
         // If we were sent a character by the IME, some other apps,
         // or by ourselves via TranslateMessage, then take that
         // value as-is.
-        Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        (
+            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32))),
+            None,
+        )
     } else {
         // Otherwise we're dealing with a raw key message.
         // ToUnicode has frustrating statefulness so we take care to
@@ -2475,7 +2470,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // If this event is only modifiers then don't ask the system
             // for further resolution, as we don't want ToUnicode to
             // perturb its inscrutable global state.
-            phys_code.map(|p| p.to_key_code())
+            // Modifier-only keypresses are reported as NUL when using win32 input mode.
+            (phys_code.map(|p| p.to_key_code()), Some('\x00'))
         } else {
             // If we think this might be a dead key, process it for ourselves.
             // Our KeyboardLayoutInfo struct probed the layout for the key
@@ -2514,7 +2510,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             leds,
                             repeat_count: 1,
                             key_is_down: !releasing,
-                            raw: None,
+                            win32_uni_char: Some(c),
+                            raw: Some(RawKeyEvent {
+                                scan_code: 0,
+                                ..raw_key_event.clone()
+                            }),
                         }
                         .normalize_shift()
                         .resurface_positional_modifier_key()
@@ -2580,7 +2580,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             };
 
             if dead.is_some() {
-                dead
+                (dead, None)
             } else {
                 // We get here for the various UP (but not DOWN as we shortcircuit
                 // those above) messages.
@@ -2588,6 +2588,37 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // rather than calling TranslateMessage to do it for us,
                 // so that we have tighter control over the key processing.
                 let mut out = [0u16; 16];
+
+                let win32_uni_char = {
+                    let res = ToUnicode(
+                        wparam as u32,
+                        scan_code as u32,
+                        keys.as_ptr(),
+                        out.as_mut_ptr(),
+                        out.len() as i32,
+                        0,
+                    );
+
+                    match res {
+                        1 => Some(std::char::from_u32_unchecked(out[0] as u32)),
+                        0 => Some('\x00'),
+                        _ => None,
+                    }
+                };
+
+                let mut keys = keys;
+                // If control is pressed, clear that out and remember it in our
+                // own set of modifiers.
+                // We used to also remove shift from this set, but it impacts
+                // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
+                // layout.
+                // The shift normalization is now handled by the normalize_shift() method.
+                if modifiers.contains(Modifiers::CTRL) {
+                    keys[VK_CONTROL as usize] = 0;
+                    keys[VK_LCONTROL as usize] = 0;
+                    keys[VK_RCONTROL as usize] = 0;
+                }
+
                 let res = ToUnicode(
                     wparam as u32,
                     scan_code as u32,
@@ -2597,7 +2628,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     0,
                 );
 
-                match res {
+                let key = match res {
                     1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                     // No mapping, so use our raw info
                     0 => {
@@ -2628,7 +2659,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         KeyboardLayoutInfo::clear_key_state();
                         None
                     }
-                }
+                };
+
+                (key, win32_uni_char)
             }
         }
     };
@@ -2644,6 +2677,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             leds,
             repeat_count: repeat,
             key_is_down: !releasing,
+            win32_uni_char,
             raw: Some(raw_key_event),
         }
         .normalize_shift();

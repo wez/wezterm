@@ -1375,6 +1375,9 @@ pub struct KeyEvent {
 
     /// If triggered from a raw key event, here it is.
     pub raw: Option<RawKeyEvent>,
+
+    #[cfg(windows)]
+    pub win32_uni_char: Option<char>,
 }
 
 fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
@@ -1536,7 +1539,10 @@ impl KeyEvent {
         const LEFT_CTRL_PRESSED: usize = 0x08;
         const RIGHT_CTRL_PRESSED: usize = 0x04;
 
-        if self.modifiers.contains(Modifiers::SHIFT) {
+        if self
+            .modifiers
+            .intersects(Modifiers::SHIFT | Modifiers::LEFT_SHIFT | Modifiers::RIGHT_SHIFT)
+        {
             control_key_state |= SHIFT_PRESSED;
         }
 
@@ -1565,36 +1571,7 @@ impl KeyEvent {
         match &self.key {
             KeyCode::Composed(_) => None,
             KeyCode::Char(c) => {
-                let c = match *c {
-                    // Delete key is transmitted as 0x0
-                    '\x7f' => '\x00',
-                    // Backspace key is transmitted as 0x8, 0x7f or 0x0
-                    '\x08' => {
-                        if self.modifiers.contains(Modifiers::CTRL) {
-                            if self.modifiers.contains(Modifiers::ALT)
-                                || self.modifiers.contains(Modifiers::SHIFT)
-                            {
-                                '\x00'
-                            } else {
-                                '\x7f'
-                            }
-                        } else {
-                            '\x08'
-                        }
-                    }
-                    _ => *c,
-                };
-
-                let c = if self.modifiers.contains(Modifiers::CTRL) {
-                    // Ensure that we rewrite the unicode value to the ASCII CTRL
-                    // equivalent value.
-                    // <https://github.com/microsoft/terminal/issues/13134>
-                    ctrl_mapping(c).unwrap_or(c)
-                } else {
-                    c
-                };
-                let uni = c as u32;
-
+                let uni = self.win32_uni_char.unwrap_or(*c) as u32;
                 Some(format!(
                     "\u{1b}[{};{};{};{};{};{}_",
                     vkey, scan_code, uni, key_down, control_key_state, self.repeat_count
@@ -2176,7 +2153,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "o".to_string()
@@ -2188,7 +2167,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[111;1:3u".to_string()
@@ -2209,7 +2190,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[11;1~".to_string()
@@ -2221,7 +2204,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[11;1:3~".to_string()
@@ -2239,7 +2224,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;4u".to_string()
@@ -2251,7 +2238,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;4u".to_string()
@@ -2264,7 +2253,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[49;4u".to_string()
@@ -2278,7 +2269,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::K1)
             )
@@ -2293,7 +2286,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;6u".to_string()
@@ -2305,7 +2300,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;6u".to_string()
@@ -2330,6 +2327,8 @@ mod test {
                     scan_code: 0,
                     repeat_count: 1,
                 }),
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;6u".to_string()
@@ -2342,7 +2341,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;8u".to_string()
@@ -2354,7 +2355,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\x1b[105;8u".to_string()
@@ -2375,7 +2378,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\u{1b}[97:65;1u".to_string()
@@ -2387,7 +2392,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: false,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\u{1b}[97:65;1:3u".to_string()
@@ -2431,7 +2438,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2446,7 +2455,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: false,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2461,7 +2472,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2476,7 +2489,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: false,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2500,7 +2515,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2515,7 +2532,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2531,7 +2550,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2546,7 +2567,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 None
             )
@@ -2562,7 +2585,9 @@ mod test {
                     leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad0)
             )
@@ -2577,7 +2602,9 @@ mod test {
                     leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad0)
             )
@@ -2593,7 +2620,9 @@ mod test {
                     leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2609,7 +2638,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2634,7 +2665,9 @@ mod test {
                     leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2649,7 +2682,9 @@ mod test {
                     leds: KeyboardLedStatus::NUM_LOCK,
                     repeat_count: 1,
                     key_is_down: false,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2665,7 +2700,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2681,7 +2718,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: false,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::Keypad5)
             )
@@ -2701,7 +2740,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\"".to_string()
@@ -2714,7 +2755,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "\"".to_string()
@@ -2727,7 +2770,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "!".to_string()
@@ -2740,7 +2785,9 @@ mod test {
                 leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             "".to_string()
@@ -2762,7 +2809,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::A)
             )
@@ -2778,7 +2827,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::A)
             )
@@ -2803,7 +2854,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::A)
             )
@@ -2819,7 +2872,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::A)
             )
@@ -2839,7 +2894,9 @@ mod test {
                 leds: KeyboardLedStatus::NUM_LOCK,
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             " ".to_string()
@@ -2852,7 +2909,9 @@ mod test {
                 leds: KeyboardLedStatus::CAPS_LOCK,
                 repeat_count: 1,
                 key_is_down: true,
-                raw: None
+                raw: None,
+                #[cfg(windows)]
+                win32_uni_char: None,
             }
             .encode_kitty(flags),
             " ".to_string()
@@ -2866,7 +2925,9 @@ mod test {
                     leds: KeyboardLedStatus::empty(),
                     repeat_count: 1,
                     key_is_down: true,
-                    raw: None
+                    raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::NumLock)
             )
@@ -2883,6 +2944,8 @@ mod test {
                     repeat_count: 1,
                     key_is_down: true,
                     raw: None,
+                    #[cfg(windows)]
+                    win32_uni_char: None,
                 },
                 Some(PhysKeyCode::CapsLock)
             )

@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
   integrated titlebar buttons. #3499
 * Windows: closing a window while the debug overlay was active could
   leave a lingering wezterm-gui.exe running. #3522
+* Windows: inconsistencies with win32 input mode. Thanks to @kreudom! #2235
 
 ### 20230408-112425-69ae8472
 
