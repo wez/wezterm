@@ -1,5 +1,6 @@
 use crate::{default_one_point_oh, Config, Dimension, HsbTransform, PixelUnit, RgbaColor};
 use luahelper::impl_lua_conversion_dynamic;
+use termwiz::color::SrgbaTuple;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 
 #[derive(Debug, Clone, FromDynamic, ToDynamic)]
@@ -298,6 +299,10 @@ pub enum SystemBackdrop {
     Acrylic,
     Mica,
     Tabbed,
+}
+
+pub fn default_win32_acrylic_accent_color() -> RgbaColor {
+    SrgbaTuple(0.156863, 0.156863, 0.156863, 0.003922).into()
 }
 
 #[derive(Debug, Copy, Clone, FromDynamic, ToDynamic, PartialEq, Default)]
