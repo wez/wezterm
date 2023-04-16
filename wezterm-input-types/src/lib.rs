@@ -1842,18 +1842,16 @@ impl KeyEvent {
             }
 
             _ => {
-                if self.key.is_modifier()
-                    && !flags.contains(KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES)
-                {
-                    // Don't report bare modifier only key events unless
-                    // we're reporting all keys with escape codes
-                    String::new()
-                } else if let Some(code) =
-                    self.raw.as_ref().and_then(|raw| raw.kitty_function_code())
-                {
-                    format!("\x1b[{code};{modifiers}{event_type}{generated_text}u")
-                } else {
-                    String::new()
+                let code = self.raw.as_ref().and_then(|raw| raw.kitty_function_code());
+
+                match (
+                    code,
+                    flags.contains(KittyKeyboardFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES),
+                ) {
+                    (Some(code), true) => {
+                        format!("\x1b[{code};{modifiers}{event_type}{generated_text}u")
+                    }
+                    _ => String::new(),
                 }
             }
         }
@@ -2651,6 +2649,38 @@ mod test {
             }
             .encode_kitty(flags),
             " ".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::NumLock,
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None
+                },
+                Some(PhysKeyCode::NumLock)
+            )
+            .encode_kitty(flags),
+            "".to_string()
+        );
+
+        assert_eq!(
+            make_event_with_raw(
+                KeyEvent {
+                    key: KeyCode::CapsLock,
+                    modifiers: Modifiers::NONE,
+                    leds: KeyboardLedStatus::empty(),
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None,
+                },
+                Some(PhysKeyCode::CapsLock)
+            )
+            .encode_kitty(flags),
+            "".to_string()
         );
     }
 }
