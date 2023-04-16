@@ -22,9 +22,10 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, GpuInfo, IntegratedTitleButtonColor, KeyMapPreference, LoadedConfig,
-    MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop, WebGpuPowerPreference,
-    CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_true, default_win32_acrylic_accent_color, GpuInfo, IntegratedTitleButtonColor,
+    KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop,
+    WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
+    HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -512,7 +513,10 @@ pub struct Config {
 
     /// Only works on Windows
     #[dynamic(default)]
-    pub windows_system_backdrop: SystemBackdrop,
+    pub win32_system_backdrop: SystemBackdrop,
+
+    #[dynamic(default = "default_win32_acrylic_accent_color")]
+    pub win32_acrylic_accent_color: RgbaColor,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the

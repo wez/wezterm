@@ -1378,7 +1378,7 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
             let mut inner = inner.borrow_mut();
 
             // Set Arylic or Mica system Backdrop
-            let pv_attribute = match inner.config.windows_system_backdrop {
+            let pv_attribute = match inner.config.win32_system_backdrop {
                 SystemBackdrop::Auto => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_AUTO,
                 SystemBackdrop::Disable => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_NONE,
                 SystemBackdrop::Acrylic => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TRANSIENTWINDOW,
@@ -1392,18 +1392,19 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                     hwnd,
                     DWMWA_SYSTEMBACKDROP_TYPE,
                     &pv_attribute as *const _ as _,
-                    4,
+                    std::mem::size_of_val(&pv_attribute) as u32,
                 );
-            } else if inner.config.windows_system_backdrop == SystemBackdrop::Acrylic {
-                let colour: [u8; 4] = [40, 40, 40, 1]; // acrylic doesn't like to have 0 alpha
+            } else if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+                let mut colour = inner.config.win32_acrylic_accent_color.to_srgb_u8();
+                colour.3 = if colour.3 == 0 { 1 } else { colour.3 }; // acrylic doesn't like to have 0 alpha
 
                 let mut policy = ACCENT_POLICY {
                     AccentState: ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND as _,
                     AccentFlags: 2,
-                    GradientColour: (colour[0] as u32)
-                        | (colour[1] as u32) << 8
-                        | (colour[2] as u32) << 16
-                        | (colour[3] as u32) << 24,
+                    GradientColour: (colour.0 as u32)
+                        | (colour.1 as u32) << 8
+                        | (colour.2 as u32) << 16
+                        | (colour.3 as u32) << 24,
                     AnimationId: 0,
                 };
 
@@ -1413,16 +1414,25 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                         &mut WINDOWCOMPOSITIONATTRIBDATA {
                             Attrib: 0x13,
                             pvData: &mut policy as *mut _ as _,
-                            cbData: std::mem::size_of_val(&policy),
+                            cbData: std::mem::size_of_val(&policy) as _,
                         },
                     );
                 };
             } else if !*IS_WIN10 && !*IS_WIN11_22H2 {
                 // For build versions less than 22h2 but are
                 // still win11
-                if inner.config.windows_system_backdrop == SystemBackdrop::Mica {
-                    DwmSetWindowAttribute(hwnd, DWMWA_MICA_EFFECT, &1 as *const _ as _, 4);
-                }
+                let mica_enabled: u32 =
+                    if inner.config.win32_system_backdrop == SystemBackdrop::Mica {
+                        1
+                    } else {
+                        0
+                    };
+                DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_MICA_EFFECT,
+                    &mica_enabled as *const _ as _,
+                    std::mem::size_of_val(&mica_enabled) as u32,
+                );
             }
 
             if appearance != inner.appearance {
