@@ -1,4 +1,3 @@
-use image::{ColorType, DynamicImage};
 use super::utilsprites::RenderMetrics;
 use crate::customglyph::*;
 use crate::renderstate::RenderContext;
@@ -10,7 +9,10 @@ use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use image::io::Limits;
-use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageFormat, ImageResult};
+use image::{
+    AnimationDecoder, ColorType, DynamicImage, Frame, Frames, ImageDecoder, ImageFormat,
+    ImageResult,
+};
 use lfucache::LfuCache;
 use once_cell::sync::Lazy;
 use ordered_float::NotNan;
