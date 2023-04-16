@@ -1394,13 +1394,21 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                     &pv_attribute as *const _ as _,
                     std::mem::size_of_val(&pv_attribute) as u32,
                 );
-            } else if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+            } else {
                 let mut colour = inner.config.win32_acrylic_accent_color.to_srgb_u8();
                 colour.3 = if colour.3 == 0 { 1 } else { colour.3 }; // acrylic doesn't like to have 0 alpha
 
                 let mut policy = ACCENT_POLICY {
-                    AccentState: ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND as _,
-                    AccentFlags: 2,
+                    AccentState: if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+                        ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND as _
+                    } else {
+                        ACCENT_STATE::ACCENT_DISABLED as _
+                    },
+                    AccentFlags: if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+                        2
+                    } else {
+                        0
+                    },
                     GradientColour: (colour.0 as u32)
                         | (colour.1 as u32) << 8
                         | (colour.2 as u32) << 16
@@ -1417,22 +1425,23 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                             cbData: std::mem::size_of_val(&policy) as _,
                         },
                     );
-                };
-            } else if !*IS_WIN10 && !*IS_WIN11_22H2 {
-                // For build versions less than 22h2 but are
-                // still win11
-                let mica_enabled: u32 =
-                    if inner.config.win32_system_backdrop == SystemBackdrop::Mica {
-                        1
-                    } else {
-                        0
-                    };
-                DwmSetWindowAttribute(
-                    hwnd,
-                    DWMWA_MICA_EFFECT,
-                    &mica_enabled as *const _ as _,
-                    std::mem::size_of_val(&mica_enabled) as u32,
-                );
+                }
+
+                if !*IS_WIN10 && !*IS_WIN11_22H2 {
+                    // For build versions less than 22h2 but are still win11
+                    let mica_enabled: u32 =
+                        if inner.config.win32_system_backdrop == SystemBackdrop::Mica {
+                            1
+                        } else {
+                            0
+                        };
+                    DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_MICA_EFFECT,
+                        &mica_enabled as *const _ as _,
+                        std::mem::size_of_val(&mica_enabled) as u32,
+                    );
+                }
             }
 
             if appearance != inner.appearance {
