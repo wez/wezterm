@@ -305,7 +305,7 @@ config.window_frame = {
   inactive_titlebar_bg = '#333333',
 }
 
-window.colors = {
+config.colors = {
   tab_bar = {
     -- The color of the inactive tab bar edge/divider
     inactive_tab_edge = '#575757',
