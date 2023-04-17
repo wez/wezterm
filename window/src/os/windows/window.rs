@@ -1375,16 +1375,6 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
             );
         };
 
-        DwmExtendFrameIntoClientArea(
-            hwnd,
-            &MARGINS {
-                cxLeftWidth: -1,
-                cxRightWidth: -1,
-                cyTopHeight: -1,
-                cyBottomHeight: -1,
-            },
-        );
-
         if let Some(inner) = rc_from_hwnd(hwnd) {
             let mut inner = inner.borrow_mut();
 
@@ -1396,6 +1386,21 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                 SystemBackdrop::Mica => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_MAINWINDOW,
                 SystemBackdrop::Tabbed => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TABBEDWINDOW,
             };
+
+            let margins = match inner.config.win32_system_backdrop {
+                SystemBackdrop::Auto | SystemBackdrop::Disable => 0,
+                SystemBackdrop::Acrylic | SystemBackdrop::Mica | SystemBackdrop::Tabbed => -1,
+            };
+
+            DwmExtendFrameIntoClientArea(
+                hwnd,
+                &MARGINS {
+                    cxLeftWidth: margins,
+                    cxRightWidth: margins,
+                    cyTopHeight: margins,
+                    cyBottomHeight: margins,
+                },
+            );
 
             // Apply Acrylic or Mica Backdrop
             if *IS_WIN11_22H2 {
@@ -2869,7 +2874,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             crate::spawn::SPAWN_QUEUE.run();
             None
         }
-        WM_SETTINGCHANGE => apply_theme(hwnd),
+        WM_SETTINGCHANGE | WM_DWMCOMPOSITIONCHANGED => apply_theme(hwnd),
         WM_IME_SETCONTEXT => ime_set_context(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_IME_ENDCOMPOSITION => ime_end_composition(hwnd, msg, wparam, lparam),
