@@ -1284,7 +1284,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
-    use winapi::um::dwmapi::DwmSetWindowAttribute;
+    use winapi::um::dwmapi::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute};
+    use winapi::um::uxtheme::MARGINS;
 
     #[allow(non_snake_case)]
     type WINDOWCOMPOSITIONATTRIB = u32;
@@ -1370,6 +1371,16 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
                 },
             );
         };
+
+        DwmExtendFrameIntoClientArea(
+            hwnd,
+            &MARGINS {
+                cxLeftWidth: -1,
+                cxRightWidth: -1,
+                cyTopHeight: -1,
+                cyBottomHeight: -1,
+            },
+        );
 
         if let Some(inner) = rc_from_hwnd(hwnd) {
             let mut inner = inner.borrow_mut();
