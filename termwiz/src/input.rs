@@ -405,8 +405,8 @@ impl KeyCode {
                     DownArrow => (false, 'B'),
                     RightArrow => (false, 'C'),
                     LeftArrow => (false, 'D'),
-                    Home => (false, 'H'),
-                    End => (false, 'F'),
+                    KeyPadHome | Home => (false, 'H'),
+                    End | KeyPadEnd => (false, 'F'),
                     ApplicationUpArrow => (true, 'A'),
                     ApplicationDownArrow => (true, 'B'),
                     ApplicationRightArrow => (true, 'C'),
@@ -443,8 +443,8 @@ impl KeyCode {
                 let c = match key {
                     Insert => 2,
                     Delete => 3,
-                    PageUp => 5,
-                    PageDown => 6,
+                    KeyPadPageUp | PageUp => 5,
+                    KeyPadPageDown | PageDown => 6,
                     _ => unreachable!(),
                 };
 
@@ -534,7 +534,7 @@ impl KeyCode {
                     Numpad1 => "F",
                     Numpad2 => "B",
                     Numpad4 => "D",
-                    Numpad5 => "E",
+                    KeyPadBegin | Numpad5 => "E",
                     Numpad6 => "C",
                     Numpad7 => "H",
                     Numpad8 => "A",
