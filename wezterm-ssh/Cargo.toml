@@ -19,7 +19,7 @@ vendored-openssl-libssh-rs = ["libssh-rs/vendored-openssl"]
 [dependencies]
 anyhow = "1.0"
 base64 = "0.21"
-bitflags = "1.3"
+bitflags = "2.1"
 camino = "1.0"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }

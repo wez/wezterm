@@ -6013,7 +6013,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "benchmarking",
- "bitflags 1.3.2",
+ "bitflags 2.1.0",
  "bytemuck",
  "cc",
  "chrono",
@@ -6181,7 +6181,7 @@ dependencies = [
  "assert_fs",
  "async_ossl",
  "base64 0.21.0",
- "bitflags 1.3.2",
+ "bitflags 2.1.0",
  "camino",
  "clap 4.2.2",
  "dirs-next",
