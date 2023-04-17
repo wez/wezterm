@@ -29,7 +29,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
   OS-level key maps. #3470
-* key encoding: incorrect F1-F4 representation when using kitty encoding. #3473
+* Numerous issues with the kitty keyboard protocol implementation #2546 #3220
+  #3315 #3473 #3474 #3476 #3478 #3479 #3484 #3526
 * mux: Attempting to spawn into an ad-hoc SSH domain after the last tab could
   fail with a cryptic error message. The connection is now re-established. ?3480
 * Laggy behavior when processing a continual stream of output, for example,
