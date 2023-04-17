@@ -59,7 +59,7 @@ impl CopyAndPaste {
 pub(crate) struct XWindowInner {
     pub window_id: xcb::x::Window,
     conn: Weak<XConnection>,
-    events: WindowEventSender,
+    pub events: WindowEventSender,
     width: u16,
     height: u16,
     last_wm_state: WindowState,
@@ -69,7 +69,7 @@ pub(crate) struct XWindowInner {
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
-    has_focus: Option<bool>,
+    pub has_focus: Option<bool>,
     verify_focus: bool,
     last_cursor_position: Rect,
     invalidated: bool,

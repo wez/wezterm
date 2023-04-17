@@ -21,6 +21,7 @@ pub struct Keyboard {
     state: RefCell<xkb::State>,
     compose_state: RefCell<Compose>,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
+    mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
 }
 
 struct Compose {
@@ -159,6 +160,7 @@ impl Keyboard {
                 composition: String::new(),
             }),
             phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
         })
     }
 
@@ -223,6 +225,7 @@ impl Keyboard {
                 composition: String::new(),
             }),
             phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
         };
 
         Ok((kbd, first_ev))
@@ -426,7 +429,9 @@ impl Keyboard {
         &self,
         connection: &xcb::Connection,
         event: &xcb::Event,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Option<(Modifiers, KeyboardLedStatus)>> {
+        let before = self.mods_leds.borrow().clone();
+
         match event {
             xcb::Event::Xkb(xcb::xkb::Event::StateNotify(e)) => {
                 self.update_state(e);
@@ -438,7 +443,14 @@ impl Keyboard {
             }
             _ => {}
         }
-        Ok(())
+
+        let after = (self.get_key_modifiers(), self.get_led_status());
+        if after != before {
+            *self.mods_leds.borrow_mut() = after.clone();
+            Ok(Some(after))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn update_modifier_state(
