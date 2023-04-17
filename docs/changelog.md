@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### New
 
 * [window:keyboard_modifiers](config/lua/window/keyboard_modifiers.md) #3444
+* [win32_system_backdrop](config/lua/config/win32_system_backdrop.md). Thanks to @kingavatar! #3528 #1614
 
 #### Fixed
 

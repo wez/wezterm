@@ -22,3 +22,6 @@ config.macos_window_background_blur = 20
 ![Screenshot](../../../screenshots/wezterm-macos-background-blur.png)
 
 The default value for `macos_window_background_blur` is `0`.
+
+See also [win32_system_backdrop](win32_system_backdrop.md) for a similar
+effect on Windows.
