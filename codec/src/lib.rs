@@ -29,7 +29,6 @@ use std::io::Cursor;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::usize;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
