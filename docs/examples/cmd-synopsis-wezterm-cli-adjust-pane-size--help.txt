@@ -1,0 +1,15 @@
+Adjust the size of a pane directionally
+
+Usage: wezterm cli adjust-pane-size [OPTIONS] <DIRECTION>
+
+Arguments:
+  <DIRECTION>  Specify the direction to resize in [possible values: Up, Down,
+               Left, Right, Next, Prev]
+
+Options:
+      --pane-id <PANE_ID>  Specify the target pane. The default is to use the
+                           current pane based on the environment variable
+                           WEZTERM_PANE
+      --amount <AMOUNT>    Specify the number of cells to resize by, defaults to
+                           1
+  -h, --help               Print help
