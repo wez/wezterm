@@ -2657,6 +2657,23 @@ impl WindowView {
         }
     }
 
+    extern "C" fn flags_changed(this: &mut Object, _sel: Sel, nsevent: id) {
+        let modifier_flags = unsafe { nsevent.modifierFlags() };
+        let modifiers = key_modifiers(modifier_flags);
+        let leds = if modifier_flags.bits() & (1 << 16) != 0 {
+            KeyboardLedStatus::CAPS_LOCK
+        } else {
+            KeyboardLedStatus::empty()
+        };
+
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseModifiersLedStatus(modifiers, leds));
+        }
+    }
+
     extern "C" fn key_down(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::key_common(this, nsevent, true);
     }
@@ -3099,6 +3116,11 @@ impl WindowView {
             cls.add_method(
                 sel!(updateTrackingAreas),
                 Self::update_tracking_areas as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(flagsChanged:),
+                Self::flags_changed as extern "C" fn(&mut Object, Sel, id),
             );
 
             // NSTextInputClient

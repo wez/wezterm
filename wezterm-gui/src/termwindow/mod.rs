@@ -395,6 +395,7 @@ pub struct TermWindow {
 
     window_background: Vec<LoadedBackgroundLayer>,
 
+    current_modifier_and_leds: (Modifiers, KeyboardLedStatus),
     current_mouse_buttons: Vec<MousePress>,
     current_mouse_capture: Option<MouseCapture>,
 
@@ -694,6 +695,7 @@ impl TermWindow {
             last_mouse_coords: (0, -1),
             window_drag_position: None,
             current_mouse_event: None,
+            current_modifier_and_leds: Default::default(),
             prev_cursor: PrevCursorPos::new(),
             last_scroll_info: RenderableDimensions::default(),
             tab_state: RefCell::new(HashMap::new()),
@@ -923,6 +925,12 @@ impl TermWindow {
                 live_resizing,
             } => {
                 self.resize(dimensions, window_state, window, live_resizing);
+                Ok(true)
+            }
+            WindowEvent::AdviseModifiersLedStatus(modifiers, leds) => {
+                self.current_modifier_and_leds = (modifiers, leds);
+                self.update_title();
+                window.invalidate();
                 Ok(true)
             }
             WindowEvent::RawKeyEvent(event) => {

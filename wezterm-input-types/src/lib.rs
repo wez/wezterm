@@ -459,6 +459,22 @@ bitflags! {
     }
 }
 
+impl ToString for KeyboardLedStatus {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+        if self.contains(Self::CAPS_LOCK) {
+            s.push_str("CAPS_LOCK");
+        }
+        if self.contains(Self::NUM_LOCK) {
+            if !s.is_empty() {
+                s.push('|');
+            }
+            s.push_str("NUM_LOCK");
+        }
+        s
+    }
+}
+
 bitflags! {
     #[cfg_attr(feature="serde", derive(Serialize, Deserialize))]
     #[derive(Default, FromDynamic, ToDynamic)]

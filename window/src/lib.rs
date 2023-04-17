@@ -189,6 +189,8 @@ pub enum WindowEvent {
 
     /// Called by menubar dispatching stuff on some systems
     PerformKeyAssignment(config::keyassignment::KeyAssignment),
+
+    AdviseModifiersLedStatus(Modifiers, KeyboardLedStatus),
 }
 
 pub struct WindowEventSender {

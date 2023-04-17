@@ -257,6 +257,21 @@ impl UserData for GuiWin {
 
             Ok(result)
         });
+        methods.add_async_method("keyboard_modifiers", |_, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(term_window.current_modifier_and_led_state())
+                        .ok();
+                })));
+            let (mods, leds) = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok((mods.to_string(), leds.to_string()))
+        });
         methods.add_async_method("active_pane", |_, this, _: ()| async move {
             let (tx, rx) = smol::channel::bounded(1);
             this.window

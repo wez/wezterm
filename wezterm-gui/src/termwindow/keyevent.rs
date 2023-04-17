@@ -1,5 +1,7 @@
 use crate::termwindow::InputMap;
-use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
+use ::window::{
+    DeadKeyStatus, KeyCode, KeyEvent, KeyboardLedStatus, Modifiers, RawKeyEvent, WindowOps,
+};
 use anyhow::Context;
 use config::keyassignment::{KeyAssignment, KeyTableEntry};
 use mux::pane::{Pane, PerformAssignmentResult};
@@ -448,6 +450,12 @@ impl super::TermWindow {
             );
         }
 
+        let modifier_and_leds = (key.modifiers, key.leds);
+        if self.current_modifier_and_leds != modifier_and_leds {
+            self.current_modifier_and_leds = modifier_and_leds;
+            self.schedule_next_status_update();
+        }
+
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
@@ -515,6 +523,10 @@ impl super::TermWindow {
         ) {
             key.set_handled();
         }
+    }
+
+    pub fn current_modifier_and_led_state(&self) -> (Modifiers, KeyboardLedStatus) {
+        self.current_modifier_and_leds
     }
 
     pub fn leader_is_active(&self) -> bool {

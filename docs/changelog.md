@@ -21,6 +21,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### New
+
+* [window:keyboard_modifiers](config/lua/window/keyboard_modifiers.md) #3444
+
 #### Fixed
 
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
