@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
   [adjust_window_size_when_changing_font_size](config/lua/config/adjust_window_size_when_changing_font_size.md)
   now depends on the window environment and the contents of
   [tiling_desktop_environments](config/lua/config/tiling_desktop_environments.md).
+* Added eigth block corner glyphs to custom block glyphs. Thanks to @joouha! #3559
 
 #### New
 
