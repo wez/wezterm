@@ -3877,7 +3877,6 @@ impl GlyphCache {
         buffer.clear_rect(cell_rect, black);
 
         match key.block {
-            
             BlockKey::Edges(edges) => {
                 for edge in edges.iter() {
                     match edge {
@@ -3906,7 +3905,7 @@ impl GlyphCache {
                     }
                 }
             }
-            
+
             BlockKey::Full(alpha) => {
                 let alpha = alpha.to_scale();
                 let fill = LinearRgba::with_components(alpha, alpha, alpha, alpha);
