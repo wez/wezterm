@@ -22,6 +22,7 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+
 * macOS: Japanese IME users: CTRL-modified keys are no long routed to the IME
   by default, as it introduced problems with CTRL-key combinations for other users.
   A new [macos_forward_to_ime_modifier_mask](config/lua/config/macos_forward_to_ime_modifier_mask.md)
@@ -43,6 +44,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm replay](cli/replay.md) new options `--explain-only`, `--cat`. #3446
 
 #### New
+
 * [PromptInputLine](config/lua/keyassignment/PromptInputLine.md) action for
   prompting the user for a line of text and then doing something with it.
   Can be used to prompt for (re)naming new or existing tabs, workspaces and so on.
@@ -75,7 +77,6 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm cli rename-workspace](cli/cli/rename-workspace.md). #2787
 * [wezterm.mux.rename_workspace](config/lua/wezterm.mux/rename_workspace.md). #2787
 * [wezterm cli get-pane-direction](cli/cli/get-pane-direction.md)
-* [wezterm cli adjust-pane-size](cli/cli/adjust-pane-size.md) #3471
 * [pane:get_tty_name()](config/lua/pane/get_tty_name.md) and
   [PaneInformation.tty_name](config/lua/PaneInformation.md) to reason about the
   tty name on local unix systems.
@@ -96,6 +97,7 @@ As features stabilize some brief notes about them will accumulate here.
   [Modus-Vivendi](colorschemes/m/index.md#modus-vivendi)
 
 #### Fixed
+
 * mux: Stale remote window mapping could prevent spawning new tabs in remote domain. #2759
 * mux: Splitting then killing a pane could result in incorrect pane sizes. #3386
 * Windows: "error converting Lua string to &str" on systems with an ACP that
@@ -142,6 +144,7 @@ As features stabilize some brief notes about them will accumulate here.
 ### 20230326-111934-3666303c
 
 #### New
+
 * [mouse_wheel_scrolls_tabs](config/lua/config/mouse_wheel_scrolls_tabs.md) option
   to control whether the mouse wheel can be used to activate tabs when hovering
   over the tab bar. Thanks to @eaglgenes101! #3227
@@ -157,6 +160,7 @@ As features stabilize some brief notes about them will accumulate here.
   [pane:move_to_new_tab()](config/lua/pane/move_to_new_tab.md). #3374
 
 #### Fixed
+
 * ssh ProxyCommand didn't parse command lines containing `=` correctly. #3307
 * `wezterm.GLOBALS.foo` now supports `__len` and `__pairs` metamethods, as well
   as being passed to `wezterm.json_encode`
@@ -207,11 +211,13 @@ As features stabilize some brief notes about them will accumulate here.
   the actual mux server was not updated. #3374
 
 #### Updated
+
 * Bundled JetBrainsMono to 2.304. #3362
 
 ### 20230320-124340-559cb7b0
 
 #### New
+
 * Copy Mode now supports using `CTRL-u` and `CTRL-d` to move by half a page at
   a time. Thanks to [@pengux](https://github.com/pengux)!
   [#2662](https://github.com/wez/wezterm/pull/2662)
@@ -283,6 +289,7 @@ As features stabilize some brief notes about them will accumulate here.
   function makes it easier to extend the default set of hyperlink rules.
 
 #### Fixed
+
 * X11: hanging or killing the IME could hang wezterm
   [#2819](https://github.com/wez/wezterm/issues/2819)
 * `wezterm ssh` now respects the `AddressFamily` option when connecting
@@ -353,6 +360,7 @@ As features stabilize some brief notes about them will accumulate here.
   [#3113](https://github.com/wez/wezterm/issues/3113)
 
 #### Changed
+
 * `CTRL-SHIFT-P` now activates the new [command
   palette](config/lua/keyassignment/ActivateCommandPalette.md), instead of
   `PaneSelect` [#1485](https://github.com/wez/wezterm/issues/1485)
@@ -407,16 +415,19 @@ As features stabilize some brief notes about them will accumulate here.
   [#3287](https://github.com/wez/wezterm/issues/3287)
 
 #### Updated
+
 * Bundled harfbuzz updated to version 6.0.0
 * Bundled Nerd Font Symbols font to v2.3.3
 
 ### 20221119-145034-49b9839f
 
 #### Improved
+
 * Reduced CPU and RAM utilization, reduced overhead of parsing output and
   rendering to the GPU.
 
 #### New
+
 * [wezterm.gui.default_key_tables](config/lua/wezterm.gui/default_key_tables.md)
   and [wezterm.gui.default_keys](config/lua/wezterm.gui/default_keys.md) for
   more conveniently copying and extending the default configuration.
@@ -454,6 +465,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [front_end = "WebGpu"](config/lua/config/front_end.md) enables Metal, Vulkan and DX 12 drivers.
 
 #### Fixed
+
 * Wayland: key repeat gets stuck after pressing two keys in quick succession.
   Thanks to [@valpackett](https://github.com/valpackett)!
   [#2492](https://github.com/wez/wezterm/pull/2492)
@@ -536,6 +548,7 @@ As features stabilize some brief notes about them will accumulate here.
   [#2569](https://github.com/wez/wezterm/issues/2569)
 
 #### Changed
+
 * Removed Last Resort fallback font
 * X11: use `_NET_WM_MOVERESIZE` to drag by tab bar, when supported by the WM
   [#2530](https://github.com/wez/wezterm/issues/2530)
@@ -563,16 +576,20 @@ As features stabilize some brief notes about them will accumulate here.
   [#2667](https://github.com/wez/wezterm/issues/2667)
 
 #### Updated
+
 * Bundled Nerd Font Symbols font to v2.2.2
 * Bundled harfbuzz to 5.3.1
 
 ### 20220905-102802-7d4b8249
 
 #### New
+
 * [switch_to_last_active_tab_when_closing_tab](config/lua/config/switch_to_last_active_tab_when_closing_tab.md)
   option to control behavior when closing the active tab.
   [#2487](https://github.com/wez/wezterm/issues/2487)
+
 #### Changed
+
 * fontconfig: when locating a fallback font for a given codepoint, allow
   matching non-monospace fonts if we can't find any matching monospace fonts.
   [#2468](https://github.com/wez/wezterm/discussions/2468)
@@ -582,6 +599,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Searching is now incremental and shows progress. [#1209](https://github.com/wez/wezterm/issues/1209)
 
 #### Fixed
+
 * Hangul in NFD incorrectly shaped [#2482](https://github.com/wez/wezterm/issues/2482)
 * Visual artifacts when resizing splits [#2483](https://github.com/wez/wezterm/issues/2483)
 
@@ -631,6 +649,7 @@ As features stabilize some brief notes about them will accumulate here.
 ### 20220807-113146-c2fee766
 
 #### New
+
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md) now supports `until_unknown=true` to implicitly pop the table when a key not defined by that table is pressed. [#2178](https://github.com/wez/wezterm/issues/2178)
 * [window:copy_to_clipboard](config/lua/window/copy_to_clipboard.md) method for putting arbitrary text into the clipboard/selection.
 * [window:set_inner_size](config/lua/window/set_inner_size.md) method for controlling window size.
@@ -658,6 +677,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window:set_left_status](config/lua/window/set_left_status.md) for setting status to the left of the tabs in the tab bar [#1561](https://github.com/wez/wezterm/issues/1561)
 
 #### Changed
+
 * If `timeout_milliseconds` is specified in
   [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md), then the
   timeout duration is now reset each time a key press matches that key table
@@ -676,6 +696,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Copy Mode: new default vim-style `y` "yank" key assignment will copy the selection and close copy mode
 
 #### Fixed
+
 * [ActivateKeyTable](config/lua/keyassignment/ActivateKeyTable.md)'s `replace_current` field was not actually optional. Made it optional. [#2179](https://github.com/wez/wezterm/issues/2179)
 * `winget` causes toast notification spam [#2185](https://github.com/wez/wezterm/issues/2185)
 * `wezterm connect sshdomain` could hang on startup if password authentication was required [#2194](https://github.com/wez/wezterm/issues/2194)
@@ -696,7 +717,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Mux: `wezterm.mux.set_active_workspace` didn't update the current window to match the newly activated workspace. [#2248](https://github.com/wez/wezterm/issues/2248)
 * Overlays such as debug and launcher menu now handle resize better
 * Shift-F1 through F4 generated different encoding than xterm [#2263](https://github.com/wez/wezterm/issues/2263)
-* X11/Wayland: apps that extract the `Exec` field from wezterm.desktop (such as thunar, Dolphin and others) can now simply concatenate the command line they want to invoke, and it will spawn in the their current working directory. Thanks to [@Anomalocaridid](https://github.com/Anomalocaridid)! [#2271](https://github.com/wez/wezterm/pull/2271) [#2103](https://github.com/wez/wezterm/issues/2103) 
+* X11/Wayland: apps that extract the `Exec` field from wezterm.desktop (such as thunar, Dolphin and others) can now simply concatenate the command line they want to invoke, and it will spawn in the their current working directory. Thanks to [@Anomalocaridid](https://github.com/Anomalocaridid)! [#2271](https://github.com/wez/wezterm/pull/2271) [#2103](https://github.com/wez/wezterm/issues/2103)
 * [gui-startup](config/lua/gui-events/gui-startup.md) now passes a [SpawnCommand](config/lua/SpawnCommand.md) parameter representing the `wezterm start` command arguments.
 * Tab `x` button is no longer obscured by tab title text for long tab titles [#2269](https://github.com/wez/wezterm/issues/2269)
 * Cursor position could end up in the wrong place when rewrapping lines and the cursor was on the rewrap boundary [#2162](https://github.com/wez/wezterm/issues/2162)
@@ -704,11 +725,13 @@ As features stabilize some brief notes about them will accumulate here.
 * Visual Bell now fills out to the adjacent window edges rather than being constrained by the padding. [#2364](https://github.com/wez/wezterm/issues/2364)
 
 #### Updated
+
 * Bundled harfbuzz to 5.1.0
 
 ### 20220624-141144-bd1b7c5d
 
 #### New
+
 * [background](config/lua/config/background.md) option for rich background compositing and parallax scrolling effects.
 * Added [docs for the cli](cli/general.md)
 * Support for the [Kitty Keyboard Protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol). Use [enable_kitty_keyboard](config/lua/config/enable_kitty_keyboard.md)`=true` to enable it.
@@ -750,9 +773,11 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm show-keys` command to show key and mouse binding assignments [#2134](https://github.com/wez/wezterm/issues/2134)
 
 #### Updated
+
 * Bundled harfbuzz to 4.3.0
 
 #### Changed
+
 * Debian packages now register wezterm as an alternative for `x-terminal-emulator`. Thanks to [@xpufx](https://github.com/xpufx)! [#1883](https://github.com/wez/wezterm/pull/1883)
 * Windows: wezterm will now read the default environment variables from the `HKLM\System\CurrentControlSet\Control\Session Manager\Environment` and `HKCU\Environment` and apply those to the base environment prior to applying `set_environment_variables`. [#1848](https://github.com/wez/wezterm/issues/1848)
 * [Key Table](config/key-tables.md) lookups will now keep searching the activation stack until a matching assignment is found, allowing for layered key tables. [#993](https://github.com/wez/wezterm/issues/993)
@@ -766,6 +791,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved [wezterm.action](config/lua/wezterm/action.md) syntax for slightly more ergnomic and understandable key assignments. [#1150](https://github.com/wez/wezterm/issues/1150)
 
 #### Fixed
+
 * Flush after replying to `XTGETTCAP`, `DECRQM`, `XTVERSION`, `DA2`, `DA3` [#2060](https://github.com/wez/wezterm/issues/2060) [#1850](https://github.com/wez/wezterm/issues/1850) [#1950](https://github.com/wez/wezterm/issues/1950)
 * macOS: `CMD-.` was treated as `CTRL-ESC` [#1867](https://github.com/wez/wezterm/issues/1867)
 * macOS: `CTRL-Backslash` on German layouts was incorrect [#1891](https://github.com/wez/wezterm/issues/1891)
@@ -797,13 +823,18 @@ As features stabilize some brief notes about them will accumulate here.
 ### 20220408-101518-b908e2dd
 
 #### New
+
 * [Key Tables](config/key-tables.md) feature for powerful modal key assignments
 * `wezterm start --position x,y`, `wezterm start --position displayname:30%,30%` option to control starting window position on all systems except for Wayland. See `wezterm start --help` for more info. [#1794](https://github.com/wez/wezterm/issues/1794)
+
 #### Changed
+
 * Default key assignments are `mapped:` again. A new [key_map_preference](config/lua/config/key_map_preference.md) option allows the defaults to use `"Mapped"` or `"Physical"`.
 * Disabled ligatures for `"Monaco"` and `"Menlo"` fonts, as those have `"fi"` ligatures that match even for words such as `find`. [#1786](https://github.com/wez/wezterm/issues/1786) [#1736](https://github.com/wez/wezterm/issues/1736)
 * Removed the `send_composed_key_when_alt_is_pressed` option. When processing generic `ALT` (eg: that has neither left nor right), if either `send_composed_key_when_left_alt_is_pressed` or `send_composed_key_when_right_alt_is_pressed` is true, then the composed form of the key event will be generated.
+
 #### Updated and Improved
+
 * Bundled harfbuzz to 4.2.0
 * On macOS, non-native fullscreen mode now attempts to avoid the notch on systems that have one. [#1737](https://github.com/wez/wezterm/issues/1737)
 * Sixel parsing performance has been improved
@@ -814,6 +845,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Secondary DA response bumped up to persuade vim to set `ttymouse=sgr` by default. [#1825](https://github.com/wez/wezterm/issues/1825)
 
 #### Fixed
+
 * Incorrect csi-u encoding with non-ascii characters. [#1746](https://github.com/wez/wezterm/issues/1746)
 * X11 `_NET_WM_ICON` had red/blue channels swapped [#1754](https://github.com/wez/wezterm/issues/1754)
 * ls-fonts output didn't quote the `style` field [#1762](https://github.com/wez/wezterm/issues/1762)
@@ -1244,7 +1276,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [window:set_right_status](config/lua/window/set_right_status.md) allows setting additional status information in the tab bar. [#500](https://github.com/wez/wezterm/issues/500)
 * New: Search Mode: Added `CTRL-u` key assignment to clear the current search pattern. Thanks to [@bew](https://github.com/bew)! [#465](https://github.com/wez/wezterm/pull/465)
 * Fonts: `font_antialias` and `font_hinting` are now deprecated in favor of the new [freetype_load_target](config/lua/config/freetype_load_target.md) and [freetype_load_flags](config/lua/config/freetype_load_flags.md) options.  The deprecated options have no effect and will be removed in a future release.  The new options provide more direct control over how freetype rasterizes text.
-* Fonts: when computing default `font_rules` for bold and italic fonts, strip italic and bold components from the family name. eg: if you set `font = wezterm.font("Source Code Pro Medium")` then the ` Medium` text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical `Source Code Pro Medium Bold`. [#456](https://github.com/wez/wezterm/issues/456)
+* Fonts: when computing default `font_rules` for bold and italic fonts, strip italic and bold components from the family name. eg: if you set `font = wezterm.font("Source Code Pro Medium")` then the `Medium` text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical `Source Code Pro Medium Bold`. [#456](https://github.com/wez/wezterm/issues/456)
 * Fonts: fix a regression where bright windows behind wezterm could "shine through" on the alpha channel, and adjust the tinting operation to avoid anti-aliased dark fringes [#470](https://github.com/wez/wezterm/issues/470) [#491](https://github.com/wez/wezterm/issues/491)
 * Fonts: macOS: fix an issue where wezterm could hang when loading a font located via Core Text [#475](https://github.com/wez/wezterm/issues/475)
 * Fonts: Changed the default [font_size](config/lua/config/font_size.md) to 12 points. [#517](https://github.com/wez/wezterm/discussions/517)
@@ -1596,7 +1628,6 @@ As features stabilize some brief notes about them will accumulate here.
 * We now grey out the UI for lagging multiplexer connections
 * Set an upper bound on the memory usage for multiplexer connections
 
-
 ### 20200202-181957-765184e5
 
 * Improved font shaping performance 2-3x by adding a shaper cache
@@ -1633,7 +1664,6 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: removed support for WinPty, which was too difficult to obtain, configure and use.
 * Configuration errors now show in a separate window on startup, or when the configuration is reloaded
 * Improved reliability and performance of MUX sessions, although they still have room for further improvement
-
 
 ### 20200113-214446-bb6251f
 
@@ -1705,5 +1735,3 @@ font_hinting = "Full" # None, Vertical, VerticalSubpixel, Full
 * `wezterm imgcat /some/image.png` to display images inline in the terminal using the iTerm2 image protocol
 * IME support on macOS and Windows systems
 * Automatic fallback to software rendering if no GPU is available (eg: certain types of remote desktop sessions)
-
-
