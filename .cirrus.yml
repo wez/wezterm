@@ -3,10 +3,24 @@ freebsd_instance:
   cpu: 4
   memory: 8G
 
+env:
+  CIRRUS_CLONE_SUBMODULES: true
+  CIRRUS_CLONE_DEPTH: 1
+
 task:
   name: freebsd-13
   stateful: false
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  registry_cache:
+    folder: $CARGO_HOME/registry
+    fingerprint_script: cat Cargo.lock
+  target_cache:
+    folder: target
+    fingerprint_script:
+      - rustc --version
+      - cat Cargo.lock
+  before_cache_script: rm -rf $CARGO_HOME/registry/index
+
   setup_script:
     - pkg install -y bash
     - curl https://sh.rustup.rs -sSf > /tmp/rustup.sh
