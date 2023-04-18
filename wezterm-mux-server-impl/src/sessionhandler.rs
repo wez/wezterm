@@ -913,6 +913,38 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::AdjustPaneSize(AdjustPaneSize {
+                pane_id,
+                direction,
+                amount,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let (_pane_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+                            let tab = match mux.get_tab(tab_id) {
+                                Some(tab) => tab,
+                                None => {
+                                    return Err(anyhow!(
+                                        "Failed to retrieve tab with ID {}",
+                                        tab_id
+                                    ))
+                                }
+                            };
+
+                            tab.adjust_pane_size(direction, amount);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }

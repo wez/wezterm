@@ -233,6 +233,15 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 && ret=0
 ;;
+(adjust-pane-size)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'--amount=[Specify the number of cells to resize by, defaults to 1]:AMOUNT: ' \
+'-h[Print help]' \
+'--help[Print help]' \
+':direction -- Specify the direction to resize in:(Up Down Left Right Next Prev)' \
+&& ret=0
+;;
 (activate-tab)
 _arguments "${_arguments_options[@]}" \
 '(--tab-index --tab-relative --no-wrap --pane-id)--tab-id=[Specify the target tab by its id]:TAB_ID: ' \
@@ -332,6 +341,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (activate-pane)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(adjust-pane-size)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -505,6 +518,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(adjust-pane-size)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (activate-tab)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -622,6 +639,21 @@ _wezterm__help__cli__activate-tab_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm help cli activate-tab commands' commands "$@"
 }
+(( $+functions[_wezterm__cli__adjust-pane-size_commands] )) ||
+_wezterm__cli__adjust-pane-size_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli adjust-pane-size commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__adjust-pane-size_commands] )) ||
+_wezterm__cli__help__adjust-pane-size_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help adjust-pane-size commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__adjust-pane-size_commands] )) ||
+_wezterm__help__cli__adjust-pane-size_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli adjust-pane-size commands' commands "$@"
+}
 (( $+functions[_wezterm__cli_commands] )) ||
 _wezterm__cli_commands() {
     local commands; commands=(
@@ -640,6 +672,7 @@ Outputs the pane-id for the newly created pane on success' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
+'adjust-pane-size:Adjust the size of a pane directionally' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
@@ -666,6 +699,7 @@ Outputs the pane-id for the newly created pane on success' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
+'adjust-pane-size:Adjust the size of a pane directionally' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
@@ -731,6 +765,7 @@ Outputs the pane-id for the newly created pane on success' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
+'adjust-pane-size:Adjust the size of a pane directionally' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \

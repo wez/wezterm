@@ -26,6 +26,7 @@ done
 for cmd in \
     activate-pane \
     activate-pane-direction \
+    adjust-pane-size \
     activate-tab \
     get-pane-direction \
     get-text \
