@@ -24,6 +24,10 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+* The default for
+  [adjust_window_size_when_changing_font_size](config/lua/config/adjust_window_size_when_changing_font_size.md)
+  now depends on the window environment and the contents of
+  [tiling_desktop_environments](config/lua/config/tiling_desktop_environments.md).
 
 #### New
 

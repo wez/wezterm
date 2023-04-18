@@ -385,8 +385,20 @@ impl super::TermWindow {
     /// the `adjust_window_size_when_changing_font_size` configuration and
     /// revises the scaling/resize change accordingly
     pub fn adjust_font_scale(&mut self, font_scale: f64, window: &Window) {
-        if self.window_state.can_resize() && self.config.adjust_window_size_when_changing_font_size
-        {
+        let adjust_window_size_when_changing_font_size =
+            match self.config.adjust_window_size_when_changing_font_size {
+                Some(value) => value,
+                None => {
+                    let is_tiling = self
+                        .config
+                        .tiling_desktop_environments
+                        .iter()
+                        .any(|item| item.as_str() == self.connection_name.as_str());
+                    !is_tiling
+                }
+            };
+
+        if self.window_state.can_resize() && adjust_window_size_when_changing_font_size {
             self.scaling_changed(self.dimensions, font_scale, window);
         } else {
             let dimensions = self.dimensions;

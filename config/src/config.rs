@@ -688,8 +688,11 @@ pub struct Config {
     #[dynamic(default = "default_enq_answerback")]
     pub enq_answerback: String,
 
-    #[dynamic(default = "default_true")]
-    pub adjust_window_size_when_changing_font_size: bool,
+    #[dynamic(default)]
+    pub adjust_window_size_when_changing_font_size: Option<bool>,
+
+    #[dynamic(default = "default_tiling_desktop_environments")]
+    pub tiling_desktop_environments: Vec<String>,
 
     #[dynamic(default)]
     pub use_resize_increments: bool,
@@ -1671,6 +1674,10 @@ fn default_anim_fps() -> u8 {
 
 fn default_max_fps() -> u8 {
     60
+}
+
+fn default_tiling_desktop_environments() -> Vec<String> {
+    ["X11 bspwm"].iter().map(|s| s.to_string()).collect()
 }
 
 fn default_stateless_process_list() -> Vec<String> {

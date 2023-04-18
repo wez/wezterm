@@ -444,6 +444,8 @@ pub struct TermWindow {
     num_frames: usize,
     pub fps: f32,
 
+    connection_name: String,
+
     gl: Option<Rc<glium::backend::Context>>,
     webgpu: Option<Rc<WebGpuState>>,
     config_subscription: Option<config::ConfigSubscription>,
@@ -659,8 +661,11 @@ impl TermWindow {
 
         let render_state = None;
 
+        let connection_name = Connection::get().unwrap().name();
+
         let myself = Self {
             created: Instant::now(),
+            connection_name,
             last_fps_check_time: Instant::now(),
             num_frames: 0,
             last_frame_duration: Duration::ZERO,
@@ -1606,6 +1611,7 @@ impl TermWindow {
             self.config_overrides
         );
         self.key_table_state.clear_stack();
+        self.connection_name = Connection::get().unwrap().name();
         let config = match config::overridden_config(&self.config_overrides) {
             Ok(config) => config,
             Err(err) => {
@@ -2205,7 +2211,7 @@ impl TermWindow {
         let gui_win = GuiWin::new(self);
 
         let opengl_info = self.opengl_info.as_deref().unwrap_or("Unknown").to_string();
-        let connection_info = Connection::get().unwrap().name();
+        let connection_info = self.connection_name.clone();
 
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
             crate::overlay::show_debug_overlay(term, gui_win, opengl_info, connection_info)
