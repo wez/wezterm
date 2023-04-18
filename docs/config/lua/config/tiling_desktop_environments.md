@@ -11,7 +11,9 @@ The default value for this option is:
 
 ```lua
 config.tiling_desktop_environments = {
+  'X11 LG3D',
   'X11 bspwm',
+  'X11 dwm',
 }
 ```
 

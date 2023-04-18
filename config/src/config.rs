@@ -1677,7 +1677,10 @@ fn default_max_fps() -> u8 {
 }
 
 fn default_tiling_desktop_environments() -> Vec<String> {
-    ["X11 bspwm"].iter().map(|s| s.to_string()).collect()
+    ["X11 LG3D", "X11 bspwm", "X11 dwm"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 fn default_stateless_process_list() -> Vec<String> {
