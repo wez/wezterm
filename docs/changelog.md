@@ -21,6 +21,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+#### Changed
+
+* The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+
 #### New
 
 * [window:keyboard_modifiers](config/lua/window/keyboard_modifiers.md) #3444
