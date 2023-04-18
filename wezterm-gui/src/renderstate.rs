@@ -109,7 +109,7 @@ impl RenderContext {
     pub fn renderer_info(&self) -> String {
         match self {
             Self::Glium(ctx) => format!(
-                "{} {}",
+                "OpenGL: {} {}",
                 ctx.get_opengl_renderer_string(),
                 ctx.get_opengl_version_string()
             ),
