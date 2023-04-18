@@ -744,10 +744,10 @@ impl WindowOps for Window {
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {
-        Connection::with_window_inner(
-            self.id,
-            move |inner| Ok(inner.set_inner_size(width, height)),
-        );
+        Connection::with_window_inner(self.id, move |inner| {
+            inner.set_inner_size(width, height);
+            Ok(())
+        });
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -1149,7 +1149,7 @@ impl WindowInner {
         }
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
+    fn set_inner_size(&mut self, width: usize, height: usize) {
         unsafe {
             let frame = NSView::frame(*self.view as *mut _);
             let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
@@ -1160,15 +1160,9 @@ impl WindowInner {
                 NSSize::new(width as f64 / scale, height as f64 / scale),
             );
 
-            let frame = NSView::frame(*self.view as *mut _);
-            let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
-            let width = backing_frame.size.width;
-            let height = backing_frame.size.height;
-            Dimensions {
-                pixel_width: width as usize,
-                pixel_height: height as usize,
-                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
-            }
+            // setContentSize_ doesn't explicitly invalidate,
+            // so we need to do it ourselves
+            self.invalidate();
         }
     }
 
@@ -2738,6 +2732,11 @@ impl WindowView {
 
             let live_resizing = inner.live_resizing;
 
+            // Note: isZoomed can falsely return YES in situations such as
+            // the current screen changing. We cannot detect that case here.
+            // There is some logic to compensate for this in
+            // wezterm-gui/src/termwindow/resize.rs.
+            // <https://github.com/wez/wezterm/issues/3503>
             let is_zoomed = !is_full_screen
                 && inner.window.as_ref().map_or(false, |window| {
                     let window = window.load();

@@ -59,6 +59,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: closing a window while the debug overlay was active could
   leave a lingering wezterm-gui.exe running. #3522
 * Windows: inconsistencies with win32 input mode. Thanks to @kreudom! #2235
+* macOS: font size is zoomed or window appears empty when first launched on a
+  secondary monitor with different scaling settings from the primary monitor. #3503
 
 ### 20230408-112425-69ae8472
 
