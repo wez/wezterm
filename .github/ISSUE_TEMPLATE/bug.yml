@@ -30,7 +30,12 @@ body:
     id: version
     attributes:
       label: WezTerm version
-      description: "Please run `wezterm -V` and include its output here"
+      description: |
+        Please run `wezterm -V` and include its output here.
+        If you installed the flatpak version of wezterm, please consider trying
+        the native package format for your system and comparing the behavior,
+        as flatpak runs in an isolated sandbox that can prevent some functionality
+        from working fully.
       placeholder: "ex: 20210816-085256-935c1f48"
     validations:
       required: true
