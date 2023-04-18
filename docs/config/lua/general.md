@@ -11,3 +11,7 @@ config.font = wezterm.font 'JetBrains Mono'
 return config
 ```
 
+## Full List of Configuration Options
+
+[Config Options](config/index.md) has a list of the main configuration options.
+

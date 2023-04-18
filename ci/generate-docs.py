@@ -367,9 +367,13 @@ TOC = [
         ],
     ),
     Page(
-        "Lua Reference",
+        "Full Config & Lua Reference",
         "config/lua/general.md",
         children=[
+            Gen(
+                "Config Options",
+                "config/lua/config",
+            ),
             Gen(
                 "module: wezterm",
                 "config/lua/wezterm",
@@ -393,10 +397,6 @@ TOC = [
             Gen(
                 "module: wezterm.time",
                 "config/lua/wezterm.time",
-            ),
-            Gen(
-                "struct: Config",
-                "config/lua/config",
             ),
             Gen(
                 "enum: KeyAssignment",
