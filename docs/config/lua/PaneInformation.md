@@ -126,7 +126,7 @@ end)
 return config
 ```
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 The `tty_name` field returns the tty name with the same constraints as described
 in [pane:get_tty_name()](pane/get_tty_name.md).

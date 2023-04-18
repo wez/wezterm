@@ -4,7 +4,7 @@ tags:
 ---
 # `macos_forward_to_ime_modifier_mask = "SHIFT"`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 On macOS systems, this option controls whether modified key presses are
 routed via the IME when [use_ime = true](use_ime.md).

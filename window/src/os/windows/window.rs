@@ -4,12 +4,12 @@ use crate::parameters::{self, Parameters};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
-    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ULength, WindowDecorations,
+    RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, ScreenRect, ULength, WindowDecorations,
     WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use config::{ConfigHandle, ImePreeditRendering};
+use config::{ConfigHandle, ImePreeditRendering, SystemBackdrop};
 use lazy_static::lazy_static;
 use promise::Future;
 use raw_window_handle::{
@@ -30,6 +30,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use wezterm_color_types::LinearRgba;
 use wezterm_font::FontConfiguration;
+use wezterm_input_types::KeyboardLedStatus;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -81,6 +82,18 @@ lazy_static! {
             true
         }
     };
+    static ref IS_WIN11_22H2: bool = {
+        let osver = OSVERSIONINFOW {
+            dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as _,
+            ..Default::default()
+        };
+
+        if unsafe { GetVersionExW(&osver as *const _ as _) } == winapi::shared::minwindef::TRUE {
+            osver.dwBuildNumber >= 22621
+        } else {
+            true
+        }
+    };
     static ref TITLE_FONT: Mutex<Option<parameters::FontAndSize>> = Mutex::new(None);
 }
 
@@ -104,7 +117,7 @@ pub(crate) struct WindowInner {
     saved_placement: Option<WINDOWPLACEMENT>,
     track_mouse_leave: bool,
     window_drag_position: Option<ScreenPoint>,
-    maximize_button_position: Option<ScreenPoint>,
+    maximize_button_position: Option<ScreenRect>,
 
     keyboard_info: KeyboardLayoutInfo,
     appearance: Appearance,
@@ -335,6 +348,7 @@ fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
                 | SWP_NOOWNERZORDER
                 | SWP_FRAMECHANGED,
         );
+        apply_theme(hwnd);
     }
 }
 
@@ -873,7 +887,7 @@ impl WindowOps for Window {
         });
     }
 
-    fn set_maximize_button_position(&self, coords: ScreenPoint) {
+    fn set_maximize_button_position(&self, coords: ScreenRect) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.maximize_button_position = Some(coords);
             Ok(())
@@ -1112,7 +1126,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
 unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
-    let mut inner = match inner.try_borrow_mut() {
+    let inner = match inner.try_borrow() {
         Ok(inner) => inner,
         Err(_) => {
             // We've been called recursively and the upper levels
@@ -1196,8 +1210,10 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
     let use_snap_layouts = !*IS_WIN10;
     if use_snap_layouts {
-        if inner.maximize_button_position.take().is_some() {
-            return Some(HTMAXBUTTON);
+        if let Some(max) = inner.maximize_button_position {
+            if max.contains(screen_point) {
+                return Some(HTMAXBUTTON);
+            }
         }
     }
 
@@ -1271,7 +1287,8 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
-    use winapi::um::dwmapi::DwmSetWindowAttribute;
+    use winapi::um::dwmapi::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute};
+    use winapi::um::uxtheme::MARGINS;
 
     #[allow(non_snake_case)]
     type WINDOWCOMPOSITIONATTRIB = u32;
@@ -1289,7 +1306,40 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
         pub fn SetWindowCompositionAttribute(hwnd: HWND, attrib: *mut WINDOWCOMPOSITIONATTRIBDATA) -> BOOL,
     );
 
-    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
+    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 20;
+    const DWMWA_MICA_EFFECT: DWORD = 1029;
+    const DWMWA_SYSTEMBACKDROP_TYPE: DWORD = 38;
+
+    #[allow(non_camel_case_types)]
+    #[allow(dead_code)]
+    #[derive(PartialEq, Eq)]
+    #[repr(C)]
+    enum ACCENT_STATE {
+        ACCENT_DISABLED = 0,
+        ACCENT_ENABLE_BLURBEHIND = 3,
+        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+    }
+
+    #[allow(non_snake_case)]
+    #[repr(C)]
+    struct ACCENT_POLICY {
+        AccentState: u32,
+        AccentFlags: u32,
+        GradientColour: u32,
+        AnimationId: u32,
+    }
+
+    #[allow(non_camel_case_types)]
+    #[allow(dead_code)]
+    #[repr(C)]
+    enum DWM_SYSTEMBACKDROP_TYPE {
+        DWMSBT_AUTO = 0,
+        DWMSBT_NONE = 1,
+        DWMSBT_MAINWINDOW = 2,      // Mica
+        DWMSBT_TRANSIENTWINDOW = 3, // Acrylic
+        DWMSBT_TABBEDWINDOW = 4,    // Tabbed
+    }
+
     unsafe {
         update_title_font(hwnd);
 
@@ -1327,6 +1377,89 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
 
         if let Some(inner) = rc_from_hwnd(hwnd) {
             let mut inner = inner.borrow_mut();
+
+            // Set Arylic or Mica system Backdrop
+            let pv_attribute = match inner.config.win32_system_backdrop {
+                SystemBackdrop::Auto => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_AUTO,
+                SystemBackdrop::Disable => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_NONE,
+                SystemBackdrop::Acrylic => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TRANSIENTWINDOW,
+                SystemBackdrop::Mica => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_MAINWINDOW,
+                SystemBackdrop::Tabbed => DWM_SYSTEMBACKDROP_TYPE::DWMSBT_TABBEDWINDOW,
+            };
+
+            let margins = match inner.config.win32_system_backdrop {
+                SystemBackdrop::Auto | SystemBackdrop::Disable => 0,
+                SystemBackdrop::Acrylic | SystemBackdrop::Mica | SystemBackdrop::Tabbed => -1,
+            };
+
+            DwmExtendFrameIntoClientArea(
+                hwnd,
+                &MARGINS {
+                    cxLeftWidth: margins,
+                    cxRightWidth: margins,
+                    cyTopHeight: margins,
+                    cyBottomHeight: margins,
+                },
+            );
+
+            // Apply Acrylic or Mica Backdrop
+            if *IS_WIN11_22H2 {
+                DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_SYSTEMBACKDROP_TYPE,
+                    &pv_attribute as *const _ as _,
+                    std::mem::size_of_val(&pv_attribute) as u32,
+                );
+            } else {
+                let mut colour = inner.config.win32_acrylic_accent_color.to_srgb_u8();
+                colour.3 = if colour.3 == 0 { 1 } else { colour.3 }; // acrylic doesn't like to have 0 alpha
+
+                let mut policy = ACCENT_POLICY {
+                    AccentState: if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+                        ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND as _
+                    } else {
+                        ACCENT_STATE::ACCENT_DISABLED as _
+                    },
+                    AccentFlags: if inner.config.win32_system_backdrop == SystemBackdrop::Acrylic {
+                        2
+                    } else {
+                        0
+                    },
+                    GradientColour: (colour.0 as u32)
+                        | (colour.1 as u32) << 8
+                        | (colour.2 as u32) << 16
+                        | (colour.3 as u32) << 24,
+                    AnimationId: 0,
+                };
+
+                if let Ok(user) = User32::open(std::path::Path::new("user32.dll")) {
+                    (user.SetWindowCompositionAttribute)(
+                        hwnd,
+                        &mut WINDOWCOMPOSITIONATTRIBDATA {
+                            Attrib: 0x13,
+                            pvData: &mut policy as *mut _ as _,
+                            cbData: std::mem::size_of_val(&policy) as _,
+                        },
+                    );
+                }
+
+                if !*IS_WIN10 && !*IS_WIN11_22H2 {
+                    // For build versions less than 22h2 but are still win11
+                    let mica_enabled: u32 =
+                        if inner.config.win32_system_backdrop == SystemBackdrop::Mica {
+                            1
+                        } else {
+                            0
+                        };
+                    DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_MICA_EFFECT,
+                        &mica_enabled as *const _ as _,
+                        std::mem::size_of_val(&mica_enabled) as u32,
+                    );
+                }
+            }
+
             if appearance != inner.appearance {
                 inner.appearance = appearance;
                 inner
@@ -1583,6 +1716,14 @@ unsafe fn nc_mouse_button(
     lparam: LPARAM,
 ) -> Option<LRESULT> {
     let inner = rc_from_hwnd(hwnd)?;
+
+    let no_native_title_bar = no_native_title_bar(inner.borrow().config.window_decorations);
+    if !no_native_title_bar {
+        // Don't mess with this event unless we're doing our own custom
+        // titlebar
+        return None;
+    }
+
     // To support dragging the window, capture when the left
     // button goes down and release when it goes up.
     // Without this, the drag state can be confused when dragging
@@ -1949,9 +2090,11 @@ unsafe fn ime_composition(
             let key = KeyEvent {
                 key: KeyCode::Composed(s),
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down: true,
                 raw: None,
+                win32_uni_char: None,
             };
             inner
                 .events
@@ -2337,8 +2480,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         return Some(0);
     }
 
-    let mut keys = [0u8; 256];
-    GetKeyboardState(keys.as_mut_ptr());
+    let keys = {
+        let mut keys = [0u8; 256];
+        GetKeyboardState(keys.as_mut_ptr());
+        keys
+    };
 
     let mut modifiers = Modifiers::default();
     if keys[VK_SHIFT as usize] & 0x80 != 0 {
@@ -2398,16 +2544,12 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         modifiers |= Modifiers::SUPER;
     }
 
-    // If control is pressed, clear that out and remember it in our
-    // own set of modifiers.
-    // We used to also remove shift from this set, but it impacts
-    // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
-    // layout.
-    // The shift normalization is now handled by the normalize_shift() method.
-    if modifiers.contains(Modifiers::CTRL) {
-        keys[VK_CONTROL as usize] = 0;
-        keys[VK_LCONTROL as usize] = 0;
-        keys[VK_RCONTROL as usize] = 0;
+    let mut leds = KeyboardLedStatus::empty();
+    if keys[VK_CAPITAL as usize] & 1 != 0 {
+        leds |= KeyboardLedStatus::CAPS_LOCK;
+    }
+    if keys[VK_NUMLOCK as usize] & 1 != 0 {
+        leds |= KeyboardLedStatus::NUM_LOCK;
     }
 
     let handled_raw = Handled::new();
@@ -2419,17 +2561,21 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         phys_code,
         raw_code: wparam as _,
         scan_code: scan_code as _,
+        leds,
         modifiers,
         repeat_count: 1,
         key_is_down: !releasing,
         handled: handled_raw.clone(),
     };
 
-    let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+    let (key, win32_uni_char) = if msg == WM_IME_CHAR || msg == WM_CHAR {
         // If we were sent a character by the IME, some other apps,
         // or by ourselves via TranslateMessage, then take that
         // value as-is.
-        Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        (
+            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32))),
+            None,
+        )
     } else {
         // Otherwise we're dealing with a raw key message.
         // ToUnicode has frustrating statefulness so we take care to
@@ -2454,7 +2600,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // If this event is only modifiers then don't ask the system
             // for further resolution, as we don't want ToUnicode to
             // perturb its inscrutable global state.
-            phys_code.map(|p| p.to_key_code())
+            // Modifier-only keypresses are reported as NUL when using win32 input mode.
+            (phys_code.map(|p| p.to_key_code()), Some('\x00'))
         } else {
             // If we think this might be a dead key, process it for ourselves.
             // Our KeyboardLayoutInfo struct probed the layout for the key
@@ -2490,11 +2637,17 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         let key = KeyEvent {
                             key: KeyCode::Char(c),
                             modifiers,
+                            leds,
                             repeat_count: 1,
                             key_is_down: !releasing,
-                            raw: None,
+                            win32_uni_char: Some(c),
+                            raw: Some(RawKeyEvent {
+                                scan_code: 0,
+                                ..raw_key_event.clone()
+                            }),
                         }
                         .normalize_shift()
+                        .resurface_positional_modifier_key()
                         .normalize_ctrl();
 
                         inner.events.dispatch(WindowEvent::KeyEvent(key.clone()));
@@ -2557,7 +2710,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             };
 
             if dead.is_some() {
-                dead
+                (dead, None)
             } else {
                 // We get here for the various UP (but not DOWN as we shortcircuit
                 // those above) messages.
@@ -2565,6 +2718,37 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // rather than calling TranslateMessage to do it for us,
                 // so that we have tighter control over the key processing.
                 let mut out = [0u16; 16];
+
+                let win32_uni_char = {
+                    let res = ToUnicode(
+                        wparam as u32,
+                        scan_code as u32,
+                        keys.as_ptr(),
+                        out.as_mut_ptr(),
+                        out.len() as i32,
+                        0,
+                    );
+
+                    match res {
+                        1 => Some(std::char::from_u32_unchecked(out[0] as u32)),
+                        0 => Some('\x00'),
+                        _ => None,
+                    }
+                };
+
+                let mut keys = keys;
+                // If control is pressed, clear that out and remember it in our
+                // own set of modifiers.
+                // We used to also remove shift from this set, but it impacts
+                // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
+                // layout.
+                // The shift normalization is now handled by the normalize_shift() method.
+                if modifiers.contains(Modifiers::CTRL) {
+                    keys[VK_CONTROL as usize] = 0;
+                    keys[VK_LCONTROL as usize] = 0;
+                    keys[VK_RCONTROL as usize] = 0;
+                }
+
                 let res = ToUnicode(
                     wparam as u32,
                     scan_code as u32,
@@ -2574,7 +2758,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     0,
                 );
 
-                match res {
+                let key = match res {
                     1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                     // No mapping, so use our raw info
                     0 => {
@@ -2605,7 +2789,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         KeyboardLayoutInfo::clear_key_state();
                         None
                     }
-                }
+                };
+
+                (key, win32_uni_char)
             }
         }
     };
@@ -2618,8 +2804,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let key = KeyEvent {
             key,
             modifiers,
+            leds,
             repeat_count: repeat,
             key_is_down: !releasing,
+            win32_uni_char,
             raw: Some(raw_key_event),
         }
         .normalize_shift();
@@ -2686,7 +2874,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             crate::spawn::SPAWN_QUEUE.run();
             None
         }
-        WM_SETTINGCHANGE => apply_theme(hwnd),
+        WM_SETTINGCHANGE | WM_DWMCOMPOSITIONCHANGED => apply_theme(hwnd),
         WM_IME_SETCONTEXT => ime_set_context(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_IME_ENDCOMPOSITION => ime_end_composition(hwnd, msg, wparam, lparam),

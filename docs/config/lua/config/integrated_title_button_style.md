@@ -4,7 +4,7 @@ tags:
 ---
 # `integrated_title_button_style = STYLE`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Configures the visual style of the tabbar-integrated titlebar button
 replacements that are shown when `window_decorations =

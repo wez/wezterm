@@ -1,6 +1,6 @@
 # `InputSelector`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Activates an overlay to display a list of choices for the user
 to select from.

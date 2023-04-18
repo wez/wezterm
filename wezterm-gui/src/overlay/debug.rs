@@ -203,7 +203,7 @@ pub fn show_debug_overlay(
         "Debug Overlay\r\n\
          wezterm version: {version} {triple}\r\n\
          Window Environment: {connection_info}\r\n\
-         OpenGL version: {opengl_info}\r\n\
+         {opengl_info}\r\n\
          Enter lua statements or expressions and hit Enter.\r\n\
          Press ESC or CTRL-D to exit\r\n",
     ))])?;

@@ -1,6 +1,6 @@
 # `wezterm cli get-pane-direction DIRECTION`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 *Run `wezterm cli get-pane-direction --help` to see more help*
 

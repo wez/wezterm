@@ -1,6 +1,6 @@
 # `window:active_tab()`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 A convenience accessor for returning the active tab within the window.
 

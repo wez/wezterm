@@ -56,7 +56,10 @@ pub trait Domain: Downcast + Send + Sync {
         command_dir: Option<String>,
         window: WindowId,
     ) -> anyhow::Result<Arc<Tab>> {
-        let pane = self.spawn_pane(size, command, command_dir).await?;
+        let pane = self
+            .spawn_pane(size, command, command_dir)
+            .await
+            .context("spawn")?;
 
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);

@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
-use wezterm_input_types::PhysKeyCode;
+use wezterm_input_types::{KeyboardLedStatus, PhysKeyCode};
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
 
@@ -21,6 +21,7 @@ pub struct Keyboard {
     state: RefCell<xkb::State>,
     compose_state: RefCell<Compose>,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
+    mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
 }
 
 struct Compose {
@@ -159,6 +160,7 @@ impl Keyboard {
                 composition: String::new(),
             }),
             phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
         })
     }
 
@@ -223,6 +225,7 @@ impl Keyboard {
                 composition: String::new(),
             }),
             phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
         };
 
         Ok((kbd, first_ev))
@@ -269,6 +272,7 @@ impl Keyboard {
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.phys_code_map.borrow().get(&xcode).copied();
         let raw_modifiers = self.get_key_modifiers();
+        let leds = self.get_led_status();
 
         let xsym = self.state.borrow().key_get_one_sym(xcode);
         let handled = Handled::new();
@@ -281,6 +285,7 @@ impl Keyboard {
             phys_code,
             raw_code: xcode,
             modifiers: raw_modifiers,
+            leds,
             repeat_count: 1,
             key_is_down: pressed,
             handled: handled.clone(),
@@ -320,10 +325,7 @@ impl Keyboard {
                     }
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Composed: \
-                                {:?}, {:?}. kc -> {:?}",
-                        utf8,
-                        sym,
-                        kc
+                                {utf8:?}, {sym:?}. kc -> {kc:?}",
                     );
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     sym
@@ -334,10 +336,7 @@ impl Keyboard {
                     }
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Nothing: \
-                                {:?}, {:?}. kc -> {:?}",
-                        utf8,
-                        sym,
-                        kc
+                                {utf8:?}, {sym:?}. kc -> {kc:?}"
                     );
                     sym
                 }
@@ -364,12 +363,14 @@ impl Keyboard {
 
         let event = KeyEvent {
             key: kc,
+            leds,
             modifiers: raw_modifiers,
             repeat_count: 1,
             key_is_down: pressed,
             raw: Some(raw_key_event),
         }
-        .normalize_shift();
+        .normalize_shift()
+        .resurface_positional_modifier_key();
 
         if pressed && want_repeat {
             events.dispatch(WindowEvent::KeyEvent(event.clone()));
@@ -386,6 +387,22 @@ impl Keyboard {
         self.state
             .borrow()
             .mod_name_is_active(modifier, xkb::STATE_MODS_EFFECTIVE)
+    }
+    fn led_is_active(&self, led: &str) -> bool {
+        self.state.borrow().led_name_is_active(led)
+    }
+
+    pub fn get_led_status(&self) -> KeyboardLedStatus {
+        let mut leds = KeyboardLedStatus::empty();
+
+        if self.led_is_active(xkb::LED_NAME_NUM) {
+            leds |= KeyboardLedStatus::NUM_LOCK;
+        }
+        if self.led_is_active(xkb::LED_NAME_CAPS) {
+            leds |= KeyboardLedStatus::CAPS_LOCK;
+        }
+
+        leds
     }
 
     pub fn get_key_modifiers(&self) -> Modifiers {
@@ -412,7 +429,9 @@ impl Keyboard {
         &self,
         connection: &xcb::Connection,
         event: &xcb::Event,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Option<(Modifiers, KeyboardLedStatus)>> {
+        let before = self.mods_leds.borrow().clone();
+
         match event {
             xcb::Event::Xkb(xcb::xkb::Event::StateNotify(e)) => {
                 self.update_state(e);
@@ -424,7 +443,14 @@ impl Keyboard {
             }
             _ => {}
         }
-        Ok(())
+
+        let after = (self.get_key_modifiers(), self.get_led_status());
+        if after != before {
+            *self.mods_leds.borrow_mut() = after.clone();
+            Ok(Some(after))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn update_modifier_state(

@@ -8,9 +8,12 @@ Specifies which render front-end to use.  This option used to have
 more scope in earlier versions of wezterm, but today it allows two
 possible values:
 
-* `OpenGL` - use GPU accelerated rasterization (this is the default)
+* `OpenGL` - use GPU accelerated rasterization
 * `Software` - use CPU-based rasterization.
 * `WebGpu` - use GPU accelerated rasterization {{since('20221119-145034-49b9839f', inline=True)}}
+
+{{since('nightly', outline=true)}}
+    The default is `"WebGpu"`. In earlier versions it was `"OpenGL"`
 
 You may wish (or need!) to select `Software` if there are issues with your
 GPU/OpenGL drivers.

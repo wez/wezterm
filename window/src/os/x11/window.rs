@@ -20,7 +20,7 @@ use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{KeyCode, KeyEvent, Modifiers};
+use wezterm_input_types::{KeyCode, KeyEvent, KeyboardLedStatus, Modifiers};
 use xcb::x::{Atom, PropMode};
 use xcb::{Event, Xid};
 
@@ -59,7 +59,7 @@ impl CopyAndPaste {
 pub(crate) struct XWindowInner {
     pub window_id: xcb::x::Window,
     conn: Weak<XConnection>,
-    events: WindowEventSender,
+    pub events: WindowEventSender,
     width: u16,
     height: u16,
     last_wm_state: WindowState,
@@ -69,7 +69,7 @@ pub(crate) struct XWindowInner {
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
-    has_focus: Option<bool>,
+    pub has_focus: Option<bool>,
     verify_focus: bool,
     last_cursor_position: Rect,
     invalidated: bool,
@@ -633,12 +633,14 @@ impl XWindowInner {
     pub fn dispatch_ime_text(&mut self, text: &str) {
         let key_event = KeyEvent {
             key: KeyCode::Composed(text.into()),
+            leds: KeyboardLedStatus::empty(),
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
             raw: None,
         }
-        .normalize_shift();
+        .normalize_shift()
+        .resurface_positional_modifier_key();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));
     }
 

@@ -12,7 +12,7 @@ config.keys = {
   {
     key = '!',
     mods = 'LEADER | SHIFT',
-    action = callback(function(win, pane)
+    action = wezterm.action_callback(function(win, pane)
       local tab, window = pane:move_to_new_tab()
     end),
   },

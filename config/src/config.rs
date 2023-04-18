@@ -22,9 +22,10 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     default_config_with_overrides_applied, default_one_point_oh, default_one_point_oh_f64,
-    default_true, GpuInfo, IntegratedTitleButtonColor, KeyMapPreference, LoadedConfig,
-    MouseEventTriggerMods, RgbaColor, SerialDomain, WebGpuPowerPreference, CONFIG_DIRS,
-    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_true, default_win32_acrylic_accent_color, GpuInfo, IntegratedTitleButtonColor,
+    KeyMapPreference, LoadedConfig, MouseEventTriggerMods, RgbaColor, SerialDomain, SystemBackdrop,
+    WebGpuPowerPreference, CONFIG_DIRS, CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP,
+    HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion_dynamic;
@@ -510,6 +511,13 @@ pub struct Config {
     #[dynamic(default)]
     pub macos_window_background_blur: i64,
 
+    /// Only works on Windows
+    #[dynamic(default)]
+    pub win32_system_backdrop: SystemBackdrop,
+
+    #[dynamic(default = "default_win32_acrylic_accent_color")]
+    pub win32_acrylic_accent_color: RgbaColor,
+
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the
     /// window_background_image, or if there is none, the background
@@ -680,8 +688,11 @@ pub struct Config {
     #[dynamic(default = "default_enq_answerback")]
     pub enq_answerback: String,
 
-    #[dynamic(default = "default_true")]
-    pub adjust_window_size_when_changing_font_size: bool,
+    #[dynamic(default)]
+    pub adjust_window_size_when_changing_font_size: Option<bool>,
+
+    #[dynamic(default = "default_tiling_desktop_environments")]
+    pub tiling_desktop_environments: Vec<String>,
 
     #[dynamic(default)]
     pub use_resize_increments: bool,
@@ -1665,6 +1676,13 @@ fn default_max_fps() -> u8 {
     60
 }
 
+fn default_tiling_desktop_environments() -> Vec<String> {
+    ["X11 LG3D", "X11 bspwm", "X11 dwm"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+}
+
 fn default_stateless_process_list() -> Vec<String> {
     [
         "bash",
@@ -1673,6 +1691,7 @@ fn default_stateless_process_list() -> Vec<String> {
         "fish",
         "tmux",
         "nu",
+        "nu.exe",
         "cmd.exe",
         "pwsh.exe",
         "powershell.exe",

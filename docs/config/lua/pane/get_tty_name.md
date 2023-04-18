@@ -1,6 +1,6 @@
 # `pane:get_tty_name()`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 Returns the tty device name, or `nil` if the name is unavailable.
 

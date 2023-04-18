@@ -26,7 +26,7 @@ The value is a list of rule entries. Each entry has the following fields:
       is `0`, highlighting the entire region of text matched by the regex.  `1`
       would be the first capture group, and so on.
 
-{{since('nightly', outline=True)}}
+{{since('20230408-112425-69ae8472', outline=True)}}
     The regex syntax now supports backreferences and look around assertions.
     See [Fancy Regex Syntax](https://docs.rs/fancy-regex/latest/fancy_regex/#syntax)
     for the extended syntax, which builds atop the underlying

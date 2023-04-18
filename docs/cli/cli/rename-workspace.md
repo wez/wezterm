@@ -1,6 +1,6 @@
 # `wezterm cli rename-workspace NEW-NAME`
 
-{{since('nightly')}}
+{{since('20230408-112425-69ae8472')}}
 
 *Run `wezterm cli rename-workspace --help` to see more help*
 

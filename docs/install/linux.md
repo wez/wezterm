@@ -27,11 +27,19 @@ You may wish to define an alias for convenience:
 $ alias wezterm='flatpak run org.wezfurlong.wezterm'
 ```
 
-Note: flatpaks run in a sandbox so some functionality may behave a little
-differently when compared to installing the native package format for your
-system.  In particular, starting wezterm using `wezterm cli` subcommands will
-block on the first run since you logged in if you haven't already launched the
-gui.
+!!! note
+    flatpaks run in an isolated sandbox so some functionality may behave a little
+    differently when compared to installing the native package format for your
+    system.
+
+    * starting wezterm using `wezterm cli` subcommands will block on the first
+      run since you logged in if you haven't already launched the gui.
+    * Process inspection functions such as determining the current directory
+      for a pane will not work
+
+    The flatpak is provided primarily for ease of trying out wezterm with
+    low commitment, and you are encouraged to use native packages for your
+    system once you're ready to get the most out of wezterm.
 
 Only stable releases are allowed to be published to Flathub, so if
 you want/need to try a nightly download you will need to use one of

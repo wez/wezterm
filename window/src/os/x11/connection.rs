@@ -507,7 +507,18 @@ impl XConnection {
             // xkbcommon depends on those events in order to:
             //    - update modifiers state
             //    - update keymap/state on keyboard changes
-            self.keyboard.process_xkb_event(&self.conn, event)?;
+            if let Some((mods, leds)) = self.keyboard.process_xkb_event(&self.conn, event)? {
+                // route changed state to the window with focus
+                for window in self.windows.borrow().values() {
+                    let mut window = window.lock().unwrap();
+                    if window.has_focus == Some(true) {
+                        window
+                            .events
+                            .dispatch(crate::WindowEvent::AdviseModifiersLedStatus(mods, leds));
+                        break;
+                    }
+                }
+            }
         }
         Ok(())
     }

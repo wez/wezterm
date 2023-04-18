@@ -395,6 +395,7 @@ pub struct TermWindow {
 
     window_background: Vec<LoadedBackgroundLayer>,
 
+    current_modifier_and_leds: (Modifiers, KeyboardLedStatus),
     current_mouse_buttons: Vec<MousePress>,
     current_mouse_capture: Option<MouseCapture>,
 
@@ -442,6 +443,8 @@ pub struct TermWindow {
     last_fps_check_time: Instant,
     num_frames: usize,
     pub fps: f32,
+
+    connection_name: String,
 
     gl: Option<Rc<glium::backend::Context>>,
     webgpu: Option<Rc<WebGpuState>>,
@@ -658,8 +661,11 @@ impl TermWindow {
 
         let render_state = None;
 
+        let connection_name = Connection::get().unwrap().name();
+
         let myself = Self {
             created: Instant::now(),
+            connection_name,
             last_fps_check_time: Instant::now(),
             num_frames: 0,
             last_frame_duration: Duration::ZERO,
@@ -694,6 +700,7 @@ impl TermWindow {
             last_mouse_coords: (0, -1),
             window_drag_position: None,
             current_mouse_event: None,
+            current_modifier_and_leds: Default::default(),
             prev_cursor: PrevCursorPos::new(),
             last_scroll_info: RenderableDimensions::default(),
             tab_state: RefCell::new(HashMap::new()),
@@ -869,7 +876,15 @@ impl TermWindow {
     ) -> anyhow::Result<bool> {
         log::debug!("{event:?}");
         match event {
-            WindowEvent::Destroyed => Ok(false),
+            WindowEvent::Destroyed => {
+                // Ensure that we cancel any overlays we had running, so
+                // that the mux can empty out, otherwise the mux keeps
+                // the TermWindow alive via the frontend even though
+                // the window is gone and we'll linger forever.
+                // <https://github.com/wez/wezterm/issues/3522>
+                self.clear_all_overlays();
+                Ok(false)
+            }
             WindowEvent::CloseRequested => {
                 self.close_requested(window);
                 Ok(true)
@@ -915,6 +930,12 @@ impl TermWindow {
                 live_resizing,
             } => {
                 self.resize(dimensions, window_state, window, live_resizing);
+                Ok(true)
+            }
+            WindowEvent::AdviseModifiersLedStatus(modifiers, leds) => {
+                self.current_modifier_and_leds = (modifiers, leds);
+                self.update_title();
+                window.invalidate();
                 Ok(true)
             }
             WindowEvent::RawKeyEvent(event) => {
@@ -1590,6 +1611,7 @@ impl TermWindow {
             self.config_overrides
         );
         self.key_table_state.clear_stack();
+        self.connection_name = Connection::get().unwrap().name();
         let config = match config::overridden_config(&self.config_overrides) {
             Ok(config) => config,
             Err(err) => {
@@ -1759,8 +1781,21 @@ impl TermWindow {
     }
 
     fn emit_user_var_event(&mut self, pane_id: PaneId, name: String, value: String) {
+        let mux = Mux::get();
+
+        let (_domain, window_id, _tab_id) = match mux.resolve_pane_id(pane_id) {
+            Some(tuple) => tuple,
+            None => return,
+        };
+
+        // We only want to emit the event for the window which contains
+        // this pane.
+        if window_id != self.mux_window_id {
+            return;
+        }
+
         let window = GuiWin::new(self);
-        let pane = match Mux::get().get_pane(pane_id) {
+        let pane = match mux.get_pane(pane_id) {
             Some(pane) => mux_lua::MuxPane(pane.pane_id()),
             None => return,
         };
@@ -2176,7 +2211,7 @@ impl TermWindow {
         let gui_win = GuiWin::new(self);
 
         let opengl_info = self.opengl_info.as_deref().unwrap_or("Unknown").to_string();
-        let connection_info = Connection::get().unwrap().name();
+        let connection_info = self.connection_name.clone();
 
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
             crate::overlay::show_debug_overlay(term, gui_win, opengl_info, connection_info)
@@ -2521,8 +2556,8 @@ impl TermWindow {
             }
             SendString(s) => pane.writer().write_all(s.as_bytes())?,
             SendKey(key) => {
-                use keyevent::{window_mods_to_termwiz_mods, Key};
-                let mods = window_mods_to_termwiz_mods(key.mods);
+                use keyevent::Key;
+                let mods = key.mods;
                 if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(
                     &key.key.resolve(self.config.key_map_preference),
                 ) {

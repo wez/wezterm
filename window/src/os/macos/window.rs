@@ -49,7 +49,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
 use wezterm_font::FontConfiguration;
-use wezterm_input_types::{is_ascii_control, IntegratedTitleButtonStyle};
+use wezterm_input_types::{is_ascii_control, IntegratedTitleButtonStyle, KeyboardLedStatus};
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -383,6 +383,7 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
         appkit::NSEndFunctionKey => KeyCode::End,
         appkit::NSPageUpFunctionKey => KeyCode::PageUp,
         appkit::NSPageDownFunctionKey => KeyCode::PageDown,
+        appkit::NSClearLineFunctionKey => KeyCode::NumLock,
         value @ appkit::NSF1FunctionKey..=appkit::NSF35FunctionKey => {
             KeyCode::Function((value - appkit::NSF1FunctionKey + 1) as u8)
         }
@@ -1809,6 +1810,7 @@ impl WindowView {
             let event = KeyEvent {
                 key,
                 modifiers: Modifiers::NONE,
+                leds: KeyboardLedStatus::empty(),
                 repeat_count: 1,
                 key_is_down,
                 raw: None,
@@ -2278,6 +2280,11 @@ impl WindowView {
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifier_flags = unsafe { nsevent.modifierFlags() };
         let modifiers = key_modifiers(modifier_flags);
+        let leds = if modifier_flags.bits() & (1 << 16) != 0 {
+            KeyboardLedStatus::CAPS_LOCK
+        } else {
+            KeyboardLedStatus::empty()
+        };
         let virtual_key = unsafe { nsevent.keyCode() };
 
         log::debug!(
@@ -2331,6 +2338,7 @@ impl WindowView {
             },
             phys_code,
             raw_code: virtual_key as _,
+            leds,
             modifiers,
             repeat_count: 1,
             key_is_down,
@@ -2373,6 +2381,7 @@ impl WindowView {
                         let event = KeyEvent {
                             key: KeyCode::composed(&translated),
                             modifiers: Modifiers::NONE,
+                            leds: KeyboardLedStatus::empty(),
                             repeat_count: 1,
                             key_is_down,
                             raw: None,
@@ -2594,11 +2603,13 @@ impl WindowView {
             let event = KeyEvent {
                 key,
                 modifiers,
+                leds,
                 repeat_count: 1,
                 key_is_down,
                 raw: Some(raw_key_event),
             }
-            .normalize_shift();
+            .normalize_shift()
+            .resurface_positional_modifier_key();
 
             log::debug!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?})",
@@ -2643,6 +2654,23 @@ impl WindowView {
             // Allow macOS to process built-in shortcuts like CMD-`
             // to cycle though windows
             NO
+        }
+    }
+
+    extern "C" fn flags_changed(this: &mut Object, _sel: Sel, nsevent: id) {
+        let modifier_flags = unsafe { nsevent.modifierFlags() };
+        let modifiers = key_modifiers(modifier_flags);
+        let leds = if modifier_flags.bits() & (1 << 16) != 0 {
+            KeyboardLedStatus::CAPS_LOCK
+        } else {
+            KeyboardLedStatus::empty()
+        };
+
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseModifiersLedStatus(modifiers, leds));
         }
     }
 
@@ -3088,6 +3116,11 @@ impl WindowView {
             cls.add_method(
                 sel!(updateTrackingAreas),
                 Self::update_tracking_areas as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(flagsChanged:),
+                Self::flags_changed as extern "C" fn(&mut Object, Sel, id),
             );
 
             // NSTextInputClient

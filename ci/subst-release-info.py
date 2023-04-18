@@ -13,7 +13,7 @@ CATEGORIZE = {
     r"Debian(\d+)(\.\d+)?\.deb$": "debian\\1_deb",
     r"Ubuntu(\d+)(\.\d+)?.AppImage$": "ubuntu\\1_AppImage",
     r"Ubuntu(\d+)(\.\d+)?.deb$": "ubuntu\\1_deb",
-    r"Ubuntu18.04.tar.xz$": "linux_raw_bin",
+    r"Ubuntu20.04.tar.xz$": "linux_raw_bin",
     r"^wezterm-\d+-\d+-[a-f0-9]+.tar.xz$": "linux_raw_bin",
     r"src.tar.gz$": "src",
     r"^WezTerm-macos-.*.zip$": "macos_zip",

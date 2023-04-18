@@ -23,6 +23,48 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 
+* The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+* The default for
+  [adjust_window_size_when_changing_font_size](config/lua/config/adjust_window_size_when_changing_font_size.md)
+  now depends on the window environment and the contents of
+  [tiling_desktop_environments](config/lua/config/tiling_desktop_environments.md).
+
+#### New
+
+* [window:keyboard_modifiers](config/lua/window/keyboard_modifiers.md) #3444
+* [win32_system_backdrop](config/lua/config/win32_system_backdrop.md). Thanks to @kingavatar! #3528 #1614
+* [wezterm cli adjust-pane-size](cli/cli/adjust-pane-size.md) and
+
+
+#### Fixed
+
+* Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
+  OS-level key maps. #3470
+* Numerous issues with the kitty keyboard protocol implementation #2546 #3220
+  #3315 #3473 #3474 #3476 #3478 #3479 #3484 #3526
+* mux: Attempting to spawn into an ad-hoc SSH domain after the last tab could
+  fail with a cryptic error message. The connection is now re-established. ?3480
+* Laggy behavior when processing a continual stream of output, for example,
+  serial data received at a rate of 1 byte just slightly faster than
+  `mux_output_parser_coalesce_delay_ms` (`3ms` by default). Thanks to @pcc!
+  #3497 #3466 #837.
+* [`user-var-changed` event](config/lua/window-events/user-var-changed.md)
+  would incorrectly trigger for every GUI window, rather than just the GUI
+  window which contained the pane in which the variable was changed. #3524
+* PNG images without an alpha channel could not be displayed by in the
+  terminal. #3529.
+* tab width calculation when returning a string with embedded escape
+  sequences from a `format-tab-title` event handler. #3481
+* Windows: clicking the maximize button didn't work unless using
+  integrated titlebar buttons. #3499
+* Windows: closing a window while the debug overlay was active could
+  leave a lingering wezterm-gui.exe running. #3522
+* Windows: inconsistencies with win32 input mode. Thanks to @kreudom! #2235
+
+### 20230408-112425-69ae8472
+
+#### Changed
+
 * macOS: Japanese IME users: CTRL-modified keys are no long routed to the IME
   by default, as it introduced problems with CTRL-key combinations for other users.
   A new [macos_forward_to_ime_modifier_mask](config/lua/config/macos_forward_to_ime_modifier_mask.md)

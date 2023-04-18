@@ -189,6 +189,8 @@ pub enum WindowEvent {
 
     /// Called by menubar dispatching stuff on some systems
     PerformKeyAssignment(config::keyassignment::KeyAssignment),
+
+    AdviseModifiersLedStatus(Modifiers, KeyboardLedStatus),
 }
 
 pub struct WindowEventSender {
@@ -257,7 +259,7 @@ pub trait WindowOps {
     fn set_inner_size(&self, width: usize, height: usize);
 
     /// Use for windows snap layouts
-    fn set_maximize_button_position(&self, _coords: ScreenPoint) {}
+    fn set_maximize_button_position(&self, _rect: ScreenRect) {}
 
     /// Requests the windowing system to start a window drag.
     ///

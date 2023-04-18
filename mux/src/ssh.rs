@@ -277,6 +277,98 @@ impl RemoteSshDomain {
 
         Ok((command_line, env))
     }
+
+    async fn start_new_session(
+        &self,
+        command_line: Option<String>,
+        env: HashMap<String, String>,
+        size: TerminalSize,
+    ) -> anyhow::Result<StartNewSessionResult> {
+        let (session, events) = Session::connect(self.ssh_config().context("obtain ssh config")?)
+            .context("connect to ssh server")?;
+        self.session.lock().unwrap().replace(session.clone());
+
+        // We get to establish the session!
+        //
+        // Since we want spawn to return the Pane in which
+        // we'll carry out interactive auth, we generate
+        // some shim/wrapper versions of the pty, child
+        // and reader/writer.
+
+        let (stdout_read, stdout_write) = socketpair()?;
+        let (reader_tx, reader_rx) = channel();
+        let (stdin_read, stdin_write) = socketpair()?;
+        let (writer_tx, writer_rx) = channel();
+
+        let pty_reader = PtyReader {
+            reader: Box::new(stdout_read),
+            rx: reader_rx,
+        };
+
+        let pty_writer = PtyWriter {
+            writer: Box::new(stdin_write),
+            rx: writer_rx,
+        };
+        let writer = Box::new(pty_writer);
+
+        let (child_tx, child_rx) = channel();
+
+        let child = Box::new(WrappedSshChild {
+            status: None,
+            rx: child_rx,
+            exited: None,
+            killer: WrappedSshChildKiller {
+                inner: Arc::new(Mutex::new(KillerInner {
+                    killer: None,
+                    pending_kill: false,
+                })),
+            },
+        });
+
+        let (pty_tx, pty_rx) = channel();
+
+        let size = Arc::new(Mutex::new(size));
+
+        let pty = Box::new(WrappedSshPty {
+            inner: RefCell::new(WrappedSshPtyInner::Connecting {
+                size: Arc::clone(&size),
+                reader: Some(pty_reader),
+                connected: pty_rx,
+            }),
+        });
+
+        // And with those created, we can now spawn a new thread
+        // to perform the blocking (from its perspective) terminal
+        // UI to carry out any authentication.
+        let mut stdout_write = BufWriter::new(stdout_write);
+        std::thread::spawn(move || {
+            if let Err(err) = connect_ssh_session(
+                session,
+                events,
+                stdin_read,
+                writer_tx,
+                &mut stdout_write,
+                reader_tx,
+                child_tx,
+                pty_tx,
+                size,
+                command_line,
+                env,
+            ) {
+                let _ = write!(stdout_write, "{:#}", err);
+                log::error!("Failed to connect ssh: {:#}", err);
+            }
+            let _ = stdout_write.flush();
+        });
+
+        Ok(StartNewSessionResult { pty, child, writer })
+    }
+}
+
+struct StartNewSessionResult {
+    pty: Box<dyn portable_pty::MasterPty + Send>,
+    child: Box<dyn portable_pty::Child + Send>,
+    writer: BoxedWriter,
 }
 
 /// Carry out the authentication process and create the initial pty.
@@ -565,104 +657,50 @@ impl Domain for RemoteSshDomain {
     ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
-        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
+        let (command_line, env) = self
+            .build_command(pane_id, command, command_dir)
+            .context("build_command")?;
 
-        let pty: Box<dyn portable_pty::MasterPty + Send>;
-        let child: Box<dyn portable_pty::Child + Send>;
-        let writer: BoxedWriter;
+        // This needs to be separate from the if let block below in order
+        // for the lock to be released at the appropriate time
+        let mut session: Option<Session> = self.session.lock().unwrap().as_ref().cloned();
 
-        let session: Option<Session> = self.session.lock().unwrap().as_ref().cloned();
-
-        if let Some(session) = session {
-            let (concrete_pty, concrete_child) = session
+        let StartNewSessionResult { pty, child, writer } = if let Some(session) = session.take() {
+            match session
                 .request_pty(
                     &config::configuration().term,
-                    crate::terminal_size_to_pty_size(size)?,
+                    crate::terminal_size_to_pty_size(size)
+                        .context("compute pty size from terminal size")?,
                     command_line.as_ref().map(|s| s.as_str()),
-                    Some(env),
+                    Some(env.clone()),
                 )
-                .await?;
+                .await
+                .context("request ssh pty")
+            {
+                Ok((concrete_pty, concrete_child)) => {
+                    let pty = Box::new(concrete_pty);
+                    let child = Box::new(concrete_child);
+                    let writer = Box::new(pty.take_writer().context("take writer from pty")?);
 
-            pty = Box::new(concrete_pty);
-            child = Box::new(concrete_child);
-            writer = Box::new(pty.take_writer()?);
-        } else {
-            // We're starting the session
-            let (session, events) = Session::connect(self.ssh_config()?)?;
-            self.session.lock().unwrap().replace(session.clone());
-
-            // We get to establish the session!
-            //
-            // Since we want spawn to return the Pane in which
-            // we'll carry out interactive auth, we generate
-            // some shim/wrapper versions of the pty, child
-            // and reader/writer.
-
-            let (stdout_read, stdout_write) = socketpair()?;
-            let (reader_tx, reader_rx) = channel();
-            let (stdin_read, stdin_write) = socketpair()?;
-            let (writer_tx, writer_rx) = channel();
-
-            let pty_reader = PtyReader {
-                reader: Box::new(stdout_read),
-                rx: reader_rx,
-            };
-
-            let pty_writer = PtyWriter {
-                writer: Box::new(stdin_write),
-                rx: writer_rx,
-            };
-            writer = Box::new(pty_writer);
-
-            let (child_tx, child_rx) = channel();
-
-            child = Box::new(WrappedSshChild {
-                status: None,
-                rx: child_rx,
-                exited: None,
-                killer: WrappedSshChildKiller {
-                    inner: Arc::new(Mutex::new(KillerInner {
-                        killer: None,
-                        pending_kill: false,
-                    })),
-                },
-            });
-
-            let (pty_tx, pty_rx) = channel();
-
-            let size = Arc::new(Mutex::new(size));
-
-            pty = Box::new(WrappedSshPty {
-                inner: RefCell::new(WrappedSshPtyInner::Connecting {
-                    size: Arc::clone(&size),
-                    reader: Some(pty_reader),
-                    connected: pty_rx,
-                }),
-            });
-
-            // And with those created, we can now spawn a new thread
-            // to perform the blocking (from its perspective) terminal
-            // UI to carry out any authentication.
-            let mut stdout_write = BufWriter::new(stdout_write);
-            std::thread::spawn(move || {
-                if let Err(err) = connect_ssh_session(
-                    session,
-                    events,
-                    stdin_read,
-                    writer_tx,
-                    &mut stdout_write,
-                    reader_tx,
-                    child_tx,
-                    pty_tx,
-                    size,
-                    command_line,
-                    env,
-                ) {
-                    let _ = write!(stdout_write, "{:#}", err);
-                    log::error!("Failed to connect ssh: {:#}", err);
+                    StartNewSessionResult { pty, child, writer }
                 }
-                let _ = stdout_write.flush();
-            });
+                Err(err) => {
+                    if err
+                        .root_cause()
+                        .downcast_ref::<wezterm_ssh::DeadSession>()
+                        .is_some()
+                    {
+                        // Session died (perhaps they closed the initial tab?)
+                        // So we'll try making a new one
+                        self.start_new_session(command_line, env, size).await?
+                    } else {
+                        log::error!("{err:#?}");
+                        return Err(err);
+                    }
+                }
+            }
+        } else {
+            self.start_new_session(command_line, env, size).await?
         };
 
         // Wrap up the pty etc. in a LocalPane.  That allows for

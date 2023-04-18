@@ -140,6 +140,7 @@ pub struct WaylandWindowInner {
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     modifiers: Modifiers,
+    leds: KeyboardLedStatus,
     key_repeat: Option<(u32, Arc<Mutex<KeyRepeatState>>)>,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
@@ -367,6 +368,7 @@ impl WaylandWindow {
             hscroll_remainder: 0.0,
             vscroll_remainder: 0.0,
             modifiers: Modifiers::NONE,
+            leds: KeyboardLedStatus::empty(),
             pending_event,
             pending_mouse,
             pending_first_configure: Some(pending_first_configure),
@@ -464,7 +466,19 @@ impl WaylandWindowInner {
                 ..
             } => {
                 mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
+
+                let mods = mapper.get_key_modifiers();
+                let leds = mapper.get_led_status();
+
+                let changed = (mods != self.modifiers) || (leds != self.leds);
+
                 self.modifiers = mapper.get_key_modifiers();
+                self.leds = mapper.get_led_status();
+
+                if changed {
+                    self.events
+                        .dispatch(WindowEvent::AdviseModifiersLedStatus(mods, leds));
+                }
             }
             _ => {}
         }
@@ -801,27 +815,26 @@ impl WaylandWindowInner {
         }
 
         self.invalidated = false;
-        self.events.dispatch(WindowEvent::NeedRepaint);
 
-        if self.gl_state.is_some() {
-            // Ask the compositor to wake us up when it is time to paint
-            // the next frame.
-            // We don't do this when we're using WebGPU because we don't
-            // always get a timely wakeup. We configure wgpu to use a
-            // vsync-equivalent PresentMode so we should already be
-            // respecting the maximum frame rate, making it less critical
-            // to rely on Wayland's frame scheduling.
-            // <https://github.com/wez/wezterm/issues/3126>
-            let window_id = self.window_id;
-            let callback = self.surface.frame();
-            callback.quick_assign(move |_source, _event, _data| {
-                WaylandConnection::with_window_inner(window_id, |inner| {
-                    inner.next_frame_is_ready();
-                    Ok(())
-                });
+        // Ask the compositor to wake us up when its time to paint the next frame,
+        // note that this only happens _after_ the next commit
+        let window_id = self.window_id;
+        let callback = self.surface.frame();
+        callback.quick_assign(move |_source, _event, _data| {
+            WaylandConnection::with_window_inner(window_id, |inner| {
+                inner.next_frame_is_ready();
+                Ok(())
             });
-            self.frame_callback.replace(callback);
-        }
+        });
+        self.frame_callback.replace(callback);
+
+        // The repaint has the side of effect of committing the surface,
+        // which is necessary for the frame callback to get triggered.
+        // Ordering the repaint after requesting the callback ensures that
+        // we will get woken at the appropriate time.
+        // <https://github.com/wez/wezterm/issues/3468>
+        // <https://github.com/wez/wezterm/issues/3126>
+        self.events.dispatch(WindowEvent::NeedRepaint);
 
         Ok(())
     }

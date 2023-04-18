@@ -1,5 +1,3 @@
-use std::path::Path;
-
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -30,12 +28,7 @@ fn main() {
                     }
                 }
             }
-        }
 
-        let head = Path::new("../.git/HEAD");
-        if head.exists() {
-            let head = head.canonicalize().unwrap();
-            println!("cargo:rerun-if-changed={}", head.display());
             if let Ok(output) = std::process::Command::new("git")
                 .args(&[
                     "-c",
@@ -57,5 +50,4 @@ fn main() {
 
     println!("cargo:rustc-env=WEZTERM_TARGET_TRIPLE={}", target);
     println!("cargo:rustc-env=WEZTERM_CI_TAG={}", ci_tag);
-    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
 }
