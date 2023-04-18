@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 backtrace = "0.3"
-chrono = {version="0.4", features=["unstable-locales"]}
+chrono = {version="0.4", default-features=false, features=["unstable-locales"]}
 config = { path = "../config" }
 dirs-next = "2.0"
 lazy_static = "1.4"
