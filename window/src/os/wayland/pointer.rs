@@ -341,21 +341,18 @@ impl PointerDispatcher {
     }
 
     pub fn set_cursor(&self, names: &[&str], serial: Option<u32>) {
-        let inner = self.inner.lock().unwrap();
-        let serial = serial.unwrap_or(inner.serial);
-
         if names.is_empty() {
             (*self.auto_pointer).set_cursor(0, None, 0, 0);
         } else {
             let mut errors = vec![];
             for name in names {
-                match self.auto_pointer.set_cursor(name, Some(serial)) {
+                match self.auto_pointer.set_cursor(name, serial) {
                     Ok(_) => return,
                     Err(err) => errors.push(format!("Unable to set cursor to {name}: {err:#}")),
                 }
             }
 
-            if let Err(err) = self.auto_pointer.set_cursor("default", Some(serial)) {
+            if let Err(err) = self.auto_pointer.set_cursor("default", serial) {
                 errors.push(format!("Unable to set cursor to 'default': {err:#}"));
             }
 
