@@ -62,6 +62,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: inconsistencies with win32 input mode. Thanks to @kreudom! #2235
 * macOS: font size is zoomed or window appears empty when first launched on a
   secondary monitor with different scaling settings from the primary monitor. #3503
+* X11/Wayland: CTRL/ALT didn't work as expected for non-latin keyboard layouts. #2845
 
 ### 20230408-112425-69ae8472
 
