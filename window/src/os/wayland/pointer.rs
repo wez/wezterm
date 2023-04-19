@@ -340,16 +340,26 @@ impl PointerDispatcher {
             .insert(surface.as_ref().id(), Arc::clone(pending));
     }
 
-    pub fn set_cursor(&self, name: Option<&str>, serial: Option<u32>) {
+    pub fn set_cursor(&self, names: &[&str], serial: Option<u32>) {
         let inner = self.inner.lock().unwrap();
         let serial = serial.unwrap_or(inner.serial);
 
-        if let Some(name) = name {
-            if let Err(err) = self.auto_pointer.set_cursor(name, Some(serial)) {
-                log::error!("Unable to set cursor to {}: {:#}", name, err);
-            }
-        } else {
+        if names.is_empty() {
             (*self.auto_pointer).set_cursor(0, None, 0, 0);
+        } else {
+            let mut errors = vec![];
+            for name in names {
+                match self.auto_pointer.set_cursor(name, Some(serial)) {
+                    Ok(_) => return,
+                    Err(err) => errors.push(format!("Unable to set cursor to {name}: {err:#}")),
+                }
+            }
+
+            if let Err(err) = self.auto_pointer.set_cursor("default", Some(serial)) {
+                errors.push(format!("Unable to set cursor to 'default': {err:#}"));
+            }
+
+            log::error!("set_cursor: {}", errors.join(", "));
         }
     }
 }
