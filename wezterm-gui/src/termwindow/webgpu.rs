@@ -2,7 +2,6 @@ use crate::quad::Vertex;
 use anyhow::anyhow;
 use config::{ConfigHandle, GpuInfo, WebGpuPowerPreference};
 use std::cell::RefCell;
-use std::num::NonZeroU32;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use window::bitmaps::Texture2d;
@@ -94,8 +93,8 @@ impl Texture2d for WebGpuTexture {
             im.pixel_data_slice(),
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: NonZeroU32::new(im_width as u32 * 4),
-                rows_per_image: NonZeroU32::new(im_height as u32),
+                bytes_per_row: Some(im_width as u32 * 4),
+                rows_per_image: Some(im_height as u32),
             },
             wgpu::Extent3d {
                 width: im_width as u32,
