@@ -200,7 +200,6 @@ fn freetype() {
         "sfnt/sfnt.c",
         "smooth/smooth.c",
         "svg/ftsvg.c",
-        "svg/svg.c",
         "truetype/truetype.c",
         "type1/type1.c",
         "type42/type42.c",
