@@ -6,12 +6,6 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
 
-pub type __int8_t = ::std::os::raw::c_schar;
-pub type __uint8_t = ::std::os::raw::c_uchar;
-pub type __int16_t = ::std::os::raw::c_short;
-pub type __uint16_t = ::std::os::raw::c_ushort;
-pub type __int32_t = ::std::os::raw::c_int;
-pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -338,6 +332,19 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_color_get_blue(color: hb_color_t) -> u8;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_glyph_extents_t {
+    pub x_bearing: hb_position_t,
+    pub y_bearing: hb_position_t,
+    pub width: hb_position_t,
+    pub height: hb_position_t,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_font_t {
+    _unused: [u8; 0],
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -754,6 +761,9 @@ extern "C" {
     pub fn hb_set_invert(set: *mut hb_set_t);
 }
 extern "C" {
+    pub fn hb_set_is_inverted(set: *const hb_set_t) -> hb_bool_t;
+}
+extern "C" {
     pub fn hb_set_has(set: *const hb_set_t, codepoint: hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
@@ -835,6 +845,88 @@ extern "C" {
         out: *mut hb_codepoint_t,
         size: ::std::os::raw::c_uint,
     ) -> ::std::os::raw::c_uint;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_map_t {
+    _unused: [u8; 0],
+}
+extern "C" {
+    pub fn hb_map_create() -> *mut hb_map_t;
+}
+extern "C" {
+    pub fn hb_map_get_empty() -> *mut hb_map_t;
+}
+extern "C" {
+    pub fn hb_map_reference(map: *mut hb_map_t) -> *mut hb_map_t;
+}
+extern "C" {
+    pub fn hb_map_destroy(map: *mut hb_map_t);
+}
+extern "C" {
+    pub fn hb_map_set_user_data(
+        map: *mut hb_map_t,
+        key: *mut hb_user_data_key_t,
+        data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+        replace: hb_bool_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_get_user_data(
+        map: *const hb_map_t,
+        key: *mut hb_user_data_key_t,
+    ) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn hb_map_allocation_successful(map: *const hb_map_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_copy(map: *const hb_map_t) -> *mut hb_map_t;
+}
+extern "C" {
+    pub fn hb_map_clear(map: *mut hb_map_t);
+}
+extern "C" {
+    pub fn hb_map_is_empty(map: *const hb_map_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_get_population(map: *const hb_map_t) -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn hb_map_is_equal(map: *const hb_map_t, other: *const hb_map_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_hash(map: *const hb_map_t) -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn hb_map_set(map: *mut hb_map_t, key: hb_codepoint_t, value: hb_codepoint_t);
+}
+extern "C" {
+    pub fn hb_map_get(map: *const hb_map_t, key: hb_codepoint_t) -> hb_codepoint_t;
+}
+extern "C" {
+    pub fn hb_map_del(map: *mut hb_map_t, key: hb_codepoint_t);
+}
+extern "C" {
+    pub fn hb_map_has(map: *const hb_map_t, key: hb_codepoint_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_update(map: *mut hb_map_t, other: *const hb_map_t);
+}
+extern "C" {
+    pub fn hb_map_next(
+        map: *const hb_map_t,
+        idx: *mut ::std::os::raw::c_int,
+        key: *mut hb_codepoint_t,
+        value: *mut hb_codepoint_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_map_keys(map: *const hb_map_t, keys: *mut hb_set_t);
+}
+extern "C" {
+    pub fn hb_map_values(map: *const hb_map_t, values: *mut hb_set_t);
 }
 extern "C" {
     pub fn hb_face_count(blob: *mut hb_blob_t) -> ::std::os::raw::c_uint;
@@ -925,6 +1017,13 @@ extern "C" {
 }
 extern "C" {
     pub fn hb_face_collect_unicodes(face: *mut hb_face_t, out: *mut hb_set_t);
+}
+extern "C" {
+    pub fn hb_face_collect_nominal_glyph_mapping(
+        face: *mut hb_face_t,
+        mapping: *mut hb_map_t,
+        unicodes: *mut hb_set_t,
+    );
 }
 extern "C" {
     pub fn hb_face_collect_variation_selectors(face: *mut hb_face_t, out: *mut hb_set_t);
@@ -1068,10 +1167,28 @@ extern "C" {
     pub fn hb_draw_funcs_create() -> *mut hb_draw_funcs_t;
 }
 extern "C" {
+    pub fn hb_draw_funcs_get_empty() -> *mut hb_draw_funcs_t;
+}
+extern "C" {
     pub fn hb_draw_funcs_reference(dfuncs: *mut hb_draw_funcs_t) -> *mut hb_draw_funcs_t;
 }
 extern "C" {
     pub fn hb_draw_funcs_destroy(dfuncs: *mut hb_draw_funcs_t);
+}
+extern "C" {
+    pub fn hb_draw_funcs_set_user_data(
+        dfuncs: *mut hb_draw_funcs_t,
+        key: *mut hb_user_data_key_t,
+        data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+        replace: hb_bool_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_draw_funcs_get_user_data(
+        dfuncs: *const hb_draw_funcs_t,
+        key: *mut hb_user_data_key_t,
+    ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
     pub fn hb_draw_funcs_make_immutable(dfuncs: *mut hb_draw_funcs_t);
@@ -1130,8 +1247,486 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct hb_font_t {
+pub struct hb_paint_funcs_t {
     _unused: [u8; 0],
+}
+extern "C" {
+    pub fn hb_paint_funcs_create() -> *mut hb_paint_funcs_t;
+}
+extern "C" {
+    pub fn hb_paint_funcs_get_empty() -> *mut hb_paint_funcs_t;
+}
+extern "C" {
+    pub fn hb_paint_funcs_reference(funcs: *mut hb_paint_funcs_t) -> *mut hb_paint_funcs_t;
+}
+extern "C" {
+    pub fn hb_paint_funcs_destroy(funcs: *mut hb_paint_funcs_t);
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_user_data(
+        funcs: *mut hb_paint_funcs_t,
+        key: *mut hb_user_data_key_t,
+        data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+        replace: hb_bool_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_paint_funcs_get_user_data(
+        funcs: *const hb_paint_funcs_t,
+        key: *mut hb_user_data_key_t,
+    ) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn hb_paint_funcs_make_immutable(funcs: *mut hb_paint_funcs_t);
+}
+extern "C" {
+    pub fn hb_paint_funcs_is_immutable(funcs: *mut hb_paint_funcs_t) -> hb_bool_t;
+}
+pub type hb_paint_push_transform_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xx: f32,
+        yx: f32,
+        xy: f32,
+        yy: f32,
+        dx: f32,
+        dy: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_pop_transform_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_push_clip_glyph_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        font: *mut hb_font_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_push_clip_rectangle_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xmin: f32,
+        ymin: f32,
+        xmax: f32,
+        ymax: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_pop_clip_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_color_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        is_foreground: hb_bool_t,
+        color: hb_color_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_image_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        image: *mut hb_blob_t,
+        width: ::std::os::raw::c_uint,
+        height: ::std::os::raw::c_uint,
+        format: hb_tag_t,
+        slant: f32,
+        extents: *mut hb_glyph_extents_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_color_stop_t {
+    pub offset: f32,
+    pub is_foreground: hb_bool_t,
+    pub color: hb_color_t,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum hb_paint_extend_t {
+    HB_PAINT_EXTEND_PAD = 0,
+    HB_PAINT_EXTEND_REPEAT = 1,
+    HB_PAINT_EXTEND_REFLECT = 2,
+}
+pub type hb_color_line_get_color_stops_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        color_line: *mut hb_color_line_t,
+        color_line_data: *mut ::std::os::raw::c_void,
+        start: ::std::os::raw::c_uint,
+        count: *mut ::std::os::raw::c_uint,
+        color_stops: *mut hb_color_stop_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_uint,
+>;
+pub type hb_color_line_get_extend_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        color_line: *mut hb_color_line_t,
+        color_line_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_paint_extend_t,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hb_color_line_t {
+    pub data: *mut ::std::os::raw::c_void,
+    pub get_color_stops: hb_color_line_get_color_stops_func_t,
+    pub get_color_stops_user_data: *mut ::std::os::raw::c_void,
+    pub get_extend: hb_color_line_get_extend_func_t,
+    pub get_extend_user_data: *mut ::std::os::raw::c_void,
+    pub reserved0: *mut ::std::os::raw::c_void,
+    pub reserved1: *mut ::std::os::raw::c_void,
+    pub reserved2: *mut ::std::os::raw::c_void,
+    pub reserved3: *mut ::std::os::raw::c_void,
+    pub reserved5: *mut ::std::os::raw::c_void,
+    pub reserved6: *mut ::std::os::raw::c_void,
+    pub reserved7: *mut ::std::os::raw::c_void,
+    pub reserved8: *mut ::std::os::raw::c_void,
+}
+extern "C" {
+    pub fn hb_color_line_get_color_stops(
+        color_line: *mut hb_color_line_t,
+        start: ::std::os::raw::c_uint,
+        count: *mut ::std::os::raw::c_uint,
+        color_stops: *mut hb_color_stop_t,
+    ) -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn hb_color_line_get_extend(color_line: *mut hb_color_line_t) -> hb_paint_extend_t;
+}
+pub type hb_paint_linear_gradient_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_radial_gradient_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        r0: f32,
+        x1: f32,
+        y1: f32,
+        r1: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_sweep_gradient_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        start_angle: f32,
+        end_angle: f32,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum hb_paint_composite_mode_t {
+    HB_PAINT_COMPOSITE_MODE_CLEAR = 0,
+    HB_PAINT_COMPOSITE_MODE_SRC = 1,
+    HB_PAINT_COMPOSITE_MODE_DEST = 2,
+    HB_PAINT_COMPOSITE_MODE_SRC_OVER = 3,
+    HB_PAINT_COMPOSITE_MODE_DEST_OVER = 4,
+    HB_PAINT_COMPOSITE_MODE_SRC_IN = 5,
+    HB_PAINT_COMPOSITE_MODE_DEST_IN = 6,
+    HB_PAINT_COMPOSITE_MODE_SRC_OUT = 7,
+    HB_PAINT_COMPOSITE_MODE_DEST_OUT = 8,
+    HB_PAINT_COMPOSITE_MODE_SRC_ATOP = 9,
+    HB_PAINT_COMPOSITE_MODE_DEST_ATOP = 10,
+    HB_PAINT_COMPOSITE_MODE_XOR = 11,
+    HB_PAINT_COMPOSITE_MODE_PLUS = 12,
+    HB_PAINT_COMPOSITE_MODE_SCREEN = 13,
+    HB_PAINT_COMPOSITE_MODE_OVERLAY = 14,
+    HB_PAINT_COMPOSITE_MODE_DARKEN = 15,
+    HB_PAINT_COMPOSITE_MODE_LIGHTEN = 16,
+    HB_PAINT_COMPOSITE_MODE_COLOR_DODGE = 17,
+    HB_PAINT_COMPOSITE_MODE_COLOR_BURN = 18,
+    HB_PAINT_COMPOSITE_MODE_HARD_LIGHT = 19,
+    HB_PAINT_COMPOSITE_MODE_SOFT_LIGHT = 20,
+    HB_PAINT_COMPOSITE_MODE_DIFFERENCE = 21,
+    HB_PAINT_COMPOSITE_MODE_EXCLUSION = 22,
+    HB_PAINT_COMPOSITE_MODE_MULTIPLY = 23,
+    HB_PAINT_COMPOSITE_MODE_HSL_HUE = 24,
+    HB_PAINT_COMPOSITE_MODE_HSL_SATURATION = 25,
+    HB_PAINT_COMPOSITE_MODE_HSL_COLOR = 26,
+    HB_PAINT_COMPOSITE_MODE_HSL_LUMINOSITY = 27,
+}
+pub type hb_paint_push_group_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_pop_group_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        mode: hb_paint_composite_mode_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_paint_custom_palette_color_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_index: ::std::os::raw::c_uint,
+        color: *mut hb_color_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+extern "C" {
+    pub fn hb_paint_funcs_set_push_transform_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_push_transform_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_pop_transform_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_pop_transform_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_push_clip_glyph_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_push_clip_glyph_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_push_clip_rectangle_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_push_clip_rectangle_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_pop_clip_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_pop_clip_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_color_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_color_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_image_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_image_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_linear_gradient_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_linear_gradient_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_radial_gradient_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_radial_gradient_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_sweep_gradient_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_sweep_gradient_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_push_group_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_push_group_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_pop_group_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_pop_group_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_funcs_set_custom_palette_color_func(
+        funcs: *mut hb_paint_funcs_t,
+        func: hb_paint_custom_palette_color_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_push_transform(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xx: f32,
+        yx: f32,
+        xy: f32,
+        yy: f32,
+        dx: f32,
+        dy: f32,
+    );
+}
+extern "C" {
+    pub fn hb_paint_pop_transform(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    pub fn hb_paint_push_clip_glyph(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        font: *mut hb_font_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_push_clip_rectangle(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xmin: f32,
+        ymin: f32,
+        xmax: f32,
+        ymax: f32,
+    );
+}
+extern "C" {
+    pub fn hb_paint_pop_clip(funcs: *mut hb_paint_funcs_t, paint_data: *mut ::std::os::raw::c_void);
+}
+extern "C" {
+    pub fn hb_paint_color(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        is_foreground: hb_bool_t,
+        color: hb_color_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_image(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        image: *mut hb_blob_t,
+        width: ::std::os::raw::c_uint,
+        height: ::std::os::raw::c_uint,
+        format: hb_tag_t,
+        slant: f32,
+        extents: *mut hb_glyph_extents_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_linear_gradient(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+    );
+}
+extern "C" {
+    pub fn hb_paint_radial_gradient(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        r0: f32,
+        x1: f32,
+        y1: f32,
+        r1: f32,
+    );
+}
+extern "C" {
+    pub fn hb_paint_sweep_gradient(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        start_angle: f32,
+        end_angle: f32,
+    );
+}
+extern "C" {
+    pub fn hb_paint_push_group(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    pub fn hb_paint_pop_group(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        mode: hb_paint_composite_mode_t,
+    );
+}
+extern "C" {
+    pub fn hb_paint_custom_palette_color(
+        funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_index: ::std::os::raw::c_uint,
+        color: *mut hb_color_t,
+    ) -> hb_bool_t;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1186,14 +1781,6 @@ pub struct hb_font_extents_t {
     pub reserved3: hb_position_t,
     pub reserved2: hb_position_t,
     pub reserved1: hb_position_t,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct hb_glyph_extents_t {
-    pub x_bearing: hb_position_t,
-    pub y_bearing: hb_position_t,
-    pub width: hb_position_t,
-    pub height: hb_position_t,
 }
 pub type hb_font_get_font_extents_func_t = ::std::option::Option<
     unsafe extern "C" fn(
@@ -1329,6 +1916,28 @@ pub type hb_font_get_glyph_shape_func_t = ::std::option::Option<
         glyph: hb_codepoint_t,
         draw_funcs: *mut hb_draw_funcs_t,
         draw_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_font_draw_glyph_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        draw_funcs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+pub type hb_font_paint_glyph_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        paint_funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        palette_index: ::std::os::raw::c_uint,
+        foreground: hb_color_t,
         user_data: *mut ::std::os::raw::c_void,
     ),
 >;
@@ -1469,6 +2078,22 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn hb_font_funcs_set_draw_glyph_func(
+        ffuncs: *mut hb_font_funcs_t,
+        func: hb_font_draw_glyph_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_font_funcs_set_paint_glyph_func(
+        ffuncs: *mut hb_font_funcs_t,
+        func: hb_font_paint_glyph_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
     pub fn hb_font_get_h_extents(
         font: *mut hb_font_t,
         extents: *mut hb_font_extents_t,
@@ -1598,6 +2223,24 @@ extern "C" {
         glyph: hb_codepoint_t,
         dfuncs: *mut hb_draw_funcs_t,
         draw_data: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    pub fn hb_font_draw_glyph(
+        font: *mut hb_font_t,
+        glyph: hb_codepoint_t,
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+    );
+}
+extern "C" {
+    pub fn hb_font_paint_glyph(
+        font: *mut hb_font_t,
+        glyph: hb_codepoint_t,
+        pfuncs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        palette_index: ::std::os::raw::c_uint,
+        foreground: hb_color_t,
     );
 }
 extern "C" {
@@ -1810,6 +2453,22 @@ extern "C" {
     pub fn hb_font_get_ptem(font: *mut hb_font_t) -> f32;
 }
 extern "C" {
+    pub fn hb_font_set_synthetic_bold(
+        font: *mut hb_font_t,
+        x_embolden: f32,
+        y_embolden: f32,
+        in_place: hb_bool_t,
+    );
+}
+extern "C" {
+    pub fn hb_font_get_synthetic_bold(
+        font: *mut hb_font_t,
+        x_embolden: *mut f32,
+        y_embolden: *mut f32,
+        in_place: *mut hb_bool_t,
+    );
+}
+extern "C" {
     pub fn hb_font_set_synthetic_slant(font: *mut hb_font_t, slant: f32);
 }
 extern "C" {
@@ -1821,6 +2480,9 @@ extern "C" {
         variations: *const hb_variation_t,
         variations_length: ::std::os::raw::c_uint,
     );
+}
+extern "C" {
+    pub fn hb_font_set_variation(font: *mut hb_font_t, tag: hb_tag_t, value: f32);
 }
 extern "C" {
     pub fn hb_font_set_var_coords_design(
@@ -1853,6 +2515,9 @@ extern "C" {
         font: *mut hb_font_t,
         instance_index: ::std::os::raw::c_uint,
     );
+}
+extern "C" {
+    pub fn hb_font_get_var_named_instance(font: *mut hb_font_t) -> ::std::os::raw::c_uint;
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2381,71 +3046,6 @@ extern "C" {
         bottom_glyph: hb_codepoint_t,
     ) -> hb_position_t;
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct hb_map_t {
-    _unused: [u8; 0],
-}
-extern "C" {
-    pub fn hb_map_create() -> *mut hb_map_t;
-}
-extern "C" {
-    pub fn hb_map_get_empty() -> *mut hb_map_t;
-}
-extern "C" {
-    pub fn hb_map_reference(map: *mut hb_map_t) -> *mut hb_map_t;
-}
-extern "C" {
-    pub fn hb_map_destroy(map: *mut hb_map_t);
-}
-extern "C" {
-    pub fn hb_map_set_user_data(
-        map: *mut hb_map_t,
-        key: *mut hb_user_data_key_t,
-        data: *mut ::std::os::raw::c_void,
-        destroy: hb_destroy_func_t,
-        replace: hb_bool_t,
-    ) -> hb_bool_t;
-}
-extern "C" {
-    pub fn hb_map_get_user_data(
-        map: *const hb_map_t,
-        key: *mut hb_user_data_key_t,
-    ) -> *mut ::std::os::raw::c_void;
-}
-extern "C" {
-    pub fn hb_map_allocation_successful(map: *const hb_map_t) -> hb_bool_t;
-}
-extern "C" {
-    pub fn hb_map_copy(map: *const hb_map_t) -> *mut hb_map_t;
-}
-extern "C" {
-    pub fn hb_map_clear(map: *mut hb_map_t);
-}
-extern "C" {
-    pub fn hb_map_is_empty(map: *const hb_map_t) -> hb_bool_t;
-}
-extern "C" {
-    pub fn hb_map_get_population(map: *const hb_map_t) -> ::std::os::raw::c_uint;
-}
-extern "C" {
-    pub fn hb_map_is_equal(map: *const hb_map_t, other: *const hb_map_t) -> hb_bool_t;
-}
-extern "C" {
-    pub fn hb_map_hash(map: *const hb_map_t) -> ::std::os::raw::c_uint;
-}
-extern "C" {
-    pub fn hb_map_set(map: *mut hb_map_t, key: hb_codepoint_t, value: hb_codepoint_t);
-}
-extern "C" {
-    pub fn hb_map_get(map: *const hb_map_t, key: hb_codepoint_t) -> hb_codepoint_t;
-}
-extern "C" {
-    pub fn hb_map_del(map: *mut hb_map_t, key: hb_codepoint_t);
-}
-extern "C" {
-    pub fn hb_map_has(map: *const hb_map_t, key: hb_codepoint_t) -> hb_bool_t;
-}
 extern "C" {
     pub fn hb_shape(
         font: *mut hb_font_t,
@@ -2461,6 +3061,20 @@ extern "C" {
         features: *const hb_feature_t,
         num_features: ::std::os::raw::c_uint,
         shaper_list: *const *const ::std::os::raw::c_char,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_shape_justify(
+        font: *mut hb_font_t,
+        buffer: *mut hb_buffer_t,
+        features: *const hb_feature_t,
+        num_features: ::std::os::raw::c_uint,
+        shaper_list: *const *const ::std::os::raw::c_char,
+        min_target_advance: f32,
+        max_target_advance: f32,
+        advance: *mut f32,
+        var_tag: *mut hb_tag_t,
+        var_value: *mut f32,
     ) -> hb_bool_t;
 }
 extern "C" {
@@ -2948,6 +3562,36 @@ extern "C" {
 extern "C" {
     pub fn hb_ft_font_set_funcs(font: *mut hb_font_t);
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum hb_ot_name_id_predefined_t {
+    HB_OT_NAME_ID_COPYRIGHT = 0,
+    HB_OT_NAME_ID_FONT_FAMILY = 1,
+    HB_OT_NAME_ID_FONT_SUBFAMILY = 2,
+    HB_OT_NAME_ID_UNIQUE_ID = 3,
+    HB_OT_NAME_ID_FULL_NAME = 4,
+    HB_OT_NAME_ID_VERSION_STRING = 5,
+    HB_OT_NAME_ID_POSTSCRIPT_NAME = 6,
+    HB_OT_NAME_ID_TRADEMARK = 7,
+    HB_OT_NAME_ID_MANUFACTURER = 8,
+    HB_OT_NAME_ID_DESIGNER = 9,
+    HB_OT_NAME_ID_DESCRIPTION = 10,
+    HB_OT_NAME_ID_VENDOR_URL = 11,
+    HB_OT_NAME_ID_DESIGNER_URL = 12,
+    HB_OT_NAME_ID_LICENSE = 13,
+    HB_OT_NAME_ID_LICENSE_URL = 14,
+    HB_OT_NAME_ID_TYPOGRAPHIC_FAMILY = 16,
+    HB_OT_NAME_ID_TYPOGRAPHIC_SUBFAMILY = 17,
+    HB_OT_NAME_ID_MAC_FULL_NAME = 18,
+    HB_OT_NAME_ID_SAMPLE_TEXT = 19,
+    HB_OT_NAME_ID_CID_FINDFONT_NAME = 20,
+    HB_OT_NAME_ID_WWS_FAMILY = 21,
+    HB_OT_NAME_ID_WWS_SUBFAMILY = 22,
+    HB_OT_NAME_ID_LIGHT_BACKGROUND = 23,
+    HB_OT_NAME_ID_DARK_BACKGROUND = 24,
+    HB_OT_NAME_ID_VARIATIONS_PS_PREFIX = 25,
+    HB_OT_NAME_ID_INVALID = 65535,
+}
 pub type hb_ot_name_id_t = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3046,6 +3690,12 @@ extern "C" {
         layer_count: *mut ::std::os::raw::c_uint,
         layers: *mut hb_ot_color_layer_t,
     ) -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn hb_ot_color_has_paint(face: *mut hb_face_t) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_ot_color_glyph_has_paint(face: *mut hb_face_t, glyph: hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
     pub fn hb_ot_color_has_svg(face: *mut hb_face_t) -> hb_bool_t;
@@ -3243,6 +3893,17 @@ extern "C" {
         language_count: ::std::os::raw::c_uint,
         language_tags: *const hb_tag_t,
         language_index: *mut ::std::os::raw::c_uint,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_ot_layout_script_select_language2(
+        face: *mut hb_face_t,
+        table_tag: hb_tag_t,
+        script_index: ::std::os::raw::c_uint,
+        language_count: ::std::os::raw::c_uint,
+        language_tags: *const hb_tag_t,
+        language_index: *mut ::std::os::raw::c_uint,
+        chosen_language: *mut hb_tag_t,
     ) -> hb_bool_t;
 }
 extern "C" {
