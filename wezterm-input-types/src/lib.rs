@@ -114,6 +114,7 @@ impl KeyCode {
     pub fn is_modifier(&self) -> bool {
         match self {
             Self::Hyper
+            | Self::CapsLock
             | Self::Super
             | Self::Meta
             | Self::Shift

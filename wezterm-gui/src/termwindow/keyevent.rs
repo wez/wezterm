@@ -404,12 +404,14 @@ impl super::TermWindow {
                     if did_encode {
                         if is_down
                             && !keycode.is_modifier()
-                            && *keycode != KeyCode::CapsLock
                             && self.pane_state(pane.pane_id()).overlay.is_none()
                         {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
-                        if self.config.hide_mouse_cursor_when_typing {
+                        if is_down
+                            && self.config.hide_mouse_cursor_when_typing
+                            && !keycode.is_modifier()
+                        {
                             context.set_cursor(None);
                         }
                         if !keycode.is_modifier() {
@@ -707,7 +709,10 @@ impl super::TermWindow {
                     {
                         self.maybe_scroll_to_bottom_for_input(&pane);
                     }
-                    if self.config.hide_mouse_cursor_when_typing {
+                    if window_key.key_is_down
+                        && self.config.hide_mouse_cursor_when_typing
+                        && !key.is_modifier()
+                    {
                         context.set_cursor(None);
                     }
                     if !key.is_modifier() {

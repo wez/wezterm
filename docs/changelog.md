@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
   now depends on the window environment and the contents of
   [tiling_desktop_environments](config/lua/config/tiling_desktop_environments.md).
 * Added eigth block corner glyphs to custom block glyphs. Thanks to @joouha! #3559
+* Don't hide mouse cursor when pressing only modifier keys. #3570
 
 #### New
 
