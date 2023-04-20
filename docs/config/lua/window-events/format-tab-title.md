@@ -103,7 +103,7 @@ function tab_title(tab_info)
   end
   -- Otherwise, use the title from the active pane
   -- in that tab
-  return tab.active_pane.title
+  return tab_info.active_pane.title
 end
 
 wezterm.on(
