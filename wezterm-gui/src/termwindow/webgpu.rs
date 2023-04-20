@@ -22,6 +22,7 @@ pub struct ShaderUniform {
 
 pub struct WebGpuState {
     pub adapter_info: wgpu::AdapterInfo,
+    pub downlevel_caps: wgpu::DownlevelCapabilities,
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: Arc<wgpu::Queue>,
@@ -120,6 +121,15 @@ impl Texture2d for WebGpuTexture {
 impl WebGpuTexture {
     pub fn new(width: u32, height: u32, state: &WebGpuState) -> Self {
         let format = wgpu::TextureFormat::Rgba8UnormSrgb;
+        let view_formats = if state
+            .downlevel_caps
+            .flags
+            .contains(wgpu::DownlevelFlags::SURFACE_VIEW_FORMATS)
+        {
+            vec![format, format.remove_srgb_suffix()]
+        } else {
+            vec![]
+        };
         let texture = state.device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
                 width,
@@ -132,7 +142,7 @@ impl WebGpuTexture {
             format,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             label: Some("Texture Atlas"),
-            view_formats: &[format, format.remove_srgb_suffix()],
+            view_formats: &view_formats,
         });
         Self {
             texture,
@@ -314,6 +324,20 @@ impl WebGpuState {
             caps.formats[0]
         };
 
+        let downlevel_caps = adapter.get_downlevel_capabilities();
+        // Need to check that this is supported, as trying to set
+        // view_formats without it will cause surface.configure
+        // to panic
+        // <https://github.com/wez/wezterm/issues/3565>
+        let view_formats = if downlevel_caps
+            .flags
+            .contains(wgpu::DownlevelFlags::SURFACE_VIEW_FORMATS)
+        {
+            vec![format.add_srgb_suffix(), format.remove_srgb_suffix()]
+        } else {
+            vec![]
+        };
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
@@ -328,7 +352,7 @@ impl WebGpuState {
             } else {
                 wgpu::CompositeAlphaMode::Auto
             },
-            view_formats: vec![format.add_srgb_suffix(), format.remove_srgb_suffix()],
+            view_formats,
         };
         surface.configure(&device, &config);
 
@@ -440,6 +464,7 @@ impl WebGpuState {
 
         Ok(Self {
             adapter_info,
+            downlevel_caps,
             surface,
             device,
             queue,
