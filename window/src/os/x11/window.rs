@@ -408,7 +408,7 @@ impl XWindowInner {
                 })
             }
             _ => {
-                eprintln!("button {} is not implemented", detail);
+                log::trace!("button {} is not implemented", detail);
                 return Ok(());
             }
         };
@@ -599,7 +599,7 @@ impl XWindowInner {
                 self.events.dispatch(WindowEvent::MouseLeave);
             }
             _ => {
-                eprintln!("unhandled: {:?}", event);
+                log::warn!("unhandled: {:?}", event);
             }
         }
 
