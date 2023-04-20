@@ -1,14 +1,35 @@
-name: fedora35_tag
+name: fedora38_continuous
 
 on:
+  schedule:
+    - cron: "10 3 * * *"
   push:
-    tags:
-      - "20*"
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_fedora38_continuous.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:35"
+    container: "fedora:38"
+    env:
+      BUILD_REASON: "Schedule"
 
     steps:
       - name: "Install config manager"
@@ -38,7 +59,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "fedora35-None-2-${{ runner.os }}-cargo"
+          key: "fedora38-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -49,7 +70,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora35"
+          cache-key: "fedora38"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
@@ -58,12 +79,13 @@ jobs:
         run: "bash ci/deploy.sh"
       - name: "Move RPM"
         shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora38.rpm"
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora35"
+          name: "fedora38"
           path: "wezterm-*.rpm"
+          retention-days: 5
 
   upload:
     runs-on: ubuntu-latest
@@ -78,17 +100,12 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "fedora35"
+          name: "fedora38"
       - name: "Checksum"
         shell: bash
         run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Create pre-release"
+      - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
-      - name: "Upload to Tagged Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm *.sha256"

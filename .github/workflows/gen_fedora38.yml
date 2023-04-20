@@ -1,4 +1,4 @@
-name: fedora35
+name: fedora38
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - "**/*.rs"
       - "**/Cargo.lock"
       - "**/Cargo.toml"
-      - ".github/workflows/gen_fedora35.yml"
+      - ".github/workflows/gen_fedora38.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
       - "assets/open-wezterm-here"
@@ -25,7 +25,7 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "fedora:35"
+    container: "fedora:38"
 
     steps:
       - name: "Install config manager"
@@ -55,7 +55,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "fedora35-None-2-${{ runner.os }}-cargo"
+          key: "fedora38-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -66,7 +66,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "fedora35"
+          cache-key: "fedora38"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
@@ -79,5 +79,5 @@ jobs:
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "fedora35"
+          name: "fedora38"
           path: "wezterm-*.rpm"
