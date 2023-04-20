@@ -64,6 +64,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: font size is zoomed or window appears empty when first launched on a
   secondary monitor with different scaling settings from the primary monitor. #3503
 * X11/Wayland: CTRL/ALT didn't work as expected for non-latin keyboard layouts. #2845
+* X11: panic after a lot of horizontal touchpad scrolling. #3564
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
