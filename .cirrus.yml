@@ -1,7 +1,10 @@
-freebsd_instance:
-  image: freebsd-13-2-release-amd64
+compute_engine_instance:
+  image_project: freebsd-org-cloud-dev
+  image: family/freebsd-13-2
+  platform: freebsd
   cpu: 4
   memory: 8G
+  disk: 100 # Gb
 
 env:
   CIRRUS_CLONE_SUBMODULES: true
