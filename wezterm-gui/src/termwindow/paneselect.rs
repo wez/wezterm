@@ -19,6 +19,7 @@ pub struct PaneSelector {
     selection: RefCell<String>,
     alphabet: String,
     mode: PaneSelectMode,
+    was_zoomed: bool,
 }
 
 impl PaneSelector {
@@ -28,12 +29,22 @@ impl PaneSelector {
         } else {
             args.alphabet.clone()
         };
+
+        // Ensure that we are un-zoomed and remember the original state
+        let was_zoomed = {
+            let mux = Mux::get();
+            mux.get_active_tab_for_window(term_window.mux_window_id)
+                .map(|tab| tab.set_zoomed(false))
+                .unwrap_or(false)
+        };
+
         Self {
             element: RefCell::new(None),
             labels: RefCell::new(vec![]),
             selection: RefCell::new(String::new()),
             alphabet,
             mode: args.mode,
+            was_zoomed,
         }
     }
 
@@ -165,6 +176,10 @@ impl PaneSelector {
                     tab.swap_active_with_index(pane_index);
                 }
             }
+        }
+
+        if self.was_zoomed {
+            tab.set_zoomed(true);
         }
 
         term_window.cancel_modal();

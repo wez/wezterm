@@ -30,6 +30,8 @@ As features stabilize some brief notes about them will accumulate here.
   [tiling_desktop_environments](config/lua/config/tiling_desktop_environments.md).
 * Added eigth block corner glyphs to custom block glyphs. Thanks to @joouha! #3559
 * Don't hide mouse cursor when pressing only modifier keys. #3570
+* [PaneSelect](config/lua/keyassignment/PaneSelect.md) will now un-zoom to show
+  all panes, then re-zoom after performing its action. #3573
 
 #### New
 
