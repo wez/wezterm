@@ -4774,8 +4774,9 @@ dependencies = [
 
 [[package]]
 name = "spa"
-version = "0.3.0"
-source = "git+https://github.com/wez/spa-rs.git?rev=b7b5bc5e1cec209dd1595a2592b89171e46ef378#b7b5bc5e1cec209dd1595a2592b89171e46ef378"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab074195b3f78a133cd7b7998142cf39dfaac71f6e990eaeecd14f5524db009a"
 dependencies = [
  "chrono",
 ]
