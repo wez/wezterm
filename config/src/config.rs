@@ -627,6 +627,12 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub hide_mouse_cursor_when_typing: bool,
 
+    /// If true, the mouse cursor will be an arrow if
+    /// the application has captured the mouse.
+    /// This option is true by default.
+    #[dynamic(default = "default_true")]
+    pub use_arrow_mouse_cursor_when_mouse_reporting: bool,
+
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of
     /// 10 seconds.
