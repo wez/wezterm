@@ -201,7 +201,7 @@ impl Error {
         }
 
         if options.unknown_fields == UnknownFieldAction::Deny {
-            for err in errors {
+            if let Some(err) = errors.into_iter().next() {
                 return Err(err);
             }
         }
