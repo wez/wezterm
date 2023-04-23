@@ -71,6 +71,8 @@ As features stabilize some brief notes about them will accumulate here.
 * X11/Wayland: CTRL/ALT didn't work as expected for non-latin keyboard layouts. #2845
 * X11: panic after a lot of horizontal touchpad scrolling. #3564
 * Wayland: mouse cursor wouldn't reappear after keyboard input hides it. #3334
+* WebGPU: `window_background_opacity` was not always enabled when using a
+  vulkan backend. #3589
 
 #### Updated
 * Bundled harfbuzz to 7.1.0

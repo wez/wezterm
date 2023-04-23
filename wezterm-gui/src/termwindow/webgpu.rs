@@ -349,6 +349,11 @@ impl WebGpuState {
                 .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
             {
                 wgpu::CompositeAlphaMode::PostMultiplied
+            } else if caps
+                .alpha_modes
+                .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+            {
+                wgpu::CompositeAlphaMode::PreMultiplied
             } else {
                 wgpu::CompositeAlphaMode::Auto
             },
