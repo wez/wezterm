@@ -5,19 +5,23 @@ use crate::termwindow::render::corners::{
     BOTTOM_LEFT_ROUNDED_CORNER, BOTTOM_RIGHT_ROUNDED_CORNER, TOP_LEFT_ROUNDED_CORNER,
     TOP_RIGHT_ROUNDED_CORNER,
 };
-use crate::termwindow::{DimensionContext, TermWindow};
+use crate::termwindow::{DimensionContext, GuiWin, TermWindow};
 use crate::utilsprites::RenderMetrics;
 use config::keyassignment::KeyAssignment;
 use config::Dimension;
 use frecency::Frecency;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use luahelper::{from_lua_value_dynamic, impl_lua_conversion_dynamic};
+use mux_lua::MuxPane;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use termwiz::nerdfonts::NERD_FONTS;
+use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
 use window::Modifiers;
@@ -75,8 +79,55 @@ fn save_recent(command: &ExpandedCommand) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn build_commands(filter_copy_mode: bool) -> Vec<ExpandedCommand> {
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+pub struct UserPaletteEntry {
+    pub brief: String,
+    pub doc: Option<String>,
+    pub action: KeyAssignment,
+    pub icon: Option<String>,
+}
+impl_lua_conversion_dynamic!(UserPaletteEntry);
+
+fn build_commands(
+    gui_window: GuiWin,
+    pane: Option<MuxPane>,
+    filter_copy_mode: bool,
+) -> Vec<ExpandedCommand> {
     let mut commands = CommandDef::actions_for_palette_and_menubar(&config::configuration());
+
+    match config::run_immediate_with_lua_config(|lua| {
+        let mut entries: Vec<UserPaletteEntry> = vec![];
+
+        if let Some(lua) = lua {
+            let result = config::lua::emit_sync_callback(
+                &*lua,
+                ("augment-command-palette".to_string(), (gui_window, pane)),
+            )?;
+
+            entries = from_lua_value_dynamic(result)?;
+        }
+
+        Ok(entries)
+    }) {
+        Ok(entries) => {
+            for entry in entries {
+                commands.push(ExpandedCommand {
+                    brief: entry.brief.into(),
+                    doc: match entry.doc {
+                        Some(doc) => doc.into(),
+                        None => "".into(),
+                    },
+                    action: entry.action,
+                    keys: vec![],
+                    menubar: &[],
+                    icon: entry.icon.map(Cow::Owned),
+                });
+            }
+        }
+        Err(err) => {
+            log::warn!("augment-command-palette: {err:#}");
+        }
+    }
 
     commands.retain(|cmd| {
         if filter_copy_mode {
@@ -175,7 +226,12 @@ impl CommandPalette {
                     .is_none()
             })
             .unwrap_or(true);
-        let commands = build_commands(filter_copy_mode);
+
+        let mux_pane = term_window
+            .get_active_pane_or_overlay()
+            .map(|pane| MuxPane(pane.pane_id()));
+
+        let commands = build_commands(GuiWin::new(term_window), mux_pane, filter_copy_mode);
 
         Self {
             element: RefCell::new(None),
@@ -242,7 +298,7 @@ impl CommandPalette {
             };
 
             let icon = match &command.icon {
-                Some(nf) => NERD_FONTS.get(nf).unwrap_or_else(|| {
+                Some(nf) => NERD_FONTS.get(nf.as_ref()).unwrap_or_else(|| {
                     log::error!("nerdfont {nf} not found in NERD_FONTS");
                     &'?'
                 }),

@@ -74,7 +74,7 @@ pub struct ExpandedCommand {
     pub action: KeyAssignment,
     pub keys: Vec<(Modifiers, KeyCode)>,
     pub menubar: &'static [&'static str],
-    pub icon: Option<&'static str>,
+    pub icon: Option<Cow<'static, str>>,
 }
 
 impl std::fmt::Debug for CommandDef {
@@ -177,7 +177,7 @@ impl CommandDef {
                     keys,
                     action,
                     menubar: def.menubar,
-                    icon: def.icon,
+                    icon: def.icon.map(Cow::Borrowed),
                 })
             }
         }
@@ -214,7 +214,7 @@ impl CommandDef {
                 keys: vec![],
                 action: KeyAssignment::SpawnCommandInNewTab(cmd.clone()),
                 menubar: &["Shell"],
-                icon: Some("mdi_tab_plus"),
+                icon: Some("mdi_tab_plus".into()),
             });
         }
 
@@ -249,7 +249,7 @@ impl CommandDef {
                                 ..SpawnCommand::default()
                             }),
                             menubar: &["Shell"],
-                            icon: Some("mdi_tab_plus"),
+                            icon: Some("mdi_tab_plus".into()),
                         });
                     } else {
                         result.push(ExpandedCommand {
@@ -258,7 +258,7 @@ impl CommandDef {
                             keys: vec![],
                             action: KeyAssignment::AttachDomain(name.to_string()),
                             menubar: &["Shell", "Attach"],
-                            icon: Some("mdi_pipe"),
+                            icon: Some("mdi_pipe".into()),
                         });
                     }
                 }
@@ -280,7 +280,7 @@ impl CommandDef {
                             name.to_string(),
                         )),
                         menubar: &["Shell", "Detach"],
-                        icon: Some("mdi_pipe_disconnected"),
+                        icon: Some("mdi_pipe_disconnected".into()),
                     });
                 }
             }
@@ -331,7 +331,7 @@ impl CommandDef {
                     keys: vec![(*mods, keycode.clone())],
                     action: entry.action.clone(),
                     menubar: cmd.menubar,
-                    icon: cmd.icon,
+                    icon: cmd.icon.map(Cow::Borrowed),
                 });
             }
         }
@@ -351,7 +351,7 @@ impl CommandDef {
                         keys: vec![],
                         action: entry.action.clone(),
                         menubar: cmd.menubar,
-                        icon: cmd.icon,
+                        icon: cmd.icon.map(Cow::Borrowed),
                     });
                 }
             }
