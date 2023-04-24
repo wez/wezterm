@@ -335,7 +335,17 @@ impl WebGpuState {
         {
             vec![format.add_srgb_suffix(), format.remove_srgb_suffix()]
         } else {
-            vec![]
+            log::warn!(
+                "Attempting to use adapter: {adapter_info:?} \
+                which has capabilities: {caps:?} \
+                and downlevel capabilities: {downlevel_caps:?}. \
+                SURFACE_VIEW_FORMATS is required but not supported"
+            );
+
+            anyhow::bail!(
+                "wgpu reports that SURFACE_VIEW_FORMATS is not \
+                 supported. Please try a different adapter or setting front_end='OpenGL'"
+            );
         };
 
         let config = wgpu::SurfaceConfiguration {
