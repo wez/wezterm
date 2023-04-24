@@ -437,11 +437,20 @@ impl CommandDef {
                     } else if cmd.menubar[0] == "WezTerm" {
                         menu.assign_as_app_menu();
 
-                        menu.add_item(&MenuItem::new_with(
-                            "About WezTerm",
-                            Some(sel!(weztermShowAbout:)),
+                        let about_item = MenuItem::new_with(
+                            &format!("WezTerm {}", config::wezterm_version()),
+                            Some(wezterm_perform_key_assignment_sel),
                             "",
+                        );
+                        about_item.set_tool_tip("Click to copy version number");
+                        about_item.set_represented_item(RepresentedItem::KeyAssignment(
+                            KeyAssignment::CopyTextTo {
+                                text: config::wezterm_version().to_string(),
+                                destination: ClipboardCopyDestination::ClipboardAndPrimarySelection,
+                            },
                         ));
+
+                        menu.add_item(&about_item);
                         menu.add_item(&MenuItem::new_separator());
 
                         // FIXME: when we set this as the services menu,
@@ -614,7 +623,11 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("mdi_content_paste"),
         },
-        CopyTo(ClipboardCopyDestination::PrimarySelection) => CommandDef {
+        CopyTextTo {
+            text: _,
+            destination: ClipboardCopyDestination::PrimarySelection,
+        }
+        | CopyTo(ClipboardCopyDestination::PrimarySelection) => CommandDef {
             brief: "Copy to primary selection".into(),
             doc: "Copies text to the primary selection".into(),
             keys: vec![(Modifiers::CTRL, "Insert".into())],
@@ -622,7 +635,11 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("mdi_content_copy"),
         },
-        CopyTo(ClipboardCopyDestination::Clipboard) => CommandDef {
+        CopyTextTo {
+            text: _,
+            destination: ClipboardCopyDestination::Clipboard,
+        }
+        | CopyTo(ClipboardCopyDestination::Clipboard) => CommandDef {
             brief: "Copy to clipboard".into(),
             doc: "Copies text to the clipboard".into(),
             keys: vec![
@@ -633,7 +650,11 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             menubar: &["Edit"],
             icon: Some("mdi_content_copy"),
         },
-        CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection) => CommandDef {
+        CopyTextTo {
+            text: _,
+            destination: ClipboardCopyDestination::ClipboardAndPrimarySelection,
+        }
+        | CopyTo(ClipboardCopyDestination::ClipboardAndPrimarySelection) => CommandDef {
             brief: "Copy to clipboard and primary selection".into(),
             doc: "Copies text to the clipboard and the primary selection".into(),
             keys: vec![(Modifiers::CTRL, "Insert".into())],

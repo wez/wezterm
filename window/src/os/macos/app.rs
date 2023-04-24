@@ -3,7 +3,7 @@ use crate::macos::menu::RepresentedItem;
 use crate::macos::{nsstring, nsstring_to_str};
 use crate::menu::{Menu, MenuItem};
 use crate::{ApplicationEvent, Connection};
-use cocoa::appkit::{NSApp, NSApplicationTerminateReply};
+use cocoa::appkit::NSApplicationTerminateReply;
 use cocoa::base::id;
 use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
@@ -13,16 +13,6 @@ use objc::runtime::{Class, Object, Sel, BOOL, NO, YES};
 use objc::*;
 
 const CLS_NAME: &str = "WezTermAppDelegate";
-
-#[allow(unused)]
-#[link(name = "AppKit", kind = "framework")]
-extern "C" {
-    pub static NSAboutPanelOptionCredits: id;
-    pub static NSAboutPanelOptionApplicationName: id;
-    pub static NSAboutPanelOptionApplicationIcon: id;
-    pub static NSAboutPanelOptionVersion: id;
-    pub static NSAboutPanelOptionApplicationVersion: id;
-}
 
 extern "C" fn application_should_terminate(
     _self: &mut Object,
@@ -112,29 +102,6 @@ extern "C" fn wezterm_perform_key_assignment(
     }
 }
 
-/// Show an about dialog with the version information
-extern "C" fn wezterm_show_about(_self: &mut Object, _sel: Sel, _menu_item: *mut Object) {
-    unsafe {
-        let ns_app = NSApp();
-
-        let credits = nsstring("Copyright (c) 2018-Present Wez Furlong");
-        let credits = {
-            let attr: id = msg_send![class!(NSAttributedString), alloc];
-            let () = msg_send![attr, initWithString:*credits];
-            attr
-        };
-        let version = nsstring(config::wezterm_version());
-
-        let dict: id = msg_send![class!(NSMutableDictionary), alloc];
-        let dict: id = msg_send![dict, init];
-        let () = msg_send![dict, setObject:*version forKey:NSAboutPanelOptionVersion];
-        let () = msg_send![dict, setObject:*version forKey:NSAboutPanelOptionApplicationVersion];
-        let () = msg_send![dict, setObject:credits forKey:NSAboutPanelOptionCredits];
-
-        let () = msg_send![ns_app, orderFrontStandardAboutPanelWithOptions: dict];
-    }
-}
-
 extern "C" fn application_open_file(
     this: &mut Object,
     _sel: Sel,
@@ -197,10 +164,6 @@ fn get_class() -> &'static Class {
             cls.add_method(
                 sel!(weztermPerformKeyAssignment:),
                 wezterm_perform_key_assignment as extern "C" fn(&mut Object, Sel, *mut Object),
-            );
-            cls.add_method(
-                sel!(weztermShowAbout:),
-                wezterm_show_about as extern "C" fn(&mut Object, Sel, *mut Object),
             );
             cls.add_method(
                 sel!(applicationOpenUntitledFile:),

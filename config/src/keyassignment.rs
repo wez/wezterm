@@ -477,6 +477,10 @@ pub enum KeyAssignment {
     SpawnWindow,
     ToggleFullScreen,
     CopyTo(ClipboardCopyDestination),
+    CopyTextTo {
+        text: String,
+        destination: ClipboardCopyDestination,
+    },
     PasteFrom(ClipboardPasteSource),
     ActivateTabRelative(isize),
     ActivateTabRelativeNoWrap(isize),
