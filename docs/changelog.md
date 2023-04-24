@@ -73,6 +73,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Wayland: mouse cursor wouldn't reappear after keyboard input hides it. #3334
 * WebGPU: `window_background_opacity` was not always enabled when using a
   vulkan backend. #3589
+* macOS: hang or crash when trying to copy or right click the about dialog.
+  The about dialog has been replaced with a menu item that you can click to
+  copy the version number. #3507 #3585
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
