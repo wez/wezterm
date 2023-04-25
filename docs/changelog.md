@@ -76,6 +76,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: hang or crash when trying to copy or right click the about dialog.
   The about dialog has been replaced with a menu item that you can click to
   copy the version number. #3507 #3585
+* Synthesized italics were double-skewed. Thanks to @rozbb! #3613 #3555
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
