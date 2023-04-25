@@ -1,8 +1,8 @@
 use crate::parser::ParsedFont;
-use crate::rasterizer::FontRasterizer;
+use crate::rasterizer::{FontRasterizer, FAKE_ITALIC_SKEW};
 use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
-use ::freetype::{FT_GlyphSlotRec_, FT_Glyph_Format, FT_Matrix};
+use ::freetype::{FT_GlyphSlotRec_, FT_Matrix};
 use anyhow::bail;
 use config::{DisplayPixelGeometry, FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
@@ -14,7 +14,6 @@ pub struct FreeTypeRasterizer {
     face: RefCell<ftwrap::Face>,
     _lib: ftwrap::Library,
     synthesize_bold: bool,
-    synthesize_italic: bool,
     freetype_load_target: Option<FreeTypeLoadTarget>,
     freetype_render_target: Option<FreeTypeLoadTarget>,
     freetype_load_flags: Option<FreeTypeLoadFlags>,
@@ -63,13 +62,7 @@ impl FontRasterizer for FreeTypeRasterizer {
             mode => bail!("unhandled pixel mode: {:?}", mode),
         };
 
-        let slot = unsafe { &mut *(*face.face).glyph };
-        if self.synthesize_italic && slot.format == FT_Glyph_Format::FT_GLYPH_FORMAT_BITMAP {
-            // The source was and thus the italic transform did nothing
-            Ok(glyph.skew())
-        } else {
-            Ok(glyph)
-        }
+        Ok(glyph)
     }
 }
 
@@ -314,10 +307,10 @@ impl FreeTypeRasterizer {
 
         if parsed.synthesize_italic {
             face.set_transform(Some(FT_Matrix {
-                xx: 1 * 65536,            // scale x
-                yy: 1 * 65536,            // scale y
-                xy: (0.2 * 65536.0) as _, // skew x
-                yx: 0 * 65536,            // skey y
+                xx: 1 * 65536,                         // scale x
+                yy: 1 * 65536,                         // scale y
+                xy: (FAKE_ITALIC_SKEW * 65536.0) as _, // skew x
+                yx: 0 * 65536,                         // skew y
             }));
         }
 
@@ -326,7 +319,6 @@ impl FreeTypeRasterizer {
             face: RefCell::new(face),
             has_color,
             synthesize_bold: parsed.synthesize_bold,
-            synthesize_italic: parsed.synthesize_italic,
             freetype_load_flags: parsed.freetype_load_flags,
             freetype_load_target: parsed.freetype_load_target,
             freetype_render_target: parsed.freetype_render_target,
