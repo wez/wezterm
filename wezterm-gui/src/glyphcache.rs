@@ -317,7 +317,8 @@ impl FrameDecoder {
             .next()
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Image format is not fully supported by \
+                    "Unable to decode image data. Either it is corrupt, or \
+                    the Image format is not fully supported by \
                     https://github.com/image-rs/image/blob/master/README.md#supported-image-formats")
             })?;
         let frame = frame.context("first frame result")?;
@@ -386,15 +387,22 @@ struct FrameState {
 
 impl FrameState {
     fn new(rx: Receiver<DecodedFrame>) -> Self {
-        static EMPTY: Lazy<BlobLease> = Lazy::new(|| BlobManager::store(&[0u8; 4]).unwrap());
+        const BLACK_SIZE: usize = 8;
+        static BLACK: Lazy<BlobLease> = Lazy::new(|| {
+            let mut data = vec![];
+            for _ in 0..BLACK_SIZE * BLACK_SIZE {
+                data.extend_from_slice(&[0, 0, 0, 0xff]);
+            }
+            BlobManager::store(&data).unwrap()
+        });
 
         Self {
             source: FrameSource::Decoder(rx),
             frames: vec![],
             current_frame: DecodedFrame {
-                lease: EMPTY.clone(),
-                width: 1,
-                height: 1,
+                lease: BLACK.clone(),
+                width: BLACK_SIZE,
+                height: BLACK_SIZE,
                 duration: Duration::from_millis(0),
             },
         }
@@ -412,7 +420,7 @@ impl FrameState {
                 Err(TryRecvError::Disconnected) => {
                     self.source = FrameSource::FrameIndex(0);
                     if self.frames.is_empty() {
-                        log::warn!("decoder thread terminated");
+                        log::warn!("image decoder thread terminated");
                         self.current_frame.duration = Duration::from_secs(86400);
                         self.frames.push(self.current_frame.clone());
                         false
@@ -463,8 +471,7 @@ pub struct DecodedImage {
 
 impl DecodedImage {
     fn placeholder() -> Self {
-        // A single black pixel
-        let image = ImageData::with_data(ImageDataType::new_single_frame(1, 1, vec![0, 0, 0, 0]));
+        let image = ImageData::with_data(ImageDataType::placeholder());
         Self {
             frame_start: RefCell::new(Instant::now()),
             current_frame: RefCell::new(0),

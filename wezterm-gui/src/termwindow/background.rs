@@ -206,7 +206,7 @@ impl CachedImage {
         let data = std::fs::read(path)
             .with_context(|| format!("Failed to load window_background_image {}", path))?;
         log::trace!("loaded {}", path);
-        let mut data = ImageDataType::EncodedFile(data).decode();
+        let mut data = ImageDataType::EncodedFile(data);
         data.adjust_speed(speed);
         let image = Arc::new(ImageData::with_data(data));
 
