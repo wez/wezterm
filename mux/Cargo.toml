@@ -39,7 +39,7 @@ serial = "0.4"
 shell-words = "1.1"
 smol = "1.2"
 terminfo = "0.8"
-termwiz = { path = "../termwiz" }
+termwiz = { path = "../termwiz", features=["tmux"] }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
 thiserror = "1.0"
