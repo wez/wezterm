@@ -78,6 +78,7 @@ As features stabilize some brief notes about them will accumulate here.
   copy the version number. #3507 #3585
 * Synthesized italics were double-skewed. Thanks to @rozbb! #3613 #3555
 * Panic when using corrupt/invalid webp images as window background #3614
+* imgcat broken when using `wezterm ssh`. #3624
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
