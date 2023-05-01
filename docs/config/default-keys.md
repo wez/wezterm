@@ -70,7 +70,7 @@ in a form that you can copy and paste into your own configuration.
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` {{since('20210814-124438-54e29167', inline=True)}}|
-| `CTRL+SHIFT`     | `P`    | `PaneSelect` {{since('20220903-194523-3bb1ed61', inline=True)}}|
+| `CTRL+SHIFT`     | `P`    | `ActivateCommandPalette` {{since('20230320-124340-559cb7b0', inline=True)}}|
 | `CTRL+SHIFT`     | `U`    | `CharSelect` {{since('20220903-194523-3bb1ed61', inline=True)}}|
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
