@@ -44,7 +44,7 @@ config = { path = "../config" }
 downcast-rs = "1.0"
 dhat = {version="0.3", optional=true}
 dirs-next = "2.0"
-emojis = "0.5"
+emojis = "0.6"
 env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
 fastrand = "1.6"
