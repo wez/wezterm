@@ -3,6 +3,7 @@
 
 use super::keycodes::*;
 use super::{nsstring, nsstring_to_str};
+use crate::clipboard::Clipboard as ClipboardContext;
 use crate::connection::ConnectionOps;
 use crate::os::macos::menu::{MenuItem, RepresentedItem};
 use crate::parameters::{Border, Parameters, TitleBar};
@@ -14,7 +15,6 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
-use clipboard_macos::Clipboard as ClipboardContext;
 use cocoa::appkit::{
     self, CGFloat, NSApplication, NSApplicationActivateIgnoringOtherApps,
     NSApplicationPresentationOptions, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
@@ -767,15 +767,13 @@ impl WindowOps for Window {
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         Future::result(
             ClipboardContext::new()
-                .and_then(|ctx| ctx.read())
+                .read()
                 .map_err(|e| anyhow!("Failed to get clipboard:{}", e)),
         )
     }
 
     fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
-        ClipboardContext::new()
-            .and_then(|mut ctx| ctx.write(text))
-            .ok();
+        ClipboardContext::new().write(text).ok();
     }
 
     fn toggle_fullscreen(&self) {
