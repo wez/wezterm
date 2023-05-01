@@ -6,6 +6,7 @@ use objc::*;
 
 mod app;
 pub mod bitmap;
+pub mod clipboard;
 pub mod connection;
 pub mod menu;
 pub mod window;
