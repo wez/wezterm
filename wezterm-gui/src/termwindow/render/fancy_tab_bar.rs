@@ -309,6 +309,7 @@ impl crate::TermWindow {
             .window_decorations
             .contains(::window::WindowDecorations::INTEGRATED_BUTTONS)
             && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            && !self.window_state.contains(window::WindowState::FULL_SCREEN)
         {
             left_status.push(
                 Element::new(&font, ElementContent::Text("".to_string())).margin(BoxDimension {
