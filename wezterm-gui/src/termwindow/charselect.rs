@@ -18,6 +18,7 @@ use fuzzy_matcher::FuzzyMatcher;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use termwiz::input::Modifiers;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
@@ -268,45 +269,54 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
         } else {
             None
         };
+        // Use a hash map to remove duplicates, as the same emoji may match multiple times with a different name.
+        let mut matches = HashMap::<String, MatchResult>::new();
 
         let start = std::time::Instant::now();
-        let mut scores: Vec<MatchResult> = aliases
-            .iter()
-            .enumerate()
-            .filter_map(|(row_idx, entry)| {
-                let alias_result = matcher
-                    .fuzzy_match(&entry.name, selection)
-                    .map(|score| MatchResult::new(row_idx, score, selection, aliases));
-                match &numeric_selection {
-                    Some(sel) => {
-                        let codepoints = entry.codepoints();
-                        if codepoints == *sel {
-                            Some(MatchResult {
-                                row_idx,
-                                score: i64::max_value(),
-                            })
-                        } else {
-                            let number_result = matcher
-                                .fuzzy_match(&codepoints, &sel)
-                                .map(|score| MatchResult::new(row_idx, score, sel, aliases));
+        for (row_idx, entry) in aliases.iter().enumerate() {
+            let glyph = entry.glyph();
+            let alias_result = matcher
+                .fuzzy_match(&entry.name, selection)
+                .map(|score| MatchResult::new(row_idx, score, selection, aliases));
+            if let Some(value) = match &numeric_selection {
+                Some(sel) => {
+                    let codepoints = entry.codepoints();
+                    if codepoints == *sel {
+                        Some(MatchResult {
+                            row_idx,
+                            score: i64::max_value(),
+                        })
+                    } else {
+                        let number_result = matcher
+                            .fuzzy_match(&codepoints, &sel)
+                            .map(|score| MatchResult::new(row_idx, score, sel, aliases));
 
-                            match (alias_result, number_result) {
-                                (
-                                    Some(MatchResult { score: a, .. }),
-                                    Some(MatchResult { score: b, .. }),
-                                ) => Some(MatchResult {
-                                    row_idx,
-                                    score: a.max(b),
-                                }),
-                                (Some(a), None) | (None, Some(a)) => Some(a),
-                                (None, None) => None,
-                            }
+                        match (alias_result, number_result) {
+                            (
+                                Some(MatchResult { score: a, .. }),
+                                Some(MatchResult { score: b, .. }),
+                            ) => Some(MatchResult {
+                                row_idx,
+                                score: a.max(b),
+                            }),
+                            (Some(a), None) | (None, Some(a)) => Some(a),
+                            (None, None) => None,
                         }
                     }
-                    None => alias_result,
                 }
-            })
-            .collect();
+                None => alias_result,
+            } {
+                if let Some(other) = matches.get_mut(&glyph) {
+                    // if the character was inserted already, replace it only if the score is improved
+                    if other.score < value.score {
+                        *other = value;
+                    }
+                } else {
+                    matches.insert(glyph, value);
+                }
+            }
+        }
+        let mut scores: Vec<MatchResult> = matches.into_values().collect();
         scores.sort_by(|a, b| a.score.cmp(&b.score).reverse());
         log::trace!("matching took {:?}", start.elapsed());
 
