@@ -84,6 +84,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Synthesized italics were double-skewed. Thanks to @rozbb! #3613 #3555
 * Panic when using corrupt/invalid webp images as window background #3614
 * imgcat broken when using `wezterm ssh`. #3624
+* macOS: pasting file(s) will now paste the quoted full path(s) rather than
+  just the basename of the path. Thanks to @junnplus! #3663 #3665
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
