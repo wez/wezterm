@@ -32,6 +32,11 @@ As features stabilize some brief notes about them will accumulate here.
 * Don't hide mouse cursor when pressing only modifier keys. #3570
 * [PaneSelect](config/lua/keyassignment/PaneSelect.md) will now un-zoom to show
   all panes, then re-zoom after performing its action. #3573
+* Images, especially animated images, are now decoded in the background. When
+  used as a background layer for the terminal, we now use the normal
+  terminal background color as a placeholder until the first frame has been
+  decoded. In other circumstances, you may observe a brief black frame while
+  waiting for the image to decode.
 
 #### New
 

@@ -432,7 +432,7 @@ impl crate::TermWindow {
             padding.next_power_of_two()
         };
 
-        let (sprite, next_due) = gl_state
+        let (sprite, next_due, _load_state) = gl_state
             .glyph_cache
             .borrow_mut()
             .cached_image(image.image_data(), Some(padding))?;

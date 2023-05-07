@@ -171,6 +171,8 @@ impl crate::TermWindow {
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
+        let mut paint_terminal_background = false;
+
         // Render the full window background
         match (self.window_background.is_empty(), self.allow_images) {
             (false, true) => {
@@ -185,8 +187,16 @@ impl crate::TermWindow {
                     })
                     .unwrap_or(0);
 
-                self.render_backgrounds(bg_color, top)
+                let loaded_any = self
+                    .render_backgrounds(bg_color, top)
                     .context("render_backgrounds")?;
+
+                if !loaded_any {
+                    // Either there was a problem loading the background(s)
+                    // or they haven't finished loading yet.
+                    // Use the regular terminal background until that changes.
+                    paint_terminal_background = true;
+                }
             }
             _ if window_is_transparent => {
                 // Avoid doubling up the background color: the panes
@@ -194,30 +204,34 @@ impl crate::TermWindow {
                 // should be no gaps that need filling in
             }
             _ => {
-                // Regular window background color
-                let background = if panes.len() == 1 {
-                    // If we're the only pane, use the pane's palette
-                    // to draw the padding background
-                    panes[0].pane.palette().background
-                } else {
-                    self.palette().background
-                }
-                .to_linear()
-                .mul_alpha(self.config.window_background_opacity);
-
-                self.filled_rectangle(
-                    &mut layers,
-                    0,
-                    euclid::rect(
-                        0.,
-                        0.,
-                        self.dimensions.pixel_width as f32,
-                        self.dimensions.pixel_height as f32,
-                    ),
-                    background,
-                )
-                .context("filled_rectangle for window background")?;
+                paint_terminal_background = true;
             }
+        }
+
+        if paint_terminal_background {
+            // Regular window background color
+            let background = if panes.len() == 1 {
+                // If we're the only pane, use the pane's palette
+                // to draw the padding background
+                panes[0].pane.palette().background
+            } else {
+                self.palette().background
+            }
+            .to_linear()
+            .mul_alpha(self.config.window_background_opacity);
+
+            self.filled_rectangle(
+                &mut layers,
+                0,
+                euclid::rect(
+                    0.,
+                    0.,
+                    self.dimensions.pixel_width as f32,
+                    self.dimensions.pixel_height as f32,
+                ),
+                background,
+            )
+            .context("filled_rectangle for window background")?;
         }
 
         for pos in panes {

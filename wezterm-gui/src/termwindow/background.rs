@@ -1,4 +1,5 @@
 use crate::color::LinearRgba;
+use crate::glyphcache::LoadState;
 use crate::quad::{QuadAllocator, QuadTrait};
 use crate::termwindow::RenderState;
 use crate::utilsprites::RenderMetrics;
@@ -397,15 +398,17 @@ impl crate::TermWindow {
         &self,
         bg_color: LinearRgba,
         top: StableRowIndex,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<bool> {
         let gl_state = self.render_state.as_ref().unwrap();
         let mut layer_idx = -127;
+        let mut loaded_any = false;
         for layer in self.window_background.iter() {
             if self.render_background(gl_state, bg_color, layer, layer_idx, top)? {
+                loaded_any = true;
                 layer_idx = layer_idx.saturating_add(1);
             }
         }
-        Ok(())
+        Ok(loaded_any)
     }
 
     fn render_background(
@@ -422,11 +425,15 @@ impl crate::TermWindow {
 
         let color = bg_color.mul_alpha(layer.def.opacity);
 
-        let (sprite, next_due) = gl_state
+        let (sprite, next_due, load_state) = gl_state
             .glyph_cache
             .borrow_mut()
             .cached_image(&layer.source, None)?;
         self.update_next_frame_time(next_due);
+
+        if load_state == LoadState::Loading {
+            return Ok(false);
+        }
 
         let pixel_width = self.dimensions.pixel_width as f32;
         let pixel_height = self.dimensions.pixel_height as f32;

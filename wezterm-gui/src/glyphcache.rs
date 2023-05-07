@@ -31,6 +31,12 @@ use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
 use wezterm_term::Underline;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoadState {
+    Loading,
+    Loaded,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CellMetricKey {
     pub pixel_width: u16,
@@ -383,6 +389,7 @@ struct FrameState {
     source: FrameSource,
     current_frame: DecodedFrame,
     frames: Vec<DecodedFrame>,
+    load_state: LoadState,
 }
 
 impl FrameState {
@@ -405,6 +412,7 @@ impl FrameState {
                 height: BLACK_SIZE,
                 duration: Duration::from_millis(0),
             },
+            load_state: LoadState::Loading,
         }
     }
 
@@ -414,6 +422,7 @@ impl FrameState {
                 Ok(frame) => {
                     self.frames.push(frame.clone());
                     self.current_frame = frame;
+                    self.load_state = LoadState::Loaded;
                     true
                 }
                 Err(TryRecvError::Empty) => false,
@@ -477,6 +486,14 @@ impl DecodedImage {
             current_frame: RefCell::new(0),
             image: Arc::new(image),
             frames: RefCell::new(None),
+        }
+    }
+
+    fn load_state(&self) -> LoadState {
+        let frames = self.frames.borrow();
+        match frames.as_ref() {
+            Some(state) => state.load_state,
+            None => LoadState::Loading,
         }
     }
 
@@ -854,7 +871,7 @@ impl GlyphCache {
         decoded: &DecodedImage,
         padding: Option<usize>,
         min_frame_duration: Duration,
-    ) -> anyhow::Result<(Sprite, Option<Instant>)> {
+    ) -> anyhow::Result<(Sprite, Option<Instant>, LoadState)> {
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
             current_frame: *decoded.current_frame.borrow(),
@@ -862,12 +879,12 @@ impl GlyphCache {
         match &*handle.h {
             ImageDataType::Rgba8 { hash, .. } => {
                 if let Some(sprite) = frame_cache.get(hash) {
-                    return Ok((sprite.clone(), None));
+                    return Ok((sprite.clone(), None, decoded.load_state()));
                 }
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
                 frame_cache.insert(*hash, sprite.clone());
 
-                return Ok((sprite, None));
+                return Ok((sprite, None, decoded.load_state()));
             }
             ImageDataType::AnimRgba8 {
                 hashes,
@@ -915,7 +932,7 @@ impl GlyphCache {
                 let hash = hashes[*decoded_current_frame];
 
                 if let Some(sprite) = frame_cache.get(&hash) {
-                    return Ok((sprite.clone(), next));
+                    return Ok((sprite.clone(), next, decoded.load_state()));
                 }
 
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
@@ -928,6 +945,7 @@ impl GlyphCache {
                         *decoded_frame_start
                             + durations[*decoded_current_frame].max(min_frame_duration),
                     ),
+                    decoded.load_state(),
                 ));
             }
             ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
@@ -967,7 +985,7 @@ impl GlyphCache {
                 let hash = frames.frame_hash();
 
                 if let Some(sprite) = frame_cache.get(&hash) {
-                    return Ok((sprite.clone(), next));
+                    return Ok((sprite.clone(), next, frames.load_state));
                 }
 
                 let frame = Image::from_raw(
@@ -982,6 +1000,7 @@ impl GlyphCache {
                 Ok((
                     sprite,
                     Some(*decoded_frame_start + frames.frame_duration().max(min_frame_duration)),
+                    frames.load_state,
                 ))
             }
         }
@@ -991,7 +1010,7 @@ impl GlyphCache {
         &mut self,
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
-    ) -> anyhow::Result<(Sprite, Option<Instant>)> {
+    ) -> anyhow::Result<(Sprite, Option<Instant>, LoadState)> {
         let hash = image_data.hash();
 
         if let Some(decoded) = self.image_cache.get(&hash) {
