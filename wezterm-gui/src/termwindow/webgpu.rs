@@ -296,6 +296,8 @@ impl WebGpuState {
         log::trace!("Using adapter: {adapter_info:?}");
         let caps = surface.get_capabilities(&adapter);
         log::trace!("caps: {caps:?}");
+        let downlevel_caps = adapter.get_downlevel_capabilities();
+        log::trace!("downlevel_caps: {downlevel_caps:?}");
 
         let (device, queue) = adapter
             .request_device(
@@ -306,7 +308,7 @@ impl WebGpuState {
                     limits: if cfg!(target_arch = "wasm32") {
                         wgpu::Limits::downlevel_webgl2_defaults()
                     } else {
-                        wgpu::Limits::default()
+                        wgpu::Limits::downlevel_defaults()
                     },
                     label: None,
                 },
@@ -324,7 +326,6 @@ impl WebGpuState {
             caps.formats[0]
         };
 
-        let downlevel_caps = adapter.get_downlevel_capabilities();
         // Need to check that this is supported, as trying to set
         // view_formats without it will cause surface.configure
         // to panic
@@ -335,17 +336,7 @@ impl WebGpuState {
         {
             vec![format.add_srgb_suffix(), format.remove_srgb_suffix()]
         } else {
-            log::warn!(
-                "Attempting to use adapter: {adapter_info:?} \
-                which has capabilities: {caps:?} \
-                and downlevel capabilities: {downlevel_caps:?}. \
-                SURFACE_VIEW_FORMATS is required but not supported"
-            );
-
-            anyhow::bail!(
-                "wgpu reports that SURFACE_VIEW_FORMATS is not \
-                 supported. Please try a different adapter or setting front_end='OpenGL'"
-            );
+            vec![]
         };
 
         let config = wgpu::SurfaceConfiguration {
