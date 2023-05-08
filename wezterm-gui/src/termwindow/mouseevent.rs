@@ -3,8 +3,8 @@ use crate::termwindow::{
     GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
 };
 use ::window::{
-    MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
-    WindowState,
+    MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
+    WindowDecorations, WindowOps, WindowState,
 };
 use config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnTabDomain};
 use config::MouseEventAltScreen;
@@ -468,11 +468,24 @@ impl super::TermWindow {
                     self.do_new_tab_button_click(MousePress::Left);
                 }
                 TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
-                    // Potentially starting a drag by the tab bar
-                    if !self
+                    let maximized = self
                         .window_state
-                        .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN)
-                    {
+                        .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
+                    if let Some(ref window) = self.window {
+                        if self.config.window_decorations
+                            == WindowDecorations::INTEGRATED_BUTTONS | WindowDecorations::RESIZE
+                        {
+                            if self.last_mouse_click.as_ref().map(|c| c.streak) == Some(2) {
+                                if maximized {
+                                    window.restore();
+                                } else {
+                                    window.maximize();
+                                }
+                            }
+                        }
+                    }
+                    // Potentially starting a drag by the tab bar
+                    if !maximized {
                         self.window_drag_position.replace(event.clone());
                     }
                     context.request_drag_move();
