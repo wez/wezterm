@@ -72,3 +72,7 @@ The `CharSelect` action accepts a lua table with the following fields:
   `"RecentlyUsed"` if you have previously selected an item, or
   `"SmileysAndEmotion"` otherwise.
 
+See also:
+* [char_select_font_size](../config/char_select_font_size.md)
+* [char_select_fg_color](../config/char_select_fg_color.md)
+* [char_select_bg_color](../config/char_select_bg_color.md)
