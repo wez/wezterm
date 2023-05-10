@@ -489,14 +489,6 @@ impl DecodedImage {
         }
     }
 
-    fn load_state(&self) -> LoadState {
-        let frames = self.frames.borrow();
-        match frames.as_ref() {
-            Some(state) => state.load_state,
-            None => LoadState::Loading,
-        }
-    }
-
     fn start_frame_decoder(lease: BlobLease, image_data: &Arc<ImageData>) -> Self {
         match FrameDecoder::start(lease.clone()) {
             Ok(rx) => Self {
@@ -879,12 +871,12 @@ impl GlyphCache {
         match &*handle.h {
             ImageDataType::Rgba8 { hash, .. } => {
                 if let Some(sprite) = frame_cache.get(hash) {
-                    return Ok((sprite.clone(), None, decoded.load_state()));
+                    return Ok((sprite.clone(), None, LoadState::Loaded));
                 }
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
                 frame_cache.insert(*hash, sprite.clone());
 
-                return Ok((sprite, None, decoded.load_state()));
+                return Ok((sprite, None, LoadState::Loaded));
             }
             ImageDataType::AnimRgba8 {
                 hashes,
@@ -932,7 +924,7 @@ impl GlyphCache {
                 let hash = hashes[*decoded_current_frame];
 
                 if let Some(sprite) = frame_cache.get(&hash) {
-                    return Ok((sprite.clone(), next, decoded.load_state()));
+                    return Ok((sprite.clone(), next, LoadState::Loaded));
                 }
 
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
@@ -945,7 +937,7 @@ impl GlyphCache {
                         *decoded_frame_start
                             + durations[*decoded_current_frame].max(min_frame_duration),
                     ),
-                    decoded.load_state(),
+                    LoadState::Loaded,
                 ));
             }
             ImageDataType::EncodedLease(_) | ImageDataType::EncodedFile(_) => {
