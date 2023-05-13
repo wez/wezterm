@@ -83,7 +83,7 @@ impl RenderContext {
                 if size > max_texture_size {
                     anyhow::bail!(
                         "Cannot use a texture of size {} as it is larger \
-                 than the max {} supported by your GPU",
+                         than the max {} supported by your GPU",
                         size,
                         caps.max_texture_size
                     );
@@ -100,7 +100,7 @@ impl RenderContext {
             }
             Self::WebGpu(state) => {
                 let texture: Rc<dyn Texture2d> =
-                    Rc::new(WebGpuTexture::new(size as u32, size as u32, state));
+                    Rc::new(WebGpuTexture::new(size as u32, size as u32, state)?);
                 Ok(texture)
             }
         }

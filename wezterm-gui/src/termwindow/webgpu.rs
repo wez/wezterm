@@ -119,7 +119,21 @@ impl Texture2d for WebGpuTexture {
 }
 
 impl WebGpuTexture {
-    pub fn new(width: u32, height: u32, state: &WebGpuState) -> Self {
+    pub fn new(width: u32, height: u32, state: &WebGpuState) -> anyhow::Result<Self> {
+        let limit = state.device.limits().max_texture_dimension_2d;
+
+        if width > limit || height > limit {
+            // Ideally, wgpu would have a fallible create_texture method,
+            // but it doesn't: instead it will panic if the requested
+            // dimension is too large.
+            // So we check the limit ourselves here.
+            // <https://github.com/wez/wezterm/issues/3713>
+            anyhow::bail!(
+                "texture dimensions {width}x{height} exceeed the \
+                 max dimension {limit} supported by your GPU"
+            );
+        }
+
         let format = wgpu::TextureFormat::Rgba8UnormSrgb;
         let view_formats = if state
             .downlevel_caps
@@ -144,12 +158,12 @@ impl WebGpuTexture {
             label: Some("Texture Atlas"),
             view_formats: &view_formats,
         });
-        Self {
+        Ok(Self {
             texture,
             width,
             height,
             queue: Arc::clone(&state.queue),
-        }
+        })
     }
 }
 
