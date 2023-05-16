@@ -20,13 +20,7 @@ libc = "0.2"
 lru = "0.7"
 metrics = { version="0.17", features=["std"]}
 mux = { path = "../mux" }
-# Constrained to the last version of openssl that builds together with
-# `openssl-sys = "=0.9.71"` which we are constrained to in libssh-rs
-# until it switches back to openssl 3.x.
-# https://github.com/sfackler/rust-openssl/issues/1630
-# https://github.com/sfackler/rust-openssl/pull/1578
-# https://github.com/wez/libssh-rs/blob/main/libssh-rs-sys/Cargo.toml
-openssl = "=0.10.38"
+openssl = "0.10"
 parking_lot = "0.12"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }

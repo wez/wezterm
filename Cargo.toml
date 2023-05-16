@@ -17,6 +17,9 @@ exclude = [
   "termwiz/codegen"
 ]
 
+[patch.crates-io]
+"openssl-src" = { path = "./openssl-src-hack" }
+
 [profile.release]
 opt-level = 3
 # debug = 2
