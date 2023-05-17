@@ -13,6 +13,7 @@ The default value for this option is:
 config.tiling_desktop_environments = {
   'X11 LG3D',
   'X11 bspwm',
+  'X11 i3',
   'X11 dwm',
 }
 ```
