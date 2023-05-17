@@ -14,7 +14,7 @@ returned table may have the following fields:
 
 * `brief` - required: the brief description for the entry
 * `doc` - optional: a long description that may be shown after the entry, or that
-  may be used in future wezterms of wezterm to provide more information about the
+  may be used in future versions of wezterm to provide more information about the
   command.
 * `action` - the action to take when the item is activated. Can be any key assignment
   action.
