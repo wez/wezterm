@@ -15,7 +15,7 @@ There's never enough!  Pretty much anything is fair game to improve here.
 
 There are a lot of targets out there.  Today we have docs that are Ubuntu biased
 and I know that there are a lot flavors of Linux.  Rather than expand the README
-with intructions for those, please translate the instructions into steps that
+with instructions for those, please translate the instructions into steps that
 can be run in the [`get-deps`](https://github.com/wez/wezterm/blob/master/get-deps)
 script.
 
@@ -70,7 +70,7 @@ $ bt
 
 ### Please include tests to cover your changes!
 
-This will help ensure that your contributings keep working as things change.
+This will help ensure that your contributions keep working as things change.
 
 You can run the existing tests using:
 
