@@ -1,0 +1,73 @@
+name: wezterm # you probably want to 'snapcraft register <name>'
+base: core22 # the base snap is the execution environment for this snap
+adopt-info: wezterm
+
+grade: stable
+confinement: classic
+
+apps:
+  wezterm:
+    command: bin/wezterm
+    common-id: org.wezfurlong.wezterm.desktop
+    desktop: assets/wezterm.desktop
+
+parts:
+  rust-deps:
+    plugin: nil
+    build-packages:
+      - curl
+    override-pull: |
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  wezterm:
+    plugin: rust
+    source: .
+    parse-info: [assets/wezterm.appdata.xml]
+    build-packages:
+      - libegl1-mesa-dev
+      - g++
+      - libwayland-dev
+      - libssl-dev
+      - libfontconfig-dev
+      - libx11-xcb-dev
+      - libxcb-ewmh-dev
+      - libxcb-icccm4-dev
+      - libxcb-image0-dev
+      - libxcb-keysyms1-dev
+      - libxcb-randr0-dev
+      - libxcb-render0-dev
+      - libxcb-util-dev
+      - libxcb-xkb-dev
+      - libxkbcommon-dev
+      - libxkbcommon-x11-dev
+      - python3
+      - pkg-config
+    after:
+      - rust-deps
+    override-pull: |
+      craftctl default
+      craftctl set version=$(git describe --tags | head -c 32)
+    stage-packages:
+      - libx11-6
+      - libx11-xcb1
+      - libxau6
+      - libxdmcp6
+      - libfontconfig1
+      - libwayland-client0
+      - libwayland-egl1
+      - libxcb-image0
+      - libxcb-shm0
+      - libxcb-util1
+      - libxcb-xkb1
+      - libxcb1
+      - libxkbcommon-x11-0
+      - libxkbcommon0
+    override-build: |
+      cargo build --release --features distro-defaults
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      for component in wezterm wezterm-gui wezterm-mux-server strip-ansi-escapes ; do
+        cp target/release/$component $SNAPCRAFT_PART_INSTALL/bin
+      done
+      mkdir -p $SNAPCRAFT_PART_INSTALL/assets
+      cp assets/icon/wezterm-icon.svg $SNAPCRAFT_PART_INSTALL/assets
+      cp assets/wezterm.desktop $SNAPCRAFT_PART_INSTALL/assets
+      sed -i 's_Icon=org.wezfurlong.wezterm_Icon=/assets/wezterm-icon.svg_g' $SNAPCRAFT_PART_INSTALL/assets/wezterm.desktop
