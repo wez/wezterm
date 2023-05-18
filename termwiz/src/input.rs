@@ -262,6 +262,9 @@ impl KeyCode {
             // We only want down events
             return Ok(String::new());
         }
+        // We are encoding the key as an xterm-compatible sequence, which does not support
+        // positional modifiers.
+        let mods = mods.remove_positional_mods();
 
         use KeyCode::*;
 
@@ -1886,5 +1889,36 @@ mod test {
                 .unwrap(),
             "\u{1b}[1;2F".to_string()
         );
+    }
+
+    #[test]
+    fn encode_tab_with_modifiers() {
+        let mode = KeyCodeEncodeModes {
+            encoding: KeyboardEncoding::Xterm,
+            newline_mode: false,
+            application_cursor_keys: false,
+            modify_other_keys: None,
+        };
+
+        let mods_to_result = [
+            (Modifiers::SHIFT, "\u{1b}[Z"),
+            (Modifiers::SHIFT | Modifiers::LEFT_SHIFT, "\u{1b}[Z"),
+            (Modifiers::SHIFT | Modifiers::RIGHT_SHIFT, "\u{1b}[Z"),
+            (Modifiers::CTRL, "\u{1b}[9;5u"),
+            (Modifiers::CTRL | Modifiers::LEFT_CTRL, "\u{1b}[9;5u"),
+            (Modifiers::CTRL | Modifiers::RIGHT_CTRL, "\u{1b}[9;5u"),
+            (
+                Modifiers::SHIFT | Modifiers::CTRL | Modifiers::LEFT_CTRL | Modifiers::LEFT_SHIFT,
+                "\u{1b}[1;5Z",
+            ),
+        ];
+        for (mods, result) in mods_to_result {
+            assert_eq!(
+                KeyCode::Tab.encode(mods, mode, true).unwrap(),
+                result,
+                "{:?}",
+                mods
+            );
+        }
     }
 }
