@@ -6,6 +6,13 @@ use smol::Timer;
 use std::time::{Duration, Instant};
 use wezterm_font::ClearShapeCache;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AllowImage {
+    Yes,
+    Scale(usize),
+    No,
+}
+
 impl crate::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut RenderFrame) {
         self.num_frames += 1;
@@ -13,7 +20,7 @@ impl crate::TermWindow {
         // invalidating as frequently
         *self.has_animation.borrow_mut() = None;
         // Start with the assumption that we should allow images to render
-        self.allow_images = true;
+        self.allow_images = AllowImage::Yes;
 
         let start = Instant::now();
 
@@ -61,21 +68,27 @@ impl crate::TermWindow {
                         self.invalidate_modal();
 
                         if let Err(err) = result {
-                            if self.allow_images {
-                                self.allow_images = false;
-                                log::info!(
-                                    "Not enough texture space ({:#}); \
-                                     will retry render with images disabled",
-                                    err
-                                );
-                            } else {
-                                log::error!(
-                                    "Failed to {} texture: {}",
-                                    if pass == 0 { "clear" } else { "resize" },
-                                    err
-                                );
-                                break 'pass;
-                            }
+                            self.allow_images = match self.allow_images {
+                                AllowImage::Yes => AllowImage::Scale(2),
+                                AllowImage::Scale(2) => AllowImage::Scale(4),
+                                AllowImage::Scale(4) => AllowImage::Scale(8),
+                                AllowImage::Scale(8) => AllowImage::No,
+                                AllowImage::No | _ => {
+                                    log::error!(
+                                        "Failed to {} texture: {}",
+                                        if pass == 0 { "clear" } else { "resize" },
+                                        err
+                                    );
+                                    break 'pass;
+                                }
+                            };
+
+                            log::info!(
+                                "Not enough texture space ({:#}); \
+                                     will retry render with {:?}",
+                                err,
+                                self.allow_images,
+                            );
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
                         self.invalidate_fancy_tab_bar();
@@ -175,7 +188,7 @@ impl crate::TermWindow {
 
         // Render the full window background
         match (self.window_background.is_empty(), self.allow_images) {
-            (false, true) => {
+            (false, AllowImage::Yes) => {
                 let bg_color = self.palette().background.to_linear();
 
                 let top = panes

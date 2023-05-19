@@ -56,15 +56,25 @@ impl Atlas {
 
     /// Reserve space for a sprite of the given size
     pub fn allocate(&mut self, im: &dyn BitmapImage) -> Result<Sprite, OutOfTextureSpace> {
-        self.allocate_with_padding(im, None)
+        self.allocate_with_padding(im, None, None)
     }
 
     pub fn allocate_with_padding(
         &mut self,
         im: &dyn BitmapImage,
         padding: Option<usize>,
+        scale_down: Option<usize>,
     ) -> Result<Sprite, OutOfTextureSpace> {
         let (width, height) = im.image_dimensions();
+
+        if let Some(scale_down) = scale_down {
+            let mut copied = crate::Image::new(width, height);
+            copied.draw_image(Point::new(0, 0), None, im);
+
+            let scaled = copied.resize(width / scale_down, height / scale_down);
+
+            return self.allocate_with_padding(&scaled, padding, None);
+        }
 
         // If we can't convert the sizes to i32, then we'll never
         // be able to store this image

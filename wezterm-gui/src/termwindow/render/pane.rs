@@ -8,6 +8,7 @@ use crate::termwindow::render::{
 use crate::termwindow::{ScrollHit, UIItem, UIItemType};
 use ::window::bitmaps::TextureRect;
 use ::window::DeadKeyStatus;
+use anyhow::Context;
 use config::VisualBellTarget;
 use mux::pane::{PaneId, WithPaneLines};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -62,7 +63,8 @@ impl crate::TermWindow {
         let (padding_left, padding_top) = self.padding_left_top();
 
         let tab_bar_height = if self.show_tab_bar {
-            self.tab_bar_pixel_height()?
+            self.tab_bar_pixel_height()
+                .context("tab_bar_pixel_height")?
         } else {
             0.
         };
@@ -152,15 +154,17 @@ impl crate::TermWindow {
         if self.window_background.is_empty() {
             // Per-pane, palette-specified background
 
-            let mut quad = self.filled_rectangle(
-                layers,
-                0,
-                background_rect,
-                palette
-                    .background
-                    .to_linear()
-                    .mul_alpha(config.window_background_opacity),
-            )?;
+            let mut quad = self
+                .filled_rectangle(
+                    layers,
+                    0,
+                    background_rect,
+                    palette
+                        .background
+                        .to_linear()
+                        .mul_alpha(config.window_background_opacity),
+                )
+                .context("filled_rectangle")?;
             quad.set_hsv(if pos.is_active {
                 None
             } else {
@@ -205,7 +209,9 @@ impl crate::TermWindow {
                 };
                 log::trace!("bell color is {:?}", background);
 
-                let mut quad = self.filled_rectangle(layers, 0, background_rect, background)?;
+                let mut quad = self
+                    .filled_rectangle(layers, 0, background_rect, background)
+                    .context("filled_rectangle")?;
 
                 quad.set_hsv(if pos.is_active {
                     None
@@ -279,7 +285,8 @@ impl crate::TermWindow {
                     thumb_size as f32,
                 ),
                 color,
-            )?;
+            )
+            .context("filled_rectangle")?;
         }
 
         let (selrange, rectangular) = {
@@ -451,7 +458,10 @@ impl crate::TermWindow {
                             false
                         };
                         if !expired && !hover_changed {
-                            cached_quad.layers.apply_to(self.layers)?;
+                            cached_quad
+                                .layers
+                                .apply_to(self.layers)
+                                .context("cached_quad.layers.apply_to")?;
                             self.term_window.update_next_frame_time(cached_quad.expires);
                             return Ok(());
                         }
@@ -476,49 +486,53 @@ impl crate::TermWindow {
                         },
                     };
 
-                    let render_result = self.term_window.render_screen_line(
-                        RenderScreenLineParams {
-                            top_pixel_y: *quad_key.top_pixel_y,
-                            left_pixel_x: self.left_pixel_x,
-                            pixel_width: self.dims.cols as f32
-                                * self.term_window.render_metrics.cell_size.width as f32,
-                            stable_line_idx: Some(stable_row),
-                            line: &line,
-                            selection: selrange.clone(),
-                            cursor: &self.cursor,
-                            palette: &self.palette,
-                            dims: &self.dims,
-                            config: &self.term_window.config,
-                            cursor_border_color: self.cursor_border_color,
-                            foreground: self.foreground,
-                            is_active: self.pos.is_active,
-                            pane: Some(&self.pos.pane),
-                            selection_fg: self.selection_fg,
-                            selection_bg: self.selection_bg,
-                            cursor_fg: self.cursor_fg,
-                            cursor_bg: self.cursor_bg,
-                            cursor_is_default_color: self.cursor_is_default_color,
-                            white_space: self.white_space,
-                            filled_box: self.filled_box,
-                            window_is_transparent: self.window_is_transparent,
-                            default_bg: self.default_bg,
-                            font: None,
-                            style: None,
-                            use_pixel_positioning: self
-                                .term_window
-                                .config
-                                .experimental_pixel_positioning,
-                            render_metrics: self.term_window.render_metrics,
-                            shape_key: Some(shape_key),
-                            password_input,
-                        },
-                        &mut TripleLayerQuadAllocator::Heap(&mut buf),
-                    )?;
+                    let render_result = self
+                        .term_window
+                        .render_screen_line(
+                            RenderScreenLineParams {
+                                top_pixel_y: *quad_key.top_pixel_y,
+                                left_pixel_x: self.left_pixel_x,
+                                pixel_width: self.dims.cols as f32
+                                    * self.term_window.render_metrics.cell_size.width as f32,
+                                stable_line_idx: Some(stable_row),
+                                line: &line,
+                                selection: selrange.clone(),
+                                cursor: &self.cursor,
+                                palette: &self.palette,
+                                dims: &self.dims,
+                                config: &self.term_window.config,
+                                cursor_border_color: self.cursor_border_color,
+                                foreground: self.foreground,
+                                is_active: self.pos.is_active,
+                                pane: Some(&self.pos.pane),
+                                selection_fg: self.selection_fg,
+                                selection_bg: self.selection_bg,
+                                cursor_fg: self.cursor_fg,
+                                cursor_bg: self.cursor_bg,
+                                cursor_is_default_color: self.cursor_is_default_color,
+                                white_space: self.white_space,
+                                filled_box: self.filled_box,
+                                window_is_transparent: self.window_is_transparent,
+                                default_bg: self.default_bg,
+                                font: None,
+                                style: None,
+                                use_pixel_positioning: self
+                                    .term_window
+                                    .config
+                                    .experimental_pixel_positioning,
+                                render_metrics: self.term_window.render_metrics,
+                                shape_key: Some(shape_key),
+                                password_input,
+                            },
+                            &mut TripleLayerQuadAllocator::Heap(&mut buf),
+                        )
+                        .context("render_screen_line")?;
 
                     let expires = self.term_window.has_animation.borrow().as_ref().cloned();
                     self.term_window.update_next_frame_time(next_due);
 
-                    buf.apply_to(self.layers)?;
+                    buf.apply_to(self.layers)
+                        .context("HeapQuadAllocator::apply_to")?;
 
                     let quad_value = LineQuadCacheValue {
                         layers: buf,
@@ -554,7 +568,7 @@ impl crate::TermWindow {
 
             pos.pane.with_lines_mut(stable_range.clone(), &mut render);
             if let Some(error) = render.error.take() {
-                return Err(error);
+                return Err(error).context("error while calling with_lines_mut");
             }
         }
 

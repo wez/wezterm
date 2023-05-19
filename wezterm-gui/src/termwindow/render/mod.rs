@@ -6,11 +6,12 @@ use crate::quad::{
     TripleLayerQuadAllocatorTrait,
 };
 use crate::shapecache::*;
+use crate::termwindow::render::paint::AllowImage;
 use crate::termwindow::{BorrowedShapeCacheKey, RenderState, ShapedInfo, TermWindowNotif};
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::{DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use config::{BoldBrightening, ConfigHandle, DimensionContext, TextStyle, VisualBellTarget};
 use euclid::num::Zero;
 use mux::pane::{Pane, PaneId};
@@ -417,7 +418,7 @@ impl crate::TermWindow {
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
     ) -> anyhow::Result<()> {
-        if !self.allow_images {
+        if self.allow_images == AllowImage::No {
             return Ok(());
         }
 
@@ -435,7 +436,8 @@ impl crate::TermWindow {
         let (sprite, next_due, _load_state) = gl_state
             .glyph_cache
             .borrow_mut()
-            .cached_image(image.image_data(), Some(padding))?;
+            .cached_image(image.image_data(), Some(padding), self.allow_images)
+            .context("cached_image")?;
         self.update_next_frame_time(next_due);
         let width = sprite.coords.size.width;
         let height = sprite.coords.size.height;

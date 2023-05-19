@@ -1,6 +1,7 @@
 use super::utilsprites::RenderMetrics;
 use crate::customglyph::*;
 use crate::renderstate::RenderContext;
+use crate::termwindow::render::paint::AllowImage;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, ImageTexture, Texture2d};
 use ::window::color::SrgbaPixel;
@@ -885,17 +886,26 @@ impl GlyphCache {
         decoded: &DecodedImage,
         padding: Option<usize>,
         min_frame_duration: Duration,
+        allow_image: AllowImage,
     ) -> anyhow::Result<(Sprite, Option<Instant>, LoadState)> {
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
             current_frame: *decoded.current_frame.borrow(),
         };
+
+        let scale_down = match allow_image {
+            AllowImage::Scale(n) => Some(n),
+            _ => None,
+        };
+
         match &*handle.h {
             ImageDataType::Rgba8 { hash, .. } => {
                 if let Some(sprite) = frame_cache.get(hash) {
                     return Ok((sprite.clone(), None, LoadState::Loaded));
                 }
-                let sprite = atlas.allocate_with_padding(&handle, padding)?;
+                let sprite = atlas
+                    .allocate_with_padding(&handle, padding, scale_down)
+                    .context("atlas.allocate_with_padding")?;
                 frame_cache.insert(*hash, sprite.clone());
 
                 return Ok((sprite, None, LoadState::Loaded));
@@ -949,7 +959,9 @@ impl GlyphCache {
                     return Ok((sprite.clone(), next, LoadState::Loaded));
                 }
 
-                let sprite = atlas.allocate_with_padding(&handle, padding)?;
+                let sprite = atlas
+                    .allocate_with_padding(&handle, padding, scale_down)
+                    .context("atlas.allocate_with_padding")?;
 
                 frame_cache.insert(hash, sprite.clone());
 
@@ -1005,9 +1017,13 @@ impl GlyphCache {
                 let frame = Image::from_raw(
                     frames.current_frame.width,
                     frames.current_frame.height,
-                    frames.current_frame.lease.get_data()?,
+                    frames
+                        .current_frame
+                        .lease
+                        .get_data()
+                        .context("frames.current_frame.lease.get_data")?,
                 );
-                let sprite = atlas.allocate_with_padding(&frame, padding)?;
+                let sprite = atlas.allocate_with_padding(&frame, padding, scale_down)?;
 
                 frame_cache.insert(hash, sprite.clone());
 
@@ -1024,6 +1040,7 @@ impl GlyphCache {
         &mut self,
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
+        allow_image: AllowImage,
     ) -> anyhow::Result<(Sprite, Option<Instant>, LoadState)> {
         let hash = image_data.hash();
 
@@ -1034,6 +1051,7 @@ impl GlyphCache {
                 decoded,
                 padding,
                 self.min_frame_duration,
+                allow_image,
             )
         } else {
             let decoded = DecodedImage::load(image_data);
@@ -1043,6 +1061,7 @@ impl GlyphCache {
                 &decoded,
                 padding,
                 self.min_frame_duration,
+                allow_image,
             )?;
             self.image_cache.put(hash, decoded);
             Ok(res)

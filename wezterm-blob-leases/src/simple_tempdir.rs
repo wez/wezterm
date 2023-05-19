@@ -44,6 +44,7 @@ impl SimpleTempDir {
                         eprintln!("Failed to remove {}: {err:#}", path.display());
                     }
                 }
+                *count = 0;
             }
             Some(count) => {
                 *count -= 1;
@@ -57,6 +58,8 @@ impl SimpleTempDir {
 
 impl BlobStorage for SimpleTempDir {
     fn store(&self, content_id: ContentId, data: &[u8], _lease_id: LeaseId) -> Result<(), Error> {
+        let mut refs = self.refs.lock().unwrap();
+
         let path = self.path_for_content(content_id)?;
         let mut file = tempfile::Builder::new()
             .prefix("new-")
@@ -67,12 +70,14 @@ impl BlobStorage for SimpleTempDir {
         file.persist(&path)
             .map_err(|persist_err| persist_err.error)?;
 
-        self.add_ref(content_id);
+        *refs.entry(content_id).or_insert(0) += 1;
 
         Ok(())
     }
 
     fn lease_by_content(&self, content_id: ContentId, _lease_id: LeaseId) -> Result<(), Error> {
+        let _refs = self.refs.lock().unwrap();
+
         let path = self.path_for_content(content_id)?;
         if path.exists() {
             self.add_ref(content_id);
@@ -83,6 +88,8 @@ impl BlobStorage for SimpleTempDir {
     }
 
     fn get_data(&self, content_id: ContentId, _lease_id: LeaseId) -> Result<Vec<u8>, Error> {
+        let _refs = self.refs.lock().unwrap();
+
         let path = self.path_for_content(content_id)?;
         Ok(std::fs::read(&path)?)
     }

@@ -19,6 +19,7 @@ use crate::termwindow::background::{
 };
 use crate::termwindow::keyevent::{KeyTableArgs, KeyTableState};
 use crate::termwindow::modal::Modal;
+use crate::termwindow::render::paint::AllowImage;
 use crate::termwindow::render::{
     CachedLineState, LineQuadCacheKey, LineQuadCacheValue, LineToEleShapeCacheKey,
     LineToElementShapeItem,
@@ -73,7 +74,7 @@ mod mouseevent;
 pub mod palette;
 pub mod paneselect;
 mod prevcursor;
-mod render;
+pub mod render;
 pub mod resize;
 mod selection;
 pub mod spawn;
@@ -434,7 +435,7 @@ pub struct TermWindow {
     has_animation: RefCell<Option<Instant>>,
     /// We use this to attempt to do something reasonable
     /// if we run out of texture space
-    allow_images: bool,
+    allow_images: AllowImage,
     scheduled_animation: RefCell<Option<Instant>>,
 
     created: Instant,
@@ -762,7 +763,7 @@ impl TermWindow {
             current_event: None,
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),
-            allow_images: true,
+            allow_images: AllowImage::Yes,
             semantic_zones: HashMap::new(),
             ui_items: vec![],
             dragging: None,

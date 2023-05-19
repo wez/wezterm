@@ -425,10 +425,11 @@ impl crate::TermWindow {
 
         let color = bg_color.mul_alpha(layer.def.opacity);
 
-        let (sprite, next_due, load_state) = gl_state
-            .glyph_cache
-            .borrow_mut()
-            .cached_image(&layer.source, None)?;
+        let (sprite, next_due, load_state) = gl_state.glyph_cache.borrow_mut().cached_image(
+            &layer.source,
+            None,
+            self.allow_images,
+        )?;
         self.update_next_frame_time(next_due);
 
         if load_state == LoadState::Loading {
