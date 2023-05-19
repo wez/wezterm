@@ -62,8 +62,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [`user-var-changed` event](config/lua/window-events/user-var-changed.md)
   would incorrectly trigger for every GUI window, rather than just the GUI
   window which contained the pane in which the variable was changed. #3524
-* PNG images without an alpha channel could not be displayed by in the
-  terminal. #3529.
+* PNG images without an alpha channel, or that were grayscale, could not be displayed by in the
+  terminal. #3529 #3742
 * tab width calculation when returning a string with embedded escape
   sequences from a `format-tab-title` event handler. #3481
 * Windows: clicking the maximize button didn't work unless using

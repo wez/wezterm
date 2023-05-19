@@ -294,6 +294,28 @@ impl FrameDecoder {
                                     size / (width * height) as usize
                                 )
                             })?,
+                        ColorType::L8 => DynamicImage::ImageLuma8(
+                            image::ImageBuffer::<image::Luma<_>, _>::from_raw(width, height, buf)
+                                .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "PNG {color_type:?} {size} / {width}x{height} = {} \
+                                    bytes per pixel",
+                                    size / (width * height) as usize
+                                )
+                            })?,
+                        )
+                        .into_rgba8(),
+                        ColorType::La8 => DynamicImage::ImageLumaA8(
+                            image::ImageBuffer::<image::LumaA<_>, _>::from_raw(width, height, buf)
+                                .ok_or_else(|| {
+                                    anyhow::anyhow!(
+                                        "PNG {color_type:?} {size} / {width}x{height} = {} \
+                                    bytes per pixel",
+                                        size / (width * height) as usize
+                                    )
+                                })?,
+                        )
+                        .into_rgba8(),
                         _ => anyhow::bail!("unimplemented PNG conversion from {color_type:?}"),
                     };
                     let delay = image::Delay::from_numer_denom_ms(u32::MAX, 1);
