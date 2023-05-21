@@ -739,7 +739,7 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
         #[cfg(any(test, feature = "vendor-noto-emoji"))]
         &[font!("../../assets/fonts/NotoColorEmoji.ttf")],
         #[cfg(any(test, feature = "vendor-nerd-font-symbols"))]
-        &[font!("../../assets/fonts/Symbols-Nerd-Font-Mono.ttf")],
+        &[font!("../../assets/fonts/SymbolsNerdFontMono-Regular.ttf")],
     ];
     for bundle in built_ins {
         for (data, name) in bundle.iter() {

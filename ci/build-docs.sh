@@ -56,7 +56,7 @@ black ci/generate-docs.py ci/subst-release-info.py
 cp "assets/icon/terminal.png" docs/favicon.png
 cp "assets/icon/wezterm-icon.svg" docs/favicon.svg
 mkdir -p docs/fonts
-cp assets/fonts/Symbols-Nerd-Font-Mono.ttf docs/fonts/
+cp assets/fonts/SymbolsNerdFontMono-Regular.ttf docs/fonts/
 
 if [ "$SERVE" == "yes" ] ; then
   mkdocs "$@"

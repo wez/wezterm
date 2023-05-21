@@ -403,6 +403,7 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("custom_folder_git", '\u{e5fb}'),                           // 
     ("custom_folder_github", '\u{e5fd}'),                        // 
     ("custom_folder_npm", '\u{e5fa}'),                           // 
+    ("custom_folder_oct", '\u{e6ad}'),                           // 
     ("custom_folder_open", '\u{e5fe}'),                          // 
     ("custom_go", '\u{e626}'),                                   // 
     ("custom_home", '\u{e617}'),                                 // 
@@ -3623,97 +3624,171 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("mdi_youtube_play", '\u{fac2}'),                            // 輸
     ("mdi_youtube_tv", '\u{f947}'),                              // 磊
     ("mdi_zip_box", '\u{fac3}'),                                 // 遲
+    ("oct_accessibility", '\u{f406}'),                           // 
+    ("oct_accessibility_inset", '\u{f40b}'),                     // 
     ("oct_alert", '\u{f421}'),                                   // 
+    ("oct_alert_fill", '\u{f40c}'),                              // 
+    ("oct_apps", '\u{f40e}'),                                    // 
+    ("oct_archive", '\u{f411}'),                                 // 
+    ("oct_arrow_both", '\u{f416}'),                              // 
     ("oct_arrow_down", '\u{f433}'),                              // 
+    ("oct_arrow_down_left", '\u{f424}'),                         // 
+    ("oct_arrow_down_right", '\u{f43e}'),                        // 
     ("oct_arrow_left", '\u{f434}'),                              // 
     ("oct_arrow_right", '\u{f432}'),                             // 
-    ("oct_arrow_small_down", '\u{f479}'),                        // 
-    ("oct_arrow_small_left", '\u{f47a}'),                        // 
-    ("oct_arrow_small_right", '\u{f45c}'),                       // 
-    ("oct_arrow_small_up", '\u{f478}'),                          // 
+    ("oct_arrow_switch", '\u{f443}'),                            // 
     ("oct_arrow_up", '\u{f431}'),                                // 
+    ("oct_arrow_up_left", '\u{f45c}'),                           // 
+    ("oct_arrow_up_right", '\u{f46c}'),                          // 
     ("oct_beaker", '\u{f499}'),                                  // 
     ("oct_bell", '\u{f49a}'),                                    // 
+    ("oct_bell_fill", '\u{f476}'),                               // 
+    ("oct_bell_slash", '\u{f478}'),                              // 
+    ("oct_blocked", '\u{f479}'),                                 // 
     ("oct_bold", '\u{f49d}'),                                    // 
     ("oct_book", '\u{f405}'),                                    // 
     ("oct_bookmark", '\u{f461}'),                                // 
+    ("oct_bookmark_fill", '\u{f47a}'),                           // 
+    ("oct_bookmark_slash", '\u{f533}'),                          // 
+    ("oct_bookmark_slash_fill", '\u{f493}'),                     // 
     ("oct_briefcase", '\u{f491}'),                               // 
     ("oct_broadcast", '\u{f43c}'),                               // 
     ("oct_browser", '\u{f488}'),                                 // 
     ("oct_bug", '\u{f46f}'),                                     // 
+    ("oct_cache", '\u{f49b}'),                                   // 
     ("oct_calendar", '\u{f455}'),                                // 
     ("oct_check", '\u{f42e}'),                                   // 
+    ("oct_check_circle", '\u{f49e}'),                            // 
+    ("oct_check_circle_fill", '\u{f4a4}'),                       // 
+    ("oct_checkbox", '\u{f4a7}'),                                // 
     ("oct_checklist", '\u{f45e}'),                               // 
     ("oct_chevron_down", '\u{f47c}'),                            // 
     ("oct_chevron_left", '\u{f47d}'),                            // 
     ("oct_chevron_right", '\u{f460}'),                           // 
     ("oct_chevron_up", '\u{f47b}'),                              // 
+    ("oct_circle", '\u{f4aa}'),                                  // 
     ("oct_circle_slash", '\u{f468}'),                            // 
-    ("oct_circuit_board", '\u{f493}'),                           // 
-    ("oct_clippy", '\u{f429}'),                                  // 
     ("oct_clock", '\u{f43a}'),                                   // 
-    ("oct_cloud_download", '\u{f409}'),                          // 
-    ("oct_cloud_upload", '\u{f40a}'),                            // 
+    ("oct_clock_fill", '\u{f4ab}'),                              // 
+    ("oct_cloud", '\u{f4ac}'),                                   // 
+    ("oct_cloud_offline", '\u{f4ad}'),                           // 
     ("oct_code", '\u{f44f}'),                                    // 
+    ("oct_code_of_conduct", '\u{f4ae}'),                         // 
+    ("oct_code_review", '\u{f4af}'),                             // 
+    ("oct_code_square", '\u{f4b0}'),                             // 
+    ("oct_codescan", '\u{f4b1}'),                                // 
+    ("oct_codescan_checkmark", '\u{f4b2}'),                      // 
+    ("oct_codespaces", '\u{f4b3}'),                              // 
+    ("oct_columns", '\u{f4b4}'),                                 // 
+    ("oct_command_palette", '\u{f4b5}'),                         // 
     ("oct_comment", '\u{f41f}'),                                 // 
     ("oct_comment_discussion", '\u{f442}'),                      // 
+    ("oct_commit", '\u{f4b6}'),                                  // 
+    ("oct_container", '\u{f4b7}'),                               // 
+    ("oct_copilot", '\u{f4b8}'),                                 // 
+    ("oct_copilot_error", '\u{f4b9}'),                           // 
+    ("oct_copilot_warning", '\u{f4ba}'),                         // 
+    ("oct_copy", '\u{f4bb}'),                                    // 
+    ("oct_cpu", '\u{f4bc}'),                                     // 
     ("oct_credit_card", '\u{f439}'),                             // 
+    ("oct_cross_reference", '\u{f4bd}'),                         // 
     ("oct_dash", '\u{f48b}'),                                    // 
-    ("oct_dashboard", '\u{f463}'),                               // 
     ("oct_database", '\u{f472}'),                                // 
+    ("oct_dependabot", '\u{f4be}'),                              // 
     ("oct_desktop_download", '\u{f498}'),                        // 
     ("oct_device_camera", '\u{f446}'),                           // 
     ("oct_device_camera_video", '\u{f447}'),                     // 
-    ("oct_device_desktop", '\u{f67c}'),                          // 
+    ("oct_device_desktop", '\u{f4a9}'),                          // 
     ("oct_device_mobile", '\u{f42c}'),                           // 
+    ("oct_diamond", '\u{f4bf}'),                                 // 
     ("oct_diff", '\u{f440}'),                                    // 
     ("oct_diff_added", '\u{f457}'),                              // 
     ("oct_diff_ignored", '\u{f474}'),                            // 
     ("oct_diff_modified", '\u{f459}'),                           // 
     ("oct_diff_removed", '\u{f458}'),                            // 
     ("oct_diff_renamed", '\u{f45a}'),                            // 
-    ("oct_ellipses", '\u{f4a4}'),                                // 
+    ("oct_discussion_closed", '\u{f4c0}'),                       // 
+    ("oct_discussion_duplicate", '\u{f4c1}'),                    // 
+    ("oct_discussion_outdated", '\u{f4c2}'),                     // 
+    ("oct_dot", '\u{f4c3}'),                                     // 
+    ("oct_dot_fill", '\u{f444}'),                                // 
+    ("oct_download", '\u{f409}'),                                // 
+    ("oct_duplicate", '\u{f4c4}'),                               // 
     ("oct_ellipsis", '\u{f475}'),                                // 
     ("oct_eye", '\u{f441}'),                                     // 
+    ("oct_eye_closed", '\u{f4c5}'),                              // 
+    ("oct_feed_discussion", '\u{f4c6}'),                         // 
+    ("oct_feed_forked", '\u{f4c7}'),                             // 
+    ("oct_feed_heart", '\u{f4c8}'),                              // 
+    ("oct_feed_merged", '\u{f4c9}'),                             // 
+    ("oct_feed_person", '\u{f4ca}'),                             // 
+    ("oct_feed_repo", '\u{f4cb}'),                               // 
+    ("oct_feed_rocket", '\u{f4cc}'),                             // 
+    ("oct_feed_star", '\u{f4cd}'),                               // 
+    ("oct_feed_tag", '\u{f4ce}'),                                // 
+    ("oct_feed_trophy", '\u{f4cf}'),                             // 
     ("oct_file", '\u{f4a5}'),                                    // 
+    ("oct_file_added", '\u{f4d0}'),                              // 
+    ("oct_file_badge", '\u{f4d1}'),                              // 
     ("oct_file_binary", '\u{f471}'),                             // 
     ("oct_file_code", '\u{f40d}'),                               // 
+    ("oct_file_diff", '\u{f4d2}'),                               // 
     ("oct_file_directory", '\u{f413}'),                          // 
+    ("oct_file_directory_fill", '\u{f4d3}'),                     // 
+    ("oct_file_directory_open_fill", '\u{f4d4}'),                // 
     ("oct_file_media", '\u{f40f}'),                              // 
-    ("oct_file_pdf", '\u{f411}'),                                // 
+    ("oct_file_moved", '\u{f4d5}'),                              // 
+    ("oct_file_removed", '\u{f4d6}'),                            // 
     ("oct_file_submodule", '\u{f414}'),                          // 
     ("oct_file_symlink_directory", '\u{f482}'),                  // 
     ("oct_file_symlink_file", '\u{f481}'),                       // 
-    ("oct_file_text", '\u{f40e}'),                               // 
     ("oct_file_zip", '\u{f410}'),                                // 
+    ("oct_filter", '\u{f4d7}'),                                  // 
+    ("oct_fiscal_host", '\u{f4d8}'),                             // 
     ("oct_flame", '\u{f490}'),                                   // 
     ("oct_fold", '\u{f48c}'),                                    // 
+    ("oct_fold_down", '\u{f4d9}'),                               // 
+    ("oct_fold_up", '\u{f4da}'),                                 // 
     ("oct_gear", '\u{f423}'),                                    // 
     ("oct_gift", '\u{f436}'),                                    // 
-    ("oct_gist", '\u{f40c}'),                                    // 
-    ("oct_gist_secret", '\u{f46c}'),                             // 
     ("oct_git_branch", '\u{f418}'),                              // 
     ("oct_git_commit", '\u{f417}'),                              // 
     ("oct_git_compare", '\u{f47f}'),                             // 
     ("oct_git_merge", '\u{f419}'),                               // 
+    ("oct_git_merge_queue", '\u{f4db}'),                         // 
     ("oct_git_pull_request", '\u{f407}'),                        // 
+    ("oct_git_pull_request_closed", '\u{f4dc}'),                 // 
+    ("oct_git_pull_request_draft", '\u{f4dd}'),                  // 
     ("oct_globe", '\u{f484}'),                                   // 
+    ("oct_goal", '\u{f4de}'),                                    // 
     ("oct_grabber", '\u{f4a6}'),                                 // 
     ("oct_graph", '\u{f437}'),                                   // 
+    ("oct_hash", '\u{f4df}'),                                    // 
+    ("oct_heading", '\u{f4e0}'),                                 // 
     ("oct_heart", '\u{2665}'),                                   // ♥
+    ("oct_heart_fill", '\u{f4e1}'),                              // 
     ("oct_history", '\u{f464}'),                                 // 
     ("oct_home", '\u{f46d}'),                                    // 
+    ("oct_home_fill", '\u{f4e2}'),                               // 
     ("oct_horizontal_rule", '\u{f45b}'),                         // 
+    ("oct_hourglass", '\u{f4e3}'),                               // 
     ("oct_hubot", '\u{f477}'),                                   // 
+    ("oct_id_badge", '\u{f4e4}'),                                // 
+    ("oct_image", '\u{f4e5}'),                                   // 
     ("oct_inbox", '\u{f48d}'),                                   // 
+    ("oct_infinity", '\u{f4e6}'),                                // 
     ("oct_info", '\u{f449}'),                                    // 
     ("oct_issue_closed", '\u{f41d}'),                            // 
+    ("oct_issue_draft", '\u{f4e7}'),                             // 
     ("oct_issue_opened", '\u{f41b}'),                            // 
     ("oct_issue_reopened", '\u{f41c}'),                          // 
+    ("oct_issue_tracked_by", '\u{f4e8}'),                        // 
+    ("oct_issue_tracks", '\u{f4e9}'),                            // 
     ("oct_italic", '\u{f49f}'),                                  // 
-    ("oct_jersey", '\u{f416}'),                                  // 
+    ("oct_iterations", '\u{f4ea}'),                              // 
+    ("oct_kebab_horizontal", '\u{f4eb}'),                        // 
     ("oct_key", '\u{f43d}'),                                     // 
-    ("oct_keyboard", '\u{f40b}'),                                // 
+    ("oct_key_asterisk", '\u{f4ec}'),                            // 
     ("oct_law", '\u{f495}'),                                     // 
     ("oct_light_bulb", '\u{f400}'),                              // 
     ("oct_link", '\u{f44c}'),                                    // 
@@ -3722,79 +3797,143 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("oct_list_unordered", '\u{f451}'),                          // 
     ("oct_location", '\u{f450}'),                                // 
     ("oct_lock", '\u{f456}'),                                    // 
+    ("oct_log", '\u{f4ed}'),                                     // 
     ("oct_logo_gist", '\u{f480}'),                               // 
     ("oct_logo_github", '\u{f470}'),                             // 
     ("oct_mail", '\u{f42f}'),                                    // 
-    ("oct_mail_read", '\u{f430}'),                               // 
-    ("oct_mail_reply", '\u{f443}'),                              // 
     ("oct_mark_github", '\u{f408}'),                             // 
     ("oct_markdown", '\u{f48a}'),                                // 
     ("oct_megaphone", '\u{f45f}'),                               // 
     ("oct_mention", '\u{f486}'),                                 // 
+    ("oct_meter", '\u{f463}'),                                   // 
     ("oct_milestone", '\u{f45d}'),                               // 
     ("oct_mirror", '\u{f41a}'),                                  // 
+    ("oct_moon", '\u{f4ee}'),                                    // 
     ("oct_mortar_board", '\u{f494}'),                            // 
+    ("oct_move_to_bottom", '\u{f4ef}'),                          // 
+    ("oct_move_to_end", '\u{f4f0}'),                             // 
+    ("oct_move_to_start", '\u{f4f1}'),                           // 
+    ("oct_move_to_top", '\u{f4f2}'),                             // 
+    ("oct_multi_select", '\u{f4f3}'),                            // 
     ("oct_mute", '\u{f466}'),                                    // 
-    ("oct_no_newline", '\u{f476}'),                              // 
-    ("oct_octoface", '\u{f406}'),                                // 
+    ("oct_no_entry", '\u{f4f4}'),                                // 
+    ("oct_north_star", '\u{f4f5}'),                              // 
+    ("oct_note", '\u{f4f6}'),                                    // 
+    ("oct_number", '\u{f4f7}'),                                  // 
     ("oct_organization", '\u{f42b}'),                            // 
     ("oct_package", '\u{f487}'),                                 // 
-    ("oct_paintcan", '\u{f48f}'),                                // 
+    ("oct_package_dependencies", '\u{f4f8}'),                    // 
+    ("oct_package_dependents", '\u{f4f9}'),                      // 
+    ("oct_paintbrush", '\u{f48f}'),                              // 
+    ("oct_paper_airplane", '\u{f4fa}'),                          // 
+    ("oct_paperclip", '\u{f4fb}'),                               // 
+    ("oct_passkey_fill", '\u{f4fc}'),                            // 
+    ("oct_paste", '\u{f429}'),                                   // 
     ("oct_pencil", '\u{f448}'),                                  // 
+    ("oct_people", '\u{f4fd}'),                                  // 
     ("oct_person", '\u{f415}'),                                  // 
+    ("oct_person_add", '\u{f4fe}'),                              // 
+    ("oct_person_fill", '\u{f4ff}'),                             // 
     ("oct_pin", '\u{f435}'),                                     // 
+    ("oct_play", '\u{f500}'),                                    // 
     ("oct_plug", '\u{f492}'),                                    // 
     ("oct_plus", '\u{f44d}'),                                    // 
-    ("oct_plus_small", '\u{f4a7}'),                              // 
-    ("oct_primitive_dot", '\u{f444}'),                           // 
-    ("oct_primitive_square", '\u{f445}'),                        // 
+    ("oct_plus_circle", '\u{f501}'),                             // 
+    ("oct_project", '\u{f502}'),                                 // 
+    ("oct_project_roadmap", '\u{f503}'),                         // 
+    ("oct_project_symlink", '\u{f504}'),                         // 
+    ("oct_project_template", '\u{f505}'),                        // 
     ("oct_pulse", '\u{f469}'),                                   // 
     ("oct_question", '\u{f420}'),                                // 
     ("oct_quote", '\u{f453}'),                                   // 
-    ("oct_radio_tower", '\u{f424}'),                             // 
+    ("oct_read", '\u{f430}'),                                    // 
+    ("oct_rel_file_path", '\u{f506}'),                           // 
     ("oct_reply", '\u{f4a8}'),                                   // 
     ("oct_repo", '\u{f401}'),                                    // 
     ("oct_repo_clone", '\u{f43f}'),                              // 
-    ("oct_repo_force_push", '\u{f43e}'),                         // 
+    ("oct_repo_deleted", '\u{f507}'),                            // 
     ("oct_repo_forked", '\u{f402}'),                             // 
+    ("oct_repo_locked", '\u{f508}'),                             // 
     ("oct_repo_pull", '\u{f404}'),                               // 
     ("oct_repo_push", '\u{f403}'),                               // 
+    ("oct_repo_template", '\u{f509}'),                           // 
+    ("oct_report", '\u{f50a}'),                                  // 
     ("oct_rocket", '\u{f427}'),                                  // 
+    ("oct_rows", '\u{f50b}'),                                    // 
     ("oct_rss", '\u{f428}'),                                     // 
     ("oct_ruby", '\u{f43b}'),                                    // 
+    ("oct_screen_full", '\u{f50c}'),                             // 
+    ("oct_screen_normal", '\u{f50d}'),                           // 
     ("oct_search", '\u{f422}'),                                  // 
     ("oct_server", '\u{f473}'),                                  // 
-    ("oct_settings", '\u{f462}'),                                // 
+    ("oct_share", '\u{f50e}'),                                   // 
+    ("oct_share_android", '\u{f50f}'),                           // 
     ("oct_shield", '\u{f49c}'),                                  // 
+    ("oct_shield_check", '\u{f510}'),                            // 
+    ("oct_shield_lock", '\u{f511}'),                             // 
+    ("oct_shield_slash", '\u{f512}'),                            // 
+    ("oct_shield_x", '\u{f513}'),                                // 
+    ("oct_sidebar_collapse", '\u{f514}'),                        // 
+    ("oct_sidebar_expand", '\u{f515}'),                          // 
     ("oct_sign_in", '\u{f42a}'),                                 // 
     ("oct_sign_out", '\u{f426}'),                                // 
+    ("oct_single_select", '\u{f516}'),                           // 
+    ("oct_skip", '\u{f517}'),                                    // 
+    ("oct_skip_fill", '\u{f518}'),                               // 
+    ("oct_sliders", '\u{f462}'),                                 // 
     ("oct_smiley", '\u{f4a2}'),                                  // 
+    ("oct_sort_asc", '\u{f519}'),                                // 
+    ("oct_sort_desc", '\u{f51a}'),                               // 
+    ("oct_sparkle_fill", '\u{f51b}'),                            // 
+    ("oct_sponsor_tiers", '\u{f51c}'),                           // 
+    ("oct_square", '\u{f51d}'),                                  // 
+    ("oct_square_fill", '\u{f445}'),                             // 
     ("oct_squirrel", '\u{f483}'),                                // 
+    ("oct_stack", '\u{f51e}'),                                   // 
     ("oct_star", '\u{f41e}'),                                    // 
+    ("oct_star_fill", '\u{f51f}'),                               // 
     ("oct_stop", '\u{f46e}'),                                    // 
+    ("oct_stopwatch", '\u{f520}'),                               // 
+    ("oct_strikethrough", '\u{f521}'),                           // 
+    ("oct_sun", '\u{f522}'),                                     // 
     ("oct_sync", '\u{f46a}'),                                    // 
+    ("oct_tab", '\u{f523}'),                                     // 
+    ("oct_tab_external", '\u{f524}'),                            // 
+    ("oct_table", '\u{f525}'),                                   // 
     ("oct_tag", '\u{f412}'),                                     // 
     ("oct_tasklist", '\u{f4a0}'),                                // 
     ("oct_telescope", '\u{f46b}'),                               // 
+    ("oct_telescope_fill", '\u{f526}'),                          // 
     ("oct_terminal", '\u{f489}'),                                // 
-    ("oct_text_size", '\u{f49e}'),                               // 
     ("oct_three_bars", '\u{f44e}'),                              // 
     ("oct_thumbsdown", '\u{f497}'),                              // 
     ("oct_thumbsup", '\u{f496}'),                                // 
     ("oct_tools", '\u{f425}'),                                   // 
-    ("oct_trashcan", '\u{f48e}'),                                // 
+    ("oct_trash", '\u{f48e}'),                                   // 
     ("oct_triangle_down", '\u{f44b}'),                           // 
     ("oct_triangle_left", '\u{f438}'),                           // 
     ("oct_triangle_right", '\u{f44a}'),                          // 
     ("oct_triangle_up", '\u{f47e}'),                             // 
+    ("oct_trophy", '\u{f527}'),                                  // 
+    ("oct_typography", '\u{f528}'),                              // 
     ("oct_unfold", '\u{f42d}'),                                  // 
+    ("oct_unlink", '\u{f529}'),                                  // 
+    ("oct_unlock", '\u{f52a}'),                                  // 
     ("oct_unmute", '\u{f485}'),                                  // 
+    ("oct_unread", '\u{f52b}'),                                  // 
     ("oct_unverified", '\u{f4a3}'),                              // 
+    ("oct_upload", '\u{f40a}'),                                  // 
     ("oct_verified", '\u{f4a1}'),                                // 
     ("oct_versions", '\u{f454}'),                                // 
-    ("oct_watch", '\u{f49b}'),                                   // 
+    ("oct_video", '\u{f52c}'),                                   // 
+    ("oct_webhook", '\u{f52d}'),                                 // 
+    ("oct_workflow", '\u{f52e}'),                                // 
     ("oct_x", '\u{f467}'),                                       // 
+    ("oct_x_circle", '\u{f52f}'),                                // 
+    ("oct_x_circle_fill", '\u{f530}'),                           // 
     ("oct_zap", '\u{26a1}'),                                     // ⚡
+    ("oct_zoom_in", '\u{f531}'),                                 // 
+    ("oct_zoom_out", '\u{f532}'),                                // 
     ("pl_branch", '\u{e0a0}'),                                   // 
     ("pl_hostname", '\u{e0a2}'),                                 // 
     ("pl_left_hard_divider", '\u{e0b0}'),                        // 
@@ -4126,8 +4265,8 @@ pub const NERD_FONT_GLYPHS: &[(&str, char)] = &[
     ("weather_night_alt_partly_cloudy", '\u{e379}'),             // 
     ("weather_night_alt_rain", '\u{e325}'),                      // 
     ("weather_night_alt_rain_mix", '\u{e323}'),                  // 
-    ("weather_night_alt_rain_mix", '\u{e326}'),                  // 
     ("weather_night_alt_rain_wind", '\u{e324}'),                 // 
+    ("weather_night_alt_showers", '\u{e326}'),                   // 
     ("weather_night_alt_sleet", '\u{e3ac}'),                     // 
     ("weather_night_alt_sleet_storm", '\u{e364}'),               // 
     ("weather_night_alt_snow", '\u{e327}'),                      // 
