@@ -1083,6 +1083,7 @@ impl Pane for CopyOverlay {
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         let mut render = self.render.lock();
+        let mods = mods.remove_positional_mods();
         if let Some(jump) = render.pending_jump.take() {
             match (key, mods) {
                 (KeyCode::Char(c), KeyModifiers::NONE)

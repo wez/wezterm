@@ -300,6 +300,7 @@ impl Pane for QuickSelectOverlay {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
+        let mods = mods.remove_positional_mods();
         match (key, mods) {
             (KeyCode::Escape, KeyModifiers::NONE) => self.renderer.lock().close(),
             (KeyCode::UpArrow, KeyModifiers::NONE)

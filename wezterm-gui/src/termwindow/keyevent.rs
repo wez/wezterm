@@ -272,8 +272,8 @@ impl super::TermWindow {
             if only_key_bindings == OnlyKeyBindings::No {
                 if let Some(modal) = self.get_modal() {
                     if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
-                        let tw_raw_modifiers = raw_modifiers;
-                        match modal.key_down(term_key, tw_raw_modifiers, self) {
+                        match modal.key_down(term_key, raw_modifiers.remove_positional_mods(), self)
+                        {
                             Ok(true) => return true,
                             Ok(false) => {}
                             Err(err) => {
