@@ -600,10 +600,10 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 51,
+        glyph_idx: 58,
         num_cells: 1,
         x_offset: 0.0,
-        bearing_x: -0.7352941,
+        bearing_x: -0.8333333,
         bitmap_pixel_width: 12,
     },
 ]
