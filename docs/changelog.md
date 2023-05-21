@@ -88,6 +88,7 @@ As features stabilize some brief notes about them will accumulate here.
   just the basename of the path. Thanks to @junnplus! #3663 #3665
 * WebGpu: don't panic when trying to allocate a texture larger than is
   supported by the GPU. #3713
+* `CopyMode("EditPattern")` didn't switch the key table to `search_mode` #3746.
 
 #### Updated
 * Bundled harfbuzz to 7.1.0

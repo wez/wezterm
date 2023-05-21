@@ -1,4 +1,5 @@
 use crate::selection::{SelectionCoordinate, SelectionRange, SelectionX};
+use crate::termwindow::keyevent::KeyTableArgs;
 use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{
     ClipboardCopyDestination, CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry,
@@ -633,10 +634,39 @@ impl CopyRenderable {
 
     fn edit_pattern(&mut self) {
         self.editing_search = true;
+        self.update_key_table();
     }
 
     fn accept_pattern(&mut self) {
         self.editing_search = false;
+        self.update_key_table();
+    }
+
+    fn update_key_table(&mut self) {
+        let window = self.window.clone();
+        let pane_id = self.delegate.pane_id();
+
+        window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+            let mut state = term_window.pane_state(pane_id);
+            if let Some(overlay) = state.overlay.as_mut() {
+                if let Some(copy_overlay) = overlay.pane.downcast_ref::<CopyOverlay>() {
+                    let editing_search = copy_overlay.render.lock().editing_search;
+
+                    overlay.key_table_state.activate(KeyTableArgs {
+                        name: if editing_search {
+                            "search_mode"
+                        } else {
+                            "copy_mode"
+                        },
+                        timeout_milliseconds: None,
+                        replace_current: true,
+                        one_shot: false,
+                        until_unknown: false,
+                        prevent_fallback: false,
+                    });
+                }
+            }
+        })));
     }
 
     fn cycle_match_type(&mut self) {

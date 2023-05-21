@@ -68,7 +68,7 @@ pub mod background;
 pub mod box_model;
 pub mod charselect;
 pub mod clipboard;
-mod keyevent;
+pub mod keyevent;
 pub mod modal;
 mod mouseevent;
 pub mod palette;
@@ -179,7 +179,7 @@ pub struct SemanticZoneCache {
 
 pub struct OverlayState {
     pub pane: Arc<dyn Pane>,
-    key_table_state: KeyTableState,
+    pub key_table_state: KeyTableState,
 }
 
 #[derive(Default)]
