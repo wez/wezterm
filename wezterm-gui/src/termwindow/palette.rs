@@ -104,7 +104,9 @@ fn build_commands(
                 ("augment-command-palette".to_string(), (gui_window, pane)),
             )?;
 
-            entries = from_lua_value_dynamic(result)?;
+            if !matches!(&result, mlua::Value::Nil) {
+                entries = from_lua_value_dynamic(result)?;
+            }
         }
 
         Ok(entries)
