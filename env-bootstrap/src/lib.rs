@@ -21,7 +21,7 @@ pub fn fixup_snap() {
 
         // snapd also sets a bunch of SNAP_* environment variables
         // This list may change over time, so for simplicity, assume
-        // anything in the SNAP_* namespace is set by snapd, an unset it.
+        // anything in the SNAP_* namespace is set by snapd, and unset it.
         std::env::vars_os()
             .into_iter()
             .filter(|(key, _)| {
