@@ -11,6 +11,33 @@ pub fn set_wezterm_executable() {
     }
 }
 
+pub fn fixup_snap() {
+    if std::env::var_os("SNAP").is_some() {
+        // snapd sets a bunch of environment variables as a part of setup
+        // These are not useful to be passed through to things spawned by us.
+
+        // SNAP is the base path of the files in the snap
+        std::env::remove_var("SNAP");
+
+        // snapd also sets a bunch of SNAP_* environment variables
+        // This list may change over time, so for simplicity, assume
+        // anything in the SNAP_* namespace is set by snapd, and unset it.
+        std::env::vars_os()
+            .into_iter()
+            .filter(|(key, _)| {
+                key.to_str()
+                    .filter(|key| key.starts_with("SNAP_"))
+                    .is_some()
+            })
+            .map(|(key, _)| key)
+            .for_each(|key| std::env::remove_var(key));
+
+        // snapd has *also* set LD_LIBRARY_PATH, and things we spawn
+        // *absolutely do not* want this propagated
+        std::env::remove_var("LD_LIBRARY_PATH");
+    }
+}
+
 pub fn fixup_appimage() {
     if let Some(appimage) = std::env::var_os("APPIMAGE") {
         let appimage = std::path::PathBuf::from(appimage);
@@ -197,6 +224,7 @@ pub fn bootstrap() {
     set_lang_from_locale();
 
     fixup_appimage();
+    fixup_snap();
 
     register_lua_modules();
 
