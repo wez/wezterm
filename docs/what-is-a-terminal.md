@@ -198,7 +198,7 @@ the desktop and it became necessary to expand the interface to allow for a TTY
 that wasn't strongly coupled with a physical communication device, and to
 provide a mechanism for communicating the window size changing.
 
-The *Psuedo Terminal teletYpe* (PTY) is that evolution of the TTY interface; it
+The *Pseudo Terminal teletYpe* (PTY) is that evolution of the TTY interface; it
 allows a userspace application to define additional virtual TTY interfaces as
 needed.
 
