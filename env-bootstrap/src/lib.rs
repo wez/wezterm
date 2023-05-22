@@ -12,7 +12,7 @@ pub fn set_wezterm_executable() {
 }
 
 pub fn fixup_snap() {
-    if std::env::vars_os().any(|(key, _)| key == "SNAP") {
+    if std::env::var_os("SNAP").is_some() {
         // snapd sets a bunch of environment variables as a part of setup
         // These are not useful to be passed through to things spawned by us.
 
