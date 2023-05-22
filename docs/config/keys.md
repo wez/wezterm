@@ -150,7 +150,7 @@ config.keys = {
   {
     key = 'a',
     mods = 'LEADER|CTRL',
-    action = wezterm.action.SendString '\x01',
+    action = wezterm.action.SendKey { key = 'a', mods = 'CTRL' }
   },
 }
 ```
