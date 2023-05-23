@@ -1,6 +1,11 @@
 name: wezterm
 base: core22
 adopt-info: wezterm
+donation:
+  - https://github.com/sponsors/wez
+  - https://www.patreon.com/WezFurlong
+  - https://ko-fi.com/wezfurlong
+  - https://liberapay.com/wez
 
 grade: stable
 confinement: classic
