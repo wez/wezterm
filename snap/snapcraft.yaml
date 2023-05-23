@@ -1,5 +1,5 @@
-name: wezterm # you probably want to 'snapcraft register <name>'
-base: core22 # the base snap is the execution environment for this snap
+name: wezterm
+base: core22
 adopt-info: wezterm
 
 grade: stable
