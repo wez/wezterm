@@ -143,7 +143,7 @@ impl RepoSpec {
         std::fs::create_dir_all(&plugins_dir)?;
         let target_dir = TempDir::new_in(&plugins_dir)?;
         log::debug!("Cloning {} into temporary dir {target_dir:?}", self.url);
-        let _repo = Repository::clone_recurse(&self.url, target_dir.path())?;
+        Repository::clone_recurse(&self.url, target_dir.path())?;
         let target_dir = target_dir.into_path();
         let checkout_path = self.checkout_path();
         match std::fs::rename(&target_dir, &checkout_path) {
