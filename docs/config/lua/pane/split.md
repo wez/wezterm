@@ -68,8 +68,8 @@ Specifies where the new pane should be placed.  Possible values are:
 
 * `"Right"` - splits the pane left/right and places the new pane on the right.
 * `"Left"` - splits the pane left/right and places the new pane on the left.
-* `"Up"` - splits the pane top/bottom and places the new pane on the top.
-* `"Down"` - splits the pane top/bottom and places the new pane on the bottom.
+* `"Top"` - splits the pane top/bottom and places the new pane on the top.
+* `"Bottom"` - splits the pane top/bottom and places the new pane on the bottom.
 
 ```lua
 pane:split { direction = 'Top' }
