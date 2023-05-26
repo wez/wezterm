@@ -31,6 +31,7 @@ be used to specify which ssh library is used.
 wezterm is now able to parse `~/.ssh/config` and `/etc/ssh/ssh_config`
 and respects the following options:
 
+* `IdentityAgent`
 * `IdentityFile`
 * `Hostname`
 * `User`
