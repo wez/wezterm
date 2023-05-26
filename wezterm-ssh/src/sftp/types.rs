@@ -91,8 +91,9 @@ pub struct FilePermissions {
 }
 
 impl FilePermissions {
+    /// Returns true if all write permissions (owner, group, other) are false.
     pub fn is_readonly(self) -> bool {
-        !(self.owner_read || self.group_read || self.other_read)
+        !(self.owner_write || self.group_write || self.other_write)
     }
 
     /// Create from a unix mode bitset
