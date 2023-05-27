@@ -157,11 +157,11 @@ wish to use one of these AUR options:
 
 ## Alpine Linux
 
-APKs are built out from the `main` branch.
+APKs are no longer being built/supported by CI. You can still build it for yourself from source!
 
 |Version | Stable        | Nightly |
 |--------|---------------|---------|
-| 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|[{{ alpine3_15_apk_nightly_asset }}]({{ alpine3_15_apk_nightly }})|
+| 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|No longer produced by CI|
 
 ## Linuxbrew Tap
 
