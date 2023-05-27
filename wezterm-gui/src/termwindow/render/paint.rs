@@ -188,7 +188,7 @@ impl crate::TermWindow {
 
         // Render the full window background
         match (self.window_background.is_empty(), self.allow_images) {
-            (false, AllowImage::Yes) => {
+            (false, AllowImage::Yes | AllowImage::Scale(_)) => {
                 let bg_color = self.palette().background.to_linear();
 
                 let top = panes
