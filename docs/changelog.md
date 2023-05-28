@@ -93,6 +93,7 @@ As features stabilize some brief notes about them will accumulate here.
 * WebGpu: don't panic when trying to allocate a texture larger than is
   supported by the GPU. #3713
 * `CopyMode("EditPattern")` didn't switch the key table to `search_mode` #3746.
+* access denied error when using `wezterm.plugin.require`. Thanks to @nyxkrage! #3767
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
