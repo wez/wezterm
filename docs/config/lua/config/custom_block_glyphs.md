@@ -22,4 +22,4 @@ Ideally this option wouldn't exist, but it is present to work around a [hinting 
 
 You can set this to `false` to use the block characters provided by your font selection.
 
-
+See also [anti_alias_custom_block_glyphs](anti_alias_custom_block_glyphs.md).
