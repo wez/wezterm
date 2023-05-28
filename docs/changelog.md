@@ -46,6 +46,10 @@ As features stabilize some brief notes about them will accumulate here.
 * [augment-command-palette](config/lua/window-events/augment-command-palette.md)
   event for adding entries to the command palette without assigning keyboard
   shortcuts. #3595
+* [char_select_bg_color](config/lua/config/char_select_bg_color.md) and
+  [char_select_fg_color](config/lua/config/char_select_fg_color.md) options to
+  customize the appearance of
+  [CharSelect](config/lua/keyassignment/CharSelect.md) mode. Thanks to @junnplus! #3703
 
 #### Fixed
 
