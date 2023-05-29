@@ -1,10 +1,9 @@
 use crate::domain::DomainId;
 use crate::renderable::*;
-use crate::Mux;
 use async_trait::async_trait;
 use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
 use downcast_rs::{impl_downcast, Downcast};
-use parking_lot::{MappedMutexGuard, Mutex};
+use parking_lot::MappedMutexGuard;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -96,45 +95,6 @@ pub enum CloseReason {
     Tab,
     /// Just this tab is being closed
     Pane,
-}
-
-const PASTE_CHUNK_SIZE: usize = 1024;
-
-struct Paste {
-    pane_id: PaneId,
-    text: String,
-    offset: usize,
-}
-
-fn paste_next_chunk(paste: &Arc<Mutex<Paste>>) {
-    let mut locked = paste.lock();
-    let mux = Mux::get();
-    let pane = mux.get_pane(locked.pane_id).unwrap();
-
-    let remain = locked.text.len() - locked.offset;
-    let mut chunk = remain.min(PASTE_CHUNK_SIZE);
-
-    // Make sure we chunk at a char boundary, otherwise the
-    // slice operation below will panic
-    while !locked.text.is_char_boundary(locked.offset + chunk) && chunk < remain {
-        chunk += 1;
-    }
-    let text_slice = &locked.text[locked.offset..locked.offset + chunk];
-    pane.send_paste(text_slice).unwrap();
-
-    if chunk < remain {
-        // There is more to send
-        locked.offset += chunk;
-        schedule_next_paste(paste);
-    }
-}
-
-fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
-    let paste = Arc::clone(paste);
-    promise::spawn::spawn(async move {
-        paste_next_chunk(&paste);
-    })
-    .detach();
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -347,22 +307,6 @@ pub trait Pane: Downcast + Send + Sync {
 
     fn tty_name(&self) -> Option<String> {
         None
-    }
-
-    fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
-        if text.len() <= PASTE_CHUNK_SIZE {
-            // Send it all now
-            self.send_paste(&text)?;
-        } else {
-            // It's pretty heavy, so we trickle it into the pty
-            let paste = Arc::new(Mutex::new(Paste {
-                pane_id: self.pane_id(),
-                text,
-                offset: 0,
-            }));
-            paste_next_chunk(&paste);
-        }
-        Ok(())
     }
 }
 impl_downcast!(Pane);

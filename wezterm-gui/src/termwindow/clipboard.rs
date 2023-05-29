@@ -49,7 +49,7 @@ impl TermWindow {
                             mux.get_pane(pane_id)
                         })
                     {
-                        pane.trickle_paste(clip).ok();
+                        pane.send_paste(&clip).ok();
                     }
                 })));
             }

@@ -979,7 +979,7 @@ impl TermWindow {
                     })
                     .collect::<Vec<_>>()
                     .join(" ");
-                pane.trickle_paste(paths)?;
+                pane.send_paste(&paths)?;
                 Ok(true)
             }
             WindowEvent::DraggedFile(_) => Ok(true),
