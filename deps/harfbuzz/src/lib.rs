@@ -6,6 +6,12 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub type __int8_t = ::std::os::raw::c_schar;
+pub type __uint8_t = ::std::os::raw::c_uchar;
+pub type __int16_t = ::std::os::raw::c_short;
+pub type __uint16_t = ::std::os::raw::c_ushort;
+pub type __int32_t = ::std::os::raw::c_int;
+pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -517,7 +523,7 @@ pub enum hb_unicode_combining_class_t {
     HB_UNICODE_COMBINING_CLASS_CCC122 = 122,
     HB_UNICODE_COMBINING_CLASS_CCC129 = 129,
     HB_UNICODE_COMBINING_CLASS_CCC130 = 130,
-    HB_UNICODE_COMBINING_CLASS_CCC133 = 132,
+    HB_UNICODE_COMBINING_CLASS_CCC132 = 132,
     HB_UNICODE_COMBINING_CLASS_ATTACHED_BELOW_LEFT = 200,
     HB_UNICODE_COMBINING_CLASS_ATTACHED_BELOW = 202,
     HB_UNICODE_COMBINING_CLASS_ATTACHED_ABOVE = 214,
@@ -3300,6 +3306,7 @@ pub enum FT_Glyph_Format_ {
     FT_GLYPH_FORMAT_BITMAP = 1651078259,
     FT_GLYPH_FORMAT_OUTLINE = 1869968492,
     FT_GLYPH_FORMAT_PLOTTER = 1886154612,
+    FT_GLYPH_FORMAT_SVG = 1398163232,
 }
 pub use self::FT_Glyph_Format_ as FT_Glyph_Format;
 pub type FT_String = ::std::os::raw::c_char;

@@ -103,7 +103,7 @@ As features stabilize some brief notes about them will accumulate here.
   #3548
 
 #### Updated
-* Bundled harfbuzz to 7.1.0
+* Bundled harfbuzz to 7.3.0
 * Bundled freetype to 2.13.0
 * Bundled Nerd Font Symbols font to v3.0.1. Note that there are several
   [breaking changes in v3](https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.0.0).
