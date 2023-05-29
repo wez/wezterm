@@ -69,6 +69,7 @@ struct FontPair {
     shaped_any: bool,
     presentation: Presentation,
     features: Vec<harfbuzz::hb_feature_t>,
+    last_size_and_dpi: RefCell<Option<(f64, u32)>>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -185,6 +186,7 @@ impl HarfbuzzShaper {
                             Presentation::Text
                         },
                         features,
+                        last_size_and_dpi: RefCell::new(None),
                     });
                 }
 
@@ -249,24 +251,30 @@ impl HarfbuzzShaper {
                         }
                     }
                     let point_size = font_size * self.handles[font_idx].scale.unwrap_or(1.);
-                    pair.face.set_font_size(point_size, dpi)?;
 
                     // Tell harfbuzz to recompute important font metrics!
+                    if *pair.last_size_and_dpi.borrow() != Some((point_size, dpi)) {
+                        pair.face.set_font_size(point_size, dpi)?;
+                        let mut font = pair.font.borrow_mut();
+
+                        if USE_OT_FACE {
+                            font.set_ppem(0, 0);
+                            font.set_ptem(0.);
+                            let scale = (point_size * 2f64.powf(6.)) as i32;
+                            font.set_font_scale(scale, scale);
+                        }
+
+                        font.font_changed();
+
+                        if USE_OT_FUNCS {
+                            font.set_ot_funcs();
+                        }
+                        pair.last_size_and_dpi
+                            .borrow_mut()
+                            .replace((point_size, dpi));
+                    }
+
                     let mut font = pair.font.borrow_mut();
-
-                    if USE_OT_FACE {
-                        font.set_ppem(0, 0);
-                        font.set_ptem(0.);
-                        let scale = (point_size * 2f64.powf(6.)) as i32;
-                        font.set_font_scale(scale, scale);
-                    }
-
-                    font.font_changed();
-
-                    if USE_OT_FUNCS {
-                        font.set_ot_funcs();
-                    }
-
                     shaped_any = pair.shaped_any;
                     font.shape(&mut buf, pair.features.as_slice());
                     log::trace!(
