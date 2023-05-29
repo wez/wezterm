@@ -98,6 +98,9 @@ As features stabilize some brief notes about them will accumulate here.
   overwritten due to a conpty issue. #3531
 * Changing the color palette back to the default without resetting the terminal
   would prevent changes to `color_scheme` from taking effect. #3685
+* ClearToEndOfLine performed in the last column of the display, when it is
+  prepped to wrap to the next line, would incorrectly clear the last cell.
+  #3548
 
 #### Updated
 * Bundled harfbuzz to 7.1.0
