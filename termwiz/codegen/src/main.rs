@@ -18,7 +18,7 @@ fn main() {
 fn generate_nerdfonts_data() {
     let mut symbols: Vec<(String, char)> = vec![];
 
-    for set in &["cod", "dev", "fa", "fae", "iec", "logos", "material", "oct", "ple", "pom", "seti", "weather"] {
+    for set in &["cod", "dev", "fa", "fae", "iec", "logos", "md", "oct", "ple", "pom", "seti", "weather"] {
         let url = format!("https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/bin/scripts/lib/i_{set}.sh");
         let filename = format!("/tmp/termwiz-data-fa-{set}.sh");
 

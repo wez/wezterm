@@ -35,7 +35,7 @@ wezterm.on('augment-command-palette', function(window, pane)
   return {
     {
       brief = 'Rename tab',
-      icon = 'mdi_rename_box',
+      icon = 'md_rename_box',
 
       action = act.PromptInputLine {
         description = 'Enter new name for tab',
