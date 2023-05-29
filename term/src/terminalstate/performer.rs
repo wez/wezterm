@@ -941,6 +941,7 @@ impl<'a> Performer<'a> {
                         }
                     }
                 }
+                self.implicit_palette_reset_if_same_as_configured();
                 if let Some(handler) = self.alert_handler.as_mut() {
                     handler.alert(Alert::PaletteChanged);
                 }
@@ -964,6 +965,7 @@ impl<'a> Performer<'a> {
                         }
                     }
                 }
+                self.implicit_palette_reset_if_same_as_configured();
                 if let Some(handler) = self.alert_handler.as_mut() {
                     handler.alert(Alert::PaletteChanged);
                 }
@@ -1020,6 +1022,7 @@ impl<'a> Performer<'a> {
                     }
                     idx += 1;
                 }
+                self.implicit_palette_reset_if_same_as_configured();
                 if let Some(handler) = self.alert_handler.as_mut() {
                     handler.alert(Alert::PaletteChanged);
                 }
@@ -1059,6 +1062,7 @@ impl<'a> Performer<'a> {
                         | DynamicColorNumber::TektronixCursorColor => {}
                     }
                 }
+                self.implicit_palette_reset_if_same_as_configured();
                 if let Some(handler) = self.alert_handler.as_mut() {
                     handler.alert(Alert::PaletteChanged);
                 }

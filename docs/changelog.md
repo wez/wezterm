@@ -96,6 +96,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: access denied error when using `wezterm.plugin.require`. Thanks to @nyxkrage! #3767
 * Windows: when shell integration was used, the last line of output could get
   overwritten due to a conpty issue. #3531
+* Changing the color palette back to the default without resetting the terminal
+  would prevent changes to `color_scheme` from taking effect. #3685
 
 #### Updated
 * Bundled harfbuzz to 7.1.0

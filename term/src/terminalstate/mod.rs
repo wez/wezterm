@@ -670,6 +670,21 @@ impl TerminalState {
         self.palette.as_mut().unwrap()
     }
 
+    /// If the current overridden palette is effectively the same as
+    /// the configured palette, remove the override and treat it as
+    /// being the same as the configured state.
+    /// This allows runtime changes to the configuration to take effect.
+    pub fn implicit_palette_reset_if_same_as_configured(&mut self) {
+        if self
+            .palette
+            .as_ref()
+            .map(|p| *p == self.config.color_palette())
+            .unwrap_or(false)
+        {
+            self.palette.take();
+        }
+    }
+
     /// Returns a reference to the active screen (either the primary or
     /// the alternate screen).
     pub fn screen(&self) -> &Screen {
