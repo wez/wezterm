@@ -86,7 +86,7 @@ termwiz = { path = "../termwiz" }
 termwiz-funcs = { path = "../lua-api-crates/termwiz-funcs" }
 textwrap = "0.16"
 thiserror = "1.0"
-tiny-skia = "0.9"
+tiny-skia = "0.10"
 umask = { path = "../umask" }
 unicode-normalization = "0.1"
 unicode-segmentation = "1.8"
