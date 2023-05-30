@@ -464,6 +464,9 @@ impl LocalDomain {
         if let Some(dir) = command_dir {
             cmd.cwd(dir);
         }
+        if let Ok(sock) = std::env::var("WEZTERM_UNIX_SOCKET") {
+            cmd.env("WEZTERM_UNIX_SOCKET", sock);
+        }
         cmd.env("WEZTERM_PANE", pane_id.to_string());
         self.fixup_command(&mut cmd).await?;
         Ok(cmd)
