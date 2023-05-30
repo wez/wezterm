@@ -31,7 +31,7 @@ portable-pty = { version="0.8", path = "../pty" }
 regex = "1"
 smol = "1.2"
 ssh2 = {version="0.9.3", features=["openssl-on-win32"], optional = true}
-libssh-rs = {version="0.1.8", features=["vendored"], optional = true}
+libssh-rs = {version="0.2.0", features=["vendored"], optional = true}
 #libssh-rs = {path="../../libssh-rs/libssh-rs", features=["vendored"], optional = true}
 thiserror = "1.0"
 socket2 = "0.5"
