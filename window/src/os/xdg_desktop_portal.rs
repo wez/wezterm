@@ -122,7 +122,7 @@ pub async fn get_appearance() -> anyhow::Result<Option<Appearance>> {
 
     match read_setting("org.freedesktop.appearance", "color-scheme").await {
         Ok(value) => {
-            let appearance = value_to_appearance(value)?;
+            let appearance = value_to_appearance(value).context("value_to_appearance")?;
             state.appearance = CachedAppearance::Some(appearance);
             state.last_update = Instant::now();
             Ok(Some(appearance))
@@ -134,7 +134,7 @@ pub async fn get_appearance() -> anyhow::Result<Option<Appearance>> {
             state.last_update = Instant::now();
             // but bubble up the underlying message so that we can
             // log a warning elsewhere
-            Err(err)
+            Err(err).context("get_appearance.read_setting")
         }
     }
 }

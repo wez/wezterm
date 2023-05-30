@@ -79,8 +79,8 @@ wayland-protocols = {version="0.29", optional=true}
 wayland-client = {version="0.29", optional=true}
 wayland-egl = {version="0.29", optional=true}
 xcb-imdkit = { version="0.2", git="https://github.com/wez/xcb-imdkit-rs.git", branch="hangfix"}
-zbus = "3.0"
-zvariant = "3.6"
+zbus = "3.13"
+zvariant = "3.14"
 futures-util = "0.3"
 futures-lite = "1.12"
 
