@@ -101,6 +101,7 @@ As features stabilize some brief notes about them will accumulate here.
 * ClearToEndOfLine performed in the last column of the display, when it is
   prepped to wrap to the next line, would incorrectly clear the last cell.
   #3548
+* WEZTERM_UNIX_SOCKET didn't get set when using `wezterm start -- something`. #3679
 
 #### Updated
 * Bundled harfbuzz to 7.3.0
