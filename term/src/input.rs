@@ -20,6 +20,8 @@ pub enum MouseButton {
     Right,
     WheelUp(usize),
     WheelDown(usize),
+    WheelLeft(usize),
+    WheelRight(usize),
     None,
 }
 

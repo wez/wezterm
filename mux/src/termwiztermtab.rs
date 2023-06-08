@@ -232,6 +232,8 @@ impl Pane for TermWizTerminalPane {
             MouseButton::Right => Buttons::RIGHT,
             MouseButton::WheelUp(_) => Buttons::VERT_WHEEL | Buttons::WHEEL_POSITIVE,
             MouseButton::WheelDown(_) => Buttons::VERT_WHEEL,
+            MouseButton::WheelLeft(_) => Buttons::HORZ_WHEEL | Buttons::WHEEL_POSITIVE,
+            MouseButton::WheelRight(_) => Buttons::HORZ_WHEEL,
             MouseButton::None => Buttons::NONE,
         };
 
