@@ -5,10 +5,10 @@ a hyperlink, this action causes that link to be opened.
 
 ```lua
 config.mouse_bindings = {
-  -- Ctrl-click will open the link under the mouse cursor
+  -- Shift-click will open the link under the mouse cursor
   {
     event = { Up = { streak = 1, button = 'Left' } },
-    mods = 'CTRL',
+    mods = 'Shift',
     action = wezterm.action.OpenLinkAtMouseCursor,
   },
 }
