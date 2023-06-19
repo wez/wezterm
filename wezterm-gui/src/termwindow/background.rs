@@ -50,7 +50,7 @@ impl CachedGradient {
 
         let (dmin, dmax) = grad.domain();
 
-        let rng = fastrand::Rng::new();
+        let mut rng = fastrand::Rng::new();
 
         // We add some randomness to the position that we use to
         // index into the color gradient, so that we can avoid
@@ -65,7 +65,7 @@ impl CachedGradient {
             }
         });
 
-        fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
+        fn noise(rng: &mut fastrand::Rng, noise_amount: usize) -> f64 {
             if noise_amount == 0 {
                 0.
             } else {
@@ -77,7 +77,7 @@ impl CachedGradient {
             GradientOrientation::Horizontal => {
                 for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
                     *pixel = to_pixel(grad.at(remap(
-                        x as f64 + noise(&rng, noise_amount),
+                        x as f64 + noise(&mut rng, noise_amount),
                         0.0,
                         fw,
                         dmin,
@@ -88,7 +88,7 @@ impl CachedGradient {
             GradientOrientation::Vertical => {
                 for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
                     *pixel = to_pixel(grad.at(remap(
-                        y as f64 + noise(&rng, noise_amount),
+                        y as f64 + noise(&mut rng, noise_amount),
                         0.0,
                         fh,
                         dmin,
@@ -103,7 +103,7 @@ impl CachedGradient {
                     let (x, y) = (x - fw / 2., y - fh / 2.);
                     let t = x * f64::cos(angle) - y * f64::sin(angle);
                     *pixel = to_pixel(grad.at(remap(
-                        t + noise(&rng, noise_amount),
+                        t + noise(&mut rng, noise_amount),
                         -fw / 2.,
                         fw / 2.,
                         dmin,
@@ -126,12 +126,12 @@ impl CachedGradient {
                     let nx = if ((cx - x).abs() as usize) < noise_amount {
                         0.
                     } else {
-                        noise(&rng, noise_amount)
+                        noise(&mut rng, noise_amount)
                     };
                     let ny = if ((cy - y).abs() as usize) < noise_amount {
                         0.
                     } else {
-                        noise(&rng, noise_amount)
+                        noise(&mut rng, noise_amount)
                     };
 
                     let t = (nx + (x - cx).powi(2) + (ny + y - cy).powi(2)).sqrt() / radius;

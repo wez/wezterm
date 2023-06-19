@@ -47,7 +47,7 @@ dirs-next = "2.0"
 emojis = "0.6"
 env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
-fastrand = "1.6"
+fastrand = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 finl_unicode = "1.2"
 frecency = { path = "../frecency" }
