@@ -1,3 +1,4 @@
+
 Output an image to the terminal
 
 Usage: wezterm imgcat [OPTIONS] [FILE_NAME]

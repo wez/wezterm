@@ -1,3 +1,4 @@
+
 Connect to wezterm multiplexer
 
 Usage: wezterm connect [OPTIONS] <DOMAIN_NAME> [PROG]...

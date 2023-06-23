@@ -1,3 +1,4 @@
+
 Activate (focus) a pane
 
 Usage: wezterm cli activate-pane [OPTIONS]

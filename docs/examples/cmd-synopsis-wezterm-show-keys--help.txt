@@ -1,3 +1,4 @@
+
 Show key assignments
 
 Usage: wezterm show-keys [OPTIONS]

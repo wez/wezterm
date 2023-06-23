@@ -77,7 +77,8 @@ complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcomm
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from list-clients" -l format -d 'Controls the output format. "table" and "json" are possible formats' -r
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from list-clients" -s h -l help -d 'Print help'
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from proxy" -s h -l help -d 'Print help'
-complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from tlscreds" -s h -l help -d 'Print help'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from tlscreds" -l pem -d 'Output a PEM file encoded copy of the credentials'
+complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from tlscreds" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from move-pane-to-new-tab" -l pane-id -d 'Specify the pane that should be moved. The default is to use the current pane based on the environment variable WEZTERM_PANE' -r
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from move-pane-to-new-tab" -l window-id -d 'Specify the window into which the new tab will be created. If omitted, the window associated with the current pane is used' -r
 complete -c wezterm -n "__fish_seen_subcommand_from cli; and __fish_seen_subcommand_from move-pane-to-new-tab" -l workspace -d 'If creating a new window, override the default workspace name with the provided name.  The default name is "default"' -r

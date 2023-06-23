@@ -963,7 +963,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__cli__tlscreds)
-            opts="-h --help"
+            opts="-h --pem --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

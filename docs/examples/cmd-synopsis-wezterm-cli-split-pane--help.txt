@@ -1,3 +1,4 @@
+
 split the current pane.
 Outputs the pane-id for the newly created pane on success
 

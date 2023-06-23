@@ -1,3 +1,4 @@
+
 Start the GUI, optionally running an alternative program
 
 Usage: wezterm start [OPTIONS] [PROG]...

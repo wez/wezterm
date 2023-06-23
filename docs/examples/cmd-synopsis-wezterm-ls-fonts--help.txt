@@ -1,3 +1,4 @@
+
 Display information about fonts
 
 Usage: wezterm ls-fonts [OPTIONS]

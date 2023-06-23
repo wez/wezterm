@@ -1,3 +1,4 @@
+
 Retrieves the textual content of a pane and output it to stdout
 
 Usage: wezterm cli get-text [OPTIONS]

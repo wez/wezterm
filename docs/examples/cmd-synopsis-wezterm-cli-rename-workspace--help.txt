@@ -1,3 +1,4 @@
+
 Rename a workspace
 
 Usage: wezterm cli rename-workspace [OPTIONS] <NEW_WORKSPACE>

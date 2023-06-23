@@ -1,3 +1,4 @@
+
 Spawn a command into a new window or tab
 Outputs the pane-id for the newly created pane on success
 

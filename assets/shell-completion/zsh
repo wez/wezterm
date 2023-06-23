@@ -50,8 +50,8 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (ssh)
 _arguments "${_arguments_options[@]}" \
-'*-o+[Override specific SSH configuration options. `wezterm ssh` is able to parse some (but not all!) options from your `~/.ssh/config` and `/etc/ssh/ssh_config` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
-'*--ssh-option=[Override specific SSH configuration options. `wezterm ssh` is able to parse some (but not all!) options from your `~/.ssh/config` and `/etc/ssh/ssh_config` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
+'*-o+[Override specific SSH configuration options. \`wezterm ssh\` is able to parse some (but not all!) options from your \`~/.ssh/config\` and \`/etc/ssh/ssh_config\` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
+'*--ssh-option=[Override specific SSH configuration options. \`wezterm ssh\` is able to parse some (but not all!) options from your \`~/.ssh/config\` and \`/etc/ssh/ssh_config\` files. This command line switch allows you to override or otherwise specify ssh_config style options]:name=value: ' \
 '--class=[Override the default windowing system class. The default is "org.wezfurlong.wezterm". Under X11 and Windows this changes the window class. Under Wayland this changes the app_id. This changes the class for all windows spawned by this instance of wezterm, including error, update and ssh authentication dialogs]:CLASS: ' \
 '--position=[Override the position for the initial window launched by this process.]:POSITION: ' \
 '-v[Enable verbose ssh protocol tracing. The trace information is printed to the stderr stream of the process]' \
@@ -102,7 +102,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (cli)
 _arguments "${_arguments_options[@]}" \
-'--class=[When connecting to a gui instance, if you started the gui with `--class SOMETHING`, you should also pass that same value here in order for the client to find the correct gui instance]:CLASS: ' \
+'--class=[When connecting to a gui instance, if you started the gui with \`--class SOMETHING\`, you should also pass that same value here in order for the client to find the correct gui instance]:CLASS: ' \
 '--no-auto-start[Don'\''t automatically start the server]' \
 '--prefer-mux[Prefer connecting to a background mux server. The default is to prefer connecting to a running wezterm gui instance]' \
 '-h[Print help]' \
@@ -139,8 +139,9 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (tlscreds)
 _arguments "${_arguments_options[@]}" \
-'-h[Print help]' \
-'--help[Print help]' \
+'--pem[Output a PEM file encoded copy of the credentials]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (move-pane-to-new-tab)
@@ -160,7 +161,7 @@ _arguments "${_arguments_options[@]}" \
 '(--cells)--percent=[Specify the number of cells that the new split should have, expressed as a percentage of the available space]:PERCENT: ' \
 '--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
 '(--cwd)--move-pane-id=[Instead of spawning a new command, move the specified pane into the newly created split]:MOVE_PANE_ID: ' \
-'(--left --right --top --bottom)--horizontal[Equivalent to `--right`. If neither this nor any other direction is specified, the default is equivalent to `--bottom`]' \
+'(--left --right --top --bottom)--horizontal[Equivalent to \`--right\`. If neither this nor any other direction is specified, the default is equivalent to \`--bottom\`]' \
 '(--right --top --bottom)--left[Split horizontally, with the new pane on the left]' \
 '(--left --top --bottom)--right[Split horizontally, with the new pane on the right]' \
 '(--left --right --bottom)--top[Split vertically, with the new pane on the top]' \
@@ -175,9 +176,9 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '--pane-id=[Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE. The pane is used to determine the current domain and window]:PANE_ID: ' \
 '--domain-name=[]:DOMAIN_NAME: ' \
-'(--workspace --new-window)--window-id=[Specify the window into which to spawn a tab. If omitted, the window associated with the current pane is used. Cannot be used with `--workspace` or `--new-window`]:WINDOW_ID: ' \
+'(--workspace --new-window)--window-id=[Specify the window into which to spawn a tab. If omitted, the window associated with the current pane is used. Cannot be used with \`--workspace\` or \`--new-window\`]:WINDOW_ID: ' \
 '--cwd=[Specify the current working directory for the initially spawned program]:CWD:_files -/' \
-'--workspace=[When creating a new window, override the default workspace name with the provided name.  The default name is "default". Requires `--new-window`]:WORKSPACE: ' \
+'--workspace=[When creating a new window, override the default workspace name with the provided name.  The default name is "default". Requires \`--new-window\`]:WORKSPACE: ' \
 '--new-window[Spawn into a new window, rather than a new tab]' \
 '-h[Print help]' \
 '--help[Print help]' \
@@ -378,8 +379,8 @@ esac
 ;;
 (imgcat)
 _arguments "${_arguments_options[@]}" \
-'--width=[Specify the display width; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value `N` to specify the number of cells, or `Npx` to specify the number of pixels, or `N%` to size relative to the terminal width]:WIDTH: ' \
-'--height=[Specify the display height; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value `N` to specify the number of cells, or `Npx` to specify the number of pixels, or `N%` to size relative to the terminal height]:HEIGHT: ' \
+'--width=[Specify the display width; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value \`N\` to specify the number of cells, or \`Npx\` to specify the number of pixels, or \`N%\` to size relative to the terminal width]:WIDTH: ' \
+'--height=[Specify the display height; defaults to "auto" which automatically selects an appropriate size.  You may also use an integer value \`N\` to specify the number of cells, or \`Npx\` to specify the number of pixels, or \`N%\` to size relative to the terminal height]:HEIGHT: ' \
 '--no-preserve-aspect-ratio[Do not respect the aspect ratio.  The default is to respect the aspect ratio]' \
 '-h[Print help]' \
 '--help[Print help]' \

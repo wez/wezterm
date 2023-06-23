@@ -1,3 +1,4 @@
+
 Change the title of a window
 
 Usage: wezterm cli set-window-title [OPTIONS] <TITLE>
