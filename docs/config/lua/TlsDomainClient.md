@@ -6,7 +6,7 @@ to a [TLS Domain](../../multiplexing.md#tls-domains).
 It is a lua object with the following fields:
 
 ```lua
-config.tls_domains = {
+config.tls_clients = {
   {
     -- The name of this specific domain.  Must be unique amongst
     -- all types of domain in the configuration file.
@@ -78,7 +78,7 @@ result of that prediction locally without waiting, hence hiding latency to the
 user. This option only applies when `multiplexing = "WezTerm"`.
 
 ```lua
-config.tls_domains = {
+config.tls_clients = {
   {
     name = 'server,name',
     bootstrap_via_ssh = 'server.hostname',
