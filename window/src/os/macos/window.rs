@@ -3065,6 +3065,10 @@ impl WindowView {
                 Self::right_mouse_up as extern "C" fn(&mut Object, Sel, id),
             );
             cls.add_method(
+                sel!(otherMouseDragged:),
+                Self::mouse_moved_or_dragged as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
                 sel!(otherMouseDown:),
                 Self::other_mouse_down as extern "C" fn(&mut Object, Sel, id),
             );
