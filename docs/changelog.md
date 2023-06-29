@@ -104,6 +104,7 @@ As features stabilize some brief notes about them will accumulate here.
   prepped to wrap to the next line, would incorrectly clear the last cell.
   #3548
 * WEZTERM_UNIX_SOCKET didn't get set when using `wezterm start -- something`. #3679
+* Pasting large amounts of text in helix caused issues. #3683
 
 #### Updated
 * Bundled harfbuzz to 7.3.0
