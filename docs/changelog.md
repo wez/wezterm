@@ -37,6 +37,8 @@ As features stabilize some brief notes about them will accumulate here.
   terminal background color as a placeholder until the first frame has been
   decoded. In other circumstances, you may observe a brief black frame while
   waiting for the image to decode.
+* You may now use CTRL-J/K to change the selection in the launcher menu,
+  in addition to CTRL-N/P which always worked previously. #3909
 
 #### New
 

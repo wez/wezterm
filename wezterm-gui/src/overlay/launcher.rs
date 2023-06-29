@@ -480,13 +480,13 @@ impl LauncherState {
                     self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('P'),
+                    key: KeyCode::Char('P' | 'K'),
                     modifiers: Modifiers::CTRL,
                 }) => {
                     self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('N'),
+                    key: KeyCode::Char('N' | 'J'),
                     modifiers: Modifiers::CTRL,
                 }) => {
                     self.move_down();
