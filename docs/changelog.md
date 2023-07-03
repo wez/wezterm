@@ -105,6 +105,8 @@ As features stabilize some brief notes about them will accumulate here.
   #3548
 * WEZTERM_UNIX_SOCKET didn't get set when using `wezterm start -- something`. #3679
 * Pasting large amounts of text in helix caused issues. #3683
+* Wayland: Copying to clipboard was not always successful when triggered by the
+  keyboard. Thanks to @osandov! #3929
 
 #### Updated
 * Bundled harfbuzz to 7.3.0
