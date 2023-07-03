@@ -141,10 +141,8 @@ impl PendingMouse {
     pub fn queue(&mut self, evt: PointerEvent) -> bool {
         match evt {
             PointerEvent::Enter { serial, .. } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
+                let conn = WaylandConnection::get().unwrap().wayland();
+                *conn.last_serial.borrow_mut() = serial;
                 self.in_window = true;
                 false
             }
@@ -169,10 +167,8 @@ impl PendingMouse {
                 serial,
                 ..
             } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
+                let conn = WaylandConnection::get().unwrap().wayland();
+                *conn.last_serial.borrow_mut() = serial;
                 fn linux_button(b: u32) -> Option<MousePress> {
                     // See BTN_LEFT and friends in <linux/input-event-codes.h>
                     match b {

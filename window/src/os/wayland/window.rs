@@ -1176,8 +1176,8 @@ impl WaylandWindowInner {
 
     fn request_drag_move(&self) {
         if let Some(window) = self.window.as_ref() {
-            let serial = self.copy_and_paste.lock().unwrap().last_serial;
             let conn = Connection::get().unwrap().wayland();
+            let serial = *conn.last_serial.borrow();
             window.start_interactive_move(&conn.pointer.borrow().seat, serial);
         }
     }
