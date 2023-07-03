@@ -16,13 +16,11 @@ use crate::Clipboard;
 #[derive(Default)]
 pub struct CopyAndPaste {
     data_offer: Option<WlDataOffer>,
-    pub(crate) last_serial: u32,
 }
 
 impl std::fmt::Debug for CopyAndPaste {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         fmt.debug_struct("CopyAndPaste")
-            .field("last_serial", &self.last_serial)
             .field("data_offer", &self.data_offer.is_some())
             .finish()
     }
@@ -33,12 +31,6 @@ pub const TEXT_MIME_TYPE: &str = "text/plain;charset=utf-8";
 impl CopyAndPaste {
     pub fn create() -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Default::default()))
-    }
-
-    pub fn update_last_serial(&mut self, serial: u32) {
-        if serial != 0 {
-            self.last_serial = serial;
-        }
     }
 
     pub fn get_clipboard_data(&mut self, clipboard: Clipboard) -> anyhow::Result<FileDescriptor> {
@@ -75,6 +67,7 @@ impl CopyAndPaste {
 
     pub fn set_clipboard_data(&mut self, clipboard: Clipboard, data: String) {
         let conn = crate::Connection::get().unwrap().wayland();
+        let last_serial = *conn.last_serial.borrow();
         let pointer = conn.pointer.borrow();
         let primary_selection = if let Clipboard::PrimarySelection = clipboard {
             conn.environment
@@ -105,7 +98,7 @@ impl CopyAndPaste {
                         }
                     },
                 );
-                device.set_selection(&Some(source), self.last_serial)
+                device.set_selection(&Some(source), last_serial)
             }
             None => {
                 let source = conn
@@ -122,7 +115,7 @@ impl CopyAndPaste {
                 conn.pointer
                     .borrow()
                     .data_device
-                    .set_selection(Some(&source), self.last_serial);
+                    .set_selection(Some(&source), last_serial);
             }
         }
     }
@@ -130,12 +123,14 @@ impl CopyAndPaste {
     pub fn handle_data_offer(&mut self, event: DataOfferEvent, offer: WlDataOffer) {
         match event {
             DataOfferEvent::Offer { mime_type } => {
+                let conn = crate::Connection::get().unwrap().wayland();
+                let last_serial = *conn.last_serial.borrow();
                 if mime_type == TEXT_MIME_TYPE {
-                    offer.accept(self.last_serial, Some(mime_type));
+                    offer.accept(last_serial, Some(mime_type));
                     self.data_offer.replace(offer);
                 } else {
                     // Refuse other mime types
-                    offer.accept(self.last_serial, None);
+                    offer.accept(last_serial, None);
                 }
             }
             DataOfferEvent::SourceActions { .. } | DataOfferEvent::Action { .. } => {
