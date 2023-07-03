@@ -1,6 +1,6 @@
 //! Handling hyperlinks.
 //! This gist describes an escape sequence for explicitly managing hyperlinks:
-//! <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5fedaA>
+//! <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda>
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
