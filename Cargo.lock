@@ -642,9 +642,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.9"
+version = "4.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bba77a07e4489fb41bd90e8d4201c3eb246b3c2c9ea2ba0bddd6c1d1df87db7d"
+checksum = "384e169cc618c613d5e3ca6404dda77a8685a63e08660dcc64abaf7da7cb0c7a"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -653,13 +653,12 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.9"
+version = "4.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c9b4a88bb4bc35d3d6f65a21b0f0bafe9c894fa00978de242c555ec28bea1c0"
+checksum = "ef137bbe35aab78bdb468ccfba75a5f4d8321ae011d34063770780545176af2d"
 dependencies = [
  "anstream",
  "anstyle",
- "bitflags 1.3.2",
  "clap_lex 0.5.0",
  "strsim",
  "terminal_size",
@@ -671,7 +670,7 @@ version = "4.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f6b5c519bab3ea61843a7923d074b04245624bb84a64a8c150f5deb014e388b"
 dependencies = [
- "clap 4.3.9",
+ "clap 4.3.10",
 ]
 
 [[package]]
@@ -680,7 +679,7 @@ version = "4.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99fee1d30a51305a6c2ed3fc5709be3c8af626c9c958e04dd9ae94e27bcbce9f"
 dependencies = [
- "clap 4.3.9",
+ "clap 4.3.10",
  "clap_complete",
 ]
 
@@ -4828,7 +4827,7 @@ checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 4.3.9",
+ "clap 4.3.10",
  "termwiz",
 ]
 
@@ -5761,7 +5760,7 @@ dependencies = [
  "anyhow",
  "cc",
  "chrono",
- "clap 4.3.9",
+ "clap 4.3.10",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -5940,7 +5939,7 @@ dependencies = [
  "bytemuck",
  "cc",
  "chrono",
- "clap 4.3.9",
+ "clap 4.3.10",
  "codec",
  "colorgrad",
  "config",
@@ -6023,7 +6022,7 @@ name = "wezterm-gui-subcommands"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.3.9",
+ "clap 4.3.10",
  "config",
 ]
 
@@ -6045,7 +6044,7 @@ dependencies = [
  "anyhow",
  "async_ossl",
  "cc",
- "clap 4.3.9",
+ "clap 4.3.10",
  "config",
  "embed-resource",
  "env-bootstrap",
@@ -6106,7 +6105,7 @@ dependencies = [
  "base64 0.21.2",
  "bitflags 1.3.2",
  "camino",
- "clap 4.3.9",
+ "clap 4.3.10",
  "dirs-next",
  "env_logger",
  "filedescriptor",
