@@ -446,6 +446,9 @@ impl WindowsConsoleRenderer {
                     // renderer because we might be composing multiple widgets
                     // together, each with its own title.
                 }
+                Change::LineAttribute(_) => {
+                    // Ignore line attributes
+                }
             }
         }
 
