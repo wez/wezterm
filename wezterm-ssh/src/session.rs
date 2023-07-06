@@ -16,6 +16,7 @@ pub enum SessionEvent {
     Banner(Option<String>),
     HostVerify(HostVerificationEvent),
     Authenticate(AuthenticationEvent),
+    HostVerificationFailed(HostVerificationFailed),
     Error(String),
     Authenticated,
 }
