@@ -152,7 +152,7 @@ fn format_host_verification_for_terminal(failed: HostVerificationFailed) -> Vec<
             Some(file) => Change::Text(format!(
                 "The host is {}, and its fingerprint is\r\n{}\r\n\
                 which doesn't match the entry in {}\r\n\
-                If administrator confirms that the key has changed, you can\r\n\
+                If the administrator confirms that the key has changed, you can\r\n\
                 fix this for yourself by removing the offending entry from\r\n\
                 {} and then try connecting again.\r\n",
                 failed.remote_address,
