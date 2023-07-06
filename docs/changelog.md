@@ -107,6 +107,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Pasting large amounts of text in helix caused issues. #3683
 * Wayland: Copying to clipboard was not always successful when triggered by the
   keyboard. Thanks to @osandov! #3929
+* `wezterm ssh` connection errors were not shown; the window would close
+  immediately with the default `exit_behavior` setting. Now ssh sessions change
+  `exit_behavior="Close"` to `exit_behavior="CloseOnCleanExit"` so that error
+  information can be displayed. #3941
 
 #### Updated
 * Bundled harfbuzz to 7.3.0

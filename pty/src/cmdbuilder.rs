@@ -204,7 +204,7 @@ pub struct CommandBuilder {
 }
 
 impl CommandBuilder {
-    /// Create a new builder instance with argv[0] set to the specified
+    /// Create a new builder instance with argv\[0\] set to the specified
     /// program.
     pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
         Self {

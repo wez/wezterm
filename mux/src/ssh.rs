@@ -775,7 +775,7 @@ struct WrappedSshChildKiller {
 }
 
 #[derive(Debug)]
-struct WrappedSshChild {
+pub(crate) struct WrappedSshChild {
     status: Option<AsyncReceiver<ExitStatus>>,
     rx: Receiver<SshChildProcess>,
     exited: Option<ExitStatus>,
@@ -791,7 +791,7 @@ impl WrappedSshChild {
                 }
                 Err(TryRecvError::Empty) => {}
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild::check_connected err: {:#?}", err);
                     self.exited.replace(ExitStatus::with_exit_code(1));
                 }
             }
@@ -836,7 +836,7 @@ impl portable_pty::Child for WrappedSshChild {
                 }
                 Err(smol::channel::TryRecvError::Empty) => Ok(None),
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild::try_wait err: {:#?}", err);
                     let status = ExitStatus::with_exit_code(1);
                     self.exited.replace(status.clone());
                     Ok(Some(status))
@@ -858,7 +858,7 @@ impl portable_pty::Child for WrappedSshChild {
                     self.got_child(c);
                 }
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild err: {:#?}", err);
                     let status = ExitStatus::with_exit_code(1);
                     self.exited.replace(status.clone());
                     return Ok(status);
@@ -926,8 +926,14 @@ impl ChildKiller for WrappedSshChildKiller {
 type BoxedReader = Box<(dyn Read + Send + 'static)>;
 type BoxedWriter = Box<(dyn Write + Send + 'static)>;
 
-struct WrappedSshPty {
+pub(crate) struct WrappedSshPty {
     inner: RefCell<WrappedSshPtyInner>,
+}
+
+impl WrappedSshPty {
+    pub fn is_connecting(&mut self) -> bool {
+        self.inner.borrow_mut().is_connecting()
+    }
 }
 
 enum WrappedSshPtyInner {
@@ -973,6 +979,14 @@ impl WrappedSshPtyInner {
                 }
             }
             _ => Ok(()),
+        }
+    }
+
+    fn is_connecting(&mut self) -> bool {
+        self.check_connected().ok();
+        match self {
+            Self::Connecting { .. } => true,
+            Self::Connected { .. } => false,
         }
     }
 }

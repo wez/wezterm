@@ -42,7 +42,7 @@ enum ProcessState {
     Running {
         child_waiter: Receiver<IoResult<ExitStatus>>,
         pid: Option<u32>,
-        signaller: Box<dyn ChildKiller + Send + Sync>,
+        signaller: Box<dyn ChildKiller + Sync>,
         // Whether we've explicitly killed the child
         killed: bool,
     },
@@ -115,11 +115,17 @@ impl CachedLeaderInfo {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LocalPaneConnectionState {
+    Connecting,
+    Connected,
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: Mutex<Terminal>,
     process: Mutex<ProcessState>,
-    pty: Mutex<Box<dyn MasterPty + Send>>,
+    pty: Mutex<Box<dyn MasterPty>>,
     writer: Mutex<Box<dyn Write + Send>>,
     domain_id: DomainId,
     tmux_domain: Mutex<Option<Arc<TmuxDomainState>>>,
@@ -213,6 +219,24 @@ impl Pane for LocalPane {
         self.terminal.lock().user_vars().clone()
     }
 
+    fn exit_behavior(&self) -> Option<ExitBehavior> {
+        // If we are ssh, and we've not yet fully connected,
+        // then override exit_behavior so that we can show
+        // connection issues
+        let is_ssh_connecting = self
+            .pty
+            .lock()
+            .downcast_mut::<crate::ssh::WrappedSshPty>()
+            .map(|s| s.is_connecting())
+            .unwrap_or(false);
+
+        if is_ssh_connecting {
+            Some(ExitBehavior::CloseOnCleanExit)
+        } else {
+            None
+        }
+    }
+
     fn kill(&self) {
         let mut proc = self.process.lock();
         log::debug!(
@@ -263,9 +287,14 @@ impl Pane for LocalPane {
                             .contains(&status.exit_code()),
                     };
 
-                    match (configuration().exit_behavior, success, killed) {
+                    match (
+                        self.exit_behavior()
+                            .unwrap_or_else(|| configuration().exit_behavior),
+                        success,
+                        killed,
+                    ) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
-                        (ExitBehavior::CloseOnCleanExit, false, false) => {
+                        (ExitBehavior::CloseOnCleanExit, false, _) => {
                             notify = Some(format!(
                                 "\r\n⚠️  Process {} didn't exit cleanly\r\n{}.\r\n{}=\"CloseOnCleanExit\"\r\n",
                                 self.command_description,
@@ -901,10 +930,10 @@ impl AlertHandler for LocalPaneNotifHandler {
 /// Without this, typing `exit` in `cmd.exe` would keep the pane around
 /// until something else triggered the mux to prune dead processes.
 fn split_child(
-    mut process: Box<dyn Child + Send>,
+    mut process: Box<dyn Child>,
 ) -> (
     Receiver<IoResult<ExitStatus>>,
-    Box<dyn ChildKiller + Send + Sync>,
+    Box<dyn ChildKiller + Sync>,
     Option<u32>,
 ) {
     let pid = process.process_id();
@@ -930,7 +959,7 @@ impl LocalPane {
         pane_id: PaneId,
         mut terminal: Terminal,
         process: Box<dyn Child + Send>,
-        pty: Box<dyn MasterPty + Send>,
+        pty: Box<dyn MasterPty>,
         writer: Box<dyn Write + Send>,
         domain_id: DomainId,
         command_description: String,
