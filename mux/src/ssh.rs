@@ -20,7 +20,7 @@ use termwiz::cell::{unicode_column_width, AttributeChange, Intensity};
 use termwiz::input::{InputEvent, InputParser};
 use termwiz::lineedit::*;
 use termwiz::render::terminfo::TerminfoRenderer;
-use termwiz::surface::Change;
+use termwiz::surface::{Change, LineAttribute};
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 use wezterm_ssh::{
     ConfigMap, HostVerificationFailed, Session, SessionEvent, SshChildProcess, SshPty,
@@ -133,6 +133,9 @@ pub fn ssh_connect_with_ui(
 fn format_host_verification_for_terminal(failed: HostVerificationFailed) -> Vec<Change> {
     vec![
         AttributeChange::Intensity(Intensity::Bold).into(),
+        LineAttribute::DoubleHeightTopHalfLine.into(),
+        Change::Text("REMOTE HOST IDENTIFICATION CHANGED\r\n".to_string()),
+        LineAttribute::DoubleHeightBottomHalfLine.into(),
         Change::Text("REMOTE HOST IDENTIFICATION CHANGED\r\n".to_string()),
         Change::Text("SOMEONE MAY BE DOING SOMETHING NASTY!\r\n".to_string()),
         AttributeChange::Intensity(Intensity::Normal).into(),
@@ -151,13 +154,11 @@ fn format_host_verification_for_terminal(failed: HostVerificationFailed) -> Vec<
         match failed.file {
             Some(file) => Change::Text(format!(
                 "The host is {}, and its fingerprint is\r\n{}\r\n\
-                which doesn't match the entry in {}\r\n\
                 If the administrator confirms that the key has changed, you can\r\n\
                 fix this for yourself by removing the offending entry from\r\n\
                 {} and then try connecting again.\r\n",
                 failed.remote_address,
                 failed.key,
-                file.display(),
                 file.display(),
             )),
             None => Change::Text(format!(

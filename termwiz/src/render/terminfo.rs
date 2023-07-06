@@ -3,11 +3,12 @@ use crate::caps::{Capabilities, ColorLevel};
 use crate::cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use crate::color::{ColorAttribute, ColorSpec};
 use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
+use crate::escape::esc::EscCode;
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
-use crate::escape::OneBased;
+use crate::escape::{Esc, OneBased};
 use crate::image::{ImageDataType, TextureCoordinate};
 use crate::render::RenderTty;
-use crate::surface::{Change, CursorShape, CursorVisibility, Position};
+use crate::surface::{Change, CursorShape, CursorVisibility, LineAttribute, Position};
 use crate::Result;
 use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
@@ -687,6 +688,20 @@ impl TerminfoRenderer {
                 Change::Title(text) => {
                     let osc = OperatingSystemCommand::SetWindowTitle(text.to_string());
                     write!(out, "{}", osc)?;
+                }
+
+                Change::LineAttribute(attr) => {
+                    let esc = Esc::Code(match attr {
+                        LineAttribute::DoubleHeightTopHalfLine => {
+                            EscCode::DecDoubleHeightTopHalfLine
+                        }
+                        LineAttribute::DoubleHeightBottomHalfLine => {
+                            EscCode::DecDoubleHeightBottomHalfLine
+                        }
+                        LineAttribute::DoubleWidthLine => EscCode::DecDoubleWidthLine,
+                        LineAttribute::SingleWidthLine => EscCode::DecSingleWidthLine,
+                    });
+                    write!(out, "{esc}")?;
                 }
             }
         }
