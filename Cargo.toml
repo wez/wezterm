@@ -26,3 +26,6 @@ opt-level = 3
 # Disabled because it breaks builds on Windows
 #split-debuginfo = "unpacked"
 
+[patch.crates-io]
+xcb = {git="https://github.com/rust-x-bindings/rust-xcb", rev="dbdaa01c178c6fbe68bd51b7ad44c08172181083"} # waiting on a release with https://github.com/rust-x-bindings/rust-xcb/pull/230
+
