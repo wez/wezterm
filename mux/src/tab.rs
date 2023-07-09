@@ -1177,8 +1177,14 @@ impl TabInner {
     }
 
     fn apply_pane_size(&mut self, pane_size: TerminalSize, cursor: &mut Cursor) {
-        let cell_width = pane_size.pixel_width / pane_size.cols;
-        let cell_height = pane_size.pixel_height / pane_size.rows;
+        let cell_width = pane_size
+            .pixel_width
+            .checked_div(pane_size.cols)
+            .unwrap_or(1);
+        let cell_height = pane_size
+            .pixel_height
+            .checked_div(pane_size.rows)
+            .unwrap_or(1);
         if let Ok(Some(node)) = cursor.node_mut() {
             // Adjust the size of the node; we preserve the size of the first
             // child and adjust the second, so if we are split down the middle

@@ -114,6 +114,7 @@ As features stabilize some brief notes about them will accumulate here.
   immediately with the default `exit_behavior` setting. Now ssh sessions
   override `exit_behavior="CloseOnCleanExit"` while connecting so that error
   information can be displayed. #3941
+* Divide by zero panic with lots of splits and resizing panes. #3921
 
 #### Updated
 * Bundled harfbuzz to 8.0.0
