@@ -223,14 +223,14 @@ impl Pane for LocalPane {
         // If we are ssh, and we've not yet fully connected,
         // then override exit_behavior so that we can show
         // connection issues
-        let is_ssh_connecting = self
-            .pty
-            .lock()
+        let mut pty = self.pty.lock();
+        let is_ssh_connecting = pty
             .downcast_mut::<crate::ssh::WrappedSshPty>()
             .map(|s| s.is_connecting())
             .unwrap_or(false);
+        let is_failed_spawn = pty.is::<crate::domain::FailedSpawnPty>();
 
-        if is_ssh_connecting {
+        if is_ssh_connecting || is_failed_spawn {
             Some(ExitBehavior::CloseOnCleanExit)
         } else {
             None

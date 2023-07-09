@@ -115,6 +115,10 @@ As features stabilize some brief notes about them will accumulate here.
   override `exit_behavior="CloseOnCleanExit"` while connecting so that error
   information can be displayed. #3941
 * Divide by zero panic with lots of splits and resizing panes. #3921
+* Spawn failures were not shown; the window would close immediately
+  with the default `exit_behavior` setting. Now local commands override
+  `exit_behavior="CloseOnCleanExit"` if the command fails to spawn, and
+  a more detailed error message is shown explaining what failed. #3928 #3950
 
 #### Updated
 * Bundled harfbuzz to 8.0.0
