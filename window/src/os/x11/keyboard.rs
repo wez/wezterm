@@ -16,14 +16,17 @@ use xkbcommon::xkb;
 pub struct Keyboard {
     context: xkb::Context,
     keymap: RefCell<xkb::Keymap>,
-    _default_keymap: RefCell<xkb::Keymap>,
     device_id: i32,
 
     state: RefCell<xkb::State>,
-    default_state: RefCell<xkb::State>,
     compose_state: RefCell<Compose>,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
     mods_leds: RefCell<(Modifiers, KeyboardLedStatus)>,
+}
+
+pub struct KeyboardWithFallback {
+    selected: Keyboard,
+    fallback: Keyboard,
 }
 
 struct Compose {
@@ -31,6 +34,7 @@ struct Compose {
     composition: String,
 }
 
+#[derive(Debug)]
 enum FeedResult {
     Composing(String),
     Composed(String, xkb::Keysym),
@@ -131,7 +135,7 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
     // use $XKB_DEFAULT_VARIANT or system default
     let system_default_variant = "";
 
-    xkb::Keymap::new_from_names(
+    let map = xkb::Keymap::new_from_names(
         context,
         system_default_rules,
         system_default_model,
@@ -139,126 +143,28 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
         system_default_variant,
         None,
         xkb::KEYMAP_COMPILE_NO_FLAGS,
-    )
+    );
+
+    if let Some(map) = &map {
+        for layout in map.layouts() {
+            log::debug!("default_keymap layout {layout}");
+        }
+    }
+
+    map
 }
 
-impl Keyboard {
-    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
-        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
-        let keymap = xkb::Keymap::new_from_string(
-            &context,
-            s,
-            xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1,
-            xkb::KEYMAP_COMPILE_NO_FLAGS,
-        )
-        .ok_or_else(|| anyhow!("Failed to parse keymap state from file"))?;
-
-        let state = xkb::State::new(&keymap);
-        let locale = query_lc_ctype()?;
-
-        let table =
-            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
-                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
-        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
-
-        let phys_code_map = build_physkeycode_map(&keymap);
-
-        let default_keymap = default_keymap(&context)
-            .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
-        let default_state = xkb::State::new(&default_keymap);
-
+impl KeyboardWithFallback {
+    pub fn new(selected: Keyboard) -> anyhow::Result<Self> {
         Ok(Self {
-            context,
-            device_id: -1,
-            keymap: RefCell::new(keymap),
-            state: RefCell::new(state),
-            _default_keymap: RefCell::new(default_keymap),
-            default_state: RefCell::new(default_state),
-            compose_state: RefCell::new(Compose {
-                state: compose_state,
-                composition: String::new(),
-            }),
-            phys_code_map: RefCell::new(phys_code_map),
-            mods_leds: RefCell::new(Default::default()),
+            selected,
+            fallback: Keyboard::new_default()?,
         })
     }
 
-    pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
-        let first_ev = xcb::xkb::get_extension_data(connection)
-            .ok_or_else(|| anyhow!("could not get xkb extension data"))?
-            .first_event;
-
-        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
-        let device_id = xkb::x11::get_core_keyboard_device_id(&connection);
-        ensure!(device_id != -1, "Couldn't find core keyboard device");
-
-        let keymap = xkb::x11::keymap_new_from_device(
-            &context,
-            &connection,
-            device_id,
-            xkb::KEYMAP_COMPILE_NO_FLAGS,
-        );
-
-        let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
-
-        let locale = query_lc_ctype()?;
-
-        let table =
-            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
-                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
-        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
-
-        {
-            let map_parts = xcb::xkb::MapPart::KEY_TYPES
-                | xcb::xkb::MapPart::KEY_SYMS
-                | xcb::xkb::MapPart::MODIFIER_MAP
-                | xcb::xkb::MapPart::EXPLICIT_COMPONENTS
-                | xcb::xkb::MapPart::KEY_ACTIONS
-                | xcb::xkb::MapPart::KEY_BEHAVIORS
-                | xcb::xkb::MapPart::VIRTUAL_MODS
-                | xcb::xkb::MapPart::VIRTUAL_MOD_MAP;
-
-            let events = xcb::xkb::EventType::NEW_KEYBOARD_NOTIFY
-                | xcb::xkb::EventType::MAP_NOTIFY
-                | xcb::xkb::EventType::STATE_NOTIFY;
-
-            connection.check_request(connection.send_request_checked(&xcb::xkb::SelectEvents {
-                device_spec: device_id as u16,
-                affect_which: events,
-                clear: xcb::xkb::EventType::empty(),
-                select_all: events,
-                affect_map: map_parts,
-                map: map_parts,
-                details: &[],
-            }))?;
-        }
-
-        let phys_code_map = build_physkeycode_map(&keymap);
-
-        let default_keymap = default_keymap(&context)
-            .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
-        let default_state = xkb::State::new(&default_keymap);
-
-        let kbd = Keyboard {
-            context,
-            device_id,
-            keymap: RefCell::new(keymap),
-            state: RefCell::new(state),
-            _default_keymap: RefCell::new(default_keymap),
-            default_state: RefCell::new(default_state),
-            compose_state: RefCell::new(Compose {
-                state: compose_state,
-                composition: String::new(),
-            }),
-            phys_code_map: RefCell::new(phys_code_map),
-            mods_leds: RefCell::new(Default::default()),
-        };
-
-        Ok((kbd, first_ev))
-    }
-
-    pub fn wayland_key_repeats(&self, code: u32) -> bool {
-        self.keymap.borrow().key_repeats(code + 8)
+    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
+        let selected = Keyboard::new_from_string(s)?;
+        Self::new(selected)
     }
 
     pub fn process_wayland_key(
@@ -267,7 +173,7 @@ impl Keyboard {
         pressed: bool,
         events: &mut WindowEventSender,
     ) -> Option<WindowKeyEvent> {
-        let want_repeat = self.wayland_key_repeats(code);
+        let want_repeat = self.selected.wayland_key_repeats(code);
         self.process_key_event_impl(code + 8, pressed, events, want_repeat)
     }
 
@@ -296,11 +202,12 @@ impl Keyboard {
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
-        let phys_code = self.phys_code_map.borrow().get(&xcode).copied();
+        let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
         let raw_modifiers = self.get_key_modifiers();
         let leds = self.get_led_status();
 
-        let xsym = self.state.borrow().key_get_one_sym(xcode);
+        let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
+        let fallback_xsym = self.fallback.state.borrow().key_get_one_sym(xcode);
         let handled = Handled::new();
 
         let raw_key_event = RawKeyEvent {
@@ -318,10 +225,12 @@ impl Keyboard {
         };
 
         let mut kc = None;
+
         let ksym = if pressed {
             events.dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
             if handled.is_handled() {
-                self.compose_state.borrow_mut().reset();
+                self.selected.compose_clear();
+                self.fallback.compose_clear();
                 log::trace!("process_key_event: raw key was handled; not processing further");
 
                 if want_repeat {
@@ -330,11 +239,10 @@ impl Keyboard {
                 return None;
             }
 
-            match self
-                .compose_state
-                .borrow_mut()
-                .feed(xcode, xsym, &self.state)
-            {
+            let fallback_feed = self.fallback.compose_feed(xcode, fallback_xsym);
+            let selected_feed = self.selected.compose_feed(xcode, xsym);
+
+            match selected_feed {
                 FeedResult::Composing(composition) => {
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Composing: {:?}",
@@ -369,6 +277,7 @@ impl Keyboard {
                     //
                     // <https://github.com/wez/wezterm/issues/1851>
                     // <https://github.com/wez/wezterm/issues/2845>
+
                     if !utf8.is_empty()
                         && !raw_modifiers
                             .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
@@ -376,23 +285,39 @@ impl Keyboard {
                         kc.replace(crate::KeyCode::composed(&utf8));
                     }
 
-                    // If we don't have a textual expansion in this case, we will
-                    // consider the equivalent key from the system default / base
-                    // layout.
-                    // For example, if RU is active and they pressed CTRL-S that
-                    // will produce utf8=ы here, which is not useful.
-                    // Looking up in the default keymap will resolve us to the S
-                    // key which is more desirable in the context of a terminal.
-                    // default_xsym is that base key
-                    let default_xsym = self.default_state.borrow().key_get_one_sym(xcode);
-
                     log::trace!(
                         "process_key_event: RawKeyEvent FeedResult::Nothing: \
-                                {utf8:?}, {sym:?}. kc -> {kc:?} def_sym={default_xsym:?}"
+                                {utf8:?}, {sym:?}. kc -> {kc:?} fallback_feed={fallback_feed:?}"
                     );
-                    if kc.is_none() {
-                        // Use the default key layout symbol instead
-                        default_xsym
+
+                    // If we have a modified key, and its expansion is non-ascii, such as cyrillic
+                    // "Es" (which appears visually similar to "c" in latin texts), then consider
+                    // this key expansion against the default latin layout.
+                    // This allows "CTRL-C" to work for users of cyrillic layouts
+
+                    if kc.is_none()
+                        && raw_modifiers
+                            .intersects(Modifiers::CTRL | Modifiers::ALT | Modifiers::SUPER)
+                    {
+                        match keysym_to_keycode(sym).or_else(|| keysym_to_keycode(xsym)) {
+                            Some(crate::KeyCode::Char(c)) if !c.is_ascii() => {
+                                // Potentially a Cyrillic or other non-european layout.
+                                // Consider shortcuts like CTRL-C against the default
+                                // latin layout
+                                match fallback_feed {
+                                    FeedResult::Nothing(_fb_utf8, fb_sym) => {
+                                        log::trace!(
+                                            "process_key_event: RawKeyEvent using fallback \
+                                             sym {fb_sym} because layout would expand to \
+                                             non-ascii text {c:?}"
+                                        );
+                                        fb_sym
+                                    }
+                                    _ => sym,
+                                }
+                            }
+                            _ => sym,
+                        }
                     } else {
                         sym
                     }
@@ -441,12 +366,13 @@ impl Keyboard {
 
     fn mod_is_active(&self, modifier: &str) -> bool {
         // [TODO] consider state  Depressed & consumed mods
-        self.state
+        self.selected
+            .state
             .borrow()
             .mod_name_is_active(modifier, xkb::STATE_MODS_EFFECTIVE)
     }
     fn led_is_active(&self, led: &str) -> bool {
-        self.state.borrow().led_name_is_active(led)
+        self.selected.state.borrow().led_name_is_active(led)
     }
 
     pub fn get_led_status(&self) -> KeyboardLedStatus {
@@ -487,7 +413,7 @@ impl Keyboard {
         connection: &xcb::Connection,
         event: &xcb::Event,
     ) -> anyhow::Result<Option<(Modifiers, KeyboardLedStatus)>> {
-        let before = self.mods_leds.borrow().clone();
+        let before = self.selected.mods_leds.borrow().clone();
 
         match event {
             xcb::Event::Xkb(xcb::xkb::Event::StateNotify(e)) => {
@@ -503,11 +429,197 @@ impl Keyboard {
 
         let after = (self.get_key_modifiers(), self.get_led_status());
         if after != before {
-            *self.mods_leds.borrow_mut() = after.clone();
+            *self.selected.mods_leds.borrow_mut() = after.clone();
             Ok(Some(after))
         } else {
             Ok(None)
         }
+    }
+
+    pub fn update_modifier_state(
+        &self,
+        mods_depressed: u32,
+        mods_latched: u32,
+        mods_locked: u32,
+        group: u32,
+    ) {
+        self.selected
+            .update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
+        self.fallback
+            .update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
+    }
+
+    pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
+        self.selected.update_state(ev);
+        self.fallback.update_state(ev);
+    }
+
+    pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
+        self.selected.update_keymap(connection)
+    }
+}
+
+impl Keyboard {
+    pub fn new_default() -> anyhow::Result<Self> {
+        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
+        let keymap = default_keymap(&context)
+            .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
+
+        for layout in keymap.layouts() {
+            log::debug!("loaded default keymap with layout: {layout}");
+        }
+
+        let state = xkb::State::new(&keymap);
+        let locale = query_lc_ctype()?;
+
+        let table =
+            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
+
+        let phys_code_map = build_physkeycode_map(&keymap);
+
+        Ok(Self {
+            context,
+            device_id: -1,
+            keymap: RefCell::new(keymap),
+            state: RefCell::new(state),
+            compose_state: RefCell::new(Compose {
+                state: compose_state,
+                composition: String::new(),
+            }),
+            phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
+        })
+    }
+
+    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
+        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
+        let keymap = xkb::Keymap::new_from_string(
+            &context,
+            s,
+            xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1,
+            xkb::KEYMAP_COMPILE_NO_FLAGS,
+        )
+        .ok_or_else(|| anyhow!("Failed to parse keymap state from file"))?;
+
+        for layout in keymap.layouts() {
+            log::debug!("loaded new keymap with layout: {layout}");
+        }
+
+        let state = xkb::State::new(&keymap);
+        let locale = query_lc_ctype()?;
+
+        let table =
+            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
+
+        let phys_code_map = build_physkeycode_map(&keymap);
+
+        Ok(Self {
+            context,
+            device_id: -1,
+            keymap: RefCell::new(keymap),
+            state: RefCell::new(state),
+            compose_state: RefCell::new(Compose {
+                state: compose_state,
+                composition: String::new(),
+            }),
+            phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
+        })
+    }
+
+    pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
+        let first_ev = xcb::xkb::get_extension_data(connection)
+            .ok_or_else(|| anyhow!("could not get xkb extension data"))?
+            .first_event;
+
+        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
+        let device_id = xkb::x11::get_core_keyboard_device_id(&connection);
+        ensure!(device_id != -1, "Couldn't find core keyboard device");
+
+        let keymap = xkb::x11::keymap_new_from_device(
+            &context,
+            &connection,
+            device_id,
+            xkb::KEYMAP_COMPILE_NO_FLAGS,
+        );
+
+        for layout in keymap.layouts() {
+            log::debug!("loaded initial keymap with layout: {layout}");
+        }
+
+        let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
+
+        let locale = query_lc_ctype()?;
+
+        let table =
+            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+                .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
+
+        {
+            let map_parts = xcb::xkb::MapPart::KEY_TYPES
+                | xcb::xkb::MapPart::KEY_SYMS
+                | xcb::xkb::MapPart::MODIFIER_MAP
+                | xcb::xkb::MapPart::EXPLICIT_COMPONENTS
+                | xcb::xkb::MapPart::KEY_ACTIONS
+                | xcb::xkb::MapPart::KEY_BEHAVIORS
+                | xcb::xkb::MapPart::VIRTUAL_MODS
+                | xcb::xkb::MapPart::VIRTUAL_MOD_MAP;
+
+            let events = xcb::xkb::EventType::NEW_KEYBOARD_NOTIFY
+                | xcb::xkb::EventType::MAP_NOTIFY
+                | xcb::xkb::EventType::STATE_NOTIFY;
+
+            connection.check_request(connection.send_request_checked(&xcb::xkb::SelectEvents {
+                device_spec: device_id as u16,
+                affect_which: events,
+                clear: xcb::xkb::EventType::empty(),
+                select_all: events,
+                affect_map: map_parts,
+                map: map_parts,
+                details: &[],
+            }))?;
+        }
+
+        let phys_code_map = build_physkeycode_map(&keymap);
+
+        let kbd = Keyboard {
+            context,
+            device_id,
+            keymap: RefCell::new(keymap),
+            state: RefCell::new(state),
+            compose_state: RefCell::new(Compose {
+                state: compose_state,
+                composition: String::new(),
+            }),
+            phys_code_map: RefCell::new(phys_code_map),
+            mods_leds: RefCell::new(Default::default()),
+        };
+
+        Ok((kbd, first_ev))
+    }
+
+    /// Returns true if a given wayland keycode allows for automatic key repeats
+    pub fn wayland_key_repeats(&self, code: u32) -> bool {
+        self.keymap.borrow().key_repeats(code + 8)
+    }
+
+    pub fn get_device_id(&self) -> i32 {
+        self.device_id
+    }
+
+    fn compose_feed(&self, xcode: xkb::Keycode, xsym: xkb::Keysym) -> FeedResult {
+        self.compose_state
+            .borrow_mut()
+            .feed(xcode, xsym, &self.state)
+    }
+
+    pub fn compose_clear(&self) {
+        self.compose_state.borrow_mut().reset();
     }
 
     pub fn update_modifier_state(
@@ -539,6 +651,8 @@ impl Keyboard {
     }
 
     pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
+        log::debug!("update_keymap was called");
+
         let new_keymap = xkb::x11::keymap_new_from_device(
             &self.context,
             &connection,
@@ -549,6 +663,9 @@ impl Keyboard {
             !new_keymap.get_raw_ptr().is_null(),
             "problem with new keymap"
         );
+        for layout in new_keymap.layouts() {
+            log::debug!("loaded changed keymap with layout: {layout}");
+        }
 
         let new_state = xkb::x11::state_new_from_device(&new_keymap, connection, self.device_id);
         ensure!(!new_state.get_raw_ptr().is_null(), "problem with new state");
@@ -558,10 +675,6 @@ impl Keyboard {
         self.keymap.replace(new_keymap);
         self.phys_code_map.replace(phys_code_map);
         Ok(())
-    }
-
-    pub fn get_device_id(&self) -> i32 {
-        self.device_id
     }
 }
 

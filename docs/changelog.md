@@ -57,6 +57,9 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
   OS-level key maps. #3470
+* X11/Wayland: CTRL-key presses for non-US latin keymaps regressed due to
+  changes to [improve handling of CTRL-key presses for non-latin
+  layouts](https://github.com/wez/wezterm/issues/2845). #3610
 * Numerous issues with the kitty keyboard protocol implementation #2546 #3220
   #3315 #3473 #3474 #3476 #3478 #3479 #3484 #3526
 * mux: Attempting to spawn into an ad-hoc SSH domain after the last tab could

@@ -4,7 +4,7 @@ use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::inputhandler::InputHandler;
 use crate::os::wayland::output::OutputHandler;
-use crate::os::x11::keyboard::Keyboard;
+use crate::os::x11::keyboard::KeyboardWithFallback;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::{Appearance, Connection, ScreenRect, WindowEvent};
@@ -56,7 +56,7 @@ pub struct WaylandConnection {
     // must be ahead of the rest.
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) pointer: RefCell<PointerDispatcher>,
-    pub(crate) keyboard_mapper: RefCell<Option<Keyboard>>,
+    pub(crate) keyboard_mapper: RefCell<Option<KeyboardWithFallback>>,
     pub(crate) keyboard_window_id: RefCell<Option<usize>>,
     pub(crate) surface_to_window_id: RefCell<HashMap<u32, usize>>,
     pub(crate) active_surface_id: RefCell<u32>,
@@ -265,7 +265,7 @@ impl WaylandConnection {
                             data.pop();
                         }
                         let s = String::from_utf8(data)?;
-                        match Keyboard::new_from_string(s) {
+                        match KeyboardWithFallback::new_from_string(s) {
                             Ok(k) => {
                                 self.keyboard_mapper.replace(Some(k));
                             }
