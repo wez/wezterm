@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
   [char_select_fg_color](config/lua/config/char_select_fg_color.md) options to
   customize the appearance of
   [CharSelect](config/lua/keyassignment/CharSelect.md) mode. Thanks to @junnplus! #3703
+* Horizontal mouse wheel events are now passed through to the terminal. Thanks to @calops! #3856
 
 #### Fixed
 
