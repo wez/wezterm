@@ -119,6 +119,7 @@ As features stabilize some brief notes about them will accumulate here.
   with the default `exit_behavior` setting. Now local commands override
   `exit_behavior="CloseOnCleanExit"` if the command fails to spawn, and
   a more detailed error message is shown explaining what failed. #3928 #3950
+* macOS: middle mouse button dragging. Thanks to @JacobMalloy! #3908
 
 #### Updated
 * Bundled harfbuzz to 8.0.0
