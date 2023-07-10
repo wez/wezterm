@@ -46,7 +46,7 @@ k9 = "0.11.0"
 once_cell = "1.8"
 predicates = "3.0"
 env_logger = "0.10"
-rstest = "0.17"
+rstest = "0.18"
 shell-words = "1.1"
 smol-potat = "1.1.2"
 termwiz = { version = "0.22", path = "../termwiz" }
