@@ -135,7 +135,7 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
     // use $XKB_DEFAULT_VARIANT or system default
     let system_default_variant = "";
 
-    let map = xkb::Keymap::new_from_names(
+    xkb::Keymap::new_from_names(
         context,
         system_default_rules,
         system_default_model,
@@ -143,15 +143,7 @@ fn default_keymap(context: &xkb::Context) -> Option<xkb::Keymap> {
         system_default_variant,
         None,
         xkb::KEYMAP_COMPILE_NO_FLAGS,
-    );
-
-    if let Some(map) = &map {
-        for layout in map.layouts() {
-            log::debug!("default_keymap layout {layout}");
-        }
-    }
-
-    map
+    )
 }
 
 impl KeyboardWithFallback {
@@ -465,10 +457,6 @@ impl Keyboard {
         let keymap = default_keymap(&context)
             .ok_or_else(|| anyhow!("Failed to load system default keymap"))?;
 
-        for layout in keymap.layouts() {
-            log::debug!("loaded default keymap with layout: {layout}");
-        }
-
         let state = xkb::State::new(&keymap);
         let locale = query_lc_ctype()?;
 
@@ -502,10 +490,6 @@ impl Keyboard {
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         )
         .ok_or_else(|| anyhow!("Failed to parse keymap state from file"))?;
-
-        for layout in keymap.layouts() {
-            log::debug!("loaded new keymap with layout: {layout}");
-        }
 
         let state = xkb::State::new(&keymap);
         let locale = query_lc_ctype()?;
@@ -546,10 +530,6 @@ impl Keyboard {
             device_id,
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
-
-        for layout in keymap.layouts() {
-            log::debug!("loaded initial keymap with layout: {layout}");
-        }
 
         let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
 
@@ -663,9 +643,6 @@ impl Keyboard {
             !new_keymap.get_raw_ptr().is_null(),
             "problem with new keymap"
         );
-        for layout in new_keymap.layouts() {
-            log::debug!("loaded changed keymap with layout: {layout}");
-        }
 
         let new_state = xkb::x11::state_new_from_device(&new_keymap, connection, self.device_id);
         ensure!(!new_state.get_raw_ptr().is_null(), "problem with new state");
