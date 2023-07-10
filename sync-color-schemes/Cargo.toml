@@ -12,7 +12,7 @@ config = { path = "../config" }
 env_logger = "0.10"
 futures = "0.3"
 lazy_static = "1.4"
-libflate = "1"
+libflate = "2"
 log = "0.4"
 reqwest = "0.11"
 rusqlite = {version="0.27", features=["bundled", "blob"]}
