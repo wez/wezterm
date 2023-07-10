@@ -857,6 +857,7 @@ dependencies = [
  "portable-pty",
  "promise",
  "serde",
+ "serde_json",
  "shlex",
  "smol",
  "termwiz",
