@@ -3137,6 +3137,180 @@
   {
     "colors": {
       "ansi": [
+        "#1c1e1b",
+        "#e75a7c",
+        "#8fb573",
+        "#dbb671",
+        "#57a5e5",
+        "#aaaaff",
+        "#70c2be",
+        "#f1e9d2"
+      ],
+      "background": "#252623",
+      "brights": [
+        "#5b5e5a",
+        "#e75a7c",
+        "#8fb573",
+        "#dbb671",
+        "#57a5e5",
+        "#aaaaff",
+        "#70c2be",
+        "#f1e9d2"
+      ],
+      "cursor_bg": "#fff8f0",
+      "cursor_border": "#fff8f0",
+      "cursor_fg": "#0f0800",
+      "foreground": "#f1e9d2",
+      "indexed": {},
+      "scrollbar_thumb": "#1c1e1b",
+      "selection_bg": "#5b5e5a",
+      "selection_fg": "#f1e9d2",
+      "split": "#3a3d37",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#111210",
+          "fg_color": "#f1e9d2",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#1c1e1b",
+        "inactive_tab": {
+          "bg_color": "#3a3d37",
+          "fg_color": "#5b5e5a",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#3a3d37",
+        "inactive_tab_hover": {
+          "bg_color": "#2f312c",
+          "fg_color": "#838781",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#5b5e5a",
+          "fg_color": "#f1e9d2",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#838781",
+          "fg_color": "#f1e9d2",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#383b35"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Riley Bruins",
+      "name": "Bamboo",
+      "origin_url": "https://github.com/ribru17/bamboo.nvim",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#171f17",
+        "#dc4f62",
+        "#81af58",
+        "#cebe69",
+        "#5692c4",
+        "#ae93e0",
+        "#71ada2",
+        "#ece1c0"
+      ],
+      "background": "#232923",
+      "brights": [
+        "#5a5e5a",
+        "#dc4f62",
+        "#81af58",
+        "#cebe69",
+        "#5692c4",
+        "#ae93e0",
+        "#71ada2",
+        "#ece1c0"
+      ],
+      "cursor_bg": "#fff8f0",
+      "cursor_border": "#fff8f0",
+      "cursor_fg": "#0f0800",
+      "foreground": "#ece1c0",
+      "indexed": {},
+      "scrollbar_thumb": "#171f17",
+      "selection_bg": "#5a5e5a",
+      "selection_fg": "#ece1c0",
+      "split": "#383d37",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#101210",
+          "fg_color": "#ece1c0",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#171f17",
+        "inactive_tab": {
+          "bg_color": "#383d37",
+          "fg_color": "#5a5e5a",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_edge": "#383d37",
+        "inactive_tab_hover": {
+          "bg_color": "#2d312c",
+          "fg_color": "#818781",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#5a5e5a",
+          "fg_color": "#ece1c0",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#818781",
+          "fg_color": "#ece1c0",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      },
+      "visual_bell": "#363b35"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Riley Bruins",
+      "name": "Bamboo Multiplex",
+      "origin_url": "https://github.com/ribru17/bamboo.nvim",
+      "prefix": "b",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#17141f",
         "#ff6b7f",
         "#00bd9c",
@@ -15685,6 +15859,91 @@
       "aliases": [],
       "name": "Hardcore (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "h",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#282433",
+        "#e965a5",
+        "#b1f2a7",
+        "#ebde76",
+        "#b1baf4",
+        "#e192ef",
+        "#b3f4f3",
+        "#eee9fc"
+      ],
+      "background": "#282433",
+      "brights": [
+        "#3f3951",
+        "#e965a5",
+        "#b1f2a7",
+        "#ebde76",
+        "#b1baf4",
+        "#e192ef",
+        "#b3f4f3",
+        "#eee9fc"
+      ],
+      "compose_cursor": "#ebde76",
+      "cursor_bg": "#eee9fc",
+      "cursor_border": "#eee9fc",
+      "cursor_fg": "#eee9fc",
+      "foreground": "#eee9fc",
+      "indexed": {},
+      "scrollbar_thumb": "#3f3951",
+      "selection_bg": "#3f3951",
+      "selection_fg": "#eee9fc",
+      "split": "#938aad",
+      "tab_bar": {
+        "active_tab": {
+          "bg_color": "#282433",
+          "fg_color": "#e965a5",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "background": "#282433",
+        "inactive_tab": {
+          "bg_color": "#282433",
+          "fg_color": "#938aad",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "inactive_tab_hover": {
+          "bg_color": "#e192ef",
+          "fg_color": "#eee9fc",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab": {
+          "bg_color": "#282433",
+          "fg_color": "#938aad",
+          "intensity": "Normal",
+          "italic": false,
+          "strikethrough": false,
+          "underline": "None"
+        },
+        "new_tab_hover": {
+          "bg_color": "#e192ef",
+          "fg_color": "#eee9fc",
+          "intensity": "Normal",
+          "italic": true,
+          "strikethrough": false,
+          "underline": "None"
+        }
+      }
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "hardhacker",
+      "origin_url": "https://github.com/hardhackerlabs/theme-wezterm",
       "prefix": "h",
       "wezterm_version": "nightly builds only"
     }

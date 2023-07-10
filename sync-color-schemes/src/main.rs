@@ -413,6 +413,20 @@ async fn main() -> anyhow::Result<()> {
         &mut schemeses,
     )
     .await?;
+    sync_toml(
+        "https://github.com/hardhackerlabs/theme-wezterm",
+        "master",
+        "",
+        &mut schemeses,
+    )
+    .await?;
+    sync_toml(
+        "https://github.com/ribru17/bamboo.nvim",
+        "master",
+        "",
+        &mut schemeses,
+    )
+    .await?;
     accumulate(
         &mut schemeses,
         iterm2::sync_iterm2().await.context("sync iterm2")?,
