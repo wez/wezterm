@@ -14,6 +14,7 @@ use mio::{Events, Interest, Poll, Token};
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::Read;
 use std::os::unix::fs::FileExt;
 use std::os::unix::io::FromRawFd;
 use std::rc::Rc;
@@ -254,11 +255,27 @@ impl WaylandConnection {
                 *self.key_repeat_delay.borrow_mut() = *delay;
             }
             WlKeyboardEvent::Keymap { format, fd, size } => {
-                let file = unsafe { std::fs::File::from_raw_fd(*fd) };
+                let mut file = unsafe { std::fs::File::from_raw_fd(*fd) };
                 match format {
                     KeymapFormat::XkbV1 => {
                         let mut data = vec![0u8; *size as usize];
-                        file.read_exact_at(&mut data, 0)?;
+                        // If we weren't passed a pipe, be sure to explicitly
+                        // read from the start of the file
+                        match file.read_exact_at(&mut data, 0) {
+                            Ok(_) => {}
+                            Err(err) => {
+                                // ideally: we check for:
+                                // err.kind() == std::io::ErrorKind::NotSeekable
+                                // but that is not yet in stable rust
+                                if err.raw_os_error() == Some(libc::ESPIPE) {
+                                    // It's a pipe, which cannot be seeked, so we
+                                    // just try reading from the current pipe position
+                                    file.read(&mut data).context("read from Keymap fd/pipe")?;
+                                } else {
+                                    return Err(err).context("read_exact_at from Keymap fd");
+                                }
+                            }
+                        }
                         // Dance around CString panicing on the NUL terminator
                         // in the xkbcommon crate
                         while let Some(0) = data.last() {
