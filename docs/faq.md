@@ -382,8 +382,9 @@ config.set_environment_variables = {
 ```
 
 See also:
-* [set_environment_variables](config/lua/config/set_environment_variables.md)
-* [SpawnCommand](config/lua/SpawnCommand.md)
-* [wezterm.config_file](config/lua/wezterm/config_file.md)
-* [wezterm.shell_quote_arg](config/lua/wezterm/shell_quote_arg.md)
+
+ * [set_environment_variables](config/lua/config/set_environment_variables.md)
+ * [SpawnCommand](config/lua/SpawnCommand.md)
+ * [wezterm.config_file](config/lua/wezterm/config_file.md)
+ * [wezterm.shell_quote_arg](config/lua/wezterm/shell_quote_arg.md)
 
