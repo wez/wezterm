@@ -39,6 +39,8 @@ As features stabilize some brief notes about them will accumulate here.
   waiting for the image to decode.
 * You may now use CTRL-J/K to change the selection in the launcher menu,
   in addition to CTRL-N/P which always worked previously. #3909
+* Duplicate entries in [CharSelect](config/lua/keyassignment/CharSelect.md) are
+  now suppressed, making it less cluttered. Thanks to @vimpostor! #3674
 
 #### New
 
@@ -53,7 +55,9 @@ As features stabilize some brief notes about them will accumulate here.
   customize the appearance of
   [CharSelect](config/lua/keyassignment/CharSelect.md) mode. Thanks to @junnplus! #3703
 * Horizontal mouse wheel events are now passed through to the terminal. Thanks to @calops! #3856
-* [exit_behavior_messaging](config/lua/config/exit_behavior_messaging.md) option to control output when holding a pane open after a process completes. #3423
+* [exit_behavior_messaging](config/lua/config/exit_behavior_messaging.md)
+  option to control output when holding a pane open after a process completes.
+  #3423
 
 #### Fixed
 
