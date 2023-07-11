@@ -22,6 +22,7 @@ rangeset = { path = "../rangeset" }
 rcgen = "0.9"
 smol = "1.2"
 url = "2"
+wezterm-client = { path = "../wezterm-client" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 termwiz = { path = "../termwiz", features=["use_serde"] }
 

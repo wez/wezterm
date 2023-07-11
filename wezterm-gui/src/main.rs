@@ -11,7 +11,6 @@ use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::{ConfigHandle, SerialDomain, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
-use mux::ssh::RemoteSshDomain;
 use mux::Mux;
 use mux_lua::MuxDomain;
 use portable_pty::cmdbuilder::CommandBuilder;
@@ -27,9 +26,10 @@ use termwiz::cell::{CellAttributes, UnicodeVersion};
 use termwiz::surface::{Line, SEQ_ZERO};
 use unicode_normalization::UnicodeNormalization;
 use wezterm_bidi::Direction;
-use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
+use wezterm_client::domain::ClientDomain;
 use wezterm_font::shaper::PresentationWidth;
 use wezterm_gui_subcommands::*;
+use wezterm_mux_server_impl::update_mux_domains;
 use wezterm_toast_notification::*;
 
 mod colorease;
@@ -244,24 +244,6 @@ fn run_serial(config: config::ConfigHandle, opts: SerialCommand) -> anyhow::Resu
     gui.run_forever()
 }
 
-fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
-    let mut domains = vec![];
-    for unix_dom in &config.unix_domains {
-        domains.push(ClientDomainConfig::Unix(unix_dom.clone()));
-    }
-
-    for ssh_dom in config.ssh_domains().into_iter() {
-        if ssh_dom.multiplexing == SshMultiplexing::WezTerm {
-            domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
-        }
-    }
-
-    for tls_client in &config.tls_clients {
-        domains.push(ClientDomainConfig::Tls(tls_client.clone()));
-    }
-    domains
-}
-
 fn have_panes_in_domain_and_ws(domain: &Arc<dyn Domain>, workspace: &Option<String>) -> bool {
     let mux = Mux::get();
     let have_panes_in_domain = mux
@@ -345,67 +327,6 @@ async fn spawn_tab_in_domain_if_mux_is_empty(
         .spawn(config.initial_size(dpi), cmd, None, window_id)
         .await?;
     trigger_and_log_gui_attached(MuxDomain(domain.domain_id())).await;
-    Ok(())
-}
-
-fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
-    let mux = Mux::get();
-
-    for client_config in client_domains(&config) {
-        if mux.get_domain_by_name(client_config.name()).is_some() {
-            continue;
-        }
-
-        let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
-        mux.add_domain(&domain);
-    }
-
-    for ssh_dom in config.ssh_domains().into_iter() {
-        if ssh_dom.multiplexing != SshMultiplexing::None {
-            continue;
-        }
-
-        if mux.get_domain_by_name(&ssh_dom.name).is_some() {
-            continue;
-        }
-
-        let domain: Arc<dyn Domain> = Arc::new(RemoteSshDomain::with_ssh_domain(&ssh_dom)?);
-        mux.add_domain(&domain);
-    }
-
-    for wsl_dom in config.wsl_domains() {
-        if mux.get_domain_by_name(&wsl_dom.name).is_some() {
-            continue;
-        }
-
-        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_wsl(wsl_dom.clone())?);
-        mux.add_domain(&domain);
-    }
-
-    for exec_dom in &config.exec_domains {
-        if mux.get_domain_by_name(&exec_dom.name).is_some() {
-            continue;
-        }
-
-        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_exec_domain(exec_dom.clone())?);
-        mux.add_domain(&domain);
-    }
-
-    for serial in &config.serial_ports {
-        if mux.get_domain_by_name(&serial.name).is_some() {
-            continue;
-        }
-
-        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_serial_domain(serial.clone())?);
-        mux.add_domain(&domain);
-    }
-
-    if let Some(name) = &config.default_domain {
-        if let Some(dom) = mux.get_domain_by_name(name) {
-            mux.set_default_domain(&dom);
-        }
-    }
-
     Ok(())
 }
 

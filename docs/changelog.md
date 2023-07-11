@@ -58,6 +58,9 @@ As features stabilize some brief notes about them will accumulate here.
 * [exit_behavior_messaging](config/lua/config/exit_behavior_messaging.md)
   option to control output when holding a pane open after a process completes.
   #3423
+* [default_mux_server_domain](config/lua/config/default_mux_server_domain.md) for the
+  (almost!) equivalent to [default_domain](config/lua/config/default_domain.md) in
+  the context of the mux server.
 
 #### Fixed
 
@@ -126,6 +129,9 @@ As features stabilize some brief notes about them will accumulate here.
   `exit_behavior="CloseOnCleanExit"` if the command fails to spawn, and
   a more detailed error message is shown explaining what failed. #3928 #3950
 * macOS: middle mouse button dragging. Thanks to @JacobMalloy! #3908
+* Attempting to spawn a non-local domain via the mux server would fail with
+  invalid domain because none of the additional domains from your config were
+  registered with the mux server. #3907
 
 #### Updated
 * Bundled harfbuzz to 8.0.0

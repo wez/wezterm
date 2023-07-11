@@ -790,6 +790,9 @@ pub struct Config {
     pub default_domain: Option<String>,
 
     #[dynamic(default)]
+    pub default_mux_server_domain: Option<String>,
+
+    #[dynamic(default)]
     pub default_workspace: Option<String>,
 
     #[dynamic(default)]

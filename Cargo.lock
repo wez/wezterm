@@ -6157,6 +6157,7 @@ dependencies = [
  "termwiz",
  "uds_windows",
  "url",
+ "wezterm-client",
  "wezterm-term",
  "winapi",
 ]
