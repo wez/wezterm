@@ -411,9 +411,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                         }
                     }
                 }
-                Err(err) => {
-                    write!(fmt, "Error getting metatable: {err:#}")
-                }
+                Err(_) => fmt.write_str("userdata"),
             },
             LuaValue::LightUserData(_) => fmt.write_str("userdata"),
             LuaValue::Thread(_) => fmt.write_str("thread"),
