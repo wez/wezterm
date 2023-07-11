@@ -8,4 +8,5 @@ Sets the tab title to the provided string.
 tab:set_title 'my title'
 ```
 
-
+[Example of interactively changing the
+title](../keyassignment/PromptInputLine.md#example-of-interactively-renaming-the-current-tab)
