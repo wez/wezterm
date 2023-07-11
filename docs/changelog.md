@@ -53,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
   customize the appearance of
   [CharSelect](config/lua/keyassignment/CharSelect.md) mode. Thanks to @junnplus! #3703
 * Horizontal mouse wheel events are now passed through to the terminal. Thanks to @calops! #3856
+* [exit_behavior_messaging](config/lua/config/exit_behavior_messaging.md) option to control output when holding a pane open after a process completes. #3423
 
 #### Fixed
 

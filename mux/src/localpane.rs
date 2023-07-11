@@ -9,7 +9,7 @@ use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
-use config::{configuration, ExitBehavior};
+use config::{configuration, ExitBehavior, ExitBehaviorMessaging};
 use fancy_regex::Regex;
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -260,12 +260,16 @@ impl Pane for LocalPane {
 
     fn is_dead(&self) -> bool {
         let mut proc = self.process.lock();
-        let mut notify = None;
 
         const EXIT_BEHAVIOR: &str = "This message is shown because \
             \x1b]8;;https://wezfurlong.org/wezterm/\
             config/lua/config/exit_behavior.html\
             \x1b\\exit_behavior\x1b]8;;\x1b\\";
+
+        let mut terse = String::new();
+        let mut brief = String::new();
+        let mut trailer = String::new();
+        let cmd = &self.command_description;
 
         match &mut *proc {
             ProcessState::Running {
@@ -295,28 +299,22 @@ impl Pane for LocalPane {
                     ) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, _) => {
-                            notify = Some(format!(
-                                "\r\n⚠️  Process {} didn't exit cleanly\r\n{}.\r\n{}=\"CloseOnCleanExit\"\r\n",
-                                self.command_description,
-                                status,
-                                EXIT_BEHAVIOR
-                            ));
+                            brief = format!("⚠️  Process {cmd} didn't exit cleanly");
+                            terse = format!("{status}.");
+                            trailer = format!("{EXIT_BEHAVIOR}=\"CloseOnCleanExit\"");
+
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
                         (ExitBehavior::CloseOnCleanExit, ..) => *proc = ProcessState::Dead,
                         (ExitBehavior::Hold, success, false) => {
+                            trailer = format!("{EXIT_BEHAVIOR}=\"Hold\"");
+
                             if success {
-                                notify = Some(format!(
-                                    "\r\n👍 Process {} completed.\r\n{}=\"Hold\"\r\n",
-                                    self.command_description, EXIT_BEHAVIOR
-                                ));
+                                brief = format!("👍 Process {cmd} completed.");
+                                terse = "done".to_string();
                             } else {
-                                notify = Some(format!(
-                                    "\r\n⚠️  Process {} didn't exit cleanly\r\n{}.\r\n{}=\"Hold\"\r\n",
-                                    self.command_description,
-                                    status,
-                                    EXIT_BEHAVIOR
-                                ));
+                                brief = format!("⚠️  Process {cmd} didn't exit cleanly");
+                                terse = format!("{status}");
                             }
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
@@ -332,6 +330,30 @@ impl Pane for LocalPane {
                 }
             }
             ProcessState::Dead => {}
+        }
+
+        let mut notify = None;
+        if !terse.is_empty() {
+            match configuration().exit_behavior_messaging {
+                ExitBehaviorMessaging::Verbose => {
+                    if terse == "done" {
+                        notify = Some(format!("\r\n{brief}\r\n{trailer}"));
+                    } else {
+                        notify = Some(format!("\r\n{brief}\r\n{terse}\r\n{trailer}"));
+                    }
+                }
+                ExitBehaviorMessaging::Brief => {
+                    if terse == "done" {
+                        notify = Some(format!("\r\n{brief}"));
+                    } else {
+                        notify = Some(format!("\r\n{brief}\r\n{terse}"));
+                    }
+                }
+                ExitBehaviorMessaging::Terse => {
+                    notify = Some(format!("\r\n[{terse}]"));
+                }
+                ExitBehaviorMessaging::None => {}
+            }
         }
 
         if let Some(notify) = notify {
