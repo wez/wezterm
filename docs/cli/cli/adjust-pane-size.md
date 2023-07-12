@@ -1,6 +1,6 @@
 # `wezterm cli adjust-pane-size DIRECTION`
 
-{{since('nightly')}}
+{{since('20230712-072601-f4abf8fd')}}
 
 *Run `wezterm cli adjust-pane-size --help` to see more help*
 

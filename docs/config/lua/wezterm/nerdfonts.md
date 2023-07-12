@@ -35,7 +35,7 @@ wezterm.on('update-right-status', function(window, pane)
 end)
 ```
 
-{{since('nightly')}}
+{{since('20230712-072601-f4abf8fd')}}
 
 The bundled `Nerd Font Symbols Font` was updated to version 3.0 which,
 unfortunately, makes [breaking

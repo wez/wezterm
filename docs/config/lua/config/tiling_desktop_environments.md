@@ -1,6 +1,6 @@
 # `tiling_desktop_environments = {}`
 
-{{since('nightly')}}
+{{since('20230712-072601-f4abf8fd')}}
 
 Contains a list of Window Environments that are known to be tiling
 window managers. A tiling window manager is one that automatically

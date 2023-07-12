@@ -80,7 +80,7 @@
       "name": "3024 (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "3",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -195,7 +195,7 @@
       "name": "3024 Day (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "3",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -275,7 +275,7 @@
       "name": "3024 Night (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "3",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -464,7 +464,7 @@
       "name": "Adventure Time (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -692,7 +692,7 @@
       "name": "Alien Blood (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -942,7 +942,7 @@
       "name": "Apprentice (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -1059,7 +1059,7 @@
       "name": "Argonaut (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -1137,7 +1137,7 @@
       "name": "Arthur (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -1221,7 +1221,7 @@
       "name": "Ashes (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -2745,7 +2745,7 @@
       "name": "Atom (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "a",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3218,7 +3218,7 @@
       "name": "Bamboo",
       "origin_url": "https://github.com/ribru17/bamboo.nvim",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3305,7 +3305,7 @@
       "name": "Bamboo Multiplex",
       "origin_url": "https://github.com/ribru17/bamboo.nvim",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3463,7 +3463,7 @@
       "name": "Belafonte Day (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3543,7 +3543,7 @@
       "name": "Belafonte Night (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3662,7 +3662,7 @@
       "name": "Bespin (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -3771,7 +3771,7 @@
       "name": "Birds Of Paradise (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -4443,7 +4443,7 @@
       "name": "Blazer (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -4829,7 +4829,7 @@
       "name": "Borland (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -5141,7 +5141,7 @@
       "name": "Brewer (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -5340,7 +5340,7 @@
       "name": "Broadcast (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -5465,7 +5465,7 @@
       "name": "Brogrammer (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "b",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -5916,7 +5916,7 @@
       "name": "C64 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6285,7 +6285,7 @@
       "name": "Catppuccin Frappé (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6413,7 +6413,7 @@
       "name": "Catppuccin Latte (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6544,7 +6544,7 @@
       "name": "Catppuccin Macchiato (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6675,7 +6675,7 @@
       "name": "Catppuccin Mocha (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6714,7 +6714,7 @@
       "name": "catppuccin-frappe",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6794,7 +6794,7 @@
       "name": "catppuccin-macchiato",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6833,7 +6833,7 @@
       "name": "catppuccin-mocha",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -6995,7 +6995,7 @@
       "name": "Chalk (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7145,7 +7145,7 @@
       "name": "Chalkboard (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7338,7 +7338,7 @@
       "name": "Ciapre (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7668,7 +7668,7 @@
       "name": "Clrs (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7705,7 +7705,7 @@
       "name": "Cobalt 2 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7784,7 +7784,7 @@
       "name": "Cobalt Neon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -7909,7 +7909,7 @@
       "name": "Codeschool (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -8209,7 +8209,7 @@
       "name": "Crayon Pony Fish (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "c",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -8677,7 +8677,7 @@
       "name": "Dark Pastel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -8966,7 +8966,7 @@
       "name": "Darkside (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -9388,7 +9388,7 @@
       "name": "Default (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -9669,7 +9669,7 @@
       "name": "Desert (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -9741,7 +9741,7 @@
       "name": "Dimmed Monokai (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "d",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -10666,7 +10666,7 @@
       "name": "Earthsong (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -11160,7 +11160,7 @@
       "name": "Ef-Tritanopia-Light",
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-tritanopia-light-theme.el",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -11284,7 +11284,7 @@
       "name": "Eighties (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -11432,7 +11432,7 @@
       "name": "Elemental (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -11666,7 +11666,7 @@
       "name": "Embers (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -12158,7 +12158,7 @@
       "name": "Espresso (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -12237,7 +12237,7 @@
       "name": "Espresso Libre (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -12444,7 +12444,7 @@
       "name": "Everblush (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -12980,7 +12980,7 @@
       "name": "Fishtank (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -13220,7 +13220,7 @@
       "name": "Flatland (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -13495,7 +13495,7 @@
       "name": "Frontend Delight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -13532,7 +13532,7 @@
       "name": "Frontend Fun Forrest (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -13569,7 +13569,7 @@
       "name": "Frontend Galaxy (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "f",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -13993,7 +13993,7 @@
       "name": "Github (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14141,7 +14141,7 @@
       "name": "Gnometerm (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14252,7 +14252,7 @@
       "name": "Google (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14536,7 +14536,7 @@
       "name": "Gotham (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14649,7 +14649,7 @@
       "name": "Grape (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14727,7 +14727,7 @@
       "name": "Grass (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14762,7 +14762,7 @@
       "name": "Grayscale (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -14977,7 +14977,7 @@
       "name": "Greenscreen (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -15172,7 +15172,7 @@
       "name": "Gruvbox Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "g",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -15860,7 +15860,7 @@
       "name": "Hardcore (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -15945,7 +15945,7 @@
       "name": "hardhacker",
       "origin_url": "https://github.com/hardhackerlabs/theme-wezterm",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16118,7 +16118,7 @@
       "name": "Harper (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16532,7 +16532,7 @@
       "name": "Highway (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16611,7 +16611,7 @@
       "name": "Hipster Green (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16728,7 +16728,7 @@
       "name": "Homebrew (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16765,7 +16765,7 @@
       "name": "Homebrew Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16802,7 +16802,7 @@
       "name": "Homebrew Ocean (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -16888,7 +16888,7 @@
       "name": "Hopscotch (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -17402,7 +17402,7 @@
       "name": "Hurtado (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "h",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -17702,7 +17702,7 @@
       "name": "Ic Orange Ppl (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -17984,7 +17984,7 @@
       "name": "Idle Toes (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -18340,7 +18340,7 @@
       "name": "Isotope (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "i",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -18524,7 +18524,7 @@
       "name": "Jackie Brown (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "j",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -18602,7 +18602,7 @@
       "name": "Japanesque (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "j",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -18715,7 +18715,7 @@
       "name": "Jellybeans (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "j",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19091,7 +19091,7 @@
       "name": "Kibble (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "k",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19451,7 +19451,7 @@
       "name": "Later This Evening (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19529,7 +19529,7 @@
       "name": "Lavandula (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19601,7 +19601,7 @@
       "name": "Liquid Carbon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19638,7 +19638,7 @@
       "name": "Liquid Carbon Transparent (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "l",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -19843,7 +19843,7 @@
       "name": "Londontube (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "l",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -20302,7 +20302,7 @@
       "name": "Man Page (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -20462,7 +20462,7 @@
       "name": "Marrakesh (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -21159,7 +21159,7 @@
       "name": "Mathias (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -21311,7 +21311,7 @@
       "name": "Medallion (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -21631,7 +21631,7 @@
       "name": "Misterioso (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -21715,7 +21715,7 @@
       "name": "Mocha (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -21943,7 +21943,7 @@
       "name": "Mona Lisa (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -22372,7 +22372,7 @@
       "name": "Monokai (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -22677,7 +22677,7 @@
       "name": "Monokai Soda (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "m",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -22901,7 +22901,7 @@
       "name": "N0Tch2K (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -23322,7 +23322,7 @@
       "name": "Neopolitan (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -23437,7 +23437,7 @@
       "name": "Neutron (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -23686,7 +23686,7 @@
       "name": "Nightlion V1 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -23765,7 +23765,7 @@
       "name": "Nightlion V2 (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -23843,7 +23843,7 @@
       "name": "niji",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24007,7 +24007,7 @@
       "name": "Nord (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24302,7 +24302,7 @@
       "name": "Novel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "n",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24485,7 +24485,7 @@
       "name": "Obsidian (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24610,7 +24610,7 @@
       "name": "Ocean (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24721,7 +24721,7 @@
       "name": "Oceanic Next (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -24927,7 +24927,7 @@
       "name": "Ollie (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "o",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -25860,7 +25860,7 @@
       "name": "Paraiso (base16)",
       "origin_url": "https://github.com/chriskempson/base16-unclaimed-schemes",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -25895,7 +25895,7 @@
       "name": "Paraiso (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -26012,7 +26012,7 @@
       "name": "Paraiso Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -26244,7 +26244,7 @@
       "name": "Pencil Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -26281,7 +26281,7 @@
       "name": "Pencil Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -26769,7 +26769,7 @@
       "name": "Pnevma (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -27310,7 +27310,7 @@
       "name": "Pro (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "p",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -27679,7 +27679,7 @@
       "name": "Railscasts (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28031,7 +28031,7 @@
       "name": "Red Alert (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28184,7 +28184,7 @@
       "name": "Red Sands (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28262,7 +28262,7 @@
       "name": "Relaxed (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28414,7 +28414,7 @@
       "name": "Rippedcasts (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28624,7 +28624,7 @@
       "name": "Rosé Pine (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28708,7 +28708,7 @@
       "name": "Rosé Pine Dawn (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28745,7 +28745,7 @@
       "name": "Rosé Pine Moon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -28862,7 +28862,7 @@
       "name": "Royal (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -29264,7 +29264,7 @@
       "name": "Sea Shells (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -29343,7 +29343,7 @@
       "name": "Seafoam Pastel (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -29620,7 +29620,7 @@
       "name": "Seti (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -29866,7 +29866,7 @@
       "name": "Shaman (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -30262,7 +30262,7 @@
       "name": "Slate (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -30537,7 +30537,7 @@
       "name": "Soft Server (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -30821,7 +30821,7 @@
       "name": "Solarized Darcula (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -30978,7 +30978,7 @@
       "name": "Solarized Dark Higher Contrast (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -31015,7 +31015,7 @@
       "name": "Solarized Light (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -31165,7 +31165,7 @@
       "name": "Spacedust (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -31243,7 +31243,7 @@
       "name": "Spacegray (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -31322,7 +31322,7 @@
       "name": "Spacegray Eighties (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -31401,7 +31401,7 @@
       "name": "Spacegray Eighties Dull (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -32047,7 +32047,7 @@
       "name": "Sundried (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -32273,7 +32273,7 @@
       "name": "Symphonic (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "s",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -32870,7 +32870,7 @@
       "name": "Teerb (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33125,7 +33125,7 @@
       "name": "Terminal Basic (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33278,7 +33278,7 @@
       "name": "Thayer Bright (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33621,7 +33621,7 @@
       "name": "Tokyo Night",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33744,7 +33744,7 @@
       "name": "Tokyo Night Day",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33867,7 +33867,7 @@
       "name": "Tokyo Night Moon",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -33951,7 +33951,7 @@
       "name": "Tokyo Night Storm",
       "origin_url": "https://github.com/folke/tokyonight.nvim",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -34029,7 +34029,7 @@
       "name": "tokyonight",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -34068,7 +34068,7 @@
       "name": "tokyonight-day",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -34107,7 +34107,7 @@
       "name": "tokyonight-storm",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -34979,7 +34979,7 @@
       "name": "Toy Chest (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -35098,7 +35098,7 @@
       "name": "Treehouse (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -35258,7 +35258,7 @@
       "name": "Twilight (dark) (terminal.sexy)",
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -35295,7 +35295,7 @@
       "name": "Twilight (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "t",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -35816,7 +35816,7 @@
       "name": "Urple (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "u",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -35966,7 +35966,7 @@
       "name": "Vaughn (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -36003,7 +36003,7 @@
       "name": "Vibrant Ink (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "v",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -36557,7 +36557,7 @@
       "name": "Warm Neon (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -36676,7 +36676,7 @@
       "name": "Wez (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -36752,7 +36752,7 @@
       "name": "Wild Cherry (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -37286,7 +37286,7 @@
       "name": "Wombat (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -37411,7 +37411,7 @@
       "name": "Wryan (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "w",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {
@@ -37805,7 +37805,7 @@
       "name": "Zenburn (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "z",
-      "wezterm_version": "nightly builds only"
+      "wezterm_version": "20230712-072601-f4abf8fd"
     }
   },
   {

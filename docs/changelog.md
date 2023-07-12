@@ -22,6 +22,12 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
+#### New
+#### Fixed
+
+### 20230712-072601-f4abf8fd
+
+#### Changed
 
 * The default for
   [adjust_window_size_when_changing_font_size](config/lua/config/adjust_window_size_when_changing_font_size.md)
