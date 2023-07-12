@@ -1,7 +1,7 @@
 #![macro_use]
 
 pub use mlua;
-use mlua::{ToLua, Value as LuaValue};
+use mlua::{IntoLua, Value as LuaValue};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
@@ -40,8 +40,8 @@ pub fn from_lua<'lua, T: FromDynamic>(value: mlua::Value<'lua>) -> Result<T, mlu
 #[macro_export]
 macro_rules! impl_lua_conversion_dynamic {
     ($struct:ident) => {
-        impl<'lua> $crate::mlua::ToLua<'lua> for $struct {
-            fn to_lua(
+        impl<'lua> $crate::mlua::IntoLua<'lua> for $struct {
+            fn into_lua(
                 self,
                 lua: &'lua $crate::mlua::Lua,
             ) -> Result<$crate::mlua::Value<'lua>, $crate::mlua::Error> {
@@ -67,10 +67,10 @@ pub fn dynamic_to_lua_value<'lua>(
     Ok(match value {
         DynValue::Null => LuaValue::Nil,
         DynValue::Bool(b) => LuaValue::Boolean(b),
-        DynValue::String(s) => s.to_lua(lua)?,
-        DynValue::U64(u) => u.to_lua(lua)?,
-        DynValue::F64(u) => u.to_lua(lua)?,
-        DynValue::I64(u) => u.to_lua(lua)?,
+        DynValue::String(s) => s.into_lua(lua)?,
+        DynValue::U64(u) => u.into_lua(lua)?,
+        DynValue::F64(u) => u.into_lua(lua)?,
+        DynValue::I64(u) => u.into_lua(lua)?,
         DynValue::Array(array) => {
             let table = lua.create_table()?;
             for (idx, value) in array.into_iter().enumerate() {
@@ -126,9 +126,7 @@ fn lua_value_to_dynamic_impl(
         }
         LuaValue::UserData(ud) => match ud.get_metatable() {
             Ok(mt) => {
-                if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
-                    mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
-                ) {
+                if let Ok(to_dynamic) = mt.get::<mlua::Function>("__wezterm_to_dynamic") {
                     match to_dynamic.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
                             return lua_value_to_dynamic_impl(value, visited);
@@ -145,7 +143,7 @@ fn lua_value_to_dynamic_impl(
                     }
                 }
 
-                match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
+                match mt.get::<mlua::Function>(mlua::MetaMethod::ToString) {
                     Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
                             return lua_value_to_dynamic_impl(value, visited);
@@ -383,9 +381,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
             }
             LuaValue::UserData(ud) => match ud.get_metatable() {
                 Ok(mt) => {
-                    if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
-                        mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
-                    ) {
+                    if let Ok(to_dynamic) = mt.get::<mlua::Function>("__wezterm_to_dynamic") {
                         return match to_dynamic.call(LuaValue::UserData(ud.clone())) {
                             Ok(value) => Self {
                                 visited: Rc::clone(&self.visited),
@@ -395,7 +391,7 @@ impl<'lua> std::fmt::Debug for ValuePrinterHelper<'lua> {
                             Err(err) => write!(fmt, "Error calling __wezterm_to_dynamic: {err}"),
                         };
                     }
-                    match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
+                    match mt.get::<mlua::Function>(mlua::MetaMethod::ToString) {
                         Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
                             Ok(value) => Self {
                                 visited: Rc::clone(&self.visited),

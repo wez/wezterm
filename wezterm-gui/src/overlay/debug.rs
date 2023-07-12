@@ -74,24 +74,20 @@ fn format_lua_err(err: mlua::Error) -> String {
 fn fragment_to_expr_or_statement(lua: &mlua::Lua, text: &str) -> Result<String, String> {
     let expr = format!("return {};", text);
 
-    match lua.load(&expr).set_name("=repl") {
-        Ok(chunk) => match chunk.into_function() {
-            Ok(_) => {
-                // It's an expression
-                Ok(text.to_string())
+    let chunk = lua.load(&expr).set_name("=repl");
+    match chunk.into_function() {
+        Ok(_) => {
+            // It's an expression
+            Ok(text.to_string())
+        }
+        Err(_) => {
+            // Try instead as a statement
+            let chunk = lua.load(text).set_name("=repl");
+            match chunk.into_function() {
+                Ok(_) => Ok(text.to_string()),
+                Err(err) => Err(format_lua_err(err)),
             }
-            Err(_) => {
-                // Try instead as a statement
-                match lua.load(text).set_name("=repl") {
-                    Ok(chunk) => match chunk.into_function() {
-                        Ok(_) => Ok(text.to_string()),
-                        Err(err) => Err(format_lua_err(err)),
-                    },
-                    Err(err) => Err(format_lua_err(err)),
-                }
-            }
-        },
-        Err(err) => Err(format_lua_err(err)),
+        }
     }
 }
 
@@ -263,10 +259,7 @@ async fn evaluate(host: LuaReplHost, expr: String) -> (LuaReplHost, String) {
             Ok(code) => code,
             Err(err) => return err,
         };
-        let chunk = match host.lua.load(&code).set_name("repl") {
-            Err(err) => return format!("{err:#}"),
-            Ok(chunk) => chunk,
-        };
+        let chunk = host.lua.load(&code).set_name("repl");
 
         let result = chunk
             .eval_async::<Value>()

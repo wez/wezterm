@@ -1,6 +1,6 @@
 use crate::schemes::base16::Base16Scheme;
 use crate::schemes::sexy::Sexy;
-use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods};
+use config::lua::mlua::{self, Lua, MetaMethod, UserData, UserDataMethods, UserDataRef};
 use config::lua::{get_or_create_module, get_or_create_sub_module};
 use config::{ColorSchemeFile, ColorSchemeMetaData, Gradient, Palette, RgbaColor, SrgbaTuple};
 
@@ -51,7 +51,7 @@ impl UserData for ColorWrap {
             let s: String = this.0.into();
             Ok(s)
         });
-        methods.add_meta_method(MetaMethod::Eq, |_, this, other: ColorWrap| {
+        methods.add_meta_method(MetaMethod::Eq, |_, this, other: UserDataRef<ColorWrap>| {
             Ok(this.0 == other.0)
         });
         methods.add_method("complement", |_, this, _: ()| Ok(this.complement()));
@@ -95,10 +95,11 @@ impl UserData for ColorWrap {
         });
         methods.add_method("hsla", |_, this, _: ()| Ok(this.0.to_hsla()));
         methods.add_method("laba", |_, this, _: ()| Ok(this.0.to_laba()));
-        methods.add_method("contrast_ratio", |_, this, other: ColorWrap| {
-            Ok(this.0.contrast_ratio(&other.0))
-        });
-        methods.add_method("delta_e", |_, this, other: ColorWrap| {
+        methods.add_method(
+            "contrast_ratio",
+            |_, this, other: UserDataRef<ColorWrap>| Ok(this.0.contrast_ratio(&other.0)),
+        );
+        methods.add_method("delta_e", |_, this, other: UserDataRef<ColorWrap>| {
             Ok(this.0.delta_e(&other.0))
         });
     }

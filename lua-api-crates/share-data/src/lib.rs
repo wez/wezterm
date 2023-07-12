@@ -1,5 +1,7 @@
 use config::lua::get_or_create_module;
-use config::lua::mlua::{self, Lua, ToLua, UserData, UserDataMethods, Value as LuaValue};
+use config::lua::mlua::{
+    self, IntoLua, Lua, UserData, UserDataMethods, UserDataRef, Value as LuaValue,
+};
 use ordered_float::OrderedFloat;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
@@ -119,9 +121,7 @@ fn lua_value_to_gvalue_impl(value: LuaValue, visited: &mut HashSet<usize>) -> ml
         }
         LuaValue::UserData(ud) => match ud.get_metatable() {
             Ok(mt) => {
-                if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
-                    mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
-                ) {
+                if let Ok(to_dynamic) = mt.get::<mlua::Function>("__wezterm_to_dynamic") {
                     match to_dynamic.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
                             return lua_value_to_gvalue_impl(value, visited);
@@ -138,7 +138,7 @@ fn lua_value_to_gvalue_impl(value: LuaValue, visited: &mut HashSet<usize>) -> ml
                     }
                 }
 
-                match mt.get::<mlua::MetaMethod, mlua::Function>(mlua::MetaMethod::ToString) {
+                match mt.get::<mlua::Function>(mlua::MetaMethod::ToString) {
                     Ok(to_string) => match to_string.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
                             return lua_value_to_gvalue_impl(value, visited);
@@ -259,25 +259,25 @@ fn gvalue_to_lua<'lua>(lua: &'lua Lua, value: &Value) -> mlua::Result<LuaValue<'
         }
         Value::Bool(b) => Ok(LuaValue::Boolean(*b)),
         Value::Null => Ok(LuaValue::Nil),
-        Value::String(s) => s.to_string().to_lua(lua),
+        Value::String(s) => s.to_string().into_lua(lua),
         Value::I64(i) => Ok(LuaValue::Integer(*i)),
-        Value::F64(n) => n.to_lua(lua),
+        Value::F64(n) => n.into_lua(lua),
     }
 }
 
 impl UserData for Value {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_meta_method(
-            mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
+            "__wezterm_to_dynamic",
             |lua: &Lua, this, _: ()| -> mlua::Result<mlua::Value> { gvalue_to_lua(lua, this) },
         );
         methods.add_meta_method(
             mlua::MetaMethod::Len,
             |lua: &Lua, this, _: ()| -> mlua::Result<mlua::Value> {
                 match this {
-                    Value::Array(arr) => arr.inner.lock().unwrap().len().to_lua(lua),
-                    Value::Object(obj) => obj.inner.lock().unwrap().len().to_lua(lua),
-                    Value::String(s) => s.to_string().to_lua(lua),
+                    Value::Array(arr) => arr.inner.lock().unwrap().len().into_lua(lua),
+                    Value::Object(obj) => obj.inner.lock().unwrap().len().into_lua(lua),
+                    Value::String(s) => s.to_string().into_lua(lua),
                     _ => Err(mlua::Error::external(
                         "invalid type for len operator".to_string(),
                     )),
@@ -287,27 +287,28 @@ impl UserData for Value {
 
         methods.add_meta_method(mlua::MetaMethod::Pairs, |lua, this, ()| match this {
             Value::Array(_) => {
-                let stateless_iter =
-                    lua.create_function(|lua, (this, i): (Value, usize)| match this {
+                let stateless_iter = lua.create_function(
+                    |lua, (this, i): (UserDataRef<Value>, usize)| match &*this {
                         Value::Array(arr) => {
                             let arr = arr.inner.lock().unwrap();
                             let i = i + 1;
 
                             if i <= arr.len() {
                                 return Ok(mlua::Variadic::from_iter(vec![
-                                    i.to_lua(lua)?,
-                                    arr[i - 1].clone().to_lua(lua)?,
+                                    i.into_lua(lua)?,
+                                    arr[i - 1].clone().into_lua(lua)?,
                                 ]));
                             }
                             return Ok(mlua::Variadic::new());
                         }
                         _ => unreachable!(),
-                    })?;
-                Ok((stateless_iter, this.clone(), 0.to_lua(lua)?))
+                    },
+                )?;
+                Ok((stateless_iter, this.clone(), 0.into_lua(lua)?))
             }
             Value::Object(_) => {
-                let stateless_iter =
-                    lua.create_function(|lua, (this, key): (Value, Option<String>)| match this {
+                let stateless_iter = lua.create_function(
+                    |lua, (this, key): (UserDataRef<Value>, Option<String>)| match &*this {
                         Value::Object(obj) => {
                             let obj = obj.inner.lock().unwrap();
                             let mut iter = obj.iter();
@@ -321,8 +322,8 @@ impl UserData for Value {
                             while let Some((this_key, value)) = iter.next() {
                                 if this_is_key {
                                     return Ok(mlua::MultiValue::from_vec(vec![
-                                        this_key.clone().to_lua(lua)?,
-                                        value.clone().to_lua(lua)?,
+                                        this_key.clone().into_lua(lua)?,
+                                        value.clone().into_lua(lua)?,
                                     ]));
                                 }
                                 if Some(this_key.as_str()) == key.as_deref() {
@@ -332,7 +333,8 @@ impl UserData for Value {
                             return Ok(mlua::MultiValue::new());
                         }
                         _ => unreachable!(),
-                    })?;
+                    },
+                )?;
                 Ok((stateless_iter, this.clone(), LuaValue::Nil))
             }
             _ => Err(mlua::Error::external(
@@ -363,11 +365,11 @@ impl UserData for Value {
                             match value {
                                 Value::Null => Ok(LuaValue::Nil),
                                 Value::Bool(b) => Ok(LuaValue::Boolean(*b)),
-                                Value::String(s) => s.clone().to_lua(lua),
-                                Value::F64(u) => u.to_lua(lua),
-                                Value::I64(u) => u.to_lua(lua),
-                                Value::Array(_) => value.clone().to_lua(lua),
-                                Value::Object(_) => value.clone().to_lua(lua),
+                                Value::String(s) => s.clone().into_lua(lua),
+                                Value::F64(u) => u.into_lua(lua),
+                                Value::I64(u) => u.into_lua(lua),
+                                Value::Array(_) => value.clone().into_lua(lua),
+                                Value::Object(_) => value.clone().into_lua(lua),
                             }
                         }
                         _ => Err(mlua::Error::external(
@@ -388,11 +390,11 @@ impl UserData for Value {
                                 match value {
                                     Value::Null => Ok(LuaValue::Nil),
                                     Value::Bool(b) => Ok(LuaValue::Boolean(*b)),
-                                    Value::String(s) => s.clone().to_lua(lua),
-                                    Value::F64(u) => u.to_lua(lua),
-                                    Value::I64(u) => u.to_lua(lua),
-                                    Value::Array(_) => value.clone().to_lua(lua),
-                                    Value::Object(_) => value.clone().to_lua(lua),
+                                    Value::String(s) => s.clone().into_lua(lua),
+                                    Value::F64(u) => u.into_lua(lua),
+                                    Value::I64(u) => u.into_lua(lua),
+                                    Value::Array(_) => value.clone().into_lua(lua),
+                                    Value::Object(_) => value.clone().into_lua(lua),
                                 }
                             }
                         },

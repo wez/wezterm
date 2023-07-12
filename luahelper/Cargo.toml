@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bstr = "0.2"
+bstr = "1.0"
 log = "0.4"
-mlua = "0.8.3"
+mlua = "0.9.0-rc.1"
 wezterm-dynamic = { path = "../wezterm-dynamic" }

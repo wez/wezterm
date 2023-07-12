@@ -1,5 +1,5 @@
 use crate::{dynamic_to_lua_value, lua_value_to_dynamic};
-use mlua::{Lua, MetaMethod, ToLua, UserData, UserDataMethods, Value};
+use mlua::{IntoLua, Lua, MetaMethod, UserData, UserDataMethods, Value};
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use wezterm_dynamic::{
@@ -140,7 +140,7 @@ where
                     deprecated_fields: UnknownFieldAction::Ignore,
                 },
             ) {
-                return Ok(field.to_lua(lua)?);
+                return Ok(field.into_lua(lua)?);
             }
 
             // Step 2: see if this is a valid variant, and whether we can

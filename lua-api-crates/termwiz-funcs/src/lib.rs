@@ -1,5 +1,5 @@
 use config::lua::get_or_create_module;
-use config::lua::mlua::{self, Lua, ToLua};
+use config::lua::mlua::{self, IntoLua, Lua};
 use finl_unicode::grapheme_clusters::Graphemes;
 use luahelper::impl_lua_conversion_dynamic;
 use std::str::FromStr;
@@ -221,7 +221,7 @@ fn permute_mods<'lua>(
                         new_item.set(k, v)?;
                     }
                     new_item.set("mods", flags.to_string())?;
-                    result.push(new_item.to_lua(lua)?);
+                    result.push(new_item.into_lua(lua)?);
                 }
             }
         }

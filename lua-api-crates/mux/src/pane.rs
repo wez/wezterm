@@ -1,6 +1,6 @@
 use super::*;
 use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
-use mlua::Value;
+use mlua::{UserDataRef, Value};
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
@@ -89,10 +89,15 @@ impl UserData for MuxPane {
         });
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.0));
 
-        methods.add_async_method("split", |_, this, args: Option<SplitPane>| async move {
-            let args = args.unwrap_or_default();
-            args.run(this).await
-        });
+        methods.add_async_method(
+            "split",
+            |_, this, args: Option<UserDataRef<SplitPane>>| async move {
+                match args {
+                    Some(args) => args.run(this).await,
+                    None => SplitPane::default().run(this).await,
+                }
+            },
+        );
 
         methods.add_method("send_paste", |_, this, text: String| {
             let mux = get_mux()?;
@@ -432,7 +437,7 @@ fn default_split_size() -> f32 {
 }
 
 impl SplitPane {
-    async fn run(self, pane: MuxPane) -> mlua::Result<MuxPane> {
+    async fn run(&self, pane: &MuxPane) -> mlua::Result<MuxPane> {
         let (command, command_dir) = self.cmd_builder.to_command_builder();
         let source = SplitSource::Spawn {
             command,
@@ -464,7 +469,7 @@ impl SplitPane {
 
         let mux = get_mux()?;
         let (pane, _size) = mux
-            .split_pane(pane.0, request, source, self.domain)
+            .split_pane(pane.0, request, source, self.domain.clone())
             .await
             .map_err(|e| mlua::Error::external(format!("{:#?}", e)))?;
 

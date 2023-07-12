@@ -477,22 +477,12 @@ dependencies = [
 
 [[package]]
 name = "bstr"
-version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
-dependencies = [
- "lazy_static",
- "memchr",
- "regex-automata 0.1.10",
-]
-
-[[package]]
-name = "bstr"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6798148dccfbff0fae41c7574d2fa8f1ef3492fba0face179de5d8d447d67b05"
 dependencies = [
  "memchr",
+ "regex-automata 0.3.2",
  "serde",
 ]
 
@@ -2864,7 +2854,7 @@ dependencies = [
 name = "luahelper"
 version = "0.1.0"
 dependencies = [
- "bstr 0.2.17",
+ "bstr 1.6.0",
  "log",
  "mlua",
  "wezterm-dynamic",
@@ -3078,21 +3068,29 @@ dependencies = [
 
 [[package]]
 name = "mlua"
-version = "0.8.9"
+version = "0.9.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07366ed2cd22a3b000aed076e2b68896fb46f06f1f5786c5962da73c0af01577"
+checksum = "f5369212118d0f115c9adbe7f7905e36fb3ef2994266039c51fc3e96374d705d"
 dependencies = [
- "bstr 0.2.17",
- "cc",
- "futures-core",
- "futures-task",
+ "bstr 1.6.0",
  "futures-util",
- "lua-src",
- "luajit-src",
+ "mlua-sys",
  "num-traits",
  "once_cell",
- "pkg-config",
  "rustc-hash",
+]
+
+[[package]]
+name = "mlua-sys"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3daecc55a656cae8e54fc599701ab597b67cdde68f780cac8c1c49b9cfff2f5"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "lua-src",
+ "luajit-src",
+ "pkg-config",
 ]
 
 [[package]]
@@ -4798,7 +4796,7 @@ name = "spawn-funcs"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bstr 0.2.17",
+ "bstr 1.6.0",
  "config",
  "log",
  "luahelper",

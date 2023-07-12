@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context};
 use luahelper::{from_lua_value_dynamic, lua_value_to_dynamic, to_lua};
-use mlua::{FromLua, Lua, Table, ToLuaMulti, Value, Variadic};
+use mlua::{FromLua, IntoLuaMulti, Lua, Table, Value, Variadic};
 use ordered_float::NotNan;
 use portable_pty::CommandBuilder;
 use std::convert::TryFrom;
@@ -150,14 +150,11 @@ fn config_builder_new_index<'lua>(
                     for i in 1.. {
                         if let Some(debug) = lua.inspect_stack(i) {
                             let names = debug.names();
-                            let name = names.name.map(String::from_utf8_lossy);
-                            let name_what = names.name_what.map(String::from_utf8_lossy);
+                            let name = names.name;
+                            let name_what = names.name_what;
 
                             let dbg_source = debug.source();
-                            let source = dbg_source
-                                .source
-                                .and_then(|b| String::from_utf8(b.to_vec()).ok())
-                                .unwrap_or_default();
+                            let source = dbg_source.source.unwrap_or_default();
                             let func_name = match (name, name_what) {
                                 (Some(name), Some(name_what)) => {
                                     format!("{name_what} {name}")
@@ -278,7 +275,7 @@ package.searchers[2] = function(module)
 end
         "#,
         )
-        .set_name("=searcher")?
+        .set_name("=searcher")
         .eval()
         .context("replace package.searchers")?;
 
@@ -798,7 +795,7 @@ pub fn emit_sync_callback<'lua, A>(
     (name, args): (String, A),
 ) -> mlua::Result<mlua::Value<'lua>>
 where
-    A: ToLuaMulti<'lua>,
+    A: IntoLuaMulti<'lua>,
 {
     let decorated_name = format!("wezterm-event-{}", name);
     let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
@@ -819,7 +816,7 @@ pub async fn emit_async_callback<'lua, A>(
     (name, args): (String, A),
 ) -> mlua::Result<mlua::Value<'lua>>
 where
-    A: ToLuaMulti<'lua>,
+    A: IntoLuaMulti<'lua>,
 {
     let decorated_name = format!("wezterm-event-{}", name);
     let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
