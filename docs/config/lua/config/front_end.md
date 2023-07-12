@@ -12,6 +12,9 @@ possible values:
 * `Software` - use CPU-based rasterization.
 * `WebGpu` - use GPU accelerated rasterization {{since('20221119-145034-49b9839f', inline=True)}}
 
+{{since('nightly', outline=true)}}
+    The default is `"WebGpu"`. In earlier versions it was `"OpenGL"`
+
 You may wish (or need!) to select `Software` if there are issues with your
 GPU/OpenGL drivers.
 
