@@ -70,9 +70,9 @@ jobs:
         with:
           crate: "cargo-nextest"
           cache-key: "centos8"
-      - name: "Test (Release mode)"
+      - name: "Test"
         shell: bash
-        run: "cargo nextest run --all --release --no-fail-fast"
+        run: "cargo nextest run --all --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
