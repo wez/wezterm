@@ -1304,11 +1304,11 @@ impl RawKeyEvent {
                         F18 => 57381,
                         F19 => 57382,
                         F20 => 57383,
-                        /*
                         F21 => 57384,
                         F22 => 57385,
                         F23 => 57386,
                         F24 => 57387,
+                        /*
                         F25 => 57388,
                         F26 => 57389,
                         F27 => 57390,
@@ -1847,7 +1847,7 @@ impl KeyEvent {
                 };
                 format!("\x1b[1;{modifiers}{event_type}{c}")
             }
-            Function(n) if *n < 13 => {
+            Function(n) if *n < 25 => {
                 // The spec says that kitty prefers an SS3 form for F1-F4,
                 // but then has some variance in the encoding and cites a
                 // compatibility issue with a cursor position report.
@@ -1866,6 +1866,18 @@ impl KeyEvent {
                     10 => "\x1b[21",
                     11 => "\x1b[23",
                     12 => "\x1b[24",
+                    13 => "\x1b[57376",
+                    14 => "\x1b[57377",
+                    15 => "\x1b[57378",
+                    16 => "\x1b[57379",
+                    17 => "\x1b[57380",
+                    18 => "\x1b[57381",
+                    19 => "\x1b[57382",
+                    20 => "\x1b[57383",
+                    21 => "\x1b[57384",
+                    22 => "\x1b[57385",
+                    23 => "\x1b[57386",
+                    24 => "\x1b[57387",
                     _ => unreachable!(),
                 };
 
