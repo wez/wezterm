@@ -4,7 +4,7 @@ use super::pointer::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::wl_id;
-use crate::os::x11::keyboard::Keyboard;
+use crate::os::x11::keyboard::KeyboardWithFallback;
 use crate::{
     Appearance, Clipboard, Connection, Dimensions, MouseCursor, Point, Rect,
     RequestedWindowGeometry, ResolvedGeometry, ScreenPoint, Window, WindowEvent, WindowEventSender,
@@ -484,7 +484,7 @@ impl WaylandWindowInner {
         }
     }
 
-    fn emit_focus(&mut self, mapper: &mut Keyboard, focused: bool) {
+    fn emit_focus(&mut self, mapper: &mut KeyboardWithFallback, focused: bool) {
         // Clear the modifiers when we change focus, otherwise weird
         // things can happen.  For instance, if we lost focus because
         // CTRL+SHIFT+N was pressed to spawn a new window, we'd be

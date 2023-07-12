@@ -9,7 +9,7 @@ use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
-use config::{configuration, ExitBehavior};
+use config::{configuration, ExitBehavior, ExitBehaviorMessaging};
 use fancy_regex::Regex;
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -42,7 +42,7 @@ enum ProcessState {
     Running {
         child_waiter: Receiver<IoResult<ExitStatus>>,
         pid: Option<u32>,
-        signaller: Box<dyn ChildKiller + Send + Sync>,
+        signaller: Box<dyn ChildKiller + Sync>,
         // Whether we've explicitly killed the child
         killed: bool,
     },
@@ -115,11 +115,17 @@ impl CachedLeaderInfo {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LocalPaneConnectionState {
+    Connecting,
+    Connected,
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: Mutex<Terminal>,
     process: Mutex<ProcessState>,
-    pty: Mutex<Box<dyn MasterPty + Send>>,
+    pty: Mutex<Box<dyn MasterPty>>,
     writer: Mutex<Box<dyn Write + Send>>,
     domain_id: DomainId,
     tmux_domain: Mutex<Option<Arc<TmuxDomainState>>>,
@@ -213,6 +219,24 @@ impl Pane for LocalPane {
         self.terminal.lock().user_vars().clone()
     }
 
+    fn exit_behavior(&self) -> Option<ExitBehavior> {
+        // If we are ssh, and we've not yet fully connected,
+        // then override exit_behavior so that we can show
+        // connection issues
+        let mut pty = self.pty.lock();
+        let is_ssh_connecting = pty
+            .downcast_mut::<crate::ssh::WrappedSshPty>()
+            .map(|s| s.is_connecting())
+            .unwrap_or(false);
+        let is_failed_spawn = pty.is::<crate::domain::FailedSpawnPty>();
+
+        if is_ssh_connecting || is_failed_spawn {
+            Some(ExitBehavior::CloseOnCleanExit)
+        } else {
+            None
+        }
+    }
+
     fn kill(&self) {
         let mut proc = self.process.lock();
         log::debug!(
@@ -236,12 +260,16 @@ impl Pane for LocalPane {
 
     fn is_dead(&self) -> bool {
         let mut proc = self.process.lock();
-        let mut notify = None;
 
         const EXIT_BEHAVIOR: &str = "This message is shown because \
             \x1b]8;;https://wezfurlong.org/wezterm/\
             config/lua/config/exit_behavior.html\
             \x1b\\exit_behavior\x1b]8;;\x1b\\";
+
+        let mut terse = String::new();
+        let mut brief = String::new();
+        let mut trailer = String::new();
+        let cmd = &self.command_description;
 
         match &mut *proc {
             ProcessState::Running {
@@ -263,31 +291,30 @@ impl Pane for LocalPane {
                             .contains(&status.exit_code()),
                     };
 
-                    match (configuration().exit_behavior, success, killed) {
+                    match (
+                        self.exit_behavior()
+                            .unwrap_or_else(|| configuration().exit_behavior),
+                        success,
+                        killed,
+                    ) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
-                        (ExitBehavior::CloseOnCleanExit, false, false) => {
-                            notify = Some(format!(
-                                "\r\n⚠️  Process {} didn't exit cleanly\r\n{}.\r\n{}=\"CloseOnCleanExit\"\r\n",
-                                self.command_description,
-                                status,
-                                EXIT_BEHAVIOR
-                            ));
+                        (ExitBehavior::CloseOnCleanExit, false, _) => {
+                            brief = format!("⚠️  Process {cmd} didn't exit cleanly");
+                            terse = format!("{status}.");
+                            trailer = format!("{EXIT_BEHAVIOR}=\"CloseOnCleanExit\"");
+
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
                         (ExitBehavior::CloseOnCleanExit, ..) => *proc = ProcessState::Dead,
                         (ExitBehavior::Hold, success, false) => {
+                            trailer = format!("{EXIT_BEHAVIOR}=\"Hold\"");
+
                             if success {
-                                notify = Some(format!(
-                                    "\r\n👍 Process {} completed.\r\n{}=\"Hold\"\r\n",
-                                    self.command_description, EXIT_BEHAVIOR
-                                ));
+                                brief = format!("👍 Process {cmd} completed.");
+                                terse = "done".to_string();
                             } else {
-                                notify = Some(format!(
-                                    "\r\n⚠️  Process {} didn't exit cleanly\r\n{}.\r\n{}=\"Hold\"\r\n",
-                                    self.command_description,
-                                    status,
-                                    EXIT_BEHAVIOR
-                                ));
+                                brief = format!("⚠️  Process {cmd} didn't exit cleanly");
+                                terse = format!("{status}");
                             }
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
@@ -303,6 +330,30 @@ impl Pane for LocalPane {
                 }
             }
             ProcessState::Dead => {}
+        }
+
+        let mut notify = None;
+        if !terse.is_empty() {
+            match configuration().exit_behavior_messaging {
+                ExitBehaviorMessaging::Verbose => {
+                    if terse == "done" {
+                        notify = Some(format!("\r\n{brief}\r\n{trailer}"));
+                    } else {
+                        notify = Some(format!("\r\n{brief}\r\n{terse}\r\n{trailer}"));
+                    }
+                }
+                ExitBehaviorMessaging::Brief => {
+                    if terse == "done" {
+                        notify = Some(format!("\r\n{brief}"));
+                    } else {
+                        notify = Some(format!("\r\n{brief}\r\n{terse}"));
+                    }
+                }
+                ExitBehaviorMessaging::Terse => {
+                    notify = Some(format!("\r\n[{terse}]"));
+                }
+                ExitBehaviorMessaging::None => {}
+            }
         }
 
         if let Some(notify) = notify {
@@ -901,10 +952,10 @@ impl AlertHandler for LocalPaneNotifHandler {
 /// Without this, typing `exit` in `cmd.exe` would keep the pane around
 /// until something else triggered the mux to prune dead processes.
 fn split_child(
-    mut process: Box<dyn Child + Send>,
+    mut process: Box<dyn Child>,
 ) -> (
     Receiver<IoResult<ExitStatus>>,
-    Box<dyn ChildKiller + Send + Sync>,
+    Box<dyn ChildKiller + Sync>,
     Option<u32>,
 ) {
     let pid = process.process_id();
@@ -930,7 +981,7 @@ impl LocalPane {
         pane_id: PaneId,
         mut terminal: Terminal,
         process: Box<dyn Child + Send>,
-        pty: Box<dyn MasterPty + Send>,
+        pty: Box<dyn MasterPty>,
         writer: Box<dyn Write + Send>,
         domain_id: DomainId,
         command_description: String,

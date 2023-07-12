@@ -56,6 +56,8 @@ impl TerminalState {
             MouseButton::Right => 2,
             MouseButton::WheelUp(_) => 64,
             MouseButton::WheelDown(_) => 65,
+            MouseButton::WheelLeft(_) => 66,
+            MouseButton::WheelRight(_) => 67,
         };
 
         if event.modifiers.contains(KeyModifiers::SHIFT) {
@@ -123,6 +125,8 @@ impl TerminalState {
                     match event.button {
                         MouseButton::WheelDown(_) => KeyCode::DownArrow,
                         MouseButton::WheelUp(_) => KeyCode::UpArrow,
+                        MouseButton::WheelLeft(_) => KeyCode::LeftArrow,
+                        MouseButton::WheelRight(_) => KeyCode::RightArrow,
                         _ => bail!("unexpected mouse event"),
                     },
                     KeyModifiers::default(),
@@ -328,12 +332,11 @@ impl TerminalState {
         match event {
             MouseEvent {
                 kind: MouseEventKind::Press,
-                button: MouseButton::WheelUp(_),
-                ..
-            }
-            | MouseEvent {
-                kind: MouseEventKind::Press,
-                button: MouseButton::WheelDown(_),
+                button:
+                    MouseButton::WheelUp(_)
+                    | MouseButton::WheelDown(_)
+                    | MouseButton::WheelLeft(_)
+                    | MouseButton::WheelRight(_),
                 ..
             } => self.mouse_wheel(event),
             MouseEvent {

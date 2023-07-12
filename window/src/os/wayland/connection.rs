@@ -4,7 +4,7 @@ use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::inputhandler::InputHandler;
 use crate::os::wayland::output::OutputHandler;
-use crate::os::x11::keyboard::Keyboard;
+use crate::os::x11::keyboard::KeyboardWithFallback;
 use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::{Appearance, Connection, ScreenRect, WindowEvent};
@@ -14,6 +14,7 @@ use mio::{Events, Interest, Poll, Token};
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::Read;
 use std::os::unix::fs::FileExt;
 use std::os::unix::io::FromRawFd;
 use std::rc::Rc;
@@ -56,7 +57,7 @@ pub struct WaylandConnection {
     // must be ahead of the rest.
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) pointer: RefCell<PointerDispatcher>,
-    pub(crate) keyboard_mapper: RefCell<Option<Keyboard>>,
+    pub(crate) keyboard_mapper: RefCell<Option<KeyboardWithFallback>>,
     pub(crate) keyboard_window_id: RefCell<Option<usize>>,
     pub(crate) surface_to_window_id: RefCell<HashMap<u32, usize>>,
     pub(crate) active_surface_id: RefCell<u32>,
@@ -254,18 +255,34 @@ impl WaylandConnection {
                 *self.key_repeat_delay.borrow_mut() = *delay;
             }
             WlKeyboardEvent::Keymap { format, fd, size } => {
-                let file = unsafe { std::fs::File::from_raw_fd(*fd) };
+                let mut file = unsafe { std::fs::File::from_raw_fd(*fd) };
                 match format {
                     KeymapFormat::XkbV1 => {
                         let mut data = vec![0u8; *size as usize];
-                        file.read_exact_at(&mut data, 0)?;
+                        // If we weren't passed a pipe, be sure to explicitly
+                        // read from the start of the file
+                        match file.read_exact_at(&mut data, 0) {
+                            Ok(_) => {}
+                            Err(err) => {
+                                // ideally: we check for:
+                                // err.kind() == std::io::ErrorKind::NotSeekable
+                                // but that is not yet in stable rust
+                                if err.raw_os_error() == Some(libc::ESPIPE) {
+                                    // It's a pipe, which cannot be seeked, so we
+                                    // just try reading from the current pipe position
+                                    file.read(&mut data).context("read from Keymap fd/pipe")?;
+                                } else {
+                                    return Err(err).context("read_exact_at from Keymap fd");
+                                }
+                            }
+                        }
                         // Dance around CString panicing on the NUL terminator
                         // in the xkbcommon crate
                         while let Some(0) = data.last() {
                             data.pop();
                         }
                         let s = String::from_utf8(data)?;
-                        match Keyboard::new_from_string(s) {
+                        match KeyboardWithFallback::new_from_string(s) {
                             Ok(k) => {
                                 self.keyboard_mapper.replace(Some(k));
                             }

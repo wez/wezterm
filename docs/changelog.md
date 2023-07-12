@@ -22,8 +22,15 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
-
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+
+#### New
+#### Fixed
+
+### 20230712-072601-f4abf8fd
+
+#### Changed
+
 * The default for
   [adjust_window_size_when_changing_font_size](config/lua/config/adjust_window_size_when_changing_font_size.md)
   now depends on the window environment and the contents of
@@ -39,6 +46,8 @@ As features stabilize some brief notes about them will accumulate here.
   waiting for the image to decode.
 * You may now use CTRL-J/K to change the selection in the launcher menu,
   in addition to CTRL-N/P which always worked previously. #3909
+* Duplicate entries in [CharSelect](config/lua/keyassignment/CharSelect.md) are
+  now suppressed, making it less cluttered. Thanks to @vimpostor! #3674
 
 #### New
 
@@ -52,11 +61,21 @@ As features stabilize some brief notes about them will accumulate here.
   [char_select_fg_color](config/lua/config/char_select_fg_color.md) options to
   customize the appearance of
   [CharSelect](config/lua/keyassignment/CharSelect.md) mode. Thanks to @junnplus! #3703
+* Horizontal mouse wheel events are now passed through to the terminal. Thanks to @calops! #3856
+* [exit_behavior_messaging](config/lua/config/exit_behavior_messaging.md)
+  option to control output when holding a pane open after a process completes.
+  #3423
+* [default_mux_server_domain](config/lua/config/default_mux_server_domain.md) for the
+  (almost!) equivalent to [default_domain](config/lua/config/default_domain.md) in
+  the context of the mux server.
 
 #### Fixed
 
 * Modals, such as `CharSelect` and `CommandPalette` did not respect alternative
   OS-level key maps. #3470
+* X11/Wayland: CTRL-key presses for non-US latin keymaps regressed due to
+  changes to [improve handling of CTRL-key presses for non-latin
+  layouts](https://github.com/wez/wezterm/issues/2845). #3610
 * Numerous issues with the kitty keyboard protocol implementation #2546 #3220
   #3315 #3473 #3474 #3476 #3478 #3479 #3484 #3526
 * mux: Attempting to spawn into an ad-hoc SSH domain after the last tab could
@@ -107,12 +126,186 @@ As features stabilize some brief notes about them will accumulate here.
 * Pasting large amounts of text in helix caused issues. #3683
 * Wayland: Copying to clipboard was not always successful when triggered by the
   keyboard. Thanks to @osandov! #3929
+* `wezterm ssh` connection errors were not shown; the window would close
+  immediately with the default `exit_behavior` setting. Now ssh sessions
+  override `exit_behavior="CloseOnCleanExit"` while connecting so that error
+  information can be displayed. #3941
+* Divide by zero panic with lots of splits and resizing panes. #3921
+* Spawn failures were not shown; the window would close immediately
+  with the default `exit_behavior` setting. Now local commands override
+  `exit_behavior="CloseOnCleanExit"` if the command fails to spawn, and
+  a more detailed error message is shown explaining what failed. #3928 #3950
+* macOS: middle mouse button dragging. Thanks to @JacobMalloy! #3908
+* Attempting to spawn a non-local domain via the mux server would fail with
+  invalid domain because none of the additional domains from your config were
+  registered with the mux server. #3907
 
 #### Updated
-* Bundled harfbuzz to 7.3.0
+* Bundled harfbuzz to 8.0.1
 * Bundled freetype to 2.13.0
 * Bundled Nerd Font Symbols font to v3.0.1. Note that there are several
   [breaking changes in v3](https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.0.0).
+* Color schemes: [3024 (dark) (terminal.sexy)](colorschemes/3/index.md#3024-dark-terminal-sexy),
+  [3024 Day (Gogh)](colorschemes/3/index.md#3024-day-gogh),
+  [3024 Night (Gogh)](colorschemes/3/index.md#3024-night-gogh),
+  [Adventure Time (Gogh)](colorschemes/a/index.md#adventure-time-gogh),
+  [Alien Blood (Gogh)](colorschemes/a/index.md#alien-blood-gogh),
+  [Apprentice (Gogh)](colorschemes/a/index.md#apprentice-gogh),
+  [Argonaut (Gogh)](colorschemes/a/index.md#argonaut-gogh),
+  [Arthur (Gogh)](colorschemes/a/index.md#arthur-gogh),
+  [Ashes (dark) (terminal.sexy)](colorschemes/a/index.md#ashes-dark-terminal-sexy),
+  [Atom (Gogh)](colorschemes/a/index.md#atom-gogh),
+  [Bamboo](colorschemes/b/index.md#bamboo),
+  [Bamboo Multiplex](colorschemes/b/index.md#bamboo-multiplex),
+  [Belafonte Day (Gogh)](colorschemes/b/index.md#belafonte-day-gogh),
+  [Belafonte Night (Gogh)](colorschemes/b/index.md#belafonte-night-gogh),
+  [Bespin (dark) (terminal.sexy)](colorschemes/b/index.md#bespin-dark-terminal-sexy),
+  [Birds Of Paradise (Gogh)](colorschemes/b/index.md#birds-of-paradise-gogh),
+  [Blazer (Gogh)](colorschemes/b/index.md#blazer-gogh),
+  [Borland (Gogh)](colorschemes/b/index.md#borland-gogh),
+  [Brewer (dark) (terminal.sexy)](colorschemes/b/index.md#brewer-dark-terminal-sexy),
+  [Broadcast (Gogh)](colorschemes/b/index.md#broadcast-gogh),
+  [Brogrammer (Gogh)](colorschemes/b/index.md#brogrammer-gogh),
+  [C64 (Gogh)](colorschemes/c/index.md#c64-gogh),
+  [Catppuccin Frappé (Gogh)](colorschemes/c/index.md#catppuccin-frappé-gogh),
+  [Catppuccin Latte (Gogh)](colorschemes/c/index.md#catppuccin-latte-gogh),
+  [Catppuccin Macchiato (Gogh)](colorschemes/c/index.md#catppuccin-macchiato-gogh),
+  [Catppuccin Mocha (Gogh)](colorschemes/c/index.md#catppuccin-mocha-gogh),
+  [catppuccin-frappe](colorschemes/c/index.md#catppuccin-frappe),
+  [catppuccin-macchiato](colorschemes/c/index.md#catppuccin-macchiato),
+  [catppuccin-mocha](colorschemes/c/index.md#catppuccin-mocha),
+  [Chalk (dark) (terminal.sexy)](colorschemes/c/index.md#chalk-dark-terminal-sexy),
+  [Chalkboard (Gogh)](colorschemes/c/index.md#chalkboard-gogh),
+  [Ciapre (Gogh)](colorschemes/c/index.md#ciapre-gogh),
+  [Clrs (Gogh)](colorschemes/c/index.md#clrs-gogh),
+  [Cobalt 2 (Gogh)](colorschemes/c/index.md#cobalt-2-gogh),
+  [Cobalt Neon (Gogh)](colorschemes/c/index.md#cobalt-neon-gogh),
+  [Codeschool (dark) (terminal.sexy)](colorschemes/c/index.md#codeschool-dark-terminal-sexy),
+  [Crayon Pony Fish (Gogh)](colorschemes/c/index.md#crayon-pony-fish-gogh),
+  [Dark Pastel (Gogh)](colorschemes/d/index.md#dark-pastel-gogh),
+  [Darkside (Gogh)](colorschemes/d/index.md#darkside-gogh),
+  [Default (dark) (terminal.sexy)](colorschemes/d/index.md#default-dark-terminal-sexy),
+  [Desert (Gogh)](colorschemes/d/index.md#desert-gogh),
+  [Dimmed Monokai (Gogh)](colorschemes/d/index.md#dimmed-monokai-gogh),
+  [Earthsong (Gogh)](colorschemes/e/index.md#earthsong-gogh),
+  [Ef-Tritanopia-Light](colorschemes/e/index.md#ef-tritanopia-light),
+  [Eighties (dark) (terminal.sexy)](colorschemes/e/index.md#eighties-dark-terminal-sexy),
+  [Elemental (Gogh)](colorschemes/e/index.md#elemental-gogh),
+  [Embers (dark) (terminal.sexy)](colorschemes/e/index.md#embers-dark-terminal-sexy),
+  [Espresso (Gogh)](colorschemes/e/index.md#espresso-gogh),
+  [Espresso Libre (Gogh)](colorschemes/e/index.md#espresso-libre-gogh),
+  [Everblush (Gogh)](colorschemes/e/index.md#everblush-gogh),
+  [Fishtank (Gogh)](colorschemes/f/index.md#fishtank-gogh),
+  [Flatland (Gogh)](colorschemes/f/index.md#flatland-gogh),
+  [Frontend Delight (Gogh)](colorschemes/f/index.md#frontend-delight-gogh),
+  [Frontend Fun Forrest (Gogh)](colorschemes/f/index.md#frontend-fun-forrest-gogh),
+  [Frontend Galaxy (Gogh)](colorschemes/f/index.md#frontend-galaxy-gogh),
+  [Github (Gogh)](colorschemes/g/index.md#github-gogh),
+  [Gnometerm (terminal.sexy)](colorschemes/g/index.md#gnometerm-terminal-sexy),
+  [Google (dark) (terminal.sexy)](colorschemes/g/index.md#google-dark-terminal-sexy),
+  [Gotham (terminal.sexy)](colorschemes/g/index.md#gotham-terminal-sexy),
+  [Grape (Gogh)](colorschemes/g/index.md#grape-gogh),
+  [Grass (Gogh)](colorschemes/g/index.md#grass-gogh),
+  [Grayscale (dark) (terminal.sexy)](colorschemes/g/index.md#grayscale-dark-terminal-sexy),
+  [Greenscreen (dark) (terminal.sexy)](colorschemes/g/index.md#greenscreen-dark-terminal-sexy),
+  [Gruvbox Dark (Gogh)](colorschemes/g/index.md#gruvbox-dark-gogh),
+  [Hardcore (Gogh)](colorschemes/h/index.md#hardcore-gogh),
+  [hardhacker](colorschemes/h/index.md#hardhacker),
+  [Harper (Gogh)](colorschemes/h/index.md#harper-gogh),
+  [Highway (Gogh)](colorschemes/h/index.md#highway-gogh),
+  [Hipster Green (Gogh)](colorschemes/h/index.md#hipster-green-gogh),
+  [Homebrew (Gogh)](colorschemes/h/index.md#homebrew-gogh),
+  [Homebrew Light (Gogh)](colorschemes/h/index.md#homebrew-light-gogh),
+  [Homebrew Ocean (Gogh)](colorschemes/h/index.md#homebrew-ocean-gogh),
+  [Hopscotch (base16)](colorschemes/h/index.md#hopscotch-base16),
+  [Hurtado (Gogh)](colorschemes/h/index.md#hurtado-gogh),
+  [Ic Orange Ppl (Gogh)](colorschemes/i/index.md#ic-orange-ppl-gogh),
+  [Idle Toes (Gogh)](colorschemes/i/index.md#idle-toes-gogh),
+  [Isotope (dark) (terminal.sexy)](colorschemes/i/index.md#isotope-dark-terminal-sexy),
+  [Jackie Brown (Gogh)](colorschemes/j/index.md#jackie-brown-gogh),
+  [Japanesque (Gogh)](colorschemes/j/index.md#japanesque-gogh),
+  [Jellybeans (Gogh)](colorschemes/j/index.md#jellybeans-gogh),
+  [Kibble (Gogh)](colorschemes/k/index.md#kibble-gogh),
+  [Later This Evening (Gogh)](colorschemes/l/index.md#later-this-evening-gogh),
+  [Lavandula (Gogh)](colorschemes/l/index.md#lavandula-gogh),
+  [Liquid Carbon (Gogh)](colorschemes/l/index.md#liquid-carbon-gogh),
+  [Liquid Carbon Transparent (Gogh)](colorschemes/l/index.md#liquid-carbon-transparent-gogh),
+  [Londontube (dark) (terminal.sexy)](colorschemes/l/index.md#londontube-dark-terminal-sexy),
+  [Man Page (Gogh)](colorschemes/m/index.md#man-page-gogh),
+  [Marrakesh (dark) (terminal.sexy)](colorschemes/m/index.md#marrakesh-dark-terminal-sexy),
+  [Mathias (Gogh)](colorschemes/m/index.md#mathias-gogh),
+  [Medallion (Gogh)](colorschemes/m/index.md#medallion-gogh),
+  [Misterioso (Gogh)](colorschemes/m/index.md#misterioso-gogh),
+  [Mocha (dark) (terminal.sexy)](colorschemes/m/index.md#mocha-dark-terminal-sexy),
+  [Mona Lisa (Gogh)](colorschemes/m/index.md#mona-lisa-gogh),
+  [Monokai (dark) (terminal.sexy)](colorschemes/m/index.md#monokai-dark-terminal-sexy),
+  [Monokai Soda (Gogh)](colorschemes/m/index.md#monokai-soda-gogh),
+  [N0Tch2K (Gogh)](colorschemes/n/index.md#n0tch2k-gogh),
+  [Neopolitan (Gogh)](colorschemes/n/index.md#neopolitan-gogh),
+  [Neutron (Gogh)](colorschemes/n/index.md#neutron-gogh),
+  [Nightlion V1 (Gogh)](colorschemes/n/index.md#nightlion-v1-gogh),
+  [Nightlion V2 (Gogh)](colorschemes/n/index.md#nightlion-v2-gogh),
+  [niji](colorschemes/n/index.md#niji),
+  [Nord (Gogh)](colorschemes/n/index.md#nord-gogh),
+  [Novel (Gogh)](colorschemes/n/index.md#novel-gogh),
+  [Obsidian (Gogh)](colorschemes/o/index.md#obsidian-gogh),
+  [Ocean (dark) (terminal.sexy)](colorschemes/o/index.md#ocean-dark-terminal-sexy),
+  [Oceanic Next (Gogh)](colorschemes/o/index.md#oceanic-next-gogh),
+  [Ollie (Gogh)](colorschemes/o/index.md#ollie-gogh),
+  [Paraiso (base16)](colorschemes/p/index.md#paraiso-base16),
+  [Paraiso (dark) (terminal.sexy)](colorschemes/p/index.md#paraiso-dark-terminal-sexy),
+  [Paraiso Dark (Gogh)](colorschemes/p/index.md#paraiso-dark-gogh),
+  [Pencil Dark (Gogh)](colorschemes/p/index.md#pencil-dark-gogh),
+  [Pencil Light (Gogh)](colorschemes/p/index.md#pencil-light-gogh),
+  [Pnevma (Gogh)](colorschemes/p/index.md#pnevma-gogh),
+  [Pro (Gogh)](colorschemes/p/index.md#pro-gogh),
+  [Railscasts (dark) (terminal.sexy)](colorschemes/r/index.md#railscasts-dark-terminal-sexy),
+  [Red Alert (Gogh)](colorschemes/r/index.md#red-alert-gogh),
+  [Red Sands (Gogh)](colorschemes/r/index.md#red-sands-gogh),
+  [Relaxed (Gogh)](colorschemes/r/index.md#relaxed-gogh),
+  [Rippedcasts (Gogh)](colorschemes/r/index.md#rippedcasts-gogh),
+  [Rosé Pine (Gogh)](colorschemes/r/index.md#rosé-pine-gogh),
+  [Rosé Pine Dawn (Gogh)](colorschemes/r/index.md#rosé-pine-dawn-gogh),
+  [Rosé Pine Moon (Gogh)](colorschemes/r/index.md#rosé-pine-moon-gogh),
+  [Royal (Gogh)](colorschemes/r/index.md#royal-gogh),
+  [Sea Shells (Gogh)](colorschemes/s/index.md#sea-shells-gogh),
+  [Seafoam Pastel (Gogh)](colorschemes/s/index.md#seafoam-pastel-gogh),
+  [Seti (Gogh)](colorschemes/s/index.md#seti-gogh),
+  [Shaman (Gogh)](colorschemes/s/index.md#shaman-gogh),
+  [Slate (Gogh)](colorschemes/s/index.md#slate-gogh),
+  [Soft Server (Gogh)](colorschemes/s/index.md#soft-server-gogh),
+  [Solarized Darcula (Gogh)](colorschemes/s/index.md#solarized-darcula-gogh),
+  [Solarized Dark Higher Contrast (Gogh)](colorschemes/s/index.md#solarized-dark-higher-contrast-gogh),
+  [Solarized Light (Gogh)](colorschemes/s/index.md#solarized-light-gogh),
+  [Spacedust (Gogh)](colorschemes/s/index.md#spacedust-gogh),
+  [Spacegray (Gogh)](colorschemes/s/index.md#spacegray-gogh),
+  [Spacegray Eighties (Gogh)](colorschemes/s/index.md#spacegray-eighties-gogh),
+  [Spacegray Eighties Dull (Gogh)](colorschemes/s/index.md#spacegray-eighties-dull-gogh),
+  [Sundried (Gogh)](colorschemes/s/index.md#sundried-gogh),
+  [Symphonic (Gogh)](colorschemes/s/index.md#symphonic-gogh),
+  [Teerb (Gogh)](colorschemes/t/index.md#teerb-gogh),
+  [Terminal Basic (Gogh)](colorschemes/t/index.md#terminal-basic-gogh),
+  [Thayer Bright (Gogh)](colorschemes/t/index.md#thayer-bright-gogh),
+  [Tokyo Night](colorschemes/t/index.md#tokyo-night),
+  [Tokyo Night Day](colorschemes/t/index.md#tokyo-night-day),
+  [Tokyo Night Moon](colorschemes/t/index.md#tokyo-night-moon),
+  [Tokyo Night Storm](colorschemes/t/index.md#tokyo-night-storm),
+  [tokyonight](colorschemes/t/index.md#tokyonight),
+  [tokyonight-day](colorschemes/t/index.md#tokyonight-day),
+  [tokyonight-storm](colorschemes/t/index.md#tokyonight-storm),
+  [Toy Chest (Gogh)](colorschemes/t/index.md#toy-chest-gogh),
+  [Treehouse (Gogh)](colorschemes/t/index.md#treehouse-gogh),
+  [Twilight (dark) (terminal.sexy)](colorschemes/t/index.md#twilight-dark-terminal-sexy),
+  [Twilight (Gogh)](colorschemes/t/index.md#twilight-gogh),
+  [Urple (Gogh)](colorschemes/u/index.md#urple-gogh),
+  [Vaughn (Gogh)](colorschemes/v/index.md#vaughn-gogh),
+  [Vibrant Ink (Gogh)](colorschemes/v/index.md#vibrant-ink-gogh),
+  [Warm Neon (Gogh)](colorschemes/w/index.md#warm-neon-gogh),
+  [Wez (Gogh)](colorschemes/w/index.md#wez-gogh),
+  [Wild Cherry (Gogh)](colorschemes/w/index.md#wild-cherry-gogh),
+  [Wombat (Gogh)](colorschemes/w/index.md#wombat-gogh),
+  [Wryan (Gogh)](colorschemes/w/index.md#wryan-gogh),
+  [Zenburn (Gogh)](colorschemes/z/index.md#zenburn-gogh)
 
 ### 20230408-112425-69ae8472
 

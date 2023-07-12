@@ -142,6 +142,19 @@ fn bake_for_config(mut schemeses: Vec<Scheme>) -> anyhow::Result<()> {
             }
         }
 
+        let existing: Vec<serde_json::Value> = serde_json::from_str(&data)?;
+        for item in existing {
+            let data = ColorSchemeFile::from_json_value(&item)?;
+            push_or_alias(
+                &mut schemeses,
+                Scheme {
+                    name: data.metadata.name.as_ref().unwrap().to_string(),
+                    file_name: None,
+                    data,
+                },
+            );
+        }
+
         for scheme in &mut schemeses {
             let json = scheme.to_json_value()?;
             let ident = serde_json::to_string(json.get("colors").unwrap())?;
@@ -260,11 +273,7 @@ pub const SCHEMES: [(&'static str, &'static str); {count}] = [\n
 fn push_or_alias(schemeses: &mut Vec<Scheme>, candidate: Scheme) -> bool {
     let mut aliased = false;
     for existing in schemeses.iter_mut() {
-        if candidate.data.colors.ansi == existing.data.colors.ansi
-            && candidate.data.colors.brights == existing.data.colors.brights
-            && candidate.data.colors.foreground == existing.data.colors.foreground
-            && candidate.data.colors.background == existing.data.colors.background
-        {
+        if candidate.data.colors == existing.data.colors {
             log::info!("Adding {} as alias of {}", candidate.name, existing.name);
             existing.data.metadata.aliases.push(candidate.name.clone());
             aliased = true;
@@ -400,6 +409,20 @@ async fn main() -> anyhow::Result<()> {
     sync_toml(
         "https://codeberg.org/anhsirk0/wezterm-themes",
         "main",
+        "",
+        &mut schemeses,
+    )
+    .await?;
+    sync_toml(
+        "https://github.com/hardhackerlabs/theme-wezterm",
+        "master",
+        "",
+        &mut schemeses,
+    )
+    .await?;
+    sync_toml(
+        "https://github.com/ribru17/bamboo.nvim",
+        "master",
         "",
         &mut schemeses,
     )

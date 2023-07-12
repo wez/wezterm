@@ -79,11 +79,11 @@ jobs:
         with:
           crate: "cargo-nextest"
           cache-key: "centos7"
-      - name: "Test (Release mode)"
+      - name: "Test"
         shell: bash
         run: |
           source /opt/rh/devtoolset-9/enable
-          cargo nextest run --all --release --no-fail-fast
+          cargo nextest run --all --no-fail-fast
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"

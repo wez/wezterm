@@ -112,6 +112,9 @@ fn main() {
                     }
                     auth.answer(answers).await?;
                 }
+                SessionEvent::HostVerificationFailed(failed) => {
+                    anyhow::bail!("{}", failed);
+                }
                 SessionEvent::Error(err) => {
                     anyhow::bail!("{}", err);
                 }

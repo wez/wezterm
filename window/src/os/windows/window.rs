@@ -1735,7 +1735,7 @@ unsafe fn nc_mouse_button(
         ReleaseCapture();
     }
 
-    if wparam != HTMAXBUTTON as _ {
+    if wparam != HTMAXBUTTON as usize {
         return None;
     }
 
@@ -1807,7 +1807,7 @@ unsafe fn nc_mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
         inner.track_mouse_leave = TrackMouseEvent(&mut trk) == winapi::shared::minwindef::TRUE;
     }
 
-    if wparam != HTMAXBUTTON as _ {
+    if wparam != HTMAXBUTTON as usize {
         return None;
     }
 

@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use wezterm_gui_subcommands::*;
+use wezterm_mux_server_impl::update_mux_domains_for_server;
 
 mod daemonize;
 
@@ -256,6 +257,18 @@ async fn trigger_mux_startup(lua: Option<Rc<mlua::Lua>>) -> anyhow::Result<()> {
 
 async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
     let mux = Mux::get();
+    let config = config::configuration();
+
+    update_mux_domains_for_server(&config)?;
+    let _config_subscription = config::subscribe_to_config_reload(move || {
+        promise::spawn::spawn_into_main_thread(async move {
+            if let Err(err) = update_mux_domains_for_server(&config::configuration()) {
+                log::error!("Error updating mux domains: {:#}", err);
+            }
+        })
+        .detach();
+        true
+    });
 
     let domain = mux.default_domain();
 
@@ -276,7 +289,6 @@ async fn async_run(cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
         let window_id = mux.new_empty_window(workspace, position);
         domain.attach(Some(*window_id)).await?;
 
-        let config = config::configuration();
         let _tab = mux
             .default_domain()
             .spawn(config.initial_size(0), cmd, None, *window_id)

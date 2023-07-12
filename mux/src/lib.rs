@@ -280,8 +280,8 @@ fn read_from_pane_pty(
     // or in the main mux thread.  If `true`, this thread will terminate.
     let dead = Arc::new(AtomicBool::new(false));
 
-    let pane_id = match pane.upgrade() {
-        Some(pane) => pane.pane_id(),
+    let (pane_id, exit_behavior) = match pane.upgrade() {
+        Some(pane) => (pane.pane_id(), pane.exit_behavior()),
         None => return,
     };
 
@@ -333,7 +333,7 @@ fn read_from_pane_pty(
         }
     }
 
-    match configuration().exit_behavior {
+    match exit_behavior.unwrap_or_else(|| configuration().exit_behavior) {
         ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
             // We don't know if we can unilaterally close
             // this pane right now, so don't!
@@ -1099,9 +1099,20 @@ impl Mux {
             SpawnTabDomain::DomainId(domain_id) => self
                 .get_domain(*domain_id)
                 .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
-            SpawnTabDomain::DomainName(name) => self
-                .get_domain_by_name(&name)
-                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+            SpawnTabDomain::DomainName(name) => {
+                self.get_domain_by_name(&name).ok_or_else(|| {
+                    let names: Vec<String> = self
+                        .domains_by_name
+                        .read()
+                        .keys()
+                        .map(|name| format!("\"{name}\""))
+                        .collect();
+                    anyhow!(
+                        "domain name \"{name}\" is invalid. Possible names are {}.",
+                        names.join(", ")
+                    )
+                })?
+            }
         };
         Ok(domain)
     }

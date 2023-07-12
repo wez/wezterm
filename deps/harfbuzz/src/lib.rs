@@ -1909,16 +1909,6 @@ pub type hb_font_get_glyph_from_name_func_t = ::std::option::Option<
         user_data: *mut ::std::os::raw::c_void,
     ) -> hb_bool_t,
 >;
-pub type hb_font_get_glyph_shape_func_t = ::std::option::Option<
-    unsafe extern "C" fn(
-        font: *mut hb_font_t,
-        font_data: *mut ::std::os::raw::c_void,
-        glyph: hb_codepoint_t,
-        draw_funcs: *mut hb_draw_funcs_t,
-        draw_data: *mut ::std::os::raw::c_void,
-        user_data: *mut ::std::os::raw::c_void,
-    ),
->;
 pub type hb_font_draw_glyph_func_t = ::std::option::Option<
     unsafe extern "C" fn(
         font: *mut hb_font_t,
@@ -2070,14 +2060,6 @@ extern "C" {
     );
 }
 extern "C" {
-    pub fn hb_font_funcs_set_glyph_shape_func(
-        ffuncs: *mut hb_font_funcs_t,
-        func: hb_font_get_glyph_shape_func_t,
-        user_data: *mut ::std::os::raw::c_void,
-        destroy: hb_destroy_func_t,
-    );
-}
-extern "C" {
     pub fn hb_font_funcs_set_draw_glyph_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_draw_glyph_func_t,
@@ -2216,14 +2198,6 @@ extern "C" {
         len: ::std::os::raw::c_int,
         glyph: *mut hb_codepoint_t,
     ) -> hb_bool_t;
-}
-extern "C" {
-    pub fn hb_font_get_glyph_shape(
-        font: *mut hb_font_t,
-        glyph: hb_codepoint_t,
-        dfuncs: *mut hb_draw_funcs_t,
-        draw_data: *mut ::std::os::raw::c_void,
-    );
 }
 extern "C" {
     pub fn hb_font_draw_glyph(
@@ -3045,6 +3019,32 @@ extern "C" {
         top_glyph: hb_codepoint_t,
         bottom_glyph: hb_codepoint_t,
     ) -> hb_position_t;
+}
+pub type hb_font_get_glyph_shape_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        draw_funcs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    pub fn hb_font_funcs_set_glyph_shape_func(
+        ffuncs: *mut hb_font_funcs_t,
+        func: hb_font_get_glyph_shape_func_t,
+        user_data: *mut ::std::os::raw::c_void,
+        destroy: hb_destroy_func_t,
+    );
+}
+extern "C" {
+    pub fn hb_font_get_glyph_shape(
+        font: *mut hb_font_t,
+        glyph: hb_codepoint_t,
+        dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+    );
 }
 extern "C" {
     pub fn hb_shape(
@@ -4104,6 +4104,24 @@ extern "C" {
         characters: *mut hb_codepoint_t,
     ) -> ::std::os::raw::c_uint;
 }
+extern "C" {
+    pub fn hb_ot_layout_get_font_extents(
+        font: *mut hb_font_t,
+        direction: hb_direction_t,
+        script_tag: hb_tag_t,
+        language_tag: hb_tag_t,
+        extents: *mut hb_font_extents_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
+    pub fn hb_ot_layout_get_font_extents2(
+        font: *mut hb_font_t,
+        direction: hb_direction_t,
+        script: hb_script_t,
+        language: hb_language_t,
+        extents: *mut hb_font_extents_t,
+    ) -> hb_bool_t;
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum hb_ot_layout_baseline_tag_t {
@@ -4134,12 +4152,32 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
+    pub fn hb_ot_layout_get_baseline2(
+        font: *mut hb_font_t,
+        baseline_tag: hb_ot_layout_baseline_tag_t,
+        direction: hb_direction_t,
+        script: hb_script_t,
+        language: hb_language_t,
+        coord: *mut hb_position_t,
+    ) -> hb_bool_t;
+}
+extern "C" {
     pub fn hb_ot_layout_get_baseline_with_fallback(
         font: *mut hb_font_t,
         baseline_tag: hb_ot_layout_baseline_tag_t,
         direction: hb_direction_t,
         script_tag: hb_tag_t,
         language_tag: hb_tag_t,
+        coord: *mut hb_position_t,
+    );
+}
+extern "C" {
+    pub fn hb_ot_layout_get_baseline_with_fallback2(
+        font: *mut hb_font_t,
+        baseline_tag: hb_ot_layout_baseline_tag_t,
+        direction: hb_direction_t,
+        script: hb_script_t,
+        language: hb_language_t,
         coord: *mut hb_position_t,
     );
 }

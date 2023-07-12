@@ -511,6 +511,9 @@ pub async fn session(sshd: Sshd) -> SessionWithSshd {
                     .await
                     .expect("Failed to send authenticate response");
             }
+            SessionEvent::HostVerificationFailed(failed) => {
+                panic!("{}", failed);
+            }
             SessionEvent::Error(err) => {
                 panic!("{}", err);
             }

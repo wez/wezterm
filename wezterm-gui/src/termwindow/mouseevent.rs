@@ -888,7 +888,17 @@ impl super::TermWindow {
                     button: MouseButton::WheelDown(-amount as usize),
                 },
             }),
-            WMEK::HorzWheel(_) => None,
+            WMEK::HorzWheel(amount) => Some(match *amount {
+                0 => return,
+                1.. => MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::WheelLeft(*amount as usize),
+                },
+                _ => MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::WheelRight(-amount as usize),
+                },
+            }),
         };
 
         if allow_action {
@@ -921,17 +931,26 @@ impl super::TermWindow {
                     MouseEventTrigger::Down {
                         ref mut streak,
                         button:
-                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                            MouseButton::WheelUp(ref mut delta)
+                            | MouseButton::WheelDown(ref mut delta)
+                            | MouseButton::WheelLeft(ref mut delta)
+                            | MouseButton::WheelRight(ref mut delta),
                     }
                     | MouseEventTrigger::Up {
                         ref mut streak,
                         button:
-                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                            MouseButton::WheelUp(ref mut delta)
+                            | MouseButton::WheelDown(ref mut delta)
+                            | MouseButton::WheelLeft(ref mut delta)
+                            | MouseButton::WheelRight(ref mut delta),
                     }
                     | MouseEventTrigger::Drag {
                         ref mut streak,
                         button:
-                            MouseButton::WheelUp(ref mut delta) | MouseButton::WheelDown(ref mut delta),
+                            MouseButton::WheelUp(ref mut delta)
+                            | MouseButton::WheelDown(ref mut delta)
+                            | MouseButton::WheelLeft(ref mut delta)
+                            | MouseButton::WheelRight(ref mut delta),
                     } => {
                         *streak = 1;
                         *delta = 1;
@@ -982,7 +1001,13 @@ impl super::TermWindow {
                         TMB::WheelDown((-amount) as usize)
                     }
                 }
-                WMEK::HorzWheel(_) => TMB::None,
+                WMEK::HorzWheel(amount) => {
+                    if amount > 0 {
+                        TMB::WheelLeft(amount as usize)
+                    } else {
+                        TMB::WheelRight((-amount) as usize)
+                    }
+                }
             },
             x: column,
             y: row,

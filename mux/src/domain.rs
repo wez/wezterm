@@ -16,7 +16,7 @@ use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::{configuration, ExecDomain, SerialDomain, ValueOrFunc, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use parking_lot::Mutex;
-use portable_pty::{native_pty_system, CommandBuilder, PtySystem};
+use portable_pty::{native_pty_system, CommandBuilder, ExitStatus, MasterPty, PtySize, PtySystem};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::Write;
@@ -501,6 +501,75 @@ impl std::io::Write for WriterWrapper {
     }
 }
 
+/// Wraps the underlying pty; we use this as a marker for when
+/// the spawn attempt failed in order to hold the pane open
+pub(crate) struct FailedSpawnPty {
+    inner: Mutex<Box<dyn MasterPty>>,
+}
+
+impl portable_pty::MasterPty for FailedSpawnPty {
+    fn resize(&self, new_size: PtySize) -> anyhow::Result<()> {
+        self.inner.lock().resize(new_size)
+    }
+    fn get_size(&self) -> anyhow::Result<PtySize> {
+        self.inner.lock().get_size()
+    }
+    fn try_clone_reader(&self) -> anyhow::Result<Box<(dyn std::io::Read + Send + 'static)>> {
+        self.inner.lock().try_clone_reader()
+    }
+    fn take_writer(&self) -> anyhow::Result<Box<(dyn std::io::Write + Send + 'static)>> {
+        self.inner.lock().take_writer()
+    }
+
+    #[cfg(unix)]
+    fn process_group_leader(&self) -> Option<i32> {
+        None
+    }
+
+    #[cfg(unix)]
+    fn as_raw_fd(&self) -> Option<std::os::fd::RawFd> {
+        None
+    }
+
+    #[cfg(unix)]
+    fn tty_name(&self) -> Option<std::path::PathBuf> {
+        None
+    }
+}
+
+/// A fake child process for the case where the spawn attempt
+/// failed. It reports as immediately terminated.
+#[derive(Debug)]
+pub(crate) struct FailedProcessSpawn {}
+
+impl portable_pty::Child for FailedProcessSpawn {
+    fn try_wait(&mut self) -> std::io::Result<Option<ExitStatus>> {
+        Ok(Some(ExitStatus::with_exit_code(1)))
+    }
+
+    fn wait(&mut self) -> std::io::Result<ExitStatus> {
+        Ok(ExitStatus::with_exit_code(1))
+    }
+
+    fn process_id(&self) -> Option<u32> {
+        None
+    }
+
+    #[cfg(windows)]
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+        None
+    }
+}
+
+impl portable_pty::ChildKiller for FailedProcessSpawn {
+    fn kill(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+        Box::new(FailedProcessSpawn {})
+    }
+}
+
 #[async_trait(?Send)]
 impl Domain for LocalDomain {
     async fn spawn_pane(
@@ -510,7 +579,10 @@ impl Domain for LocalDomain {
         command_dir: Option<String>,
     ) -> anyhow::Result<Arc<dyn Pane>> {
         let pane_id = alloc_pane_id();
-        let cmd = self.build_command(command, command_dir, pane_id).await?;
+        let cmd = self
+            .build_command(command, command_dir, pane_id)
+            .await
+            .context("build_command")?;
         let pair = self
             .pty_system
             .lock()
@@ -528,10 +600,8 @@ impl Domain for LocalDomain {
             },
             self.name
         );
-        let child = pair.slave.spawn_command(cmd)?;
-        log::trace!("spawned: {:?}", child);
-
-        let writer = WriterWrapper::new(pair.master.take_writer()?);
+        let child_result = pair.slave.spawn_command(cmd);
+        let mut writer = WriterWrapper::new(pair.master.take_writer()?);
 
         let mut terminal = wezterm_term::Terminal::new(
             size,
@@ -544,15 +614,34 @@ impl Domain for LocalDomain {
             terminal.enable_conpty_quirks();
         }
 
-        let pane: Arc<dyn Pane> = Arc::new(LocalPane::new(
-            pane_id,
-            terminal,
-            child,
-            pair.master,
-            Box::new(writer),
-            self.id,
-            command_description,
-        ));
+        let pane: Arc<dyn Pane> = match child_result {
+            Ok(child) => Arc::new(LocalPane::new(
+                pane_id,
+                terminal,
+                child,
+                pair.master,
+                Box::new(writer),
+                self.id,
+                command_description,
+            )),
+            Err(err) => {
+                // Show the error to the user in the new pane
+                write!(writer, "{err:#}").ok();
+
+                // and return a dummy pane that has exited
+                Arc::new(LocalPane::new(
+                    pane_id,
+                    terminal,
+                    Box::new(FailedProcessSpawn {}),
+                    Box::new(FailedSpawnPty {
+                        inner: Mutex::new(pair.master),
+                    }),
+                    Box::new(writer),
+                    self.id,
+                    command_description,
+                ))
+            }
+        };
 
         let mux = Mux::get();
         mux.add_pane(&pane)?;

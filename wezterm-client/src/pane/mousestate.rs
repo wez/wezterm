@@ -48,6 +48,14 @@ impl MouseState {
                         last.button = MouseButton::WheelDown(a + b);
                         return;
                     }
+                    (MouseButton::WheelLeft(a), MouseButton::WheelLeft(b)) => {
+                        last.button = MouseButton::WheelLeft(a + b);
+                        return;
+                    }
+                    (MouseButton::WheelRight(a), MouseButton::WheelRight(b)) => {
+                        last.button = MouseButton::WheelRight(a + b);
+                        return;
+                    }
                     _ => {}
                 }
             }

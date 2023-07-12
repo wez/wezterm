@@ -325,3 +325,66 @@ below, and then moving the mouse over the wezterm window:
 07:34:42.917  TRACE  window::os::x11::cursor > Some(Arrow) resolved to "/usr/share/icons/Adwaita/cursors/top_left_arrow"
 ```
 
+## I'm on macOS and wezterm cannot find things in my PATH
+
+On macOS, wezterm is typically launched directly by the Finder process and inherits
+the default and fairly sparse macOS PATH environment.  That's sufficient for launching
+your shell, which is then responsible for processing your rcfiles and setting up your
+PATH.
+
+However, if you want wezterm to directly spawn some other utility that isn't in that
+basic PATH, wezterm will report that it cannot find it.
+
+Probably the easiest to maintain solution is to change something like:
+
+```lua
+wezterm.action.SpawnCommandInNewWindow {
+  args = { 'nvim', wezterm.config_file },
+}
+```
+
+so that it explicitly spawns the command using your shell:
+
+```lua
+wezterm.action.SpawnCommandInNewWindow {
+  args = {
+    os.getenv 'SHELL',
+    '-c',
+    'nvim ' .. wezterm.shell_quote_arg(wezterm.config_file),
+  },
+}
+```
+
+another option is to explicitly use the full path to the program on your system,
+something like:
+
+```lua
+wezterm.action.SpawnCommandInNewWindow {
+  args = {
+    wezterm.home_dir .. '/.local/bob/nvim-bin/nvim',
+    wezterm.config_file,
+  },
+}
+```
+
+and another other option is to explicitly set the PATH up:
+
+```lua
+config.set_environment_variables = {
+  PATH = {
+    -- prepend the path to your utility
+    wezterm.home_dir
+      .. '/.local/bob/nvim-bin:'
+      -- and include the rest of the PATH
+      .. os.getenv 'PATH',
+  },
+}
+```
+
+See also:
+
+ * [set_environment_variables](config/lua/config/set_environment_variables.md)
+ * [SpawnCommand](config/lua/SpawnCommand.md)
+ * [wezterm.config_file](config/lua/wezterm/config_file.md)
+ * [wezterm.shell_quote_arg](config/lua/wezterm/shell_quote_arg.md)
+

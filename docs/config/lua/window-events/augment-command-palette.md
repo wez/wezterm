@@ -1,6 +1,6 @@
 # `augment-command-palette`
 
-{{since('nightly')}}
+{{since('20230712-072601-f4abf8fd')}}
 
 This event is emitted when the [Command Palette](../keyassignment/ActivateCommandPalette.md) is shown.
 

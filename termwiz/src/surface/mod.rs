@@ -13,7 +13,7 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 pub mod change;
 pub mod line;
 
-pub use self::change::{Change, Image, TextureCoordinate};
+pub use self::change::{Change, Image, LineAttribute, TextureCoordinate};
 pub use self::line::Line;
 
 /// Position holds 0-based positioning information, where
@@ -305,6 +305,7 @@ impl Surface {
                 region_size,
                 scroll_count,
             } => self.scroll_region_down(*first_row, *region_size, *scroll_count),
+            Change::LineAttribute(attr) => self.line_attribute(attr),
         }
     }
 
@@ -403,6 +404,16 @@ impl Surface {
         // Rotate the remaining lines down the surface.
         if 0 < count && count < size {
             self.lines[start..start + size].rotate_right(count);
+        }
+    }
+
+    fn line_attribute(&mut self, attr: &LineAttribute) {
+        let line = &mut self.lines[self.ypos];
+        match attr {
+            LineAttribute::DoubleHeightTopHalfLine => line.set_double_height_top(self.seqno),
+            LineAttribute::DoubleHeightBottomHalfLine => line.set_double_height_bottom(self.seqno),
+            LineAttribute::DoubleWidthLine => line.set_double_width(self.seqno),
+            LineAttribute::SingleWidthLine => line.set_single_width(self.seqno),
         }
     }
 

@@ -1,4 +1,4 @@
-use super::keyboard::Keyboard;
+use super::keyboard::{Keyboard, KeyboardWithFallback};
 use crate::connection::ConnectionOps;
 use crate::os::x11::window::XWindowInner;
 use crate::os::x11::xsettings::*;
@@ -25,7 +25,7 @@ pub struct XConnection {
     pub(crate) xsettings: RefCell<XSettingsMap>,
     pub screen_num: i32,
     pub root: xcb::x::Window,
-    pub keyboard: Keyboard,
+    pub keyboard: KeyboardWithFallback,
     pub kbd_ev: u8,
     pub atom_protocols: Atom,
     pub cursor_font_id: xcb::x::Font,
@@ -639,6 +639,7 @@ impl XConnection {
             visual.blue_mask()
         );
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
+        let keyboard = KeyboardWithFallback::new(keyboard)?;
 
         let cursor_font_id = conn.generate_id();
         let cursor_font_name = "cursor";

@@ -742,6 +742,11 @@ impl ColorSchemeFile {
         Ok(dynamic_to_toml(value)?)
     }
 
+    pub fn from_json_value(value: &serde_json::Value) -> anyhow::Result<Self> {
+        Self::from_dynamic(&crate::json_to_dynamic(value), Default::default())
+            .map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
         let value = self.to_toml_value()?;
         let text = toml::to_string_pretty(&value)?;

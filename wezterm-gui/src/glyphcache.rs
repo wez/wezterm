@@ -21,7 +21,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Read, Seek};
 use std::rc::Rc;
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TryRecvError};
+use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryRecvError};
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
 use termwiz::color::RgbColor;
@@ -436,6 +436,31 @@ impl FrameState {
                 duration: Duration::from_millis(0),
             },
             load_state: LoadState::Loading,
+        }
+    }
+
+    fn wait_for_first_frame(&mut self, duration: Duration) {
+        if !self.frames.is_empty() {
+            // Already decoded the first frame
+            return;
+        }
+
+        match &mut self.source {
+            FrameSource::Decoder(rx) => match rx.recv_timeout(duration) {
+                Ok(frame) => {
+                    self.frames.push(frame.clone());
+                    self.current_frame = frame;
+                    self.load_state = LoadState::Loaded;
+                }
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => {
+                    self.source = FrameSource::FrameIndex(0);
+                    log::warn!("image decoder thread terminated");
+                    self.current_frame.duration = Duration::from_secs(86400);
+                    self.frames.push(self.current_frame.clone());
+                }
+            },
+            FrameSource::FrameIndex(_) => {}
         }
     }
 
@@ -981,8 +1006,16 @@ impl GlyphCache {
                 let mut next = None;
                 let mut decoded_frame_start = decoded.frame_start.borrow_mut();
                 let mut decoded_current_frame = decoded.current_frame.borrow_mut();
-                let now = Instant::now();
 
+                // Wait up to the approx limit of human tolerable delay for
+                // the first frame to be decoded, so that we can avoid showing
+                // a flash of the black frame in the common case
+                let max_duration = Duration::from_millis(125).max(min_frame_duration);
+                if let Some(remain) = max_duration.checked_sub(decoded_frame_start.elapsed()) {
+                    frames.wait_for_first_frame(remain);
+                }
+
+                let now = Instant::now();
                 // We round up the frame duration to at least the minimum
                 // frame duration that wezterm can use when rendering.
                 // There's no point trying to deal with smaller intervals

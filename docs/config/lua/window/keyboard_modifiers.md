@@ -1,6 +1,6 @@
 # window:keyboard_modifiers()
 
-{{since('nightly')}}
+{{since('20230712-072601-f4abf8fd')}}
 
 Returns two values; the keyboard modifiers and the key status leds.
 

@@ -85,7 +85,7 @@ impl Default for PtySize {
 }
 
 /// Represents the master/control end of the pty
-pub trait MasterPty {
+pub trait MasterPty: Downcast + Send {
     /// Inform the kernel and thus the child process that the window resized.
     /// It will update the winsize information maintained by the kernel,
     /// and generate a signal for the child to notice and update its state.
@@ -123,10 +123,11 @@ pub trait MasterPty {
         None
     }
 }
+impl_downcast!(MasterPty);
 
 /// Represents a child process spawned into the pty.
 /// This handle can be used to wait for or terminate that child process.
-pub trait Child: std::fmt::Debug + ChildKiller {
+pub trait Child: std::fmt::Debug + ChildKiller + Downcast + Send {
     /// Poll the child to see if it has completed.
     /// Does not block.
     /// Returns None if the child has not yet terminated,
@@ -143,9 +144,10 @@ pub trait Child: std::fmt::Debug + ChildKiller {
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle>;
 }
+impl_downcast!(Child);
 
 /// Represents the ability to signal a Child to terminate
-pub trait ChildKiller: std::fmt::Debug {
+pub trait ChildKiller: std::fmt::Debug + Downcast + Send {
     /// Terminate the child process
     fn kill(&mut self) -> IoResult<()>;
 
@@ -154,6 +156,7 @@ pub trait ChildKiller: std::fmt::Debug {
     /// blocked in `.wait`.
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync>;
 }
+impl_downcast!(ChildKiller);
 
 /// Represents the slave side of a pty.
 /// Can be used to spawn processes into the pty.

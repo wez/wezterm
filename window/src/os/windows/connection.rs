@@ -320,7 +320,7 @@ fn gdi_display_name_to_friendly_monitor_names() -> anyhow::Result<HashMap<String
             GetDisplayConfigBufferSizes(flags, &mut path_count as *mut _, &mut mode_count as *mut _)
         };
 
-        if result != ERROR_SUCCESS as _ {
+        if result != ERROR_SUCCESS as i32 {
             return Err(std::io::Error::last_os_error()).context("GetDisplayConfigBufferSizes");
         }
 
@@ -347,11 +347,11 @@ fn gdi_display_name_to_friendly_monitor_names() -> anyhow::Result<HashMap<String
             modes.resize_with(mode_count as usize, || std::mem::zeroed());
         }
 
-        if result == ERROR_INSUFFICIENT_BUFFER as _ {
+        if result == ERROR_INSUFFICIENT_BUFFER as i32 {
             continue;
         }
 
-        if result != ERROR_SUCCESS as _ {
+        if result != ERROR_SUCCESS as i32 {
             return Err(std::io::Error::last_os_error()).context("QueryDisplayConfig");
         }
 
@@ -367,7 +367,7 @@ fn gdi_display_name_to_friendly_monitor_names() -> anyhow::Result<HashMap<String
         target_name.header.size = std::mem::size_of::<DISPLAYCONFIG_TARGET_DEVICE_NAME>() as u32;
 
         let result = unsafe { DisplayConfigGetDeviceInfo(&mut target_name.header) };
-        if result != ERROR_SUCCESS as _ {
+        if result != ERROR_SUCCESS as i32 {
             return Err(std::io::Error::last_os_error())
                 .context("DisplayConfigGetDeviceInfo DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME");
         }
@@ -378,7 +378,7 @@ fn gdi_display_name_to_friendly_monitor_names() -> anyhow::Result<HashMap<String
         source_name.header.size = std::mem::size_of::<DISPLAYCONFIG_SOURCE_DEVICE_NAME>() as u32;
 
         let result = unsafe { DisplayConfigGetDeviceInfo(&mut source_name.header) };
-        if result != ERROR_SUCCESS as _ {
+        if result != ERROR_SUCCESS as i32 {
             return Err(std::io::Error::last_os_error())
                 .context("DisplayConfigGetDeviceInfo DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME");
         }

@@ -1,5 +1,6 @@
 use crate::domain::DomainId;
 use crate::renderable::*;
+use crate::ExitBehavior;
 use async_trait::async_trait;
 use config::keyassignment::{KeyAssignment, ScrollbackEraseMode};
 use downcast_rs::{impl_downcast, Downcast};
@@ -306,6 +307,10 @@ pub trait Pane: Downcast + Send + Sync {
     }
 
     fn tty_name(&self) -> Option<String> {
+        None
+    }
+
+    fn exit_behavior(&self) -> Option<ExitBehavior> {
         None
     }
 }

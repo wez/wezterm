@@ -203,6 +203,9 @@ pub struct Config {
     #[dynamic(default)]
     pub exit_behavior: ExitBehavior,
 
+    #[dynamic(default)]
+    pub exit_behavior_messaging: ExitBehaviorMessaging,
+
     #[dynamic(default = "default_clean_exits")]
     pub clean_exit_codes: Vec<u32>,
 
@@ -785,6 +788,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub default_domain: Option<String>,
+
+    #[dynamic(default)]
+    pub default_mux_server_domain: Option<String>,
 
     #[dynamic(default)]
     pub default_workspace: Option<String>,
@@ -1868,6 +1874,15 @@ pub enum ExitBehavior {
     CloseOnCleanExit,
     /// Hold the pane until it is explicitly closed
     Hold,
+}
+
+#[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ExitBehaviorMessaging {
+    #[default]
+    Verbose,
+    Brief,
+    Terse,
+    None,
 }
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq)]

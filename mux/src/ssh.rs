@@ -16,13 +16,15 @@ use std::io::{BufWriter, Read, Write};
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use termwiz::cell::unicode_column_width;
+use termwiz::cell::{unicode_column_width, AttributeChange, Intensity};
 use termwiz::input::{InputEvent, InputParser};
 use termwiz::lineedit::*;
 use termwiz::render::terminfo::TerminfoRenderer;
-use termwiz::surface::Change;
+use termwiz::surface::{Change, LineAttribute};
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
-use wezterm_ssh::{ConfigMap, Session, SessionEvent, SshChildProcess, SshPty};
+use wezterm_ssh::{
+    ConfigMap, HostVerificationFailed, Session, SessionEvent, SshChildProcess, SshPty,
+};
 use wezterm_term::TerminalSize;
 
 #[derive(Default)]
@@ -113,6 +115,11 @@ pub fn ssh_connect_with_ui(
                     }
                     smol::block_on(auth.answer(answers))?;
                 }
+                SessionEvent::HostVerificationFailed(failed) => {
+                    let message = format_host_verification_for_terminal(failed);
+                    ui.output(message);
+                    anyhow::bail!("Host key verification failed");
+                }
                 SessionEvent::Error(err) => {
                     anyhow::bail!("Error: {}", err);
                 }
@@ -121,6 +128,45 @@ pub fn ssh_connect_with_ui(
         }
         bail!("unable to authenticate session");
     })
+}
+
+fn format_host_verification_for_terminal(failed: HostVerificationFailed) -> Vec<Change> {
+    vec![
+        AttributeChange::Intensity(Intensity::Bold).into(),
+        LineAttribute::DoubleHeightTopHalfLine.into(),
+        Change::Text("REMOTE HOST IDENTIFICATION CHANGED\r\n".to_string()),
+        LineAttribute::DoubleHeightBottomHalfLine.into(),
+        Change::Text("REMOTE HOST IDENTIFICATION CHANGED\r\n".to_string()),
+        Change::Text("SOMEONE MAY BE DOING SOMETHING NASTY!\r\n".to_string()),
+        AttributeChange::Intensity(Intensity::Normal).into(),
+        Change::Text("\r\nThere are two likely causes for this:\r\n".to_string()),
+        Change::Text(
+            " 1. Someone is eavesdropping right now (man-in-the-middle attack)\r\n".to_string(),
+        ),
+        Change::Text(" 2. The host key may have been changed by the administrator\r\n".to_string()),
+        Change::Text("\r\n".to_string()),
+        AttributeChange::Intensity(Intensity::Bold).into(),
+        Change::Text(
+            "Please contact your system administrator to discuss how to proceed!\r\n".to_string(),
+        ),
+        AttributeChange::Intensity(Intensity::Normal).into(),
+        Change::Text("\r\n".to_string()),
+        match failed.file {
+            Some(file) => Change::Text(format!(
+                "The host is {}, and its fingerprint is\r\n{}\r\n\
+                If the administrator confirms that the key has changed, you can\r\n\
+                fix this for yourself by removing the offending entry from\r\n\
+                {} and then try connecting again.\r\n",
+                failed.remote_address,
+                failed.key,
+                file.display(),
+            )),
+            None => Change::Text(format!(
+                "The host is {}, and its fingerprint is\r\n{}\r\n",
+                failed.remote_address, failed.key
+            )),
+        },
+    ]
 }
 
 /// Represents a connection to remote host via ssh.
@@ -596,6 +642,10 @@ fn connect_ssh_session(
             SessionEvent::Error(err) => {
                 shim.output_line(&format!("Error: {}", err))?;
             }
+            SessionEvent::HostVerificationFailed(failed) => {
+                let message = format_host_verification_for_terminal(failed);
+                shim.render(&message)?;
+            }
             SessionEvent::Authenticated => {
                 // Our session has been authenticated: we can now
                 // set up the real pty for the pane
@@ -775,7 +825,7 @@ struct WrappedSshChildKiller {
 }
 
 #[derive(Debug)]
-struct WrappedSshChild {
+pub(crate) struct WrappedSshChild {
     status: Option<AsyncReceiver<ExitStatus>>,
     rx: Receiver<SshChildProcess>,
     exited: Option<ExitStatus>,
@@ -791,7 +841,7 @@ impl WrappedSshChild {
                 }
                 Err(TryRecvError::Empty) => {}
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild::check_connected err: {:#?}", err);
                     self.exited.replace(ExitStatus::with_exit_code(1));
                 }
             }
@@ -836,7 +886,7 @@ impl portable_pty::Child for WrappedSshChild {
                 }
                 Err(smol::channel::TryRecvError::Empty) => Ok(None),
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild::try_wait err: {:#?}", err);
                     let status = ExitStatus::with_exit_code(1);
                     self.exited.replace(status.clone());
                     Ok(Some(status))
@@ -858,7 +908,7 @@ impl portable_pty::Child for WrappedSshChild {
                     self.got_child(c);
                 }
                 Err(err) => {
-                    log::error!("WrappedSshChild err: {:#?}", err);
+                    log::debug!("WrappedSshChild err: {:#?}", err);
                     let status = ExitStatus::with_exit_code(1);
                     self.exited.replace(status.clone());
                     return Ok(status);
@@ -926,8 +976,14 @@ impl ChildKiller for WrappedSshChildKiller {
 type BoxedReader = Box<(dyn Read + Send + 'static)>;
 type BoxedWriter = Box<(dyn Write + Send + 'static)>;
 
-struct WrappedSshPty {
+pub(crate) struct WrappedSshPty {
     inner: RefCell<WrappedSshPtyInner>,
+}
+
+impl WrappedSshPty {
+    pub fn is_connecting(&mut self) -> bool {
+        self.inner.borrow_mut().is_connecting()
+    }
 }
 
 enum WrappedSshPtyInner {
@@ -973,6 +1029,14 @@ impl WrappedSshPtyInner {
                 }
             }
             _ => Ok(()),
+        }
+    }
+
+    fn is_connecting(&mut self) -> bool {
+        self.check_connected().ok();
+        match self {
+            Self::Connecting { .. } => true,
+            Self::Connected { .. } => false,
         }
     }
 }

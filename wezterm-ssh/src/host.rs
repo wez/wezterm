@@ -2,6 +2,14 @@ use crate::session::SessionEvent;
 use anyhow::Context;
 use smol::channel::{bounded, Sender};
 
+#[derive(Debug, thiserror::Error)]
+#[error("host key mismatch for ssh server {remote_address}. Got fingerprint {key} instead of the expected value from your known hosts file {file:?}.")]
+pub struct HostVerificationFailed {
+    pub remote_address: String,
+    pub key: String,
+    pub file: Option<std::path::PathBuf>,
+}
+
 #[derive(Debug)]
 pub struct HostVerificationEvent {
     pub message: String,
@@ -55,15 +63,23 @@ impl crate::sessioninner::SessionInner {
                 Ok(sess.update_known_hosts_file()?)
             }
             libssh_rs::KnownHosts::Changed => {
-                anyhow::bail!(
-                    "host key mismatch for ssh server {}:{}.\n\
-                         Got fingerprint {} instead of expected value from known_hosts\n\
-                         file.\n\
-                         Refusing to connect.",
-                    hostname,
-                    port,
+                let mut file = None;
+                if let Some(kh) = self.config.get("userknownhostsfile") {
+                    for candidate in kh.split_whitespace() {
+                        file.replace(candidate.into());
+                        break;
+                    }
+                }
+
+                let failed = HostVerificationFailed {
+                    remote_address: format!("{hostname}:{port}"),
                     key,
-                );
+                    file,
+                };
+                self.tx_event
+                    .try_send(SessionEvent::HostVerificationFailed(failed))
+                    .context("sending HostVerificationFailed event to user")?;
+                anyhow::bail!("Host key verification failed");
             }
             libssh_rs::KnownHosts::Other => {
                 anyhow::bail!(
@@ -174,15 +190,15 @@ impl crate::sessioninner::SessionInner {
                         .with_context(|| format!("writing known_hosts file {}", file.display()))?;
                 }
                 ssh2::CheckResult::Mismatch => {
-                    anyhow::bail!(
-                        "host key mismatch for ssh server {}.\n\
-                         Got fingerprint {} instead of expected value from known_hosts\n\
-                         file {}.\n\
-                         Refusing to connect.",
-                        remote_address,
-                        fingerprint,
-                        file.display()
-                    );
+                    let failed = HostVerificationFailed {
+                        remote_address: remote_address.to_string(),
+                        key: fingerprint,
+                        file: Some(file.to_path_buf()),
+                    };
+                    self.tx_event
+                        .try_send(SessionEvent::HostVerificationFailed(failed))
+                        .context("sending HostVerificationFailed event to user")?;
+                    anyhow::bail!("Host key verification failed");
                 }
                 ssh2::CheckResult::Failure => {
                     anyhow::bail!("failed to check the known hosts");

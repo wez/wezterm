@@ -7,6 +7,15 @@ use finl_unicode::grapheme_clusters::Graphemes;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum LineAttribute {
+    DoubleHeightTopHalfLine,
+    DoubleHeightBottomHalfLine,
+    DoubleWidthLine,
+    SingleWidthLine,
+}
+
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
 /// and outputting text are examples of some of the values.
@@ -90,6 +99,9 @@ pub enum Change {
     /// Change the title of the window in which the surface will be
     /// rendered.
     Title(String),
+
+    /// Adjust the current line attributes, such as double height or width
+    LineAttribute(LineAttribute),
 }
 
 impl Change {
@@ -114,6 +126,12 @@ impl<S: Into<String>> From<S> for Change {
 impl From<AttributeChange> for Change {
     fn from(c: AttributeChange) -> Self {
         Change::Attribute(c)
+    }
+}
+
+impl From<LineAttribute> for Change {
+    fn from(attr: LineAttribute) -> Self {
+        Change::LineAttribute(attr)
     }
 }
 
@@ -188,6 +206,7 @@ impl ChangeSequence {
             | Change::CursorVisibility(_)
             | Change::ClearToEndOfLine(_)
             | Change::Title(_)
+            | Change::LineAttribute(_)
             | Change::ClearToEndOfScreen(_) => {}
             Change::Text(t) => {
                 for g in Graphemes::new(t.as_str()) {
