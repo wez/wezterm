@@ -934,6 +934,7 @@ TARGETS = [
     # Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(container="debian:11", continuous_only=True),
+    Target(container="debian:12", continuous_only=True),
     Target(
         name="centos7", container="quay.io/centos/centos:centos7", bootstrap_git=True
     ),

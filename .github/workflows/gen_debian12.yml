@@ -1,0 +1,88 @@
+name: debian12
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_debian12.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    container: "debian:12"
+
+    steps:
+      - name: "set APT to non-interactive"
+        shell: bash
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install git"
+        shell: bash
+        run: "apt-get install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "apt-get install -y openssh-server"
+      - name: "Workaround git permissions issue"
+        shell: bash
+        run: "git config --global --add safe.directory /__w/wezterm/wezterm"
+      - name: "checkout repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: "Install Rust"
+        uses: dtolnay/rust-toolchain@stable
+      - name: "Cache cargo"
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: "debian12-None-2-${{ runner.os }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env CI=yes PATH=$PATH ./get-deps"
+      - name: "Build (Release mode)"
+        shell: bash
+        run: "cargo build --all --release"
+      - name: "Install cargo-nextest from Cargo"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: "cargo-nextest"
+          cache-key: "debian12"
+      - name: "Test"
+        shell: bash
+        run: "cargo nextest run --all --no-fail-fast"
+      - name: "Package"
+        shell: bash
+        run: "bash ci/deploy.sh"
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: "debian12"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
