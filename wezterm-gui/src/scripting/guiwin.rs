@@ -158,11 +158,11 @@ impl UserData for GuiWin {
         });
         methods.add_async_method(
             "perform_action",
-            |_, this, (assignment, pane): (UserDataRef<KeyAssignment>, UserDataRef<MuxPane>)| async move {
+            |_, this, (assignment, pane): (KeyAssignment, UserDataRef<MuxPane>)| async move {
                 let (tx, rx) = smol::channel::bounded(1);
                 this.window.notify(TermWindowNotif::PerformAssignment {
                     pane_id: pane.0,
-                    assignment: assignment.clone(),
+                    assignment,
                     tx: Some(tx),
                 });
                 let result = rx.recv().await.map_err(mlua::Error::external)?;
