@@ -74,9 +74,9 @@ jobs:
         with:
           crate: "cargo-nextest"
           cache-key: "centos9"
-      - name: "Test"
+      - name: "Test (Release mode)"
         shell: bash
-        run: "cargo nextest run --all --no-fail-fast"
+        run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
