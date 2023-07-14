@@ -1,6 +1,6 @@
 use super::*;
 use luahelper::{dynamic_to_lua_value, from_lua, to_lua};
-use mlua::{UserDataRef, Value};
+use mlua::Value;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
@@ -89,15 +89,9 @@ impl UserData for MuxPane {
         });
         methods.add_method("pane_id", |_, this, _: ()| Ok(this.0));
 
-        methods.add_async_method(
-            "split",
-            |_, this, args: Option<UserDataRef<SplitPane>>| async move {
-                match args {
-                    Some(args) => args.run(this).await,
-                    None => SplitPane::default().run(this).await,
-                }
-            },
-        );
+        methods.add_async_method("split", |_, this, args: Option<SplitPane>| async move {
+            args.unwrap_or_default().run(this).await
+        });
 
         methods.add_method("send_paste", |_, this, text: String| {
             let mux = get_mux()?;
