@@ -16,7 +16,7 @@ env-bootstrap = { path = "../env-bootstrap" }
 libc = "0.2"
 log = "0.4"
 mux = { path = "../mux" }
-mlua = "0.8.3"
+mlua = "0.9.0-rc.1"
 openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }

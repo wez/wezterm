@@ -1,5 +1,5 @@
 use config::lua::get_or_create_module;
-use config::lua::mlua::{self, Lua, ToLua, Value as LuaValue};
+use config::lua::mlua::{self, IntoLua, Lua, Value as LuaValue};
 use luahelper::lua_value_to_dynamic;
 use serde_json::{Map, Value as JValue};
 use std::collections::HashSet;
@@ -27,18 +27,18 @@ fn json_value_to_lua_value<'lua>(lua: &'lua Lua, value: JValue) -> mlua::Result<
                 }
             },
         },
-        JValue::String(s) => s.to_lua(lua)?,
+        JValue::String(s) => s.into_lua(lua)?,
         JValue::Array(arr) => {
-            let tbl = lua.create_table_with_capacity(arr.len() as i32, 0)?;
+            let tbl = lua.create_table_with_capacity(arr.len() as usize, 0)?;
             for (idx, value) in arr.into_iter().enumerate() {
                 tbl.set(idx + 1, json_value_to_lua_value(lua, value)?)?;
             }
             LuaValue::Table(tbl)
         }
         JValue::Object(map) => {
-            let tbl = lua.create_table_with_capacity(0, map.len() as i32)?;
+            let tbl = lua.create_table_with_capacity(0, map.len() as usize)?;
             for (key, value) in map.into_iter() {
-                let key = key.to_lua(lua)?;
+                let key = key.into_lua(lua)?;
                 let value = json_value_to_lua_value(lua, value)?;
                 tbl.set(key, value)?;
             }
@@ -111,9 +111,7 @@ fn lua_value_to_json_value(value: LuaValue, visited: &mut HashSet<usize>) -> mlu
         }
         LuaValue::UserData(ud) => match ud.get_metatable() {
             Ok(mt) => {
-                if let Ok(to_dynamic) = mt.get::<mlua::MetaMethod, mlua::Function>(
-                    mlua::MetaMethod::Custom("__wezterm_to_dynamic".to_string()),
-                ) {
+                if let Ok(to_dynamic) = mt.get::<mlua::Function>("__wezterm_to_dynamic") {
                     match to_dynamic.call(LuaValue::UserData(ud.clone())) {
                         Ok(value) => {
                             let dyn_value = lua_value_to_dynamic(value)?;

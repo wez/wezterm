@@ -1,4 +1,4 @@
-name: opensuse_leap
+name: debian12
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - "**/*.rs"
       - "**/Cargo.lock"
       - "**/Cargo.toml"
-      - ".github/workflows/gen_opensuse_leap.yml"
+      - ".github/workflows/gen_debian12.yml"
       - "assets/fonts/**/*"
       - "assets/icon/*"
       - "assets/open-wezterm-here"
@@ -25,27 +25,30 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "registry.opensuse.org/opensuse/leap:15.4"
+    container: "debian:12"
 
     steps:
-      - name: "Seed GITHUB_PATH to work around possible @action/core bug"
+      - name: "set APT to non-interactive"
         shell: bash
-        run: 'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH'
-      - name: "Install util-linux"
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
         shell: bash
-        run: "zypper install -y util-linux"
+        run: "apt update"
       - name: "Install git"
         shell: bash
-        run: "zypper install -y git"
+        run: "apt-get install -y git"
       - name: "Install curl"
         shell: bash
-        run: "zypper install -y curl"
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"
       - name: "Install openssh-server"
         shell: bash
-        run: "zypper install -y openssh-server"
+        run: "apt-get install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
@@ -58,7 +61,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "opensuse_leap-None-2-${{ runner.os }}-cargo"
+          key: "debian12-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -69,18 +72,17 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "opensuse_leap"
+          cache-key: "debian12"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Move RPM"
-        shell: bash
-        run: "mv /usr/src/packages/RPMS/*/*.rpm ."
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "opensuse_leap"
-          path: "wezterm-*.rpm"
+          name: "debian12"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz

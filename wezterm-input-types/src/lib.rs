@@ -558,6 +558,7 @@ impl Modifiers {
         number
     }
 
+    #[allow(non_upper_case_globals)]
     pub fn to_string_with_separator(&self, args: ModifierToStringArgs) -> String {
         let mut s = String::new();
         if args.want_none && *self == Self::NONE {
@@ -567,6 +568,11 @@ impl Modifiers {
         // The unicode escapes here are nerdfont symbols; we use those because
         // we're guaranteed to have them available, and the symbols are
         // very legible
+        const md_apple_keyboard_command: &str = "\u{f0633}"; // 󰘳
+        const md_apple_keyboard_control: &str = "\u{f0634}"; // 󰘴
+        const md_apple_keyboard_option: &str = "\u{f0635}"; // 󰘵
+        const md_apple_keyboard_shift: &str = "\u{f0636}"; // 󰘶
+        const md_microsoft_windows: &str = "\u{f05b3}"; // 󰖳
 
         for (value, label, unix, emacs, apple, windows, win_sym) in [
             (
@@ -574,27 +580,43 @@ impl Modifiers {
                 "SHIFT",
                 "Shift",
                 "S",
-                "\u{fb35}",
+                md_apple_keyboard_shift,
                 "Shift",
                 "Shift",
             ),
-            (Self::ALT, "ALT", "Alt", "M", "\u{fb34}", "Alt", "Alt"),
-            (Self::CTRL, "CTRL", "Ctrl", "C", "\u{fb33}", "Ctrl", "Ctrl"),
+            (
+                Self::ALT,
+                "ALT",
+                "Alt",
+                "M",
+                md_apple_keyboard_option,
+                "Alt",
+                "Alt",
+            ),
+            (
+                Self::CTRL,
+                "CTRL",
+                "Ctrl",
+                "C",
+                md_apple_keyboard_control,
+                "Ctrl",
+                "Ctrl",
+            ),
             (
                 Self::SUPER,
                 "SUPER",
                 "Super",
                 "Super",
-                "\u{fb32}",
+                md_apple_keyboard_command,
                 "Win",
-                "\u{fab2}",
+                md_microsoft_windows,
             ),
             (
                 Self::LEFT_ALT,
                 "LEFT_ALT",
                 "Alt",
                 "M",
-                "\u{fb34}",
+                md_apple_keyboard_option,
                 "Alt",
                 "Alt",
             ),
@@ -603,7 +625,7 @@ impl Modifiers {
                 "RIGHT_ALT",
                 "Alt",
                 "M",
-                "\u{fb34}",
+                md_apple_keyboard_option,
                 "Alt",
                 "Alt",
             ),
@@ -621,7 +643,7 @@ impl Modifiers {
                 "LEFT_CTRL",
                 "Ctrl",
                 "C",
-                "\u{fb33}",
+                md_apple_keyboard_control,
                 "Ctrl",
                 "Ctrl",
             ),
@@ -630,7 +652,7 @@ impl Modifiers {
                 "RIGHT_CTRL",
                 "Ctrl",
                 "C",
-                "\u{fb33}",
+                md_apple_keyboard_control,
                 "Ctrl",
                 "Ctrl",
             ),
@@ -639,7 +661,7 @@ impl Modifiers {
                 "LEFT_SHIFT",
                 "Shift",
                 "S",
-                "\u{fb35}",
+                md_apple_keyboard_shift,
                 "Shift",
                 "Shift",
             ),
@@ -648,7 +670,7 @@ impl Modifiers {
                 "RIGHT_SHIFT",
                 "Shift",
                 "S",
-                "\u{fb35}",
+                md_apple_keyboard_shift,
                 "Shift",
                 "Shift",
             ),

@@ -1,34 +1,58 @@
-name: centos9_tag
+name: debian12_continuous
 
 on:
+  schedule:
+    - cron: "10 3 * * *"
   push:
-    tags:
-      - "20*"
+    branches:
+      - main
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - ".github/workflows/gen_debian12_continuous.yml"
+      - "assets/fonts/**/*"
+      - "assets/icon/*"
+      - "assets/open-wezterm-here"
+      - "assets/shell-completion/**/*"
+      - "assets/shell-integration/**/*"
+      - "assets/wezterm-nautilus.py"
+      - "assets/wezterm.appdata.xml"
+      - "assets/wezterm.desktop"
+      - "ci/deploy.sh"
+      - "ci/tag-name.sh"
+      - "get-deps"
+      - "termwiz/data/wezterm.terminfo"
 
 jobs:
   build:
     runs-on: "ubuntu-latest"
-    container: "quay.io/centos/centos:stream9"
+    container: "debian:12"
+    env:
+      BUILD_REASON: "Schedule"
 
     steps:
-      - name: "Install config manager"
+      - name: "set APT to non-interactive"
         shell: bash
-        run: "dnf install -y 'dnf-command(config-manager)'"
-      - name: "Enable CRB repo for X bits"
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
         shell: bash
-        run: "dnf config-manager --set-enabled crb"
+        run: "apt update"
       - name: "Install git"
         shell: bash
-        run: "yum install -y git"
-      - name: "Install curl-minimal"
+        run: "apt-get install -y git"
+      - name: "Install curl"
         shell: bash
-        run: "yum install -y curl-minimal"
+        run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"
       - name: "Install openssh-server"
         shell: bash
-        run: "yum install -y openssh-server"
+        run: "apt-get install -y openssh-server"
       - name: "Workaround git permissions issue"
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
@@ -41,7 +65,7 @@ jobs:
       - name: "Cache cargo"
         uses: Swatinem/rust-cache@v2
         with:
-          key: "centos9-None-2-${{ runner.os }}-cargo"
+          key: "debian12-None-2-${{ runner.os }}-cargo"
       - name: "Install System Deps"
         shell: bash
         run: "env CI=yes PATH=$PATH ./get-deps"
@@ -52,21 +76,21 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: "cargo-nextest"
-          cache-key: "centos9"
+          cache-key: "debian12"
       - name: "Test (Release mode)"
         shell: bash
         run: "cargo nextest run --all --release --no-fail-fast"
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Move RPM"
-        shell: bash
-        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
       - name: "Upload artifact"
         uses: actions/upload-artifact@v3
         with:
-          name: "centos9"
-          path: "wezterm-*.rpm"
+          name: "debian12"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
+          retention-days: 5
 
   upload:
     runs-on: ubuntu-latest
@@ -81,17 +105,12 @@ jobs:
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "centos9"
+          name: "debian12"
       - name: "Checksum"
         shell: bash
-        run: "for f in wezterm-*.rpm ; do sha256sum $f > $f.sha256 ; done"
-      - name: "Create pre-release"
+        run: "for f in wezterm-*.deb wezterm-*.xz ; do sha256sum $f > $f.sha256 ; done"
+      - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
-      - name: "Upload to Tagged Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.rpm *.sha256"
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz *.sha256"
