@@ -1902,8 +1902,11 @@ impl KeyEvent {
                     24 => "\x1b[57387",
                     _ => unreachable!(),
                 };
+                // for F1-F12 the spec says we should terminate with ~
+                // for F13 and up the spec says we should terminate with u
+                let end_char = if *n < 13 { '~' } else { 'u' };
 
-                format!("{intro};{modifiers}{event_type}u")
+                format!("{intro};{modifiers}{event_type}{end_char}")
             }
 
             _ => {
