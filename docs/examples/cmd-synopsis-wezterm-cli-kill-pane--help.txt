@@ -1,4 +1,3 @@
-
 Kill a pane
 
 Usage: wezterm cli kill-pane [OPTIONS]

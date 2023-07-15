@@ -6,6 +6,11 @@ use config::{wezterm_version, ConfigHandle};
 use mux::Mux;
 use std::ffi::OsString;
 use std::io::Read;
+use termwiz::caps::Capabilities;
+use termwiz::escape::esc::{Esc, EscCode};
+use termwiz::escape::OneBased;
+use termwiz::input::{InputEvent, KeyCode, KeyEvent};
+use termwiz::terminal::Terminal;
 use umask::UmaskSaver;
 use wezterm_gui_subcommands::*;
 
@@ -153,10 +158,50 @@ struct ImgCatCommand {
     /// ratio
     #[arg(long = "no-preserve-aspect-ratio")]
     no_preserve_aspect_ratio: bool,
+
+    /// Set the cursor position prior to displaying the image.
+    /// The default is to use the current cursor position.
+    /// Coordinates are expressed in cells with 0,0 being the top left
+    /// cell position.
+    #[arg(long, value_parser=ValueParser::new(x_comma_y))]
+    position: Option<ImagePosition>,
+
+    /// Do not move the cursor after displaying the image.
+    /// Note that when used like this from the shell, there is a very
+    /// high chance that shell prompt will overwrite the image;
+    /// you may wish to also use `--hold` in that case.
+    #[arg(long)]
+    no_move_cursor: bool,
+
+    /// Wait for enter to be pressed after displaying the image
+    #[arg(long)]
+    hold: bool,
+
     /// The name of the image file to be displayed.
     /// If omitted, will attempt to read it from stdin.
     #[arg(value_parser, value_hint=ValueHint::FilePath)]
     file_name: Option<OsString>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ImagePosition {
+    x: u32,
+    y: u32,
+}
+
+fn x_comma_y(arg: &str) -> Result<ImagePosition, String> {
+    if let Some(eq) = arg.find(',') {
+        let (left, right) = arg.split_at(eq);
+        let x = left.parse().map_err(|err| {
+            format!("Expected x,y to be integer values, got {arg}. '{left}': {err:#}")
+        })?;
+        let y = right[1..].parse().map_err(|err| {
+            format!("Expected x,y to be integer values, got {arg}. '{right}': {err:#}")
+        })?;
+        Ok(ImagePosition { x, y })
+    } else {
+        Err(format!("Expected name=value, but got {}", arg))
+    }
 }
 
 impl ImgCatCommand {
@@ -171,6 +216,18 @@ impl ImgCatCommand {
             stdin.read_to_end(&mut data)?;
         }
 
+        if let Some(position) = &self.position {
+            let save_cursor = Esc::Code(EscCode::DecSaveCursorPosition);
+
+            let csi = termwiz::escape::CSI::Cursor(
+                termwiz::escape::csi::Cursor::CharacterAndLinePosition {
+                    col: OneBased::from_zero_based(position.x),
+                    line: OneBased::from_zero_based(position.y),
+                },
+            );
+            print!("{save_cursor}{csi}");
+        }
+
         let osc = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
             ITermFileData {
                 name: None,
@@ -179,11 +236,33 @@ impl ImgCatCommand {
                 height: self.height.unwrap_or_default(),
                 preserve_aspect_ratio: !self.no_preserve_aspect_ratio,
                 inline: true,
-                do_not_move_cursor: false,
+                do_not_move_cursor: self.no_move_cursor,
                 data,
             },
         )));
         println!("{}", osc);
+
+        if self.position.is_some() {
+            let restore_cursor = Esc::Code(EscCode::DecRestoreCursorPosition);
+            print!("{restore_cursor}");
+        }
+
+        if self.hold {
+            let caps = Capabilities::new_from_env()?;
+            let mut term = termwiz::terminal::new_terminal(caps)?;
+
+            while let Ok(Some(event)) = term.poll_input(None) {
+                match event {
+                    InputEvent::Key(KeyEvent {
+                        key: KeyCode::Enter,
+                        modifiers: _,
+                    }) => {
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        }
 
         Ok(())
     }

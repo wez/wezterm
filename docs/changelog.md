@@ -25,6 +25,9 @@ As features stabilize some brief notes about them will accumulate here.
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
 
 #### New
+* [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and
+  `--hold` options. #3716
+
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
   keyboard shortcuts. #3988

@@ -1,4 +1,3 @@
-
 list clients
 
 Usage: wezterm cli list-clients [OPTIONS]

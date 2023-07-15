@@ -1,4 +1,3 @@
-
 Change the title of a tab
 
 Usage: wezterm cli set-tab-title [OPTIONS] <TITLE>

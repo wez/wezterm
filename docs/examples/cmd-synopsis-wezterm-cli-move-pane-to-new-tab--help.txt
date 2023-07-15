@@ -1,4 +1,3 @@
-
 Move a pane into a new tab
 
 Usage: wezterm cli move-pane-to-new-tab [OPTIONS]

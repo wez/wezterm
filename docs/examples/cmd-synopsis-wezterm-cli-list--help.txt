@@ -1,4 +1,3 @@
-
 list windows, tabs and panes
 
 Usage: wezterm cli list [OPTIONS]
