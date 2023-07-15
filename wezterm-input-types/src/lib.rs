@@ -1881,7 +1881,7 @@ impl KeyEvent {
                     _ => unreachable!(),
                 };
 
-                format!("{intro};{modifiers}{event_type}~")
+                format!("{intro};{modifiers}{event_type}u")
             }
 
             _ => {
