@@ -420,6 +420,10 @@ struct SetCwdCommand {
     #[arg(value_parser, value_hint=ValueHint::DirPath)]
     cwd: Option<OsString>,
 
+    /// How to manage passing the escape through to tmux
+    #[arg(long, value_parser)]
+    tmux_passthru: Option<TmuxPassthru>,
+
     /// The hostname to use in the constructed file:// URL.
     /// If omitted, the system hostname will be used.
     #[arg(value_parser, value_hint=ValueHint::Hostname)]
