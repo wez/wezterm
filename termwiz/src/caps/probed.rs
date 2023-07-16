@@ -147,14 +147,19 @@ impl<'a> ProbeCapabilities<'a> {
         // terminal and see what it says
         if is_tmux {
             write!(self.write, "{TMUX_BEGIN}{query_pixels}{TMUX_END}")?;
+        }
+
+        if is_tmux || cfg!(windows) {
             self.write.flush()?;
-            // I really wanted to avoid a delay here, but tmux will re-order the
-            // response to dev_attributes before it sends the response for the
-            // passthru of query_pixels if we don't delay. The delay is potentially
-            // imperfect for things like a laggy ssh connection. The consequence
-            // of the timing being wrong is that we won't be able to reason about
-            // the pixel dimensions, which is "OK", but that was kinda the whole
-            // point of probing this way vs. termios.
+            // I really wanted to avoid a delay here, but tmux and conpty will
+            // both re-order the response to dev_attributes before sending the
+            // response for the passthru of query_pixels if we don't delay.
+            // The delay is potentially imperfect for things like a laggy ssh
+            // connection. The consequence of the timing being wrong is that
+            // we won't be able to reason about the pixel dimensions, which is
+            // "OK", but that was kinda the whole point of probing this way
+            // vs. termios.
+
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
 
@@ -177,6 +182,14 @@ impl<'a> ProbeCapabilities<'a> {
             parser.parse(&byte, |action| {
                 // print!("{action:?}\r\n");
                 match action {
+                    // ConPTY appears to trigger 1 or more xtversion queries
+                    // to wezterm in response to this probe, so we need to
+                    // prepared to accept and discard data of that shape
+                    // here, so that we keep going until we get our reports
+                    Action::DeviceControl(_) => {}
+                    Action::Esc(Esc::Code(EscCode::StringTerminator)) => {}
+
+                    // and now look for the actual responses we're expecting
                     Action::CSI(csi) => match csi {
                         CSI::Window(win) => match *win {
                             Window::ResizeWindowCells { width, height } => {

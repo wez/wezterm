@@ -336,8 +336,9 @@ impl ImgCatCommand {
         // explicitly after we've drawn things.
         // We can only do this reasonably sanely if we aren't setting
         // the absolute position.
-        let needs_force_cursor_move =
-            !self.no_move_cursor && !self.position.is_some() && (is_tmux || is_conpty);
+        let needs_force_cursor_move = !self.no_move_cursor && !self.position.is_some() && (is_tmux || is_conpty)
+            // We can only use forced movement if we know the pixel geometry
+            && (term_size.xpixel != 0 && term_size.ypixel != 0);
 
         term.set_cooked_mode()?;
 
