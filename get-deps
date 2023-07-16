@@ -335,7 +335,7 @@ case $ID in
   *suse*)
     suse_deps
   ;;
-  debian|ubuntu)
+  debian|ubuntu|pop)
     debian_deps
   ;;
   freebsd) # available since 13.0
