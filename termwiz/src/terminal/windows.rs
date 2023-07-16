@@ -1,5 +1,6 @@
 use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
 use crate::istty::IsTty;
+use crate::terminal::ProbeCapabilities;
 use crate::{bail, ensure, format_err, Result};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
