@@ -2369,8 +2369,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.5"
-source = "git+https://github.com/image-rs/image.git?rev=fe069785ae245a2c510fd724ef96da283b05a236#fe069785ae245a2c510fd724ef96da283b05a236"
+version = "0.24.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "527909aa81e20ac3a44803521443a765550f09b5130c2c2fa1ea59c2f8f50a3a"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -5840,6 +5841,7 @@ dependencies = [
  "env-bootstrap",
  "filedescriptor",
  "hostname",
+ "image",
  "libc",
  "log",
  "mux",

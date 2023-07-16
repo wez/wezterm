@@ -511,6 +511,10 @@ fn connect_ssh_session(
             })
         }
 
+        fn probe_screen_size(&mut self) -> termwiz::Result<ScreenSize> {
+            self.get_screen_size()
+        }
+
         fn set_screen_size(&mut self, _size: ScreenSize) -> termwiz::Result<()> {
             termwiz::bail!("TerminalShim cannot set screen size");
         }

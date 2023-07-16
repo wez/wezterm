@@ -385,6 +385,10 @@ impl Terminal for UnixTerminal {
         })
     }
 
+    fn probe_screen_size(&mut self) -> Result<ScreenSize> {
+        ScreenSize::probe(&mut self.read, &mut self.write)
+    }
+
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
         let size = winsize {
             ws_row: cast(size.rows)?,

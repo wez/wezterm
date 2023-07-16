@@ -6,6 +6,7 @@ use crate::surface::Change;
 use crate::{format_err, Result};
 use num_traits::NumCast;
 use std::fmt::Display;
+use std::io::{Read, Write};
 use std::time::Duration;
 
 #[cfg(unix)]
@@ -40,6 +41,154 @@ pub struct ScreenSize {
     pub ypixel: usize,
 }
 
+impl ScreenSize {
+    /// This is a helper function to facilitate the implementation of
+    /// Terminal::probe_screen_size. It will emit a series of terminal
+    /// escape sequences intended to probe the terminal and determine
+    /// the ScreenSize.
+    /// `input` and `output` are the corresponding reading and writable
+    /// handles to the terminal.
+    pub fn probe<I: Read, O: Write>(mut input: I, mut output: O) -> Result<Self> {
+        use crate::escape::csi::{Device, Window};
+        use crate::escape::parser::Parser;
+        use crate::escape::{Action, DeviceControlMode, Esc, EscCode, CSI};
+
+        let xt_version = CSI::Device(Box::new(Device::RequestTerminalNameAndVersion));
+        let query_cells = CSI::Window(Box::new(Window::ReportTextAreaSizeCells));
+        let query_pixels = CSI::Window(Box::new(Window::ReportCellSizePixels));
+        let dev_attributes = CSI::Device(Box::new(Device::RequestPrimaryDeviceAttributes));
+
+        // some tmux versions have their rows/cols swapped in ReportTextAreaSizeCells,
+        // so we need to figure out the specific tmux version we're talking to
+        write!(output, "{xt_version}{dev_attributes}")?;
+        output.flush()?;
+        let mut term = vec![];
+        let mut parser = Parser::new();
+        let mut done = false;
+
+        while !done {
+            let mut byte = [0u8];
+            input.read(&mut byte)?;
+
+            parser.parse(&byte, |action| {
+                // print!("{action:?}\r\n");
+                match action {
+                    Action::Esc(Esc::Code(EscCode::StringTerminator)) => {}
+                    Action::DeviceControl(dev) => {
+                        if let DeviceControlMode::Data(b) = dev {
+                            term.push(b);
+                        }
+                    }
+                    _ => {
+                        done = true;
+                    }
+                }
+            });
+        }
+
+        /*
+        print!(
+            "probed terminal version: {}\r\n",
+            String::from_utf8_lossy(&term)
+        );
+        */
+
+        let is_tmux = term.starts_with(b"tmux ");
+        let swapped_cols_rows = if is_tmux {
+            let version = &term[5..];
+            match version {
+                b"3.2" | b"3.2a" | b"3.3" | b"3.3a" => true,
+                _ => false,
+            }
+        } else {
+            false
+        };
+
+        write!(output, "{query_cells}{query_pixels}")?;
+
+        // tmux refuses to directly support responding to 14t or 16t queries
+        // for pixel dimensions, so we need to jump through to the outer
+        // terminal and see what it says
+        if is_tmux {
+            let tmux_begin = "\u{1b}Ptmux;\u{1b}";
+            let tmux_end = "\u{1b}\\";
+            write!(output, "{tmux_begin}{query_pixels}{tmux_end}")?;
+            output.flush()?;
+            // I really wanted to avoid a delay here, but tmux will re-order the
+            // response to dev_attributes before it sends the response for the
+            // passthru of query_pixels if we don't delay. The delay is potentially
+            // imperfect for things like a laggy ssh connection. The consequence
+            // of the timing being wrong is that we won't be able to reason about
+            // the pixel dimensions, which is "OK", but that was kinda the whole
+            // point of probing this way vs. termios.
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+
+        write!(output, "{dev_attributes}")?;
+        output.flush()?;
+
+        let mut parser = Parser::new();
+        let mut done = false;
+        let mut size = ScreenSize {
+            rows: 0,
+            cols: 0,
+            xpixel: 0,
+            ypixel: 0,
+        };
+
+        while !done {
+            let mut byte = [0u8];
+            input.read(&mut byte)?;
+
+            parser.parse(&byte, |action| {
+                // print!("{action:?}\r\n");
+                match action {
+                    Action::CSI(csi) => match csi {
+                        CSI::Window(win) => match *win {
+                            Window::ResizeWindowCells { width, height } => {
+                                let width = width.unwrap_or(1);
+                                let height = height.unwrap_or(1);
+                                if width > 0 && height > 0 {
+                                    let width = width as usize;
+                                    let height = height as usize;
+                                    if swapped_cols_rows {
+                                        size.rows = width;
+                                        size.cols = height;
+                                    } else {
+                                        size.rows = height;
+                                        size.cols = width;
+                                    }
+                                }
+                            }
+                            Window::ReportCellSizePixelsResponse { width, height } => {
+                                let width = width.unwrap_or(1);
+                                let height = height.unwrap_or(1);
+                                if width > 0 && height > 0 {
+                                    let width = width as usize;
+                                    let height = height as usize;
+                                    size.xpixel = width;
+                                    size.ypixel = height;
+                                }
+                            }
+                            _ => {
+                                done = true;
+                            }
+                        },
+                        _ => {
+                            done = true;
+                        }
+                    },
+                    _ => {
+                        done = true;
+                    }
+                }
+            });
+        }
+
+        Ok(size)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Blocking {
     DoNotWait,
@@ -67,6 +216,12 @@ pub trait Terminal {
 
     /// Queries the current screen size, returning width, height.
     fn get_screen_size(&mut self) -> Result<ScreenSize>;
+
+    /// Like get_screen_size but uses escape sequences to interrogate
+    /// the terminal rather than relying on the termios/kernel interface
+    /// You should delegate this to `ScreenSize::probe(&mut self.read, &mut self.write)`
+    /// to implement this method.
+    fn probe_screen_size(&mut self) -> Result<ScreenSize>;
 
     /// Sets the current screen size
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()>;

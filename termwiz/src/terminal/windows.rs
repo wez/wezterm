@@ -769,6 +769,10 @@ impl Terminal for WindowsTerminal {
         })
     }
 
+    fn probe_screen_size(&mut self) -> Result<ScreenSize> {
+        ScreenSize::probe(&mut self.input_handle, &mut self.output_handle)
+    }
+
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
         // FIXME: take into account the visible window size here;
         // this probably changes the size of everything including scrollback
