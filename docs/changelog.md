@@ -45,6 +45,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
   keyboard shortcuts. #3988
+* Windows: couldn't use shifted keys like `(` in the Debug Overlay. #3999
 
 ### 20230712-072601-f4abf8fd
 
