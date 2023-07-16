@@ -769,8 +769,11 @@ impl Terminal for WindowsTerminal {
         })
     }
 
-    fn probe_screen_size(&mut self) -> Result<ScreenSize> {
-        ScreenSize::probe(&mut self.input_handle, &mut self.output_handle)
+    fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
+        Some(ProbeCapabilities::new(
+            &mut self.input_handle,
+            &mut self.output_handle,
+        ))
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {

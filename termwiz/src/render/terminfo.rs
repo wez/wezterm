@@ -870,10 +870,6 @@ mod test {
             })
         }
 
-        fn probe_screen_size(&mut self) -> Result<ScreenSize> {
-            self.get_screen_size()
-        }
-
         fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
             let size = winsize {
                 ws_row: cast(size.rows)?,

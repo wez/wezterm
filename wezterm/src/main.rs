@@ -312,10 +312,19 @@ impl ImgCatCommand {
             stdin.read_to_end(&mut data)?;
         }
 
-        // TODO: ideally we'd provide some kind of ProbeCapabilities type
-        // that can be returned from Terminal that will encode this sort
-        // of thing so that we can use xtversion to know for sure.
-        let is_tmux = TmuxPassthru::is_tmux();
+        let caps = Capabilities::new_from_env()?;
+        let mut term = termwiz::terminal::new_terminal(caps)?;
+        term.set_raw_mode()?;
+
+        let mut probe = term
+            .probe_capabilities()
+            .ok_or_else(|| anyhow!("Terminal has no prober?"))?;
+
+        let xt_version = probe.xt_version()?;
+
+        let term_size = probe.screen_size()?;
+
+        let is_tmux = xt_version.is_tmux();
 
         // TODO: ideally we'd do some kind of probing to see if conpty
         // is in the mix. For now we just assume that if we are on windows
@@ -330,11 +339,6 @@ impl ImgCatCommand {
         let needs_force_cursor_move =
             !self.no_move_cursor && !self.position.is_some() && (is_tmux || is_conpty);
 
-        let caps = Capabilities::new_from_env()?;
-        let mut term = termwiz::terminal::new_terminal(caps)?;
-        term.set_raw_mode()?;
-
-        let term_size = term.probe_screen_size()?;
         term.set_cooked_mode()?;
 
         let save_cursor = Esc::Code(EscCode::DecSaveCursorPosition);

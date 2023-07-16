@@ -397,10 +397,6 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
         Ok(self.render_tx.screen_size)
     }
 
-    fn probe_screen_size(&mut self) -> termwiz::Result<ScreenSize> {
-        Ok(self.render_tx.screen_size)
-    }
-
     fn set_screen_size(&mut self, _size: ScreenSize) -> termwiz::Result<()> {
         termwiz::bail!("TermWizTerminalPane cannot set screen size");
     }
