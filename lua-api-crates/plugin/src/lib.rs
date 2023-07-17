@@ -12,6 +12,7 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 struct RepoSpec {
     url: String,
     component: String,
+    plugin_dir: String,
 }
 
 /// Given a URL, generate a string that can be used as a directory name.
@@ -55,7 +56,17 @@ impl RepoSpec {
             anyhow::bail!("invalid repo spec {url}");
         }
 
-        Ok(Self { url, component })
+        let plugin_dir = RepoSpec::plugins_dir()
+            .join(&component)
+            .to_str()
+            .ok_or(anyhow!("invalid plugin_dir string"))?
+            .to_string();
+
+        Ok(Self {
+            url,
+            component,
+            plugin_dir,
+        })
     }
 
     fn load_from_dir(path: PathBuf) -> anyhow::Result<Self> {
@@ -66,12 +77,22 @@ impl RepoSpec {
             .ok_or_else(|| anyhow!("{path:?} isn't unicode"))?
             .to_string();
 
+        let plugin_dir = RepoSpec::plugins_dir()
+            .join(&component)
+            .to_str()
+            .ok_or(anyhow!("invalid plugin_dir string"))?
+            .to_string();
+
         let repo = Repository::open(&path)?;
         let remote = get_remote(&repo)?.ok_or_else(|| anyhow!("no remotes!?"))?;
         let url = remote.url();
         if let Some(url) = url {
             let url = url.to_string();
-            return Ok(Self { component, url });
+            return Ok(Self {
+                component,
+                url,
+                plugin_dir,
+            });
         }
         anyhow::bail!("Unable to create a complete RepoSpec for repo at {path:?}");
     }
