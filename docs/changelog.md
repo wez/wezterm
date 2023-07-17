@@ -41,6 +41,21 @@ As features stabilize some brief notes about them will accumulate here.
   in order to avoid the shell/prompt from mangling the image after it is printing.
   Support for this has limitations and will not take effect when the new
   `--position` argument is used. #3624
+* Color schemes: [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
+  [Ef-Day](colorschemes/e/index.md#ef-day),
+  [Ef-Deuteranopia-Dark](colorschemes/e/index.md#ef-deuteranopia-dark),
+  [Ef-Deuteranopia-Light](colorschemes/e/index.md#ef-deuteranopia-light),
+  [Ef-Duo-Dark](colorschemes/e/index.md#ef-duo-dark),
+  [Ef-Duo-Light](colorschemes/e/index.md#ef-duo-light),
+  [Ef-Elea-Dark](colorschemes/e/index.md#ef-elea-dark),
+  [Ef-Elea-Light](colorschemes/e/index.md#ef-elea-light),
+  [Ef-Frost](colorschemes/e/index.md#ef-frost),
+  [Ef-Kassio](colorschemes/e/index.md#ef-kassio),
+  [Ef-Light](colorschemes/e/index.md#ef-light),
+  [Ef-Night](colorschemes/e/index.md#ef-night),
+  [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
+  [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
+  [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS

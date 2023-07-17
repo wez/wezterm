@@ -10886,6 +10886,46 @@
   {
     "colors": {
       "ansi": [
+        "#f0ece0",
+        "#9f0d0f",
+        "#006f00",
+        "#a7601f",
+        "#375cc6",
+        "#9a456f",
+        "#1f70af",
+        "#242521"
+      ],
+      "background": "#fcf7ef",
+      "brights": [
+        "#c5c3b8",
+        "#ca3400",
+        "#00824f",
+        "#a2604f",
+        "#065fbf",
+        "#8448aa",
+        "#007a9f",
+        "#59786f"
+      ],
+      "cursor_bg": "#007f00",
+      "cursor_border": "#007f00",
+      "cursor_fg": "#242521",
+      "foreground": "#242521",
+      "indexed": {},
+      "selection_bg": "#e0e7e5",
+      "selection_fg": "#242521"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Cyprus",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-cyprus-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#4b4b4b",
         "#ef6560",
         "#0faa26",
@@ -10921,6 +10961,446 @@
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-dark-theme.el",
       "prefix": "e",
       "wezterm_version": "20230408-112425-69ae8472"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f2e9db",
+        "#ba2d2f",
+        "#007a0a",
+        "#a45a22",
+        "#375cc6",
+        "#ca3e54",
+        "#3f60af",
+        "#584141"
+      ],
+      "background": "#fff5ea",
+      "brights": [
+        "#c9c0b8",
+        "#cf2f4f",
+        "#0f7f5f",
+        "#aa4f30",
+        "#265fbf",
+        "#8448aa",
+        "#0f7b8f",
+        "#63728f"
+      ],
+      "cursor_bg": "#cf1f00",
+      "cursor_border": "#cf1f00",
+      "cursor_fg": "#584141",
+      "foreground": "#584141",
+      "indexed": {},
+      "selection_bg": "#f0d2df",
+      "selection_fg": "#584141"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Day",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-day-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#121f34",
+        "#cf8560",
+        "#3faa26",
+        "#aa9f32",
+        "#3f90f0",
+        "#b379bf",
+        "#5faaef",
+        "#ddddee"
+      ],
+      "background": "#000a1f",
+      "brights": [
+        "#445165",
+        "#cf7a7a",
+        "#3fa672",
+        "#bfaf7a",
+        "#009fff",
+        "#9f95ff",
+        "#0db0ff",
+        "#7f8797"
+      ],
+      "cursor_bg": "#ffff00",
+      "cursor_border": "#ffff00",
+      "cursor_fg": "#ddddee",
+      "foreground": "#ddddee",
+      "indexed": {},
+      "selection_bg": "#223848",
+      "selection_fg": "#ddddee"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Deuteranopia-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e8e8ea",
+        "#d3303a",
+        "#217a3c",
+        "#805d00",
+        "#375cd8",
+        "#ba35af",
+        "#1f6fbf",
+        "#1a1a2f"
+      ],
+      "background": "#f5f5ff",
+      "brights": [
+        "#b3b3c0",
+        "#d50f7f",
+        "#008058",
+        "#765040",
+        "#065fff",
+        "#6052cf",
+        "#1f77bb",
+        "#70627f"
+      ],
+      "cursor_bg": "#0000bb",
+      "cursor_border": "#0000bb",
+      "cursor_fg": "#1a1a2f",
+      "foreground": "#1a1a2f",
+      "indexed": {},
+      "selection_bg": "#dadadf",
+      "selection_fg": "#1a1a2f"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Deuteranopia-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-deuteranopia-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d1a26",
+        "#ef656a",
+        "#1fa526",
+        "#c48702",
+        "#379cf6",
+        "#d369af",
+        "#5faaef",
+        "#d0d0d0"
+      ],
+      "background": "#070019",
+      "brights": [
+        "#4a4759",
+        "#ef798f",
+        "#00b982",
+        "#df805f",
+        "#029fff",
+        "#af85ff",
+        "#0dafdf",
+        "#857f8f"
+      ],
+      "cursor_bg": "#ef6f11",
+      "cursor_border": "#ef6f11",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#042a50",
+      "selection_fg": "#d0d0d0"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Duo-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#f6ece8",
+        "#cc3333",
+        "#217a3c",
+        "#8a5d00",
+        "#375cd8",
+        "#ba35af",
+        "#1f6fbf",
+        "#222222"
+      ],
+      "background": "#fff8f0",
+      "brights": [
+        "#c7c0ba",
+        "#c04440",
+        "#008058",
+        "#8f5a3a",
+        "#065fff",
+        "#6052cf",
+        "#1f77bb",
+        "#63728f"
+      ],
+      "cursor_bg": "#1144ff",
+      "cursor_border": "#1144ff",
+      "cursor_fg": "#222222",
+      "foreground": "#222222",
+      "indexed": {},
+      "selection_bg": "#caeafa",
+      "selection_fg": "#222222"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Duo-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-duo-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#303332",
+        "#ff656a",
+        "#7fc87f",
+        "#cac85f",
+        "#57aff6",
+        "#f59acf",
+        "#6fcfd2",
+        "#eaf2ef"
+      ],
+      "background": "#222524",
+      "brights": [
+        "#3e4140",
+        "#fa7f88",
+        "#50cf89",
+        "#cfb27f",
+        "#62cfef",
+        "#cfaaff",
+        "#60d5c2",
+        "#969faf"
+      ],
+      "cursor_bg": "#ef7fa8",
+      "cursor_border": "#ef7fa8",
+      "cursor_fg": "#eaf2ef",
+      "foreground": "#eaf2ef",
+      "indexed": {},
+      "selection_bg": "#543040",
+      "selection_fg": "#eaf2ef"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Elea-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e3e9d6",
+        "#c3303a",
+        "#00601f",
+        "#9a501f",
+        "#375cc6",
+        "#80308f",
+        "#1f70af",
+        "#221321"
+      ],
+      "background": "#edf5e2",
+      "brights": [
+        "#b0b7aa",
+        "#b02440",
+        "#007047",
+        "#88541f",
+        "#162f8f",
+        "#5032aa",
+        "#00677f",
+        "#676470"
+      ],
+      "cursor_bg": "#770080",
+      "cursor_border": "#770080",
+      "cursor_fg": "#221321",
+      "foreground": "#221321",
+      "indexed": {},
+      "selection_bg": "#d9d2ef",
+      "selection_fg": "#221321"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Elea-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-elea-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#eaefef",
+        "#c42d2f",
+        "#008a00",
+        "#aa6100",
+        "#004fc0",
+        "#aa44c5",
+        "#1f6fbf",
+        "#232323"
+      ],
+      "background": "#fcffff",
+      "brights": [
+        "#b5b8b8",
+        "#cf2f4f",
+        "#00845f",
+        "#996c4f",
+        "#065fff",
+        "#7f5ae0",
+        "#007a85",
+        "#66657f"
+      ],
+      "cursor_bg": "#0055bb",
+      "cursor_border": "#0055bb",
+      "cursor_fg": "#232323",
+      "foreground": "#232323",
+      "indexed": {},
+      "selection_bg": "#d4eaf3",
+      "selection_fg": "#232323"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Frost",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-frost-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#efe7e7",
+        "#b00234",
+        "#217a3c",
+        "#9a6012",
+        "#3c3bbe",
+        "#a01f64",
+        "#2f5f9f",
+        "#201f36"
+      ],
+      "background": "#fff7f7",
+      "brights": [
+        "#c0bbbb",
+        "#d5305f",
+        "#008358",
+        "#a04646",
+        "#065fff",
+        "#7022bf",
+        "#1077ab",
+        "#776f79"
+      ],
+      "cursor_bg": "#d06f30",
+      "cursor_border": "#d06f30",
+      "cursor_fg": "#201f36",
+      "foreground": "#201f36",
+      "indexed": {},
+      "selection_bg": "#dfe4f4",
+      "selection_fg": "#201f36"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Kassio",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-kassio-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#efefef",
+        "#d3303a",
+        "#217a3c",
+        "#a45f22",
+        "#375cd8",
+        "#ba35af",
+        "#1f6fbf",
+        "#202020"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#b3b3b3",
+        "#d50f7f",
+        "#008858",
+        "#b65050",
+        "#065fff",
+        "#6052cf",
+        "#1f77bb",
+        "#70627f"
+      ],
+      "cursor_bg": "#0033cc",
+      "cursor_border": "#0033cc",
+      "cursor_fg": "#202020",
+      "foreground": "#202020",
+      "indexed": {},
+      "selection_bg": "#bfefff",
+      "selection_fg": "#202020"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1a202b",
+        "#ef656a",
+        "#1fa526",
+        "#c48502",
+        "#379cf6",
+        "#d570af",
+        "#4fb0cf",
+        "#afbcbf"
+      ],
+      "background": "#000e17",
+      "brights": [
+        "#444e59",
+        "#ef798f",
+        "#00a972",
+        "#df8f6f",
+        "#029fff",
+        "#af8aff",
+        "#3dc0b0",
+        "#70819f"
+      ],
+      "cursor_bg": "#00ccff",
+      "cursor_border": "#00ccff",
+      "cursor_fg": "#afbcbf",
+      "foreground": "#afbcbf",
+      "indexed": {},
+      "selection_bg": "#222f40",
+      "selection_fg": "#afbcbf"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Night",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-night-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11001,6 +11481,46 @@
       "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-summer-theme.el",
       "prefix": "e",
       "wezterm_version": "20230408-112425-69ae8472"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#221920",
+        "#ef6360",
+        "#0faa26",
+        "#bf9032",
+        "#3f95f6",
+        "#d369af",
+        "#4fbaef",
+        "#d0d0d0"
+      ],
+      "background": "#130911",
+      "brights": [
+        "#4b3f47",
+        "#fe5a7a",
+        "#00a692",
+        "#df8a5a",
+        "#029fff",
+        "#af85ff",
+        "#1dbfcf",
+        "#857f8f"
+      ],
+      "cursor_bg": "#f0af7f",
+      "cursor_border": "#f0af7f",
+      "cursor_fg": "#d0d0d0",
+      "foreground": "#d0d0d0",
+      "indexed": {},
+      "selection_bg": "#2f2630",
+      "selection_fg": "#d0d0d0"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Symbiosis",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-symbiosis-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -18376,6 +18896,45 @@
       "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "i",
       "wezterm_version": "20220807-113146-c2fee766"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
+        "#2225c4",
+        "#ca30c7",
+        "#00c5c7",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#e6e6e6",
+      "cursor_border": "#e6e6e6",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Default",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -28709,6 +29268,53 @@
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "r",
       "wezterm_version": "20230712-072601-f4abf8fd"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#232136",
+        "#eb6f92",
+        "#3e8fb0",
+        "#ea9a97",
+        "#c4a7e7",
+        "#f6c177",
+        "#9ccfd8",
+        "#e0def4"
+      ],
+      "background": "#232136",
+      "brights": [
+        "#6e6a86",
+        "#eb6f92",
+        "#3e8fb0",
+        "#ea9a97",
+        "#c4a7e7",
+        "#f6c177",
+        "#9ccfd8",
+        "#56526e"
+      ],
+      "cursor_bg": "#e0def4",
+      "cursor_border": "#e0def4",
+      "cursor_fg": "#232136",
+      "foreground": "#e0def4",
+      "indexed": {
+        "16": "#f6c177",
+        "17": "#56526e",
+        "18": "#2a273f",
+        "19": "#393552",
+        "20": "#908caa",
+        "21": "#e0def4"
+      },
+      "selection_bg": "#e0def4",
+      "selection_fg": "#232136"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "Emilia Dunfelt <edun@dunfelt.se>",
+      "name": "Rosé Pine Moon (base16)",
+      "origin_url": "https://github.com/edunfelt/base16-rose-pine-scheme",
+      "prefix": "r",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
