@@ -1,7 +1,7 @@
 Advise the terminal of the current working directory by emitting an OSC 7 escape
 sequence
 
-Usage: wezterm set-working-directory [CWD] [HOST]
+Usage: wezterm set-working-directory [OPTIONS] [CWD] [HOST]
 
 Arguments:
   [CWD]   The directory to specify. If omitted, will use the current directory
@@ -10,4 +10,8 @@ Arguments:
           system hostname will be used
 
 Options:
-  -h, --help  Print help
+      --tmux-passthru <TMUX_PASSTHRU>
+          How to manage passing the escape through to tmux [possible values:
+          disable, enable, detect]
+  -h, --help
+          Print help
