@@ -25,9 +25,27 @@ As features stabilize some brief notes about them will accumulate here.
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
 
 #### New
+* [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and
+  `--hold` options. #3716
+* [wezterm set-working-directory](cli/set-working-directory.md) will now wrap
+  its OSC 7 escape sequence in the tmux passthru sequence when necessary. This can be
+  controlled via new `--tmux-passthru` option.
+* [wezterm imgcat](cli/imgcat.md) will now wrap the image transfer OSC escape
+  sequences in the tmux passthru sequence when necessary. This can be
+  controlled via new `--tmux-passthru` option. Note that tmux doesn't natively
+  understand these sequences, and tmux will wipe out the image when it redraws
+  the screen as part of scrolling back through its history. imgcat support in
+  tmux is very basic effort
+* [wezterm imgcat](cli/imgcat.md) will compensate for tmux and conpty, which
+  do not natively understand image protocols, and adjust the cursor position
+  in order to avoid the shell/prompt from mangling the image after it is printing.
+  Support for this has limitations and will not take effect when the new
+  `--position` argument is used. #3624
+
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
   keyboard shortcuts. #3988
+* Windows: couldn't use shifted keys like `(` in the Debug Overlay. #3999
 
 ### 20230712-072601-f4abf8fd
 

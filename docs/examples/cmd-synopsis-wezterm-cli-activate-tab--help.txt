@@ -1,4 +1,3 @@
-
 Activate a tab
 
 Usage: wezterm cli activate-tab [OPTIONS]

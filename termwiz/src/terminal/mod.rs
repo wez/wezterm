@@ -1,5 +1,6 @@
 //! An abstraction over a terminal device
 
+use crate::caps::probed::ProbeCapabilities;
 use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
@@ -67,6 +68,12 @@ pub trait Terminal {
 
     /// Queries the current screen size, returning width, height.
     fn get_screen_size(&mut self) -> Result<ScreenSize>;
+
+    /// Returns a capability probing helper that will use escape
+    /// sequences to attempt to probe information from the terminal
+    fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
+        None
+    }
 
     /// Sets the current screen size
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()>;

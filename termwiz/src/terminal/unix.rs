@@ -1,4 +1,5 @@
 use crate::render::RenderTty;
+use crate::terminal::ProbeCapabilities;
 use crate::{bail, Context, Result};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
@@ -383,6 +384,10 @@ impl Terminal for UnixTerminal {
             xpixel: cast(size.ws_xpixel)?,
             ypixel: cast(size.ws_ypixel)?,
         })
+    }
+
+    fn probe_capabilities(&mut self) -> Option<ProbeCapabilities> {
+        Some(ProbeCapabilities::new(&mut self.read, &mut self.write))
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {

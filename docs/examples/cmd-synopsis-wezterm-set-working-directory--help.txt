@@ -1,4 +1,3 @@
-
 Advise the terminal of the current working directory by emitting an OSC 7 escape
 sequence
 

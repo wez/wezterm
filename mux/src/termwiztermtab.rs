@@ -210,7 +210,10 @@ impl Pane for TermWizTerminalPane {
     }
 
     fn key_down(&self, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
-        let event = InputEvent::Key(KeyEvent { key, modifiers });
+        let event = InputEvent::Key(KeyEvent {
+            key,
+            modifiers: modifiers.remove_positional_mods(),
+        });
         if let Err(e) = self.input_tx.send(event) {
             *self.dead.lock() = true;
             return Err(e.into());

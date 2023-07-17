@@ -1451,7 +1451,7 @@ _wezterm() {
             return 0
             ;;
         wezterm__imgcat)
-            opts="-h --width --height --no-preserve-aspect-ratio --help [FILE_NAME]"
+            opts="-h --width --height --no-preserve-aspect-ratio --position --no-move-cursor --hold --help [FILE_NAME]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1462,6 +1462,10 @@ _wezterm() {
                     return 0
                     ;;
                 --height)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --position)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

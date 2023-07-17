@@ -1,4 +1,3 @@
-
 Activate an adjacent pane in the specified direction
 
 Usage: wezterm cli activate-pane-direction [OPTIONS] <DIRECTION>

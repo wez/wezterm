@@ -1,4 +1,3 @@
-
 Adjust the size of a pane directionally
 
 Usage: wezterm cli adjust-pane-size [OPTIONS] <DIRECTION>
