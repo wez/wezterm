@@ -183,6 +183,56 @@ struct ImgCatCommand {
     #[arg(long, value_parser)]
     tmux_passthru: Option<TmuxPassthru>,
 
+    /// Set the maximum number of pixels per image frame.
+    /// Images will be scaled down so that they do not exceed this size,
+    /// unless `--no-resample` is also used.
+    /// The default value matches the limit set by wezterm.
+    /// Note that resampling the image here will reduce any animated
+    /// images to a single frame.
+    #[arg(long, default_value = "25000000")]
+    max_pixels: usize,
+
+    /// Do not resample images whose frames are larger than the
+    /// max-pixels value.
+    /// Note that this will typically result in the image refusing
+    /// to display in wezterm.
+    #[arg(long)]
+    no_resample: bool,
+
+    /// Specify the image format to use to encode resampled/resized
+    /// images.  The default is to match the input format, but you
+    /// can choose an alternative format.
+    #[arg(long, default_value = "input")]
+    resample_format: ResampleImageFormat,
+
+    /// Specify the filtering technique used when resizing/resampling
+    /// images.  The default is a reasonable middle ground of speed
+    /// and quality.
+    ///
+    /// See <https://docs.rs/image/latest/image/imageops/enum.FilterType.html#examples>
+    /// for examples of the different techniques and their tradeoffs.
+    #[arg(long, default_value = "catmull-rom")]
+    resample_filter: ResampleFilter,
+
+    /// Pre-process the image to resize it to the specified dimensions,
+    /// expressed as eg: 800x600 (width x height).
+    /// The resize is independent of other parameters that control
+    /// the image placement and dimensions in the terminal; this is provided
+    /// as a convenience preprocessing step.
+    ///
+    /// Resizing animated images will reduce the image to a single frame.
+    ///
+    /// The `--resample-filter` and `--resample-format` options give
+    /// some control over the quality of the resizing operation and
+    /// the image format used.
+    #[arg(long, name="WIDTHxHEIGHT", value_parser=ValueParser::new(width_x_height))]
+    resize: Option<ImageDimension>,
+
+    /// When resampling or resizing, display some diagnostics
+    /// around the timing/performance of that operation.
+    #[arg(long)]
+    show_resample_timing: bool,
+
     /// The name of the image file to be displayed.
     /// If omitted, will attempt to read it from stdin.
     #[arg(value_parser, value_hint=ValueHint::FilePath)]
@@ -206,15 +256,54 @@ fn x_comma_y(arg: &str) -> Result<ImagePosition, String> {
         })?;
         Ok(ImagePosition { x, y })
     } else {
-        Err(format!("Expected name=value, but got {}", arg))
+        Err(format!("Expected x,y, but got {}", arg))
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
+struct ImageDimension {
+    width: u32,
+    height: u32,
+}
+
+fn width_x_height(arg: &str) -> Result<ImageDimension, String> {
+    if let Some(eq) = arg.find('x') {
+        let (left, right) = arg.split_at(eq);
+        let width = left.parse().map_err(|err| {
+            format!("Expected WxH to be integer values, got {arg}. '{left}': {err:#}")
+        })?;
+        let height = right[1..].parse().map_err(|err| {
+            format!("Expected WxH to be integer values, got {arg}. '{right}': {err:#}")
+        })?;
+        Ok(ImageDimension { width, height })
+    } else {
+        Err(format!("Expected WxH, but got {}", arg))
+    }
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum, Default)]
+enum ResampleFilter {
+    Nearest,
+    Triangle,
+    #[default]
+    CatmullRom,
+    Gaussian,
+    Lanczos3,
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum, Default)]
+enum ResampleImageFormat {
+    Png,
+    Jpeg,
+    #[default]
+    Input,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct ImageInfo {
     pub width: u32,
     pub height: u32,
-    pub _format: image::ImageFormat,
+    pub format: image::ImageFormat,
 }
 
 impl ImgCatCommand {
@@ -292,16 +381,78 @@ impl ImgCatCommand {
         let reader = image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
         let format = reader
             .format()
-            .ok_or_else(|| anyhow::anyhow!("unknown format!?"))?;
+            .ok_or_else(|| anyhow::anyhow!("unknown image format!?"))?;
         let (width, height) = reader.into_dimensions()?;
         Ok(ImageInfo {
             width,
             height,
-            _format: format,
+            format,
         })
     }
 
-    fn run(&self) -> anyhow::Result<()> {
+    fn resize_image(
+        &self,
+        data: &[u8],
+        target_width: u32,
+        target_height: u32,
+        image_info: ImageInfo,
+    ) -> anyhow::Result<(Vec<u8>, ImageInfo)> {
+        let start = std::time::Instant::now();
+        let im = image::load_from_memory(data).with_context(|| match self.file_name.as_ref() {
+            Some(file_name) => format!("loading image from file {file_name:?}"),
+            None => format!("loading image from stdin"),
+        })?;
+        if self.show_resample_timing {
+            eprintln!(
+                "loading image took {:?} for {} stored bytes -> {image_info:?}",
+                start.elapsed(),
+                data.len()
+            );
+        }
+
+        let start = std::time::Instant::now();
+        use image::imageops::FilterType;
+        let filter = match self.resample_filter {
+            ResampleFilter::Nearest => FilterType::Nearest,
+            ResampleFilter::Triangle => FilterType::Triangle,
+            ResampleFilter::CatmullRom => FilterType::CatmullRom,
+            ResampleFilter::Gaussian => FilterType::Gaussian,
+            ResampleFilter::Lanczos3 => FilterType::Lanczos3,
+        };
+        let im = im.resize_to_fill(target_width, target_height, filter);
+        if self.show_resample_timing {
+            eprintln!("resizing took {:?}", start.elapsed());
+        }
+
+        let mut data = vec![];
+        let start = std::time::Instant::now();
+
+        let output_format = match self.resample_format {
+            ResampleImageFormat::Png => image::ImageFormat::Png,
+            ResampleImageFormat::Jpeg => image::ImageFormat::Jpeg,
+            ResampleImageFormat::Input => image_info.format,
+        };
+        im.write_to(&mut std::io::Cursor::new(&mut data), output_format)
+            .with_context(|| format!("encoding resampled image as {output_format:?}"))?;
+
+        let new_info = ImageInfo {
+            width: target_width,
+            height: target_height,
+            format: output_format,
+        };
+
+        if self.show_resample_timing {
+            eprintln!(
+                "encoding took {:?} to produce {} stored bytes -> {new_info:?}",
+                start.elapsed(),
+                data.len()
+            );
+        }
+
+        Ok((data, new_info))
+    }
+
+    fn get_image_data(&self) -> anyhow::Result<(Vec<u8>, ImageInfo)> {
         let mut data = Vec::new();
         if let Some(file_name) = self.file_name.as_ref() {
             let mut f = std::fs::File::open(file_name)
@@ -311,6 +462,34 @@ impl ImgCatCommand {
             let mut stdin = std::io::stdin();
             stdin.read_to_end(&mut data)?;
         }
+
+        let image_info = Self::image_dimensions(&data)?;
+
+        let (data, image_info) = if let Some(dimension) = self.resize {
+            self.resize_image(&data, dimension.width, dimension.height, image_info)?
+        } else {
+            (data, image_info)
+        };
+
+        let total_pixels = image_info.width.saturating_mul(image_info.height) as usize;
+
+        if !self.no_resample && total_pixels > self.max_pixels {
+            let max_area = self.max_pixels as f32;
+            let area = total_pixels as f32;
+
+            let scale = area / max_area;
+
+            let target_width = (image_info.width as f32 / scale).floor() as u32;
+            let target_height = (image_info.height as f32 / scale).floor() as u32;
+
+            self.resize_image(&data, target_width, target_height, image_info)
+        } else {
+            Ok((data, image_info))
+        }
+    }
+
+    fn run(&self) -> anyhow::Result<()> {
+        let (data, image_info) = self.get_image_data()?;
 
         let caps = Capabilities::new_from_env()?;
         let mut term = termwiz::terminal::new_terminal(caps)?;
@@ -357,13 +536,12 @@ impl ImgCatCommand {
 
         let (begin, end) = self.tmux_passthru.unwrap_or_default().get();
 
-        let image_dims = Self::image_dimensions(&data)
-            .map(|info| self.compute_image_cell_dimensions(info, term_size));
+        let image_dims = self.compute_image_cell_dimensions(image_info, term_size);
 
-        if let (Ok((_cursor_x, cursor_y)), true) = (&image_dims, needs_force_cursor_move) {
+        if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
             // Before we emit the image, we need to emit some new lines so that
             // if the image would scroll the display, things end up in the right place
-            let new_lines = "\n".repeat(*cursor_y);
+            let new_lines = "\n".repeat(cursor_y);
             print!("{new_lines}");
 
             // and move back up again.
@@ -371,7 +549,7 @@ impl ImgCatCommand {
             // column as a result of doing this.
             term.render(&[Change::CursorPosition {
                 x: Position::Absolute(0),
-                y: Position::Relative(-1 * (*cursor_y as isize)),
+                y: Position::Relative(-1 * (cursor_y as isize)),
             }])?;
         }
 
@@ -389,12 +567,12 @@ impl ImgCatCommand {
         )));
         println!("{begin}{osc}{end}");
 
-        if let (Ok((_cursor_x, cursor_y)), true) = (&image_dims, needs_force_cursor_move) {
+        if let ((_cursor_x, cursor_y), true) = (image_dims, needs_force_cursor_move) {
             // tell the terminal that doesn't fully understand the image sequence
             // to move the cursor to where it should end up
             term.render(&[Change::CursorPosition {
                 x: Position::Absolute(0),
-                y: Position::Relative(*cursor_y as isize),
+                y: Position::Relative(cursor_y as isize),
             }])?;
         } else if self.position.is_some() {
             print!("{restore_cursor}");
