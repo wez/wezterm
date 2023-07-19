@@ -201,6 +201,9 @@ impl SessionInner {
         if let Some(bind_addr) = self.config.get("bindaddress") {
             sess.set_option(libssh_rs::SshOption::BindAddress(bind_addr.to_string()))?;
         }
+        if let Some(host_key) = self.config.get("hostkeyalgorithms") {
+            sess.set_option(libssh_rs::SshOption::HostKeys(host_key.to_string()))?;
+        }
 
         let sock =
             self.connect_to_host(&hostname, port, verbose, self.config.get("proxycommand"))?;
