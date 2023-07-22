@@ -25,7 +25,7 @@ struct LuaReplHost {
 }
 
 fn history_file_name() -> PathBuf {
-    config::RUNTIME_DIR.join("repl-history")
+    config::DATA_DIR.join("repl-history")
 }
 
 impl LuaReplHost {

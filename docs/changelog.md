@@ -68,6 +68,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: couldn't use shifted keys like `(` in the Debug Overlay. #3999
 * X11: fd leak on each call to
   [wezterm.gui.enumerate_gpus](config/lua/wezterm.gui/enumerate_gpus.md). #3612
+* Charselect and repl recency/history were not persisted across restarts. #4047 ?4019
 
 ### 20230712-072601-f4abf8fd
 

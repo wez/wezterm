@@ -1643,6 +1643,14 @@ fn default_font_size() -> f64 {
     12.0
 }
 
+pub(crate) fn compute_data_dir() -> anyhow::Result<PathBuf> {
+    if let Some(runtime) = dirs_next::data_dir() {
+        return Ok(runtime.join("wezterm"));
+    }
+
+    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
+}
+
 pub(crate) fn compute_runtime_dir() -> anyhow::Result<PathBuf> {
     if let Some(runtime) = dirs_next::runtime_dir() {
         return Ok(runtime.join("wezterm"));
