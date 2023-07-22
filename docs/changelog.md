@@ -66,6 +66,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
   keyboard shortcuts. #3988
 * Windows: couldn't use shifted keys like `(` in the Debug Overlay. #3999
+* X11: fd leak on each call to
+  [wezterm.gui.enumerate_gpus](config/lua/wezterm.gui/enumerate_gpus.md). #3612
 
 ### 20230712-072601-f4abf8fd
 
