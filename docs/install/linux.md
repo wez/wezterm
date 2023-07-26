@@ -159,10 +159,6 @@ wish to use one of these AUR options:
 
 APKs are no longer being built/supported by CI. You can still build it for yourself from source!
 
-|Version | Stable        | Nightly |
-|--------|---------------|---------|
-| 3.15   |[{{ alpine3_15_apk_stable_asset }}]({{ alpine3_15_apk_stable }})|No longer produced by CI|
-
 ## Linuxbrew Tap
 
 If you are a [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) user, you can install
