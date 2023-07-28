@@ -17,8 +17,8 @@ pub struct GpuInfo {
     pub backend: String,
     pub driver: Option<String>,
     pub driver_info: Option<String>,
-    pub vendor: Option<usize>,
-    pub device: Option<usize>,
+    pub vendor: Option<u32>,
+    pub device: Option<u32>,
 }
 impl_lua_conversion_dynamic!(GpuInfo);
 

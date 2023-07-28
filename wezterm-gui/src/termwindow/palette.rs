@@ -48,7 +48,7 @@ struct Recent {
 }
 
 fn recent_file_name() -> PathBuf {
-    config::RUNTIME_DIR.join("recent-commands.json")
+    config::DATA_DIR.join("recent-commands.json")
 }
 
 fn load_recents() -> anyhow::Result<Vec<Recent>> {

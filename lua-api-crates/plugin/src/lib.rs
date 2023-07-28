@@ -90,7 +90,7 @@ impl RepoSpec {
     }
 
     fn plugins_dir() -> PathBuf {
-        config::RUNTIME_DIR.join("plugins")
+        config::DATA_DIR.join("plugins")
     }
 
     fn checkout_path(&self) -> PathBuf {
