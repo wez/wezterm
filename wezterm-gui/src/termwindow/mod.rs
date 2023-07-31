@@ -2289,7 +2289,7 @@ impl TermWindow {
 
     /// Returns the Prompt semantic zones
     fn get_semantic_prompt_zones(&mut self, pane: &Arc<dyn Pane>) -> &[StableRowIndex] {
-        let mut cache = self
+        let cache = self
             .semantic_zones
             .entry(pane.pane_id())
             .or_insert_with(SemanticZoneCache::default);

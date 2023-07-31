@@ -1620,7 +1620,7 @@ impl BidiContext {
                         == Some(BidiClass::PopDirectionalIsolate)
                 {
                     // we matched the criteria for adding this run to the sequence.
-                    let mut iso_run = iso_runs.last_mut().unwrap();
+                    let iso_run = iso_runs.last_mut().unwrap();
                     iso_run.runs.push(idx);
                     iso_run.len += run.len;
                     run.seq_id = seq_id;

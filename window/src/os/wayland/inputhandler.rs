@@ -40,7 +40,7 @@ impl Inner {
     ) {
         log::trace!("{event:?}");
         let conn = WaylandConnection::get().unwrap().wayland();
-        let mut pending_state = self.pending_state.entry(wl_id(&**input)).or_default();
+        let pending_state = self.pending_state.entry(wl_id(&**input)).or_default();
         match event {
             Event::PreeditString {
                 text,

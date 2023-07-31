@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-min_rust="1.67.0"
+min_rust="1.71.0"
 rust_ver="$(rustc --version | cut -d' ' -f2)"
 
 check_rust_version() {

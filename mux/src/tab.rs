@@ -1544,7 +1544,6 @@ impl TabInner {
                 best.replace(target);
             }
         }
-        drop(recency);
 
         if let Some((_, target)) = best.take() {
             return Some(target.index);
