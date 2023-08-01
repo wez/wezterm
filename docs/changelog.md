@@ -70,6 +70,9 @@ As features stabilize some brief notes about them will accumulate here.
   [wezterm.gui.enumerate_gpus](config/lua/wezterm.gui/enumerate_gpus.md). #3612
 * Charselect and repl recency/history were not persisted across restarts. #4047 ?4019
 
+#### Updated
+* Bundled harfbuzz to 8.1.0
+
 ### 20230712-072601-f4abf8fd
 
 #### Changed
