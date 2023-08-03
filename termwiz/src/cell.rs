@@ -483,7 +483,7 @@ impl CellAttributes {
                 || fat.foreground != ColorAttribute::Default
             {
                 res.allocate_fat_attributes();
-                let mut new_fat = res.fat.as_mut().unwrap();
+                let new_fat = res.fat.as_mut().unwrap();
                 new_fat.foreground = fat.foreground;
                 new_fat.background = fat.background;
             }

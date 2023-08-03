@@ -5,7 +5,7 @@ tags:
 # `front_end = "OpenGL"`
 
 Specifies which render front-end to use.  This option used to have
-more scope in earlier versions of wezterm, but today it allows two
+more scope in earlier versions of wezterm, but today it allows three
 possible values:
 
 * `OpenGL` - use GPU accelerated rasterization
@@ -33,6 +33,7 @@ a number of platform-specific backends:
 * DirectX 12 (on Windows)
 
 See also:
+
 * [webgpu_preferred_adapter](webgpu_preferred_adapter.md)
 * [webgpu_power_preference](webgpu_power_preference.md)
 * [webgpu_force_fallback_adapter](webgpu_force_fallback_adapter.md)

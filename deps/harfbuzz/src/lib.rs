@@ -3985,6 +3985,15 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn hb_ot_layout_collect_features_map(
+        face: *mut hb_face_t,
+        table_tag: hb_tag_t,
+        script_index: ::std::os::raw::c_uint,
+        language_index: ::std::os::raw::c_uint,
+        feature_map: *mut hb_map_t,
+    );
+}
+extern "C" {
     pub fn hb_ot_layout_collect_lookups(
         face: *mut hb_face_t,
         table_tag: hb_tag_t,
