@@ -14,7 +14,7 @@ struct EnumVariant<T> {
 
 // Safety: <T> is used only in PhantomData so it doesn't actually
 // need to be Send.
-unsafe impl<T> Send for EnumVariant<T> {}
+unsafe impl<T: Send> Send for EnumVariant<T> {}
 
 impl<T> EnumVariant<T>
 where
@@ -99,7 +99,7 @@ pub struct Enum<T> {
 
 // Safety: <T> is used only in PhantomData so it doesn't actually
 // need to be Send.
-unsafe impl<T> Send for Enum<T> {}
+unsafe impl<T: Send> Send for Enum<T> {}
 
 impl<T> Enum<T> {
     pub fn new() -> Self {
