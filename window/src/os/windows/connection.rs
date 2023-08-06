@@ -99,114 +99,8 @@ impl ConnectionOps for Connection {
     }
 
     fn screens(&self) -> anyhow::Result<Screens> {
-        struct Info {
-            primary: Option<ScreenInfo>,
-            active: Option<ScreenInfo>,
-            by_name: HashMap<String, ScreenInfo>,
-            virtual_rect: ScreenRect,
-            active_handle: HMONITOR,
-            friendly_names: HashMap<String, String>,
-            gdi_to_adapater: HashMap<String, String>,
-        }
-
-        unsafe extern "system" fn callback(
-            mon: HMONITOR,
-            _hdc: HDC,
-            _rect: *mut RECT,
-            data: LPARAM,
-        ) -> i32 {
-            let info: &mut Info = &mut *(data as *mut Info);
-            let mut mi: MONITORINFOEXW = std::mem::zeroed();
-            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
-            GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
-
-            let mut devmode: DEVMODEW = std::mem::zeroed();
-            devmode.dmSize = std::mem::size_of::<DEVMODEW>() as u16;
-            let max_fps =
-                if EnumDisplaySettingsW(mi.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut devmode)
-                    != 0
-                    && (devmode.dmFields & DM_DISPLAYFREQUENCY) != 0
-                    && devmode.dmDisplayFrequency > 1
-                {
-                    Some(devmode.dmDisplayFrequency as usize)
-                } else {
-                    None
-                };
-
-            let monitor_name = wstr(&mi.szDevice);
-            let friendly_name = match info.friendly_names.get(&monitor_name) {
-                Some(name) => name.to_string(),
-                None => {
-                    // Fall back to EnumDisplayDevicesW.
-                    // It likely has a terribly generic name like "Generic PnP Monitor".
-                    let mut display_device: DISPLAY_DEVICEW = std::mem::zeroed();
-                    display_device.cb = std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
-
-                    if EnumDisplayDevicesW(mi.szDevice.as_ptr(), 0, &mut display_device, 0) != 0 {
-                        wstr(&display_device.DeviceString)
-                    } else {
-                        "Unknown".to_string()
-                    }
-                }
-            };
-
-            let adapter_name = match info.gdi_to_adapater.get(&monitor_name) {
-                Some(name) => name.to_string(),
-                None => "Unknown".to_string(),
-            };
-
-            // "\\.\DISPLAY1" -> "DISPLAY1"
-            let monitor_name = if let Some(name) = monitor_name.strip_prefix("\\\\.\\") {
-                name.to_string()
-            } else {
-                monitor_name
-            };
-
-            let monitor_name = format!("{monitor_name}: {friendly_name} on {adapter_name}");
-
-            let screen_info = ScreenInfo {
-                name: monitor_name.clone(),
-                rect: euclid::rect(
-                    mi.rcMonitor.left as isize,
-                    mi.rcMonitor.top as isize,
-                    mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
-                    mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
-                ),
-                scale: 1.0,
-                max_fps,
-            };
-
-            info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
-
-            if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
-                info.primary.replace(screen_info.clone());
-            }
-            if mon == info.active_handle {
-                info.active.replace(screen_info.clone());
-            }
-
-            info.by_name.insert(monitor_name, screen_info);
-
-            winapi::shared::ntdef::TRUE.into()
-        }
-
-        let mut info = Info {
-            primary: None,
-            active: None,
-            by_name: HashMap::new(),
-            virtual_rect: euclid::rect(0, 0, 0, 0),
-            active_handle: unsafe { MonitorFromWindow(GetFocus(), MONITOR_DEFAULTTONEAREST) },
-            friendly_names: gdi_display_name_to_friendly_monitor_names()?,
-            gdi_to_adapater: gdi_display_name_to_adapter_names(),
-        };
-        unsafe {
-            EnumDisplayMonitors(
-                std::ptr::null_mut(),
-                std::ptr::null(),
-                Some(callback),
-                &mut info as *mut _ as LPARAM,
-            );
-        }
+        let mut info = ScreenInfoHelper::new()?;
+        info.enumerate();
 
         let main = info
             .primary
@@ -272,6 +166,129 @@ impl Connection {
         .detach();
 
         future
+    }
+}
+
+pub(crate) struct ScreenInfoHelper {
+    primary: Option<ScreenInfo>,
+    active: Option<ScreenInfo>,
+    by_name: HashMap<String, ScreenInfo>,
+    virtual_rect: ScreenRect,
+    active_handle: HMONITOR,
+    friendly_names: HashMap<String, String>,
+    gdi_to_adapater: HashMap<String, String>,
+}
+
+impl ScreenInfoHelper {
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(Self {
+            primary: None,
+            active: None,
+            by_name: HashMap::new(),
+            virtual_rect: euclid::rect(0, 0, 0, 0),
+            active_handle: unsafe { MonitorFromWindow(GetFocus(), MONITOR_DEFAULTTONEAREST) },
+            friendly_names: gdi_display_name_to_friendly_monitor_names()?,
+            gdi_to_adapater: gdi_display_name_to_adapter_names(),
+        })
+    }
+
+    pub fn enumerate(&mut self) {
+        unsafe extern "system" fn callback(
+            mon: HMONITOR,
+            _hdc: HDC,
+            _rect: *mut RECT,
+            data: LPARAM,
+        ) -> i32 {
+            let info: &mut ScreenInfoHelper = &mut *(data as *mut ScreenInfoHelper);
+            let mut mi: MONITORINFOEXW = std::mem::zeroed();
+            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+
+            let mut devmode: DEVMODEW = std::mem::zeroed();
+            devmode.dmSize = std::mem::size_of::<DEVMODEW>() as u16;
+            let max_fps =
+                if EnumDisplaySettingsW(mi.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut devmode)
+                    != 0
+                    && (devmode.dmFields & DM_DISPLAYFREQUENCY) != 0
+                    && devmode.dmDisplayFrequency > 1
+                {
+                    Some(devmode.dmDisplayFrequency as usize)
+                } else {
+                    None
+                };
+
+            let monitor_name = info.monitor_name(&mi);
+            let screen_info = ScreenInfo {
+                name: monitor_name.clone(),
+                rect: euclid::rect(
+                    mi.rcMonitor.left as isize,
+                    mi.rcMonitor.top as isize,
+                    mi.rcMonitor.right as isize - mi.rcMonitor.left as isize,
+                    mi.rcMonitor.bottom as isize - mi.rcMonitor.top as isize,
+                ),
+                scale: 1.0,
+                max_fps,
+            };
+
+            info.virtual_rect = info.virtual_rect.union(&screen_info.rect);
+
+            if mi.dwFlags & MONITORINFOF_PRIMARY == MONITORINFOF_PRIMARY {
+                info.primary.replace(screen_info.clone());
+            }
+            if mon == info.active_handle {
+                info.active.replace(screen_info.clone());
+            }
+
+            info.by_name.insert(monitor_name, screen_info);
+
+            winapi::shared::ntdef::TRUE.into()
+        }
+
+        unsafe {
+            EnumDisplayMonitors(
+                std::ptr::null_mut(),
+                std::ptr::null(),
+                Some(callback),
+                self as *mut _ as LPARAM,
+            );
+        }
+    }
+
+    pub fn monitor_name(&self, mi: &MONITORINFOEXW) -> String {
+        unsafe {
+            let monitor_name = wstr(&mi.szDevice);
+            let friendly_name = match self.friendly_names.get(&monitor_name) {
+                Some(name) => name.to_string(),
+                None => {
+                    // Fall back to EnumDisplayDevicesW.
+                    // It likely has a terribly generic name like "Generic PnP Monitor".
+                    let mut display_device: DISPLAY_DEVICEW = std::mem::zeroed();
+                    display_device.cb = std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
+
+                    if EnumDisplayDevicesW(mi.szDevice.as_ptr(), 0, &mut display_device, 0) != 0 {
+                        wstr(&display_device.DeviceString)
+                    } else {
+                        "Unknown".to_string()
+                    }
+                }
+            };
+
+            let adapter_name = match self.gdi_to_adapater.get(&monitor_name) {
+                Some(name) => name.to_string(),
+                None => "Unknown".to_string(),
+            };
+
+            // "\\.\DISPLAY1" -> "DISPLAY1"
+            let monitor_name = if let Some(name) = monitor_name.strip_prefix("\\\\.\\") {
+                name.to_string()
+            } else {
+                monitor_name
+            };
+
+            let monitor_name = format!("{monitor_name}: {friendly_name} on {adapter_name}");
+
+            monitor_name
+        }
     }
 }
 

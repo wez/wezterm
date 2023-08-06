@@ -251,6 +251,30 @@ impl WindowInner {
         Ok(gl_state)
     }
 
+    fn get_effective_dpi(&self) -> usize {
+        let actual_dpi = unsafe { GetDpiForWindow(self.hwnd.0) } as f64;
+
+        if self.config.dpi_by_screen.is_empty() {
+            return self.config.dpi.unwrap_or(actual_dpi) as usize;
+        }
+
+        unsafe {
+            let mut mi: MONITORINFOEXW = std::mem::zeroed();
+            mi.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            let mon = MonitorFromWindow(self.hwnd.0, MONITOR_DEFAULTTONEAREST);
+            GetMonitorInfoW(mon, &mut mi as *mut MONITORINFOEXW as *mut MONITORINFO);
+
+            if let Ok(info) = crate::os::windows::connection::ScreenInfoHelper::new() {
+                let name = info.monitor_name(&mi);
+                if let Some(dpi) = self.config.dpi_by_screen.get(&name).copied() {
+                    return dpi as usize;
+                }
+            }
+
+            actual_dpi as usize
+        }
+    }
+
     /// Check if we need to generate a resize callback.
     /// Calls resize if needed.
     /// Returns true if we did.
@@ -282,7 +306,7 @@ impl WindowInner {
         let current_dims = Dimensions {
             pixel_width,
             pixel_height,
-            dpi: unsafe { GetDpiForWindow(self.hwnd.0) as usize },
+            dpi: self.get_effective_dpi(),
         };
 
         let same = self
@@ -1089,7 +1113,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
     }
 
     if inner.saved_placement.is_none() {
-        let dpi = GetDpiForWindow(hwnd);
+        let dpi = inner.get_effective_dpi() as u32;
         let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
         let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
         let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
@@ -1160,7 +1184,7 @@ unsafe fn wm_nchittest(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 
     // The adjustment in NCCALCSIZE messes with the detection
     // of the top hit area so manually fixing that.
-    let dpi = GetDpiForWindow(hwnd);
+    let dpi = inner.get_effective_dpi() as u32;
     let frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi) as isize;
     let frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi) as isize;
     let padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi) as isize;
