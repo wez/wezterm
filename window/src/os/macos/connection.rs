@@ -229,6 +229,7 @@ pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
         rect,
         scale: 1.0,
         max_fps,
+        effective_dpi: None,
     }
 }
 

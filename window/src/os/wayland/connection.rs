@@ -511,6 +511,7 @@ impl ConnectionOps for WaylandConnection {
                         rect,
                         scale,
                         max_fps: None,
+                        effective_dpi: None,
                     },
                 );
             });

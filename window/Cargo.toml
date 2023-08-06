@@ -55,6 +55,7 @@ winapi = { version = "0.3", features = [
     "handleapi",
     "imm",
     "libloaderapi",
+    "shellscalingapi",
     "synchapi",
     "sysinfoapi",
     "winerror",

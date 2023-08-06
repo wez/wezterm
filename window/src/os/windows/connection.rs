@@ -5,6 +5,7 @@ use crate::screen::{ScreenInfo, Screens};
 use crate::spawn::*;
 use crate::{Appearance, ScreenRect};
 use anyhow::Context;
+use config::ConfigHandle;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -14,6 +15,7 @@ use std::rc::Rc;
 use winapi::shared::minwindef::*;
 use winapi::shared::windef::*;
 use winapi::shared::winerror::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
+use winapi::um::shellscalingapi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use winapi::um::winbase::INFINITE;
 use winapi::um::wingdi::{
     DEVMODEW, DISPLAY_DEVICEW, DM_DISPLAYFREQUENCY, QDC_ONLY_ACTIVE_PATHS, QDC_VIRTUAL_MODE_AWARE,
@@ -177,6 +179,7 @@ pub(crate) struct ScreenInfoHelper {
     active_handle: HMONITOR,
     friendly_names: HashMap<String, String>,
     gdi_to_adapater: HashMap<String, String>,
+    config: ConfigHandle,
 }
 
 impl ScreenInfoHelper {
@@ -189,6 +192,7 @@ impl ScreenInfoHelper {
             active_handle: unsafe { MonitorFromWindow(GetFocus(), MONITOR_DEFAULTTONEAREST) },
             friendly_names: gdi_display_name_to_friendly_monitor_names()?,
             gdi_to_adapater: gdi_display_name_to_adapter_names(),
+            config: config::configuration(),
         })
     }
 
@@ -218,6 +222,22 @@ impl ScreenInfoHelper {
                 };
 
             let monitor_name = info.monitor_name(&mi);
+
+            let mut effective_dpi = None;
+
+            if let Some(dpi) = info.config.dpi_by_screen.get(&monitor_name).copied() {
+                effective_dpi.replace(dpi);
+            } else if let Some(dpi) = info.config.dpi {
+                effective_dpi.replace(dpi);
+            } else {
+                let mut dpi_x = 0;
+                let mut dpi_y = 0;
+                GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y);
+                if dpi_x != 0 {
+                    effective_dpi.replace(dpi_x as f64);
+                }
+            }
+
             let screen_info = ScreenInfo {
                 name: monitor_name.clone(),
                 rect: euclid::rect(
@@ -228,6 +248,7 @@ impl ScreenInfoHelper {
                 ),
                 scale: 1.0,
                 max_fps,
+                effective_dpi,
             };
 
             info.virtual_rect = info.virtual_rect.union(&screen_info.rect);

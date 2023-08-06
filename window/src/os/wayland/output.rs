@@ -234,6 +234,7 @@ impl OutputHandler {
                     rect,
                     scale,
                     max_fps: None,
+                    effective_dpi: None,
                 },
             );
         }

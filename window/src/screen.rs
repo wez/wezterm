@@ -15,4 +15,5 @@ pub struct ScreenInfo {
     pub rect: ScreenRect,
     pub scale: f64,
     pub max_fps: Option<usize>,
+    pub effective_dpi: Option<f64>,
 }

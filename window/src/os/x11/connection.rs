@@ -276,6 +276,7 @@ impl ConnectionOps for XConnection {
                     rect: bounds,
                     scale: 1.0,
                     max_fps,
+                    effective_dpi: None,
                 };
                 by_name.insert(name, info);
             }
