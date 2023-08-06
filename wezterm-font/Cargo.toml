@@ -45,8 +45,10 @@ dwrote = "0.11"
 winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.25"
 core-foundation = "0.9"
-core-text = "19.0"
+core-text = "20.0"
+objc = "0.2"
 
 [dev-dependencies]
 k9 = "0.11.0"

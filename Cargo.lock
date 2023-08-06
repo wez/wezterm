@@ -722,6 +722,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6140449f97a6e97f9511815c5632d84c8aacf8ac271ad77c559218161a1373c"
+dependencies = [
+ "bitflags 1.3.2",
+ "block",
+ "cocoa-foundation",
+ "core-foundation 0.9.3",
+ "core-graphics 0.23.1",
+ "foreign-types 0.5.0",
+ "libc",
+ "objc",
+]
+
+[[package]]
+name = "cocoa-foundation"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "931d3837c286f56e3c58423ce4eba12d08db2374461a785c86f672b08b5650d6"
+dependencies = [
+ "bitflags 1.3.2",
+ "block",
+ "core-foundation 0.9.3",
+ "core-graphics-types",
+ "foreign-types 0.3.2",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "codec"
 version = "0.1.0"
 dependencies = [
@@ -905,14 +936,14 @@ dependencies = [
 
 [[package]]
 name = "core-graphics"
-version = "0.22.3"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2581bbab3b8ffc6fcbd550bf46c355135d16e9ff2a6ea032ad6b9bf1d7efe4fb"
+checksum = "970a29baf4110c26fedbc7f82107d42c23f7e88e404c4577ed73fe99ff85a212"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation 0.9.3",
  "core-graphics-types",
- "foreign-types 0.3.2",
+ "foreign-types 0.5.0",
  "libc",
 ]
 
@@ -929,13 +960,13 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "19.2.0"
+version = "20.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99d74ada66e07c1cefa18f8abfba765b486f250de2e4a999e5727fc0dd4b4a25"
+checksum = "02083d15989d6247553e1a63753561555a72b2038bba1e4239db70602a798742"
 dependencies = [
  "core-foundation 0.9.3",
- "core-graphics 0.22.3",
- "foreign-types 0.3.2",
+ "core-graphics 0.23.1",
+ "foreign-types 0.5.0",
  "libc",
 ]
 
@@ -1426,7 +1457,7 @@ dependencies = [
  "backtrace",
  "battery",
  "chrono",
- "cocoa",
+ "cocoa 0.20.2",
  "color-funcs",
  "config",
  "dirs-next",
@@ -6008,6 +6039,7 @@ name = "wezterm-font"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cocoa 0.25.0",
  "config",
  "core-foundation 0.9.3",
  "core-text",
@@ -6026,6 +6058,7 @@ dependencies = [
  "log",
  "memmap2 0.2.3",
  "metrics",
+ "objc",
  "ordered-float",
  "rangeset",
  "termwiz",
@@ -6275,7 +6308,7 @@ name = "wezterm-toast-notification"
 version = "0.1.0"
 dependencies = [
  "async-io",
- "cocoa",
+ "cocoa 0.20.2",
  "core-foundation 0.7.0",
  "futures-util",
  "log",
@@ -6465,7 +6498,7 @@ dependencies = [
  "bytes",
  "cgl",
  "clipboard-win",
- "cocoa",
+ "cocoa 0.25.0",
  "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
