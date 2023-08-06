@@ -217,6 +217,8 @@ impl ConnectionOps for XConnection {
             anyhow::bail!("XRANDR is not available, cannot query screen geometry");
         }
 
+        let config = config::configuration();
+
         let res = self
             .send_and_wait_request(&xcb::randr::GetScreenResources { window: self.root })
             .context("get_screen_resources")?;
@@ -271,12 +273,20 @@ impl ConnectionOps for XConnection {
                     cinfo.height() as isize,
                 );
                 virtual_rect = virtual_rect.union(&bounds);
+
+                let mut effective_dpi = Some(self.default_dpi());
+                if let Some(dpi) = config.dpi_by_screen.get(&name).copied() {
+                    effective_dpi.replace(dpi);
+                } else if let Some(dpi) = config.dpi {
+                    effective_dpi.replace(dpi);
+                }
+
                 let info = ScreenInfo {
                     name: name.clone(),
                     rect: bounds,
                     scale: 1.0,
                     max_fps,
-                    effective_dpi: None,
+                    effective_dpi,
                 };
                 by_name.insert(name, info);
             }
