@@ -1,6 +1,6 @@
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, Window, WindowOps, WindowState};
-use config::{configuration, ConfigHandle, DimensionContext};
+use config::{ConfigHandle, DimensionContext};
 use mux::Mux;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -15,7 +15,7 @@ pub struct RowsAndCols {
 impl super::TermWindow {
     pub fn resize(
         &mut self,
-        mut dimensions: Dimensions,
+        dimensions: Dimensions,
         window_state: WindowState,
         window: &Window,
         live_resizing: bool,

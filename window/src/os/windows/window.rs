@@ -1120,7 +1120,7 @@ unsafe fn wm_nccalcsize(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) 
 
         let params = (lparam as *mut NCCALCSIZE_PARAMS).as_mut().unwrap();
 
-        let mut requested_client_rect = &mut params.rgrc[0];
+        let requested_client_rect = &mut params.rgrc[0];
 
         requested_client_rect.right -= frame_x + padding;
         requested_client_rect.left += frame_x + padding;
