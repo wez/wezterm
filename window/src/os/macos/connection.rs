@@ -198,7 +198,7 @@ fn screen_backing_frame(screen: *mut Object) -> NSRect {
     }
 }
 
-fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
+pub fn nsscreen_to_screen_info(screen: *mut Object) -> ScreenInfo {
     let frame = screen_backing_frame(screen);
     let rect = euclid::rect(
         frame.origin.x as isize,

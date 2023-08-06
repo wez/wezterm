@@ -109,6 +109,9 @@ pub struct Config {
     /// The DPI to assume
     pub dpi: Option<f64>,
 
+    #[dynamic(default)]
+    pub dpi_by_screen: HashMap<String, f64>,
+
     /// The baseline font to use
     #[dynamic(default)]
     pub font: TextStyle,
