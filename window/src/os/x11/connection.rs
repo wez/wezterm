@@ -63,6 +63,7 @@ pub struct XConnection {
     pub(crate) has_randr: bool,
     pub(crate) atom_names: RefCell<HashMap<Atom, String>>,
     pub(crate) supported: RefCell<HashSet<Atom>>,
+    pub(crate) screens: RefCell<Option<Screens>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -481,6 +482,21 @@ impl XConnection {
         }
     }
 
+    pub(crate) fn get_cached_screens(&self) -> anyhow::Result<Screens> {
+        {
+            let screens = self.screens.borrow();
+            if let Some(cached) = screens.as_ref() {
+                return Ok(cached.clone());
+            }
+        }
+
+        let screens = self.screens()?;
+
+        self.screens.borrow_mut().replace(screens.clone());
+
+        Ok(screens)
+    }
+
     fn process_xcb_event(&self, event: &xcb::Event) -> anyhow::Result<()> {
         match event {
             // Following stuff is not obvious at all.
@@ -497,6 +513,11 @@ impl XConnection {
             xcb::Event::Dri2(dri2::Event::InvalidateBuffers(ev)) => unsafe {
                 self.rewire_event(ev.as_raw())
             },
+            xcb::Event::RandR(randr) => {
+                log::trace!("{randr:?}");
+                // Clear our cache
+                self.screens.borrow_mut().take();
+            }
             _ => {}
         }
 
@@ -651,6 +672,16 @@ impl XConnection {
 
         let root = screen.root();
 
+        if has_randr {
+            conn.check_request(conn.send_request_checked(&xcb::randr::SelectInput {
+                window: root,
+                enable: xcb::randr::NotifyMask::SCREEN_CHANGE
+                    | xcb::randr::NotifyMask::PROVIDER_CHANGE
+                    | xcb::randr::NotifyMask::RESOURCE_CHANGE,
+            }))
+            .context("XRANDR::SelectInput")?;
+        }
+
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
 
@@ -723,6 +754,7 @@ impl XConnection {
             has_randr,
             atom_names: RefCell::new(HashMap::new()),
             supported: RefCell::new(HashSet::new()),
+            screens: RefCell::new(None),
         });
 
         {

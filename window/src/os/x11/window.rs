@@ -5,7 +5,8 @@ use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, RequestedWindowGeometry, ResolvedGeometry,
-    ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    ScreenPoint, ScreenRect, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -427,7 +428,43 @@ impl XWindowInner {
         let conn = self.conn();
         self.update_ime_position();
 
-        let dpi = conn.default_dpi();
+        let mut dpi = conn.default_dpi();
+
+        if !self.config.dpi_by_screen.is_empty() {
+            let coords = conn
+                .send_and_wait_request(&xcb::x::TranslateCoordinates {
+                    src_window: self.window_id,
+                    dst_window: conn.root,
+                    src_x: 0,
+                    src_y: 0,
+                })
+                .context("querying window coordinates")?;
+            let screens = conn.get_cached_screens()?;
+            let window_rect: ScreenRect = euclid::rect(
+                coords.dst_x().into(),
+                coords.dst_y().into(),
+                width as isize,
+                height as isize,
+            );
+            let screen = screens
+                .by_name
+                .values()
+                .filter_map(|screen| {
+                    screen
+                        .rect
+                        .intersection(&window_rect)
+                        .map(|r| (screen, r.area()))
+                })
+                .max_by_key(|s| s.1)
+                .ok_or_else(|| anyhow::anyhow!("window is not in any screen"))?
+                .0;
+
+            if let Some(value) = self.config.dpi_by_screen.get(&screen.name).copied() {
+                dpi = value;
+            } else if let Some(value) = self.config.dpi {
+                dpi = value;
+            }
+        }
 
         if width == self.width && height == self.height && dpi == self.dpi {
             // Effectively unchanged; perhaps it was simply moved?
@@ -1306,8 +1343,14 @@ impl XWindowInner {
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
+        let dpi_changed =
+            self.config.dpi != config.dpi || self.config.dpi_by_screen != config.dpi_by_screen;
         self.config = config.clone();
         let _ = self.adjust_decorations(config.window_decorations);
+
+        if dpi_changed {
+            let _ = self.configure_notify("config reload", self.width, self.height);
+        }
     }
 
     fn net_wm_moveresize(&mut self, x_root: u32, y_root: u32, direction: u32, button: u32) {
