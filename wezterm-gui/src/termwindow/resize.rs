@@ -20,10 +20,6 @@ impl super::TermWindow {
         window: &Window,
         live_resizing: bool,
     ) {
-        // ignore dpi changes if there is a fixed dpi set in configuration
-        if let Some(dpi) = configuration().dpi {
-            dimensions.dpi = dpi as usize;
-        }
         log::trace!(
             "resize event, live={} current cells: {:?}, current dims: {:?}, new dims: {:?} window_state:{:?}",
             live_resizing,
