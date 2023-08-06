@@ -129,7 +129,7 @@ pub struct WaylandWindowInner {
     window_id: usize,
     pub(crate) events: WindowEventSender,
     surface: Attached<WlSurface>,
-    surface_factor: i32,
+    surface_factor: f64,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
@@ -150,7 +150,7 @@ pub struct WaylandWindowInner {
     font_config: Rc<FontConfiguration>,
     text_cursor: Option<Rect>,
     appearance: Appearance,
-    config: Option<ConfigHandle>,
+    config: ConfigHandle,
     // cache the title for comparison to avoid spamming
     // the compositor with updates that don't actually change it
     title: Option<String>,
@@ -247,6 +247,10 @@ impl WaylandWindow {
     where
         F: 'static + FnMut(WindowEvent, &Window),
     {
+        let config = match config {
+            Some(c) => c.clone(),
+            None => config::configuration(),
+        };
         let conn = WaylandConnection::get()
             .ok_or_else(|| {
                 anyhow!(
@@ -289,7 +293,7 @@ impl WaylandWindow {
         let dimensions = Dimensions {
             pixel_width: width,
             pixel_height: height,
-            dpi: crate::DEFAULT_DPI as usize,
+            dpi: config.dpi.unwrap_or(crate::DEFAULT_DPI) as usize,
         };
 
         let theme_manager = None;
@@ -320,10 +324,7 @@ impl WaylandWindow {
         window.set_app_id(class_name.to_string());
         window.set_resizable(true);
         window.set_title(name.to_string());
-        let decorations = config
-            .as_ref()
-            .map(|c| c.window_decorations)
-            .unwrap_or(WindowDecorations::default());
+        let decorations = config.window_decorations;
 
         window.set_decorate(if decorations == WindowDecorations::NONE {
             Decorations::None
@@ -338,8 +339,7 @@ impl WaylandWindow {
 
         window.set_frame_config(ConceptConfig {
             font_config: Some(Rc::clone(&font_config)),
-            config: config.cloned(),
-            ..Default::default()
+            config: config.clone(),
         });
 
         window.set_min_size(Some((32, 32)));
@@ -352,12 +352,12 @@ impl WaylandWindow {
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             window_id,
             font_config,
-            config: config.cloned(),
+            config,
             key_repeat: None,
             copy_and_paste,
             events: WindowEventSender::new(event_handler),
             surface,
-            surface_factor: 1,
+            surface_factor: 1.0,
             invalidated: false,
             window: Some(window),
             dimensions,
@@ -607,19 +607,19 @@ impl WaylandWindowInner {
         }
     }
 
-    fn get_dpi_factor(&self) -> i32 {
-        self.dimensions.dpi as i32 / crate::DEFAULT_DPI as i32
+    fn get_dpi_factor(&self) -> f64 {
+        self.dimensions.dpi as f64 / crate::DEFAULT_DPI as f64
     }
 
     fn surface_to_pixels(&self, surface: i32) -> i32 {
-        surface * self.get_dpi_factor()
+        (surface as f64 * self.get_dpi_factor()).ceil() as i32
     }
 
     fn pixels_to_surface(&self, pixels: i32) -> i32 {
         // Take care to round up, otherwise we can lose a pixel
         // and that can effectively lose the final row of the
         // terminal
-        ((pixels as f64) / (self.get_dpi_factor() as f64)).ceil() as i32
+        ((pixels as f64) / self.get_dpi_factor()).ceil() as i32
     }
 
     fn dispatch_pending_event(&mut self) {
@@ -655,10 +655,14 @@ impl WaylandWindowInner {
 
         if let Some((mut w, mut h)) = pending.configure.take() {
             if self.window.is_some() {
-                let factor = get_surface_scale_factor(&self.surface);
+                let factor = get_surface_scale_factor(&self.surface) as f64;
+                let old_dimensions = self.dimensions;
+
+                // FIXME: teach this how to resolve dpi_by_screen
+                let dpi = self.config.dpi.unwrap_or(factor * crate::DEFAULT_DPI) as usize;
 
                 // Do this early because this affects surface_to_pixels/pixels_to_surface below!
-                self.dimensions.dpi = factor as usize * crate::DEFAULT_DPI as usize;
+                self.dimensions.dpi = dpi;
 
                 let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
@@ -681,12 +685,12 @@ impl WaylandWindowInner {
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
                     pixel_height: pixel_height.try_into().unwrap(),
-                    dpi: factor as usize * crate::DEFAULT_DPI as usize,
+                    dpi,
                 };
 
                 // Only trigger a resize if the new dimensions are different;
                 // this makes things more efficient and a little more smooth
-                if new_dimensions != self.dimensions {
+                if new_dimensions != old_dimensions {
                     self.dimensions = new_dimensions;
 
                     self.events.dispatch(WindowEvent::Resized {
@@ -718,13 +722,13 @@ impl WaylandWindowInner {
                         // simply detaching the buffer can cause wlroots-derived
                         // compositors consider the window to be unconfigured.
                         if let Ok((_bytes, buffer)) = pool.buffer(
-                            factor,
-                            factor,
-                            factor * 4,
+                            factor as i32,
+                            factor as i32,
+                            (factor * 4.0) as i32,
                             wayland_client::protocol::wl_shm::Format::Argb8888,
                         ) {
                             self.surface.attach(Some(&buffer), 0, 0);
-                            self.surface.set_buffer_scale(factor);
+                            self.surface.set_buffer_scale(factor as i32);
                             self.surface_factor = factor;
                         }
                     }
@@ -1170,7 +1174,10 @@ impl WaylandWindowInner {
         Dimensions {
             pixel_width: pixel_width as _,
             pixel_height: pixel_height as _,
-            dpi: factor as usize * crate::DEFAULT_DPI as usize,
+            dpi: self
+                .config
+                .dpi
+                .unwrap_or(factor as f64 * crate::DEFAULT_DPI) as usize,
         }
     }
 
@@ -1227,13 +1234,30 @@ impl WaylandWindowInner {
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
-        self.config.replace(config.clone());
+        let dpi_changed =
+            self.config.dpi != config.dpi || self.config.dpi_by_screen != config.dpi_by_screen;
+        self.config = config.clone();
         if let Some(window) = self.window.as_mut() {
             window.set_frame_config(ConceptConfig {
                 font_config: Some(Rc::clone(&self.font_config)),
-                config: Some(config.clone()),
-                ..Default::default()
+                config: config.clone(),
             });
+
+            if dpi_changed {
+                // Synthesize a Resized event; we'll figure out the actual
+                // dpi to use there.
+                {
+                    let mut pending = self.pending_event.lock().unwrap();
+                    if pending.configure.is_none() {
+                        pending.configure.replace((
+                            self.dimensions.pixel_width as u32,
+                            self.dimensions.pixel_height as u32,
+                        ));
+                    }
+                }
+                self.dispatch_pending_event();
+            }
+
             // I tried re-applying the config to window.set_decorate
             // here, but it crashed weston.  I figure that users
             // would prefer to manually close wezterm to change

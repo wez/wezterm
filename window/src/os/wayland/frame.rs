@@ -40,19 +40,24 @@ const BORDER_SIZE: u32 = 12;
 const HEADER_SIZE: u32 = 30;
 
 /// Configuration for ConceptFrame
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ConceptConfig {
     pub font_config: Option<Rc<FontConfiguration>>,
-    pub config: Option<ConfigHandle>,
-    pub default_frame: WindowFrameConfig,
+    pub config: ConfigHandle,
+}
+
+impl Default for ConceptConfig {
+    fn default() -> Self {
+        Self {
+            font_config: None,
+            config: config::configuration(),
+        }
+    }
 }
 
 impl ConceptConfig {
     pub fn colors(&self) -> &WindowFrameConfig {
-        self.config
-            .as_ref()
-            .map(|c| &c.window_frame)
-            .unwrap_or(&self.default_frame)
+        &self.config.window_frame
     }
 }
 
@@ -514,9 +519,8 @@ impl ConceptFrame {
         } else {
             self.config
                 .config
-                .as_ref()
-                .map(|cfg| cfg.window_decorations.contains(WindowDecorations::TITLE))
-                .unwrap_or(true)
+                .window_decorations
+                .contains(WindowDecorations::TITLE)
         }
     }
 }
