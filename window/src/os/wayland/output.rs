@@ -206,6 +206,7 @@ impl OutputHandler {
 
         let mut by_name = HashMap::new();
         let mut virtual_rect: ScreenRect = euclid::rect(0, 0, 0, 0);
+        let config = config::configuration();
 
         log::debug!("zwlr_head_info: {:#?}", inner.zwlr_head_info);
 
@@ -227,6 +228,9 @@ impl OutputHandler {
                 height as isize,
             );
             virtual_rect = virtual_rect.union(&rect);
+            // FIXME: teach this how to resolve dpi_by_screen once
+            // dispatch_pending_event knows how to do the same
+            let effective_dpi = Some(config.dpi.unwrap_or(scale * crate::DEFAULT_DPI));
             by_name.insert(
                 name.clone(),
                 ScreenInfo {
@@ -234,7 +238,7 @@ impl OutputHandler {
                     rect,
                     scale,
                     max_fps: None,
-                    effective_dpi: None,
+                    effective_dpi,
                 },
             );
         }
