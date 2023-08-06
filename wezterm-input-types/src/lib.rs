@@ -762,6 +762,10 @@ pub enum PhysKeyCode {
     F19,
     F2,
     F20,
+    F21,
+    F22,
+    F23,
+    F24,
     F3,
     F4,
     F5,
@@ -903,6 +907,10 @@ impl PhysKeyCode {
             Self::F18 => KeyCode::Function(18),
             Self::F19 => KeyCode::Function(19),
             Self::F20 => KeyCode::Function(20),
+            Self::F21 => KeyCode::Function(21),
+            Self::F22 => KeyCode::Function(22),
+            Self::F23 => KeyCode::Function(23),
+            Self::F24 => KeyCode::Function(24),
             Self::Keypad0 => KeyCode::Numpad(0),
             Self::Keypad1 => KeyCode::Numpad(1),
             Self::Keypad2 => KeyCode::Numpad(2),
@@ -1256,6 +1264,7 @@ impl RawKeyEvent {
     }
 
     /// <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#functional-key-definitions>
+    #[deny(warnings)]
     fn kitty_function_code(&self) -> Option<u32> {
         use KeyCode::*;
         Some(match self.key {
