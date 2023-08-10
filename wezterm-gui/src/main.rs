@@ -61,7 +61,9 @@ mod utilsprites;
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
 pub use selection::SelectionMode;
-pub use termwindow::{set_window_title, set_window_class, set_window_position, TermWindow, ICON_DATA};
+pub use termwindow::{
+    set_window_class, set_window_position, set_window_title, TermWindow, ICON_DATA,
+};
 
 #[derive(Debug, Parser)]
 #[command(

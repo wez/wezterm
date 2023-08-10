@@ -1906,12 +1906,8 @@ impl TermWindow {
         }
         drop(window);
 
-        let title = get_window_title();
-
-        
-        let title = match title {
-            Some(_) => title,
-            None => match config::run_immediate_with_lua_config(|lua| {
+        let title = get_window_title().or_else(|| {
+            match config::run_immediate_with_lua_config(|lua| {
                 if let Some(lua) = lua {
                     let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
                     let panes = lua.create_sequence_from(panes.clone().into_iter())?;
@@ -1943,7 +1939,7 @@ impl TermWindow {
                     None
                 }
             }
-        };
+        });
 
         let title = match title {
             Some(title) => title,
