@@ -61,7 +61,7 @@ mod utilsprites;
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
 pub use selection::SelectionMode;
-pub use termwindow::{set_window_class, set_window_position, TermWindow, ICON_DATA};
+pub use termwindow::{set_window_title, set_window_class, set_window_position, TermWindow, ICON_DATA};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -660,6 +660,9 @@ fn build_initial_mux(
 }
 
 fn run_terminal_gui(opts: StartCommand, default_domain_name: Option<String>) -> anyhow::Result<()> {
+    if let Some(title) = opts.title.as_ref() {
+        crate::set_window_title(title);
+    }
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
@@ -1189,6 +1192,7 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Connect(connect) => run_terminal_gui(
             StartCommand {
                 domain: Some(connect.domain_name.clone()),
+                title: None,
                 class: connect.class,
                 workspace: connect.workspace,
                 position: connect.position,

@@ -85,11 +85,20 @@ use prevcursor::PrevCursorPos;
 const ATLAS_SIZE: usize = 128;
 
 lazy_static::lazy_static! {
+    static ref WINDOW_TITLE: Mutex<Option<String>> = Mutex::new(None);
     static ref WINDOW_CLASS: Mutex<String> = Mutex::new(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS.to_owned());
     static ref POSITION: Mutex<Option<GuiPosition>> = Mutex::new(None);
 }
 
 pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");
+
+pub fn set_window_title(title: &str) {
+    *WINDOW_TITLE.lock().unwrap() = Some(title.to_owned());
+}
+
+pub fn get_window_title() -> Option<String> {
+    WINDOW_TITLE.lock().unwrap().clone()
+}
 
 pub fn set_window_position(pos: GuiPosition) {
     POSITION.lock().unwrap().replace(pos);
@@ -1897,36 +1906,42 @@ impl TermWindow {
         }
         drop(window);
 
-        let title = match config::run_immediate_with_lua_config(|lua| {
-            if let Some(lua) = lua {
-                let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
-                let panes = lua.create_sequence_from(panes.clone().into_iter())?;
+        let title = get_window_title();
 
-                let v = config::lua::emit_sync_callback(
-                    &*lua,
-                    (
-                        "format-window-title".to_string(),
+        
+        let title = match title {
+            Some(_) => title,
+            None => match config::run_immediate_with_lua_config(|lua| {
+                if let Some(lua) = lua {
+                    let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
+                    let panes = lua.create_sequence_from(panes.clone().into_iter())?;
+
+                    let v = config::lua::emit_sync_callback(
+                        &*lua,
                         (
-                            active_tab.clone(),
-                            active_pane.clone(),
-                            tabs,
-                            panes,
-                            (*self.config).clone(),
+                            "format-window-title".to_string(),
+                            (
+                                active_tab.clone(),
+                                active_pane.clone(),
+                                tabs,
+                                panes,
+                                (*self.config).clone(),
+                            ),
                         ),
-                    ),
-                )?;
-                match &v {
-                    mlua::Value::Nil => Ok(None),
-                    _ => Ok(Some(String::from_lua(v, &*lua)?)),
+                    )?;
+                    match &v {
+                        mlua::Value::Nil => Ok(None),
+                        _ => Ok(Some(String::from_lua(v, &*lua)?)),
+                    }
+                } else {
+                    Ok(None)
                 }
-            } else {
-                Ok(None)
-            }
-        }) {
-            Ok(s) => s,
-            Err(err) => {
-                log::warn!("format-window-title: {}", err);
-                None
+            }) {
+                Ok(s) => s,
+                Err(err) => {
+                    log::warn!("format-window-title: {}", err);
+                    None
+                }
             }
         };
 
