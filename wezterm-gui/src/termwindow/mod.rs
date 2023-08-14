@@ -1906,44 +1906,41 @@ impl TermWindow {
         }
         drop(window);
 
-        let title = get_window_title().or_else(|| {
-            match config::run_immediate_with_lua_config(|lua| {
-                if let Some(lua) = lua {
-                    let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
-                    let panes = lua.create_sequence_from(panes.clone().into_iter())?;
+        let title = get_window_title()
+            .or(
+                match config::run_immediate_with_lua_config(|lua| {
+                    if let Some(lua) = lua {
+                        let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
+                        let panes = lua.create_sequence_from(panes.clone().into_iter())?;
 
-                    let v = config::lua::emit_sync_callback(
-                        &*lua,
-                        (
-                            "format-window-title".to_string(),
+                        let v = config::lua::emit_sync_callback(
+                            &*lua,
                             (
-                                active_tab.clone(),
-                                active_pane.clone(),
-                                tabs,
-                                panes,
-                                (*self.config).clone(),
+                                "format-window-title".to_string(),
+                                (
+                                    active_tab.clone(),
+                                    active_pane.clone(),
+                                    tabs,
+                                    panes,
+                                    (*self.config).clone(),
+                                ),
                             ),
-                        ),
-                    )?;
-                    match &v {
-                        mlua::Value::Nil => Ok(None),
-                        _ => Ok(Some(String::from_lua(v, &*lua)?)),
+                        )?;
+                        match &v {
+                            mlua::Value::Nil => Ok(None),
+                            _ => Ok(Some(String::from_lua(v, &*lua)?)),
+                        }
+                    } else {
+                        Ok(None)
                     }
-                } else {
-                    Ok(None)
+                }) {
+                    Ok(s) => s,
+                    Err(err) => {
+                        log::warn!("format-window-title: {}", err);
+                        None
+                    }
                 }
-            }) {
-                Ok(s) => s,
-                Err(err) => {
-                    log::warn!("format-window-title: {}", err);
-                    None
-                }
-            }
-        });
-
-        let title = match title {
-            Some(title) => title,
-            None => {
+            ).unwrap_or(
                 if let (Some(pos), Some(tab)) = (active_pane, active_tab) {
                     if num_tabs == 1 {
                         format!("{}{}", if pos.is_zoomed { "[Z] " } else { "" }, pos.title)
@@ -1959,8 +1956,7 @@ impl TermWindow {
                 } else {
                     "".to_string()
                 }
-            }
-        };
+            );
 
         if let Some(window) = self.window.as_ref() {
             window.set_title(&title);
