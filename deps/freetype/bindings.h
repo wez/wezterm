@@ -1,5 +1,6 @@
 #include <ft2build.h>
 #include <freetype/freetype.h>
+#include <freetype/ftcolor.h>
 #include <freetype/ftlcdfil.h>
 #include <freetype/tttables.h>
 #include <freetype/ftmodapi.h>
