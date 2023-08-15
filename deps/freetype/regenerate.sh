@@ -17,7 +17,7 @@ bindgen bindings.h -o src/lib.rs \
   --raw-line "pub type FT_UInt64 = u64;" \
   --default-enum-style rust \
   --generate=functions,types,vars \
-  --allowlist-function="FT_.*" \
-  --allowlist-type="[FT]T_.*" \
-  --allowlist-var="[FT]T_.*" \
+  --allowlist-function="(SVG|FT)_.*" \
+  --allowlist-type="(SVG|[FT]T)_.*" \
+  --allowlist-var="(SVG|[FT]T)_.*" \
   -- -Ifreetype2/include

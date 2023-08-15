@@ -876,6 +876,16 @@ impl Library {
             }
         }
 
+        // Hook up our svg rendering
+        unsafe {
+            FT_Property_Set(
+                lib.lib,
+                b"ot-svg\0" as *const u8 as *const FT_String,
+                b"svg-hooks\0" as *const u8 as *const FT_String,
+                &crate::rasterizer::freetype::SVG_HOOKS as *const SVG_RendererHooks as *const _,
+            );
+        }
+
         // Due to patent concerns, the freetype library disables the LCD
         // filtering feature by default, and since we always build our
         // own copy of freetype, it is likewise disabled by default for
