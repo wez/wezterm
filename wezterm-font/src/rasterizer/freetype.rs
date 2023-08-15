@@ -487,7 +487,8 @@ fn svg_preset_slot_impl(
     let dimension_y = pixmap_size.height() as f64 * y_svg_to_out;
 
     slot.bitmap_left = 0;
-    slot.bitmap_top = 0;
+    slot.bitmap_top = dimension_y as i32; // This sets the y-bearing. It is incorrect,
+                                          // but better than using 0
     slot.bitmap.rows = dimension_y as _;
     slot.bitmap.width = dimension_x as _;
     slot.bitmap.pitch = (dimension_x as i32) * 4;
