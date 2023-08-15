@@ -719,6 +719,9 @@ pub struct Config {
     pub experimental_pixel_positioning: bool,
 
     #[dynamic(default)]
+    pub experimental_svg_fonts: bool,
+
+    #[dynamic(default)]
     pub bidi_enabled: bool,
 
     #[dynamic(default)]

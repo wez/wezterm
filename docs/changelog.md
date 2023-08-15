@@ -74,6 +74,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated
 * Bundled harfbuzz to 8.1.1
+* Bundled freetype to 2.13.1
 
 ### 20230712-072601-f4abf8fd
 
