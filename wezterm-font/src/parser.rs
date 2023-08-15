@@ -617,21 +617,27 @@ impl ParsedFont {
         // Reduce to matching weight
         candidates.retain(|&idx| fonts[idx].weight == weight);
 
-        // Check for best matching pixel strike
-        if let Some((_distance, idx)) = candidates
+        // Check for best matching pixel strike, but only if all
+        // candidates have pixel strikes
+        if candidates
             .iter()
-            .map(|&idx| {
-                let distance = fonts[idx]
-                    .pixel_sizes
-                    .iter()
-                    .map(|&size| ((pixel_size as i32) - (size as i32)).abs())
-                    .min()
-                    .unwrap_or(i32::MAX);
-                (distance, idx)
-            })
-            .min()
+            .all(|&idx| !fonts[idx].pixel_sizes.is_empty())
         {
-            return Some(idx);
+            if let Some((_distance, idx)) = candidates
+                .iter()
+                .map(|&idx| {
+                    let distance = fonts[idx]
+                        .pixel_sizes
+                        .iter()
+                        .map(|&size| ((pixel_size as i32) - (size as i32)).abs())
+                        .min()
+                        .unwrap_or(i32::MAX);
+                    (distance, idx)
+                })
+                .min()
+            {
+                return Some(idx);
+            }
         }
 
         // The first one in this set is our best match
