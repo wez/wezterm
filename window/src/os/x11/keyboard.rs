@@ -166,7 +166,7 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) -> Option<WindowKeyEvent> {
         let want_repeat = self.selected.wayland_key_repeats(code);
-        self.process_key_event_impl(code + 8, pressed, events, want_repeat)
+        self.process_key_event_impl(code + 8, None, pressed, events, want_repeat)
     }
 
     pub fn process_key_press_event(
@@ -175,7 +175,8 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, true, events, false);
+        let xmods = Some(xcb_ev.state()); // modifiers from event
+        self.process_key_event_impl(xcode, xmods, true, events, false);
     }
 
     pub fn process_key_release_event(
@@ -184,18 +185,20 @@ impl KeyboardWithFallback {
         events: &mut WindowEventSender,
     ) {
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, false, events, false);
+        let xmods = Some(xcb_ev.state()); // modifiers from event
+        self.process_key_event_impl(xcode, xmods, false, events, false);
     }
 
     fn process_key_event_impl(
         &self,
         xcode: xkb::Keycode,
+        xmods: Option<xcb::x::KeyButMask>,
         pressed: bool,
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
         let phys_code = self.selected.phys_code_map.borrow().get(&xcode).copied();
-        let raw_modifiers = self.get_key_modifiers();
+        let raw_modifiers = self.get_key_modifiers(xmods);
         let leds = self.get_led_status();
 
         let xsym = self.selected.state.borrow().key_get_one_sym(xcode);
@@ -380,7 +383,7 @@ impl KeyboardWithFallback {
         leds
     }
 
-    pub fn get_key_modifiers(&self) -> Modifiers {
+    pub fn get_key_modifiers(&self, fallback_xmods: Option<xcb::x::KeyButMask>) -> Modifiers {
         let mut res = Modifiers::default();
 
         if self.mod_is_active(xkb::MOD_NAME_SHIFT) {
@@ -397,6 +400,27 @@ impl KeyboardWithFallback {
             // Mod4
             res |= Modifiers::SUPER;
         }
+
+        // When XKB doesn't have modifiers in its state but there are modifiers given in the X
+        // event, use these as fallback.
+        //
+        // This can happen (FIXME: WHY) for example when Espanso (a text expander/injector)
+        // simulate inputs.
+        if let (true, Some(event_xmods)) = (res.is_empty(), fallback_xmods) {
+            if event_xmods.contains(xcb::x::KeyButMask::SHIFT) {
+                res |= Modifiers::SHIFT;
+            }
+            if event_xmods.contains(xcb::x::KeyButMask::CONTROL) {
+                res |= Modifiers::CTRL;
+            }
+            if event_xmods.contains(xcb::x::KeyButMask::MOD1) {
+                res |= Modifiers::ALT;
+            }
+            if event_xmods.contains(xcb::x::KeyButMask::MOD4) {
+                res |= Modifiers::SUPER;
+            }
+        }
+
         res
     }
 
@@ -419,7 +443,7 @@ impl KeyboardWithFallback {
             _ => {}
         }
 
-        let after = (self.get_key_modifiers(), self.get_led_status());
+        let after = (self.get_key_modifiers(None), self.get_led_status());
         if after != before {
             *self.selected.mods_leds.borrow_mut() = after.clone();
             Ok(Some(after))

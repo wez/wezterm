@@ -467,12 +467,12 @@ impl WaylandWindowInner {
             } => {
                 mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
 
-                let mods = mapper.get_key_modifiers();
+                let mods = mapper.get_key_modifiers(None);
                 let leds = mapper.get_led_status();
 
                 let changed = (mods != self.modifiers) || (leds != self.leds);
 
-                self.modifiers = mapper.get_key_modifiers();
+                self.modifiers = mapper.get_key_modifiers(None);
                 self.leds = mapper.get_led_status();
 
                 if changed {
