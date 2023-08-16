@@ -46,3 +46,62 @@ pub fn new_rasterizer(
         )),
     }
 }
+
+pub(crate) fn crop_to_non_transparent<'a, Container>(
+    image: &'a mut image::ImageBuffer<image::Rgba<u8>, Container>,
+) -> image::SubImage<&'a mut image::ImageBuffer<image::Rgba<u8>, Container>>
+where
+    Container: std::ops::Deref<Target = [u8]>,
+{
+    let width = image.width();
+    let height = image.height();
+
+    let mut first_line = None;
+    let mut first_col = None;
+    let mut last_col = None;
+    let mut last_line = None;
+
+    for (y, row) in image.rows().enumerate() {
+        for (x, pixel) in row.enumerate() {
+            let alpha = pixel[3];
+            if alpha != 0 {
+                if first_line.is_none() {
+                    first_line = Some(y);
+                }
+                first_col = match first_col.take() {
+                    Some(other) if x < other => Some(x),
+                    Some(other) => Some(other),
+                    None => Some(x),
+                };
+            }
+        }
+    }
+    for (y, row) in image.rows().enumerate().rev() {
+        for (x, pixel) in row.enumerate().rev() {
+            let alpha = pixel[3];
+            if alpha != 0 {
+                if last_line.is_none() {
+                    last_line = Some(y);
+                }
+                last_col = match last_col.take() {
+                    Some(other) if x > other => Some(x),
+                    Some(other) => Some(other),
+                    None => Some(x),
+                };
+            }
+        }
+    }
+
+    let first_col = first_col.unwrap_or(0) as u32;
+    let first_line = first_line.unwrap_or(0) as u32;
+    let last_col = last_col.unwrap_or(width as usize) as u32;
+    let last_line = last_line.unwrap_or(height as usize) as u32;
+
+    image::imageops::crop(
+        image,
+        first_col,
+        first_line,
+        last_col - first_col,
+        last_line - first_line,
+    )
+}

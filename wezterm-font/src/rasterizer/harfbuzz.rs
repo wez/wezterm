@@ -486,55 +486,7 @@ impl<'a> PaintData<'a> {
         }
 
         // Crop to the non-transparent portions of the image
-        let mut first_line = None;
-        let mut first_col = None;
-        let mut last_col = None;
-        let mut last_line = None;
-
-        for (y, row) in decoded.rows().enumerate() {
-            for (x, pixel) in row.enumerate() {
-                let alpha = pixel[3];
-                if alpha != 0 {
-                    if first_line.is_none() {
-                        first_line = Some(y);
-                    }
-                    first_col = match first_col.take() {
-                        Some(other) if x < other => Some(x),
-                        Some(other) => Some(other),
-                        None => Some(x),
-                    };
-                }
-            }
-        }
-        for (y, row) in decoded.rows().enumerate().rev() {
-            for (x, pixel) in row.enumerate().rev() {
-                let alpha = pixel[3];
-                if alpha != 0 {
-                    if last_line.is_none() {
-                        last_line = Some(y);
-                    }
-                    last_col = match last_col.take() {
-                        Some(other) if x > other => Some(x),
-                        Some(other) => Some(other),
-                        None => Some(x),
-                    };
-                }
-            }
-        }
-
-        let first_col = first_col.unwrap_or(0) as u32;
-        let first_line = first_line.unwrap_or(0) as u32;
-        let last_col = last_col.unwrap_or(width as usize) as u32;
-        let last_line = last_line.unwrap_or(height as usize) as u32;
-
-        let cropped = image::imageops::crop(
-            &mut decoded,
-            first_col,
-            first_line,
-            last_col - first_col,
-            last_line - first_line,
-        )
-        .to_image();
+        let cropped = crate::rasterizer::crop_to_non_transparent(&mut decoded).to_image();
         self.result.height = cropped.height() as usize;
         self.result.width = cropped.width() as usize;
 

@@ -215,85 +215,26 @@ impl FreeTypeRasterizer {
         &self,
         pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
-        data: &[u8],
+        data: &'static [u8],
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
 
+        let mut source_image = image::ImageBuffer::<image::Rgba<u8>, &[u8]>::from_raw(
+            width as u32,
+            height as u32,
+            data,
+        )
+        .expect("image data to be valid");
+
         // emoji glyphs don't always fill the bitmap size, so we compute
-        // the non-transparent bounds here with this simplistic code.
-        // This can likely be improved!
+        // the non-transparent bounds
 
-        let mut first_line = None;
-        let mut first_col = None;
-        let mut last_col = None;
-        let mut last_line = None;
-
-        for y in 0..height {
-            let src_offset = y * pitch as usize;
-
-            for x in 0..width {
-                let alpha = data[src_offset + (x * 4) + 3];
-                if alpha != 0 {
-                    if first_line.is_none() {
-                        first_line = Some(y);
-                    }
-                    first_col = match first_col.take() {
-                        Some(other) if x < other => Some(x),
-                        Some(other) => Some(other),
-                        None => Some(x),
-                    };
-                }
-            }
-        }
-        for y in (0..height).rev() {
-            let src_offset = y * pitch as usize;
-
-            for x in (0..width).rev() {
-                let alpha = data[src_offset + (x * 4) + 3];
-                if alpha != 0 {
-                    if last_line.is_none() {
-                        last_line = Some(y);
-                    }
-                    last_col = match last_col.take() {
-                        Some(other) if x > other => Some(x),
-                        Some(other) => Some(other),
-                        None => Some(x),
-                    };
-                }
-            }
-        }
-
-        let first_line = first_line.unwrap_or(0);
-        let last_line = last_line.unwrap_or(0);
-        let first_col = first_col.unwrap_or(0);
-        let last_col = last_col.unwrap_or(0);
-
-        let dest_width = 1 + last_col - first_col;
-        let dest_height = 1 + last_line - first_line;
-
-        let size = (dest_width * dest_height * 4) as usize;
-        let mut rgba = vec![0u8; size];
-
-        for y in first_line..=last_line {
-            let src_offset = y * pitch as usize;
-            let dest_offset = (y - first_line) * dest_width * 4;
-            for x in first_col..=last_col {
-                let blue = data[src_offset + (x * 4)];
-                let green = data[src_offset + (x * 4) + 1];
-                let red = data[src_offset + (x * 4) + 2];
-                let alpha = data[src_offset + (x * 4) + 3];
-
-                let dest_x = x - first_col;
-
-                rgba[dest_offset + (dest_x * 4)] = red;
-                rgba[dest_offset + (dest_x * 4) + 1] = green;
-                rgba[dest_offset + (dest_x * 4) + 2] = blue;
-                rgba[dest_offset + (dest_x * 4) + 3] = alpha;
-            }
-        }
+        let cropped = crate::rasterizer::crop_to_non_transparent(&mut source_image).to_image();
+        let dest_width = cropped.width() as usize;
+        let dest_height = cropped.height() as usize;
         RasterizedGlyph {
-            data: rgba,
+            data: cropped.into_vec(),
             height: dest_height,
             width: dest_width,
             bearing_x: PixelLength::new(
