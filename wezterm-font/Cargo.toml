@@ -22,6 +22,7 @@ euclid = "0.22"
 finl_unicode = "1.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
+image = "0.24.6"
 lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"

@@ -678,6 +678,7 @@ impl Default for FontLocatorSelection {
 pub enum FontRasterizerSelection {
     #[default]
     FreeType,
+    Harfbuzz,
 }
 
 #[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]

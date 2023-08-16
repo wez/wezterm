@@ -281,20 +281,37 @@ impl Font {
         }
     }
 
-    pub fn set_font_scale(&mut self, x_scale: c_int, y_scale: c_int) {
+    pub fn set_synthetic_slant(&mut self, slant: f32) {
+        unsafe {
+            hb_font_set_synthetic_slant(self.font, slant);
+        }
+    }
+
+    pub fn set_synthetic_bold(&mut self, x_embolden: f32, y_embolden: f32, in_place: bool) {
+        unsafe {
+            hb_font_set_synthetic_bold(
+                self.font,
+                x_embolden,
+                y_embolden,
+                if in_place { 1 } else { 0 },
+            );
+        }
+    }
+
+    pub fn set_font_scale(&self, x_scale: c_int, y_scale: c_int) {
         log::info!("setting x_scale={x_scale}, y_scale={y_scale}");
         unsafe {
             hb_font_set_scale(self.font, x_scale, y_scale);
         }
     }
 
-    pub fn set_ppem(&mut self, x_ppem: u32, y_ppem: u32) {
+    pub fn set_ppem(&self, x_ppem: u32, y_ppem: u32) {
         unsafe {
             hb_font_set_ppem(self.font, x_ppem, y_ppem);
         }
     }
 
-    pub fn set_ptem(&mut self, ptem: f32) {
+    pub fn set_ptem(&self, ptem: f32) {
         unsafe {
             hb_font_set_ptem(self.font, ptem);
         }
@@ -316,6 +333,26 @@ impl Font {
     /// Once done, Buffer holds the output glyph and position info
     pub fn shape(&mut self, buf: &mut Buffer, features: &[hb_feature_t]) {
         unsafe { hb_shape(self.font, buf.buf, features.as_ptr(), features.len() as u32) }
+    }
+
+    pub fn paint_glyph(
+        &self,
+        glyph_pos: u32,
+        funcs: &FontFuncs,
+        paint_data: *mut c_void,
+        palette_index: ::std::os::raw::c_uint,
+        foreground: hb_color_t,
+    ) {
+        unsafe {
+            hb_font_paint_glyph(
+                self.font,
+                glyph_pos,
+                funcs.funcs,
+                paint_data,
+                palette_index,
+                foreground,
+            )
+        }
     }
 }
 
@@ -477,4 +514,131 @@ impl Buffer {
             hb_buffer_guess_segment_properties(self.buf);
         }
     }
+}
+
+pub struct FontFuncs {
+    funcs: *mut hb_paint_funcs_t,
+}
+
+impl Drop for FontFuncs {
+    fn drop(&mut self) {
+        unsafe {
+            hb_paint_funcs_destroy(self.funcs);
+        }
+    }
+}
+
+macro_rules! func {
+    ($method:ident, $type:ty, $func:ident) => {
+        pub fn $method(&mut self, func: $type) {
+            unsafe {
+                $func(self.funcs, func, std::ptr::null_mut(), None);
+            }
+        }
+    };
+}
+
+impl FontFuncs {
+    pub fn new() -> anyhow::Result<Self> {
+        let funcs = unsafe { hb_paint_funcs_create() };
+        anyhow::ensure!(!funcs.is_null(), "hb_paint_funcs_create failed");
+        Ok(Self { funcs })
+    }
+
+    func!(
+        set_push_transform_func,
+        hb_paint_push_transform_func_t,
+        hb_paint_funcs_set_push_transform_func
+    );
+    func!(
+        set_pop_transform_func,
+        hb_paint_pop_transform_func_t,
+        hb_paint_funcs_set_pop_transform_func
+    );
+    func!(
+        set_push_clip_glyph_func,
+        hb_paint_push_clip_glyph_func_t,
+        hb_paint_funcs_set_push_clip_glyph_func
+    );
+    func!(
+        set_push_clip_rectangle_func,
+        hb_paint_push_clip_rectangle_func_t,
+        hb_paint_funcs_set_push_clip_rectangle_func
+    );
+    func!(
+        set_pop_clip_func,
+        hb_paint_pop_clip_func_t,
+        hb_paint_funcs_set_pop_clip_func
+    );
+    func!(
+        set_color_func,
+        hb_paint_color_func_t,
+        hb_paint_funcs_set_color_func
+    );
+    func!(
+        set_image_func,
+        hb_paint_image_func_t,
+        hb_paint_funcs_set_image_func
+    );
+    func!(
+        set_linear_gradient,
+        hb_paint_linear_gradient_func_t,
+        hb_paint_funcs_set_linear_gradient_func
+    );
+    func!(
+        set_radial_gradient,
+        hb_paint_radial_gradient_func_t,
+        hb_paint_funcs_set_radial_gradient_func
+    );
+    func!(
+        set_sweep_gradient,
+        hb_paint_sweep_gradient_func_t,
+        hb_paint_funcs_set_sweep_gradient_func
+    );
+    func!(
+        set_push_group,
+        hb_paint_push_group_func_t,
+        hb_paint_funcs_set_push_group_func
+    );
+    func!(
+        set_pop_group,
+        hb_paint_pop_group_func_t,
+        hb_paint_funcs_set_pop_group_func
+    );
+    func!(
+        set_custom_palette_color,
+        hb_paint_custom_palette_color_func_t,
+        hb_paint_funcs_set_custom_palette_color_func
+    );
+}
+
+pub struct TagString([u8; 4]);
+
+impl std::convert::AsRef<str> for TagString {
+    fn as_ref(&self) -> &str {
+        std::str::from_utf8(&self.0).expect("tag to be valid ascii")
+    }
+}
+
+impl std::ops::Deref for TagString {
+    type Target = str;
+    fn deref(&self) -> &str {
+        std::str::from_utf8(&self.0).expect("tag to be valid ascii")
+    }
+}
+
+impl std::fmt::Display for TagString {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.as_ref().fmt(fmt)
+    }
+}
+
+pub fn hb_tag_to_string(tag: hb_tag_t) -> TagString {
+    let mut buf = [0u8; 4];
+
+    // safety: hb_tag_to_string stores 4 bytes to the provided buffer
+    unsafe {
+        harfbuzz::hb_tag_to_string(tag, &mut buf as *mut u8 as *mut i8);
+    }
+    TagString(buf)
 }

@@ -6218,6 +6218,7 @@ dependencies = [
  "fontconfig",
  "freetype",
  "harfbuzz",
+ "image",
  "k9",
  "lazy_static",
  "lfucache",

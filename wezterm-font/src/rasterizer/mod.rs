@@ -7,6 +7,7 @@ use config::FontRasterizerSelection;
 pub(crate) const FAKE_ITALIC_SKEW: f64 = 0.2;
 
 pub mod freetype;
+pub mod harfbuzz;
 
 /// A bitmap representation of a glyph.
 /// The data is stored as pre-multiplied RGBA 32bpp.
@@ -39,6 +40,9 @@ pub fn new_rasterizer(
     match rasterizer {
         FontRasterizerSelection::FreeType => Ok(Box::new(
             freetype::FreeTypeRasterizer::from_locator(handle, pixel_geometry)?,
+        )),
+        FontRasterizerSelection::Harfbuzz => Ok(Box::new(
+            harfbuzz::HarfbuzzRasterizer::from_locator(handle)?,
         )),
     }
 }
