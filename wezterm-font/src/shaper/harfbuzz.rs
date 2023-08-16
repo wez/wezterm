@@ -20,8 +20,8 @@ use wezterm_bidi::Direction;
 // strikes.
 // Until we get to the bottom of this, these are compile-time rather
 // than runtime configs.
-const USE_OT_FUNCS: bool = false;
-const USE_OT_FACE: bool = false;
+const USE_OT_FUNCS: bool = true;
+const USE_OT_FACE: bool = true;
 
 #[derive(Clone, Debug)]
 struct Info {
@@ -254,13 +254,20 @@ impl HarfbuzzShaper {
 
                     // Tell harfbuzz to recompute important font metrics!
                     if *pair.last_size_and_dpi.borrow() != Some((point_size, dpi)) {
-                        pair.face.set_font_size(point_size, dpi)?;
+                        let selected_font_size = pair.face.set_font_size(point_size, dpi)?;
+
+                        let pixel_size = if selected_font_size.is_scaled {
+                            (point_size * dpi as f64 / 72.) as u32
+                        } else {
+                            selected_font_size.height as u32
+                        };
+
                         let mut font = pair.font.borrow_mut();
 
                         if USE_OT_FACE {
-                            font.set_ppem(0, 0);
-                            font.set_ptem(0.);
-                            let scale = (point_size * 2f64.powf(6.)) as i32;
+                            font.set_ppem(pixel_size, pixel_size);
+                            font.set_ptem(point_size as f32);
+                            let scale = pixel_size as i32 * 64;
                             font.set_font_scale(scale, scale);
                         }
 
