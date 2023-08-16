@@ -29,7 +29,7 @@ typically strongly associated with a physical serial communication device
 installed in the system.
 
 The kernel doesn't know any details of the connected device as there isn't
-a defined way for it doing that; it only knows how to transmit data over that
+a defined way for it to do that; it only knows how to transmit data over that
 serial line.
 
 To accomodate this the TTY interface in the kernel allows for some basic
