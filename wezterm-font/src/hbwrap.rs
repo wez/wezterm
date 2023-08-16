@@ -335,6 +335,11 @@ impl Font {
         unsafe { hb_shape(self.font, buf.buf, features.as_ptr(), features.len() as u32) }
     }
 
+    #[allow(unused)]
+    pub fn draw_glyph(&self, glyph_pos: u32, funcs: &DrawFuncs, draw_data: *mut c_void) {
+        unsafe { hb_font_draw_glyph(self.font, glyph_pos, funcs.funcs, draw_data) }
+    }
+
     pub fn paint_glyph(
         &self,
         glyph_pos: u32,
@@ -609,6 +614,56 @@ impl FontFuncs {
         set_custom_palette_color,
         hb_paint_custom_palette_color_func_t,
         hb_paint_funcs_set_custom_palette_color_func
+    );
+}
+
+pub struct DrawFuncs {
+    funcs: *mut hb_draw_funcs_t,
+}
+
+impl Drop for DrawFuncs {
+    fn drop(&mut self) {
+        unsafe {
+            hb_draw_funcs_destroy(self.funcs);
+        }
+    }
+}
+
+impl DrawFuncs {
+    pub fn new() -> anyhow::Result<Self> {
+        let funcs = unsafe { hb_draw_funcs_create() };
+        anyhow::ensure!(!funcs.is_null(), "hb_draw_funcs_create failed");
+        Ok(Self { funcs })
+    }
+
+    pub fn as_ptr(&self) -> *mut hb_draw_funcs_t {
+        self.funcs
+    }
+
+    func!(
+        set_move_to_func,
+        hb_draw_move_to_func_t,
+        hb_draw_funcs_set_move_to_func
+    );
+    func!(
+        set_line_to_func,
+        hb_draw_line_to_func_t,
+        hb_draw_funcs_set_line_to_func
+    );
+    func!(
+        set_quadratic_to_func,
+        hb_draw_quadratic_to_func_t,
+        hb_draw_funcs_set_quadratic_to_func
+    );
+    func!(
+        set_cubic_to,
+        hb_draw_cubic_to_func_t,
+        hb_draw_funcs_set_cubic_to_func
+    );
+    func!(
+        set_close_path,
+        hb_draw_close_path_func_t,
+        hb_draw_funcs_set_close_path_func
     );
 }
 
