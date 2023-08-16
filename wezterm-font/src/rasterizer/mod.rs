@@ -1,6 +1,7 @@
 use crate::parser::ParsedFont;
 use crate::units::*;
 use config::FontRasterizerSelection;
+use image::{ImageBuffer, Rgba};
 
 /// The amount, as a number in [0,1], to horizontally skew a glyph when rendering synthetic
 /// italics
@@ -47,9 +48,19 @@ pub fn new_rasterizer(
     }
 }
 
+pub(crate) fn swap_red_and_blue<Container: std::ops::Deref<Target = [u8]> + std::ops::DerefMut>(
+    image: &mut ImageBuffer<Rgba<u8>, Container>,
+) {
+    for pixel in image.pixels_mut() {
+        let red = pixel[0];
+        pixel[0] = pixel[2];
+        pixel[2] = red;
+    }
+}
+
 pub(crate) fn crop_to_non_transparent<'a, Container>(
-    image: &'a mut image::ImageBuffer<image::Rgba<u8>, Container>,
-) -> image::SubImage<&'a mut image::ImageBuffer<image::Rgba<u8>, Container>>
+    image: &'a mut image::ImageBuffer<Rgba<u8>, Container>,
+) -> image::SubImage<&'a mut ImageBuffer<Rgba<u8>, Container>>
 where
     Container: std::ops::Deref<Target = [u8]>,
 {
