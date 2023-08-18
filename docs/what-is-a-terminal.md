@@ -99,7 +99,7 @@ Association) as the freely available
 
 Even though ANSI/ECMA provided information on standardizing communication,
 there are devices that either pre-date the standards or that aren't fully
-comformant, or that have more flexibility than the standards could forsee.
+comformant, or that have more flexibility than the standards could foresee.
 
 A database of terminal capabilities (termcap) was created that is essentially a
 mapping of the kind of function (eg: "switch to bold rendering") to the
