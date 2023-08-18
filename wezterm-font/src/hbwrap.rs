@@ -17,6 +17,11 @@ extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
 }
 
+pub const IS_PNG: hb_tag_t = hb_tag(b'p', b'n', b'g', b' ');
+#[allow(unused)]
+pub const IS_SVG: hb_tag_t = hb_tag(b's', b'v', b'g', b' ');
+pub const IS_BGRA: hb_tag_t = hb_tag(b'B', b'G', b'R', b'A');
+
 pub fn language_from_string(s: &str) -> Result<hb_language_t, Error> {
     unsafe {
         let lang = hb_language_from_string(s.as_ptr() as *const c_char, s.len() as i32);
@@ -41,6 +46,7 @@ pub fn feature_from_string(s: &str) -> Result<hb_feature_t, Error> {
     }
 }
 
+#[derive(Debug)]
 pub struct Blob {
     blob: *mut hb_blob_t,
 }
@@ -53,7 +59,27 @@ impl Drop for Blob {
     }
 }
 
+impl Clone for Blob {
+    fn clone(&self) -> Self {
+        unsafe { hb_blob_reference(self.blob) };
+        Self { blob: self.blob }
+    }
+}
+
 impl Blob {
+    pub fn with_reference(blob: *mut hb_blob_t) -> Self {
+        unsafe { hb_blob_reference(blob) };
+        Self { blob }
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe {
+            let mut len = 0;
+            let ptr = hb_blob_get_data(self.blob, &mut len);
+            std::slice::from_raw_parts(ptr as *const u8, len as usize)
+        }
+    }
+
     pub fn from_source(source: &FontDataSource) -> anyhow::Result<Self> {
         let blob = match source {
             FontDataSource::OnDisk(p) => {
@@ -340,6 +366,7 @@ impl Font {
         unsafe { hb_font_draw_glyph(self.font, glyph_pos, funcs.funcs, draw_data) }
     }
 
+    #[allow(unused)]
     pub fn paint_glyph(
         &self,
         glyph_pos: u32,
@@ -357,6 +384,522 @@ impl Font {
                 palette_index,
                 foreground,
             )
+        }
+    }
+
+    pub fn get_paint_ops_for_glyph(
+        &self,
+        glyph_pos: u32,
+        palette_index: ::std::os::raw::c_uint,
+        foreground: hb_color_t,
+        // TODO: pass a callback for querying custom palette colors
+        // from the application
+    ) -> anyhow::Result<Vec<PaintOp>> {
+        let mut ops = vec![];
+
+        let funcs = FontFuncs::new()?;
+
+        macro_rules! func {
+            ($hbfunc:ident, $method:ident) => {
+                $hbfunc(
+                    funcs.funcs,
+                    Some(PaintOp::$method),
+                    std::ptr::null_mut(),
+                    None,
+                );
+            };
+        }
+
+        unsafe {
+            func!(hb_paint_funcs_set_push_transform_func, push_transform);
+            func!(hb_paint_funcs_set_pop_transform_func, pop_transform);
+            func!(hb_paint_funcs_set_push_clip_glyph_func, push_clip_glyph);
+            func!(hb_paint_funcs_set_push_clip_rectangle_func, push_clip_rect);
+            func!(hb_paint_funcs_set_pop_clip_func, pop_clip);
+            func!(hb_paint_funcs_set_color_func, paint_solid);
+            func!(
+                hb_paint_funcs_set_linear_gradient_func,
+                paint_linear_gradient
+            );
+            func!(
+                hb_paint_funcs_set_radial_gradient_func,
+                paint_radial_gradient
+            );
+            func!(hb_paint_funcs_set_sweep_gradient_func, paint_sweep_gradient);
+            func!(hb_paint_funcs_set_image_func, paint_image);
+            func!(hb_paint_funcs_set_push_group_func, push_group);
+            func!(hb_paint_funcs_set_pop_group_func, pop_group);
+
+            // TODO: hb_paint_funcs_set_custom_palette_color_func
+        }
+
+        unsafe {
+            hb_font_paint_glyph(
+                self.font,
+                glyph_pos,
+                funcs.funcs,
+                &mut ops as *mut Vec<PaintOp> as *mut _,
+                palette_index,
+                foreground,
+            )
+        }
+
+        Ok(ops)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum PaintOp {
+    PushTransform {
+        xx: f32,
+        yx: f32,
+        xy: f32,
+        yy: f32,
+        dx: f32,
+        dy: f32,
+    },
+    PopTransform,
+    PushGlyphClip {
+        glyph: hb_codepoint_t,
+        draw: Vec<DrawOp>,
+    },
+    PushRectClip {
+        xmin: f32,
+        ymin: f32,
+        xmax: f32,
+        ymax: f32,
+    },
+    PopClip,
+    PaintSolid {
+        is_foreground: bool,
+        color: hb_color_t,
+    },
+    PaintImage {
+        image: Blob,
+        width: u32,
+        height: u32,
+        format: hb_tag_t,
+        slant: f32,
+        extents: Option<hb_glyph_extents_t>,
+    },
+    PaintLinearGradient {
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        color_line: ColorLine,
+    },
+    PaintRadialGradient {
+        x0: f32,
+        y0: f32,
+        r0: f32,
+        x1: f32,
+        y1: f32,
+        r1: f32,
+        color_line: ColorLine,
+    },
+    PaintSweepGradient {
+        x0: f32,
+        y0: f32,
+        start_angle: f32,
+        end_angle: f32,
+        color_line: ColorLine,
+    },
+    PushGroup,
+    PopGroup {
+        mode: hb_paint_composite_mode_t,
+    },
+}
+
+impl PaintOp {
+    unsafe fn paint_data(data: *mut ::std::os::raw::c_void) -> &'static mut Vec<PaintOp> {
+        &mut *(data as *mut Vec<PaintOp>)
+    }
+
+    unsafe extern "C" fn push_transform(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xx: f32,
+        yx: f32,
+        xy: f32,
+        yy: f32,
+        dx: f32,
+        dy: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PushTransform {
+            xx,
+            yx,
+            xy,
+            yy,
+            dx,
+            dy,
+        });
+    }
+
+    unsafe extern "C" fn pop_transform(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PopTransform);
+    }
+
+    unsafe extern "C" fn push_clip_rect(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        xmin: f32,
+        ymin: f32,
+        xmax: f32,
+        ymax: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PushRectClip {
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+        });
+    }
+
+    unsafe extern "C" fn pop_clip(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PopClip);
+    }
+
+    unsafe extern "C" fn paint_solid(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        is_foreground: hb_bool_t,
+        color: hb_color_t,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PaintSolid {
+            is_foreground: is_foreground != 0,
+            color,
+        });
+    }
+
+    unsafe extern "C" fn paint_linear_gradient(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        let color_line = ColorLine::new(color_line);
+        ops.push(Self::PaintLinearGradient {
+            color_line,
+            x0,
+            y0,
+            x1,
+            y1,
+            x2,
+            y2,
+        });
+    }
+
+    unsafe extern "C" fn paint_radial_gradient(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        r0: f32,
+        x1: f32,
+        y1: f32,
+        r1: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        let color_line = ColorLine::new(color_line);
+        ops.push(Self::PaintRadialGradient {
+            color_line,
+            x0,
+            y0,
+            r0,
+            x1,
+            y1,
+            r1,
+        });
+    }
+
+    unsafe extern "C" fn paint_sweep_gradient(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        color_line: *mut hb_color_line_t,
+        x0: f32,
+        y0: f32,
+        start_angle: f32,
+        end_angle: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        let color_line = ColorLine::new(color_line);
+        ops.push(Self::PaintSweepGradient {
+            color_line,
+            x0,
+            y0,
+            start_angle,
+            end_angle,
+        });
+    }
+
+    unsafe extern "C" fn paint_image(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        image: *mut hb_blob_t,
+        width: ::std::os::raw::c_uint,
+        height: ::std::os::raw::c_uint,
+        format: hb_tag_t,
+        slant: f32,
+        extents: *mut hb_glyph_extents_t,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t {
+        if format != IS_PNG && format != IS_BGRA {
+            // We only support PNG and BGRA
+            return 0;
+        }
+
+        let ops = Self::paint_data(paint_data);
+        let image = Blob::with_reference(image);
+        let extents = if extents.is_null() {
+            None
+        } else {
+            Some(*extents)
+        };
+        ops.push(Self::PaintImage {
+            image,
+            extents,
+            width,
+            height,
+            format,
+            slant,
+        });
+
+        1
+    }
+
+    unsafe extern "C" fn push_group(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PushGroup);
+    }
+
+    unsafe extern "C" fn pop_group(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        mode: hb_paint_composite_mode_t,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+        ops.push(Self::PopGroup { mode });
+    }
+
+    unsafe extern "C" fn push_clip_glyph(
+        _funcs: *mut hb_paint_funcs_t,
+        paint_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        font: *mut hb_font_t,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::paint_data(paint_data);
+
+        let mut draw = vec![];
+
+        let funcs = DrawFuncs::new().unwrap();
+        macro_rules! func {
+            ($hbfunc:ident, $method:ident) => {
+                $hbfunc(
+                    funcs.funcs,
+                    Some(DrawOp::$method),
+                    std::ptr::null_mut(),
+                    None,
+                );
+            };
+        }
+        func!(hb_draw_funcs_set_move_to_func, move_to);
+        func!(hb_draw_funcs_set_line_to_func, line_to);
+        func!(hb_draw_funcs_set_quadratic_to_func, quad_to);
+        func!(hb_draw_funcs_set_cubic_to_func, cubic_to);
+        func!(hb_draw_funcs_set_close_path_func, close_path);
+
+        hb_font_draw_glyph(
+            font,
+            glyph,
+            funcs.funcs,
+            &mut draw as *mut Vec<DrawOp> as *mut _,
+        );
+
+        ops.push(Self::PushGlyphClip { glyph, draw });
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DrawOp {
+    MoveTo {
+        to_x: f32,
+        to_y: f32,
+    },
+    LineTo {
+        to_x: f32,
+        to_y: f32,
+    },
+    QuadTo {
+        control_x: f32,
+        control_y: f32,
+        to_x: f32,
+        to_y: f32,
+    },
+    CubicTo {
+        control1_x: f32,
+        control1_y: f32,
+        control2_x: f32,
+        control2_y: f32,
+        to_x: f32,
+        to_y: f32,
+    },
+    ClosePath,
+}
+
+impl DrawOp {
+    unsafe fn draw_data(data: *mut ::std::os::raw::c_void) -> &'static mut Vec<DrawOp> {
+        &mut *(data as *mut Vec<DrawOp>)
+    }
+
+    unsafe extern "C" fn move_to(
+        _dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        _st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::draw_data(draw_data);
+        ops.push(Self::MoveTo { to_x, to_y });
+    }
+
+    unsafe extern "C" fn line_to(
+        _dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        _st: *mut hb_draw_state_t,
+        to_x: f32,
+        to_y: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::draw_data(draw_data);
+        ops.push(Self::LineTo { to_x, to_y });
+    }
+
+    unsafe extern "C" fn quad_to(
+        _dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        _st: *mut hb_draw_state_t,
+        control_x: f32,
+        control_y: f32,
+        to_x: f32,
+        to_y: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::draw_data(draw_data);
+        ops.push(Self::QuadTo {
+            control_x,
+            control_y,
+            to_x,
+            to_y,
+        });
+    }
+
+    unsafe extern "C" fn cubic_to(
+        _dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        _st: *mut hb_draw_state_t,
+        control1_x: f32,
+        control1_y: f32,
+        control2_x: f32,
+        control2_y: f32,
+        to_x: f32,
+        to_y: f32,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::draw_data(draw_data);
+        ops.push(Self::CubicTo {
+            control1_x,
+            control1_y,
+            control2_x,
+            control2_y,
+            to_x,
+            to_y,
+        });
+    }
+
+    unsafe extern "C" fn close_path(
+        _dfuncs: *mut hb_draw_funcs_t,
+        draw_data: *mut ::std::os::raw::c_void,
+        _st: *mut hb_draw_state_t,
+        _user_data: *mut ::std::os::raw::c_void,
+    ) {
+        let ops = Self::draw_data(draw_data);
+        ops.push(Self::ClosePath);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ColorLine {
+    pub color_stops: Vec<hb_color_stop_t>,
+    pub extend: hb_paint_extend_t,
+}
+
+impl ColorLine {
+    pub fn new(line: *mut hb_color_line_t) -> Self {
+        let num_stops = unsafe {
+            hb_color_line_get_color_stops(line, 0, std::ptr::null_mut(), std::ptr::null_mut())
+        };
+        let mut color_stops = Vec::with_capacity(num_stops as usize);
+        color_stops.resize(
+            num_stops as usize,
+            hb_color_stop_t {
+                offset: 0.,
+                is_foreground: 0,
+                color: 0,
+            },
+        );
+
+        // Docs say: Note that due to variations being applied, the returned color stops may be out
+        // of order. It is the callers responsibility to ensure that color stops are sorted by
+        // their offset before they are used.
+
+        unsafe {
+            let mut count = num_stops;
+            hb_color_line_get_color_stops(line, 0, &mut count, color_stops.as_mut_ptr());
+        }
+
+        color_stops.sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
+
+        let extend = unsafe { hb_color_line_get_extend(line) };
+
+        Self {
+            color_stops,
+            extend,
         }
     }
 }
@@ -533,88 +1076,12 @@ impl Drop for FontFuncs {
     }
 }
 
-macro_rules! func {
-    ($method:ident, $type:ty, $func:ident) => {
-        pub fn $method(&mut self, func: $type) {
-            unsafe {
-                $func(self.funcs, func, std::ptr::null_mut(), None);
-            }
-        }
-    };
-}
-
 impl FontFuncs {
     pub fn new() -> anyhow::Result<Self> {
         let funcs = unsafe { hb_paint_funcs_create() };
         anyhow::ensure!(!funcs.is_null(), "hb_paint_funcs_create failed");
         Ok(Self { funcs })
     }
-
-    func!(
-        set_push_transform_func,
-        hb_paint_push_transform_func_t,
-        hb_paint_funcs_set_push_transform_func
-    );
-    func!(
-        set_pop_transform_func,
-        hb_paint_pop_transform_func_t,
-        hb_paint_funcs_set_pop_transform_func
-    );
-    func!(
-        set_push_clip_glyph_func,
-        hb_paint_push_clip_glyph_func_t,
-        hb_paint_funcs_set_push_clip_glyph_func
-    );
-    func!(
-        set_push_clip_rectangle_func,
-        hb_paint_push_clip_rectangle_func_t,
-        hb_paint_funcs_set_push_clip_rectangle_func
-    );
-    func!(
-        set_pop_clip_func,
-        hb_paint_pop_clip_func_t,
-        hb_paint_funcs_set_pop_clip_func
-    );
-    func!(
-        set_color_func,
-        hb_paint_color_func_t,
-        hb_paint_funcs_set_color_func
-    );
-    func!(
-        set_image_func,
-        hb_paint_image_func_t,
-        hb_paint_funcs_set_image_func
-    );
-    func!(
-        set_linear_gradient,
-        hb_paint_linear_gradient_func_t,
-        hb_paint_funcs_set_linear_gradient_func
-    );
-    func!(
-        set_radial_gradient,
-        hb_paint_radial_gradient_func_t,
-        hb_paint_funcs_set_radial_gradient_func
-    );
-    func!(
-        set_sweep_gradient,
-        hb_paint_sweep_gradient_func_t,
-        hb_paint_funcs_set_sweep_gradient_func
-    );
-    func!(
-        set_push_group,
-        hb_paint_push_group_func_t,
-        hb_paint_funcs_set_push_group_func
-    );
-    func!(
-        set_pop_group,
-        hb_paint_pop_group_func_t,
-        hb_paint_funcs_set_pop_group_func
-    );
-    func!(
-        set_custom_palette_color,
-        hb_paint_custom_palette_color_func_t,
-        hb_paint_funcs_set_custom_palette_color_func
-    );
 }
 
 pub struct DrawFuncs {
@@ -635,36 +1102,6 @@ impl DrawFuncs {
         anyhow::ensure!(!funcs.is_null(), "hb_draw_funcs_create failed");
         Ok(Self { funcs })
     }
-
-    pub fn as_ptr(&self) -> *mut hb_draw_funcs_t {
-        self.funcs
-    }
-
-    func!(
-        set_move_to_func,
-        hb_draw_move_to_func_t,
-        hb_draw_funcs_set_move_to_func
-    );
-    func!(
-        set_line_to_func,
-        hb_draw_line_to_func_t,
-        hb_draw_funcs_set_line_to_func
-    );
-    func!(
-        set_quadratic_to_func,
-        hb_draw_quadratic_to_func_t,
-        hb_draw_funcs_set_quadratic_to_func
-    );
-    func!(
-        set_cubic_to,
-        hb_draw_cubic_to_func_t,
-        hb_draw_funcs_set_cubic_to_func
-    );
-    func!(
-        set_close_path,
-        hb_draw_close_path_func_t,
-        hb_draw_funcs_set_close_path_func
-    );
 }
 
 pub struct TagString([u8; 4]);
@@ -686,6 +1123,14 @@ impl std::fmt::Display for TagString {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.as_ref().fmt(fmt)
     }
+}
+
+pub const fn hb_tag(c1: u8, c2: u8, c3: u8, c4: u8) -> hb_tag_t {
+    ((c1 as u32) << 24) | ((c2 as u32) << 16) | ((c3 as u32) << 8) | (c4 as u32)
+}
+
+pub fn hb_color(b: u8, g: u8, r: u8, a: u8) -> hb_tag_t {
+    hb_tag(b, g, r, a)
 }
 
 pub fn hb_tag_to_string(tag: hb_tag_t) -> TagString {

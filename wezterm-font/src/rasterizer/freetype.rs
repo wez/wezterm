@@ -213,7 +213,7 @@ impl FreeTypeRasterizer {
 
     fn rasterize_bgra(
         &self,
-        pitch: usize,
+        _pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &'static [u8],
     ) -> RasterizedGlyph {
