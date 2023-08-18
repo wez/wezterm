@@ -1828,6 +1828,10 @@ pub struct WindowPadding {
     pub right: Dimension,
     #[dynamic(try_from = "crate::units::PixelUnit", default = "default_half_cell")]
     pub bottom: Dimension,
+    #[dynamic(default)]
+    pub horizontal_bg_bleed: bool,
+    #[dynamic(default)]
+    pub vertical_bg_bleed: bool,
 }
 
 impl Default for WindowPadding {
@@ -1837,6 +1841,8 @@ impl Default for WindowPadding {
             right: default_one_cell(),
             top: default_half_cell(),
             bottom: default_half_cell(),
+            horizontal_bg_bleed: false,
+            vertical_bg_bleed: false,
         }
     }
 }

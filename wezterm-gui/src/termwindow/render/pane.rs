@@ -495,6 +495,7 @@ impl crate::TermWindow {
                                 pixel_width: self.dims.cols as f32
                                     * self.term_window.render_metrics.cell_size.width as f32,
                                 stable_line_idx: Some(stable_row),
+                                line_idx: Some(line_idx),
                                 line: &line,
                                 selection: selrange.clone(),
                                 cursor: &self.cursor,
@@ -505,6 +506,8 @@ impl crate::TermWindow {
                                 foreground: self.foreground,
                                 is_active: self.pos.is_active,
                                 pane: Some(&self.pos.pane),
+                                pane_top: Some(self.pos.top),
+                                pane_left: Some(self.pos.left),
                                 selection_fg: self.selection_fg,
                                 selection_bg: self.selection_bg,
                                 cursor_fg: self.cursor_fg,

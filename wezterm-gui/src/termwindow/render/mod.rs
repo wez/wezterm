@@ -135,6 +135,7 @@ pub struct RenderScreenLineParams<'a> {
     pub left_pixel_x: f32,
     pub pixel_width: f32,
     pub stable_line_idx: Option<StableRowIndex>,
+    pub line_idx: Option<usize>,
     pub line: &'a Line,
     pub selection: Range<usize>,
     pub cursor: &'a StableCursorPosition,
@@ -142,6 +143,9 @@ pub struct RenderScreenLineParams<'a> {
     pub dims: &'a RenderableDimensions,
     pub config: &'a ConfigHandle,
     pub pane: Option<&'a Arc<dyn Pane>>,
+
+    pub pane_left: Option<usize>,
+    pub pane_top: Option<usize>,
 
     pub white_space: TextureRect,
     pub filled_box: TextureRect,
@@ -361,6 +365,38 @@ impl crate::TermWindow {
         let padding_top = self.config.window_padding.top.evaluate_as_pixels(v_context);
 
         (padding_left, padding_top)
+    }
+
+    pub fn padding_top_right_bottom_left(&self) -> (f32, f32, f32, f32) {
+        let h_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.terminal_size.pixel_width as f32,
+            pixel_cell: self.render_metrics.cell_size.width as f32,
+        };
+        let v_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.terminal_size.pixel_height as f32,
+            pixel_cell: self.render_metrics.cell_size.height as f32,
+        };
+
+        let padding_left = self
+            .config
+            .window_padding
+            .left
+            .evaluate_as_pixels(h_context);
+        let padding_top = self.config.window_padding.top.evaluate_as_pixels(v_context);
+        let padding_right = self
+            .config
+            .window_padding
+            .right
+            .evaluate_as_pixels(v_context);
+        let padding_bottom = self
+            .config
+            .window_padding
+            .bottom
+            .evaluate_as_pixels(v_context);
+
+        (padding_top, padding_right, padding_bottom, padding_left)
     }
 
     fn resolve_lock_glyph(
