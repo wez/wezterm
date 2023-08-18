@@ -65,12 +65,8 @@ impl crate::TermWindow {
 
         let start = Instant::now();
 
-        let (
-            padding_top,
-            padding_right,
-            padding_bottom,
-            padding_left
-        ) = self.padding_top_right_bottom_left();
+        let (padding_top, padding_right, padding_bottom, padding_left) =
+            self.padding_top_right_bottom_left();
 
         let cursor_idx = if params.pane.is_some()
             && params.is_active
@@ -271,20 +267,15 @@ impl crate::TermWindow {
                             self.filled_rectangle(
                                 layers,
                                 0,
-                                euclid::rect(
-                                    0.0,
-                                    params.top_pixel_y,
-                                    padding_left,
-                                    cell_height,
-                                ),
+                                euclid::rect(0.0, params.top_pixel_y, padding_left, cell_height),
                                 bg_color,
-                            ) .context("filled_rectangle")?;
+                            )
+                            .context("filled_rectangle")?;
                         }
 
-                        let is_touching_right_window_edge = pane_left 
-                            + cluster.first_cell_idx 
-                            + cluster.width 
-                            == self.terminal_size.cols;
+                        let is_touching_right_window_edge =
+                            pane_left + cluster.first_cell_idx + cluster.width
+                                == self.terminal_size.cols;
                         if is_touching_right_window_edge {
                             let right_pixel_x = params.left_pixel_x + params.pixel_width;
                             self.filled_rectangle(
@@ -298,7 +289,8 @@ impl crate::TermWindow {
                                     cell_height,
                                 ),
                                 bg_color,
-                            ).context("filled_rectangle")?;
+                            )
+                            .context("filled_rectangle")?;
                         }
                     }
                 }
@@ -310,25 +302,25 @@ impl crate::TermWindow {
                         // Handle corners if both options are set
                         let (left, width) = match (
                             params.config.window_padding.horizontal_bg_bleed,
-                            params.pane_left
+                            params.pane_left,
                         ) {
-                            (true, Some(pane_left)) =>
+                            (true, Some(pane_left)) => {
                                 if pane_left + cluster.first_cell_idx == 0 {
                                     // left corner
                                     (0.0, cell_width * cluster.width as f32 + padding_left)
-                                }
-                                else if pane_left 
-                                    + cluster.first_cell_idx 
-                                    + cluster.width 
+                                } else if pane_left + cluster.first_cell_idx + cluster.width
                                     == self.terminal_size.cols
-                                {(
-                                    x,
-                                    cell_width 
-                                    * cluster.width as f32
-                                    + padding_right
-                                    + cell_width,
-                                )}
-                                else { (x, cell_width * cluster.width as f32) },
+                                {
+                                    (
+                                        x,
+                                        cell_width * cluster.width as f32
+                                            + padding_right
+                                            + cell_width,
+                                    )
+                                } else {
+                                    (x, cell_width * cluster.width as f32)
+                                }
+                            }
                             _ => (x, cell_width * cluster.width as f32),
                         };
 
@@ -343,11 +335,12 @@ impl crate::TermWindow {
                                     cell_height,
                                 ),
                                 bg_color,
-                            ) .context("filled_rectangle")?;
+                            )
+                            .context("filled_rectangle")?;
                         }
 
-                        let is_touching_bottom_window_edge = pane_top + line_idx 
-                            == params.dims.viewport_rows - 1;
+                        let is_touching_bottom_window_edge =
+                            pane_top + line_idx == params.dims.viewport_rows - 1;
                         if is_touching_bottom_window_edge {
                             self.filled_rectangle(
                                 layers,
@@ -359,7 +352,8 @@ impl crate::TermWindow {
                                     padding_bottom + cell_height,
                                 ),
                                 bg_color,
-                            ) .context("filled_rectangle")?;
+                            )
+                            .context("filled_rectangle")?;
                         }
                     }
                 }
