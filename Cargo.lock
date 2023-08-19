@@ -6226,7 +6226,6 @@ dependencies = [
  "memmap2 0.2.3",
  "metrics",
  "objc",
- "once_cell",
  "ordered-float",
  "rangeset",
  "resvg",

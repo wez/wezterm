@@ -1,21 +1,13 @@
 use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
-    hb_color_t, hb_glyph_extents_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_t,
-    hb_tag_to_string, ColorLine, DrawOp, Face, Font, PaintOp, IS_PNG,
+    hb_color_t, hb_paint_composite_mode_t, hb_tag_to_string, DrawOp, Face, Font, PaintOp, IS_PNG,
 };
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
 use crate::{FontRasterizer, ParsedFont, RasterizedGlyph};
-use anyhow::Context;
+use cairo::{Content, Context, Format, ImageSurface, Matrix, Operator, RecordingSurface};
 use image::DynamicImage::{ImageLuma8, ImageLumaA8};
-use once_cell::sync::Lazy;
-use resvg::tiny_skia::{
-    BlendMode, Color, FillRule, FilterQuality, GradientStop, LinearGradient, Paint, Path,
-    PathBuilder, Pixmap, PixmapPaint, PixmapRef, Point, RadialGradient, Rect, Shader, SpreadMode,
-    Transform,
-};
-
-static ONE_64TH: Lazy<Transform> = Lazy::new(|| Transform::from_scale(1. / 64., -1. / 64.));
+use image::GenericImageView;
 
 pub struct HarfbuzzRasterizer {
     face: Face,
@@ -66,11 +58,8 @@ impl FontRasterizer for HarfbuzzRasterizer {
 
         log::trace!("ops: {ops:#?}");
 
-        let ops = GlyphOp::new(ops)?;
-
-        let bounds = GlyphOp::compute_bounds(&ops)?;
-        let width = (bounds.right() + (bounds.left().min(0.) * -1.0)).ceil();
-        let height = (bounds.bottom() + (bounds.top().min(0.) * -1.0)).ceil();
+        let (surface, has_color) = record_to_cairo_surface(ops)?;
+        let (left, top, width, height) = surface.ink_extents();
 
         if width as usize == 0 || height as usize == 0 {
             return Ok(RasterizedGlyph {
@@ -83,500 +72,330 @@ impl FontRasterizer for HarfbuzzRasterizer {
             });
         }
 
-        let bounds_adjust =
-            Transform::from_translate(bounds.left().min(0.) * -1., bounds.top().min(0.) * -1.);
+        let mut bounds_adjust = Matrix::identity();
+        bounds_adjust.translate(left.min(0.) * -1., top.min(0.) * -1.);
 
-        log::info!("Overall bounds: {bounds:?} -> {width}x{height}");
-        let pixmap = Pixmap::new(width as u32, height as u32)
-            .ok_or_else(|| anyhow::anyhow!("invalid pixmap dimensions"))?;
-
-        let mut pixmap_stack = vec![pixmap];
-        let mut transforms = TransformStack::new();
-        let mut clip_stack = vec![];
-        let mut has_color = false;
-
-        for op in ops {
-            log::info!(
-                "pixmap_stack.len={} clip_stack.len={}",
-                pixmap_stack.len(),
-                clip_stack.len()
-            );
-            match dbg!(op) {
-                GlyphOp::PushTransform(t) => {
-                    transforms.push(t);
-                }
-                GlyphOp::PopTransform => {
-                    transforms.pop();
-                }
-                GlyphOp::PushClip(path) => {
-                    let path = path
-                        .clone()
-                        .transform(transforms.current())
-                        .ok_or_else(|| {
-                            anyhow::anyhow!("PushClip: transform produced invalid path")
-                        })?;
-                    clip_stack.push(path);
-                }
-                GlyphOp::PopClip => {
-                    clip_stack.pop();
-                }
-                GlyphOp::Paint(shader) => {
-                    let path = clip_stack
-                        .last()
-                        .ok_or_else(|| anyhow::anyhow!("Paint: no current clip"))?;
-                    let pixmap = pixmap_stack
-                        .last_mut()
-                        .ok_or_else(|| anyhow::anyhow!("Paint: no current pixmap"))?;
-
-                    if !has_color {
-                        has_color = shader.has_color();
-                    }
-
-                    pixmap.fill_path(
-                        path,
-                        &Paint {
-                            shader: shader.to_tiny_skia(transforms.current())?,
-                            blend_mode: BlendMode::SourceOver,
-                            anti_alias: true,
-                            force_hq_pipeline: true,
-                        },
-                        FillRule::default(),
-                        bounds_adjust,
-                        None,
-                    );
-                }
-                GlyphOp::PaintImage {
-                    image,
-                    width: _,
-                    height: _,
-                    format,
-                    slant: _, // FIXME: rotate/skew image?
-                    extents: _,
-                } => {
-                    if format == IS_PNG {
-                        let decoded =
-                            image::io::Reader::new(std::io::Cursor::new(image.as_slice()))
-                                .with_guessed_format()?
-                                .decode()?;
-
-                        match &decoded {
-                            ImageLuma8(_) | ImageLumaA8(_) => {
-                                // Not color, but don't replace a potential
-                                // existing has_color=true
-                            }
-                            _ => {
-                                has_color = true;
-                            }
-                        }
-
-                        let mut decoded = decoded.into_rgba8();
-
-                        // Convert to premultiplied form
-                        fn multiply_alpha(alpha: u8, color: u8) -> u8 {
-                            let temp: u32 = alpha as u32 * (color as u32 + 0x80);
-
-                            ((temp + (temp >> 8)) >> 8) as u8
-                        }
-
-                        for (_x, _y, pixel) in decoded.enumerate_pixels_mut() {
-                            let alpha = pixel[3];
-                            if alpha == 0 {
-                                pixel[0] = 0;
-                                pixel[1] = 0;
-                                pixel[2] = 0;
-                            } else {
-                                if alpha != 0xff {
-                                    for n in 0..3 {
-                                        pixel[n] = multiply_alpha(alpha, pixel[n]);
-                                    }
-                                }
-                            }
-                        }
-                        // Crop to the non-transparent portions of the image
-                        let cropped =
-                            crate::rasterizer::crop_to_non_transparent(&mut decoded).to_image();
-
-                        log::info!("cropped to {:?}", cropped.dimensions());
-
-                        let pixmap = PixmapRef::from_bytes(
-                            cropped.as_raw(),
-                            cropped.width(),
-                            cropped.height(),
-                        )
-                        .ok_or_else(|| anyhow::anyhow!("making PixmapRef from cropped failed"))?;
-
-                        let target = pixmap_stack
-                            .last_mut()
-                            .ok_or_else(|| anyhow::anyhow!("Paint: no current pixmap"))?;
-
-                        let scale = Transform::from_scale(
-                            width as f32 / cropped.width() as f32,
-                            height as f32 / cropped.height() as f32,
-                        );
-
-                        target.draw_pixmap(
-                            0,
-                            0,
-                            pixmap,
-                            &PixmapPaint {
-                                opacity: 1.,
-                                blend_mode: BlendMode::SourceOver,
-                                quality: FilterQuality::Nearest,
-                            },
-                            scale,
-                            None,
-                        );
-                    } else {
-                        anyhow::bail!(
-                            "PaintImage format {format:?} {} not implemented",
-                            hb_tag_to_string(format)
-                        );
-                    }
-                }
-                GlyphOp::PushGroup => {
-                    let pixmap = Pixmap::new(width as u32, height as u32)
-                        .ok_or_else(|| anyhow::anyhow!("invalid pixmap dimensions"))?;
-                    pixmap_stack.push(pixmap);
-                }
-                GlyphOp::PopGroup(blend_mode) => {
-                    let pixmap = pixmap_stack
-                        .pop()
-                        .ok_or_else(|| anyhow::anyhow!("no more groups to pop"))?;
-                    let target = pixmap_stack
-                        .last_mut()
-                        .ok_or_else(|| anyhow::anyhow!("Paint: no current pixmap"))?;
-
-                    target.draw_pixmap(
-                        0,
-                        0,
-                        pixmap.as_ref(),
-                        &PixmapPaint {
-                            opacity: 1.,
-                            blend_mode,
-                            quality: FilterQuality::Nearest,
-                        },
-                        bounds_adjust,
-                        None,
-                    );
-                }
-            }
+        let target = ImageSurface::create(Format::ARgb32, width as i32, height as i32)?;
+        {
+            let context = Context::new(&target)?;
+            context.transform(bounds_adjust);
+            context.set_antialias(cairo::Antialias::Best);
+            context.set_source_surface(surface, 0., 0.)?;
+            context.paint()?;
         }
 
-        anyhow::ensure!(
-            pixmap_stack.len() == 1,
-            "expected 1 pixmap to remain in stack, but had {}",
-            pixmap_stack.len()
-        );
+        let mut data = target.take_data()?.to_vec();
+        argb_to_rgba(&mut data);
 
         Ok(RasterizedGlyph {
-            data: pixmap_stack.pop().expect("bounds check above").take(),
+            data,
             height: height as usize,
             width: width as usize,
-            bearing_x: PixelLength::new(bounds.left().min(0.) as f64),
-            bearing_y: PixelLength::new(bounds.top() as f64 * -1.),
+            bearing_x: PixelLength::new(left.min(0.)),
+            bearing_y: PixelLength::new(top * -1.),
             has_color,
         })
     }
 }
 
-struct TransformStack {
-    stack: Vec<Transform>,
-    current: Transform,
-}
+fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(RecordingSurface, bool)> {
+    let mut has_color = false;
+    let surface = RecordingSurface::create(Content::ColorAlpha, None)?;
+    let context = Context::new(&surface)?;
+    context.scale(1. / 64., -1. / 64.);
 
-impl TransformStack {
-    fn new() -> Self {
-        Self {
-            stack: vec![],
-            current: ONE_64TH.clone(),
-        }
-    }
+    for pop in paint_ops {
+        match pop {
+            PaintOp::PushTransform {
+                xx,
+                yx,
+                xy,
+                yy,
+                dx,
+                dy,
+            } => {
+                context.save()?;
+                context.transform(Matrix::new(
+                    xx.into(),
+                    yx.into(),
+                    xy.into(),
+                    yy.into(),
+                    dx.into(),
+                    dy.into(),
+                ));
+            }
+            PaintOp::PopTransform => {
+                context.restore()?;
+            }
+            PaintOp::PushGlyphClip { glyph: _, draw } => {
+                context.save()?;
+                apply_draw_ops_to_context(&draw, &context)?;
+                context.clip();
+            }
+            PaintOp::PushRectClip {
+                xmin,
+                ymin,
+                ymax,
+                xmax,
+            } => {
+                context.save()?;
+                context.rectangle(
+                    xmin.into(),
+                    ymin.into(),
+                    (xmax - xmin).into(),
+                    (ymax - ymin).into(),
+                );
+                context.clip();
+            }
+            PaintOp::PopClip => {
+                context.restore()?;
+            }
+            PaintOp::PushGroup => {
+                context.save()?;
+                context.push_group();
+            }
+            PaintOp::PopGroup { mode } => {
+                context.pop_group_to_source()?;
+                context.set_operator(hb_paint_mode_to_operator(mode));
+                context.paint()?;
+                context.restore()?;
+            }
+            PaintOp::PaintSolid {
+                is_foreground: _,
+                color,
+            } => {
+                if color != 0xffffffff {
+                    has_color = true;
+                }
+                let (r, g, b, a) = hb_color_to_rgba(color);
+                log::info!("PaintSolid {color:x} -> rgba {r} {g} {b} {a}");
+                context.set_source_rgba(r, g, b, a);
+                context.paint()?;
+            }
+            PaintOp::PaintLinearGradient {
+                x0,
+                y0,
+                x1,
+                y1,
+                x2,
+                y2,
+                color_line,
+            } => {
+                has_color = true;
+                context.set_source_rgba(1.0, 1., 1., 1.0);
+                context.paint()?;
+                //anyhow::bail!("NOT IMPL: PaintLinearGradient");
+            }
+            PaintOp::PaintRadialGradient {
+                x0,
+                y0,
+                r0,
+                x1,
+                y1,
+                r1,
+                color_line,
+            } => {
+                has_color = true;
+                anyhow::bail!("NOT IMPL: PaintRadialGradient");
+            }
+            PaintOp::PaintSweepGradient {
+                x0,
+                y0,
+                start_angle,
+                end_angle,
+                color_line,
+            } => {
+                has_color = true;
+                anyhow::bail!("NOT IMPL: PaintSweepGradient");
+            }
+            PaintOp::PaintImage {
+                image,
+                width,
+                height,
+                format,
+                slant,
+                extents,
+            } => {
+                let image_surface = if format == IS_PNG {
+                    let decoded = image::io::Reader::new(std::io::Cursor::new(image.as_slice()))
+                        .with_guessed_format()?
+                        .decode()?;
 
-    pub fn push(&mut self, t: Transform) {
-        self.stack.push(t);
-        self.current = self.current.post_concat(t);
-    }
+                    if !matches!(&decoded, ImageLuma8(_) | ImageLumaA8(_)) {
+                        // Not a monochrome image
+                        has_color = true;
+                    }
 
-    pub fn pop(&mut self) {
-        if self.stack.pop().is_some() {
-            self.current = ONE_64TH.clone();
-            for &t in &self.stack {
-                self.current = self.current.post_concat(t);
+                    let (width, height) = decoded.dimensions();
+                    let mut data = decoded.into_rgba8().into_vec();
+
+                    // Cairo wants ARGB. Walk through the pixels and
+                    // premultiply and get into that form
+                    rgba_to_argb_and_multiply(&mut data);
+                    // premultiply(&mut data);
+
+                    let width = width as i32;
+                    let height = height as i32;
+                    ImageSurface::create_for_data(data, Format::ARgb32, width, height, width * 4)?
+                } else {
+                    anyhow::bail!("NOT IMPL: PaintImage {}", hb_tag_to_string(format));
+                };
+
+                // Use the decoded dimensions; not all fonts encode
+                // the dimensions correctly in the font data
+                let width = image_surface.width();
+                let height = image_surface.height();
+
+                let extents = extents.ok_or_else(|| {
+                    anyhow::anyhow!("expected to have extents for non-svg image data")
+                })?;
+
+                context.save()?;
+                // Ensure that we clip to the image rectangle
+                context.rectangle(
+                    extents.x_bearing.into(),
+                    extents.y_bearing.into(),
+                    extents.width.into(),
+                    extents.height.into(),
+                );
+                context.clip();
+
+                let pattern = cairo::SurfacePattern::create(image_surface);
+                pattern.set_extend(cairo::Extend::Pad);
+                pattern.set_matrix(Matrix::new(width.into(), 0., 0., height.into(), 0., 0.));
+
+                let slanted_width = extents.width as f64 - extents.height as f64 * slant as f64;
+                let slanted_x_bearing =
+                    extents.x_bearing as f64 - extents.y_bearing as f64 * slant as f64;
+                context.transform(Matrix::new(1., 0., slant.into(), 1., 0., 0.));
+                context.translate(slanted_x_bearing.into(), extents.y_bearing.into());
+                context.scale(slanted_width.into(), extents.height.into());
+                context.set_source(pattern)?;
+                context.paint()?;
+                context.restore()?;
             }
         }
     }
 
-    pub fn current(&self) -> Transform {
-        self.current
+    Ok((surface, has_color))
+}
+
+fn multiply_alpha(alpha: u8, color: u8) -> u8 {
+    let temp: u32 = alpha as u32 * (color as u32 + 0x80);
+
+    ((temp + (temp >> 8)) >> 8) as u8
+}
+
+fn demultiply_alpha(alpha: u8, color: u8) -> u8 {
+    if alpha == 0 {
+        return 0;
+    }
+    let v = ((color as u32) * 255) / alpha as u32;
+    if v > 255 {
+        255
+    } else {
+        v as u8
     }
 }
 
-#[derive(Debug)]
-enum GlyphOp {
-    PushTransform(Transform),
-    PopTransform,
-    PushClip(Path),
-    PopClip,
-    Paint(SimpleShader),
-    PaintImage {
-        image: crate::hbwrap::Blob,
-        width: u32,
-        height: u32,
-        format: hb_tag_t,
-        slant: f32,
-        extents: Option<hb_glyph_extents_t>,
-    },
-    PushGroup,
-    PopGroup(BlendMode),
+fn premultiply(data: &mut [u8]) {
+    for pixel in data.chunks_exact_mut(4) {
+        let (r, g, b, a) = (pixel[0], pixel[1], pixel[2], pixel[3]);
+        pixel[0] = multiply_alpha(a, r);
+        pixel[1] = multiply_alpha(a, g);
+        pixel[2] = multiply_alpha(a, b);
+        pixel[3] = a;
+    }
 }
 
-impl GlyphOp {
-    pub fn new(ops: Vec<PaintOp>) -> anyhow::Result<Vec<Self>> {
-        let mut result = vec![];
-        for op in ops {
-            result.push(match op {
-                PaintOp::PushTransform {
-                    xx,
-                    yx,
-                    xy,
-                    yy,
-                    dx,
-                    dy,
-                } => Self::PushTransform(Transform {
-                    sx: xx,
-                    sy: xy,
-                    kx: yx,
-                    ky: yy,
-                    tx: dx,
-                    ty: dy,
-                }),
-                PaintOp::PopTransform => Self::PopTransform,
-                PaintOp::PushGlyphClip { glyph: _, draw } => {
-                    let path = build_path(draw).context("PushGlyphClip: build_path")?;
-                    Self::PushClip(path)
-                }
-                PaintOp::PushRectClip {
-                    xmin,
-                    ymin,
-                    ymax,
-                    xmax,
-                } => {
-                    let rect = Rect::from_ltrb(xmin, ymin, xmax, ymax).ok_or_else(|| {
-                        anyhow::anyhow!(
-                            "PushRectClip: Rect::from_ltrb failed for {xmin},{ymin},{xmax},{ymax}"
-                        )
-                    })?;
-                    let mut pb = PathBuilder::new();
-                    pb.push_rect(rect);
-                    let path = pb.finish().ok_or_else(|| {
-                        anyhow::anyhow!("PushRectClip: pathbuilder finish failed")
-                    })?;
-                    Self::PushClip(path)
-                }
-                PaintOp::PopClip => Self::PopClip,
-                PaintOp::PaintSolid {
-                    is_foreground: _,
-                    color,
-                } => {
-                    let color = hb_color_to_color(color);
-                    Self::Paint(SimpleShader::Color(color))
-                }
-                PaintOp::PaintImage {
-                    image,
-                    width,
-                    height,
-                    format,
-                    slant,
-                    extents,
-                } => Self::PaintImage {
-                    image,
-                    width,
-                    height,
-                    format,
-                    slant,
-                    extents,
-                },
-                PaintOp::PaintLinearGradient {
-                    x0,
-                    y0,
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                    color_line,
-                } => {
-                    let fallback_color = hb_color_to_color(color_line.color_stops[0].color);
-                    Self::Paint(SimpleShader::LinearGradient {
-                        p0: Point::from_xy(x0, y0),
-                        p1: Point::from_xy(x1, y1),
-                        p2: Point::from_xy(x2, y2),
-                        stops: color_line_to_stops(&color_line),
-                        spread: hb_extend_to_spread_mode(color_line.extend),
-                        fallback_color,
-                    })
-                }
-                PaintOp::PaintRadialGradient {
-                    x0,
-                    y0,
-                    r0,
-                    x1,
-                    y1,
-                    r1,
-                    color_line,
-                } => {
-                    let fallback_color = hb_color_to_color(color_line.color_stops[0].color);
-                    Self::Paint(SimpleShader::RadialGradient {
-                        p0: Point::from_xy(x0, y0),
-                        p1: Point::from_xy(x1, y1),
-                        r0,
-                        r1,
-                        stops: color_line_to_stops(&color_line),
-                        spread: hb_extend_to_spread_mode(color_line.extend),
-                        fallback_color,
-                    })
-                }
-                PaintOp::PaintSweepGradient {
-                    x0,
-                    y0,
-                    start_angle,
-                    end_angle,
-                    color_line,
-                } => {
-                    let fallback_color = hb_color_to_color(color_line.color_stops[0].color);
-                    Self::Paint(SimpleShader::SweepGradient {
-                        p: Point::from_xy(x0, y0),
-                        start_angle,
-                        end_angle,
-                        stops: color_line_to_stops(&color_line),
-                        spread: hb_extend_to_spread_mode(color_line.extend),
-                        fallback_color,
-                    })
-                }
-                PaintOp::PushGroup => Self::PushGroup,
-                PaintOp::PopGroup { mode } => {
-                    use hb_paint_composite_mode_t::*;
-                    let mode = match mode {
-                        HB_PAINT_COMPOSITE_MODE_CLEAR => BlendMode::Clear,
-                        HB_PAINT_COMPOSITE_MODE_SRC => BlendMode::Source,
-                        HB_PAINT_COMPOSITE_MODE_DEST => BlendMode::Destination,
-                        HB_PAINT_COMPOSITE_MODE_SRC_OVER => BlendMode::SourceOver,
-                        HB_PAINT_COMPOSITE_MODE_DEST_OVER => BlendMode::DestinationOver,
-                        HB_PAINT_COMPOSITE_MODE_SRC_IN => BlendMode::SourceIn,
-                        HB_PAINT_COMPOSITE_MODE_DEST_IN => BlendMode::DestinationIn,
-                        HB_PAINT_COMPOSITE_MODE_SRC_OUT => BlendMode::SourceOut,
-                        HB_PAINT_COMPOSITE_MODE_DEST_OUT => BlendMode::DestinationOut,
-                        HB_PAINT_COMPOSITE_MODE_SRC_ATOP => BlendMode::SourceAtop,
-                        HB_PAINT_COMPOSITE_MODE_DEST_ATOP => BlendMode::DestinationAtop,
-                        HB_PAINT_COMPOSITE_MODE_XOR => BlendMode::Xor,
-                        HB_PAINT_COMPOSITE_MODE_PLUS => BlendMode::Plus,
-                        HB_PAINT_COMPOSITE_MODE_SCREEN => BlendMode::Screen,
-                        HB_PAINT_COMPOSITE_MODE_OVERLAY => BlendMode::Overlay,
-                        HB_PAINT_COMPOSITE_MODE_DARKEN => BlendMode::Darken,
-                        HB_PAINT_COMPOSITE_MODE_LIGHTEN => BlendMode::Lighten,
-                        HB_PAINT_COMPOSITE_MODE_COLOR_DODGE => BlendMode::ColorDodge,
-                        HB_PAINT_COMPOSITE_MODE_COLOR_BURN => BlendMode::ColorBurn,
-                        HB_PAINT_COMPOSITE_MODE_HARD_LIGHT => BlendMode::HardLight,
-                        HB_PAINT_COMPOSITE_MODE_SOFT_LIGHT => BlendMode::SoftLight,
-                        HB_PAINT_COMPOSITE_MODE_DIFFERENCE => BlendMode::Difference,
-                        HB_PAINT_COMPOSITE_MODE_EXCLUSION => BlendMode::Exclusion,
-                        HB_PAINT_COMPOSITE_MODE_MULTIPLY => BlendMode::Multiply,
-                        HB_PAINT_COMPOSITE_MODE_HSL_HUE => BlendMode::Hue,
-                        HB_PAINT_COMPOSITE_MODE_HSL_SATURATION => BlendMode::Saturation,
-                        HB_PAINT_COMPOSITE_MODE_HSL_COLOR => BlendMode::Color,
-                        HB_PAINT_COMPOSITE_MODE_HSL_LUMINOSITY => BlendMode::Luminosity,
-                    };
-                    Self::PopGroup(mode)
-                }
-            });
+fn rgba_to_argb_and_multiply(data: &mut [u8]) {
+    let data_32 = unsafe {
+        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
+    };
+    for mut_pixel in data_32 {
+        let [mut r, mut g, mut b, a] = mut_pixel.to_ne_bytes();
+
+        if a != 0xff {
+            r = multiply_alpha(a, r);
+            g = multiply_alpha(a, g);
+            b = multiply_alpha(a, b);
         }
 
-        Ok(result)
-    }
-
-    pub fn compute_bounds(ops: &[Self]) -> anyhow::Result<Rect> {
-        let mut transforms = TransformStack::new();
-        let mut pb = PathBuilder::new();
-
-        for op in ops {
-            match op {
-                Self::PushTransform(t) => {
-                    transforms.push(*t);
-                }
-                Self::PopTransform => {
-                    transforms.pop();
-                }
-                Self::PushClip(path) => {
-                    let path = path
-                        .clone()
-                        .transform(transforms.current())
-                        .ok_or_else(|| {
-                            anyhow::anyhow!("PushClip: transform produced invalid path")
-                        })?;
-                    pb.push_path(&path);
-                }
-                Self::PopClip => {}
-                Self::Paint(_) => {}
-                Self::PaintImage {
-                    width,
-                    height,
-                    slant,
-                    extents,
-                    ..
-                } => {
-                    let rect = match extents {
-                        Some(e) => {
-                            let left = e.x_bearing.min(e.width) as f32;
-                            let top = e.y_bearing.min(e.height) as f32;
-                            let right = e.x_bearing.max(e.width) as f32;
-                            let bottom = e.y_bearing.max(e.height) as f32;
-
-                            Rect::from_ltrb(left, top, right, bottom)
-                                .ok_or_else(|| anyhow::anyhow!("Rect::from_ltrb {left},{top},{right},{bottom} from {e:?} failed"))?
-                        }
-                        None => Rect::from_ltrb(0., 0., *width as f32 * 64., *height as f32 * 64.)
-                            .ok_or_else(|| {
-                                anyhow::anyhow!("Rect::from_ltrb 0,0,{width},{height} failed")
-                            })?,
-                    };
-
-                    let rect = PathBuilder::from_rect(rect);
-
-                    let path = rect
-                        .transform(Transform::from_rotate(*slant).post_concat(transforms.current()))
-                        .ok_or_else(|| anyhow::anyhow!("path transform failed"))?;
-
-                    pb.push_path(&path);
-                }
-                Self::PushGroup => {}
-                Self::PopGroup(_) => {}
-            }
-        }
-
-        let path = pb
-            .finish()
-            .ok_or_else(|| anyhow::anyhow!("path builder failed"))?;
-        Ok(path.bounds())
+        *mut_pixel = u32::from_ne_bytes([a, r, g, b]);
     }
 }
 
-fn build_path(ops: Vec<DrawOp>) -> anyhow::Result<Path> {
-    if ops.is_empty() {
-        return Ok(PathBuilder::from_rect(
-            Rect::from_ltrb(0., 0., 0., 0.).expect("zero size rect to be ok"),
-        ));
+fn argb_to_rgba(data: &mut [u8]) {
+    let data_32 = unsafe {
+        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
+    };
+    for mut_pixel in data_32 {
+        let [a, r, g, b] = mut_pixel.to_ne_bytes();
+        *mut_pixel = u32::from_ne_bytes([r, g, b, a]);
     }
+}
 
-    let mut pb = PathBuilder::new();
+fn argb_to_rgba_and_demultiply(data: &mut [u8]) {
+    let data_32 = unsafe {
+        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
+    };
+    for mut_pixel in data_32 {
+        let [a, mut r, mut g, mut b] = mut_pixel.to_ne_bytes();
+
+        if a < 0xff {
+            r = demultiply_alpha(a, r);
+            g = demultiply_alpha(a, g);
+            b = demultiply_alpha(a, b);
+        }
+        *mut_pixel = u32::from_ne_bytes([r, g, b, a]);
+    }
+}
+
+fn hb_paint_mode_to_operator(mode: hb_paint_composite_mode_t) -> Operator {
+    use hb_paint_composite_mode_t::*;
+    match mode {
+        HB_PAINT_COMPOSITE_MODE_CLEAR => Operator::Clear,
+        HB_PAINT_COMPOSITE_MODE_SRC => Operator::Source,
+        HB_PAINT_COMPOSITE_MODE_DEST => Operator::Dest,
+        HB_PAINT_COMPOSITE_MODE_SRC_OVER => Operator::Over,
+        HB_PAINT_COMPOSITE_MODE_DEST_OVER => Operator::DestOver,
+        HB_PAINT_COMPOSITE_MODE_SRC_IN => Operator::In,
+        HB_PAINT_COMPOSITE_MODE_DEST_IN => Operator::DestIn,
+        HB_PAINT_COMPOSITE_MODE_SRC_OUT => Operator::Out,
+        HB_PAINT_COMPOSITE_MODE_DEST_OUT => Operator::DestOut,
+        HB_PAINT_COMPOSITE_MODE_SRC_ATOP => Operator::Atop,
+        HB_PAINT_COMPOSITE_MODE_DEST_ATOP => Operator::DestAtop,
+        HB_PAINT_COMPOSITE_MODE_XOR => Operator::Xor,
+        HB_PAINT_COMPOSITE_MODE_PLUS => Operator::Add,
+        HB_PAINT_COMPOSITE_MODE_SCREEN => Operator::Screen,
+        HB_PAINT_COMPOSITE_MODE_OVERLAY => Operator::Overlay,
+        HB_PAINT_COMPOSITE_MODE_DARKEN => Operator::Darken,
+        HB_PAINT_COMPOSITE_MODE_LIGHTEN => Operator::Lighten,
+        HB_PAINT_COMPOSITE_MODE_COLOR_DODGE => Operator::ColorDodge,
+        HB_PAINT_COMPOSITE_MODE_COLOR_BURN => Operator::ColorBurn,
+        HB_PAINT_COMPOSITE_MODE_HARD_LIGHT => Operator::HardLight,
+        HB_PAINT_COMPOSITE_MODE_SOFT_LIGHT => Operator::SoftLight,
+        HB_PAINT_COMPOSITE_MODE_DIFFERENCE => Operator::Difference,
+        HB_PAINT_COMPOSITE_MODE_EXCLUSION => Operator::Exclusion,
+        HB_PAINT_COMPOSITE_MODE_MULTIPLY => Operator::Multiply,
+        HB_PAINT_COMPOSITE_MODE_HSL_HUE => Operator::HslHue,
+        HB_PAINT_COMPOSITE_MODE_HSL_SATURATION => Operator::HslSaturation,
+        HB_PAINT_COMPOSITE_MODE_HSL_COLOR => Operator::HslColor,
+        HB_PAINT_COMPOSITE_MODE_HSL_LUMINOSITY => Operator::HslLuminosity,
+    }
+}
+
+fn apply_draw_ops_to_context(ops: &[DrawOp], context: &Context) -> anyhow::Result<()> {
     let mut current = None;
-
+    context.new_path();
     for op in ops {
         match op {
             DrawOp::MoveTo { to_x, to_y } => {
-                pb.move_to(to_x, to_y);
+                context.move_to((*to_x).into(), (*to_y).into());
                 current.replace((to_x, to_y));
             }
             DrawOp::LineTo { to_x, to_y } => {
-                pb.line_to(to_x, to_y);
+                context.line_to((*to_x).into(), (*to_y).into());
                 current.replace((to_x, to_y));
             }
             DrawOp::QuadTo {
@@ -590,15 +409,14 @@ fn build_path(ops: Vec<DrawOp>) -> anyhow::Result<Path> {
                 // Express quadratic as a cubic
                 // <https://stackoverflow.com/a/55034115/149111>
 
-                pb.cubic_to(
-                    x + (2. / 3.) * (control_x - x),
-                    y + (2. / 3.) * (control_y - y),
-                    to_x + (2. / 3.) * (control_x - to_x),
-                    to_y + (2. / 3.) * (control_y - to_y),
-                    to_x,
-                    to_y,
+                context.curve_to(
+                    (x + (2. / 3.) * (control_x - x)).into(),
+                    (y + (2. / 3.) * (control_y - y)).into(),
+                    (to_x + (2. / 3.) * (control_x - to_x)).into(),
+                    (to_y + (2. / 3.) * (control_y - to_y)).into(),
+                    (*to_x).into(),
+                    (*to_y).into(),
                 );
-
                 current.replace((to_x, to_y));
             }
             DrawOp::CubicTo {
@@ -609,149 +427,36 @@ fn build_path(ops: Vec<DrawOp>) -> anyhow::Result<Path> {
                 to_x,
                 to_y,
             } => {
-                pb.cubic_to(control1_x, control1_y, control2_x, control2_y, to_x, to_y);
+                context.curve_to(
+                    (*control1_x).into(),
+                    (*control1_y).into(),
+                    (*control2_x).into(),
+                    (*control2_y).into(),
+                    (*to_x).into(),
+                    (*to_y).into(),
+                );
                 current.replace((to_x, to_y));
             }
             DrawOp::ClosePath => {
-                pb.close();
+                context.close_path();
             }
         }
     }
-
-    let path = pb
-        .finish()
-        .ok_or_else(|| anyhow::anyhow!("pathbuilder finish failed"))?;
-
-    Ok(path)
+    Ok(())
 }
 
-#[derive(Clone, Debug)]
-enum SimpleShader {
-    Color(Color),
-    LinearGradient {
-        p0: Point,
-        #[allow(dead_code)]
-        p1: Point,
-        p2: Point,
-        stops: Vec<GradientStop>,
-        spread: SpreadMode,
-        fallback_color: Color,
-    },
-    RadialGradient {
-        p0: Point,
-        p1: Point,
-        #[allow(dead_code)]
-        r0: f32,
-        r1: f32,
-        stops: Vec<GradientStop>,
-        spread: SpreadMode,
-        fallback_color: Color,
-    },
-    SweepGradient {
-        #[allow(dead_code)]
-        p: Point,
-        #[allow(dead_code)]
-        start_angle: f32,
-        #[allow(dead_code)]
-        end_angle: f32,
-        #[allow(dead_code)]
-        stops: Vec<GradientStop>,
-        #[allow(dead_code)]
-        spread: SpreadMode,
-        // Remove me once/if real sweep gradient support
-        // is added to tiny_skia
-        fallback_color: Color,
-    },
-}
-
-impl SimpleShader {
-    fn has_color(&self) -> bool {
-        match self {
-            Self::Color(c) => *c != Color::WHITE,
-            _ => true,
-        }
-    }
-
-    fn to_tiny_skia(self, transform: Transform) -> anyhow::Result<Shader<'static>> {
-        log::warn!(
-            "build shader from {self:?} and {transform:?}. is invertible? {}",
-            transform.invert().is_some()
-        );
-        match self {
-            Self::Color(c) => Ok(Shader::SolidColor(c)),
-            Self::LinearGradient {
-                p0,
-                p1: _,
-                p2,
-                stops,
-                spread,
-                fallback_color,
-            } => {
-                if transform.invert().is_none() {
-                    log::warn!("cannot build LinearGradient with non-invertible transform, using solid color");
-                    return Ok(Shader::SolidColor(fallback_color));
-                }
-
-                // Note: tiny_skia doesn't have a way for us to set
-                // the midpoint in the gradient, so we're ignoring
-                // that coordinate pair
-                LinearGradient::new(p0, p2, stops, spread, transform)
-                    .ok_or_else(|| anyhow::anyhow!("failed to build LinearGradient"))
-            }
-            Self::RadialGradient {
-                p0,
-                p1,
-                r0: _,
-                r1,
-                stops,
-                spread,
-                fallback_color,
-            } => {
-                if transform.invert().is_none() {
-                    log::warn!("cannot build RadialGradient with non-invertible transform, using solid color");
-                    return Ok(Shader::SolidColor(fallback_color));
-                }
-                // Note: tiny_skia doesn't have a way for us to set
-                // the inner radius, so we ignore it
-                RadialGradient::new(p0, p1, r1, stops, spread, transform)
-                    .ok_or_else(|| anyhow::anyhow!("failed to build RadialGradient"))
-            }
-            Self::SweepGradient {
-                p: _,
-                start_angle: _,
-                end_angle: _,
-                stops: _,
-                spread: _,
-                fallback_color,
-            } => {
-                // Note: tiny_skia doesn't support sweep gradients, so we
-                // just use a solid color
-                Ok(Shader::SolidColor(fallback_color))
-            }
-        }
-    }
-}
-
-fn color_line_to_stops(line: &ColorLine) -> Vec<GradientStop> {
-    line.color_stops
-        .iter()
-        .map(|stop| GradientStop::new(stop.offset, hb_color_to_color(stop.color)))
-        .collect()
-}
-
-fn hb_color_to_color(color: hb_color_t) -> Color {
+fn hb_color_to_rgba8(color: hb_color_t) -> (u8, u8, u8, u8) {
     let red = unsafe { hb_color_get_red(color) };
     let green = unsafe { hb_color_get_green(color) };
     let blue = unsafe { hb_color_get_blue(color) };
     let alpha = unsafe { hb_color_get_alpha(color) };
-
-    Color::from_rgba8(red, green, blue, alpha)
+    (red, green, blue, alpha)
 }
 
-fn hb_extend_to_spread_mode(extend: hb_paint_extend_t) -> SpreadMode {
-    match extend {
-        hb_paint_extend_t::HB_PAINT_EXTEND_PAD => SpreadMode::Pad,
-        hb_paint_extend_t::HB_PAINT_EXTEND_REPEAT => SpreadMode::Repeat,
-        hb_paint_extend_t::HB_PAINT_EXTEND_REFLECT => SpreadMode::Reflect,
-    }
+fn hb_color_to_rgba(color: hb_color_t) -> (f64, f64, f64, f64) {
+    let red = unsafe { hb_color_get_red(color) } as f64;
+    let green = unsafe { hb_color_get_green(color) } as f64;
+    let blue = unsafe { hb_color_get_blue(color) } as f64;
+    let alpha = unsafe { hb_color_get_alpha(color) } as f64;
+    (red / 255., green / 255., blue / 255., alpha / 255.)
 }
