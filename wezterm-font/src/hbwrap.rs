@@ -325,7 +325,6 @@ impl Font {
     }
 
     pub fn set_font_scale(&self, x_scale: c_int, y_scale: c_int) {
-        log::info!("setting x_scale={x_scale}, y_scale={y_scale}");
         unsafe {
             hb_font_set_scale(self.font, x_scale, y_scale);
         }

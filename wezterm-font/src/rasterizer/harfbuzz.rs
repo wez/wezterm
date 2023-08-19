@@ -1,11 +1,15 @@
 use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
-    hb_color_t, hb_paint_composite_mode_t, hb_tag_to_string, DrawOp, Face, Font, PaintOp, IS_PNG,
+    hb_color_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_to_string, ColorLine, DrawOp,
+    Face, Font, PaintOp, IS_PNG,
 };
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
 use crate::{FontRasterizer, ParsedFont, RasterizedGlyph};
-use cairo::{Content, Context, Format, ImageSurface, Matrix, Operator, RecordingSurface};
+use cairo::{
+    Content, Context, Extend, Format, ImageSurface, LinearGradient, Matrix, Operator,
+    RadialGradient, RecordingSurface,
+};
 use image::DynamicImage::{ImageLuma8, ImageLumaA8};
 use image::GenericImageView;
 
@@ -43,7 +47,6 @@ impl FontRasterizer for HarfbuzzRasterizer {
 
         let scale = pixel_size as i32 * 64;
         let ppem = pixel_size;
-        log::info!("computed scale={scale}, ppem={ppem}, upem={upem}");
 
         self.font.set_ppem(ppem, ppem);
         self.font.set_ptem(size as f32);
@@ -60,6 +63,7 @@ impl FontRasterizer for HarfbuzzRasterizer {
 
         let (surface, has_color) = record_to_cairo_surface(ops)?;
         let (left, top, width, height) = surface.ink_extents();
+        log::trace!("extents: left={left} top={top} width={width} height={height}");
 
         if width as usize == 0 || height as usize == 0 {
             return Ok(RasterizedGlyph {
@@ -73,7 +77,8 @@ impl FontRasterizer for HarfbuzzRasterizer {
         }
 
         let mut bounds_adjust = Matrix::identity();
-        bounds_adjust.translate(left.min(0.) * -1., top.min(0.) * -1.);
+        bounds_adjust.translate(left * -1., top * -1.);
+        log::trace!("dims: {width}x{height} {bounds_adjust:?}");
 
         let target = ImageSurface::create(Format::ARgb32, width as i32, height as i32)?;
         {
@@ -103,6 +108,7 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
     let surface = RecordingSurface::create(Content::ColorAlpha, None)?;
     let context = Context::new(&surface)?;
     context.scale(1. / 64., -1. / 64.);
+    context.set_antialias(cairo::Antialias::Best);
 
     for pop in paint_ops {
         match pop {
@@ -168,7 +174,6 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                     has_color = true;
                 }
                 let (r, g, b, a) = hb_color_to_rgba(color);
-                log::info!("PaintSolid {color:x} -> rgba {r} {g} {b} {a}");
                 context.set_source_rgba(r, g, b, a);
                 context.paint()?;
             }
@@ -182,9 +187,16 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                 color_line,
             } => {
                 has_color = true;
-                context.set_source_rgba(1.0, 1., 1., 1.0);
-                context.paint()?;
-                //anyhow::bail!("NOT IMPL: PaintLinearGradient");
+                paint_linear_gradient(
+                    &context,
+                    x0.into(),
+                    y0.into(),
+                    x1.into(),
+                    y1.into(),
+                    x2.into(),
+                    y2.into(),
+                    color_line,
+                )?;
             }
             PaintOp::PaintRadialGradient {
                 x0,
@@ -196,7 +208,16 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                 color_line,
             } => {
                 has_color = true;
-                anyhow::bail!("NOT IMPL: PaintRadialGradient");
+                paint_radial_gradient(
+                    &context,
+                    x0.into(),
+                    y0.into(),
+                    r0.into(),
+                    x1.into(),
+                    y1.into(),
+                    r1.into(),
+                    color_line,
+                )?;
             }
             PaintOp::PaintSweepGradient {
                 x0,
@@ -309,11 +330,10 @@ fn premultiply(data: &mut [u8]) {
 }
 
 fn rgba_to_argb_and_multiply(data: &mut [u8]) {
-    let data_32 = unsafe {
-        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
-    };
-    for mut_pixel in data_32 {
-        let [mut r, mut g, mut b, a] = mut_pixel.to_ne_bytes();
+    for pixel in data.chunks_exact_mut(4) {
+        let [mut r, mut g, mut b, a] = *pixel else {
+            unreachable!()
+        };
 
         if a != 0xff {
             r = multiply_alpha(a, r);
@@ -321,33 +341,28 @@ fn rgba_to_argb_and_multiply(data: &mut [u8]) {
             b = multiply_alpha(a, b);
         }
 
-        *mut_pixel = u32::from_ne_bytes([a, r, g, b]);
+        #[cfg(target_endian = "big")]
+        let result = [a, r, g, b];
+        #[cfg(target_endian = "little")]
+        let result = [b, g, r, a];
+
+        pixel.copy_from_slice(&result);
     }
 }
 
 fn argb_to_rgba(data: &mut [u8]) {
-    let data_32 = unsafe {
-        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
-    };
-    for mut_pixel in data_32 {
-        let [a, r, g, b] = mut_pixel.to_ne_bytes();
-        *mut_pixel = u32::from_ne_bytes([r, g, b, a]);
-    }
-}
-
-fn argb_to_rgba_and_demultiply(data: &mut [u8]) {
-    let data_32 = unsafe {
-        std::slice::from_raw_parts_mut(data.as_ptr() as *mut u8 as *mut u32, data.len() / 4)
-    };
-    for mut_pixel in data_32 {
-        let [a, mut r, mut g, mut b] = mut_pixel.to_ne_bytes();
-
-        if a < 0xff {
-            r = demultiply_alpha(a, r);
-            g = demultiply_alpha(a, g);
-            b = demultiply_alpha(a, b);
-        }
-        *mut_pixel = u32::from_ne_bytes([r, g, b, a]);
+    for pixel in data.chunks_exact_mut(4) {
+        #[cfg(target_endian = "little")]
+        let [b, g, r, a] = *pixel
+        else {
+            unreachable!()
+        };
+        #[cfg(target_endian = "big")]
+        let [a, r, g, b] = *pixel
+        else {
+            unreachable!()
+        };
+        pixel.copy_from_slice(&[r, g, b, a]);
     }
 }
 
@@ -459,4 +474,158 @@ fn hb_color_to_rgba(color: hb_color_t) -> (f64, f64, f64, f64) {
     let blue = unsafe { hb_color_get_blue(color) } as f64;
     let alpha = unsafe { hb_color_get_alpha(color) } as f64;
     (red / 255., green / 255., blue / 255., alpha / 255.)
+}
+
+fn normalize_color_line(color_line: &mut ColorLine) -> (f64, f64) {
+    let mut smallest = color_line.color_stops[0].offset;
+    let mut largest = smallest;
+
+    for stop in &color_line.color_stops[1..] {
+        smallest = smallest.min(stop.offset);
+        largest = largest.max(stop.offset);
+    }
+
+    if smallest != largest {
+        for stop in &mut color_line.color_stops {
+            stop.offset = (stop.offset - smallest) / (largest - smallest);
+        }
+    }
+
+    // NOTE: hb-cairo-utils will call back out to some other state
+    // to fill in the color when is_foreground is true, defaulting
+    // to black with alpha varying by the alpha channel of the
+    // color value in the stop. Do we need to do something like
+    // that here?
+
+    (smallest as f64, largest as f64)
+}
+
+struct ReduceAnchorsIn {
+    x0: f64,
+    y0: f64,
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+}
+
+struct ReduceAnchorsOut {
+    xx0: f64,
+    yy0: f64,
+    xx1: f64,
+    yy1: f64,
+}
+
+fn reduce_anchors(
+    ReduceAnchorsIn {
+        x0,
+        y0,
+        x1,
+        y1,
+        x2,
+        y2,
+    }: ReduceAnchorsIn,
+) -> ReduceAnchorsOut {
+    let q2x = x2 - x0;
+    let q2y = y2 - y0;
+    let q1x = x1 - x0;
+    let q1y = y1 - y0;
+
+    let s = q2x * q2x + q2y * q2y;
+    if s < 0.000001 {
+        return ReduceAnchorsOut {
+            xx0: x0,
+            yy0: y0,
+            xx1: x1,
+            yy1: y1,
+        };
+    }
+
+    let k = (q2x * q1x + q2y * q1y) / s;
+    ReduceAnchorsOut {
+        xx0: x0,
+        yy0: y0,
+        xx1: x1 - k * q2x,
+        yy1: y1 - k * q2y,
+    }
+}
+
+fn paint_linear_gradient(
+    context: &Context,
+    x0: f64,
+    y0: f64,
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    mut color_line: ColorLine,
+) -> anyhow::Result<()> {
+    let (min_stop, max_stop) = normalize_color_line(&mut color_line);
+    let anchors = reduce_anchors(ReduceAnchorsIn {
+        x0,
+        y0,
+        x1,
+        y1,
+        x2,
+        y2,
+    });
+
+    let xxx0 = anchors.xx0 + min_stop * (anchors.xx1 - anchors.xx0);
+    let yyy0 = anchors.yy0 + min_stop * (anchors.yy1 - anchors.yy0);
+    let xxx1 = anchors.xx0 + max_stop * (anchors.xx1 - anchors.xx0);
+    let yyy1 = anchors.yy0 + max_stop * (anchors.yy1 - anchors.yy0);
+
+    let pattern = LinearGradient::new(xxx0, yyy0, xxx1, yyy1);
+    pattern.set_extend(hb_extend_to_cairo(color_line.extend));
+
+    for stop in &color_line.color_stops {
+        let (r, g, b, a) = hb_color_to_rgba(stop.color);
+        pattern.add_color_stop_rgba(stop.offset.into(), r, g, b, a);
+    }
+
+    context.set_source(pattern)?;
+    context.paint()?;
+
+    Ok(())
+}
+
+fn paint_radial_gradient(
+    context: &Context,
+    x0: f64,
+    y0: f64,
+    r0: f64,
+    x1: f64,
+    y1: f64,
+    r1: f64,
+    mut color_line: ColorLine,
+) -> anyhow::Result<()> {
+    let (min_stop, max_stop) = normalize_color_line(&mut color_line);
+
+    let xx0 = x0 + min_stop * (x1 - x0);
+    let yy0 = y0 + min_stop * (y1 - y0);
+    let xx1 = x0 + max_stop * (x1 - x0);
+    let yy1 = y0 + max_stop * (y1 - y0);
+    let rr0 = r0 + min_stop * (r1 - r0);
+    let rr1 = r0 + max_stop * (r1 - r0);
+
+    let pattern = RadialGradient::new(xx0, yy0, rr0, xx1, yy1, rr1);
+    pattern.set_extend(hb_extend_to_cairo(color_line.extend));
+
+    for stop in &color_line.color_stops {
+        let (r, g, b, a) = hb_color_to_rgba(stop.color);
+        pattern.add_color_stop_rgba(stop.offset.into(), r, g, b, a);
+    }
+
+    context.set_source(pattern)?;
+    context.paint()?;
+
+    Ok(())
+}
+
+fn hb_extend_to_cairo(extend: hb_paint_extend_t) -> Extend {
+    match extend {
+        hb_paint_extend_t::HB_PAINT_EXTEND_PAD => Extend::Pad,
+        hb_paint_extend_t::HB_PAINT_EXTEND_REPEAT => Extend::Repeat,
+        hb_paint_extend_t::HB_PAINT_EXTEND_REFLECT => Extend::Reflect,
+    }
 }
