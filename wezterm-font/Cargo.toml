@@ -30,7 +30,6 @@ memmap2 = "0.2"
 metrics = { version="0.17", features=["std"]}
 ordered-float = "3.0"
 rangeset = { path = "../rangeset" }
-resvg = {version="0.35", default-features=false, git="https://github.com/wez/resvg.git", rev="d692908d0121c496808eebc83c4519fca4db5331"}
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
 walkdir = "2"
