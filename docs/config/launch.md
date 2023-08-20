@@ -6,28 +6,31 @@ Your shell is determined by the following rules:
 
 === "On Posix Systems"
 
-    1. The value of the `$SHELL` environment variable is used if it is set
-    2. Otherwise, it will resolve your current uid and try to look up your
-    shell from the password database.
+    The shell configured for the current user in the password database will be
+    used.  The value of the `$SHELL` environment variable is **_deliberately
+    ignored_** in order for wezterm to continue to be functional without
+    restarting after the user changes their shell.
 
-    `wezterm` will spawn the shell and pass `-l` as an argument to request
-    a login shell.  A login shell generally loads additional startup files
-    and sets up more environment than a non-login shell.
+    wezterm will set the `$SHELL` environment variable to the shell that it
+    resolved from the password database. If you want to control the value of
+    `$SHELL` in your spawned processes, use
+    [set_environment_variables](lua/config/set_environment_variables.md) to
+    define the value you prefer.
 
-    {{since('20210502-154244-3f7122cb', inline=True)}}: instead of passing `-l` to the shell, wezterm
-    will spawn the shell as `-$SHELL` to invoke it as a login shell.
+    The shell will be spawned as `-<SHELL>` (with a `-` prefixed to its *ARGV0*)
+    to invoke it as a login shell.  A login shell generally loads additional
+    startup files and sets up more environment than a non-login shell.
 
-    Note: if you have recently changed your shell using `chsh` and you
-    have `$SHELL` set in the environment, you will need to sign out and
-    sign back in again for the environment to pick up your new `$SHELL`
-    value.
-
-    {{since('20220903-194523-3bb1ed61', inline=True)}}: wezterm will now always resolve the shell via the
-    password database.
+    Older versions of wezterm (circa 2022 and earlier) used slightly
+    different logic to determine the default program and invoke it.
 
 === "On Windows Systems"
 
     1. The value of the `%COMSPEC%` environment variable is used if it is set.
+       **It is not recommended to change COMSPEC**, keep reading this
+       page of the documentation to learn how to make wezterm
+       run a different program.
+
     2. Otherwise, `cmd.exe`
 
 ## Changing the default program
@@ -97,8 +100,9 @@ used.
 
 ## Passing Environment variables to the spawned program
 
-The `set_environment_variables` configuration setting can be used to
-add environment variables to the environment of the spawned program.
+The [set_environment_variables](lua/config/set_environment_variables.md)
+configuration setting can be used to add environment variables to the
+environment of the spawned program.
 
 The behavior is to take the environment of the `wezterm` process
 and then set the specified variables for the spawned process.
