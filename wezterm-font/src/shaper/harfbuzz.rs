@@ -722,15 +722,15 @@ impl FontShaper for HarfbuzzShaper {
         let scale = self.handles[font_idx].scale.unwrap_or(1.);
 
         let selected_size = pair.face.set_font_size(size * scale, dpi)?;
-        let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
+        let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale.to_num::<f64>() };
         let mut metrics = FontMetrics {
             cell_height: PixelLength::new(selected_size.height),
             cell_width: PixelLength::new(selected_size.width),
             // Note: face.face.descender is useless, we have to go through
             // face.face.size.metrics to get to the real descender!
-            descender: PixelLength::new(
-                unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
-            ),
+            descender: PixelLength::new(unsafe {
+                (*(*pair.face.face).size).metrics.descender.f26d6().to_num()
+            }),
             underline_thickness: PixelLength::new(
                 unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale / 64.,
             ),

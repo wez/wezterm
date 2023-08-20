@@ -346,18 +346,11 @@ impl Face {
                     let instance = &styles[vidx];
                     let axes = std::slice::from_raw_parts(mm.axis, mm.num_axis as usize);
 
-                    fn ft_make_tag(a: u8, b: u8, c: u8, d: u8) -> FT_ULong {
-                        (a as FT_ULong) << 24
-                            | (b as FT_ULong) << 16
-                            | (c as FT_ULong) << 8
-                            | (d as FT_ULong)
-                    }
-
                     for (i, axis) in axes.iter().enumerate() {
                         let coords =
                             std::slice::from_raw_parts(instance.coords, mm.num_axis as usize);
-                        let value = coords[i] as f64 / (1 << 16) as f64;
-                        let default_value = axis.def as f64 / (1 << 16) as f64;
+                        let value = coords[i].to_num::<f64>();
+                        let default_value = axis.def.to_num::<f64>();
                         let scale = if default_value != 0. {
                             value / default_value
                         } else {
@@ -473,7 +466,7 @@ impl Face {
 
         // Scaling before truncating to integer minimizes the chances of hitting
         // the fallback code for set_pixel_sizes below.
-        let size = (point_size * 64.0) as FT_F26Dot6;
+        let size = FT_F26Dot6::from_num(point_size);
 
         let selected_size = match self.set_char_size(size, size, dpi, dpi) {
             Ok(_) => {
@@ -853,7 +846,7 @@ impl Face {
                 conic_to: Some(conic_to),
                 cubic_to: Some(cubic_to),
                 shift: 16, // match the same coordinate space as transforms
-                delta: 0,
+                delta: FT_Pos::from_font_units(0),
             };
 
             let mut ops = vec![];
@@ -1082,8 +1075,7 @@ impl Face {
     fn cell_metrics(&mut self) -> ComputedCellMetrics {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
-            let height = (metrics.y_scale as f64 * f64::from((*self.face).height))
-                / (f64::from(0x1_0000) * 64.0);
+            let height = metrics.y_scale.to_num::<f64>() * f64::from((*self.face).height) / 64.0;
 
             let mut width = 0.0;
             let mut num_examined = 0;
@@ -1096,8 +1088,8 @@ impl Face {
                 if succeeded(res) {
                     num_examined += 1;
                     let glyph = &(*(*self.face).glyph);
-                    if glyph.metrics.horiAdvance as f64 > width {
-                        width = glyph.metrics.horiAdvance as f64;
+                    if glyph.metrics.horiAdvance.font_units() as f64 > width {
+                        width = glyph.metrics.horiAdvance.font_units() as f64;
                     }
                 }
             }
@@ -1109,8 +1101,8 @@ impl Face {
                     if succeeded(res) {
                         num_examined += 1;
                         let glyph = &(*(*self.face).glyph);
-                        if glyph.metrics.horiAdvance as f64 > width {
-                            width = glyph.metrics.horiAdvance as f64;
+                        if glyph.metrics.horiAdvance.font_units() as f64 > width {
+                            width = glyph.metrics.horiAdvance.font_units() as f64;
                         }
                     }
                 }
@@ -1472,23 +1464,7 @@ pub struct NameRecord {
 }
 
 pub fn vector_x_y(vector: &FT_Vector) -> (f32, f32) {
-    let x = fixed_to_f32(vector.x);
-    let y = fixed_to_f32(vector.y);
-    (x, y)
-}
-
-pub fn two_dot_14_to_f64(f: FT_F2Dot14) -> f64 {
-    f as f64 / (1 << 14) as f64
-}
-
-/// Fixed-point 16.16 to float.
-///
-pub fn fixed_to_f32(f: FT_Fixed) -> f32 {
-    f as f32 / (1 << 16) as f32
-}
-
-pub fn fixed_to_f64(f: FT_Fixed) -> f64 {
-    f as f64 / (1 << 16) as f64
+    (vector.x.f16d16().to_num(), vector.y.f16d16().to_num())
 }
 
 pub fn composite_mode_to_operator(mode: FT_Composite_Mode) -> cairo::Operator {
@@ -1525,4 +1501,8 @@ pub fn composite_mode_to_operator(mode: FT_Composite_Mode) -> cairo::Operator {
         FT_COLR_COMPOSITE_HSL_LUMINOSITY => Operator::HslLuminosity,
         _ => unreachable!(),
     }
+}
+
+fn ft_make_tag(a: u8, b: u8, c: u8, d: u8) -> FT_ULong {
+    (a as FT_ULong) << 24 | (b as FT_ULong) << 16 | (c as FT_ULong) << 8 | (d as FT_ULong)
 }

@@ -1,7 +1,6 @@
 use crate::ftwrap::{
-    composite_mode_to_operator, fixed_to_f32, fixed_to_f64, two_dot_14_to_f64, vector_x_y,
-    FT_Affine23, FT_ColorIndex, FT_ColorLine, FT_ColorStop, FT_Get_Colorline_Stops, FT_Int32,
-    FT_PaintExtend, IsSvg, FT_LOAD_NO_HINTING,
+    composite_mode_to_operator, vector_x_y, FT_Affine23, FT_ColorIndex, FT_ColorLine, FT_ColorStop,
+    FT_Fixed, FT_Get_Colorline_Stops, FT_Int32, FT_PaintExtend, IsSvg, FT_LOAD_NO_HINTING,
 };
 use crate::hbwrap::DrawOp;
 use crate::parser::ParsedFont;
@@ -280,10 +279,10 @@ impl FreeTypeRasterizer {
 
         if parsed.synthesize_italic {
             face.set_transform(Some(FT_Matrix {
-                xx: 1 * 65536,                         // scale x
-                yy: 1 * 65536,                         // scale y
-                xy: (FAKE_ITALIC_SKEW * 65536.0) as _, // skew x
-                yx: 0 * 65536,                         // skew y
+                xx: FT_Fixed::from_num(1),                // scale x
+                yy: FT_Fixed::from_num(1),                // scale y
+                xy: FT_Fixed::from_num(FAKE_ITALIC_SKEW), // skew x
+                yx: FT_Fixed::from_num(0),                // skew y
             }));
         }
 
@@ -434,8 +433,8 @@ impl<'a> Walker<'a> {
                         y0,
                         x1,
                         y1,
-                        r0: grad.r0 as f32,
-                        r1: grad.r1 as f32,
+                        r0: grad.r0.font_units() as f32,
+                        r1: grad.r1.font_units() as f32,
                         color_line: self.decode_color_line(&grad.colorline)?,
                     };
                     self.ops.push(paint);
@@ -444,8 +443,8 @@ impl<'a> Walker<'a> {
                     let grad = paint.u.sweep_gradient.as_ref();
                     log::info!("{level:>3} {grad:?}");
                     let (x0, y0) = vector_x_y(&grad.center);
-                    let start_angle = fixed_to_f32(grad.start_angle);
-                    let end_angle = fixed_to_f32(grad.end_angle);
+                    let start_angle = grad.start_angle.to_num();
+                    let end_angle = grad.end_angle.to_num();
 
                     let paint = PaintOp::PaintSweepGradient {
                         x0,
@@ -500,7 +499,7 @@ impl<'a> Walker<'a> {
                     log::info!("{level:>3} {t:?}");
 
                     let mut matrix = Matrix::identity();
-                    matrix.translate(fixed_to_f64(t.dx), fixed_to_f64(t.dy));
+                    matrix.translate(t.dx.to_num(), t.dy.to_num());
                     self.ops.push(PaintOp::PushTransform(matrix));
                     self.walk_paint(t.paint, level + 1)?;
                     self.ops.push(PaintOp::PopTransform);
@@ -510,14 +509,14 @@ impl<'a> Walker<'a> {
                     log::info!("{level:>3} {scale:?}");
 
                     // Scaling around a center coordinate
-                    let center_x = fixed_to_f64(scale.center_x);
-                    let center_y = fixed_to_f64(scale.center_x);
+                    let center_x = scale.center_x.to_num();
+                    let center_y = scale.center_x.to_num();
 
                     let mut p1 = Matrix::identity();
                     p1.translate(center_x, center_y);
 
                     let mut p2 = Matrix::identity();
-                    p2.scale(fixed_to_f64(scale.scale_x), fixed_to_f64(scale.scale_y));
+                    p2.scale(scale.scale_x.to_num(), scale.scale_y.to_num());
 
                     let mut p3 = Matrix::identity();
                     p3.translate(-center_x, -center_y);
@@ -535,14 +534,14 @@ impl<'a> Walker<'a> {
                     log::info!("{level:>3} {rot:?}");
 
                     // Rotating around a center coordinate
-                    let center_x = fixed_to_f64(rot.center_x);
-                    let center_y = fixed_to_f64(rot.center_x);
+                    let center_x = rot.center_x.to_num();
+                    let center_y = rot.center_x.to_num();
 
                     let mut p1 = Matrix::identity();
                     p1.translate(center_x, center_y);
 
                     let mut p2 = Matrix::identity();
-                    p2.rotate(PI * fixed_to_f64(rot.angle));
+                    p2.rotate(PI * rot.angle.to_num::<f64>());
 
                     let mut p3 = Matrix::identity();
                     p3.translate(-center_x, -center_y);
@@ -560,14 +559,14 @@ impl<'a> Walker<'a> {
                     log::info!("{level:>3} {skew:?}");
 
                     // Skewing around a center coordinate
-                    let center_x = fixed_to_f64(skew.center_x);
-                    let center_y = fixed_to_f64(skew.center_x);
+                    let center_x = skew.center_x.to_num();
+                    let center_y = skew.center_x.to_num();
 
                     let mut p1 = Matrix::identity();
                     p1.translate(center_x, center_y);
 
-                    let x_skew_angle = fixed_to_f64(skew.x_skew_angle);
-                    let y_skew_angle = fixed_to_f64(skew.y_skew_angle);
+                    let x_skew_angle: f64 = skew.x_skew_angle.to_num();
+                    let y_skew_angle: f64 = skew.y_skew_angle.to_num();
                     let x = (PI * -x_skew_angle).tan();
                     let y = (PI * y_skew_angle).tan();
 
@@ -605,7 +604,7 @@ impl<'a> Walker<'a> {
     }
 
     fn decode_color_index(&mut self, c: &FT_ColorIndex) -> anyhow::Result<SrgbaPixel> {
-        let alpha = two_dot_14_to_f64(c.alpha);
+        let alpha: f64 = c.alpha.to_num();
         let (r, g, b, a) = if c.palette_index == 0xffff {
             // Foreground color.
             // We use white here because the rendering stage will
@@ -613,7 +612,12 @@ impl<'a> Walker<'a> {
             (0xff, 0xff, 0xff, 1.0)
         } else {
             let color = self.face.get_palette_entry(c.palette_index as _)?;
-            (color.red, color.green, color.blue, c.alpha as f64 / 255.)
+            (
+                color.red,
+                color.green,
+                color.blue,
+                color.alpha as f64 / 255.,
+            )
         };
 
         let alpha = (a * alpha * 255.) as u8;
@@ -634,7 +638,7 @@ impl<'a> Walker<'a> {
             let stop = unsafe { stop.assume_init() };
 
             color_stops.push(ColorStop {
-                offset: stop.stop_offset as f32 / 65535.,
+                offset: stop.stop_offset.to_num(),
                 color: self.decode_color_index(&stop.color)?,
             });
         }
@@ -700,12 +704,12 @@ pub enum PaintOp {
 
 fn affine2x3_to_matrix(t: FT_Affine23) -> Matrix {
     Matrix::new(
-        fixed_to_f64(t.xx),
-        fixed_to_f64(t.yx),
-        fixed_to_f64(t.xy),
-        fixed_to_f64(t.yy),
-        fixed_to_f64(t.dy),
-        fixed_to_f64(t.dx),
+        t.xx.to_num(),
+        t.yx.to_num(),
+        t.xy.to_num(),
+        t.yy.to_num(),
+        t.dy.to_num(),
+        t.dx.to_num(),
     )
 }
 

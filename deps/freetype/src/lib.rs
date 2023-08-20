@@ -5,6 +5,9 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::upper_case_acronyms)]
+mod fixed_point;
+mod types;
+pub use fixed_point::*;
 pub type FT_Int16 = i16;
 pub type FT_UInt16 = u16;
 pub type FT_Int32 = i32;
@@ -58,6 +61,22 @@ impl<T> ::std::cmp::Eq for __BindgenUnionField<T> {}
 pub const FT_RENDER_POOL_SIZE: u32 = 16384;
 pub const FT_MAX_MODULES: u32 = 32;
 pub const TT_CONFIG_OPTION_MAX_RUNNABLE_OPCODES: u32 = 1000000;
+pub const FT_CHAR_BIT: u32 = 8;
+pub const FT_USHORT_MAX: u32 = 65535;
+pub const FT_INT_MAX: u32 = 2147483647;
+pub const FT_INT_MIN: i32 = -2147483648;
+pub const FT_UINT_MAX: u32 = 4294967295;
+pub const FT_LONG_MIN: i64 = -9223372036854775808;
+pub const FT_LONG_MAX: u64 = 9223372036854775807;
+pub const FT_ULONG_MAX: i32 = -1;
+pub const FT_LLONG_MAX: u64 = 9223372036854775807;
+pub const FT_LLONG_MIN: i64 = -9223372036854775808;
+pub const FT_ULLONG_MAX: i32 = -1;
+pub const FT_SIZEOF_INT: u32 = 4;
+pub const FT_SIZEOF_LONG: u32 = 8;
+pub const FT_SIZEOF_LONG_LONG: u32 = 8;
+pub const FT_OUTLINE_CONTOURS_MAX: u32 = 32767;
+pub const FT_OUTLINE_POINTS_MAX: u32 = 32767;
 pub const FT_OUTLINE_NONE: u32 = 0;
 pub const FT_OUTLINE_OWNER: u32 = 1;
 pub const FT_OUTLINE_EVEN_ODD_FILL: u32 = 2;
@@ -849,7 +868,7 @@ pub struct FT_StreamRec_ {
     pub limit: *mut ::std::os::raw::c_uchar,
 }
 pub type FT_StreamRec = FT_StreamRec_;
-pub type FT_Pos = ::std::os::raw::c_long;
+//pub type FT_Pos = ::std::os::raw::c_long;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct FT_Vector_ {
@@ -1055,9 +1074,9 @@ pub type FT_Int = ::std::os::raw::c_int;
 pub type FT_UInt = ::std::os::raw::c_uint;
 pub type FT_Long = ::std::os::raw::c_long;
 pub type FT_ULong = ::std::os::raw::c_ulong;
-pub type FT_F2Dot14 = ::std::os::raw::c_short;
-pub type FT_F26Dot6 = ::std::os::raw::c_long;
-pub type FT_Fixed = ::std::os::raw::c_long;
+//pub type FT_F2Dot14 = ::std::os::raw::c_short;
+//pub type FT_F26Dot6 = ::std::os::raw::c_long;
+//pub type FT_Fixed = ::std::os::raw::c_long;
 pub type FT_Error = ::std::os::raw::c_int;
 pub type FT_Pointer = *mut ::std::os::raw::c_void;
 pub type FT_Offset = usize;

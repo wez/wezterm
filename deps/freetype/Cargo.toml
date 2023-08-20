@@ -7,6 +7,7 @@ links = "freetype"
 build = "build.rs"
 
 [dependencies]
+fixed = "1.23"
 
 [build-dependencies]
 cc = {version="1.0", features = ["parallel"]}
