@@ -20,8 +20,8 @@ use wezterm_bidi::Direction;
 // strikes.
 // Until we get to the bottom of this, these are compile-time rather
 // than runtime configs.
-const USE_OT_FUNCS: bool = true;
-const USE_OT_FACE: bool = true;
+const USE_OT_FUNCS: bool = false;
+const USE_OT_FACE: bool = false;
 
 #[derive(Clone, Debug)]
 struct Info {
