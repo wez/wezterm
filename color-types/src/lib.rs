@@ -208,6 +208,12 @@ impl SrgbaPixel {
     pub fn as_srgba32(self) -> u32 {
         self.0
     }
+
+    pub fn as_srgba_tuple(self) -> (f32, f32, f32, f32) {
+        let u8tuple = self.as_rgba();
+        let SrgbaTuple(r, g, b, a) = u8tuple.into();
+        (r, g, b, a)
+    }
 }
 
 /// A pixel value encoded as SRGBA RGBA values in f32 format (range: 0.0-1.0)

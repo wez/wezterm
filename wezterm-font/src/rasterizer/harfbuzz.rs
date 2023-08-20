@@ -350,7 +350,7 @@ fn rgba_to_argb_and_multiply(data: &mut [u8]) {
     }
 }
 
-fn argb_to_rgba(data: &mut [u8]) {
+pub fn argb_to_rgba(data: &mut [u8]) {
     for pixel in data.chunks_exact_mut(4) {
         #[cfg(target_endian = "little")]
         let [b, g, r, a] = *pixel
@@ -458,14 +458,6 @@ fn apply_draw_ops_to_context(ops: &[DrawOp], context: &Context) -> anyhow::Resul
         }
     }
     Ok(())
-}
-
-fn hb_color_to_rgba8(color: hb_color_t) -> (u8, u8, u8, u8) {
-    let red = unsafe { hb_color_get_red(color) };
-    let green = unsafe { hb_color_get_green(color) };
-    let blue = unsafe { hb_color_get_blue(color) };
-    let alpha = unsafe { hb_color_get_alpha(color) };
-    (red, green, blue, alpha)
 }
 
 fn hb_color_to_rgba(color: hb_color_t) -> (f64, f64, f64, f64) {
