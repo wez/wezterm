@@ -312,10 +312,10 @@ impl FreeTypeRasterizer {
         let clip_box = face.get_color_glyph_clip_box(glyph_pos)?;
 
         let palette = face.get_palette_data()?;
-        log::info!("Palette: {palette:#?}");
+        log::trace!("Palette: {palette:#?}");
         face.select_palette(0)?;
 
-        log::info!("got clip_box: {clip_box:?}");
+        log::trace!("got clip_box: {clip_box:?}");
         let mut walker = Walker {
             load_flags,
             face: &mut face,
@@ -336,7 +336,7 @@ fn rasterize_from_ops(
 ) -> anyhow::Result<RasterizedGlyph> {
     let (surface, has_color) = record_to_cairo_surface(ops, scale_x, scale_y)?;
     let (left, top, width, height) = surface.ink_extents();
-    log::info!("extents: left={left} top={top} width={width} height={height}");
+    log::trace!("extents: left={left} top={top} width={width} height={height}");
 
     if width as usize == 0 || height as usize == 0 {
         return Ok(RasterizedGlyph {
@@ -351,7 +351,7 @@ fn rasterize_from_ops(
 
     let mut bounds_adjust = Matrix::identity();
     bounds_adjust.translate(left * -1., top * -1.);
-    log::info!("dims: {width}x{height} {bounds_adjust:?}");
+    log::trace!("dims: {width}x{height} {bounds_adjust:?}");
 
     let target = ImageSurface::create(Format::ARgb32, width as i32, height as i32)?;
     {
@@ -390,7 +390,7 @@ impl<'a> Walker<'a> {
         unsafe {
             match paint.format {
                 FT_COLR_PAINTFORMAT_COLR_LAYERS => {
-                    log::info!("{level:>3} {:?}", paint.format);
+                    log::trace!("{level:>3} {:?}", paint.format);
                     let mut iter = paint.u.colr_layers.as_ref().layer_iterator;
                     while let Ok(inner_paint) = self.face.get_paint_layers(&mut iter) {
                         self.walk_paint(inner_paint, level + 1)?;
@@ -400,12 +400,12 @@ impl<'a> Walker<'a> {
                     let op = PaintOp::PaintSolid(
                         self.decode_color_index(&paint.u.solid.as_ref().color)?,
                     );
-                    log::info!("{level:>3} {:?} {op:x?}", paint.format);
+                    log::trace!("{level:>3} {:?} {op:x?}", paint.format);
                     self.ops.push(op);
                 }
                 FT_COLR_PAINTFORMAT_LINEAR_GRADIENT => {
                     let grad = paint.u.linear_gradient.as_ref();
-                    log::info!("{level:>3} {grad:?}");
+                    log::trace!("{level:>3} {grad:?}");
                     let (x0, y0) = vector_x_y(&grad.p0);
                     let (x1, y1) = vector_x_y(&grad.p1);
                     let (x2, y2) = vector_x_y(&grad.p2);
@@ -424,7 +424,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_RADIAL_GRADIENT => {
                     let grad = paint.u.radial_gradient.as_ref();
-                    log::info!("{level:>3} {grad:?}");
+                    log::trace!("{level:>3} {grad:?}");
                     let (x0, y0) = vector_x_y(&grad.c0);
                     let (x1, y1) = vector_x_y(&grad.c1);
 
@@ -441,7 +441,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_SWEEP_GRADIENT => {
                     let grad = paint.u.sweep_gradient.as_ref();
-                    log::info!("{level:>3} {grad:?}");
+                    log::trace!("{level:>3} {grad:?}");
                     let (x0, y0) = vector_x_y(&grad.center);
                     let start_angle = grad.start_angle.to_num();
                     let end_angle = grad.end_angle.to_num();
@@ -460,7 +460,7 @@ impl<'a> Walker<'a> {
                     // the root transform before emitting the glyph
                     // DrawOps, then pops it prior to recursing into
                     // the child paint
-                    log::info!("{level:>3} {:?}", paint.u.glyph.as_ref());
+                    log::trace!("{level:>3} {:?}", paint.u.glyph.as_ref());
 
                     let glyph_index = paint.u.glyph.as_ref().glyphID;
 
@@ -476,7 +476,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_COLR_GLYPH => {
                     let g = paint.u.colr_glyph.as_ref();
-                    log::info!("{level:>3} {g:?}");
+                    log::trace!("{level:>3} {g:?}");
                     self.ops.push(PaintOp::PushGroup);
                     let paint = self.face.get_color_glyph_paint(
                         g.glyphID,
@@ -489,14 +489,14 @@ impl<'a> Walker<'a> {
                 FT_COLR_PAINTFORMAT_TRANSFORM => {
                     let t = paint.u.transform.as_ref();
                     let matrix = affine2x3_to_matrix(t.affine);
-                    log::info!("{level:>3} {t:?} -> {matrix:?}");
+                    log::trace!("{level:>3} {t:?} -> {matrix:?}");
                     self.ops.push(PaintOp::PushTransform(matrix));
                     self.walk_paint(t.paint, level + 1)?;
                     self.ops.push(PaintOp::PopTransform);
                 }
                 FT_COLR_PAINTFORMAT_TRANSLATE => {
                     let t = paint.u.translate.as_ref();
-                    log::info!("{level:>3} {t:?}");
+                    log::trace!("{level:>3} {t:?}");
 
                     let mut matrix = Matrix::identity();
                     matrix.translate(t.dx.to_num(), t.dy.to_num());
@@ -506,7 +506,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_SCALE => {
                     let scale = paint.u.scale.as_ref();
-                    log::info!("{level:>3} {scale:?}");
+                    log::trace!("{level:>3} {scale:?}");
 
                     // Scaling around a center coordinate
                     let center_x = scale.center_x.to_num();
@@ -531,7 +531,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_ROTATE => {
                     let rot = paint.u.rotate.as_ref();
-                    log::info!("{level:>3} {rot:?}");
+                    log::trace!("{level:>3} {rot:?}");
 
                     // Rotating around a center coordinate
                     let center_x = rot.center_x.to_num();
@@ -556,7 +556,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_SKEW => {
                     let skew = paint.u.skew.as_ref();
-                    log::info!("{level:>3} {skew:?}");
+                    log::trace!("{level:>3} {skew:?}");
 
                     // Skewing around a center coordinate
                     let center_x = skew.center_x.to_num();
@@ -585,7 +585,7 @@ impl<'a> Walker<'a> {
                 }
                 FT_COLR_PAINTFORMAT_COMPOSITE => {
                     let comp = paint.u.composite.as_ref();
-                    log::info!("{level:>3} {comp:?}");
+                    log::trace!("{level:>3} {comp:?}");
 
                     self.walk_paint(comp.backdrop_paint, level + 1)?;
                     self.ops.push(PaintOp::PushGroup);
