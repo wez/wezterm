@@ -1,0 +1,49 @@
+#!/bin/sh
+set -e
+
+if [ $# -lt 1 ]; then
+    argv0=`basename $0`
+    echo "$argv0: Convert source code written for Xr to use Cairo instead." >&2
+    echo "" >&2
+    echo "Usage: $argv0 file [...]" >&2
+    exit 1
+fi
+
+xr2cairo() {
+	file=$1
+	backup=$file.xr
+
+	if [ -e $backup ]; then
+		echo "Warning: Backup file $backup already exists --- not backing up this time." >&2
+	else
+		cp $file $backup
+	fi
+	sed -e '
+		s/\(Xr[a-zA-Z]*\)RGB/\1Rgb/g
+		s/\(Xr[a-zA-Z]*\)NextTo/\1Similar/g
+
+		s/Xr\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)/\Lcairo_\1_\2_\3_\4_\5\E/g
+		s/Xr\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)/\Lcairo_\1_\2_\3_\4\E/g
+		s/Xr\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z]\+\)/\Lcairo_\1_\2_\3\E/g
+		s/Xr\([A-Z]\+[a-z]\+\)\([A-Z]\+[a-z0-9]\+\)/\Lcairo_\1_\2\E/g
+		s/Xr\([A-Z]\+[a-z]\+\)/\Lcairo_\1\E/g
+
+		s/\(cairo_\(operator\|status\|fill_rule\|line_cap\|line_join\|filter\|format\)_[a-z0-9_]\{2,\}\)/\U\1/g
+
+		s/cairo_\(fill_rule\|line_cap\|line_join\|format\|operator\|status\|filter\|surface\|matrix\)$/cairo_\1_t/g
+		s/cairo_\(fill_rule\|line_cap\|line_join\|format\|operator\|status\|filter\|surface\|matrix\)\([^_]\)/cairo_\1_t\2/g
+		s/_cairo_\(fill_rule\|line_cap\|line_join\|format\|operator\|status\|filter\|surface\|matrix\)_t/cairo_\1/g
+		s/cairo_state/cairo_t/g
+		s/_cairo_t\([^a-zA-Z0-9_]\)/cairo\1/g
+
+		s/Xr\.h/cairo.h/g
+
+		' $backup > $file
+}
+
+while [ $# -gt 0 ]; do
+	file=$1
+	shift
+	xr2cairo $file
+done
+

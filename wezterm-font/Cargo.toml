@@ -14,6 +14,7 @@ vendor-nerd-font-symbols = []
 
 [dependencies]
 anyhow = "1.0"
+cairo-rs = {version="0.18", default-features=false}
 config = { path = "../config" }
 encoding_rs = "0.8"
 enum-display-derive = "0.1"

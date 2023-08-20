@@ -522,6 +522,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
 
 [[package]]
+name = "cairo-rs"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d859b656775a6b1dd078d3e5924884e6ea88aa649a7fdde03d5b2ec56ffcc10b"
+dependencies = [
+ "bitflags 2.4.0",
+ "cairo-sys-rs",
+ "libc",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-sys-rs"
+version = "0.18.0"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "camino"
 version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6183,6 +6204,7 @@ name = "wezterm-font"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cairo-rs",
  "cocoa 0.25.0",
  "config",
  "core-foundation 0.9.3",

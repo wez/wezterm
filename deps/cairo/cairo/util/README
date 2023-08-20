@@ -1,0 +1,44 @@
+Cairo Utilities
+===============
+
+There are a varieties of utilities we use with cairo.
+
+
+malloc-stats
+------------
+
+This is a small shared library designed to be preloaded by the
+linker and its purpose is to make the malloc_stats() function
+of glibc produce more useful information.
+
+Build by:
+
+	make malloc-stats.so
+
+and use by:
+
+	LD_PRELOAD=$(blddir)/util/libmalloc-stats.so app-to-run
+
+cairo-trace
+-----------
+
+This tool can be used to trace all the cairo function calls made by an
+applications.  This is useful for either extracting a test case triggering
+a bug from an application, or simply to get a general idea of how an
+application is using cairo.
+
+
+cairo-api-update and xr2cairo
+-----------------------------
+
+These two scripts were used to convert source code written for pre-1.0
+cairo to newer API.  See $(top_srcdir)/PORTING_GUIDE for more information.
+
+These files are obsolete now and may be removed in a future version.
+
+
+cairo-view and waterfall
+------------------------
+
+These are two pycairo scripts useful for testing the toy font backend.
+
