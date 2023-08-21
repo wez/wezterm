@@ -1,8 +1,13 @@
 fn new_build() -> cc::Build {
     let mut cfg = cc::Build::new();
     cfg.warnings(false);
+    cfg.extra_warnings(false);
     cfg.flag_if_supported("-fno-stack-check");
     cfg.flag_if_supported("-Wno-attributes");
+    cfg.flag_if_supported("-Wno-enum-conversion");
+    cfg.flag_if_supported("-Wno-incompatible-pointer-types");
+    cfg.flag_if_supported("-Wno-parentheses-equality");
+    cfg.flag_if_supported("-Wno-unused-value");
     cfg
 }
 
