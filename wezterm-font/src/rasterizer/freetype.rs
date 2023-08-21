@@ -5,10 +5,10 @@ use crate::ftwrap::{
 };
 use crate::hbwrap::DrawOp;
 use crate::parser::ParsedFont;
-use crate::rasterizer::harfbuzz::argb_to_rgba;
+use crate::rasterizer::harfbuzz::{argb_to_rgba, HarfbuzzRasterizer};
 use crate::rasterizer::{FontRasterizer, FAKE_ITALIC_SKEW};
 use crate::units::*;
-use crate::{ftwrap, RasterizedGlyph};
+use crate::{ftwrap, FontRasterizerSelection, RasterizedGlyph};
 use ::freetype::{
     FT_Color_Root_Transform, FT_GlyphSlotRec_, FT_Matrix, FT_Opaque_Paint_, FT_PaintFormat_,
 };
@@ -34,6 +34,7 @@ pub struct FreeTypeRasterizer {
     freetype_load_flags: Option<FreeTypeLoadFlags>,
     display_pixel_geometry: DisplayPixelGeometry,
     scale: f64,
+    hb_raster: HarfbuzzRasterizer,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -65,8 +66,19 @@ impl FontRasterizer for FreeTypeRasterizer {
             Err(err) => {
                 if err.root_cause().downcast_ref::<IsSvg>().is_some() {
                     drop(face);
-                    return self
-                        .rasterize_outlines(glyph_pos, load_flags | FT_LOAD_NO_HINTING as i32);
+
+                    let config = config::configuration();
+                    match config.font_colr_rasterizer {
+                        FontRasterizerSelection::FreeType => {
+                            return self.rasterize_outlines(
+                                glyph_pos,
+                                load_flags | FT_LOAD_NO_HINTING as i32,
+                            );
+                        }
+                        FontRasterizerSelection::Harfbuzz => {
+                            return self.hb_raster.rasterize_glyph(glyph_pos, size, dpi);
+                        }
+                    }
                 }
                 return Err(err);
             }
@@ -314,6 +326,7 @@ impl FreeTypeRasterizer {
             freetype_render_target: parsed.freetype_render_target,
             display_pixel_geometry,
             scale: parsed.scale.unwrap_or(1.),
+            hb_raster: HarfbuzzRasterizer::from_locator(&parsed)?,
         })
     }
 

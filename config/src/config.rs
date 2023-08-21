@@ -253,6 +253,8 @@ pub struct Config {
     pub font_locator: FontLocatorSelection,
     #[dynamic(default)]
     pub font_rasterizer: FontRasterizerSelection,
+    #[dynamic(default = "default_colr_rasterizer")]
+    pub font_colr_rasterizer: FontRasterizerSelection,
     #[dynamic(default)]
     pub font_shaper: FontShaperSelection,
 
@@ -2041,4 +2043,8 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
 /// <https://github.com/wez/wezterm/issues/2630>
 fn default_macos_forward_mods() -> Modifiers {
     Modifiers::SHIFT
+}
+
+fn default_colr_rasterizer() -> FontRasterizerSelection {
+    FontRasterizerSelection::Harfbuzz
 }
