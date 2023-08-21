@@ -1,16 +1,12 @@
 use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
-    hb_color_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_to_string, ColorLine, Font,
-    PaintOp, IS_PNG,
+    hb_color_t, hb_paint_composite_mode_t, hb_tag_to_string, Font, PaintOp, IS_PNG,
 };
-use crate::rasterizer::colr::DrawOp;
+use crate::rasterizer::colr::{paint_linear_gradient, paint_radial_gradient, DrawOp};
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
 use crate::{FontRasterizer, ParsedFont, RasterizedGlyph};
-use cairo::{
-    Content, Context, Extend, Format, ImageSurface, LinearGradient, Matrix, Operator,
-    RadialGradient, RecordingSurface,
-};
+use cairo::{Content, Context, Format, ImageSurface, Matrix, Operator, RecordingSurface};
 use image::DynamicImage::{ImageLuma8, ImageLumaA8};
 use image::GenericImageView;
 
@@ -471,158 +467,4 @@ fn hb_color_to_rgba(color: hb_color_t) -> (f64, f64, f64, f64) {
     let blue = unsafe { hb_color_get_blue(color) } as f64;
     let alpha = unsafe { hb_color_get_alpha(color) } as f64;
     (red / 255., green / 255., blue / 255., alpha / 255.)
-}
-
-fn normalize_color_line(color_line: &mut ColorLine) -> (f64, f64) {
-    let mut smallest = color_line.color_stops[0].offset;
-    let mut largest = smallest;
-
-    for stop in &color_line.color_stops[1..] {
-        smallest = smallest.min(stop.offset);
-        largest = largest.max(stop.offset);
-    }
-
-    if smallest != largest {
-        for stop in &mut color_line.color_stops {
-            stop.offset = (stop.offset - smallest) / (largest - smallest);
-        }
-    }
-
-    // NOTE: hb-cairo-utils will call back out to some other state
-    // to fill in the color when is_foreground is true, defaulting
-    // to black with alpha varying by the alpha channel of the
-    // color value in the stop. Do we need to do something like
-    // that here?
-
-    (smallest as f64, largest as f64)
-}
-
-struct ReduceAnchorsIn {
-    x0: f64,
-    y0: f64,
-    x1: f64,
-    y1: f64,
-    x2: f64,
-    y2: f64,
-}
-
-struct ReduceAnchorsOut {
-    xx0: f64,
-    yy0: f64,
-    xx1: f64,
-    yy1: f64,
-}
-
-fn reduce_anchors(
-    ReduceAnchorsIn {
-        x0,
-        y0,
-        x1,
-        y1,
-        x2,
-        y2,
-    }: ReduceAnchorsIn,
-) -> ReduceAnchorsOut {
-    let q2x = x2 - x0;
-    let q2y = y2 - y0;
-    let q1x = x1 - x0;
-    let q1y = y1 - y0;
-
-    let s = q2x * q2x + q2y * q2y;
-    if s < 0.000001 {
-        return ReduceAnchorsOut {
-            xx0: x0,
-            yy0: y0,
-            xx1: x1,
-            yy1: y1,
-        };
-    }
-
-    let k = (q2x * q1x + q2y * q1y) / s;
-    ReduceAnchorsOut {
-        xx0: x0,
-        yy0: y0,
-        xx1: x1 - k * q2x,
-        yy1: y1 - k * q2y,
-    }
-}
-
-fn paint_linear_gradient(
-    context: &Context,
-    x0: f64,
-    y0: f64,
-    x1: f64,
-    y1: f64,
-    x2: f64,
-    y2: f64,
-    mut color_line: ColorLine,
-) -> anyhow::Result<()> {
-    let (min_stop, max_stop) = normalize_color_line(&mut color_line);
-    let anchors = reduce_anchors(ReduceAnchorsIn {
-        x0,
-        y0,
-        x1,
-        y1,
-        x2,
-        y2,
-    });
-
-    let xxx0 = anchors.xx0 + min_stop * (anchors.xx1 - anchors.xx0);
-    let yyy0 = anchors.yy0 + min_stop * (anchors.yy1 - anchors.yy0);
-    let xxx1 = anchors.xx0 + max_stop * (anchors.xx1 - anchors.xx0);
-    let yyy1 = anchors.yy0 + max_stop * (anchors.yy1 - anchors.yy0);
-
-    let pattern = LinearGradient::new(xxx0, yyy0, xxx1, yyy1);
-    pattern.set_extend(hb_extend_to_cairo(color_line.extend));
-
-    for stop in &color_line.color_stops {
-        let (r, g, b, a) = hb_color_to_rgba(stop.color);
-        pattern.add_color_stop_rgba(stop.offset.into(), r, g, b, a);
-    }
-
-    context.set_source(pattern)?;
-    context.paint()?;
-
-    Ok(())
-}
-
-fn paint_radial_gradient(
-    context: &Context,
-    x0: f64,
-    y0: f64,
-    r0: f64,
-    x1: f64,
-    y1: f64,
-    r1: f64,
-    mut color_line: ColorLine,
-) -> anyhow::Result<()> {
-    let (min_stop, max_stop) = normalize_color_line(&mut color_line);
-
-    let xx0 = x0 + min_stop * (x1 - x0);
-    let yy0 = y0 + min_stop * (y1 - y0);
-    let xx1 = x0 + max_stop * (x1 - x0);
-    let yy1 = y0 + max_stop * (y1 - y0);
-    let rr0 = r0 + min_stop * (r1 - r0);
-    let rr1 = r0 + max_stop * (r1 - r0);
-
-    let pattern = RadialGradient::new(xx0, yy0, rr0, xx1, yy1, rr1);
-    pattern.set_extend(hb_extend_to_cairo(color_line.extend));
-
-    for stop in &color_line.color_stops {
-        let (r, g, b, a) = hb_color_to_rgba(stop.color);
-        pattern.add_color_stop_rgba(stop.offset.into(), r, g, b, a);
-    }
-
-    context.set_source(pattern)?;
-    context.paint()?;
-
-    Ok(())
-}
-
-fn hb_extend_to_cairo(extend: hb_paint_extend_t) -> Extend {
-    match extend {
-        hb_paint_extend_t::HB_PAINT_EXTEND_PAD => Extend::Pad,
-        hb_paint_extend_t::HB_PAINT_EXTEND_REPEAT => Extend::Repeat,
-        hb_paint_extend_t::HB_PAINT_EXTEND_REFLECT => Extend::Reflect,
-    }
 }

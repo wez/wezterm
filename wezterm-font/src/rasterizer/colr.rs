@@ -152,6 +152,10 @@ fn normalize_color_line(color_line: &mut ColorLine) -> (f64, f64) {
     let mut smallest = color_line.color_stops[0].offset;
     let mut largest = smallest;
 
+    color_line
+        .color_stops
+        .sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
+
     for stop in &color_line.color_stops[1..] {
         smallest = smallest.min(stop.offset);
         largest = largest.max(stop.offset);

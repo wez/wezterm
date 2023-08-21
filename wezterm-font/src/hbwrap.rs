@@ -4,8 +4,9 @@ use freetype;
 pub use harfbuzz::*;
 
 use crate::locator::{FontDataHandle, FontDataSource};
-use crate::rasterizer::colr::DrawOp;
+use crate::rasterizer::colr::{ColorLine, ColorStop, DrawOp};
 use anyhow::{ensure, Context, Error};
+use cairo::Extend;
 use memmap2::{Mmap, MmapOptions};
 use std::ffi::CStr;
 use std::io::Read;
@@ -13,6 +14,7 @@ use std::ops::Range;
 use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::sync::Arc;
 use std::{mem, slice};
+use wezterm_color_types::SrgbaPixel;
 
 extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
@@ -603,7 +605,7 @@ impl PaintOp {
         _user_data: *mut ::std::os::raw::c_void,
     ) {
         let ops = Self::paint_data(paint_data);
-        let color_line = ColorLine::new(color_line);
+        let color_line = ColorLine::new_from_hb(color_line);
         ops.push(Self::PaintLinearGradient {
             color_line,
             x0,
@@ -628,7 +630,7 @@ impl PaintOp {
         _user_data: *mut ::std::os::raw::c_void,
     ) {
         let ops = Self::paint_data(paint_data);
-        let color_line = ColorLine::new(color_line);
+        let color_line = ColorLine::new_from_hb(color_line);
         ops.push(Self::PaintRadialGradient {
             color_line,
             x0,
@@ -651,7 +653,7 @@ impl PaintOp {
         _user_data: *mut ::std::os::raw::c_void,
     ) {
         let ops = Self::paint_data(paint_data);
-        let color_line = ColorLine::new(color_line);
+        let color_line = ColorLine::new_from_hb(color_line);
         ops.push(Self::PaintSweepGradient {
             color_line,
             x0,
@@ -836,14 +838,8 @@ impl DrawOp {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct ColorLine {
-    pub color_stops: Vec<hb_color_stop_t>,
-    pub extend: hb_paint_extend_t,
-}
-
 impl ColorLine {
-    pub fn new(line: *mut hb_color_line_t) -> Self {
+    pub fn new_from_hb(line: *mut hb_color_line_t) -> Self {
         let num_stops = unsafe {
             hb_color_line_get_color_stops(line, 0, std::ptr::null_mut(), std::ptr::null_mut())
         };
@@ -857,23 +853,39 @@ impl ColorLine {
             },
         );
 
-        // Docs say: Note that due to variations being applied, the returned color stops may be out
-        // of order. It is the callers responsibility to ensure that color stops are sorted by
-        // their offset before they are used.
-
         unsafe {
             let mut count = num_stops;
             hb_color_line_get_color_stops(line, 0, &mut count, color_stops.as_mut_ptr());
         }
 
-        color_stops.sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
-
         let extend = unsafe { hb_color_line_get_extend(line) };
 
         Self {
-            color_stops,
-            extend,
+            color_stops: color_stops
+                .into_iter()
+                .map(|stop| ColorStop {
+                    offset: stop.offset,
+                    color: hb_color_to_srgba_pixel(stop.color),
+                })
+                .collect(),
+            extend: hb_extend_to_cairo(extend),
         }
+    }
+}
+
+fn hb_color_to_srgba_pixel(color: hb_color_t) -> SrgbaPixel {
+    let red = unsafe { hb_color_get_red(color) };
+    let green = unsafe { hb_color_get_green(color) };
+    let blue = unsafe { hb_color_get_blue(color) };
+    let alpha = unsafe { hb_color_get_alpha(color) };
+    SrgbaPixel::rgba(red, green, blue, alpha)
+}
+
+fn hb_extend_to_cairo(extend: hb_paint_extend_t) -> Extend {
+    match extend {
+        hb_paint_extend_t::HB_PAINT_EXTEND_PAD => Extend::Pad,
+        hb_paint_extend_t::HB_PAINT_EXTEND_REPEAT => Extend::Repeat,
+        hb_paint_extend_t::HB_PAINT_EXTEND_REFLECT => Extend::Reflect,
     }
 }
 
