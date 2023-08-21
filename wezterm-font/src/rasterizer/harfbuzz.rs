@@ -2,7 +2,9 @@ use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
     hb_color_t, hb_paint_composite_mode_t, hb_tag_to_string, Font, PaintOp, IS_PNG,
 };
-use crate::rasterizer::colr::{paint_linear_gradient, paint_radial_gradient, DrawOp};
+use crate::rasterizer::colr::{
+    paint_linear_gradient, paint_radial_gradient, paint_sweep_gradient, DrawOp,
+};
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
 use crate::{FontRasterizer, ParsedFont, RasterizedGlyph};
@@ -216,17 +218,21 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                 )?;
             }
             PaintOp::PaintSweepGradient {
-                x0: _,
-                y0: _,
-                start_angle: _,
-                end_angle: _,
-                color_line: _,
+                x0,
+                y0,
+                start_angle,
+                end_angle,
+                color_line,
             } => {
-                #[allow(unused_assignments)]
-                {
-                    has_color = true;
-                }
-                anyhow::bail!("NOT IMPL: PaintSweepGradient");
+                has_color = true;
+                paint_sweep_gradient(
+                    &context,
+                    x0.into(),
+                    y0.into(),
+                    start_angle.into(),
+                    end_angle.into(),
+                    color_line,
+                )?;
             }
             PaintOp::PaintImage {
                 image,

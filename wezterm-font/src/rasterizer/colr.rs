@@ -148,6 +148,18 @@ pub fn paint_radial_gradient(
     Ok(())
 }
 
+pub fn paint_sweep_gradient(
+    context: &Context,
+    x0: f64,
+    y0: f64,
+    start_angle: f64,
+    end_angle: f64,
+    mut color_line: ColorLine,
+) -> anyhow::Result<()> {
+    let (min_stop, max_stop) = normalize_color_line(&mut color_line);
+    anyhow::bail!("NOT IMPL: SweepGradient");
+}
+
 fn normalize_color_line(color_line: &mut ColorLine) -> (f64, f64) {
     let mut smallest = color_line.color_stops[0].offset;
     let mut largest = smallest;

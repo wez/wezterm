@@ -5,7 +5,8 @@ use crate::ftwrap::{
 };
 use crate::parser::ParsedFont;
 use crate::rasterizer::colr::{
-    paint_linear_gradient, paint_radial_gradient, ColorLine, ColorStop, DrawOp, PaintOp,
+    paint_linear_gradient, paint_radial_gradient, paint_sweep_gradient, ColorLine, ColorStop,
+    DrawOp, PaintOp,
 };
 use crate::rasterizer::harfbuzz::{argb_to_rgba, HarfbuzzRasterizer};
 use crate::rasterizer::{FontRasterizer, FAKE_ITALIC_SKEW};
@@ -805,17 +806,21 @@ fn record_to_cairo_surface(
                 )?;
             }
             PaintOp::PaintSweepGradient {
-                x0: _,
-                y0: _,
-                start_angle: _,
-                end_angle: _,
-                color_line: _,
+                x0,
+                y0,
+                start_angle,
+                end_angle,
+                color_line,
             } => {
-                #[allow(unused_assignments)]
-                {
-                    has_color = true;
-                }
-                anyhow::bail!("NOT IMPL: PaintSweepGradient");
+                has_color = true;
+                paint_sweep_gradient(
+                    &context,
+                    x0.into(),
+                    y0.into(),
+                    start_angle.into(),
+                    end_angle.into(),
+                    color_line,
+                )?;
             }
         }
     }
