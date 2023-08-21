@@ -327,12 +327,31 @@ impl FreeTypeRasterizer {
             glyph_pos,
             FT_Color_Root_Transform::FT_COLOR_INCLUDE_ROOT_TRANSFORM,
         )?;
-        let clip_box = face.get_color_glyph_clip_box(glyph_pos)?;
+
+        // The root transform produces extents that are larger than
+        // our nominal pixel size. I'm not sure why that is, but the
+        // factor corresponds to the metrics.(x|y)_scale in the root
+        // transform.
+        // It is desirable to retain the root transform as it includes
+        // any skew that may have been applied to the font.
+        // So let's extract the offending scaling factors and we'll
+        // compensate when we rasterize the paths.
+        let (scale_x, scale_y) = unsafe {
+            let upem = (*face.face).units_per_EM as f64;
+            let metrics = (*(*face.face).size).metrics;
+            log::trace!("upem={upem}, metrics: {metrics:#?}");
+
+            (
+                1. / metrics.x_scale.to_num::<f64>(),
+                1. / metrics.y_scale.to_num::<f64>(),
+            )
+        };
 
         let palette = face.get_palette_data()?;
         log::trace!("Palette: {palette:#?}");
         face.select_palette(0)?;
 
+        let clip_box = face.get_color_glyph_clip_box(glyph_pos)?;
         log::trace!("got clip_box: {clip_box:?}");
         let mut walker = Walker {
             load_flags,
@@ -343,7 +362,7 @@ impl FreeTypeRasterizer {
 
         log::trace!("ops: {:#?}", walker.ops);
 
-        rasterize_from_ops(walker.ops, 1., -1.)
+        rasterize_from_ops(walker.ops, scale_x, -scale_y)
     }
 }
 
