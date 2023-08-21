@@ -305,20 +305,29 @@ impl crate::TermWindow {
                             params.pane_left,
                         ) {
                             (true, Some(pane_left)) => {
-                                if pane_left + cluster.first_cell_idx == 0 {
-                                    // left corner
-                                    (0.0, cell_width * cluster.width as f32 + padding_left)
-                                } else if pane_left + cluster.first_cell_idx + cluster.width
-                                    == self.terminal_size.cols
-                                {
-                                    (
+                                let touching_left = pane_left + cluster.first_cell_idx == 0;
+                                let touching_right =
+                                    pane_left + cluster.first_cell_idx + cluster.width
+                                        == self.terminal_size.cols;
+                                match (touching_left, touching_right) {
+                                    (true, true) => (
+                                        0.0,
+                                        cell_width * cluster.width as f32
+                                            + padding_left
+                                            + padding_right
+                                            + cell_width,
+                                    ),
+                                    (true, false) => {
+                                        (0.0, cell_width * cluster.width as f32 + padding_left)
+                                    }
+
+                                    (false, true) => (
                                         x,
                                         cell_width * cluster.width as f32
                                             + padding_right
                                             + cell_width,
-                                    )
-                                } else {
-                                    (x, cell_width * cluster.width as f32)
+                                    ),
+                                    (false, false) => (x, cell_width * cluster.width as f32),
                                 }
                             }
                             _ => (x, cell_width * cluster.width as f32),
@@ -332,7 +341,7 @@ impl crate::TermWindow {
                                     left,
                                     params.top_pixel_y - padding_top,
                                     width,
-                                    cell_height,
+                                    padding_top,
                                 ),
                                 bg_color,
                             )
