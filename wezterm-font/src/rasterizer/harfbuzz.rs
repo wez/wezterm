@@ -73,6 +73,7 @@ impl FontRasterizer for HarfbuzzRasterizer {
                 bearing_x: PixelLength::new(0.),
                 bearing_y: PixelLength::new(0.),
                 has_color: false,
+                is_scaled: true,
             });
         }
 
@@ -99,6 +100,7 @@ impl FontRasterizer for HarfbuzzRasterizer {
             bearing_x: PixelLength::new(left.min(0.)),
             bearing_y: PixelLength::new(top * -1.),
             has_color,
+            is_scaled: true,
         })
     }
 }

@@ -20,6 +20,9 @@ pub struct RasterizedGlyph {
     pub bearing_x: PixelLength,
     pub bearing_y: PixelLength,
     pub has_color: bool,
+    /// if true, glyphcache shouldn't need to scale the
+    /// glyph to match metrics
+    pub is_scaled: bool,
 }
 
 /// Rasterizes the specified glyph index in the associated font

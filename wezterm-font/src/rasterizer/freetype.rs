@@ -1,6 +1,7 @@
 use crate::ftwrap::{
     composite_mode_to_operator, vector_x_y, FT_Affine23, FT_ColorIndex, FT_ColorLine, FT_ColorStop,
-    FT_Fixed, FT_Get_Colorline_Stops, FT_Int32, FT_PaintExtend, IsSvg, FT_LOAD_NO_HINTING,
+    FT_Fixed, FT_Get_Colorline_Stops, FT_Int32, FT_PaintExtend, IsSvg, SelectedFontSize,
+    FT_LOAD_NO_HINTING,
 };
 use crate::hbwrap::DrawOp;
 use crate::parser::ParsedFont;
@@ -42,7 +43,8 @@ impl FontRasterizer for FreeTypeRasterizer {
         size: f64,
         dpi: u32,
     ) -> anyhow::Result<RasterizedGlyph> {
-        self.face
+        let SelectedFontSize { is_scaled, .. } = self
+            .face
             .borrow_mut()
             .set_font_size(size * self.scale, dpi)?;
 
@@ -83,10 +85,18 @@ impl FontRasterizer for FreeTypeRasterizer {
         };
 
         let glyph = match mode {
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => self.rasterize_lcd(pitch, ft_glyph, data),
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => self.rasterize_bgra(pitch, ft_glyph, data),
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => self.rasterize_gray(pitch, ft_glyph, data),
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => self.rasterize_mono(pitch, ft_glyph, data),
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                self.rasterize_lcd(pitch, ft_glyph, data, is_scaled)
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                self.rasterize_bgra(pitch, ft_glyph, data, is_scaled)
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                self.rasterize_gray(pitch, ft_glyph, data, is_scaled)
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
+                self.rasterize_mono(pitch, ft_glyph, data, is_scaled)
+            }
             mode => bail!("unhandled pixel mode: {:?}", mode),
         };
 
@@ -100,6 +110,7 @@ impl FreeTypeRasterizer {
         pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &[u8],
+        is_scaled: bool,
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
@@ -135,6 +146,7 @@ impl FreeTypeRasterizer {
             bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
             bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: false,
+            is_scaled,
         }
     }
 
@@ -143,6 +155,7 @@ impl FreeTypeRasterizer {
         pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &[u8],
+        is_scaled: bool,
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
@@ -173,6 +186,7 @@ impl FreeTypeRasterizer {
             bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
             bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: false,
+            is_scaled,
         }
     }
 
@@ -181,6 +195,7 @@ impl FreeTypeRasterizer {
         pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &[u8],
+        is_scaled: bool,
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize / 3;
         let height = ft_glyph.bitmap.rows as usize;
@@ -224,6 +239,7 @@ impl FreeTypeRasterizer {
             bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
             bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: self.has_color,
+            is_scaled,
         }
     }
 
@@ -232,6 +248,7 @@ impl FreeTypeRasterizer {
         _pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &'static [u8],
+        is_scaled: bool,
     ) -> RasterizedGlyph {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
@@ -263,6 +280,7 @@ impl FreeTypeRasterizer {
                 f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64),
             ),
             has_color: self.has_color,
+            is_scaled,
         }
     }
 
@@ -346,6 +364,7 @@ fn rasterize_from_ops(
             bearing_x: PixelLength::new(0.),
             bearing_y: PixelLength::new(0.),
             has_color: false,
+            is_scaled: true,
         });
     }
 
@@ -372,6 +391,7 @@ fn rasterize_from_ops(
         bearing_x: PixelLength::new(left.min(0.)),
         bearing_y: PixelLength::new(top * -1.),
         has_color,
+        is_scaled: true,
     })
 }
 
