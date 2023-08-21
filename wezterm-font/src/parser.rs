@@ -372,8 +372,8 @@ impl ParsedFont {
         };
 
         if has_svg {
-            if !config::configuration().experimental_svg_fonts {
-                anyhow::bail!("skip svg font");
+            if config::configuration().ignore_svg_fonts {
+                anyhow::bail!("skipping svg font because ignore_svg_fonts=true");
             }
         }
 
