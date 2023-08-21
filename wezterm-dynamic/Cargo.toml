@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 wezterm-dynamic-derive = { version="0.1", path="derive" }
-ordered-float = "3.0"
+ordered-float = "3.9"
 thiserror = "1.0"
 strsim = "0.10"
 log = "0.4"
