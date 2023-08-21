@@ -61,6 +61,8 @@ As features stabilize some brief notes about them will accumulate here.
   [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
   [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
   [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
+* Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
+  more recent versions of Noto Color Emoji. #4148
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
