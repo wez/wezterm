@@ -822,13 +822,16 @@ fn record_to_cairo_surface(
                 )?;
             }
             PaintOp::PaintSweepGradient {
-                x0,
-                y0,
-                start_angle,
-                end_angle,
-                color_line,
+                x0: _,
+                y0: _,
+                start_angle: _,
+                end_angle: _,
+                color_line: _,
             } => {
-                has_color = true;
+                #[allow(unused_assignments)]
+                {
+                    has_color = true;
+                }
                 anyhow::bail!("NOT IMPL: PaintSweepGradient");
             }
         }

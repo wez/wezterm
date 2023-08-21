@@ -1,7 +1,7 @@
 use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
     hb_color_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_to_string, ColorLine, DrawOp,
-    Face, Font, PaintOp, IS_PNG,
+    Font, PaintOp, IS_PNG,
 };
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
@@ -14,7 +14,6 @@ use image::DynamicImage::{ImageLuma8, ImageLumaA8};
 use image::GenericImageView;
 
 pub struct HarfbuzzRasterizer {
-    face: Face,
     font: Font,
 }
 
@@ -22,7 +21,6 @@ impl HarfbuzzRasterizer {
     pub fn from_locator(parsed: &ParsedFont) -> anyhow::Result<Self> {
         let mut font = Font::from_locator(&parsed.handle)?;
         font.set_ot_funcs();
-        let face = font.get_face();
 
         if parsed.synthesize_italic {
             font.set_synthetic_slant(FAKE_ITALIC_SKEW as f32);
@@ -31,7 +29,7 @@ impl HarfbuzzRasterizer {
             font.set_synthetic_bold(0.02, 0.02, false);
         }
 
-        Ok(Self { face, font })
+        Ok(Self { font })
     }
 }
 
@@ -43,7 +41,6 @@ impl FontRasterizer for HarfbuzzRasterizer {
         dpi: u32,
     ) -> anyhow::Result<RasterizedGlyph> {
         let pixel_size = (size * dpi as f64 / 72.) as u32;
-        let upem = self.face.get_upem();
 
         let scale = pixel_size as i32 * 64;
         let ppem = pixel_size;
@@ -222,19 +219,22 @@ fn record_to_cairo_surface(paint_ops: Vec<PaintOp>) -> anyhow::Result<(Recording
                 )?;
             }
             PaintOp::PaintSweepGradient {
-                x0,
-                y0,
-                start_angle,
-                end_angle,
-                color_line,
+                x0: _,
+                y0: _,
+                start_angle: _,
+                end_angle: _,
+                color_line: _,
             } => {
-                has_color = true;
+                #[allow(unused_assignments)]
+                {
+                    has_color = true;
+                }
                 anyhow::bail!("NOT IMPL: PaintSweepGradient");
             }
             PaintOp::PaintImage {
                 image,
-                width,
-                height,
+                width: _,
+                height: _,
                 format,
                 slant,
                 extents,
@@ -309,6 +309,7 @@ fn multiply_alpha(alpha: u8, color: u8) -> u8 {
     ((temp + (temp >> 8)) >> 8) as u8
 }
 
+#[allow(dead_code)]
 fn demultiply_alpha(alpha: u8, color: u8) -> u8 {
     if alpha == 0 {
         return 0;
@@ -321,6 +322,7 @@ fn demultiply_alpha(alpha: u8, color: u8) -> u8 {
     }
 }
 
+#[allow(dead_code)]
 fn premultiply(data: &mut [u8]) {
     for pixel in data.chunks_exact_mut(4) {
         let (r, g, b, a) = (pixel[0], pixel[1], pixel[2], pixel[3]);
