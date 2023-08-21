@@ -4,6 +4,7 @@ use freetype;
 pub use harfbuzz::*;
 
 use crate::locator::{FontDataHandle, FontDataSource};
+use crate::rasterizer::colr::DrawOp;
 use anyhow::{ensure, Context, Error};
 use memmap2::{Mmap, MmapOptions};
 use std::ffi::CStr;
@@ -751,33 +752,6 @@ impl PaintOp {
 
         ops.push(Self::PushGlyphClip { glyph, draw });
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum DrawOp {
-    MoveTo {
-        to_x: f32,
-        to_y: f32,
-    },
-    LineTo {
-        to_x: f32,
-        to_y: f32,
-    },
-    QuadTo {
-        control_x: f32,
-        control_y: f32,
-        to_x: f32,
-        to_y: f32,
-    },
-    CubicTo {
-        control1_x: f32,
-        control1_y: f32,
-        control2_x: f32,
-        control2_y: f32,
-        to_x: f32,
-        to_y: f32,
-    },
-    ClosePath,
 }
 
 impl DrawOp {

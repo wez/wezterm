@@ -7,6 +7,7 @@ use image::{ImageBuffer, Rgba};
 /// italics
 pub(crate) const FAKE_ITALIC_SKEW: f64 = 0.2;
 
+pub mod colr;
 pub mod freetype;
 pub mod harfbuzz;
 

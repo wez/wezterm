@@ -1,8 +1,9 @@
 use crate::hbwrap::{
     hb_color, hb_color_get_alpha, hb_color_get_blue, hb_color_get_green, hb_color_get_red,
-    hb_color_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_to_string, ColorLine, DrawOp,
-    Font, PaintOp, IS_PNG,
+    hb_color_t, hb_paint_composite_mode_t, hb_paint_extend_t, hb_tag_to_string, ColorLine, Font,
+    PaintOp, IS_PNG,
 };
+use crate::rasterizer::colr::DrawOp;
 use crate::rasterizer::FAKE_ITALIC_SKEW;
 use crate::units::PixelLength;
 use crate::{FontRasterizer, ParsedFont, RasterizedGlyph};

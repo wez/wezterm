@@ -1,8 +1,8 @@
 //! Higher level freetype bindings
 
-use crate::hbwrap::DrawOp;
 use crate::locator::{FontDataHandle, FontDataSource};
 use crate::parser::ParsedFont;
+use crate::rasterizer::colr::DrawOp;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use freetype::*;
