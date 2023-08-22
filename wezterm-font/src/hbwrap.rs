@@ -864,8 +864,12 @@ impl ColorLine {
             color_stops: color_stops
                 .into_iter()
                 .map(|stop| ColorStop {
-                    offset: stop.offset,
-                    color: hb_color_to_srgba_pixel(stop.color),
+                    offset: stop.offset.into(),
+                    color: if stop.is_foreground != 0 {
+                        SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff)
+                    } else {
+                        hb_color_to_srgba_pixel(stop.color)
+                    },
                 })
                 .collect(),
             extend: hb_extend_to_cairo(extend),
