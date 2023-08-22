@@ -1,7 +1,7 @@
 use crate::ftwrap::{
     composite_mode_to_operator, vector_x_y, FT_Affine23, FT_ColorIndex, FT_ColorLine, FT_ColorStop,
-    FT_Fixed, FT_Get_Colorline_Stops, FT_Int32, FT_PaintExtend, IsSvg, SelectedFontSize,
-    FT_LOAD_NO_HINTING,
+    FT_Fixed, FT_Get_Colorline_Stops, FT_Int32, FT_PaintExtend, IsColr1OrLater, IsSvg,
+    SelectedFontSize, FT_LOAD_NO_HINTING,
 };
 use crate::parser::ParsedFont;
 use crate::rasterizer::colr::{
@@ -64,7 +64,9 @@ impl FontRasterizer for FreeTypeRasterizer {
         ) {
             Ok(g) => g,
             Err(err) => {
-                if err.root_cause().downcast_ref::<IsSvg>().is_some() {
+                if err.root_cause().downcast_ref::<IsSvg>().is_some()
+                    || err.root_cause().downcast_ref::<IsColr1OrLater>().is_some()
+                {
                     drop(face);
 
                     let config = config::configuration();

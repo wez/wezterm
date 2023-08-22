@@ -135,6 +135,10 @@ pub struct SelectedFontSize {
 #[error("Glyph is SVG")]
 pub struct IsSvg;
 
+#[derive(Debug, thiserror::Error)]
+#[error("Glyph is COLR1 or later")]
+pub struct IsColr1OrLater;
+
 impl Face {
     pub fn family_name(&self) -> String {
         unsafe {
@@ -926,14 +930,16 @@ impl Face {
         synthesize_bold: bool,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
-            ft_result(FT_Load_Glyph(self.face, glyph_index, load_flags), ()).with_context(
-                || {
-                    format!(
-                        "load_and_render_glyph: FT_Load_Glyph glyph_index:{}",
-                        glyph_index
-                    )
-                },
-            )?;
+            ft_result(
+                FT_Load_Glyph(self.face, glyph_index, load_flags | FT_LOAD_NO_SVG as i32),
+                (),
+            )
+            .with_context(|| {
+                format!(
+                    "load_and_render_glyph: FT_Load_Glyph glyph_index:{}",
+                    glyph_index
+                )
+            })?;
             let slot = &mut *(*self.face).glyph;
 
             if slot.format == FT_Glyph_Format_::FT_GLYPH_FORMAT_SVG {
@@ -944,8 +950,29 @@ impl Face {
                 FT_GlyphSlot_Embolden(slot as *mut _);
             }
 
+            // Current versions of freetype overload the operation of FT_LOAD_COLOR
+            // and the resulting glyph format such that we cannot determine solely
+            // from the flags whether we got a regular set of outlines,
+            // or its COLR v0 synthesized glyphs, or whether it's COLR v1 or later
+            // and it can't render the result.
+            // So, we probe here to look for color layer information: if we find it,
+            // we don't call freetype's renderer and instead bubble up an error
+            // that the embedding application can trap and decide what to do.
+            if slot.format == FT_Glyph_Format_::FT_GLYPH_FORMAT_OUTLINE {
+                if self
+                    .get_color_glyph_paint(
+                        glyph_index,
+                        FT_Color_Root_Transform::FT_COLOR_NO_ROOT_TRANSFORM,
+                    )
+                    .is_ok()
+                {
+                    return Err(IsColr1OrLater.into());
+                }
+            }
+
             ft_result(FT_Render_Glyph(slot, render_mode), ())
                 .context("load_and_render_glyph: FT_Render_Glyph")?;
+
             Ok(slot)
         }
     }
