@@ -6164,6 +6164,7 @@ dependencies = [
  "pulldown-cmark",
  "rangeset",
  "ratelim",
+ "rayon",
  "regex",
  "serde",
  "serde_json",
