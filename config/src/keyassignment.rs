@@ -365,6 +365,7 @@ pub enum CharSelectGroup {
     Flags,
     NerdFonts,
     UnicodeNames,
+    ShortCodes,
 }
 
 // next is default, previous is the reverse
@@ -398,7 +399,8 @@ char_select_group_impl_next_prev! (
     Symbols => Flags,
     Flags => NerdFonts,
     NerdFonts => UnicodeNames,
-    UnicodeNames => RecentlyUsed,
+    UnicodeNames => ShortCodes,
+    ShortCodes => RecentlyUsed,
 );
 
 impl Default for CharSelectGroup {

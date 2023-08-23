@@ -168,25 +168,39 @@ fn build_aliases() -> Vec<Alias> {
             Group::Symbols => CharSelectGroup::Symbols,
             Group::Flags => CharSelectGroup::Flags,
         };
-        push(
-            &mut aliases,
-            Alias {
-                name: Cow::Borrowed(emoji.name()),
-                character: Character::Emoji(emoji),
-                group,
-            },
-        );
-        if let Some(short) = emoji.shortcode() {
-            if short != emoji.name() {
+        match emoji.skin_tones() {
+            Some(iter) => {
+                for entry in iter {
+                    push(
+                        &mut aliases,
+                        Alias {
+                            name: Cow::Borrowed(entry.name()),
+                            character: Character::Emoji(entry),
+                            group,
+                        },
+                    );
+                }
+            }
+            None => {
                 push(
                     &mut aliases,
                     Alias {
-                        name: Cow::Borrowed(short),
+                        name: Cow::Borrowed(emoji.name()),
                         character: Character::Emoji(emoji),
                         group,
                     },
                 );
             }
+        }
+        for short in emoji.shortcodes() {
+            push(
+                &mut aliases,
+                Alias {
+                    name: Cow::Borrowed(short),
+                    character: Character::Emoji(emoji),
+                    group: CharSelectGroup::ShortCodes,
+                },
+            );
         }
     }
 
@@ -400,6 +414,7 @@ impl CharSelector {
             CharSelectGroup::Flags => "Flags",
             CharSelectGroup::NerdFonts => "NerdFonts",
             CharSelectGroup::UnicodeNames => "Unicode",
+            CharSelectGroup::ShortCodes => "Short Codes",
         };
 
         let mut elements = vec![Element::new(

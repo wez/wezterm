@@ -23,6 +23,10 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+* Added split out github short codes from the various charselect sections into
+  their own new Short Codes section.
+* CharSelect now shows emoji variations such as skin tones
+* Improved fuzzy matching performance in CharSelect
 
 #### New
 * [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and
