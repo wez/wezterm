@@ -12,6 +12,14 @@ pub enum MaybeShaped {
     Unresolved { raw: String, slice_start: usize },
 }
 
+#[derive(Debug, Clone)]
+pub struct FontPaletteInfo {
+    pub name: String,
+    pub palette_index: usize,
+    pub usable_with_light_bg: bool,
+    pub usable_with_dark_bg: bool,
+}
+
 /// Represents a parsed font
 pub struct ParsedFont {
     names: Names,
@@ -27,6 +35,7 @@ pub struct ParsedFont {
     pub assume_emoji_presentation: bool,
     pub pixel_sizes: Vec<u16>,
     pub is_built_in_fallback: bool,
+    pub palettes: Vec<FontPaletteInfo>,
 
     pub harfbuzz_features: Option<Vec<String>>,
     pub freetype_load_target: Option<FreeTypeLoadTarget>,
@@ -79,6 +88,7 @@ impl Clone for ParsedFont {
             freetype_load_flags: self.freetype_load_flags,
             is_built_in_fallback: self.is_built_in_fallback,
             scale: self.scale,
+            palettes: self.palettes.clone(),
         }
     }
 }
@@ -298,6 +308,23 @@ impl ParsedFont {
             if !p.pixel_sizes.is_empty() {
                 code.push_str(&format!("  -- Pixel sizes: {:?}\n", p.pixel_sizes));
             }
+            if !p.palettes.is_empty() {
+                for pal in &p.palettes {
+                    let mut info = format!(
+                        "  -- Palette: {} {}",
+                        pal.palette_index,
+                        pal.name.to_string()
+                    );
+                    if pal.usable_with_light_bg {
+                        info.push_str(" (with light bg)");
+                    }
+                    if pal.usable_with_dark_bg {
+                        info.push_str(" (with dark bg)");
+                    }
+                    info.push('\n');
+                    code.push_str(&info);
+                }
+            }
             for aka in &p.names.aliases {
                 code.push_str(&format!("  -- AKA: \"{}\"\n", aka));
             }
@@ -367,6 +394,24 @@ impl ParsedFont {
         let cap_height = face.cap_height();
         let pixel_sizes = face.pixel_sizes();
 
+        let palettes = match face.get_palette_data() {
+            Ok(info) => info
+                .palettes
+                .iter()
+                .map(|p| FontPaletteInfo {
+                    name: p.name.to_string(),
+                    palette_index: p.palette_index,
+                    usable_with_light_bg: (p.flags
+                        & crate::ftwrap::FT_PALETTE_FOR_LIGHT_BACKGROUND as u16)
+                        != 0,
+                    usable_with_dark_bg: (p.flags
+                        & crate::ftwrap::FT_PALETTE_FOR_DARK_BACKGROUND as u16)
+                        != 0,
+                })
+                .collect(),
+            Err(_) => vec![],
+        };
+
         let has_svg = unsafe {
             (((*face.face).face_flags as u32) & (crate::ftwrap::FT_FACE_FLAG_SVG as u32)) != 0
         };
@@ -427,6 +472,7 @@ impl ParsedFont {
             freetype_load_target: None,
             freetype_load_flags: None,
             scale: None,
+            palettes,
         })
     }
 

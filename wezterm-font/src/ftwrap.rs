@@ -709,7 +709,7 @@ impl Face {
             .ok_or_else(|| anyhow::anyhow!("invalid palette entry {index}"))
     }
 
-    pub fn get_palette_data(&mut self) -> anyhow::Result<PaletteInfo> {
+    pub fn get_palette_data(&self) -> anyhow::Result<PaletteInfo> {
         unsafe {
             let mut result = MaybeUninit::<FT_Palette_Data>::zeroed();
             ft_result(FT_Palette_Data_Get(self.face, result.as_mut_ptr()), ())
