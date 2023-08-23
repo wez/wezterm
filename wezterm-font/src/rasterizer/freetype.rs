@@ -15,7 +15,7 @@ use crate::{ftwrap, FontRasterizerSelection, RasterizedGlyph};
 use ::freetype::{
     FT_Color_Root_Transform, FT_GlyphSlotRec_, FT_Matrix, FT_Opaque_Paint_, FT_PaintFormat_,
 };
-use anyhow::bail;
+use anyhow::{bail, Context as _};
 use cairo::{Content, Context, Extend, Format, ImageSurface, Matrix, Operator, RecordingSurface};
 use config::{DisplayPixelGeometry, FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
@@ -103,7 +103,7 @@ impl FontRasterizer for FreeTypeRasterizer {
                 self.rasterize_lcd(pitch, ft_glyph, data, is_scaled)
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                self.rasterize_bgra(pitch, ft_glyph, data, is_scaled)
+                self.rasterize_bgra(pitch, ft_glyph, data, is_scaled)?
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
                 self.rasterize_gray(pitch, ft_glyph, data, is_scaled)
@@ -259,20 +259,42 @@ impl FreeTypeRasterizer {
 
     fn rasterize_bgra(
         &self,
-        _pitch: usize,
+        pitch: usize,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &'static [u8],
         is_scaled: bool,
-    ) -> RasterizedGlyph {
+    ) -> anyhow::Result<RasterizedGlyph> {
         let width = ft_glyph.bitmap.width as usize;
         let height = ft_glyph.bitmap.rows as usize;
+
+        if width == 0 || height == 0 {
+            // Handle this case separately; the ImageBuffer
+            // constructor doesn't like 0-size dimensions
+            return Ok(RasterizedGlyph {
+                data: vec![],
+                height: 0,
+                width: 0,
+                bearing_x: PixelLength::new(0.),
+                bearing_y: PixelLength::new(0.),
+                has_color: false,
+                is_scaled,
+            });
+        }
 
         let mut source_image = image::ImageBuffer::<image::Rgba<u8>, &[u8]>::from_raw(
             width as u32,
             height as u32,
             data,
         )
-        .expect("image data to be valid");
+        .with_context(|| {
+            format!(
+                "build image from data with \
+                 width={width}, height={height} and pitch={pitch}.\
+                 Expected pitch={}. format is {:?}",
+                width * 4,
+                ft_glyph.format
+            )
+        })?;
 
         // emoji glyphs don't always fill the bitmap size, so we compute
         // the non-transparent bounds
@@ -283,7 +305,7 @@ impl FreeTypeRasterizer {
         let dest_width = cropped.width() as usize;
         let dest_height = cropped.height() as usize;
 
-        RasterizedGlyph {
+        Ok(RasterizedGlyph {
             data: cropped.into_vec(),
             height: dest_height,
             width: dest_width,
@@ -295,7 +317,7 @@ impl FreeTypeRasterizer {
             ),
             has_color: self.has_color,
             is_scaled,
-        }
+        })
     }
 
     pub fn from_locator(
