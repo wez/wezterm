@@ -44,6 +44,8 @@ This example changes the tab edges to the PowerLine arrow symbols:
 ```lua
 local wezterm = require 'wezterm'
 
+local config = wezterm.config_builder()
+
 -- The filled in variant of the < symbol
 local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
 
