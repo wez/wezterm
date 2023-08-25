@@ -27,6 +27,9 @@ As features stabilize some brief notes about them will accumulate here.
   their own new Short Codes section.
 * CharSelect now shows emoji variations such as skin tones
 * Improved fuzzy matching performance in CharSelect
+* [PaneSelect](config/lua/keyassignment/PaneSelect.md) new modes `MoveToNewTab`
+  and `MoveToNewWindow`, as well as `show_pane_ids=true` to show the pane ids.
+  #4147
 
 #### New
 * [wezterm imgcat](cli/imgcat.md) now has `--position`, `--no-move-cursor` and

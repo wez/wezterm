@@ -19,6 +19,15 @@ The available actions are:
 
 The selection alphabet defaults to the same value as [quick_select_alphabet](../config/quick_select_alphabet.md), but can be explicitly via the `alphabet` field:
 
+{{since('nightly')}}
+
+Additional modes are now supported:
+
+* `mode="MoveToNewTab"` - moves the selected pane into a new tab in the same window, and activates it
+* `mode="MoveToNewWindow"` - moves the selected pane into a new window, and activates it
+
+You may now also set `show_pane_ids=true` to show the pane id alongside the label.
+
 ```lua
 local wezterm = require 'wezterm'
 local act = wezterm.action

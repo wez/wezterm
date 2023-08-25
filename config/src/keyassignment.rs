@@ -333,6 +333,8 @@ impl Default for ClipboardPasteSource {
 pub enum PaneSelectMode {
     Activate,
     SwapWithActive,
+    MoveToNewTab,
+    MoveToNewWindow,
 }
 
 impl Default for PaneSelectMode {
@@ -349,6 +351,9 @@ pub struct PaneSelectArguments {
 
     #[dynamic(default)]
     pub mode: PaneSelectMode,
+
+    #[dynamic(default)]
+    pub show_pane_ids: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
