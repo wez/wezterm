@@ -23,6 +23,14 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 * The default for [front_end](config/lua/config/front_end.md) is now `WebGpu`.
+* The return type of
+  [pane.get_current_working_dir](config/lua/pane/get_current_working_dir.md)
+  and [PaneInformation.current_working_dir](config/lua/PaneInformation.md)
+  has changed to the new [Url](config/lua/wezterm.url/Url.md) object, which
+  makes it easier to handle things like percent-encoding for paths with spaces
+  or non-ASCII characters. Please see the revised example on
+  [set_right_status](config/lua/window/set_right_status.md) for example usage
+  with backwards compatibility in mind. #4000
 * Added split out github short codes from the various charselect sections into
   their own new Short Codes section.
 * CharSelect now shows emoji variations such as skin tones

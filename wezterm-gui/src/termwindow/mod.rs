@@ -300,16 +300,14 @@ impl UserData for PaneInformation {
             Ok(name)
         });
         fields.add_field_method_get("current_working_dir", |_, this| {
-            let mut name = None;
             if let Some(mux) = Mux::try_get() {
                 if let Some(pane) = mux.get_pane(this.pane_id) {
-                    name = pane.get_current_working_dir().map(|u| u.to_string());
+                    return Ok(pane
+                        .get_current_working_dir()
+                        .map(|url| url_funcs::Url { url }));
                 }
             }
-            match name {
-                Some(name) => Ok(name),
-                None => Ok("".to_string()),
-            }
+            Ok(None)
         });
         fields.add_field_method_get("domain_name", |_, this| {
             let mut name = None;
