@@ -333,6 +333,7 @@ impl Default for ClipboardPasteSource {
 pub enum PaneSelectMode {
     Activate,
     SwapWithActive,
+    SwapWithActiveKeepFocus,
     MoveToNewTab,
     MoveToNewWindow,
 }

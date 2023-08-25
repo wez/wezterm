@@ -179,8 +179,11 @@ impl PaneSelector {
                         tab.set_active_idx(pane_index);
                     }
                 }
-                PaneSelectMode::SwapWithActive => {
-                    tab.swap_active_with_index(pane_index);
+                PaneSelectMode::SwapWithActiveKeepFocus | PaneSelectMode::SwapWithActive => {
+                    tab.swap_active_with_index(
+                        pane_index,
+                        self.mode == PaneSelectMode::SwapWithActiveKeepFocus,
+                    );
                 }
                 PaneSelectMode::MoveToNewWindow => {
                     if let Some(pos) = panes.iter().find(|p| p.index == pane_index) {
