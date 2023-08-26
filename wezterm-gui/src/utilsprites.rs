@@ -111,7 +111,10 @@ impl RenderMetrics {
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = match &config.strikethrough_position {
-            None => descender_row / 2,
+            None => {
+                ((cell_height as f64 + (metrics.descender.get() - underline_position)) / 2.)
+                    as isize
+            }
             Some(d) => d
                 .evaluate_as_pixels(DimensionContext {
                     dpi: fonts.get_dpi() as f32,

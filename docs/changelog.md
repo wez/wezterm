@@ -88,6 +88,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Charselect and repl recency/history were not persisted across restarts. #4047 ?4019
 * macOS: system font fallback didn't always find a workable fallback font. #4099 #849
 * F13-F24 keys are now supported. Thanks to @ovidiu-ionescu! #3937
+* Strikethrough position was not centered when setting `line_height` #4196
 
 #### Updated
 * Bundled harfbuzz to 8.1.1
