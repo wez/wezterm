@@ -89,6 +89,9 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: system font fallback didn't always find a workable fallback font. #4099 #849
 * F13-F24 keys are now supported. Thanks to @ovidiu-ionescu! #3937
 * Strikethrough position was not centered when setting `line_height` #4196
+* Text cursor filled the scaled-by `line_height` and `cell_width` dimensions rather
+  than the native font dimensions and looked weird when either config option was
+  not set to `1.0`. #2882
 
 #### Updated
 * Bundled harfbuzz to 8.1.1
