@@ -532,8 +532,11 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(containing_tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", containing_tab_id))?;
-                            tab.set_active_pane(&pane);
-                            tab.set_zoomed(zoomed);
+                            tab.set_zoomed(false);
+                            if zoomed {
+                                tab.set_active_pane(&pane);
+                                tab.set_zoomed(zoomed);
+                            }
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -1021,7 +1024,7 @@ async fn split_pane(split: SplitPane, client_id: Option<Arc<ClientId>>) -> anyho
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
-        tab_id: tab_id,
+        tab_id,
         window_id,
         size,
     }))

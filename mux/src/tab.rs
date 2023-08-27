@@ -747,6 +747,10 @@ impl Tab {
             .lock()
             .split_and_insert(pane_index, request, pane)
     }
+
+    pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
+        self.inner.lock().get_zoomed_pane()
+    }
 }
 
 impl TabInner {
@@ -2074,6 +2078,10 @@ impl TabInner {
         } else {
             pane_index
         })
+    }
+
+    fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
+        self.zoomed.clone()
     }
 }
 
