@@ -363,6 +363,51 @@ impl Font {
         unsafe { hb_shape(self.font, buf.buf, features.as_ptr(), features.len() as u32) }
     }
 
+    /// Fetches a list of the caret positions defined for a ligature glyph in the GDEF table of the
+    /// font. The list returned will begin at the offset provided.
+    /// Note that a ligature that is formed from n characters will have n-1 caret positions. The
+    /// first character is not represented in the array, since its caret position is the glyph
+    /// position.
+    /// The positions returned by this function are 'unshaped', and will have to be fixed up for
+    /// kerning that may be applied to the ligature glyp
+    #[allow(dead_code)]
+    pub fn get_ligature_carets(
+        &self,
+        direction: hb_direction_t,
+        glyph_pos: u32,
+    ) -> Vec<hb_position_t> {
+        let mut positions = [0 as hb_position_t; 8];
+
+        unsafe {
+            let mut array_size = positions.len() as c_uint;
+            let n_carets = hb_ot_layout_get_ligature_carets(
+                self.font,
+                direction,
+                glyph_pos,
+                0,
+                &mut array_size,
+                positions.as_mut_ptr(),
+            ) as usize;
+
+            if n_carets > positions.len() {
+                let mut positions = vec![0 as hb_position_t; n_carets];
+                array_size = positions.len() as c_uint;
+                hb_ot_layout_get_ligature_carets(
+                    self.font,
+                    direction,
+                    glyph_pos,
+                    0,
+                    &mut array_size,
+                    positions.as_mut_ptr(),
+                );
+
+                return positions;
+            }
+
+            positions[..n_carets].to_vec()
+        }
+    }
+
     #[allow(unused)]
     pub fn draw_glyph(&self, glyph_pos: u32, funcs: &DrawFuncs, draw_data: *mut c_void) {
         unsafe { hb_font_draw_glyph(self.font, glyph_pos, funcs.funcs, draw_data) }
