@@ -1554,8 +1554,26 @@ impl TabInner {
     }
 
     fn prune_dead_panes(&mut self) -> bool {
+        let mux = Mux::get();
         !self
-            .remove_pane_if(|_, pane| pane.is_dead(), true)
+            .remove_pane_if(
+                |_, pane| {
+                    // If the pane is no longer known to the mux, then its liveness
+                    // state isn't guaranteed to be monitored or updated, so let's
+                    // consider the pane effectively dead if it isn't in the mux.
+                    // <https://github.com/wez/wezterm/issues/4030>
+                    let in_mux = mux.get_pane(pane.pane_id()).is_some();
+                    let dead = pane.is_dead();
+                    log::trace!(
+                        "prune_dead_panes: pane_id={} dead={} in_mux={}",
+                        pane.pane_id(),
+                        dead,
+                        in_mux
+                    );
+                    dead || !in_mux
+                },
+                true,
+            )
             .is_empty()
     }
 

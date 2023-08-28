@@ -92,6 +92,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Text cursor filled the scaled-by `line_height` and `cell_width` dimensions rather
   than the native font dimensions and looked weird when either config option was
   not set to `1.0`. #2882
+* Using `CloseCurrentPane` could sometimes leave a stranded pane in a tab. #4030
 
 #### Updated
 * Bundled harfbuzz to 8.1.1
