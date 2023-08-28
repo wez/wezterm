@@ -1172,7 +1172,7 @@ pub fn hb_tag_to_string(tag: hb_tag_t) -> TagString {
 
     // safety: hb_tag_to_string stores 4 bytes to the provided buffer
     unsafe {
-        harfbuzz::hb_tag_to_string(tag, &mut buf as *mut u8 as *mut i8);
+        harfbuzz::hb_tag_to_string(tag, &mut buf as *mut u8 as *mut c_char);
     }
     TagString(buf)
 }
