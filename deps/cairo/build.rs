@@ -185,7 +185,9 @@ fn cairo() {
         "src/cairo-wideint.c",
         "src/cairo.c",
         "util/cairo-missing/getline.c",
-        "util/cairo-missing/strndup.c",
+        // Cairo has two conflicting ways to satisfy strndup.
+        // Let's remove this one from the build.
+        // "util/cairo-missing/strndup.c",
         // "util/malloc-stats.c",
     ] {
         cfg.file(&format!("cairo/{f}"));
