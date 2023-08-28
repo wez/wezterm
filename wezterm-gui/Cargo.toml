@@ -29,7 +29,7 @@ dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.7"
+embed-resource = "2.3"
 cc = "1.0"
 
 [dependencies]
