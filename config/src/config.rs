@@ -1622,7 +1622,7 @@ pub fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         hyperlink::Rule::with_highlight(r"<(\w+://\S+)>", "$1", 1).unwrap(),
         // Then handle URLs not wrapped in brackets
         // and include terminating ), / or - characters, if any
-        hyperlink::Rule::new(r"\b\w+://\S+[)/a-zA-Z0-9-]+", "$0").unwrap(),
+        hyperlink::Rule::with_highlight(r"[^(]\b(\w+://\S+[)/a-zA-Z0-9-]+)", "$1", 1).unwrap(),
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
