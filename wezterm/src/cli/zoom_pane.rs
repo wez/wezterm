@@ -15,7 +15,10 @@ pub struct ZoomPane {
     pane_id: Option<PaneId>,
 
     /// Zooms the pane if it wasn't already zoomed
-    #[arg(long, default_value = "true", conflicts_with_all=&["unzoom", "toggle"])]
+    #[arg(long, default_value = "true", default_value_ifs([
+        ("unzoom", "true", "false"),
+        ("toggle", "true", "false"),
+    ]), conflicts_with_all=&["unzoom", "toggle"])]
     zoom: bool,
 
     /// Unzooms the pane if it was zoomed
@@ -57,52 +60,29 @@ impl ZoomPane {
             .copied()
             .ok_or_else(|| anyhow!("unable to resolve current tab"))?;
 
-        if self.zoom {
+        if self.zoom || self.unzoom {
             client
                 .set_zoomed(SetPaneZoomed {
                     containing_tab_id,
                     pane_id,
-                    zoomed: true,
-                })
-                .await?;
-        }
-
-        if self.unzoom {
-            client
-                .set_zoomed(SetPaneZoomed {
-                    containing_tab_id,
-                    pane_id,
-                    zoomed: false,
+                    zoomed: self.zoom,
                 })
                 .await?;
         }
 
         if self.toggle {
-            if tab_id_to_active_zoomed_pane_id.contains_key(&containing_tab_id) {
-                let target_pane = tab_id_to_active_zoomed_pane_id
-            .get(&containing_tab_id)
-            .copied()
-            .ok_or_else(|| {
-                anyhow!("could not determine which pane should be active for tab {containing_tab_id}")
-            })?;
-                if target_pane == pane_id {
-                    client
-                        .set_zoomed(SetPaneZoomed {
-                            containing_tab_id,
-                            pane_id,
-                            zoomed: false,
-                        })
-                        .await?;
-                }
-            } else {
-                client
-                    .set_zoomed(SetPaneZoomed {
-                        containing_tab_id,
-                        pane_id,
-                        zoomed: true,
-                    })
-                    .await?;
-            }
+            let is_zoomed = tab_id_to_active_zoomed_pane_id
+                .get(&containing_tab_id)
+                .copied()
+                == Some(pane_id);
+
+            client
+                .set_zoomed(SetPaneZoomed {
+                    containing_tab_id,
+                    pane_id,
+                    zoomed: !is_zoomed,
+                })
+                .await?;
         }
         Ok(())
     }
