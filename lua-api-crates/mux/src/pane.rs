@@ -424,6 +424,8 @@ struct SplitPane {
     top_level: bool,
     #[dynamic(default = "default_split_size")]
     size: f32,
+    #[dynamic(default)]
+    move_pane_id: Option<usize>,
 }
 impl_lua_conversion_dynamic!(SplitPane);
 
@@ -433,10 +435,14 @@ fn default_split_size() -> f32 {
 
 impl SplitPane {
     async fn run(&self, pane: &MuxPane) -> mlua::Result<MuxPane> {
-        let (command, command_dir) = self.cmd_builder.to_command_builder();
-        let source = SplitSource::Spawn {
-            command,
-            command_dir,
+        let source = if let Some(move_pane_id) = self.move_pane_id {
+            SplitSource::MovePane(move_pane_id)
+        } else {
+            let (command, command_dir) = self.cmd_builder.to_command_builder();
+            SplitSource::Spawn {
+                command,
+                command_dir,
+            }
         };
 
         let size = if self.size == 0.0 {
