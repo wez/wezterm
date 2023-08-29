@@ -532,10 +532,23 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(containing_tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", containing_tab_id))?;
-                            tab.set_zoomed(false);
-                            if zoomed {
-                                tab.set_active_pane(&pane);
-                                tab.set_zoomed(zoomed);
+                            match tab.get_zoomed_pane() {
+                                Some(p) => {
+                                    let is_zoomed = p.pane_id() == pane_id;
+                                    if is_zoomed != zoomed {
+                                        tab.set_zoomed(false);
+                                        if zoomed {
+                                            tab.set_active_pane(&pane);
+                                            tab.set_zoomed(zoomed);
+                                        }
+                                    }
+                                }
+                                None => {
+                                    if zoomed {
+                                        tab.set_active_pane(&pane);
+                                        tab.set_zoomed(zoomed);
+                                    }
+                                }
                             }
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
