@@ -281,6 +281,16 @@ _arguments "${_arguments_options[@]}" \
 ':new_workspace -- The new name for the workspace:' \
 && ret=0
 ;;
+(zoom-pane)
+_arguments "${_arguments_options[@]}" \
+'--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WEZTERM_PANE]:PANE_ID: ' \
+'(--unzoom --toggle)--zoom[Zooms the pane if it wasn'\''t already zoomed]' \
+'(--zoom --toggle)--unzoom[Unzooms the pane if it was zoomed]' \
+'(--zoom --unzoom)--toggle[Toggles the zoom state of the pane]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 ":: :_wezterm__cli__help_commands" \
@@ -362,6 +372,10 @@ _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
 (rename-workspace)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(zoom-pane)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -550,6 +564,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(zoom-pane)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -689,6 +707,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli commands' commands "$@"
@@ -716,6 +735,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
     )
     _describe -t commands 'wezterm help cli commands' commands "$@"
 }
@@ -782,6 +802,7 @@ Outputs the pane-id for the newly created pane on success' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
 'rename-workspace:Rename a workspace' \
+'zoom-pane:Zoom, unzoom, or toggle zoom state' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'wezterm cli help commands' commands "$@"
@@ -1094,6 +1115,21 @@ _wezterm__cli__tlscreds_commands() {
 _wezterm__help__cli__tlscreds_commands() {
     local commands; commands=()
     _describe -t commands 'wezterm help cli tlscreds commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__help__zoom-pane_commands] )) ||
+_wezterm__cli__help__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli help zoom-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__cli__zoom-pane_commands] )) ||
+_wezterm__cli__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm cli zoom-pane commands' commands "$@"
+}
+(( $+functions[_wezterm__help__cli__zoom-pane_commands] )) ||
+_wezterm__help__cli__zoom-pane_commands() {
+    local commands; commands=()
+    _describe -t commands 'wezterm help cli zoom-pane commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_wezterm" ]; then

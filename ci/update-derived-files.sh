@@ -49,6 +49,7 @@ for cmd in \
     set-window-title \
     spawn \
     split-pane \
+    zoom-pane \
     ; do
   fname="docs/examples/cmd-synopsis-wezterm-cli-${cmd}--help.txt"
   cargo run --example narrow $PWD/target/debug/wezterm cli $cmd --help | ./target/debug/strip-ansi-escapes | trim_file > $fname

@@ -1,0 +1,12 @@
+Zoom, unzoom, or toggle zoom state
+
+Usage: wezterm cli zoom-pane [OPTIONS]
+
+Options:
+      --pane-id <PANE_ID>  Specify the target pane. The default is to use the
+                           current pane based on the environment variable
+                           WEZTERM_PANE
+      --zoom               Zooms the pane if it wasn't already zoomed
+      --unzoom             Unzooms the pane if it was zoomed
+      --toggle             Toggles the zoom state of the pane
+  -h, --help               Print help

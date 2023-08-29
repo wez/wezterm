@@ -78,6 +78,7 @@ As features stabilize some brief notes about them will accumulate here.
   [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
 * Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
   more recent versions of Noto Color Emoji. #4148
+* [wezterm cli zoom-pane](cli/cli/zoom-pane.md). Thanks to @quantonganh! #4160
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
