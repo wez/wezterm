@@ -85,9 +85,10 @@ impl SelectorState {
 
         let max_items = self.max_items;
         let alphabet = &self.args.alphabet;
-        let mut labels = compute_labels_for_alphabet(alphabet, max_items + 1).into_iter();
-        let labels_len = labels.len();
-        let max_label_len = labels.clone().map(|s| s.len()).max().unwrap_or(0);
+        let labels = compute_labels_for_alphabet(alphabet, max_items + 1);
+        let num_labels = labels.len();
+        let max_label_len = labels.iter().map(|s| s.len()).max().unwrap_or(0);
+        let mut labels_iter = labels.into_iter();
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
