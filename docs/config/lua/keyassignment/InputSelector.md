@@ -29,7 +29,7 @@ upon the input.
   to calculate one or two click shortcuts that can be used to quickly choose from
   the InputSelector when not in fuzzy finding mode. Defaults to:
   `"1234567890qwertyuiopasdfghjklzxcvbnm"`.
-* `fuzzy_description` - a string to display when in fuzzy finding mode. Defaults to:
+* `description` - a string to display when in fuzzy finding mode. Defaults to:
   `"Select an item and press Enter = accept,  Esc = cancel,  / = filter"`.
 
 
