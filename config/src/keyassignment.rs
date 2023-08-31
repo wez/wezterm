@@ -478,7 +478,6 @@ pub struct InputSelector {
     #[dynamic(default)]
     pub fuzzy: bool,
 
-    // Overrides the main input_select_alphabet config
     #[dynamic(default = "default_num_alphabet")]
     pub alphabet: String,
 
@@ -493,7 +492,6 @@ fn default_num_alphabet() -> String {
 fn default_description() -> String {
     "Select an item and press Enter = accept,  Esc = cancel,  / = filter".to_string()
 }
-
 
 #[derive(Debug, Clone, PartialEq, FromDynamic, ToDynamic)]
 pub enum KeyAssignment {

@@ -1,3 +1,4 @@
+use super::quickselect::compute_labels_for_alphabet;
 use crate::scripting::guiwin::GuiWin;
 use config::keyassignment::{InputSelector, InputSelectorEntry, KeyAssignment};
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -11,7 +12,6 @@ use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers, MouseButtons, Mou
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 use termwiz_funcs::truncate_right;
-use super::quickselect::compute_labels_for_alphabet;
 
 const ROW_OVERHEAD: usize = 3;
 
@@ -79,26 +79,15 @@ impl SelectorState {
                 x: Position::Absolute(0),
                 y: Position::Absolute(0),
             },
-            Change::Text(format!(
-                "{}\r\n",
-                truncate_right(
-                    desc,
-                    max_width
-                )
-            )),
+            Change::Text(format!("{}\r\n", truncate_right(desc, max_width))),
             Change::AllAttributes(CellAttributes::default()),
         ];
 
         let max_items = self.max_items;
         let alphabet = &self.args.alphabet;
-        let mut labels = compute_labels_for_alphabet(alphabet, max_items+1)
-            .into_iter();
+        let mut labels = compute_labels_for_alphabet(alphabet, max_items + 1).into_iter();
         let labels_len = labels.len();
-        let max_label_len = labels
-            .clone()
-            .map(|s| s.len())
-            .max()
-            .unwrap_or(0);
+        let max_label_len = labels.clone().map(|s| s.len()).max().unwrap_or(0);
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
@@ -123,15 +112,14 @@ impl SelectorState {
             // and we are not filtering
             if !self.filtering && row_num < labels_len {
                 if let Some(s) = labels.next() {
-                    let ex_spaces = " ".to_string()
-                            .repeat(max_label_len - s.len() + 1);
+                    let ex_spaces = " ".to_string().repeat(max_label_len - s.len() + 1);
                     changes.push(Change::Text(format!("{}{}. ", ex_spaces, s)));
                 }
             } else if !self.filtering {
-                changes.push(Change::Text(format!("{}",
-                " ".to_string()
-                .repeat(max_label_len+3)
-            )));
+                changes.push(Change::Text(format!(
+                    "{}",
+                    " ".to_string().repeat(max_label_len + 3)
+                )));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -205,7 +193,7 @@ impl SelectorState {
         let alphabet = self.args.alphabet.to_lowercase();
         let alphabet_has_j = alphabet.contains("j");
         let alphabet_has_k = alphabet.contains("k");
-        let labels = compute_labels_for_alphabet(&alphabet, max_items+1);
+        let labels = compute_labels_for_alphabet(&alphabet, max_items + 1);
 
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {

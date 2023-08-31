@@ -125,7 +125,7 @@ config.keys = {
           title = 'I am title',
           choices = choices,
           alphabet = '123456789',
-          description = 'Write the number you want to choose.',
+          description = 'Write the number you want to choose or press / to search.',
         },
         pane
       )
