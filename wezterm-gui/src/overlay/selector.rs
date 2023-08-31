@@ -26,6 +26,7 @@ struct SelectorState {
     always_fuzzy: bool,
     args: InputSelector,
     event_name: String,
+    alphabet: String,
 }
 
 impl SelectorState {
@@ -88,6 +89,8 @@ impl SelectorState {
         ];
 
         let max_items = self.max_items;
+        let alphabet_len = self.alphabet.len();
+        let mut alphabet_chars = self.alphabet.chars();
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
@@ -107,8 +110,12 @@ impl SelectorState {
                 attr.set_reverse(true);
             }
 
-            if row_num < 9 && !self.filtering {
-                changes.push(Change::Text(format!(" {}. ", row_num + 1)));
+
+            // from above we know that row_num <= max_items
+            if row_num < alphabet_len && !self.filtering {
+                if let Some(c) = alphabet_chars.next() {
+                    changes.push(Change::Text(format!(" {}. ", c )));
+                }
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -178,24 +185,43 @@ impl SelectorState {
     }
 
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
+        let max_items = self.max_items;
+        let alphabet = self.alphabet.to_lowercase();
+        let alphabet_has_j = alphabet.contains("j");
+        let alphabet_has_k = alphabet.contains("k");
+        let mut alphabet_chars = alphabet.chars();
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
-                    ..
-                }) if !self.filtering && c >= '1' && c <= '9' => {
-                    if self.launch(self.top_row + (c as u32 - '1' as u32) as usize) {
-                        break;
+                    modifiers: Modifiers::NONE,
+                }) if !self.filtering && alphabet.contains(c) => {
+                    if let Some(pos) = alphabet_chars.position(|x| x == c) {
+                        if pos as usize <= max_items && self.launch(self.top_row + pos as usize) {
+                            break;
+                        }
                     }
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('j'),
                     ..
-                }) if !self.filtering => {
+                }) if !self.filtering && !alphabet_has_j => {
                     self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('k'),
+                    ..
+                }) if !self.filtering && !alphabet_has_k => {
+                    self.move_up();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('J'),
+                    ..
+                }) if !self.filtering => {
+                    self.move_down();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('K'),
                     ..
                 }) if !self.filtering => {
                     self.move_up();
@@ -368,6 +394,7 @@ pub fn selector(
         always_fuzzy: args.fuzzy,
         args,
         event_name,
+        alphabet: "1234567890abcdefghijklmnopqrstuvxyz".to_string(),
     };
 
     term.set_raw_mode()?;
