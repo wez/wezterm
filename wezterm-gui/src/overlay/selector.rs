@@ -255,7 +255,7 @@ impl SelectorState {
                     key: KeyCode::Backspace,
                     ..
                 }) => {
-                    if !self.filtering && !self.selection.is_empty() {
+                    if !self.filtering {
                         self.selection.pop();
                     }
                     if self.filter_term.pop().is_none() && !self.always_fuzzy {
