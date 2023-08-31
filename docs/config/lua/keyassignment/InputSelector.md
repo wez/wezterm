@@ -22,6 +22,16 @@ upon the input.
   objects from the current pane and window, and `id` and `label` hold the
   corresponding fields from the selected choice. Both will be `nil` if
   the overlay is cancelled without selecting anything.
+* `fuzzy` - a boolean that defaults to `false`. If `true`, InputSelector will start
+  in its fuzzy finding mode (this is equivalent to starting the InputSelector and
+  pressing / in the default mode).
+* `alphabet` - a string of unique characters. The characters in the string are used
+  to calculate one or two click shortcuts that can be used to quickly choose from
+  the InputSelector when not in fuzzy finding mode. Defaults to:
+  `"1234567890qwertyuiopasdfghjklzxcvbnm"`.
+* `fuzzy_description` - a string to display when in fuzzy finding mode. Defaults to:
+  `"Select an item and press Enter = accept,  Esc = cancel,  / = filter"`.
+
 
 ## Example of choosing some canned text to enter into the terminal
 
@@ -44,6 +54,7 @@ config.keys = {
         end
       end),
       title = 'I am title',
+      fuzzy = true,
       choices = {
         -- This is the first entry
         {
@@ -95,7 +106,7 @@ config.keys = {
       -- could read or compute data from other sources
 
       local choices = {}
-      for n = 1, 10 do
+      for n = 1, 20 do
         table.insert(choices, { label = tostring(n) })
       end
 
@@ -113,6 +124,8 @@ config.keys = {
           end),
           title = 'I am title',
           choices = choices,
+          alphabet = '123456789',
+          description = 'Write the number you want to choose.',
         },
         pane
       )

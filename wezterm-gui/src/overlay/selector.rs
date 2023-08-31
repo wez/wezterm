@@ -11,6 +11,7 @@ use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers, MouseButtons, Mou
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 use termwiz_funcs::truncate_right;
+use super::quickselect::compute_labels_for_alphabet;
 
 const ROW_OVERHEAD: usize = 3;
 
@@ -26,7 +27,7 @@ struct SelectorState {
     always_fuzzy: bool,
     args: InputSelector,
     event_name: String,
-    alphabet: String,
+    selection: String,
 }
 
 impl SelectorState {
@@ -70,6 +71,7 @@ impl SelectorState {
     fn render(&mut self, term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
+        let desc = &self.args.description;
 
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
@@ -80,8 +82,7 @@ impl SelectorState {
             Change::Text(format!(
                 "{}\r\n",
                 truncate_right(
-                    "Select an item and press Enter=accept  \
-                     Esc=cancel  /=filter",
+                    desc,
                     max_width
                 )
             )),
@@ -89,8 +90,15 @@ impl SelectorState {
         ];
 
         let max_items = self.max_items;
-        let alphabet_len = self.alphabet.len();
-        let mut alphabet_chars = self.alphabet.chars();
+        let alphabet = &self.args.alphabet;
+        let mut labels = compute_labels_for_alphabet(alphabet, max_items+1)
+            .into_iter();
+        let labels_len = labels.len();
+        let max_label_len = labels
+            .clone()
+            .map(|s| s.len())
+            .max()
+            .unwrap_or(0);
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
@@ -110,12 +118,20 @@ impl SelectorState {
                 attr.set_reverse(true);
             }
 
-
             // from above we know that row_num <= max_items
-            if row_num < alphabet_len && !self.filtering {
-                if let Some(c) = alphabet_chars.next() {
-                    changes.push(Change::Text(format!(" {}. ", c )));
+            // show labels as long as we have more labels left
+            // and we are not filtering
+            if !self.filtering && row_num < labels_len {
+                if let Some(s) = labels.next() {
+                    let ex_spaces = " ".to_string()
+                            .repeat(max_label_len - s.len() + 1);
+                    changes.push(Change::Text(format!("{}{}. ", ex_spaces, s)));
                 }
+            } else if !self.filtering {
+                changes.push(Change::Text(format!("{}",
+                " ".to_string()
+                .repeat(max_label_len+3)
+            )));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -186,17 +202,19 @@ impl SelectorState {
 
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
         let max_items = self.max_items;
-        let alphabet = self.alphabet.to_lowercase();
+        let alphabet = self.args.alphabet.to_lowercase();
         let alphabet_has_j = alphabet.contains("j");
         let alphabet_has_k = alphabet.contains("k");
-        let mut alphabet_chars = alphabet.chars();
+        let labels = compute_labels_for_alphabet(&alphabet, max_items+1);
+
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
                     modifiers: Modifiers::NONE,
                 }) if !self.filtering && alphabet.contains(c) => {
-                    if let Some(pos) = alphabet_chars.position(|x| x == c) {
+                    self.selection.push(c);
+                    if let Some(pos) = labels.iter().position(|x| *x == self.selection) {
                         if pos as usize <= max_items && self.launch(self.top_row + pos as usize) {
                             break;
                         }
@@ -248,6 +266,9 @@ impl SelectorState {
                     key: KeyCode::Backspace,
                     ..
                 }) => {
+                    if !self.filtering && !self.selection.is_empty() {
+                        self.selection.pop();
+                    }
                     if self.filter_term.pop().is_none() && !self.always_fuzzy {
                         self.filtering = false;
                     }
@@ -394,7 +415,7 @@ pub fn selector(
         always_fuzzy: args.fuzzy,
         args,
         event_name,
-        alphabet: "1234567890abcdefghijklmnopqrstuvxyz".to_string(),
+        selection: String::new(),
     };
 
     term.set_raw_mode()?;
