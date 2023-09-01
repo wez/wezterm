@@ -54,7 +54,6 @@ config.keys = {
         end
       end),
       title = 'I am title',
-      fuzzy = true,
       choices = {
         -- This is the first entry
         {
@@ -135,6 +134,64 @@ config.keys = {
 
 return config
 ```
+
+# Example of switching between a list of workspaces with the InputSelector
+
+```lua
+local wezterm = require 'wezterm'
+local act = wezterm.action
+local config = wezterm.config_builder()
+
+config.keys = {
+  {
+    key = 'w',
+    mods = 'LEADER',
+    action = wezterm.action_callback(function(window, pane)
+      -- Here you can dynamically construct a longer list if needed
+
+      local home = wezterm.home_dir
+      local workspaces = {
+        { id = home .. '/work', label = 'Work' },
+        { id = home .. '/personal', label = 'Personal' },
+        { id = home .. '/.config', label = 'Config' },
+      }
+
+      window:perform_action(
+          act.InputSelector {
+              action = wezterm.action_callback(function(inner_window, inner_pane, id, label)
+                  if not id and not label then
+                      wezterm.log_info 'cancelled'
+                  else
+                      wezterm.log_info('id = ' .. id)
+                      wezterm.log_info('label = ' .. label)
+                      inner_window:perform_action(
+                          act.SwitchToWorkspace {
+                              name = label,
+                              spawn = {
+                                  label = 'Workspace: ' .. label,
+                                  cwd = id,
+                              }
+                          },
+                          inner_pane
+                      )
+                  end
+              end),
+              title = 'Choose Workspace',
+              choices = workspaces,
+              fuzzy = true,
+              description = "Fuzzy find and/or make a workspace"
+          },
+          pane
+      )
+    end),
+  },
+}
+
+return config
+```
+
+
+
 
 See also [PromptInputLine](PromptInputLine.md).
 

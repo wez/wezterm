@@ -28,6 +28,7 @@ struct SelectorState {
     args: InputSelector,
     event_name: String,
     selection: String,
+    labels: Vec<String>,
 }
 
 impl SelectorState {
@@ -72,6 +73,11 @@ impl SelectorState {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
         let desc = &self.args.description;
+        let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
+        if max_items != self.max_items {
+            self.labels = compute_labels_for_alphabet(&self.args.alphabet, max_items + 1);
+            self.max_items = max_items;
+        }
 
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
@@ -83,10 +89,7 @@ impl SelectorState {
             Change::AllAttributes(CellAttributes::default()),
         ];
 
-        let max_items = self.max_items;
-        let alphabet = &self.args.alphabet;
-        let labels = compute_labels_for_alphabet(alphabet, max_items + 1);
-        let num_labels = labels.len();
+        let labels = &self.labels;
         let max_label_len = labels.iter().map(|s| s.len()).max().unwrap_or(0);
         let mut labels_iter = labels.into_iter();
 
@@ -111,16 +114,12 @@ impl SelectorState {
             // from above we know that row_num <= max_items
             // show labels as long as we have more labels left
             // and we are not filtering
-            if !self.filtering && row_num < labels_len {
-                if let Some(s) = labels.next() {
-                    let ex_spaces = " ".to_string().repeat(max_label_len - s.len() + 1);
-                    changes.push(Change::Text(format!("{}{}. ", ex_spaces, s)));
+            if !self.filtering {
+                if let Some(label) = labels_iter.next() {
+                    changes.push(Change::Text(format!(" {label:>max_label_len$}. ")));
+                } else {
+                    changes.push(Change::Text(" ".repeat(max_label_len + 3)));
                 }
-            } else if !self.filtering {
-                changes.push(Change::Text(format!(
-                    "{}",
-                    " ".to_string().repeat(max_label_len + 3)
-                )));
             } else {
                 changes.push(Change::Text("    ".to_string()));
             }
@@ -190,11 +189,8 @@ impl SelectorState {
     }
 
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
-        let max_items = self.max_items;
         let alphabet = self.args.alphabet.to_lowercase();
-        let alphabet_has_j = alphabet.contains("j");
-        let alphabet_has_k = alphabet.contains("k");
-        let labels = compute_labels_for_alphabet(&alphabet, max_items + 1);
+        let labels = self.labels.clone();
 
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {
@@ -204,7 +200,11 @@ impl SelectorState {
                 }) if !self.filtering && alphabet.contains(c) => {
                     self.selection.push(c);
                     if let Some(pos) = labels.iter().position(|x| *x == self.selection) {
-                        if pos as usize <= max_items && self.launch(self.top_row + pos as usize) {
+                        // since the number of labels is always <= self.max_items
+                        // by construction, we have pos as usize <= self.max_items
+                        // for free
+                        self.active_idx = self.top_row + pos as usize;
+                        if self.launch(self.active_idx) {
                             break;
                         }
                     }
@@ -212,35 +212,23 @@ impl SelectorState {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('j'),
                     ..
-                }) if !self.filtering && !alphabet_has_j => {
+                }) if !self.filtering && !self.args.alphabet.contains("j") => {
                     self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char('k'),
                     ..
-                }) if !self.filtering && !alphabet_has_k => {
+                }) if !self.filtering && !self.args.alphabet.contains("k") => {
                     self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('J'),
-                    ..
-                }) if !self.filtering => {
-                    self.move_down();
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('K'),
-                    ..
-                }) if !self.filtering => {
-                    self.move_up();
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('P'),
+                    key: KeyCode::Char('P' | 'K'),
                     modifiers: Modifiers::CTRL,
                 }) => {
                     self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('N'),
+                    key: KeyCode::Char('N' | 'J'),
                     modifiers: Modifiers::CTRL,
                 }) => {
                     self.move_down();
@@ -257,14 +245,15 @@ impl SelectorState {
                 }) => {
                     if !self.filtering {
                         self.selection.pop();
+                    } else {
+                        if self.filter_term.pop().is_none() && !self.always_fuzzy {
+                            self.filtering = false;
+                        }
+                        self.update_filter();
                     }
-                    if self.filter_term.pop().is_none() && !self.always_fuzzy {
-                        self.filtering = false;
-                    }
-                    self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('G'),
+                    key: KeyCode::Char('G' | 'C'),
                     modifiers: Modifiers::CTRL,
                 })
                 | InputEvent::Key(KeyEvent {
@@ -337,9 +326,11 @@ impl SelectorState {
                         break;
                     }
                 }
-                InputEvent::Resized { rows, .. } => {
-                    self.max_items = rows.saturating_sub(ROW_OVERHEAD);
-                }
+
+                // Moved to render
+                // InputEvent::Resized { rows, .. } => {
+                //     self.max_items = rows.saturating_sub(ROW_OVERHEAD);
+                // }
                 _ => {}
             }
             self.render(term)?;
@@ -390,11 +381,10 @@ pub fn selector(
             anyhow::bail!("InputSelector requires action to be defined by wezterm.action_callback")
         }
     };
-    let size = term.get_screen_size()?;
-    let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
+    // let size = term.get_screen_size()?;
     let mut state = SelectorState {
         active_idx: 0,
-        max_items,
+        max_items: 0,
         pane,
         top_row: 0,
         filter_term: String::new(),
@@ -405,6 +395,7 @@ pub fn selector(
         args,
         event_name,
         selection: String::new(),
+        labels: vec![],
     };
 
     term.set_raw_mode()?;
