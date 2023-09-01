@@ -75,7 +75,10 @@ impl SelectorState {
         let desc = &self.args.description;
         let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
         if max_items != self.max_items {
-            self.labels = compute_labels_for_alphabet(&self.args.alphabet, max_items + 1);
+            self.labels = compute_labels_for_alphabet(
+                &self.args.alphabet,
+                self.filtered_entries.len().min(max_items + 1),
+            );
             self.max_items = max_items;
         }
 
