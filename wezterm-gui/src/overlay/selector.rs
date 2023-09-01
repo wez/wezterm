@@ -381,7 +381,6 @@ pub fn selector(
             anyhow::bail!("InputSelector requires action to be defined by wezterm.action_callback")
         }
     };
-    // let size = term.get_screen_size()?;
     let mut state = SelectorState {
         active_idx: 0,
         max_items: 0,
