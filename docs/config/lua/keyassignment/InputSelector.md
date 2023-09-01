@@ -142,6 +142,8 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
+config.leader = { key = 'Space', mods = 'CTRL', timeout_milliseconds = 3000 }
+
 config.keys = {
   {
     key = 'w',
