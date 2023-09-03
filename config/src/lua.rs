@@ -226,13 +226,14 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             array.insert(0, format!("{}/?.lua", path.display()));
             array.insert(1, format!("{}/?/init.lua", path.display()));
         }
-
+        
+        prefix_path(&mut path_array, &crate::DATA_DIR.join("plugins"));
         prefix_path(&mut path_array, &crate::HOME_DIR.join(".wezterm"));
         for dir in crate::CONFIG_DIRS.iter() {
             prefix_path(&mut path_array, dir);
         }
         path_array.insert(
-            2,
+            4,
             format!("{}/plugins/?/plugin/init.lua", crate::DATA_DIR.display()),
         );
 
