@@ -656,20 +656,19 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.0"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d5f1946157a96594eb2d2c10eb7ad9a2b27518cb3000209dec700c35df9197d"
+checksum = "6a13b88d2c62ff462f88e4a121f17a82c1af05693a2f192b5c38d14de73c19f6"
 dependencies = [
  "clap_builder",
  "clap_derive",
- "once_cell",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.4.0"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78116e32a042dd73c2901f0dc30790d20ff3447f3e3472fad359e8c3d282bcd6"
+checksum = "2bb9faaa7c2ef94b2743a21f5a29e6f0010dff4caa69ac8e9d6cf8b6fa74da08"
 dependencies = [
  "anstream",
  "anstyle",
@@ -684,7 +683,7 @@ version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "586a385f7ef2f8b4d86bddaa0c094794e7ccbfe5ffef1f434fe928143fc783a5"
 dependencies = [
- "clap 4.4.0",
+ "clap 4.4.2",
 ]
 
 [[package]]
@@ -693,15 +692,15 @@ version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e9bae21b3f6eb417ad3054c8b1094aa0542116eba4979b1b271baefbfa6b965"
 dependencies = [
- "clap 4.4.0",
+ "clap 4.4.2",
  "clap_complete",
 ]
 
 [[package]]
 name = "clap_derive"
-version = "4.4.0"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9fd1a5729c4548118d7d70ff234a44868d00489a4b6597b0b020918a0e91a1a"
+checksum = "0862016ff20d69b84ef8247369fabf5c008a7417002411897d40ee1f4532b873"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -5013,7 +5012,7 @@ checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 name = "strip-ansi-escapes"
 version = "0.1.0"
 dependencies = [
- "clap 4.4.0",
+ "clap 4.4.2",
  "termwiz",
 ]
 
@@ -5953,7 +5952,7 @@ dependencies = [
  "anyhow",
  "cc",
  "chrono",
- "clap 4.4.0",
+ "clap 4.4.2",
  "clap_complete",
  "clap_complete_fig",
  "codec",
@@ -6137,7 +6136,7 @@ dependencies = [
  "bytemuck",
  "cc",
  "chrono",
- "clap 4.4.0",
+ "clap 4.4.2",
  "codec",
  "colorgrad",
  "config",
@@ -6222,7 +6221,7 @@ name = "wezterm-gui-subcommands"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap 4.4.0",
+ "clap 4.4.2",
  "config",
 ]
 
@@ -6244,7 +6243,7 @@ dependencies = [
  "anyhow",
  "async_ossl",
  "cc",
- "clap 4.4.0",
+ "clap 4.4.2",
  "config",
  "embed-resource",
  "env-bootstrap",
@@ -6306,7 +6305,7 @@ dependencies = [
  "base64 0.21.3",
  "bitflags 1.3.2",
  "camino",
- "clap 4.4.0",
+ "clap 4.4.2",
  "dirs-next",
  "env_logger",
  "filedescriptor",
