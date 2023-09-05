@@ -1907,7 +1907,7 @@ impl TermWindow {
         drop(window);
 
         let title = get_window_title()
-            .or(
+            .or_else(||
                 match config::run_immediate_with_lua_config(|lua| {
                     if let Some(lua) = lua {
                         let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
@@ -1940,7 +1940,7 @@ impl TermWindow {
                         None
                     }
                 }
-            ).unwrap_or(
+            ).unwrap_or_else(||
                 if let (Some(pos), Some(tab)) = (active_pane, active_tab) {
                     if num_tabs == 1 {
                         format!("{}{}", if pos.is_zoomed { "[Z] " } else { "" }, pos.title)
