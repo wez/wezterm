@@ -72,7 +72,6 @@ impl SelectorState {
     fn render(&mut self, term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
-        let desc = &self.args.description;
         let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
         if max_items != self.max_items {
             self.labels = compute_labels_for_alphabet(
@@ -89,7 +88,10 @@ impl SelectorState {
                 x: Position::Absolute(0),
                 y: Position::Absolute(0),
             },
-            Change::Text(format!("{}\r\n", truncate_right(desc, max_width))),
+            Change::Text(format!(
+                "{}\r\n",
+                truncate_right(&self.args.description, max_width)
+            )),
             Change::AllAttributes(CellAttributes::default()),
         ];
 
