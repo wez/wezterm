@@ -20,6 +20,12 @@ impl FontDatabase {
 
     fn load_font_info(&mut self, font_info: Vec<ParsedFont>) {
         for parsed in font_info {
+            if let Some(path) = parsed.handle.path_str() {
+                self.by_full_name
+                    .entry(path.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(parsed.clone());
+            }
             self.by_full_name
                 .entry(parsed.names().full_name.clone())
                 .or_insert_with(Vec::new)

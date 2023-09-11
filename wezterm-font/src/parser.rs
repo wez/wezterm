@@ -453,6 +453,63 @@ impl ParsedFont {
             FontStyle::Oblique => FontStyle::Oblique,
         };
 
+        let weight = match weight {
+            FontWeight::REGULAR => {
+                let lower = names.full_name.to_lowercase();
+                let mut weight = weight;
+                for (label, candidate) in &[
+                    ("extrablack", FontWeight::EXTRABLACK),
+                    // must match after other black variants
+                    ("black", FontWeight::BLACK),
+                    ("extrabold", FontWeight::EXTRABOLD),
+                    ("demibold", FontWeight::DEMIBOLD),
+                    // must match after other bold variants
+                    ("bold", FontWeight::BOLD),
+                    ("medium", FontWeight::MEDIUM),
+                    ("book", FontWeight::BOOK),
+                    ("demilight", FontWeight::DEMILIGHT),
+                    ("extralight", FontWeight::EXTRALIGHT),
+                    // must match after other light variants
+                    ("light", FontWeight::LIGHT),
+                    ("thin", FontWeight::THIN),
+                ] {
+                    if lower.contains(label) {
+                        weight = *candidate;
+                        break;
+                    }
+                }
+                weight
+            }
+            weight => weight,
+        };
+
+        let stretch = match stretch {
+            FontStretch::Normal => {
+                let lower = names.full_name.to_lowercase();
+                let mut stretch = stretch;
+                for (label, value) in &[
+                    ("ultracondensed", FontStretch::UltraCondensed),
+                    ("extracondensed", FontStretch::ExtraCondensed),
+                    ("semicondensed", FontStretch::SemiCondensed),
+                    // must match after other condensed variants
+                    ("condensed", FontStretch::Condensed),
+                    ("semiexpanded", FontStretch::SemiExpanded),
+                    ("extraexpanded", FontStretch::ExtraExpanded),
+                    ("ultraexpanded", FontStretch::UltraExpanded),
+                    // must match after other expanded variants
+                    ("expanded", FontStretch::Expanded),
+                ] {
+                    if lower.contains(label) {
+                        stretch = *value;
+                        break;
+                    }
+                }
+
+                stretch
+            }
+            stretch => stretch,
+        };
+
         Ok(Self {
             names,
             weight,
@@ -517,6 +574,11 @@ impl ParsedFont {
     pub fn matches_name(&self, attr: &FontAttributes) -> bool {
         if attr.family == self.names.family {
             return true;
+        }
+        if let Some(path) = self.handle.path_str() {
+            if attr.family == path {
+                return true;
+            }
         }
         self.matches_full_or_ps_name(attr) || self.matches_alias(attr)
     }
