@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Install Rust"
         uses: dtolnay/rust-toolchain@stable
       - name: "Cache cargo"
@@ -53,7 +53,7 @@ jobs:
 #   runs-on: ubuntu-latest
 #   steps:
 #     - name: Checkout
-#       uses: actions/checkout@v3
+#       uses: actions/checkout@v4
 #     - name: "Install Stable Rust"
 #       uses: dtolnay/rust-toolchain@stable
 #     - name: "Cache cargo"

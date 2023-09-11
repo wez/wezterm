@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -54,7 +54,7 @@ jobs:
           name: "macos"
           path: "WezTerm-*.zip"
       - name: "Checkout homebrew tap"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "wez/homebrew-wezterm"
           path: "homebrew-wezterm"
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
