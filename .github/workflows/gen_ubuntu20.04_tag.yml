@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -84,7 +84,7 @@ jobs:
             *.AppImage
             *.zsync
       - name: "Checkout linuxbrew tap"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "wez/homebrew-wezterm-linuxbrew"
           path: "linuxbrew-wezterm"
@@ -107,7 +107,7 @@ jobs:
         shell: bash
         run: "git config --global --add safe.directory /__w/wezterm/wezterm"
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:
@@ -126,7 +126,7 @@ jobs:
         shell: bash
         run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync *.sha256"
       - name: "Checkout flathub/org.wezfurlong.wezterm"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "flathub/org.wezfurlong.wezterm"
           path: "flathub"
