@@ -163,6 +163,13 @@ impl_downcast!(ChildKiller);
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
     fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send + Sync>, Error>;
+    /// Spawns a command in the security context of the primary token passed as the h_token parameter
+    #[cfg(windows)]
+    fn spawn_command_as_user(
+        &self,
+        cmd: CommandBuilder,
+        h_token: &winapi::um::winnt::HANDLE,
+    ) -> Result<Box<dyn Child + Send + Sync>, Error>;
 }
 
 /// Represents the exit status of a child process.

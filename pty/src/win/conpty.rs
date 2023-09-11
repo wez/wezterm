@@ -114,4 +114,13 @@ impl SlavePty for ConPtySlavePty {
         let child = inner.con.spawn_command(cmd)?;
         Ok(Box::new(child))
     }
+    fn spawn_command_as_user(
+            &self,
+            cmd: CommandBuilder,
+            h_token: &winapi::um::winnt::HANDLE,
+        ) -> Result<Box<dyn Child + Send + Sync>, Error> {
+            let inner = self.inner.lock().unwrap();
+            let child = inner.con.spawn_command_as_user(cmd, h_token.clone())?;
+            Ok(Box::new(child))
+    }
 }

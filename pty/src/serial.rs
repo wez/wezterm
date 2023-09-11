@@ -116,6 +116,17 @@ impl SlavePty for Slave {
             port: Arc::clone(&self.port),
         }))
     }
+        /// Spawns a command in the security context of the primary token
+    #[cfg(windows)]
+    fn spawn_command_as_user(&self, cmd: CommandBuilder, h_token: &winapi::um::winnt::HANDLE) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
+        ensure!(
+            cmd.is_default_prog(),
+            "can only use default prog commands with serial tty implementations"
+        );
+        Ok(Box::new(SerialChild {
+            port: Arc::clone(&self.port),
+        }))
+    }
 }
 
 /// There isn't really a child process on the end of the serial connection,
