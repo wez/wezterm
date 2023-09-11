@@ -29,8 +29,11 @@ upon the input.
   to calculate one or two click shortcuts that can be used to quickly choose from
   the InputSelector when not in fuzzy finding mode. Defaults to:
   `"1234567890qwertyuiopasdfghjklzxcvbnm"`.
-* `description` - a string to display when in fuzzy finding mode. Defaults to:
+* `description` - a string to display when not in fuzzy finding mode. Defaults to:
   `"Select an item and press Enter = accept,  Esc = cancel,  / = filter"`.
+* `fuzzy_description` - a string to display when in fuzzy finding mode. Defaults to:
+  `"Fuzzy matching: "`.
+
 
 
 ## Example of choosing some canned text to enter into the terminal
@@ -135,7 +138,7 @@ config.keys = {
 return config
 ```
 
-# Example of switching between a list of workspaces with the InputSelector
+## Example of switching between a list of workspaces with the InputSelector
 
 ```lua
 local wezterm = require 'wezterm'
@@ -153,6 +156,7 @@ config.keys = {
 
       local home = wezterm.home_dir
       local workspaces = {
+        { id = home, label = 'Home' },
         { id = home .. '/work', label = 'Work' },
         { id = home .. '/personal', label = 'Personal' },
         { id = home .. '/.config', label = 'Config' },
@@ -181,7 +185,7 @@ config.keys = {
               title = 'Choose Workspace',
               choices = workspaces,
               fuzzy = true,
-              description = "Fuzzy find and/or make a workspace"
+              fuzzy_description = "Fuzzy find and/or make a workspace"
           },
           pane
       )

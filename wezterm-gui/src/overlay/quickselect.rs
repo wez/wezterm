@@ -56,11 +56,22 @@ const PATTERNS: [&str; 14] = [
 /// This function computes a set of labels for a given alphabet.
 /// It is derived from https://github.com/fcsonline/tmux-thumbs/blob/master/src/alphabets.rs
 /// which is Copyright (c) 2019 Ferran Basora and provided under the MIT license
-pub fn compute_labels_for_alphabet(alphabet: &str, num_matches: usize) -> Vec<String> {
-    let alphabet = alphabet
-        .chars()
-        .map(|c| c.to_lowercase().to_string())
-        .collect::<Vec<String>>();
+pub fn compute_labels_for_alphabet(
+    alphabet: &str,
+    num_matches: usize,
+    make_lowercase: bool,
+) -> Vec<String> {
+    let alphabet = if make_lowercase {
+        alphabet
+            .chars()
+            .map(|c| c.to_lowercase().to_string())
+            .collect::<Vec<String>>()
+    } else {
+        alphabet
+            .chars()
+            .map(|c| c.to_string())
+            .collect::<Vec<String>>()
+    };
     // Prefer to use single character matches to represent everything
     let mut primary = alphabet.clone();
     let mut secondary = vec![];
@@ -108,13 +119,16 @@ mod alphabet_test {
 
     #[test]
     fn simple_alphabet() {
-        assert_eq!(compute_labels_for_alphabet("abcd", 3), vec!["a", "b", "c"]);
+        assert_eq!(
+            compute_labels_for_alphabet("abcd", 3, true),
+            vec!["a", "b", "c"]
+        );
     }
 
     #[test]
     fn more_matches_than_alphabet_can_represent() {
         assert_eq!(
-            compute_labels_for_alphabet("asdfqwerzxcvjklmiuopghtybn", 792).len(),
+            compute_labels_for_alphabet("asdfqwerzxcvjklmiuopghtybn", 792, true).len(),
             676
         );
     }
@@ -122,7 +136,7 @@ mod alphabet_test {
     #[test]
     fn composed_single() {
         assert_eq!(
-            compute_labels_for_alphabet("abcd", 6),
+            compute_labels_for_alphabet("abcd", 6, true),
             vec!["a", "b", "c", "da", "db", "dc"]
         );
     }
@@ -130,7 +144,7 @@ mod alphabet_test {
     #[test]
     fn composed_multiple() {
         assert_eq!(
-            compute_labels_for_alphabet("abcd", 8),
+            compute_labels_for_alphabet("abcd", 8, true),
             vec!["a", "b", "ca", "cb", "da", "db", "dc", "dd"]
         );
     }
@@ -140,7 +154,7 @@ mod alphabet_test {
         // The number of chars in the alphabet limits the potential matches to fewer
         // than the number of matches that we requested
         assert_eq!(
-            compute_labels_for_alphabet("ab", 5),
+            compute_labels_for_alphabet("ab", 5, true),
             vec!["aa", "ab", "ba", "bb"]
         );
     }
@@ -717,6 +731,7 @@ impl QuickSelectRenderable {
                 &self.config.quick_select_alphabet
             },
             uniq_results.len(),
+            true,
         );
         self.by_label.clear();
 

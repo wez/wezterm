@@ -78,6 +78,7 @@ impl SelectorState {
             self.labels = compute_labels_for_alphabet(
                 &self.args.alphabet,
                 self.filtered_entries.len().min(max_items + 1),
+                false,
             );
             self.max_items = max_items;
         }
@@ -147,7 +148,7 @@ impl SelectorState {
                 },
                 Change::ClearToEndOfLine(ColorAttribute::Default),
                 Change::Text(truncate_right(
-                    &format!("Fuzzy matching: {}", self.filter_term),
+                    &format!("{}{}", self.args.fuzzy_description, self.filter_term),
                     max_width,
                 )),
             ]);
@@ -192,17 +193,14 @@ impl SelectorState {
     }
 
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
-        let alphabet = self.args.alphabet.to_lowercase();
-        let labels = self.labels.clone();
-
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
                     modifiers: Modifiers::NONE,
-                }) if !self.filtering && alphabet.contains(c) => {
+                }) if !self.filtering && self.args.alphabet.contains(c) => {
                     self.selection.push(c);
-                    if let Some(pos) = labels.iter().position(|x| *x == self.selection) {
+                    if let Some(pos) = self.labels.iter().position(|x| *x == self.selection) {
                         // since the number of labels is always <= self.max_items
                         // by construction, we have pos as usize <= self.max_items
                         // for free
