@@ -28,7 +28,8 @@ upon the input.
 * `alphabet` - a string of unique characters. The characters in the string are used
   to calculate one or two click shortcuts that can be used to quickly choose from
   the InputSelector when not in fuzzy finding mode. Defaults to:
-  `"1234567890qwertyuiopasdfghjklzxcvbnm"`.
+  `"1234567890abcdefghilmnopqrstuvwxyz"`. (Without j/k so they can be used for movement
+  up and down.)
 * `description` - a string to display when not in fuzzy finding mode. Defaults to:
   `"Select an item and press Enter = accept,  Esc = cancel,  / = filter"`.
 * `fuzzy_description` - a string to display when in fuzzy finding mode. Defaults to:
