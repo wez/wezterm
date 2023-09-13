@@ -489,7 +489,7 @@ pub struct InputSelector {
 }
 
 fn default_num_alphabet() -> String {
-    "1234567890qwertyuiopasdfghjklzxcvbnm".to_string()
+    "1234567890abcdefghilmnopqrstuvwxyz".to_string()
 }
 
 fn default_description() -> String {
