@@ -184,8 +184,8 @@ mod gnome {
         style: PolyStyle::Outline,
     }];
 
-    pub fn sized_poly(poly: &'static [Poly]) -> SizedPoly {
-        let size = Dimension::Pixels(8.);
+    pub fn sized_poly(poly: &'static [Poly], scale: f32) -> SizedPoly {
+        let size = Dimension::Pixels(8. * scale);
         SizedPoly {
             poly,
             width: size,
@@ -220,12 +220,16 @@ pub fn window_button_element(
     font: &Rc<LoadedFont>,
     metrics: &RenderMetrics,
     config: &ConfigHandle,
+    dpi: usize,
 ) -> Element {
     let style = config.integrated_title_button_style;
 
     if style == Style::MacOsNative {
         return Element::new(font, ElementContent::Text(String::new()));
     }
+
+    let base_dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as f32;
+    let scale = dpi as f32 / base_dpi;
 
     let poly = {
         let (close, hide, maximize, restore) = match style {
@@ -253,7 +257,7 @@ pub fn window_button_element(
 
         match style {
             Style::Windows => self::windows::sized_poly(poly),
-            Style::Gnome => self::gnome::sized_poly(poly),
+            Style::Gnome => self::gnome::sized_poly(poly, scale),
             Style::MacOsNative => unreachable!(),
         }
     };
@@ -285,8 +289,8 @@ pub fn window_button_element(
                 })
         }
         Style::Gnome => {
-            let dim = Dimension::Pixels(7.);
-            let border_corners_size = Dimension::Pixels(12.);
+            let dim = Dimension::Pixels(7. * scale);
+            let border_corners_size = Dimension::Pixels(12. * scale);
             element
                 .zindex(1)
                 .vertical_align(VerticalAlign::Middle)
@@ -296,7 +300,7 @@ pub fn window_button_element(
                     top: dim,
                     bottom: dim,
                 })
-                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .border(BoxDimension::new(Dimension::Pixels(1. * scale)))
                 .border_corners(Some(Corners {
                     top_left: SizedPoly {
                         width: border_corners_size,
