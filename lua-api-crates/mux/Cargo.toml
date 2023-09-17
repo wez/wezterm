@@ -18,3 +18,4 @@ portable-pty = { path = "../../pty" }
 smol = "1.2"
 termwiz = { path = "../../termwiz" }
 mux = { path = "../../mux" }
+url-funcs = { path = "../url-funcs" }

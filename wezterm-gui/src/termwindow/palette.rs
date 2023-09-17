@@ -151,7 +151,7 @@ fn build_commands(
         match (scores.get(&*a.brief), scores.get(&*b.brief)) {
             // Want descending frecency score, so swap a<->b
             // for the compare here
-            (Some(a), Some(b)) => match b.partial_cmp(&a) {
+            (Some(a), Some(b)) => match b.partial_cmp(a) {
                 Some(Ordering::Equal) | None => {}
                 Some(ordering) => return ordering,
             },

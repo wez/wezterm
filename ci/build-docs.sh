@@ -46,10 +46,7 @@ if ! hash pip3 >/dev/null ; then
   PIP=pip
 fi
 
-$PIP install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin mkdocs-macros-plugin
-if test -n "${CARDS}" ; then
-  $PIP install --quiet pillow cairosvg
-fi
+$PIP install --quiet mkdocs-material mkdocs-git-revision-date-localized-plugin black mkdocs-exclude mkdocs-include-markdown-plugin mkdocs-macros-plugin pillow cairosvg
 
 black ci/generate-docs.py ci/subst-release-info.py
 

@@ -781,6 +781,12 @@ impl GlyphCache {
         let max_pixel_width = base_metrics.cell_width.get() * (num_cells + 0.25);
 
         let scale;
+
+        // This helps to compensate for the !idx_metrics.is_scaled && glyph.is_scaled
+        // case which happens when using the harfbuzz rasterizer with a bitmap font.
+        // The default value is no compensation.
+        let mut metrics_only_scale = 1.0;
+
         if info.font_idx == 0 {
             // We are the base font
             scale = if allow_width_overflow || glyph.width as f64 <= max_pixel_width {
@@ -789,7 +795,7 @@ impl GlyphCache {
                 // Scale the glyph to fit in its number of cells
                 1.0 / num_cells
             };
-        } else if !idx_metrics.is_scaled {
+        } else if !glyph.is_scaled {
             // A bitmap font that isn't scaled to the requested height.
             let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
             let y_scaled_width = y_scale * glyph.width as f64;
@@ -812,18 +818,29 @@ impl GlyphCache {
                 scale = max_pixel_width / f_width;
             }
 
+            if !idx_metrics.is_scaled {
+                // A special case: the shaper (eg: harfbuzz) processed
+                // a bitmap font (eg: older versions of Noto Color Emoji)
+                // to produce shaping info at the bitmap strike size,
+                // which is 128 for that font.  The advance is expressed
+                // at that size and not at the size of the font.
+                // If we get to this condition, the rasterizer used a mode
+                // where it has already scaled the glyph, so the dimensions
+                // in the bitmap are correct, but the shaper metrics need
+                // to be adjusted.
+                let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
+                metrics_only_scale = y_scale;
+            }
+
             #[cfg(debug_assertions)]
             {
                 log::debug!(
-                    "{} allow_width_overflow={} is_square_or_wide={} aspect={} \
-                       max_pixel_width={} glyph.width={} -> scale={}",
-                    info.text,
-                    allow_width_overflow,
-                    is_square_or_wide,
-                    aspect,
-                    max_pixel_width,
-                    glyph.width,
-                    scale
+                    "{text} allow_width_overflow={allow_width_overflow} \
+                     is_square_or_wide={is_square_or_wide} aspect={aspect} \
+                     max_pixel_width={max_pixel_width} glyph.width={glyph_width} \
+                     -> scale={scale} metrics_only_scale={metrics_only_scale}",
+                    text = info.text,
+                    glyph_width = glyph.width,
                 );
             }
         };
@@ -857,11 +874,19 @@ impl GlyphCache {
                 &glyph.data,
             );
 
-            let bearing_x = glyph.bearing_x * scale;
+            let bearing_x = glyph.bearing_x * scale * metrics_only_scale;
+            // No metrics_only_scale adjustment to bearing_y is needed because
+            // the value comes from the rasterized glyph and not from the
+            // shaper stage.
             let bearing_y = descender_adjust + (glyph.bearing_y * scale);
-            let x_offset = info.x_offset * scale;
-            let y_offset = info.y_offset * scale;
-            let x_advance = info.x_advance * scale;
+            let x_offset = info.x_offset * scale * metrics_only_scale;
+            let y_offset = info.y_offset * scale * metrics_only_scale;
+            let x_advance = info.x_advance * scale * metrics_only_scale;
+
+            log::trace!(
+                "bearing_x={bearing_x:?} bearing_y={bearing_y:?} \
+                 x_offset={x_offset:?} y_offset={y_offset:?} x_advance={x_advance:?}"
+            );
 
             let (scale, raw_im) = if scale != 1.0 {
                 log::trace!(

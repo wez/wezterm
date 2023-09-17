@@ -18,6 +18,13 @@ config.tiling_desktop_environments = {
 }
 ```
 
+{{since('dev')}}
+
+The following additional entries are now part of the default value of
+`tiling_desktop_environments`:
+
+ *  '"X11 awesome"'
+
 The environment name can be found in the debug overlay which you can show via
 the [ShowDebugOverlay](../keyassignment/ShowDebugOverlay.md) key assignment.
 The default key binding for it is <kbd>Ctrl</kbd> + <kbd>Shift</kbd> +

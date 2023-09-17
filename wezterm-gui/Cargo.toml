@@ -62,7 +62,7 @@ lfucache = { path = "../lfucache" }
 log = "0.4"
 luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
-mlua = {version="0.9.0-rc.1", features=["send"]}
+mlua = {version="0.9", features=["send"]}
 mux = { path = "../mux" }
 mux-lua = { path = "../lua-api-crates/mux" }
 once_cell = "1.8"
@@ -73,6 +73,7 @@ promise = { path = "../promise" }
 pulldown-cmark = "0.9"
 rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
+rayon = "1.7"
 regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}
 serde_json = "1.0"
@@ -91,6 +92,7 @@ unicode-normalization = "0.1"
 unicode-segmentation = "1.8"
 unicode-width = "0.1"
 url = "2"
+url-funcs = { path = "../lua-api-crates/url-funcs" }
 walkdir = "2"
 wezterm-bidi = { path = "../bidi" }
 wezterm-blob-leases = { path = "../wezterm-blob-leases", version="0.1", features=["simple_tempdir"] }

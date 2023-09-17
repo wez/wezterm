@@ -23,7 +23,7 @@ lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 luahelper = { path = "../luahelper" }
-mlua = {version="0.9.0-rc.1", features=["vendored", "lua54", "async", "send"]}
+mlua = {version="0.9", features=["vendored", "lua54", "async", "send"]}
 # file change notification
 notify = "5.0.0"
 once_cell = "1.8"

@@ -333,6 +333,9 @@ impl Default for ClipboardPasteSource {
 pub enum PaneSelectMode {
     Activate,
     SwapWithActive,
+    SwapWithActiveKeepFocus,
+    MoveToNewTab,
+    MoveToNewWindow,
 }
 
 impl Default for PaneSelectMode {
@@ -349,6 +352,9 @@ pub struct PaneSelectArguments {
 
     #[dynamic(default)]
     pub mode: PaneSelectMode,
+
+    #[dynamic(default)]
+    pub show_pane_ids: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
@@ -365,6 +371,7 @@ pub enum CharSelectGroup {
     Flags,
     NerdFonts,
     UnicodeNames,
+    ShortCodes,
 }
 
 // next is default, previous is the reverse
@@ -398,7 +405,8 @@ char_select_group_impl_next_prev! (
     Symbols => Flags,
     Flags => NerdFonts,
     NerdFonts => UnicodeNames,
-    UnicodeNames => RecentlyUsed,
+    UnicodeNames => ShortCodes,
+    ShortCodes => RecentlyUsed,
 );
 
 impl Default for CharSelectGroup {

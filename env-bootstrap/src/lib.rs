@@ -205,6 +205,7 @@ fn register_lua_modules() {
         spawn_funcs::register,
         share_data::register,
         time_funcs::register,
+        url_funcs::register,
     ] {
         config::lua::add_context_setup_func(func);
     }

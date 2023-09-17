@@ -662,11 +662,11 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 3249,
+        glyph_idx: 1319,
         num_cells: 2,
         x_offset: 0.0,
         bearing_x: 0.0,
-        bitmap_pixel_width: 17,
+        bitmap_pixel_width: 16,
     },
 ]
 "
@@ -685,7 +685,7 @@ mod test {
             "
 [
     GlyphPosition {
-        glyph_idx: 1857,
+        glyph_idx: 1966,
         num_cells: 2,
         x_offset: 0.0,
         bearing_x: 0.0,

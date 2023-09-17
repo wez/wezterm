@@ -53,6 +53,14 @@ impl FontDataSource {
         }
     }
 
+    pub fn path_str(&self) -> Option<Cow<str>> {
+        match self {
+            Self::OnDisk(path) => Some(path.to_string_lossy()),
+            Self::BuiltIn { .. } => None,
+            Self::Memory { .. } => None,
+        }
+    }
+
     pub fn load_data<'a>(&'a self) -> anyhow::Result<Cow<'a, [u8]>> {
         match self {
             Self::OnDisk(path) => {
@@ -159,6 +167,10 @@ impl Ord for FontDataHandle {
 impl FontDataHandle {
     pub fn name_or_path_str(&self) -> Cow<str> {
         self.source.name_or_path_str()
+    }
+
+    pub fn path_str(&self) -> Option<Cow<str>> {
+        self.source.path_str()
     }
 
     pub fn index(&self) -> u32 {

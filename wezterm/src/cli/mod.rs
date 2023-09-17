@@ -22,6 +22,7 @@ mod set_window_title;
 mod spawn_command;
 mod split_pane;
 mod tls_creds;
+mod zoom_pane;
 
 #[derive(Debug, Parser, Clone, Copy)]
 enum CliOutputFormatKind {
@@ -159,6 +160,10 @@ Outputs the pane-id for the newly created pane on success"
     /// Rename a workspace
     #[command(name = "rename-workspace", rename_all = "kebab")]
     RenameWorkspace(rename_workspace::RenameWorkspace),
+
+    /// Zoom, unzoom, or toggle zoom state
+    #[command(name = "zoom-pane", rename_all = "kebab")]
+    ZoomPane(zoom_pane::ZoomPane),
 }
 
 async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()> {
@@ -194,6 +199,7 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::SetTabTitle(cmd) => cmd.run(client).await,
         CliSubCommand::SetWindowTitle(cmd) => cmd.run(client).await,
         CliSubCommand::RenameWorkspace(cmd) => cmd.run(client).await,
+        CliSubCommand::ZoomPane(cmd) => cmd.run(client).await,
     }
 }
 

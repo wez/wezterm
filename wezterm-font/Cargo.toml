@@ -2,7 +2,7 @@
 name = "wezterm-font"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,6 +14,7 @@ vendor-nerd-font-symbols = []
 
 [dependencies]
 anyhow = "1.0"
+cairo-rs = {version="0.18", default-features=false}
 config = { path = "../config" }
 encoding_rs = "0.8"
 enum-display-derive = "0.1"
@@ -21,6 +22,7 @@ euclid = "0.22"
 finl_unicode = "1.2"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
+image = "0.24.6"
 lazy_static = "1.4"
 lfucache = { path = "../lfucache" }
 log = "0.4"

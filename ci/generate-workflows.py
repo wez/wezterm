@@ -134,11 +134,15 @@ class CacheRustStep(ActionStep):
 
 
 class CheckoutStep(ActionStep):
-    def __init__(self, name="checkout repo", submodules=True):
+    def __init__(self, name="checkout repo", submodules=True, container=None):
         params = {}
         if submodules:
             params["submodules"] = "recursive"
-        super().__init__(name, action="actions/checkout@v3", params=params)
+        # Newer versions of the checkout action use a binary-incompatible node
+        # binary, so we are pinned back on v3
+        # https://github.com/actions/checkout/issues/1442
+        version = "v3" if container is not None and "centos7" in container else "v4"
+        super().__init__(name, action=f"actions/checkout@{version}", params=params)
 
 
 class InstallCrateStep(ActionStep):
@@ -644,7 +648,7 @@ cargo build --all --release""",
         return [
             ActionStep(
                 "Checkout flathub/org.wezfurlong.wezterm",
-                action="actions/checkout@v3",
+                action="actions/checkout@v4",
                 params={
                     "repository": "flathub/org.wezfurlong.wezterm",
                     "path": "flathub",
@@ -670,7 +674,7 @@ cargo build --all --release""",
             steps += [
                 ActionStep(
                     "Checkout winget-pkgs",
-                    action="actions/checkout@v3",
+                    action="actions/checkout@v4",
                     params={
                         "repository": "wez/winget-pkgs",
                         "path": "winget-pkgs",
@@ -706,7 +710,7 @@ cargo build --all --release""",
             steps += [
                 ActionStep(
                     "Checkout homebrew tap",
-                    action="actions/checkout@v3",
+                    action="actions/checkout@v4",
                     params={
                         "repository": "wez/homebrew-wezterm",
                         "path": "homebrew-wezterm",
@@ -730,7 +734,7 @@ cargo build --all --release""",
             steps += [
                 ActionStep(
                     "Checkout linuxbrew tap",
-                    action="actions/checkout@v3",
+                    action="actions/checkout@v4",
                     params={
                         "repository": "wez/homebrew-wezterm-linuxbrew",
                         "path": "linuxbrew-wezterm",
@@ -871,7 +875,7 @@ cargo build --all --release""",
                     "git config --global --add safe.directory /__w/wezterm/wezterm",
                 )
             ]
-        steps += [CheckoutStep(submodules=submodules)]
+        steps += [CheckoutStep(submodules=submodules, container=self.container)]
         return steps
 
     def continuous(self):

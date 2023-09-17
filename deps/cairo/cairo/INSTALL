@@ -1,0 +1,47 @@
+Installation Instructions
+=========================
+
+Requirements
+------------
+As well as the requirements listed in README, the meson build also requires:
+  meson (http://mesonbuild.com)
+  ninja (http://ninja-build.org)
+
+Basic Installation
+------------------
+  meson setup $builddir
+  ninja -C $builddir
+  ninja -C $builddir install
+
+where $builddir is the name of the directory where the build artifacts
+will be written to.
+
+Some of the common options that can be used with "meson setup" include:
+
+Set the install prefix.
+  --prefix=<path>
+
+Set the build type. Some common build types include "debug" and "release"
+  --buildtype=<buildtype>
+
+Compiler and linker flags can be set with the CFLAGS and LDFLAGS
+environment variables.
+
+Configuring cairo backends
+--------------------------
+After running "meson build", "meson configure" can be used to display
+or modify the build configuration.
+
+eg
+
+ Display configuration:
+    meson configure $builddir
+
+ Enable pdf and disable ps:
+    meson configure $builddir -Dpdf=enabled -Dps=disabled
+
+The "-D" options can also be used with "meson setup"
+
+Tests
+-----
+Refer to test/README

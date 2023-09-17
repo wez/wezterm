@@ -266,6 +266,8 @@ bitflags! {
         const MONOCHROME = 4096;
         /// Disable auto-hinter.
         const NO_AUTOHINT = 32768;
+        const NO_SVG = 16777216;
+        const SVG_ONLY = 8388608;
     }
 }
 
@@ -293,6 +295,12 @@ impl ToString for FreeTypeLoadFlags {
         if self.contains(Self::NO_BITMAP) {
             s.push("NO_BITMAP");
         }
+        if self.contains(Self::NO_SVG) {
+            s.push("NO_SVG");
+        }
+        if self.contains(Self::SVG_ONLY) {
+            s.push("SVG_ONLY");
+        }
         if self.contains(Self::FORCE_AUTOHINT) {
             s.push("FORCE_AUTOHINT");
         }
@@ -317,6 +325,8 @@ impl TryFrom<String> for FreeTypeLoadFlags {
                 "DEFAULT" => flags |= Self::DEFAULT,
                 "NO_HINTING" => flags |= Self::NO_HINTING,
                 "NO_BITMAP" => flags |= Self::NO_BITMAP,
+                "NO_SVG" => flags |= Self::NO_SVG,
+                "SVG_ONLY" => flags |= Self::SVG_ONLY,
                 "FORCE_AUTOHINT" => flags |= Self::FORCE_AUTOHINT,
                 "MONOCHROME" => flags |= Self::MONOCHROME,
                 "NO_AUTOHINT" => flags |= Self::NO_AUTOHINT,
@@ -668,6 +678,7 @@ impl Default for FontLocatorSelection {
 pub enum FontRasterizerSelection {
     #[default]
     FreeType,
+    Harfbuzz,
 }
 
 #[derive(Debug, Clone, Copy, FromDynamic, ToDynamic, Default)]

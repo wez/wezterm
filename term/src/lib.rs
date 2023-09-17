@@ -36,8 +36,6 @@ pub use termwiz::surface::line::*;
 pub mod screen;
 pub use crate::screen::*;
 
-use termwiz::hyperlink::Hyperlink;
-
 pub mod terminal;
 pub use crate::terminal::*;
 

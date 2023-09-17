@@ -24,3 +24,13 @@ working directory using operating system dependent code:
 If the current working directory is not known then this method returns `nil`.
 Otherwise, it returns the current working directory as a URI string.
 
+Note that while the current working directory is usually a file path,
+it is possible for an application to set it to an FTP URL or some
+other kind of URL, which is why this method doesn't simply return
+a file path string.
+
+{{since('nightly')}}
+
+This method now returns a [Url](../wezterm.url/Url.md) object which
+provides a convenient way to decode and operate on the URL.
+

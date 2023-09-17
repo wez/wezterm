@@ -34,6 +34,7 @@ case $OSTYPE in
     mkdir -p $zipdir/WezTerm.app/Contents/MacOS
     mkdir -p $zipdir/WezTerm.app/Contents/Resources
     cp -r assets/shell-integration/* $zipdir/WezTerm.app/Contents/Resources
+    cp -r assets/shell-completion $zipdir/WezTerm.app/Contents/Resources
 
     for bin in wezterm wezterm-mux-server wezterm-gui strip-ansi-escapes ; do
       # If the user ran a simple `cargo build --release`, then we want to allow

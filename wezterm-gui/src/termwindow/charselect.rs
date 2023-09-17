@@ -15,6 +15,7 @@ use emojis::{Emoji, Group};
 use frecency::Frecency;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
@@ -167,25 +168,39 @@ fn build_aliases() -> Vec<Alias> {
             Group::Symbols => CharSelectGroup::Symbols,
             Group::Flags => CharSelectGroup::Flags,
         };
-        push(
-            &mut aliases,
-            Alias {
-                name: Cow::Borrowed(emoji.name()),
-                character: Character::Emoji(emoji),
-                group,
-            },
-        );
-        if let Some(short) = emoji.shortcode() {
-            if short != emoji.name() {
+        match emoji.skin_tones() {
+            Some(iter) => {
+                for entry in iter {
+                    push(
+                        &mut aliases,
+                        Alias {
+                            name: Cow::Borrowed(entry.name()),
+                            character: Character::Emoji(entry),
+                            group,
+                        },
+                    );
+                }
+            }
+            None => {
                 push(
                     &mut aliases,
                     Alias {
-                        name: Cow::Borrowed(short),
+                        name: Cow::Borrowed(emoji.name()),
                         character: Character::Emoji(emoji),
                         group,
                     },
                 );
             }
+        }
+        for short in emoji.shortcodes() {
+            push(
+                &mut aliases,
+                Alias {
+                    name: Cow::Borrowed(short),
+                    character: Character::Emoji(emoji),
+                    group: CharSelectGroup::ShortCodes,
+                },
+            );
         }
     }
 
@@ -226,7 +241,7 @@ fn build_aliases() -> Vec<Alias> {
     aliases
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct MatchResult {
     row_idx: usize,
     score: i64,
@@ -269,56 +284,67 @@ fn compute_matches(selection: &str, aliases: &[Alias], group: CharSelectGroup) -
         } else {
             None
         };
-        // Use a hash map to remove duplicates, as the same emoji may match multiple times with a different name.
-        let mut matches = HashMap::<String, MatchResult>::new();
-
         let start = std::time::Instant::now();
-        for (row_idx, entry) in aliases.iter().enumerate() {
-            let glyph = entry.glyph();
-            let alias_result = matcher
-                .fuzzy_match(&entry.name, selection)
-                .map(|score| MatchResult::new(row_idx, score, selection, aliases));
-            if let Some(value) = match &numeric_selection {
-                Some(sel) => {
-                    let codepoints = entry.codepoints();
-                    if codepoints == *sel {
-                        Some(MatchResult {
-                            row_idx,
-                            score: i64::max_value(),
-                        })
-                    } else {
-                        let number_result = matcher
-                            .fuzzy_match(&codepoints, &sel)
-                            .map(|score| MatchResult::new(row_idx, score, sel, aliases));
+        let all_matches: Vec<(String, MatchResult)> = aliases
+            .par_iter()
+            .enumerate()
+            .filter_map(|(row_idx, entry)| {
+                let glyph = entry.glyph();
+                let alias_result = matcher
+                    .fuzzy_match(&entry.name, selection)
+                    .map(|score| MatchResult::new(row_idx, score, selection, aliases));
+                match &numeric_selection {
+                    Some(sel) => {
+                        let codepoints = entry.codepoints();
+                        if codepoints == *sel {
+                            Some((
+                                glyph,
+                                MatchResult {
+                                    row_idx,
+                                    score: i64::max_value(),
+                                },
+                            ))
+                        } else {
+                            let number_result = matcher
+                                .fuzzy_match(&codepoints, &sel)
+                                .map(|score| MatchResult::new(row_idx, score, sel, aliases));
 
-                        match (alias_result, number_result) {
-                            (
-                                Some(MatchResult { score: a, .. }),
-                                Some(MatchResult { score: b, .. }),
-                            ) => Some(MatchResult {
-                                row_idx,
-                                score: a.max(b),
-                            }),
-                            (Some(a), None) | (None, Some(a)) => Some(a),
-                            (None, None) => None,
+                            match (alias_result, number_result) {
+                                (
+                                    Some(MatchResult { score: a, .. }),
+                                    Some(MatchResult { score: b, .. }),
+                                ) => Some((
+                                    glyph,
+                                    MatchResult {
+                                        row_idx,
+                                        score: a.max(b),
+                                    },
+                                )),
+                                (Some(a), None) | (None, Some(a)) => Some((glyph, a)),
+                                (None, None) => None,
+                            }
                         }
                     }
+                    None => alias_result.map(|a| (glyph, a)),
                 }
-                None => alias_result,
-            } {
-                if let Some(other) = matches.get_mut(&glyph) {
-                    // if the character was inserted already, replace it only if the score is improved
-                    if other.score < value.score {
-                        *other = value;
-                    }
-                } else {
-                    matches.insert(glyph, value);
-                }
+            })
+            .collect();
+
+        let mut matches = HashMap::<String, MatchResult>::new();
+        for (glyph, value) in all_matches {
+            let entry = matches.entry(glyph).or_insert(value);
+            // Retain the best scoring match for a given glyph
+            if entry.score < value.score {
+                *entry = value;
             }
         }
         let mut scores: Vec<MatchResult> = matches.into_values().collect();
         scores.sort_by(|a, b| a.score.cmp(&b.score).reverse());
-        log::trace!("matching took {:?}", start.elapsed());
+        log::trace!(
+            "matching took {:?} for {} entries",
+            start.elapsed(),
+            scores.len()
+        );
 
         scores.iter().map(|result| result.row_idx).collect()
     }
@@ -388,6 +414,7 @@ impl CharSelector {
             CharSelectGroup::Flags => "Flags",
             CharSelectGroup::NerdFonts => "NerdFonts",
             CharSelectGroup::UnicodeNames => "Unicode",
+            CharSelectGroup::ShortCodes => "Short Codes",
         };
 
         let mut elements = vec![Element::new(

@@ -1,0 +1,66 @@
+Building Cairo on Windows
+=========================
+There are two primary ways to build Cairo on Windows. You can use a
+UNIX emulation based setup, such as Cygwin or MSYS, with the
+conventional configure script shipped with Cairo releases. In this
+configuration, you will build with GCC and (implicitly) libtool. In
+the Cygwin case you end up with a DLL that depends on Cygwin and
+should be used only from Cygwin applications. In the MSYS case you end
+up with a "normal" Win32 DLL that can be used either from GCC- or
+Microsoft Visual C++-compiled code. In theory, this technique is no
+different than the ordinary build process for the Cairo library. In
+practise there are lots of small details that can go wrong.
+
+The second way is to use a GNU-compatible make, but build using
+Microsoft's Visual C++ compiler to produce native libraries.  This is
+the setup this README.win32 is written for. Also the DLL produced this
+way is usable either from GCC- or MSVC-compiled code.
+
+Tools required
+==============
+You will need GNU make, version 3.80 or later.  Earlier versions or
+other modern make implementations may work, but are not guaranteed to.
+
+You will also need Microsoft Visual C++.  Version 7 has been most
+heavily tested, but other versions are likely to work fine.
+
+Libraries required
+==================
+Cairo requires a compatible version of the pixman library.  Full build
+instructions are beyond the scope of this document; however, using the
+same tools, it should be possible to build pixman simply by entering
+the pixman/src directory and typing:
+
+    make -f Makefile.win32 CFG=release
+
+Depending on your feature set, you may also need zlib and libpng.
+
+Building
+========
+There are a few files that you will need to edit.  First, you must
+determine which features will be built.  Edit
+build/Makefile.win32.features and set the features as desired.  Note
+that most features have external dependencies; specifically,
+CAIRO_HAS_PNG_FUNCTIONS requires libpng to be present, and
+CAIRO_HAS_PS_SURFACE and CAIRO_HAS_PDF_SURFACE both require zlib.
+
+To ensure that the compiler can find all dependencies, you may need to
+edit build/Makefile.win32.common.  In particular, ensure that
+PIXMAN_CFLAGS contains a -I parameter pointing to the location of
+your pixman header files and that PIXMAN_LIBS points to the actual
+location of your pixman-1.lib file.  You may also need to edit the
+various occurrences of CAIRO_LIBS to point to other libraries
+correctly.  Note also that if you wish to link statically with zlib,
+you should replace zdll.lib with zlib.lib.
+
+Finally, from the top Cairo directory, type:
+
+    make -f Makefile.win32 CFG=release
+
+If this command succeeds, you will end up with src/release/cairo.dll.
+To successfully use Cairo from your own programs, you will probably
+want to move this file to some central location.  You will also
+probably want to copy the Cairo header files.  These should be placed
+in a cairo subdirectory (for instance, c:/code/common/include/cairo).
+The exact set to copy depends on your features and is reported to you
+at the end of the build.

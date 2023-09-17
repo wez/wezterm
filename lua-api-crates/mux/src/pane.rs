@@ -4,6 +4,7 @@ use mlua::Value;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use termwiz::cell::SemanticType;
+use url_funcs::Url;
 use wezterm_term::{SemanticZone, StableRowIndex};
 
 #[derive(Clone, Copy, Debug)]
@@ -145,7 +146,7 @@ impl UserData for MuxPane {
         methods.add_method("get_current_working_dir", |_, this, _: ()| {
             let mux = get_mux()?;
             let pane = this.resolve(&mux)?;
-            Ok(pane.get_current_working_dir().map(|u| u.to_string()))
+            Ok(pane.get_current_working_dir().map(|url| Url { url }))
         });
 
         methods.add_method("get_metadata", |lua, this, _: ()| {

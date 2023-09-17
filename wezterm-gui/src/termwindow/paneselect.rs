@@ -20,6 +20,7 @@ pub struct PaneSelector {
     alphabet: String,
     mode: PaneSelectMode,
     was_zoomed: bool,
+    show_pane_ids: bool,
 }
 
 impl PaneSelector {
@@ -45,12 +46,14 @@ impl PaneSelector {
             alphabet,
             mode: args.mode,
             was_zoomed,
+            show_pane_ids: args.show_pane_ids,
         }
     }
 
     fn compute(
         term_window: &mut TermWindow,
         alphabet: &str,
+        show_pane_ids: bool,
     ) -> anyhow::Result<(Vec<ComputedElement>, Vec<String>)> {
         let font = term_window
             .fonts
@@ -73,7 +76,11 @@ impl PaneSelector {
 
         let mut elements = vec![];
         for pos in panes {
-            let caption = labels[pos.index].clone();
+            let caption = if show_pane_ids {
+                format!("{}: {}", labels[pos.index], pos.pane.pane_id())
+            } else {
+                labels[pos.index].clone()
+            };
             let element = Element::new(&font, ElementContent::Text(caption))
                 .colors(ElementColors {
                     border: BorderColor::new(
@@ -172,8 +179,39 @@ impl PaneSelector {
                         tab.set_active_idx(pane_index);
                     }
                 }
-                PaneSelectMode::SwapWithActive => {
-                    tab.swap_active_with_index(pane_index);
+                PaneSelectMode::SwapWithActiveKeepFocus | PaneSelectMode::SwapWithActive => {
+                    tab.swap_active_with_index(
+                        pane_index,
+                        self.mode == PaneSelectMode::SwapWithActiveKeepFocus,
+                    );
+                }
+                PaneSelectMode::MoveToNewWindow => {
+                    if let Some(pos) = panes.iter().find(|p| p.index == pane_index) {
+                        let pane_id = pos.pane.pane_id();
+                        promise::spawn::spawn(async move {
+                            if let Err(err) = mux.move_pane_to_new_tab(pane_id, None, None).await {
+                                log::error!("failed to move_pane_to_new_tab: {err:#}");
+                            }
+                        })
+                        .detach();
+                    }
+                }
+                PaneSelectMode::MoveToNewTab => {
+                    if let Some(pos) = panes.iter().find(|p| p.index == pane_index) {
+                        let pane_id = pos.pane.pane_id();
+                        let window_id = term_window.mux_window_id;
+                        promise::spawn::spawn(async move {
+                            if let Err(err) = mux
+                                .move_pane_to_new_tab(pane_id, Some(window_id), None)
+                                .await
+                            {
+                                log::error!("failed to move_pane_to_new_tab: {err:#}");
+                            }
+
+                            mux.focus_pane_and_containing_tab(pane_id).ok();
+                        })
+                        .detach();
+                    }
                 }
             }
         }
@@ -242,7 +280,7 @@ impl Modal for PaneSelector {
         term_window: &mut TermWindow,
     ) -> anyhow::Result<Ref<[ComputedElement]>> {
         if self.element.borrow().is_none() {
-            let (element, labels) = Self::compute(term_window, &self.alphabet)?;
+            let (element, labels) = Self::compute(term_window, &self.alphabet, self.show_pane_ids)?;
             self.element.borrow_mut().replace(element);
             *self.labels.borrow_mut() = labels;
         }

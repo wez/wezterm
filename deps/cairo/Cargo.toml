@@ -1,0 +1,30 @@
+[package]
+name = "cairo-sys-rs"
+license = "MIT"
+authors = ["The gtk-rs Project Developers"]
+homepage = "https://gtk-rs.org/"
+description = "FFI bindings to libcairo"
+version = "0.18.0"
+keywords = ["cairo", "ffi", "gtk-rs", "gnome"]
+repository = "https://github.com/gtk-rs/gtk-rs-core"
+build = "build.rs"
+edition = "2021"
+rust-version = "1.70"
+
+[lib]
+name = "cairo_sys"
+
+[features]
+v1_16 = []
+v1_18 = ["v1_16"]
+png = []
+pdf = []
+svg = []
+ps = []
+script = []
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = {version="1.0", features = ["parallel"]}

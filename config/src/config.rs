@@ -253,6 +253,8 @@ pub struct Config {
     pub font_locator: FontLocatorSelection,
     #[dynamic(default)]
     pub font_rasterizer: FontRasterizerSelection,
+    #[dynamic(default = "default_colr_rasterizer")]
+    pub font_colr_rasterizer: FontRasterizerSelection,
     #[dynamic(default)]
     pub font_shaper: FontShaperSelection,
 
@@ -717,6 +719,9 @@ pub struct Config {
 
     #[dynamic(default)]
     pub experimental_pixel_positioning: bool,
+
+    #[dynamic(default)]
+    pub ignore_svg_fonts: bool,
 
     #[dynamic(default)]
     pub bidi_enabled: bool,
@@ -1708,7 +1713,7 @@ fn default_max_fps() -> u8 {
 }
 
 fn default_tiling_desktop_environments() -> Vec<String> {
-    ["X11 LG3D", "X11 bspwm", "X11 i3", "X11 dwm"]
+    ["X11 LG3D", "X11 bspwm", "X11 i3", "X11 dwm", "X11 awesome"]
         .iter()
         .map(|s| s.to_string())
         .collect()
@@ -2038,4 +2043,8 @@ pub(crate) fn validate_domain_name(name: &str) -> Result<(), String> {
 /// <https://github.com/wez/wezterm/issues/2630>
 fn default_macos_forward_mods() -> Modifiers {
     Modifiers::SHIFT
+}
+
+fn default_colr_rasterizer() -> FontRasterizerSelection {
+    FontRasterizerSelection::Harfbuzz
 }

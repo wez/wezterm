@@ -2395,7 +2395,7 @@ impl KeyboardLayoutInfo {
         unsafe {
             self.update();
         }
-        if vk <= u8::MAX.into() {
+        if vk <= (u8::MAX as u32) {
             self.dead_keys
                 .get(&(Self::fixup_mods(mods), vk as u8))
                 .map(|dead| dead.dead_char)
@@ -2412,7 +2412,7 @@ impl KeyboardLayoutInfo {
         unsafe {
             self.update();
         }
-        if leader.1 <= u8::MAX.into() && key.1 <= u8::MAX.into() {
+        if leader.1 <= (u8::MAX as u32) && key.1 <= (u8::MAX as u32) {
             if let Some(dead) = self
                 .dead_keys
                 .get(&(Self::fixup_mods(leader.0), leader.1 as u8))

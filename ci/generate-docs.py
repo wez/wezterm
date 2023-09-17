@@ -399,6 +399,10 @@ TOC = [
                 "config/lua/wezterm.time",
             ),
             Gen(
+                "module: wezterm.url",
+                "config/lua/wezterm.url",
+            ),
+            Gen(
                 "enum: KeyAssignment",
                 "config/lua/keyassignment",
             ),

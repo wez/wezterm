@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Download artifact"
         uses: actions/download-artifact@v3
         with:

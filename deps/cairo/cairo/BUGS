@@ -1,0 +1,85 @@
+If you find a bug in cairo we would love to hear about it. We're also
+trying to make cairo better, and learning about the bugs that users
+encounter is an essential part of that. So we really appreciate the
+extra effort users put in to providing high-quality bug reports.
+
+There are two acceptable ways to report cairo bugs, and you can choose
+which you prefer:
+
+1) Bugzilla bug tracking database:
+
+   You can use the following web interface to report new bugs, follow
+   up on previous bug reports, and search for existing, known
+   bugs. Just use the "cairo" product:
+
+	https://bugs.freedesktop.org
+
+   It is necessary to go through a quick account creation process,
+   (with email address verification), in order to be able to report
+   new bugs in bugzilla. We apologize for any inconvenience that might
+   cause, and hope it won't prevent you from reporting bugs.
+
+2) Cairo mailing list:
+
+   For people who cannot stand the bugzilla interface, you can just
+   send an email to cairo mailing list (cairo@cairographics.org). The
+   mailing list only allows posting from subscribers, so use the
+   following page for subscription instructions:
+
+	https://cairographics.org/lists
+
+   Again, we apologize for any inconvenience this subscription step
+   might cause, but we've found it necessary to require this in order
+   to enjoy spam-free discussions on the list.
+
+   If you don't actually _want_ to be a subscriber to the mailing
+   list, but just want to be able to send a message, the easiest thing
+   to do is to go through the subscription process, and then use the
+   preferences page to disable message delivery to your address.
+
+Which of the above you use to report bugs depends on your own
+preferences. Some people find just typing an email message much easier
+than using the web-based forms on bugzilla. Others greatly prefer the
+ability to check back on a specific bug entry in bugzilla without
+having to ask on the mailing list if an issue has been resolved.
+
+Regardless of which method you use, here are some general tips that
+will help you improve the quality of your bug report, (which will help
+in getting the bug fixed sooner):
+
+1) Check to see if the bug has been reported already. It's pretty easy
+   to run a search or two against the cairo product in the
+   https://bugs.freedesktop.org bugzilla database. Another place to
+   look for known bugs is the cairo ROADMAP:
+
+	https://cairographics.org/ROADMAP
+
+   which shows a planned schedule of releases and which bug fixes are
+   being planned for each release.
+
+2) Provide an accurate description of the bug with detailed steps for
+   how we can reproduce the problem.
+
+3) If possible provide a minimal test case demonstrating the bug. A
+   great test case would be a minimal self-contained function in C or
+   python or whatever language you are using for cairo. The function
+   might accept nothing more than a cairo context, (cairo_t* in C).
+
+4) If you feel like being particularly helpful, you could craft this
+   minimal test case in the form necessary for cairo's test
+   suite. This isn't much more work than writing a minimal
+   function. Just look at the cairo/test/README file and imitate the
+   style of existing test cases.
+
+   If you do submit a test case, be sure to include Copyright
+   information, (with the standard MIT licensing blurb if you want us
+   to include your test in the test case). Also, including a reference
+   image showing the expected result will be extremely useful.
+
+5) Finally, the best bug report also comes attached with a patch to
+   cairo to fix the bug. So send this too if you have it! Otherwise,
+   don't worry about it and we'll try to fix cairo when we can.
+
+Thanks, and have fun with cairo!
+
+-Carl
