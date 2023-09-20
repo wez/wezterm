@@ -94,6 +94,8 @@ As features stabilize some brief notes about them will accumulate here.
   than the native font dimensions and looked weird when either config option was
   not set to `1.0`. #2882
 * Using `CloseCurrentPane` could sometimes leave a stranded pane in a tab. #4030
+* Wayland: wezterm wouldn't start on Plasma 6 or newer versions of sway. Thanks
+  to @hexchain! #3996 #4322.
 
 #### Updated
 * Bundled harfbuzz to 8.1.1
