@@ -2,7 +2,7 @@ title: ""
 labels: []
 body:
  - type: markdown
-    attributes:
+   attributes:
       value: |
         When asking for help troubleshooting something, please remember to share as much context
         about what you're trying to do,
