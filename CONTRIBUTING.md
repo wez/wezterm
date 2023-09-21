@@ -13,22 +13,26 @@ There's never enough!  Pretty much anything is fair game to improve here.
 
 ### Running the doc build yourself
 
-To check your documentation additions, you can optionally build the docs yourself and see how the changes will look on the webpage. 
+To check your documentation additions, you can optionally build the docs yourself and see how the changes will look on the webpage.
 
-To run the doc build yourself, the setup step is:
-```console
-$ cargo install --vers "^0.4" mdbook
-$ cargo install mdbook-linkcheck
-$ cargo install mdbook-mermaid
-$ cargo install gelatyx --version "^0.2"
-```
-Then build the docs with:
+To run the doc build yourself:
+
 ```console
 $ ./ci/build-docs.sh
 ```
-To serve them up and automatically rebuild and refresh the docs in your browser, run `ci/build-docs.sh serve` and then click on the URL that it prints out after it has performed the first build.
 
-Any arguments passed to `build-docs.sh` are passed down to the underlying `mkdocs` utility.
+To serve them up and automatically rebuild and refresh the docs in your
+browser, run:
+
+```console
+$ ci/build-docs.sh serve
+```
+
+and then click on the URL that it prints out after it has performed the first
+build.
+
+Any arguments passed to `build-docs.sh` are passed down to the underlying
+`mkdocs` utility.
 
 Look at [mkdocs serve](https://www.mkdocs.org/user-guide/cli/#mkdocs-serve) for more information on additional parameters.
 ### Operating system specific installation instructions?
