@@ -1,4 +1,4 @@
-use super::quickselect::compute_labels_for_alphabet;
+use super::quickselect;
 use crate::scripting::guiwin::GuiWin;
 use config::keyassignment::{InputSelector, InputSelectorEntry, KeyAssignment};
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -74,7 +74,7 @@ impl SelectorState {
         let max_width = size.cols.saturating_sub(6);
         let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
         if max_items != self.max_items {
-            self.labels = compute_labels_for_alphabet(
+            self.labels = quickselect::compute_labels_for_alphabet(
                 &self.args.alphabet,
                 self.filtered_entries.len().min(max_items + 1),
                 false,

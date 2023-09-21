@@ -8,7 +8,7 @@ to select from.
 When the user accepts a line, emits an event that allows you to act
 upon the input.
 
-`InputSelector` accepts three fields:
+`InputSelector` accepts the following fields:
 
 * `title` - the title that will be set for the overlay pane
 * `choices` - a lua table consisting of the potential choices. Each entry
@@ -27,15 +27,40 @@ upon the input.
   pressing / in the default mode).
 * `alphabet` - a string of unique characters. The characters in the string are used
   to calculate one or two click shortcuts that can be used to quickly choose from
-  the InputSelector when not in fuzzy finding mode. Defaults to:
+  the InputSelector when in the default mode. Defaults to:
   `"1234567890abcdefghilmnopqrstuvwxyz"`. (Without j/k so they can be used for movement
   up and down.)
-* `description` - a string to display when not in fuzzy finding mode. Defaults to:
+* `description` - a string to display when in the default mode. Defaults to:
   `"Select an item and press Enter = accept,  Esc = cancel,  / = filter"`.
 * `fuzzy_description` - a string to display when in fuzzy finding mode. Defaults to:
   `"Fuzzy matching: "`.
 
 
+### Key Assignments
+
+The default key assignments in the InputSelector are as follows:
+
+| Action  |  Key Assignment |
+|---------|-------------------|
+| Add to selection string until a match is found (if not in fuzzy finding mode) | Any key in `alphabet` |
+| Start fuzzy search (if in the default mode) | <kbd>/</kbd> |
+| Add to filtering string (if in fuzzy finding mode) | Any key not listed below |
+| Remove from selection or filtering string | <kbd>Backspace</kbd> |
+| Pick currently highlighted line | <kbd>Enter</kbd> |
+|                                 | <kbd>LeftClick</kbd> (with mouse) |
+| Move Down      | <kbd>DownArrow</kbd> |
+|                | <kbd>Ctrl</kbd> + <kbd>N</kbd> |
+|                | <kbd>Ctrl</kbd> + <kbd>J</kbd> |
+|                | <kbd>j</kbd> (if not in `alphabet`) |
+| Move Up        | <kbd>UpArrow</kbd>  |
+|                | <kbd>Ctrl</kbd> + <kbd>P</kbd> |
+|                | <kbd>Ctrl</kbd> + <kbd>K</kbd> |
+|                | <kbd>k</kbd>        |
+| Quit     | <kbd>Ctrl</kbd> + <kbd>G</kbd> |
+|          | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
+|          | <kbd>Escape</kbd> |
+
+Note: If the InputSelector is started with `fuzzy` set to `false`, then <kbd>Backspace</kbd> can go from fuzzy finding mode back to the default mode when pressed while the filtering string is empty.
 
 ## Example of choosing some canned text to enter into the terminal
 
@@ -164,31 +189,33 @@ config.keys = {
       }
 
       window:perform_action(
-          act.InputSelector {
-              action = wezterm.action_callback(function(inner_window, inner_pane, id, label)
-                  if not id and not label then
-                      wezterm.log_info 'cancelled'
-                  else
-                      wezterm.log_info('id = ' .. id)
-                      wezterm.log_info('label = ' .. label)
-                      inner_window:perform_action(
-                          act.SwitchToWorkspace {
-                              name = label,
-                              spawn = {
-                                  label = 'Workspace: ' .. label,
-                                  cwd = id,
-                              }
-                          },
-                          inner_pane
-                      )
-                  end
-              end),
-              title = 'Choose Workspace',
-              choices = workspaces,
-              fuzzy = true,
-              fuzzy_description = "Fuzzy find and/or make a workspace"
-          },
-          pane
+        act.InputSelector {
+          action = wezterm.action_callback(
+            function(inner_window, inner_pane, id, label)
+              if not id and not label then
+                wezterm.log_info 'cancelled'
+              else
+                wezterm.log_info('id = ' .. id)
+                wezterm.log_info('label = ' .. label)
+                inner_window:perform_action(
+                  act.SwitchToWorkspace {
+                    name = label,
+                    spawn = {
+                      label = 'Workspace: ' .. label,
+                      cwd = id,
+                    },
+                  },
+                  inner_pane
+                )
+              end
+            end
+          ),
+          title = 'Choose Workspace',
+          choices = workspaces,
+          fuzzy = true,
+          fuzzy_description = 'Fuzzy find and/or make a workspace',
+        },
+        pane
       )
     end),
   },
