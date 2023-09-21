@@ -74,10 +74,9 @@ impl SelectorState {
         let max_width = size.cols.saturating_sub(6);
         let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
         if max_items != self.max_items {
-            self.labels = quickselect::compute_labels_for_alphabet(
+            self.labels = quickselect::compute_labels_for_alphabet_with_preserved_case(
                 &self.args.alphabet,
                 self.filtered_entries.len().min(max_items + 1),
-                false,
             );
             self.max_items = max_items;
         }
@@ -329,11 +328,6 @@ impl SelectorState {
                         break;
                     }
                 }
-
-                // Moved to render
-                // InputEvent::Resized { rows, .. } => {
-                //     self.max_items = rows.saturating_sub(ROW_OVERHEAD);
-                // }
                 _ => {}
             }
             self.render(term)?;

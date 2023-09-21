@@ -72,7 +72,7 @@ impl PaneSelector {
 
         let panes = term_window.get_panes_to_render();
         let labels =
-            crate::overlay::quickselect::compute_labels_for_alphabet(alphabet, panes.len(), true);
+            crate::overlay::quickselect::compute_labels_for_alphabet(alphabet, panes.len());
 
         let mut elements = vec![];
         for pos in panes {

@@ -55,7 +55,7 @@ The default key assignments in the InputSelector are as follows:
 | Move Up        | <kbd>UpArrow</kbd>  |
 |                | <kbd>Ctrl</kbd> + <kbd>P</kbd> |
 |                | <kbd>Ctrl</kbd> + <kbd>K</kbd> |
-|                | <kbd>k</kbd>        |
+|                | <kbd>k</kbd>  (if not in `alphabet`)   |
 | Quit     | <kbd>Ctrl</kbd> + <kbd>G</kbd> |
 |          | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
 |          | <kbd>Escape</kbd> |

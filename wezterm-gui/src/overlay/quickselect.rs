@@ -59,6 +59,20 @@ const PATTERNS: [&str; 14] = [
 pub fn compute_labels_for_alphabet(
     alphabet: &str,
     num_matches: usize,
+) -> Vec<String> {
+   compute_labels_for_alphabet_impl(alphabet, num_matches, true)
+}
+
+pub fn compute_labels_for_alphabet_with_preserved_case(
+    alphabet: &str,
+    num_matches: usize,
+) -> Vec<String> {
+   compute_labels_for_alphabet_impl(alphabet, num_matches, false)
+}
+
+fn compute_labels_for_alphabet_impl(
+    alphabet: &str,
+    num_matches: usize,
     make_lowercase: bool,
 ) -> Vec<String> {
     let alphabet = if make_lowercase {
