@@ -98,7 +98,7 @@ As features stabilize some brief notes about them will accumulate here.
   to @hexchain! #3996 #4322.
 
 #### Updated
-* Bundled harfbuzz to 8.1.1
+* Bundled harfbuzz to 8.2.1
 * Bundled freetype to 2.13.1
 * Bundled Noto Color Emoji font to 2.038
 
