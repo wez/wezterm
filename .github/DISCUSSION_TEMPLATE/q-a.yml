@@ -4,8 +4,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        When asking for help troubleshooting something, please remember to share as much context
-        about what you're trying to do,
+        When asking for help troubleshooting something, please remember
+        to share as much context about what you're trying to do,
         specifically what configuration you tried, what happened and how it
         didn't match up to what you expected!
   - type: dropdown
