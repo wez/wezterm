@@ -171,12 +171,10 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
-config.leader = { key = 'Space', mods = 'CTRL', timeout_milliseconds = 3000 }
-
 config.keys = {
   {
-    key = 'w',
-    mods = 'LEADER',
+    key = 'S',
+    mods = 'CTRL|SHIFT',
     action = wezterm.action_callback(function(window, pane)
       -- Here you can dynamically construct a longer list if needed
 

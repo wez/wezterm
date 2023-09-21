@@ -56,18 +56,15 @@ const PATTERNS: [&str; 14] = [
 /// This function computes a set of labels for a given alphabet.
 /// It is derived from https://github.com/fcsonline/tmux-thumbs/blob/master/src/alphabets.rs
 /// which is Copyright (c) 2019 Ferran Basora and provided under the MIT license
-pub fn compute_labels_for_alphabet(
-    alphabet: &str,
-    num_matches: usize,
-) -> Vec<String> {
-   compute_labels_for_alphabet_impl(alphabet, num_matches, true)
+pub fn compute_labels_for_alphabet(alphabet: &str, num_matches: usize) -> Vec<String> {
+    compute_labels_for_alphabet_impl(alphabet, num_matches, true)
 }
 
 pub fn compute_labels_for_alphabet_with_preserved_case(
     alphabet: &str,
     num_matches: usize,
 ) -> Vec<String> {
-   compute_labels_for_alphabet_impl(alphabet, num_matches, false)
+    compute_labels_for_alphabet_impl(alphabet, num_matches, false)
 }
 
 fn compute_labels_for_alphabet_impl(
@@ -133,16 +130,13 @@ mod alphabet_test {
 
     #[test]
     fn simple_alphabet() {
-        assert_eq!(
-            compute_labels_for_alphabet("abcd", 3, true),
-            vec!["a", "b", "c"]
-        );
+        assert_eq!(compute_labels_for_alphabet("abcd", 3), vec!["a", "b", "c"]);
     }
 
     #[test]
     fn more_matches_than_alphabet_can_represent() {
         assert_eq!(
-            compute_labels_for_alphabet("asdfqwerzxcvjklmiuopghtybn", 792, true).len(),
+            compute_labels_for_alphabet("asdfqwerzxcvjklmiuopghtybn", 792).len(),
             676
         );
     }
@@ -150,7 +144,7 @@ mod alphabet_test {
     #[test]
     fn composed_single() {
         assert_eq!(
-            compute_labels_for_alphabet("abcd", 6, true),
+            compute_labels_for_alphabet("abcd", 6),
             vec!["a", "b", "c", "da", "db", "dc"]
         );
     }
@@ -158,7 +152,7 @@ mod alphabet_test {
     #[test]
     fn composed_multiple() {
         assert_eq!(
-            compute_labels_for_alphabet("abcd", 8, true),
+            compute_labels_for_alphabet("abcd", 8),
             vec!["a", "b", "ca", "cb", "da", "db", "dc", "dd"]
         );
     }
@@ -168,8 +162,32 @@ mod alphabet_test {
         // The number of chars in the alphabet limits the potential matches to fewer
         // than the number of matches that we requested
         assert_eq!(
-            compute_labels_for_alphabet("ab", 5, true),
+            compute_labels_for_alphabet("ab", 5),
             vec!["aa", "ab", "ba", "bb"]
+        );
+    }
+
+    #[test]
+    fn composed_capital() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("AB", 4),
+            vec!["AA", "AB", "BA", "BB"]
+        );
+    }
+
+    #[test]
+    fn composed_mixed() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("aA", 4),
+            vec!["aa", "aA", "Aa", "AA"]
+        );
+    }
+
+    #[test]
+    fn lowercase_alphabet_equal() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("abc123", 12),
+            compute_labels_for_alphabet("abc123", 12)
         );
     }
 }
@@ -745,7 +763,6 @@ impl QuickSelectRenderable {
                 &self.config.quick_select_alphabet
             },
             uniq_results.len(),
-            true,
         );
         self.by_label.clear();
 
