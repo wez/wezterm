@@ -94,9 +94,15 @@ As features stabilize some brief notes about them will accumulate here.
   than the native font dimensions and looked weird when either config option was
   not set to `1.0`. #2882
 * Using `CloseCurrentPane` could sometimes leave a stranded pane in a tab. #4030
+* Wayland: wezterm wouldn't start on Plasma 6 or newer versions of sway. Thanks
+  to @hexchain! #3996 #4322.
+* font-config: when resolving a fallback font for a text cluster like `U+3065,U+2686`
+  where no single font contains both glyphs, wezterm would fail to show a glyph
+  for either codepoint.  We now split the fallback query up and query for each
+  individual codepoint separately. #4310
 
 #### Updated
-* Bundled harfbuzz to 8.1.1
+* Bundled harfbuzz to 8.2.1
 * Bundled freetype to 2.13.1
 * Bundled Noto Color Emoji font to 2.038
 

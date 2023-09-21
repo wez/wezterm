@@ -841,6 +841,11 @@ pub enum DecPrivateModeCode {
     EnableAlternateScreen = 47,
     OptEnableAlternateScreen = 1047,
     BracketedPaste = 2004,
+
+    /// <https://github.com/contour-terminal/terminal-unicode-core/>
+    /// Grapheme clustering mode
+    GraphemeClustering = 2027,
+
     /// Applies to sixel and regis modes
     UsePrivateColorRegistersForEachGraphic = 1070,
 

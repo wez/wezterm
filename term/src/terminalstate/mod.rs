@@ -1345,6 +1345,22 @@ impl TerminalState {
         }
     }
 
+    /// Indicates that mode is permanently enabled
+    fn decqrm_response_permanent(&mut self, mode: Mode) {
+        let (is_dec, number) = match &mode {
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(code)) => (true, code.to_u16().unwrap()),
+            Mode::QueryDecPrivateMode(DecPrivateMode::Unspecified(code)) => (true, *code),
+            Mode::QueryMode(TerminalMode::Code(code)) => (false, code.to_u16().unwrap()),
+            Mode::QueryMode(TerminalMode::Unspecified(code)) => (false, *code),
+            _ => unreachable!(),
+        };
+
+        let prefix = if is_dec { "?" } else { "" };
+
+        write!(self.writer, "\x1b[{prefix}{number};3$y").ok();
+        self.writer.flush().ok();
+    }
+
     fn decqrm_response(&mut self, mode: Mode, mut recognized: bool, enabled: bool) {
         let (is_dec, number) = match &mode {
             Mode::QueryDecPrivateMode(DecPrivateMode::Code(code)) => (true, code.to_u16().unwrap()),
@@ -1447,6 +1463,21 @@ impl TerminalState {
                 DecPrivateModeCode::LeftRightMarginMode,
             )) => {
                 self.decqrm_response(mode, true, self.left_and_right_margin_mode);
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            )) => {
+                // Permanently enabled
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::GraphemeClustering,
+            )) => {
+                self.decqrm_response_permanent(mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SaveCursor)) => {
