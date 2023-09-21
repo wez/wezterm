@@ -165,73 +165,105 @@ impl FontLocator for FontConfigFontLocator {
         codepoints: &[char],
     ) -> anyhow::Result<Vec<ParsedFont>> {
         log::trace!("locate_fallback_for_codepoints: {:?}", codepoints);
-        let mut charset = CharSet::new()?;
-        for &c in codepoints {
-            charset.add(c)?;
-        }
+        let mut fonts: Vec<ParsedFont> = vec![];
 
-        let mut fonts = vec![];
+        // In <https://github.com/wez/wezterm/issues/4310> we discover
+        // that a font-config query for a charset containing both
+        // 3065 and 2686 fails because no fonts contain both codepoints,
+        // but querying separately does find the separate fonts.
+        // We therefore need to break up our query so that we resolve
+        // each codepoint individually.
+        // However, if we need to resolve a block of characters that
+        // are found in the same font (eg: someone is printing an
+        // entire unicode block) we don't want to issue N queries
+        // that return the same font.
+        //
+        // So we check the fonts that have been resolved in earlier
+        // iterations to see if any of those cover a given codepoint
+        // and allow that to satisfy the query if they do.
 
-        // Make two passes to locate a fallback: first try to find any
-        // strictly monospace version, then, if we didn't find any matches,
-        // look for a version with any spacing.
-        for only_monospace in [true, false] {
-            let mut pattern = FontPattern::new()?;
-            pattern.add_charset(&charset)?;
-            pattern.add_integer("weight", 80)?;
-            pattern.add_integer("slant", 0)?;
-
-            let mut lists = vec![pattern
-                .list()
-                .context("pattern.list with no spacing constraint")?];
-
-            if only_monospace {
-                for &spacing in &SPACING {
-                    pattern.delete_property("spacing")?;
-                    pattern.add_integer("spacing", spacing)?;
-                    lists.push(
-                        pattern
-                            .list()
-                            .with_context(|| format!("pattern.list with spacing={}", spacing))?,
-                    );
+        'next_codepoint: for &c in codepoints {
+            if !fonts.is_empty() {
+                let mut wanted_range = rangeset::RangeSet::new();
+                wanted_range.add(c as u32);
+                for f in &fonts {
+                    match f.coverage_intersection(&wanted_range) {
+                        Ok(r) if !r.is_empty() => {
+                            // already found a font with this one!
+                            continue 'next_codepoint;
+                        }
+                        _ => {}
+                    }
                 }
             }
 
-            for list in lists {
-                for pat in list.iter() {
-                    let num = pat.charset_intersect_count(&charset)?;
-                    if num == 0 {
-                        log::error!(
-                            "Skipping bogus font-config result {:?} because it doesn't overlap",
-                            pat
-                        );
-                        continue;
-                    }
+            let mut pushed_this_pass = 0;
 
-                    if let Ok(file) = pat.get_file().context("pat.get_file") {
-                        log::trace!("{file:?} has {num} codepoints from {codepoints:?}");
-                        let handle = FontDataHandle {
-                            source: FontDataSource::OnDisk(file.into()),
-                            index: pat.get_integer("index")?.try_into()?,
-                            variation: 0,
-                            origin: FontOrigin::FontConfig,
-                            coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
-                        };
-                        if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                            fonts.push(parsed);
+            let mut charset = CharSet::new()?;
+            charset.add(c)?;
+
+            // Make two passes to locate a fallback: first try to find any
+            // strictly monospace version, then, if we didn't find any matches,
+            // look for a version with any spacing.
+            for only_monospace in [true, false] {
+                let mut pattern = FontPattern::new()?;
+                pattern.add_charset(&charset)?;
+                pattern.add_integer("weight", 80)?;
+                pattern.add_integer("slant", 0)?;
+
+                let mut lists = vec![pattern
+                    .list()
+                    .context("pattern.list with no spacing constraint")?];
+
+                if only_monospace {
+                    for &spacing in &SPACING {
+                        pattern.delete_property("spacing")?;
+                        pattern.add_integer("spacing", spacing)?;
+                        lists.push(
+                            pattern.list().with_context(|| {
+                                format!("pattern.list with spacing={}", spacing)
+                            })?,
+                        );
+                    }
+                }
+
+                for list in lists {
+                    for pat in list.iter() {
+                        let num = pat.charset_intersect_count(&charset)?;
+                        if num == 0 {
+                            log::error!(
+                                "Skipping bogus font-config result {:?} because it doesn't overlap",
+                                pat
+                            );
+                            continue;
+                        }
+
+                        if let Ok(file) = pat.get_file().context("pat.get_file") {
+                            log::trace!("{file:?} has {num} codepoints from {codepoints:?}");
+                            let handle = FontDataHandle {
+                                source: FontDataSource::OnDisk(file.into()),
+                                index: pat.get_integer("index")?.try_into()?,
+                                variation: 0,
+                                origin: FontOrigin::FontConfig,
+                                coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
+                            };
+                            if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                                fonts.push(parsed);
+                                pushed_this_pass += 1;
+                            }
                         }
                     }
                 }
-            }
 
-            if fonts.is_empty() {
-                // If we get here on the first iteration, then we didn't
-                // find a monospace version of fonts with those codepoints,
-                // let's continue and try any matching font
-                continue;
-            }
+                if pushed_this_pass == 0 {
+                    // If we get here on the first iteration, then we didn't
+                    // find a monospace version of fonts with those codepoints,
+                    // let's continue and try any matching font
+                    continue;
+                }
 
-            break;
+                break;
+            }
         }
 
         Ok(fonts)
