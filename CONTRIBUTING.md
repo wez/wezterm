@@ -11,6 +11,38 @@ and smoother if you have the time and energy to read and follow these suggestion
 
 There's never enough!  Pretty much anything is fair game to improve here.
 
+### Running the doc build yourself
+
+To check your documentation additions, you can optionally build the docs yourself and see how the changes will look on the webpage. 
+
+To run the doc build yourself, the setup step is:
+```
+$ cargo install --vers "^0.4" mdbook
+$ cargo install mdbook-linkcheck
+$ cargo install mdbook-mermaid
+$ cargo install gelatyx --version "^0.2"
+```
+Then build the docs with:
+```
+$ ./ci/build-docs.sh
+```
+And open them in your browser with (macOS):
+```
+$ open gh_pages/index.html
+```
+Or (Linux):
+```
+$ google-chrome gh_pages/index.html
+```
+Or (Linux):
+```
+$ firefox gh_pages/index.html
+```
+
+
+
+
+
 ### Operating system specific installation instructions?
 
 There are a lot of targets out there.  Today we have docs that are Ubuntu biased
