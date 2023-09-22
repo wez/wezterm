@@ -25,6 +25,11 @@ upon the input.
 * `fuzzy` - a boolean that defaults to `false`. If `true`, InputSelector will start
   in its fuzzy finding mode (this is equivalent to starting the InputSelector and
   pressing / in the default mode).
+
+{{since('nightly')}}
+
+These additional fields are also available:
+
 * `alphabet` - a string of unique characters. The characters in the string are used
   to calculate one or two click shortcuts that can be used to quickly choose from
   the InputSelector when in the default mode. Defaults to:
