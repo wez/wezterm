@@ -79,6 +79,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
   more recent versions of Noto Color Emoji. #4148
 * [wezterm cli zoom-pane](cli/cli/zoom-pane.md). Thanks to @quantonganh! #4160
+* [InputSelector](config/lua/keyassignment/InputSelector.md) has been
+  enhanced to allow setting an alphabet for quickly launching items beyond
+  the first 10 items, as well as customizing the description/label text.
+  Thanks to @Danielkonge! #4226 #4227
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
