@@ -929,6 +929,11 @@ impl TerminalState {
         }
     }
 
+    /// Returns the current cell attributes of the screen
+    pub fn pen(&self) -> CellAttributes {
+        self.pen.clone()
+    }
+
     pub fn user_vars(&self) -> &HashMap<String, String> {
         &self.user_vars
     }
