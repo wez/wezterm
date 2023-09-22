@@ -61,7 +61,8 @@ As features stabilize some brief notes about them will accumulate here.
   In addition, there are now a number of options for explicitly resizing
   as a preprocessing step, and controlling the filtering and format used
   by the resizing, along with showing diagnostics around the resize operation. #3264
-* Color schemes: [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
+* Color schemes: [Campbell (Gogh)](colorschemes/c/index.md#campbell-gogh),
+  [Ef-Cyprus](colorschemes/e/index.md#ef-cyprus),
   [Ef-Day](colorschemes/e/index.md#ef-day),
   [Ef-Deuteranopia-Dark](colorschemes/e/index.md#ef-deuteranopia-dark),
   [Ef-Deuteranopia-Light](colorschemes/e/index.md#ef-deuteranopia-light),
@@ -72,9 +73,23 @@ As features stabilize some brief notes about them will accumulate here.
   [Ef-Frost](colorschemes/e/index.md#ef-frost),
   [Ef-Kassio](colorschemes/e/index.md#ef-kassio),
   [Ef-Light](colorschemes/e/index.md#ef-light),
+  [Ef-Maris-Dark](colorschemes/e/index.md#ef-maris-dark),
+  [Ef-Maris-Light](colorschemes/e/index.md#ef-maris-light),
   [Ef-Night](colorschemes/e/index.md#ef-night),
   [Ef-Symbiosis](colorschemes/e/index.md#ef-symbiosis),
+  [iTerm2 Dark Background](colorschemes/i/index.md#iterm2-dark-background),
   [iTerm2 Default](colorschemes/i/index.md#iterm2-default),
+  [iTerm2 Light Background](colorschemes/i/index.md#iterm2-light-background),
+  [iTerm2 Pastel Dark Background](colorschemes/i/index.md#iterm2-pastel-dark-background),
+  [iTerm2 Smoooooth](colorschemes/i/index.md#iterm2-smoooooth),
+  [iTerm2 Tango Dark](colorschemes/i/index.md#iterm2-tango-dark),
+  [iTerm2 Tango Light](colorschemes/i/index.md#iterm2-tango-light),
+  [Modus-Operandi-Deuteranopia](colorschemes/m/index.md#modus-operandi-deuteranopia),
+  [Modus-Operandi-Tinted](colorschemes/m/index.md#modus-operandi-tinted),
+  [Modus-Vivendi-Deuteranopia](colorschemes/m/index.md#modus-vivendi-deuteranopia),
+  [Modus-Vivendi-Tinted](colorschemes/m/index.md#modus-vivendi-tinted),
+  [Modus-Vivendi-Tritanopia](colorschemes/m/index.md#modus-vivendi-tritanopia),
+  [Oxocarbon Dark (Gogh)](colorschemes/o/index.md#oxocarbon-dark-gogh),
   [Rosé Pine Moon (base16)](colorschemes/r/index.md#rosé-pine-moon-base16)
 * Preliminary support for rasterizing fonts with COLR v1 glyphs, such as
   more recent versions of Noto Color Emoji. #4148

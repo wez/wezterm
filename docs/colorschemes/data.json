@@ -5711,7 +5711,9 @@
       "selection_fg": "#93a1a1"
     },
     "metadata": {
-      "aliases": [],
+      "aliases": [
+        "iTerm2 Solarized Dark"
+      ],
       "name": "Builtin Solarized Dark",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "b",
@@ -5752,7 +5754,8 @@
     "metadata": {
       "aliases": [
         "Solarized Light (Gogh)",
-        "SolarizedLight (Gogh)"
+        "SolarizedLight (Gogh)",
+        "iTerm2 Solarized Light"
       ],
       "name": "Builtin Solarized Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
@@ -5993,6 +5996,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "c",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#0c0c0c",
+        "#c50f1f",
+        "#13a10e",
+        "#c19c00",
+        "#0037da",
+        "#881798",
+        "#3a96dd",
+        "#cccccc"
+      ],
+      "background": "#0c0c0c",
+      "brights": [
+        "#767676",
+        "#e74856",
+        "#16c60c",
+        "#f9f1a5",
+        "#3b78ff",
+        "#b4009e",
+        "#61d6d6",
+        "#f2f2f2"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#ffffff",
+      "foreground": "#cccccc",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Campbell (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "c",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -11366,6 +11406,86 @@
   {
     "colors": {
       "ansi": [
+        "#1d2c39",
+        "#ff6f6f",
+        "#41bf4f",
+        "#d0d24f",
+        "#57b0ff",
+        "#f59acf",
+        "#2fd0db",
+        "#eaedef"
+      ],
+      "background": "#131c2b",
+      "brights": [
+        "#4a5664",
+        "#ff7788",
+        "#30c489",
+        "#cab27f",
+        "#12b4ff",
+        "#cf90ff",
+        "#65d5a8",
+        "#969faf"
+      ],
+      "cursor_bg": "#8fdfff",
+      "cursor_border": "#8fdfff",
+      "cursor_fg": "#131c2b",
+      "foreground": "#eaedef",
+      "indexed": {},
+      "selection_bg": "#183c65",
+      "selection_fg": "#eaedef"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Maris-Dark",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-dark-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#e0e7ef",
+        "#c3303a",
+        "#007010",
+        "#805a1f",
+        "#375cc6",
+        "#80308f",
+        "#1f66af",
+        "#151a27"
+      ],
+      "background": "#edf4f8",
+      "brights": [
+        "#afb8c3",
+        "#b02440",
+        "#007047",
+        "#78542f",
+        "#003faf",
+        "#5f2fba",
+        "#006f70",
+        "#676470"
+      ],
+      "cursor_bg": "#036f99",
+      "cursor_border": "#036f99",
+      "cursor_fg": "#edf4f8",
+      "foreground": "#151a27",
+      "indexed": {},
+      "selection_bg": "#c8dcff",
+      "selection_fg": "#151a27"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Ef-Maris-Light",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/ef-maris-light-theme.el",
+      "prefix": "e",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#1a202b",
         "#ef656a",
         "#1fa526",
@@ -12965,43 +13085,6 @@
       "origin_url": "https://github.com/Gogh-Co/Gogh",
       "prefix": "e",
       "wezterm_version": "20230712-072601-f4abf8fd"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#4b565c",
-        "#e67e80",
-        "#a7c080",
-        "#dbbc7f",
-        "#7fbbb3",
-        "#d699b6",
-        "#83c092",
-        "#d3c6aa"
-      ],
-      "background": "#2d353b",
-      "brights": [
-        "#5c6a72",
-        "#f85552",
-        "#8da101",
-        "#dfa000",
-        "#3a94c5",
-        "#df69ba",
-        "#35a77c",
-        "#dfddc8"
-      ],
-      "cursor_bg": "#d3c6aa",
-      "cursor_border": "#d3c6aa",
-      "cursor_fg": "#d3c6aa",
-      "foreground": "#d3c6aa",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Everforest Dark (Gogh)",
-      "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "e",
-      "wezterm_version": "20230320-124340-559cb7b0"
     }
   },
   {
@@ -15886,45 +15969,6 @@
   {
     "colors": {
       "ansi": [
-        "#fbf1c7",
-        "#9d0006",
-        "#79740e",
-        "#b57614",
-        "#076678",
-        "#8f3f71",
-        "#427b58",
-        "#3c3836"
-      ],
-      "background": "#fbf1c7",
-      "brights": [
-        "#9d8374",
-        "#cc241d",
-        "#98971a",
-        "#d79921",
-        "#458588",
-        "#b16186",
-        "#689d69",
-        "#7c6f64"
-      ],
-      "cursor_bg": "#282828",
-      "cursor_border": "#282828",
-      "cursor_fg": "#fbf1c7",
-      "foreground": "#282828",
-      "indexed": {},
-      "selection_bg": "#d5c4a1",
-      "selection_fg": "#665c54"
-    },
-    "metadata": {
-      "aliases": [],
-      "name": "Gruvbox Light",
-      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
-      "prefix": "g",
-      "wezterm_version": "Always"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
         "#f9f5d7",
         "#9d0006",
         "#79740e",
@@ -16178,6 +16222,47 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "g",
       "wezterm_version": "20230320-124340-559cb7b0"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#fbf1c7",
+        "#9d0006",
+        "#79740e",
+        "#b57614",
+        "#076678",
+        "#8f3f71",
+        "#427b58",
+        "#3c3836"
+      ],
+      "background": "#fbf1c7",
+      "brights": [
+        "#9d8374",
+        "#cc241d",
+        "#98971a",
+        "#d79921",
+        "#458588",
+        "#b16186",
+        "#689d69",
+        "#7c6f64"
+      ],
+      "cursor_bg": "#282828",
+      "cursor_border": "#282828",
+      "cursor_fg": "#fbf1c7",
+      "foreground": "#282828",
+      "indexed": {},
+      "selection_bg": "#d5c4a1",
+      "selection_fg": "#665c54"
+    },
+    "metadata": {
+      "aliases": [
+        "Gruvbox Light"
+      ],
+      "name": "GruvboxLight",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "g",
+      "wezterm_version": "Always"
     }
   },
   {
@@ -17495,53 +17580,6 @@
     "colors": {
       "ansi": [
         "#1c1e26",
-        "#e93c58",
-        "#efaf8e",
-        "#efb993",
-        "#df5273",
-        "#b072d1",
-        "#24a8b4",
-        "#cbced0"
-      ],
-      "background": "#1c1e26",
-      "brights": [
-        "#6f6f70",
-        "#e93c58",
-        "#efaf8e",
-        "#efb993",
-        "#df5273",
-        "#b072d1",
-        "#24a8b4",
-        "#e3e6ee"
-      ],
-      "cursor_bg": "#cbced0",
-      "cursor_border": "#cbced0",
-      "cursor_fg": "#1c1e26",
-      "foreground": "#cbced0",
-      "indexed": {
-        "16": "#e58d7d",
-        "17": "#e4a382",
-        "18": "#232530",
-        "19": "#2e303e",
-        "20": "#9da0a2",
-        "21": "#dcdfe4"
-      },
-      "selection_bg": "#cbced0",
-      "selection_fg": "#1c1e26"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Michaël Ball (http://github.com/michael-ball/)",
-      "name": "Horizon Dark (base16)",
-      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#1c1e26",
         "#e95678",
         "#29d398",
         "#fac29a",
@@ -17620,53 +17658,6 @@
       ],
       "name": "Horizon Dark (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#fdf0ed",
-        "#f7939b",
-        "#94e1b0",
-        "#fbe0d9",
-        "#da103f",
-        "#1d8991",
-        "#dc3318",
-        "#403c3d"
-      ],
-      "background": "#fdf0ed",
-      "brights": [
-        "#bdb3b1",
-        "#f7939b",
-        "#94e1b0",
-        "#fbe0d9",
-        "#da103f",
-        "#1d8991",
-        "#dc3318",
-        "#201c1d"
-      ],
-      "cursor_bg": "#403c3d",
-      "cursor_border": "#403c3d",
-      "cursor_fg": "#fdf0ed",
-      "foreground": "#403c3d",
-      "indexed": {
-        "16": "#f6661e",
-        "17": "#e58c92",
-        "18": "#fadad1",
-        "19": "#f9cbbe",
-        "20": "#948c8a",
-        "21": "#302c2d"
-      },
-      "selection_bg": "#403c3d",
-      "selection_fg": "#fdf0ed"
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "Michaël Ball (http://github.com/michael-ball/)",
-      "name": "Horizon Light (base16)",
-      "origin_url": "https://github.com/michael-ball/base16-horizon-scheme",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -17997,41 +17988,6 @@
       "aliases": [],
       "name": "Hybrid (Gogh)",
       "origin_url": "https://github.com/Gogh-Co/Gogh",
-      "prefix": "h",
-      "wezterm_version": "20220807-113146-c2fee766"
-    }
-  },
-  {
-    "colors": {
-      "ansi": [
-        "#282a2e",
-        "#a54242",
-        "#8c9440",
-        "#de935f",
-        "#5f819d",
-        "#85678f",
-        "#5e8d87",
-        "#707880"
-      ],
-      "background": "#1d1f21",
-      "brights": [
-        "#373b41",
-        "#cc6666",
-        "#b5bd68",
-        "#f0c674",
-        "#81a2be",
-        "#b294bb",
-        "#8abeb7",
-        "#c5c8c6"
-      ],
-      "foreground": "#c5c8c6",
-      "indexed": {}
-    },
-    "metadata": {
-      "aliases": [],
-      "author": "w0ng",
-      "name": "Hybrid (terminal.sexy)",
-      "origin_url": "https://github.com/stayradiated/terminal.sexy",
       "prefix": "h",
       "wezterm_version": "20220807-113146-c2fee766"
     }
@@ -18905,6 +18861,45 @@
         "#c91b00",
         "#00c200",
         "#c7c400",
+        "#0225c7",
+        "#ca30c7",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#c7c7c7",
+      "cursor_border": "#c7c7c7",
+      "cursor_fg": "#ffffff",
+      "foreground": "#c7c7c7",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Dark Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
         "#2225c4",
         "#ca30c7",
         "#00c5c7",
@@ -18932,6 +18927,201 @@
     "metadata": {
       "aliases": [],
       "name": "iTerm2 Default",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#c91b00",
+        "#00c200",
+        "#c7c400",
+        "#0225c7",
+        "#ca30c7",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#686868",
+        "#ff6e67",
+        "#5ffa68",
+        "#fffc67",
+        "#6871ff",
+        "#ff77ff",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Light Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#626262",
+        "#ff8373",
+        "#b4fb73",
+        "#fffdc3",
+        "#a5d5fe",
+        "#ff90fe",
+        "#d1d1fe",
+        "#f1f1f1"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#8f8f8f",
+        "#ffc4be",
+        "#d6fcba",
+        "#fffed5",
+        "#c2e3ff",
+        "#ffb2fe",
+        "#e6e6fe",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffb473",
+      "cursor_border": "#ffb473",
+      "cursor_fg": "#ffffff",
+      "foreground": "#c7c7c7",
+      "indexed": {},
+      "selection_bg": "#454d96",
+      "selection_fg": "#f4f4f4"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Pastel Dark Background",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#14191e",
+        "#b43c2a",
+        "#00c200",
+        "#c7c400",
+        "#2744c7",
+        "#c040be",
+        "#00c5c7",
+        "#c7c7c7"
+      ],
+      "background": "#15191f",
+      "brights": [
+        "#686868",
+        "#dd7975",
+        "#58e790",
+        "#ece100",
+        "#a7abf2",
+        "#e17ee1",
+        "#60fdff",
+        "#ffffff"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#000000",
+      "foreground": "#dcdcdc",
+      "indexed": {},
+      "selection_bg": "#b3d7ff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Smoooooth",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#d81e00",
+        "#5ea702",
+        "#cfae00",
+        "#427ab3",
+        "#89658e",
+        "#00a7aa",
+        "#dbded8"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#686a66",
+        "#f54235",
+        "#99e343",
+        "#fdeb61",
+        "#84b0d8",
+        "#bc94b7",
+        "#37e6e8",
+        "#f1f1f0"
+      ],
+      "cursor_bg": "#ffffff",
+      "cursor_border": "#ffffff",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Tango Dark",
+      "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "prefix": "i",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#000000",
+        "#d81e00",
+        "#5ea702",
+        "#cfae00",
+        "#427ab3",
+        "#89658e",
+        "#00a7aa",
+        "#dbded8"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#686a66",
+        "#f54235",
+        "#99e343",
+        "#fdeb61",
+        "#84b0d8",
+        "#bc94b7",
+        "#37e6e8",
+        "#f1f1f0"
+      ],
+      "cursor_bg": "#000000",
+      "cursor_border": "#000000",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c1deff",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "iTerm2 Tango Light",
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "i",
       "wezterm_version": "nightly builds only"
@@ -22355,6 +22545,88 @@
   {
     "colors": {
       "ansi": [
+        "#f2f2f2",
+        "#a60000",
+        "#006800",
+        "#695500",
+        "#0031a9",
+        "#721045",
+        "#005e8b",
+        "#000000"
+      ],
+      "background": "#ffffff",
+      "brights": [
+        "#c4c4c4",
+        "#a0132f",
+        "#00663f",
+        "#77492f",
+        "#0000b0",
+        "#531ab6",
+        "#005f5f",
+        "#595959"
+      ],
+      "cursor_bg": "#dfa0f0",
+      "cursor_border": "#dfa0f0",
+      "cursor_fg": "#ffffff",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#bdbdbd",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [
+        "Modus-Operandi-Tritanopia"
+      ],
+      "author": "anhsirk0",
+      "name": "Modus-Operandi-Deuteranopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-deuteranopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#efe9dd",
+        "#a60000",
+        "#006800",
+        "#6f5500",
+        "#0031a9",
+        "#721045",
+        "#005e8b",
+        "#000000"
+      ],
+      "background": "#fbf7f0",
+      "brights": [
+        "#c9b9b0",
+        "#a0132f",
+        "#00663f",
+        "#7a4f2f",
+        "#0000b0",
+        "#531ab6",
+        "#005f5f",
+        "#595959"
+      ],
+      "cursor_bg": "#dfa0f0",
+      "cursor_border": "#dfa0f0",
+      "cursor_fg": "#fbf7f0",
+      "foreground": "#000000",
+      "indexed": {},
+      "selection_bg": "#c2bcb5",
+      "selection_fg": "#000000"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Operandi-Tinted",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-operandi-tinted-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
         "#323232",
         "#ff8059",
         "#44bc44",
@@ -22390,6 +22662,126 @@
       "origin_url": "https://git.sr.ht/~protesilaos/modus-themes/tree/main/item/modus-vivendi-theme.el",
       "prefix": "m",
       "wezterm_version": "20230408-112425-69ae8472"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#ff5f59",
+        "#44bc44",
+        "#cabf00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#535353",
+        "#ff7f9f",
+        "#00c06f",
+        "#d8af7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#5a5a5a",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Deuteranopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-deuteranopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1d2235",
+        "#ff5f59",
+        "#44bc44",
+        "#d0bc00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#0d0e1c",
+      "brights": [
+        "#4a4f69",
+        "#ff7f9f",
+        "#00c06f",
+        "#dfaf7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#0d0e1c",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#555a66",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Tinted",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tinted-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#1e1e1e",
+        "#ff5f59",
+        "#44bc44",
+        "#cabf00",
+        "#2fafff",
+        "#feacd0",
+        "#00d3d0",
+        "#ffffff"
+      ],
+      "background": "#000000",
+      "brights": [
+        "#535353",
+        "#ff6f9f",
+        "#00c06f",
+        "#d8af7a",
+        "#00bcff",
+        "#b6a0ff",
+        "#6ae4b9",
+        "#989898"
+      ],
+      "cursor_bg": "#7030af",
+      "cursor_border": "#7030af",
+      "cursor_fg": "#000000",
+      "foreground": "#ffffff",
+      "indexed": {},
+      "selection_bg": "#5a5a5a",
+      "selection_fg": "#ffffff"
+    },
+    "metadata": {
+      "aliases": [],
+      "author": "anhsirk0",
+      "name": "Modus-Vivendi-Tritanopia",
+      "origin_url": "https://git.sr.ht/~protesilaos/ef-themes/tree/main/item/modus-vivendi-tritanopia-theme.el",
+      "prefix": "m",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
@@ -25975,6 +26367,43 @@
       "origin_url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
       "prefix": "o",
       "wezterm_version": "Always"
+    }
+  },
+  {
+    "colors": {
+      "ansi": [
+        "#262626",
+        "#ee5396",
+        "#42be65",
+        "#ffe97b",
+        "#33b1ff",
+        "#ff7eb6",
+        "#3ddbd9",
+        "#dde1e6"
+      ],
+      "background": "#161616",
+      "brights": [
+        "#393939",
+        "#ee5396",
+        "#42be65",
+        "#ffe97b",
+        "#33b1ff",
+        "#ff7eb6",
+        "#3ddbd9",
+        "#ffffff"
+      ],
+      "cursor_bg": "#6f6f6f",
+      "cursor_border": "#6f6f6f",
+      "cursor_fg": "#6f6f6f",
+      "foreground": "#ffffff",
+      "indexed": {}
+    },
+    "metadata": {
+      "aliases": [],
+      "name": "Oxocarbon Dark (Gogh)",
+      "origin_url": "https://github.com/Gogh-Co/Gogh",
+      "prefix": "o",
+      "wezterm_version": "nightly builds only"
     }
   },
   {
