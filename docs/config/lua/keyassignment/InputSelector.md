@@ -47,7 +47,8 @@ The default key assignments in the InputSelector are as follows:
 
 | Action  |  Key Assignment |
 |---------|-------------------|
-| Add to selection string until a match is found (if not in fuzzy finding mode) | Any key in `alphabet` |
+| Add to selection string until a match is found (if in the default mode) | Any key in `alphabet` {{since('nightly', inline=True)}} |
+| Select matching number (if in the default mode) | <kbd>1</kbd> to <kbd>9</kbd> {{since('20230408-112425-69ae8472', inline=True)}} |
 | Start fuzzy search (if in the default mode) | <kbd>/</kbd> |
 | Add to filtering string (if in fuzzy finding mode) | Any key not listed below |
 | Remove from selection or filtering string | <kbd>Backspace</kbd> |
@@ -55,14 +56,14 @@ The default key assignments in the InputSelector are as follows:
 |                                 | <kbd>LeftClick</kbd> (with mouse) |
 | Move Down      | <kbd>DownArrow</kbd> |
 |                | <kbd>Ctrl</kbd> + <kbd>N</kbd> |
-|                | <kbd>Ctrl</kbd> + <kbd>J</kbd> |
+|                | <kbd>Ctrl</kbd> + <kbd>J</kbd> {{since('nightly', inline=True)}} |
 |                | <kbd>j</kbd> (if not in `alphabet`) |
 | Move Up        | <kbd>UpArrow</kbd>  |
 |                | <kbd>Ctrl</kbd> + <kbd>P</kbd> |
-|                | <kbd>Ctrl</kbd> + <kbd>K</kbd> |
+|                | <kbd>Ctrl</kbd> + <kbd>K</kbd> {{since('nightly', inline=True)}} |
 |                | <kbd>k</kbd>  (if not in `alphabet`)   |
 | Quit     | <kbd>Ctrl</kbd> + <kbd>G</kbd> |
-|          | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
+|          | <kbd>Ctrl</kbd> + <kbd>C</kbd> {{since('nightly', inline=True)}} |
 |          | <kbd>Escape</kbd> |
 
 Note: If the InputSelector is started with `fuzzy` set to `false`, then <kbd>Backspace</kbd> can go from fuzzy finding mode back to the default mode when pressed while the filtering string is empty.
