@@ -57,10 +57,32 @@ const PATTERNS: [&str; 14] = [
 /// It is derived from https://github.com/fcsonline/tmux-thumbs/blob/master/src/alphabets.rs
 /// which is Copyright (c) 2019 Ferran Basora and provided under the MIT license
 pub fn compute_labels_for_alphabet(alphabet: &str, num_matches: usize) -> Vec<String> {
-    let alphabet = alphabet
-        .chars()
-        .map(|c| c.to_lowercase().to_string())
-        .collect::<Vec<String>>();
+    compute_labels_for_alphabet_impl(alphabet, num_matches, true)
+}
+
+pub fn compute_labels_for_alphabet_with_preserved_case(
+    alphabet: &str,
+    num_matches: usize,
+) -> Vec<String> {
+    compute_labels_for_alphabet_impl(alphabet, num_matches, false)
+}
+
+fn compute_labels_for_alphabet_impl(
+    alphabet: &str,
+    num_matches: usize,
+    make_lowercase: bool,
+) -> Vec<String> {
+    let alphabet = if make_lowercase {
+        alphabet
+            .chars()
+            .map(|c| c.to_lowercase().to_string())
+            .collect::<Vec<String>>()
+    } else {
+        alphabet
+            .chars()
+            .map(|c| c.to_string())
+            .collect::<Vec<String>>()
+    };
     // Prefer to use single character matches to represent everything
     let mut primary = alphabet.clone();
     let mut secondary = vec![];
@@ -142,6 +164,30 @@ mod alphabet_test {
         assert_eq!(
             compute_labels_for_alphabet("ab", 5),
             vec!["aa", "ab", "ba", "bb"]
+        );
+    }
+
+    #[test]
+    fn composed_capital() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("AB", 4),
+            vec!["AA", "AB", "BA", "BB"]
+        );
+    }
+
+    #[test]
+    fn composed_mixed() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("aA", 4),
+            vec!["aa", "aA", "Aa", "AA"]
+        );
+    }
+
+    #[test]
+    fn lowercase_alphabet_equal() {
+        assert_eq!(
+            compute_labels_for_alphabet_with_preserved_case("abc123", 12),
+            compute_labels_for_alphabet("abc123", 12)
         );
     }
 }
