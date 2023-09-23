@@ -2,10 +2,13 @@ use anyhow::anyhow;
 use config::lua::get_or_create_module;
 use config::lua::mlua::{self, Lua};
 use smol::prelude::*;
+use std::path::Path;
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
     wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
+    wezterm_mod.set("basename", lua.create_async_function(basename)?)?;
+    wezterm_mod.set("dirname", lua.create_async_function(dirname)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     Ok(())
 }
@@ -27,6 +30,53 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
         }
     }
     Ok(entries)
+}
+
+async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
+    // to check if the path actually exists, we can use:
+    /* let dir = smol::fs::canonicalize(path)
+    .await
+    .map_err(mlua::Error::external)?; */
+    let path = Path::new(&path);
+    if let Some(os_str_basename) = path.file_name() {
+        if let Some(basename) = os_str_basename.to_str() {
+            Ok(basename.to_string())
+        } else {
+            return Err(mlua::Error::external(anyhow!(
+                "path entry {} is not representable as utf8",
+                path.display()
+            )));
+        }
+    } else {
+        // file_name returns None if the path name ends in ..
+        Ok("..".to_string())
+    }
+}
+
+async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
+    // to check if the path actually exists, we can use:
+    /* let dir = smol::fs::canonicalize(path)
+    .await
+    .map_err(mlua::Error::external)?; */
+    let path = Path::new(&path);
+    if let Some(parent_path) = path.parent() {
+        if let Some(os_str_parent) = parent_path.file_name() {
+            if let Some(dirname) = os_str_parent.to_str() {
+                Ok(dirname.to_string())
+            } else {
+                return Err(mlua::Error::external(anyhow!(
+                    "path entry {} is not representable as utf8",
+                    path.display()
+                )));
+            }
+        } else {
+            // file name returns None if parent_path ends in ..
+            Ok("..".to_string())
+        }
+    } else {
+        // parent returns None if the path terminates in a root or prefix
+        Ok("".to_string())
+    }
 }
 
 async fn glob<'lua>(
