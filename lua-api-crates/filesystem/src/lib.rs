@@ -64,9 +64,9 @@ async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
             Ok(utf8.to_string())
         } else {
             return Err(mlua::Error::external(anyhow!(
-                    "path entry {} is not representable as utf8",
-                    path.display()
-        )));
+                "path entry {} is not representable as utf8",
+                path.display()
+            )));
         }
     } else {
         // parent returns None if the path terminates in a root or prefix
