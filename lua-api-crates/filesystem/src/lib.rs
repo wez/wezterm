@@ -9,6 +9,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
     wezterm_mod.set("basename", lua.create_async_function(basename)?)?;
     wezterm_mod.set("dirname", lua.create_async_function(dirname)?)?;
+    wezterm_mod.set("canonical_path", lua.create_async_function(canonical_path)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     Ok(())
 }
@@ -32,15 +33,16 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
     Ok(entries)
 }
 
+// similar (but not equal) to the shell command basename
 async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
     // to check if the path actually exists, we can use:
-    /* let dir = smol::fs::canonicalize(path)
+    /* let path = smol::fs::canonicalize(path)
     .await
     .map_err(mlua::Error::external)?; */
     let path = Path::new(&path);
-    if let Some(os_str_basename) = path.file_name() {
-        if let Some(basename) = os_str_basename.to_str() {
-            Ok(basename.to_string())
+    if let Some(basename) = path.file_name() {
+        if let Some(utf8) = basename.to_str() {
+            Ok(utf8.to_string())
         } else {
             return Err(mlua::Error::external(anyhow!(
                 "path entry {} is not representable as utf8",
@@ -53,29 +55,38 @@ async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
     }
 }
 
+// return the path without its final component if there is one
+// similar to the shell command dirname
 async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
-    // to check if the path actually exists, we can use:
-    /* let dir = smol::fs::canonicalize(path)
-    .await
-    .map_err(mlua::Error::external)?; */
     let path = Path::new(&path);
     if let Some(parent_path) = path.parent() {
-        if let Some(os_str_parent) = parent_path.file_name() {
-            if let Some(dirname) = os_str_parent.to_str() {
-                Ok(dirname.to_string())
-            } else {
-                return Err(mlua::Error::external(anyhow!(
+        if let Some(utf8) = parent_path.to_str() {
+            Ok(utf8.to_string())
+        } else {
+            return Err(mlua::Error::external(anyhow!(
                     "path entry {} is not representable as utf8",
                     path.display()
-                )));
-            }
-        } else {
-            // file name returns None if parent_path ends in ..
-            Ok("..".to_string())
+        )));
         }
     } else {
         // parent returns None if the path terminates in a root or prefix
         Ok("".to_string())
+    }
+}
+
+// if path exists return the canonical form of the path with all
+// intermediate components normalized and symbolic links resolved
+async fn canonical_path<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
+    let path = smol::fs::canonicalize(&path)
+        .await
+        .map_err(mlua::Error::external)?;
+    if let Some(utf8) = &path.to_str() {
+        Ok(utf8.to_string())
+    } else {
+        return Err(mlua::Error::external(anyhow!(
+            "path entry {} is not representable as utf8",
+            path.display()
+        )));
     }
 }
 
