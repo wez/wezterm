@@ -22,7 +22,7 @@ local wezterm = require 'wezterm'
 local canonical_path = wezterm.canonical_path
 
 wezterm.log_error(
-  wezterm.home_dir .. ' = ' .. canonical_path(wezterm.home_dir .. '/.')
+  wezterm.home_dir == canonical_path(wezterm.home_dir .. '/.')
 )
 ```
 
@@ -35,10 +35,8 @@ local canonical_path = wezterm.canonical_path
 local home_dir = wezterm.home_dir
 
 wezterm.log_error(
-  home_dir
-    .. '/Library/CloudStorage/Dropbox'
-    .. ' = '
-    .. canonical_path(home_dir .. '/Dropbox')
+  home_dir .. '/Library/CloudStorage/Dropbox'
+    == canonical_path(home_dir .. '/Dropbox')
 )
 ```
 

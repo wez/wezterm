@@ -21,7 +21,7 @@ behave slightly different in some edge case.
 local wezterm = require 'wezterm'
 local dirname = wezterm.dirname
 
-wezterm.log_error('/foo/bar = ' .. dirname '/foo/bar/baz.txt')
+wezterm.log_error('/foo/bar' == dirname '/foo/bar/baz.txt')
 ```
 
 If you want only the directory name and not the full path, you can use
@@ -31,7 +31,7 @@ local wezterm = require 'wezterm'
 local basename = wezterm.basename
 local dirname = wezterm.dirname
 
-wezterm.log_error('bar = ' .. basename(dirname '/foo/bar/baz.txt'))
+wezterm.log_error('bar' == basename(dirname '/foo/bar/baz.txt'))
 ```
 
 See also [basename](basename.md).

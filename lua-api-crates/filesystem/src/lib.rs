@@ -55,34 +55,34 @@ async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
 // return the path without its final component if there is one
 // similar to the shell command dirname
 async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
-    let path = Path::new(&path);
-    if let Some(parent_path) = path.parent() {
+    let path_rs = Path::new(&path);
+    if let Some(parent_path) = path_rs.parent() {
         if let Some(utf8) = parent_path.to_str() {
             Ok(utf8.to_string())
         } else {
             return Err(mlua::Error::external(anyhow!(
                 "path entry {} is not representable as utf8",
-                path.display()
+                path_rs.display()
             )));
         }
     } else {
         // parent returns None if the path terminates in a root or prefix
-        Ok("".to_string())
+        Ok(path)
     }
 }
 
 // if path exists return the canonical form of the path with all
 // intermediate components normalized and symbolic links resolved
 async fn canonical_path<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
-    let path = smol::fs::canonicalize(&path)
+    let path_rs = smol::fs::canonicalize(&path)
         .await
-        .map_err(|err| format!(mlua::Error::external("canonical_path('{path}'): {err:#}")))?;
-    if let Some(utf8) = &path.to_str() {
+        .map_err(|err| mlua::Error::external(format!("canonical_path('{path}'): {err:#}")))?;
+    if let Some(utf8) = &path_rs.to_str() {
         Ok(utf8.to_string())
     } else {
         return Err(mlua::Error::external(anyhow!(
             "path entry {} is not representable as utf8",
-            path.display()
+            path_rs.display()
         )));
     }
 }
