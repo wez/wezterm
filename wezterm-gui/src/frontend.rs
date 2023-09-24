@@ -95,6 +95,7 @@ impl GuiFrontEnd {
                 MuxNotification::WindowInvalidated(_) => {}
                 MuxNotification::PaneOutput(_) => {}
                 MuxNotification::PaneAdded(_) => {}
+                MuxNotification::EraseScrollback(_) => {}
                 MuxNotification::Alert {
                     pane_id: _,
                     alert:

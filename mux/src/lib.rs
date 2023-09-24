@@ -23,7 +23,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
-use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
+use termwiz::escape::csi::{
+    DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, Mode,
+};
 use termwiz::escape::{Action, CSI};
 use thiserror::*;
 use wezterm_term::{Clipboard, ClipboardSelection, DownloadHandler, TerminalSize};
@@ -91,6 +93,7 @@ pub enum MuxNotification {
         old_workspace: String,
         new_workspace: String,
     },
+    EraseScrollback(PaneId),
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -118,6 +121,16 @@ fn send_actions_to_mux(pane: &Weak<dyn Pane>, dead: &Arc<AtomicBool>, actions: V
     let start = Instant::now();
     match pane.upgrade() {
         Some(pane) => {
+            for action in &actions {
+                if matches!(
+                    action,
+                    Action::CSI(CSI::Edit(Edit::EraseInDisplay(
+                        EraseInDisplay::EraseScrollback
+                    )))
+                ) {
+                    Mux::notify_from_any_thread(MuxNotification::EraseScrollback(pane.pane_id()));
+                }
+            }
             pane.perform_actions(actions);
             histogram!(
                 "send_actions_to_mux.perform_actions.latency",
