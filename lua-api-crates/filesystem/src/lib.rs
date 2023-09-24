@@ -42,7 +42,7 @@ async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
         } else {
             return Err(mlua::Error::external(anyhow!(
                 "path entry {} is not representable as utf8",
-                path_rs.display()
+                &path
             )));
         }
     } else {
@@ -62,7 +62,7 @@ async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
         } else {
             return Err(mlua::Error::external(anyhow!(
                 "path entry {} is not representable as utf8",
-                path_rs.display()
+                &path
             )));
         }
     } else {
@@ -82,7 +82,7 @@ async fn canonical_path<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String
     } else {
         return Err(mlua::Error::external(anyhow!(
             "path entry {} is not representable as utf8",
-            path_rs.display()
+            &path
         )));
     }
 }
