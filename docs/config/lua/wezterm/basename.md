@@ -24,7 +24,7 @@ from Rust's [`std::path::PathBuf`](https://doc.rust-lang.org/nightly/std/path/st
 local wezterm = require 'wezterm'
 local basename = wezterm.basename
 
-wezterm.log_info('baz.txt' == basename '/foo/bar/baz.txt')
+assert('baz.txt' == basename '/foo/bar/baz.txt')
 ```
 
 See also [dirname](dirname.md).

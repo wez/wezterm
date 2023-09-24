@@ -34,15 +34,14 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
 }
 
 // similar (but not equal) to the shell command basename
-async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
+fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
     let path_rs = Path::new(&path);
     if let Some(basename) = path_rs.file_name() {
         if let Some(utf8) = basename.to_str() {
             Ok(utf8.to_string())
         } else {
             return Err(mlua::Error::external(anyhow!(
-                "path entry {} is not representable as utf8",
-                &path
+                "path entry {path} is not representable as utf8"
             )));
         }
     } else {
@@ -61,8 +60,7 @@ async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
             Ok(utf8.to_string())
         } else {
             return Err(mlua::Error::external(anyhow!(
-                "path entry {} is not representable as utf8",
-                &path
+                "path entry {path} is not representable as utf8"
             )));
         }
     } else {
