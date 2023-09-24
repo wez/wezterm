@@ -35,10 +35,6 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
 
 // similar (but not equal) to the shell command basename
 async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
-    // to check if the path actually exists, we can use:
-    /* let path = smol::fs::canonicalize(path)
-    .await
-    .map_err(mlua::Error::external)?; */
     let path = Path::new(&path);
     if let Some(basename) = path.file_name() {
         if let Some(utf8) = basename.to_str() {
@@ -50,7 +46,8 @@ async fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
             )));
         }
     } else {
-        // file_name returns None if the path name ends in ..
+        // file_name returns None if the path name ends in `..`
+        // but the unix utility return `..` in that case, so we do too
         Ok("..".to_string())
     }
 }
@@ -79,7 +76,7 @@ async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
 async fn canonical_path<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
     let path = smol::fs::canonicalize(&path)
         .await
-        .map_err(mlua::Error::external)?;
+        .map_err(|err| format!(mlua::Error::external("canonical_path('{path}'): {err:#}")))?;
     if let Some(utf8) = &path.to_str() {
         Ok(utf8.to_string())
     } else {
