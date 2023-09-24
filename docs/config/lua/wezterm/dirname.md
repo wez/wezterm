@@ -31,7 +31,7 @@ local wezterm = require 'wezterm'
 local basename = wezterm.basename
 local dirname = wezterm.dirname
 
-wezterm.log_error('bar' == basename(dirname '/foo/bar/baz.txt'))
+assert('bar' == basename(dirname '/foo/bar/baz.txt'))
 ```
 
 See also [basename](basename.md).

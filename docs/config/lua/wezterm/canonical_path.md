@@ -15,13 +15,15 @@ Due to limitations in the lua bindings, all of the paths
 must be able to be represented as UTF-8 or this function will generate an
 error.
 
+Note: This function is similar to the shell commands realpath and readlink.
+
 The function can for example be used get the correct absolute path for a path
 in a different format.
 ```lua
 local wezterm = require 'wezterm'
 local canonical_path = wezterm.canonical_path
 
-wezterm.log_error(
+assert(
   wezterm.home_dir == canonical_path(wezterm.home_dir .. '/.')
 )
 ```
@@ -34,7 +36,7 @@ local wezterm = require 'wezterm'
 local canonical_path = wezterm.canonical_path
 local home_dir = wezterm.home_dir
 
-wezterm.log_error(
+assert(
   home_dir .. '/Library/CloudStorage/Dropbox'
     == canonical_path(home_dir .. '/Dropbox')
 )

@@ -7,8 +7,8 @@ use std::path::Path;
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
     let wezterm_mod = get_or_create_module(lua, "wezterm")?;
     wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
-    wezterm_mod.set("basename", lua.create_async_function(basename)?)?;
-    wezterm_mod.set("dirname", lua.create_async_function(dirname)?)?;
+    wezterm_mod.set("basename", lua.create_function(basename)?)?;
+    wezterm_mod.set("dirname", lua.create_function(dirname)?)?;
     wezterm_mod.set("canonical_path", lua.create_async_function(canonical_path)?)?;
     wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
     Ok(())
@@ -53,7 +53,7 @@ fn basename<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
 
 // return the path without its final component if there is one
 // similar to the shell command dirname
-async fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
+fn dirname<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String> {
     let path_rs = Path::new(&path);
     if let Some(parent_path) = path_rs.parent() {
         if let Some(utf8) = parent_path.to_str() {
@@ -79,8 +79,7 @@ async fn canonical_path<'lua>(_: &'lua Lua, path: String) -> mlua::Result<String
         Ok(utf8.to_string())
     } else {
         return Err(mlua::Error::external(anyhow!(
-            "path entry {} is not representable as utf8",
-            &path
+            "path entry {path} is not representable as utf8"
         )));
     }
 }
