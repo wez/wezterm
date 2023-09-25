@@ -897,7 +897,7 @@ dependencies = [
  "nix 0.26.4",
  "notify",
  "once_cell",
- "ordered-float",
+ "ordered-float 3.9.1",
  "portable-pty",
  "promise",
  "serde",
@@ -3665,6 +3665,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3a540f3e3b3d7929c884e46d093d344e4e5bdeed54d08bf007df50c93cc85d5"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "ordered-stream"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4763,7 +4772,7 @@ dependencies = [
  "config",
  "lazy_static",
  "luahelper",
- "ordered-float",
+ "ordered-float 3.9.1",
  "wezterm-dynamic",
 ]
 
@@ -5243,7 +5252,7 @@ dependencies = [
  "nix 0.26.4",
  "num-derive",
  "num-traits",
- "ordered-float",
+ "ordered-float 3.9.1",
  "pest",
  "pest_derive",
  "phf",
@@ -6112,7 +6121,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "maplit",
- "ordered-float",
+ "ordered-float 4.1.0",
  "strsim",
  "thiserror",
  "wezterm-dynamic-derive",
@@ -6154,7 +6163,7 @@ dependencies = [
  "memmap2 0.2.3",
  "metrics",
  "objc",
- "ordered-float",
+ "ordered-float 3.9.1",
  "rangeset",
  "termwiz",
  "thiserror",
@@ -6209,7 +6218,7 @@ dependencies = [
  "mux",
  "mux-lua",
  "once_cell",
- "ordered-float",
+ "ordered-float 4.1.0",
  "parking_lot 0.12.1",
  "portable-pty",
  "promise",
@@ -6390,7 +6399,7 @@ dependencies = [
  "lru",
  "miniz_oxide 0.4.4",
  "num-traits",
- "ordered-float",
+ "ordered-float 3.9.1",
  "serde",
  "terminfo",
  "termwiz",
