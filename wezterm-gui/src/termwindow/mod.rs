@@ -2361,22 +2361,18 @@ impl TermWindow {
         Ok(())
     }
 
-    fn scroll_by_current_event_wheel_delta(&mut self) -> anyhow::Result<()> {
+    fn scroll_by_current_event_wheel_delta(&mut self, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         if let Some(event) = &self.current_mouse_event {
             let amount = match event.kind {
                 MouseEventKind::VertWheel(amount) => -amount,
                 _ => return Ok(()),
             };
-            self.scroll_by_line(amount.into())?;
+            self.scroll_by_line(amount.into(), pane)?;
         }
         Ok(())
     }
 
-    fn scroll_by_line(&mut self, amount: isize) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
+    fn scroll_by_line(&mut self, amount: isize, pane: &Arc<dyn Pane>) -> anyhow::Result<()> {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
@@ -2614,8 +2610,8 @@ impl TermWindow {
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(**n)?,
-            ScrollByLine(n) => self.scroll_by_line(*n)?,
-            ScrollByCurrentEventWheelDelta => self.scroll_by_current_event_wheel_delta()?,
+            ScrollByLine(n) => self.scroll_by_line(*n, pane)?,
+            ScrollByCurrentEventWheelDelta => self.scroll_by_current_event_wheel_delta(pane)?,
             ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
             ScrollToTop => self.scroll_to_top(pane),
             ScrollToBottom => self.scroll_to_bottom(pane),
