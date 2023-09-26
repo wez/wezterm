@@ -31,7 +31,7 @@ fn merge<'lua>(
         }
     }
     let tbl_len = tbl_vec.len();
-    // note we might allocate a bit too much here, but in many usecases we will be correct
+    // note we might allocate a bit too much here, but in many use cases we will be correct
     let tbl: Table<'lua> = lua
         .create_table_with_capacity(0, tbl_len)
         .map_err(mlua::Error::external)?;
@@ -73,7 +73,7 @@ fn flatten<'lua>(lua: &'lua Lua, array_of_arrays: Vec<Vec<LuaValue>>) -> mlua::R
 }
 
 fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Integer> {
-    // note that # only works correctly on arrays in lua
+    // note that # only works correctly on arrays in Lua
     let mut len: i64 = 0;
     for _ in table.pairs::<LuaValue, LuaValue>() {
         len += 1
