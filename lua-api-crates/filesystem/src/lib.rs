@@ -78,7 +78,9 @@ async fn read_dir<'lua>(
     let mut dir = smol::fs::read_dir(path)
         .await
         .map_err(mlua::Error::external)?;
-    let mut entries = vec![];
+    let mut entries: Vec<String> = vec![];
+    let mut sort = false; // assume we are not sorting
+    let mut sort_by_vec: Vec<Vec<i64>> = vec![];
     while let Some(entry) = dir.next().await {
         let entry = entry.map_err(mlua::Error::external)?;
         if let Some(utf8) = entry.path().to_str() {
@@ -86,21 +88,40 @@ async fn read_dir<'lua>(
 
             // default behavior is include everything in the directory
             let mut include_entry = true;
+            let mut sort_by: Vec<i64> = vec![];
             if let Some(func) = &function {
-                include_entry = match func.call((utf8.to_string(), MetaData(meta))) {
-                    Ok(mlua::Value::Boolean(b)) => b,
+                match func.call((utf8.to_string(), MetaData(meta))) {
+                    Ok(mlua::Value::Boolean(b)) => {
+                        include_entry = b;
+                    }
+                    Ok(mlua::Value::Table(tbl)) => {
+                        let mut iter = tbl.sequence_values();
+                        match iter.next() {
+                            Some(Ok(mlua::Value::Boolean(b))) => {
+                                include_entry = b;
+                            }
+                            _ => (),
+                        };
+                        while let Some(Ok(mlua::Value::Integer(i))) = iter.next() {
+                            sort = true;
+                            sort_by.push(i)
+                        }
+                    }
                     Err(err) => {
                         return Err(mlua::Error::external(format!(
                             "the optional read_dir function returns the error: {}",
                             err
                         )));
                     }
-                    _ => true,
+                    _ => (),
                 }
             }
 
             if include_entry {
                 entries.push(utf8.to_string());
+                if sort {
+                    sort_by_vec.push(sort_by);
+                }
             } // if include_entry is false, don't add entry to entries
         } else {
             return Err(mlua::Error::external(anyhow!(
@@ -109,7 +130,30 @@ async fn read_dir<'lua>(
             )));
         }
     }
-    Ok(entries)
+
+    if sort {
+        let mut sorted: Vec<String> = entries.clone();
+        for i in 0..sort_by_vec[0].len() {
+            let sort_by_ivec: Vec<i64> = sort_by_vec.iter().map(|v| v[i]).collect();
+
+            let mut zipped: Vec<(String, i64)> = entries
+                .clone()
+                .into_iter()
+                .zip(sort_by_ivec.into_iter())
+                .collect();
+            zipped.sort_by_key(|pair| pair.1);
+
+            sorted = zipped
+                .iter()
+                .map(|pair| pair.0.clone())
+                .map(|s| s.to_string())
+                .collect();
+        }
+
+        Ok(sorted)
+    } else {
+        Ok(entries)
+    }
 }
 
 async fn glob<'lua>(
