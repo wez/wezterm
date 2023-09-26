@@ -45,7 +45,8 @@ impl UserData for MetaData {
             Ok(elapsed_in_secs as i64)
         });
         methods.add_method("secs_since_accessed", |_, this, _: ()| {
-            let elapsed_in_secs = this.0
+            let elapsed_in_secs = this
+                .0
                 .accessed()
                 .map_err(mlua::Error::external)?
                 .elapsed()
@@ -53,8 +54,9 @@ impl UserData for MetaData {
                 .as_secs();
             Ok(elapsed_in_secs as i64)
         });
-        methods.add_method("secs_since_created", |_, this, _:()| {
-            let elapsed_in_secs = this.0
+        methods.add_method("secs_since_created", |_, this, _: ()| {
+            let elapsed_in_secs = this
+                .0
                 .created()
                 .map_err(mlua::Error::external)?
                 .elapsed()
