@@ -38,18 +38,18 @@ If you want to use the function to change the output of read_dir, you should mak
 to return values in one of the two following forms:
 ```
 bool,
-{ bool, integer },
-{ bool, integer, integer },
-{ bool, integer, integer, integer },
-and so on...
+{ bool, string },
+{ bool, integer... },
+{ bool, string, integer... },
 ```
 
 If the function returns `true`, then the given `filepath` will be included in the output
 of `read_dir`, and if the function returns `false`, then the given `filepath` will be
 excluded from the output.
 
-If you return an array `{ bool, integer... }`, then the boolean will have the same meaning
-as above, and the integers will be used for sorting (in the given order). (See below.)
+If you return an array `{ bool, ... }`, then the boolean will have the same meaning
+as above, while the optional string will be used for the name of the entry, and the optional
+integers will be used for sorting (in the given order). (See below.)
 
 If the function returns anything other than boolean or an array starting with a boolean,
 or if we don't include the optional function at all, then the default behavior is to include
@@ -72,10 +72,10 @@ a directory, a file or a symlink), which can be accessed with the following meth
 
 ### Examples
 
-If we want `read_only` to return the name (not path) of all folders and symlinks that
+If we want `read_only` to return the name (not full path) of all folders and symlinks that
 are not hidden files or folders (i.e., not starting with a `.`) in the home directory,
 and then sort them first by the time since we last accessed the entry and thereafter
-by the length of the filepath, we can do the following:
+by the length of the name, we can do the following:
 
 ```lua
 string.startswith = function(str, start)
@@ -89,22 +89,20 @@ end
 local wezterm = require 'wezterm'
 local home = wezterm.home_dir
 
-for _, v in
-  ipairs(wezterm.read_dir(home, function(filepath, meta)
-    return {
-      (meta:is_symlink() or meta:is_dir())
-        and (not filepath:basename():startswith '.'),
-      meta:secs_since_accessed(),
-      #filepath,
-    }
-  end))
-do
-  wezterm.log_info('entry: ' .. v:basename())
-end
+tbl = wezterm.read_dir(home, function(filepath, meta)
+  return {
+    (meta:is_symlink() or meta:is_dir())
+      and (not filepath:basename():startswith '.'),
+    filepath:basename(),
+    meta:secs_since_accessed(),
+    #(filepath:basename()),
+  }
+end)
+wezterm.log_info(tbl)
 ```
 
 Note: The purpose of sorting multiple times is that each sort don't swap equal values,
-so if we for example have a lot of entries with the same length filepath, then we can
+so if we for example have a lot of entries with the same length names, then we can
 make sure that entries of each length are additionally sorted by when they were last
 accessed.
 

@@ -84,13 +84,15 @@ async fn read_dir<'lua>(
     while let Some(entry) = dir.next().await {
         let entry = entry.map_err(mlua::Error::external)?;
         if let Some(utf8) = entry.path().to_str() {
+            // we need to make utf8 owned
+            let mut utf8 = utf8.to_string();
             let meta = entry.metadata().await.map_err(mlua::Error::external)?;
 
             // default behavior is include everything in the directory
             let mut include_entry = true;
             let mut sort_by: Vec<i64> = vec![];
             if let Some(func) = &function {
-                match func.call((utf8.to_string(), MetaData(meta))) {
+                match func.call((utf8.clone(), MetaData(meta))) {
                     Ok(mlua::Value::Boolean(b)) => {
                         include_entry = b;
                     }
@@ -102,9 +104,19 @@ async fn read_dir<'lua>(
                             }
                             _ => (),
                         };
+                        match iter.next() {
+                            Some(Ok(mlua::Value::String(s))) => {
+                                utf8 = s.to_str().map_err(mlua::Error::external)?.to_string();
+                            }
+                            Some(Ok(mlua::Value::Integer(i))) => {
+                                sort = true;
+                                sort_by.push(i);
+                            }
+                            _ => (),
+                        }
                         while let Some(Ok(mlua::Value::Integer(i))) = iter.next() {
                             sort = true;
-                            sort_by.push(i)
+                            sort_by.push(i);
                         }
                     }
                     Err(err) => {
@@ -118,7 +130,7 @@ async fn read_dir<'lua>(
             }
 
             if include_entry {
-                entries.push(utf8.to_string());
+                entries.push(utf8);
                 if sort {
                     sort_by_vec.push(sort_by);
                 }
@@ -132,7 +144,7 @@ async fn read_dir<'lua>(
     }
 
     if sort {
-        let mut sorted: Vec<String> = entries.clone();
+        let mut sorted: Vec<String> = vec![];
         for i in 0..sort_by_vec[0].len() {
             let sort_by_ivec: Vec<i64> = sort_by_vec.iter().map(|v| v[i]).collect();
 
