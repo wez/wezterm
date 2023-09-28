@@ -5,7 +5,7 @@
 This function returns the length of a Lua table (or array) passed to it.
 
 Note: The Lua function `#` also returns the length of an array, but
-`#` only works for array and not tables (with non-integer keys).
+`#` only works for arrays and not tables (with non-integer keys).
 
 ```lua
 local wezterm = require 'wezterm'

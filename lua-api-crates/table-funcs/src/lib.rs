@@ -61,15 +61,31 @@ fn clone<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Table<'lua>> {
     Ok(table.clone())
 }
 
-fn flatten<'lua>(lua: &'lua Lua, array_of_arrays: Vec<Vec<LuaValue>>) -> mlua::Result<Table<'lua>> {
-    let flat_vec: Vec<LuaValue> = array_of_arrays.into_iter().flatten().collect();
-    let flat_array = lua
-        .create_table_with_capacity(flat_vec.len(), 0)
-        .map_err(mlua::Error::external)?;
-    for value in flat_vec {
-        flat_array.push(value).map_err(mlua::Error::external)?;
+fn flatten<'lua>(lua: &'lua Lua, arrays: Vec<LuaValue<'lua>>) -> mlua::Result<Vec<LuaValue<'lua>>> {
+    let mut flat_vec: Vec<LuaValue> = vec![];
+    for item in arrays {
+        match item {
+            LuaValue::Table(tbl) => {
+                let tbl_as_vec = tbl
+                    .sequence_values()
+                    .filter_map(|x| x.map_err(mlua::Error::external).ok())
+                    .collect();
+                let flat = flatten(lua, tbl_as_vec)?;
+                for j in flat {
+                    flat_vec.push(j);
+                }
+            }
+            LuaValue::Nil => (),
+            LuaValue::Thread(_) => (),
+            LuaValue::Error(err) => {
+                return Err(mlua::Error::external(err));
+            }
+            other => {
+                flat_vec.push(other);
+            }
+        }
     }
-    Ok(flat_array)
+    Ok(flat_vec)
 }
 
 fn length<'lua>(_: &'lua Lua, table: Table<'lua>) -> mlua::Result<Integer> {
@@ -97,39 +113,61 @@ fn has_value<'lua>(_: &'lua Lua, (table, value): (Table<'lua>, LuaValue)) -> mlu
 
 fn to_string<'lua>(
     lua: &'lua Lua,
-    (table, indent): (Table<'lua>, Option<i64>),
+    (table, indent, skip_outer_bracket): (Table<'lua>, Option<i64>, Option<bool>),
 ) -> mlua::Result<String> {
     if let Some(ind) = indent {
         if ind < 0 {
             return Err(mlua::Error::external(anyhow!(
-                "Indent set to {ind}. Please us an indent ≥ 0."
+                "Indent set to {ind}. Please use an indent ≥ 0."
             )));
         }
     }
-    to_string_impl(lua, (table, indent, 0))
+    let result = to_string_impl(lua, (table, indent, skip_outer_bracket, 0));
+    match result {
+        Ok(res) => {
+            if skip_outer_bracket == Some(true) {
+                // we added indent too many spaces on each line
+                let extra_spaces = match indent {
+                    Some(ind) => " ".repeat(ind as usize),
+                    None => " ".repeat(2),
+                };
+                let old = ["\n", &extra_spaces].concat();
+                return Ok(res.replace(&old, "\n"));
+            }
+            Ok(res)
+        }
+        Err(err) => Err(mlua::Error::external(err)),
+    }
 }
 
 fn to_string_impl<'lua>(
     lua: &'lua Lua,
-    (table, indent, depth): (Table<'lua>, Option<i64>, usize),
+    (table, indent, skip_outer_bracket, depth): (Table<'lua>, Option<i64>, Option<bool>, usize),
 ) -> mlua::Result<String> {
     let mut string = String::new();
+    let skip_outer_bracket = match skip_outer_bracket {
+        Some(b) => b,
+        None => false, // defaults to keeping the outer brackets
+    };
+    if !skip_outer_bracket || depth != 0 {
+        string.push_str("{\n");
+    }
+
     let bracket_spaces = match indent {
         Some(ind) => " ".repeat((ind as usize) * depth),
-        None => " ".repeat(4 * depth),
+        None => " ".repeat(2 * depth),
     };
     let content_spaces = match indent {
         Some(ind) => " ".repeat((ind as usize) * (depth + 1)),
-        None => " ".repeat(4 * (depth + 1)),
+        None => " ".repeat(2 * (depth + 1)),
     };
-    string.push_str("{\n");
     for pair in table.pairs::<LuaValue, LuaValue>() {
         string.push_str(&content_spaces);
 
         let (key, value) = pair.map_err(mlua::Error::external)?;
         match value.clone() {
             LuaValue::Table(tbl) => {
-                string.push_str(&to_string_impl(lua, (tbl, indent, depth + 1))?)
+                string.push_str(&to_string_impl(lua, (tbl, indent, None, depth + 1))?)
             }
             _ => {
                 let nice_key = match key {
@@ -150,9 +188,11 @@ fn to_string_impl<'lua>(
             }
         }
     }
-    string.push_str(&bracket_spaces);
     if depth != 0 {
+        string.push_str(&bracket_spaces);
         string.push_str("},\n")
+    } else if skip_outer_bracket {
+        string.pop(); // remove the last newline in this case
     } else {
         string.push_str("}");
     }
