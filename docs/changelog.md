@@ -98,6 +98,8 @@ As features stabilize some brief notes about them will accumulate here.
   enhanced to allow setting an alphabet for quickly launching items beyond
   the first 10 items, as well as customizing the description/label text.
   Thanks to @Danielkonge! #4226 #4227
+* [notification_handling](config/lua/config/notification_handling.md) to
+  control whether notifications are suppressed based on focus. #3727
 
 #### Fixed
 * Command Palette was using now-invalid Nerd Font 2.0 symbols for macOS
