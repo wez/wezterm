@@ -146,9 +146,9 @@ $ zypper install wezterm
 
 ## Arch Linux
 
-WezTerm is available in the [Community repository](https://archlinux.org/packages/community/x86_64/wezterm/).
+WezTerm is available in the [Extra repository](https://archlinux.org/packages/extra/x86_64/wezterm/).
 
-The version available in the community repository may lag behind the latest wezterm release, so you may
+The version available in the extra repository may lag behind the latest wezterm release, so you may
 wish to use one of these AUR options:
 
 |What                 |Where|
