@@ -263,7 +263,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 ### Tab Bar Appearance & Colors
 
 The tab bar has two modes; the default is a native looking style, but
-is is also possible to enable a retro aesthetic.  The configuration
+it is also possible to enable a retro aesthetic.  The configuration
 for the two styles is broadly similar, but there are a few different
 details.
 
