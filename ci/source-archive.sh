@@ -54,5 +54,5 @@ gzip ${TAR_NAME}
 
 if test -d ${COPR_SRPM} ; then
   mkdir -p ~/rpmbuild/SOURCES
-  mv ${TAR_NAME}.gz ~/rpmbuild/SOURCES
+  mv ${TAR_NAME}.gz /tmp/
 fi

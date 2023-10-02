@@ -161,7 +161,7 @@ EOF
 
           cat >> wezterm.spec <<EOF
 BuildRequires: gcc gcc-g++ make rustc, cargo, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
-Source0: wezterm-${TAR_NAME}.tar.gz
+Source0: /tmp/wezterm-${TAR_NAME}.tar.gz
 
 %global debug_package %{nil}
 
