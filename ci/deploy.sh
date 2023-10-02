@@ -134,6 +134,7 @@ case $OSTYPE in
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
         distroid=$(sh -c "source /etc/os-release && echo \$ID" | tr - _)
         distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID" | tr - _)
+
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
@@ -147,14 +148,53 @@ Requires: dbus-1, fontconfig, openssl, libxcb1, libxkbcommon0, libxkbcommon-x11-
 %else
 Requires: dbus, fontconfig, openssl, libxcb, libxkbcommon, libxkbcommon-x11, libwayland-client, libwayland-egl, libwayland-cursor, mesa-libEGL, xcb-util-keysyms, xcb-util-wm
 %endif
+EOF
 
+        BUILD_COMMAND=<<EOF
+%build
+echo build
+EOF
+
+        if test -d ${COPR_SRPM} ; then
+
+          TAR_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
+
+          cat >> wezterm.spec <<EOF
+BuildRequires: gcc gcc-g++ make rustc, cargo, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel
+Source0: wezterm-${TAR_NAME}.tar.gz
+
+%global debug_package %{nil}
+
+%changelog
+* Mon Oct 2 2023 Wez Furlong
+- See git for full changelog
+
+EOF
+          HERE="."
+          BUILD_COMMAND=$(cat <<EOF
+%prep
+%autosetup
+%build
+
+echo Here I am
+
+CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse \
+    cargo build --release \
+      -p wezterm-gui -p wezterm -p wezterm-mux-server \
+      -p strip-ansi-escapes
+
+EOF
+)
+
+        fi
+
+        cat >> wezterm.spec <<EOF
 %description
 wezterm is a terminal emulator with support for modern features
 such as fonts with ligatures, hyperlinks, tabs and multiple
 windows.
 
-%build
-echo "Doing the build bit here"
+${BUILD_COMMAND}
 
 %install
 set -x
@@ -188,7 +228,12 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /etc/profile.d/*
 EOF
 
-        /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
+        if test -d ${COPR_SRPM} ; then
+          /usr/bin/rpmbuild -bs --rmspec wezterm.spec --verbose
+          mv ~/rpmbuild/SRPMS/wezterm-${TAR_NAME}*.src.rpm "${COPR_SRPM}"/
+        else
+          /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
+        fi
 
         ;;
       Ubuntu*|Debian*)

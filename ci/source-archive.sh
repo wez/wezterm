@@ -11,6 +11,11 @@ else
   TAR_NAME=wezterm-${TAG_NAME}-src.tar
 fi
 
+if test -d ${COPR_SRPM} ; then
+  TAG_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
+  TAR_NAME=wezterm-${TAG_NAME}.tar
+fi
+
 rm -f ${TAR_NAME}*
 
 NAME_PREFIX=wezterm-${TAG_NAME}
@@ -47,3 +52,7 @@ tar --delete \
 
 gzip ${TAR_NAME}
 
+if test -d ${COPR_SRPM} ; then
+  mkdir -p ~/rpmbuild/SOURCES
+  mv ${TAR_NAME}.gz ~/rpmbuild/SOURCES
+fi
