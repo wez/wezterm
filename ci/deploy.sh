@@ -161,7 +161,7 @@ EOF
 
           cat >> wezterm.spec <<EOF
 BuildRequires: gcc gcc-g++ make rustc, cargo, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
-Source0: /tmp/wezterm-${TAR_NAME}.tar.gz
+Source0: wezterm-${TAR_NAME}.tar.gz
 
 %global debug_package %{nil}
 
@@ -230,7 +230,7 @@ EOF
 
         if test -n "${COPR_SRPM}" ; then
           /usr/bin/rpmbuild -bs --rmspec wezterm.spec --verbose
-          mv ~/rpmbuild/SRPMS/wezterm-${TAR_NAME}*.src.rpm "${COPR_SRPM}"/
+          mv $(rpm --eval '%{_srcrpmdir}')/wezterm-${TAR_NAME}*.src.rpm "${COPR_SRPM}"/
         else
           /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
         fi
