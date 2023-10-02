@@ -155,7 +155,7 @@ EOF
 echo build
 EOF
 
-        if test -d ${COPR_SRPM} ; then
+        if test -n "${COPR_SRPM}" ; then
 
           TAR_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
 
@@ -228,7 +228,7 @@ install -Dm644 assets/wezterm-nautilus.py %{buildroot}/usr/share/nautilus-python
 /etc/profile.d/*
 EOF
 
-        if test -d ${COPR_SRPM} ; then
+        if test -n "${COPR_SRPM}" ; then
           /usr/bin/rpmbuild -bs --rmspec wezterm.spec --verbose
           mv ~/rpmbuild/SRPMS/wezterm-${TAR_NAME}*.src.rpm "${COPR_SRPM}"/
         else

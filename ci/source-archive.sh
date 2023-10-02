@@ -53,6 +53,7 @@ tar --delete \
 gzip ${TAR_NAME}
 
 if test -d ${COPR_SRPM} ; then
-  mkdir -p ~/rpmbuild/SOURCES
-  mv ${TAR_NAME}.gz /tmp/
+  if test -d /builddir/build/SOURCES ; then
+    mv ${TAR_NAME}.gz /builddir/build/SOURCES/
+  fi
 fi
