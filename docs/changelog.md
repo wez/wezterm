@@ -122,6 +122,7 @@ As features stabilize some brief notes about them will accumulate here.
   for either codepoint.  We now split the fallback query up and query for each
   individual codepoint separately. #4310
 * Gogh color schemes all had the incorrect cursor foreground color. #4257
+* Windows: crash on Windows 11 when using DX 12 with the WebGpu frontend. #4279
 
 #### Updated
 * Bundled harfbuzz to 8.2.1
