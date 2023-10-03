@@ -52,6 +52,6 @@ tar --delete \
 
 gzip ${TAR_NAME}
 
-if test -d ${COPR_SRPM} ; then
+if test -n "${COPR_SRPM}" ; then
   mv ${TAR_NAME}.gz $(rpm --eval '%{_sourcedir}')
 fi
