@@ -11,7 +11,7 @@ else
   TAR_NAME=wezterm-${TAG_NAME}-src.tar
 fi
 
-if test -d ${COPR_SRPM} ; then
+if test -n "${COPR_SRPM}" ; then
   TAG_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
   TAR_NAME=wezterm-${TAG_NAME}.tar
 fi
