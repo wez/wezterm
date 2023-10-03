@@ -165,7 +165,7 @@ EOF
           TAR_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
 
           cat >> wezterm.spec <<EOF
-BuildRequires: gcc gcc-c++ make rustc, cargo, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
+BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
 Source0: wezterm-${TAR_NAME}.tar.gz
 
 %global debug_package %{nil}
@@ -182,6 +182,9 @@ EOF
 %build
 
 echo Here I am
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source ~/.cargo/env
 
 cargo build --release \
       -p wezterm-gui -p wezterm -p wezterm-mux-server \
