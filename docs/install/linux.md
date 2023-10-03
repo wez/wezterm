@@ -106,6 +106,33 @@ $ sudo apt install -y ./{{ ubuntu20_deb_stable_asset }}
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
 * Configuration instructions can be [found here](../config/files.md)
 
+## Installing on Fedora and rpm-based Systems via Copr
+
+Nightly builds of wezterm are now available via the [Copr](https://copr.fedorainfracloud.org/) build service.
+
+You can see the current list of available distributions and architectures
+[on the wezterm-nightly project page](https://copr.fedorainfracloud.org/coprs/wezfurlong/wezterm-nightly/).
+At the time that this page was written, the following distributions are available in Copr for `x86_64` and `aarch64`:
+
+ * Centos Stream 8 and 9
+ * Fedora 38, 39, rawhide
+ * OpenSUSE Leap 15.5
+ * OpenSUSE Tumbleweed
+ * RHEL 8, 9
+
+To perform initial installation:
+
+```console
+$ sudo dnf copr enable wezfurlong/wezterm-nightly
+$ sudo dnf install wezterm
+```
+
+To update:
+
+```console
+$ sudo dnf update wezterm
+```
+
 ## Installing on Fedora and rpm-based Systems
 
 The CI system builds `.rpm` files on CentOS, Fedora and openSUSE systems.
