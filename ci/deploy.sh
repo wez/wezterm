@@ -135,10 +135,15 @@ case $OSTYPE in
         distroid=$(sh -c "source /etc/os-release && echo \$ID" | tr - _)
         distver=$(sh -c "source /etc/os-release && echo \$VERSION_ID" | tr - _)
 
+        SPEC_RELEASE="1.${distroid}${distver}"
+        if test -n "${COPR_SRPM}" ; then
+          SPEC_RELEASE=0
+        fi
+
         cat > wezterm.spec <<EOF
 Name: wezterm
 Version: ${WEZTERM_RPM_VERSION}
-Release: 1.${distroid}${distver}
+Release: ${SPEC_RELEASE}
 Packager: Wez Furlong <wez@wezfurlong.org>
 License: MIT
 URL: https://wezfurlong.org/wezterm/
