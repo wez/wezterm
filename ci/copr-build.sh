@@ -2,6 +2,7 @@
 set -x
 set -e
 
+
 command -v git || dnf install -y git
 
 git config --global --add safe.directory $$PWD
