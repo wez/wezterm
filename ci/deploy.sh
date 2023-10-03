@@ -165,7 +165,12 @@ EOF
           TAR_NAME=$(git -c "core.abbrev=8" show -s "--format=%cd_%h" "--date=format:%Y%m%d_%H%M%S")
 
           cat >> wezterm.spec <<EOF
-BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, mesa-libEGL-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
+BuildRequires: gcc, gcc-c++, make, curl, fontconfig-devel, openssl-devel, libxcb-devel, libxkbcommon-devel, libxkbcommon-x11-devel, wayland-devel, xcb-util-devel, xcb-util-keysyms-devel, xcb-util-image-devel, xcb-util-wm-devel, git
+%if 0%{?suse_version}
+BuildRequires: Mesa-libEGL-devel
+%else
+BuildRequires: mesa-libEGL-devel
+%endif
 Source0: wezterm-${TAR_NAME}.tar.gz
 
 %global debug_package %{nil}
