@@ -53,15 +53,6 @@ task:
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   getdeps_script:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
-  registry_cache:
-    folder: $CARGO_HOME/registry
-    fingerprint_script: cat Cargo.lock
-  target_cache:
-    folder: target
-    fingerprint_script:
-      - rustc --version
-      - cat Cargo.lock
-  before_cache_script: rm -rf $CARGO_HOME/registry/index
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui wezterm wezterm-mux-server strip-ansi-escapes
     - ./ci/deploy.sh
