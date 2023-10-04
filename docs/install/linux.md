@@ -93,7 +93,7 @@ you can try the AppImage download which should work on most Linux systems.
 |Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
 |Debian10    |[amd64]({{ debian10_deb_stable }}) |[amd64]({{ debian10_deb_nightly }})| |
 |Debian11    |[amd64]({{ debian11_deb_stable }}) |[amd64]({{ debian11_deb_nightly }})| |
-|Debian12    |Nightly builds only|[amd64]({{ debian12_deb_nightly }})| |
+|Debian12    |Nightly builds only|[amd64]({{ debian12_deb_nightly }})|[arm64]({{ debian12_arm64_deb_nightly }}) |
 
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 20 package:
