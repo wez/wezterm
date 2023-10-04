@@ -65,6 +65,10 @@ task:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
-    - ./ci/deploy.sh
+    - export BUILD_REASON="Schedule"
+    - export RELEASE="nightly"
+    - "test -n \"$CIRRUS_TAG\" && BUILD_REASON=\"tag\""
+    - "test -n \"$CIRRUS_TAG\" && RELEASE=$(ci/tag-name.sh)"
+    - "./ci/deploy.sh"
     - "ls -l *.deb"
-    - "bash ci/retry.sh gh release upload --clobber nightly *.deb"
+    - "bash ci/retry.sh gh release upload --clobber ${RELEASE} *.deb"

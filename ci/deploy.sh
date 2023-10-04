@@ -306,11 +306,21 @@ EOF
         install -Dm644 assets/shell-completion/bash pkg/debian/usr/share/bash-completion/completions/wezterm
         install -Dm644 assets/shell-completion/zsh pkg/debian/usr/share/zsh/functions/Completion/Unix/_wezterm
         install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
+
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
         else
           debname=wezterm-$TAG_NAME.$distro$distver
         fi
+        arch=$(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
+        case $arch in
+          amd64)
+            ;;
+          *)
+            debname="${debname}.${arch}"
+            ;;
+        esac
+
         fakeroot dpkg-deb --build pkg/debian $debname.deb
 
         if [[ "$BUILD_REASON" != '' ]] ; then
