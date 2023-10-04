@@ -1,17 +1,18 @@
-compute_engine_instance:
-  image_project: freebsd-org-cloud-dev
-  image: family/freebsd-13-2
-  platform: freebsd
-  cpu: 4
-  memory: 8G
-  disk: 100 # Gb
-
 env:
   CIRRUS_CLONE_SUBMODULES: true
   CIRRUS_CLONE_DEPTH: 1
 
 task:
   name: freebsd-13
+
+  compute_engine_instance:
+    image_project: freebsd-org-cloud-dev
+    image: family/freebsd-13-2
+    platform: freebsd
+    cpu: 4
+    memory: 8G
+    disk: 100 # Gb
+
   stateful: false
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   install_rust_script:
