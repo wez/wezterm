@@ -39,10 +39,13 @@ task:
 
 task:
   name: ubuntu-22.04-arm
+  only_if: $CIRRUS_REPO_OWNER == 'wez'
   arm_container:
     image: ubuntu:22.04
     cpu: 4
     memory: 12G
+  environment:
+    GITHUB_TOKEN: ENCRYPTED[23bd9513fa7174e74eaddce6a3099cabb22118423591553b23518e8c34bf155e07c559838b1d3422f561c73c1e31e6fc]
 
   stateful: false
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
@@ -51,9 +54,17 @@ task:
     - apt update
     - apt-get install -y git curl
     - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  install_gh_cli:
+    - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg > /usr/share/keyrings/githubcli-archive-keyring.gpg
+    - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+    - apt update
+    - apt install gh -y
+    - gh --version
   getdeps_script:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
   build_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
     - ./ci/deploy.sh
     - "ls -l *.deb"
+    - "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) *.deb"
