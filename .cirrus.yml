@@ -39,7 +39,7 @@ task:
 
 task:
   name: ubuntu-22.04-arm
-  only_if: $CIRRUS_REPO_OWNER == 'wez'
+  only_if: "$CIRRUS_REPO_OWNER == 'wez' && changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   arm_container:
     image: ubuntu:22.04
     cpu: 4
@@ -48,7 +48,6 @@ task:
     GITHUB_TOKEN: ENCRYPTED[23bd9513fa7174e74eaddce6a3099cabb22118423591553b23518e8c34bf155e07c559838b1d3422f561c73c1e31e6fc]
 
   stateful: false
-  only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   install_rust_script:
     - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
     - apt update
