@@ -87,13 +87,13 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.
 
-|Distro      | Stable           | Nightly             |
-|------------|------------------|---------------------|
-|Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
-|Ubuntu22    |[{{ ubuntu22_deb_stable_asset }}]({{ ubuntu22_deb_stable }}) |[{{ ubuntu22_deb_nightly_asset }}]({{ ubuntu22_deb_nightly }})|
-|Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
-|Debian11    |[{{ debian11_deb_stable_asset }}]({{ debian11_deb_stable }}) |[{{ debian11_deb_nightly_asset }}]({{ debian11_deb_nightly }})|
-|Debian12    |Nightly builds only|[{{ debian12_deb_nightly_asset }}]({{ debian12_deb_nightly }})|
+|Distro      | Stable           | Nightly|            |
+|------------|------------------|--------|------------|
+|Ubuntu20    |[amd64]({{ ubuntu20_deb_stable }})  |[amd64]({{ ubuntu20_deb_nightly }})| |
+|Ubuntu22    |[amd64]({{ ubuntu22_deb_stable }}) |[amd64]({{ ubuntu22_deb_nightly }})|[arm64]({{ ubuntu22_arm64_deb_nightly}})|
+|Debian10    |[amd64]({{ debian10_deb_stable }}) |[amd64]({{ debian10_deb_nightly }})| |
+|Debian11    |[amd64]({{ debian11_deb_stable }}) |[amd64]({{ debian11_deb_nightly }})| |
+|Debian12    |Nightly builds only|[amd64]({{ debian12_deb_nightly }})| |
 
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 20 package:
