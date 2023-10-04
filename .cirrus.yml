@@ -36,3 +36,33 @@ task:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
   test_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
+
+task:
+  name: ubuntu-22.04-arm
+  arm_container:
+    image: ubuntu:22.04
+    cpu: 4
+    memory: 12G
+
+  stateful: false
+  only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  install_rust_script:
+    - echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    - apt update
+    - apt-get install -y git curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  getdeps_script:
+    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
+  registry_cache:
+    folder: $CARGO_HOME/registry
+    fingerprint_script: cat Cargo.lock
+  target_cache:
+    folder: target
+    fingerprint_script:
+      - rustc --version
+      - cat Cargo.lock
+  before_cache_script: rm -rf $CARGO_HOME/registry/index
+  build_script:
+    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui wezterm wezterm-mux-server strip-ansi-escapes
+    - ./ci/deploy.sh
+    - "ls -l *.deb"
