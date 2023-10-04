@@ -910,7 +910,7 @@ dependencies = [
  "shlex",
  "smol",
  "termwiz",
- "toml 0.8.1",
+ "toml 0.8.2",
  "umask",
  "wezterm-bidi",
  "wezterm-config-derive",
@@ -1195,9 +1195,9 @@ dependencies = [
 
 [[package]]
 name = "csv"
-version = "1.2.2"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "626ae34994d3d8d668f4269922248239db4ae42d538b14c398b74a52208e8086"
+checksum = "ac574ff4d437a7b5ad237ef331c17ccca63c46479e5b5453eb8e10bb99a759fe"
 dependencies = [
  "csv-core",
  "itoa",
@@ -1207,9 +1207,9 @@ dependencies = [
 
 [[package]]
 name = "csv-core"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
+checksum = "5efa2b3d7902f4b634a20cae3c9c4e6209dc4779feb6863329607560143efa70"
 dependencies = [
  "memchr",
 ]
@@ -4340,9 +4340,9 @@ checksum = "216080ab382b992234dda86873c18d4c48358f5cfcb70fd693d7f6f2131b628b"
 
 [[package]]
 name = "reqwest"
-version = "0.11.20"
+version = "0.11.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e9ad3fe7488d7e34558a2033d45a0c90b72d97b4f80705666fea71472e2e6a1"
+checksum = "046cd98826c46c2ac8ddecae268eb5c2e58628688a5fc7a2643704a73faba95b"
 dependencies = [
  "base64 0.21.4",
  "bytes",
@@ -4365,6 +4365,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tower-service",
@@ -5118,7 +5119,7 @@ dependencies = [
  "tar",
  "tempfile",
  "tokio",
- "toml 0.8.1",
+ "toml 0.8.2",
  "wezterm-dynamic",
  "yaml-rust",
 ]
@@ -5130,6 +5131,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b3a0d0aba8bf96a0e1ddfdc352fc53b3df7f39318c71854910c3c4b024ae52c"
 dependencies = [
  "cc",
+ "libc",
+]
+
+[[package]]
+name = "system-configuration"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3a3adc5c275d719af8cb4272ea1c4a6d668a777f37e115f6d11ddbc1c8e0e7"
+dependencies = [
+ "bitflags 1.3.2",
+ "core-foundation 0.9.3",
+ "system-configuration-sys",
+]
+
+[[package]]
+name = "system-configuration-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
+dependencies = [
+ "core-foundation-sys 0.8.4",
  "libc",
 ]
 
@@ -5525,14 +5547,14 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc1433177506450fe920e46a4f9812d0c211f5dd556da10e731a0a3dfa151f0"
+checksum = "185d8ab0dfbb35cf1399a6344d8484209c088f75f8f68230da55d48d95d43e3d"
 dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "toml_edit 0.20.1",
+ "toml_edit 0.20.2",
 ]
 
 [[package]]
@@ -5557,9 +5579,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.20.1"
+version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca676d9ba1a322c1b64eb8045a5ec5c0cfb0c9d08e15e9ff622589ad5221c8fe"
+checksum = "396e4d48bbb2b7554c944bde63101b5ae446cff6ec4a24227428f15eb72ef338"
 dependencies = [
  "indexmap 2.0.2",
  "serde",
@@ -6492,9 +6514,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "0.17.1"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0df4fc240da3c460a52cf0ff8f1b71fd6544a6b49f74ff2330238fcb0fd99512"
+checksum = "9a80bf0e3c77399bb52850cb0830af9bad073d5cfcb9dd8253bef8125c42db17"
 dependencies = [
  "android_system_properties",
  "arrayvec",
