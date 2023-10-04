@@ -54,6 +54,6 @@ task:
   getdeps_script:
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
   build_script:
-    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui wezterm wezterm-mux-server strip-ansi-escapes
+    - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
     - ./ci/deploy.sh
     - "ls -l *.deb"
