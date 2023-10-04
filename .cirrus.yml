@@ -67,4 +67,4 @@ task:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --release -p wezterm-gui -p wezterm -p wezterm-mux-server -p strip-ansi-escapes
     - ./ci/deploy.sh
     - "ls -l *.deb"
-    - "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) *.deb"
+    - "bash ci/retry.sh gh release upload --clobber nightly *.deb"
