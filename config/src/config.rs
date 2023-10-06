@@ -474,6 +474,10 @@ pub struct Config {
     #[dynamic(default)]
     pub tab_and_split_indices_are_zero_based: bool,
 
+    /// Specifies to fill the width of the window with the tab bar
+    #[dynamic(default)]
+    pub tab_bar_fill: bool,
+
     /// Specifies the maximum width that a tab can have in the
     /// tab bar.  Defaults to 16 glyphs in width.
     #[dynamic(default = "default_tab_max_width")]

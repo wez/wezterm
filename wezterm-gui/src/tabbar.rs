@@ -324,6 +324,14 @@ impl TabBarState {
 
         let mut active_tab_no = 0;
 
+        let config_tab_max_width = if config.tab_bar_fill {
+            // We have no layout, so this is a rough estimate
+            // The tab bar consists of the tab titles, the new tab button, and some padding
+            title_width.saturating_sub(new_tab.len() + 2 + tab_info.len()) / (tab_info.len())
+        } else {
+            config.tab_max_width
+        };
+
         let tab_titles: Vec<TitleText> = if config.show_tabs_in_tab_bar {
             tab_info
                 .iter()
@@ -337,7 +345,7 @@ impl TabBarState {
                         pane_info,
                         config,
                         false,
-                        config.tab_max_width,
+                        config_tab_max_width,
                     )
                 })
                 .collect()
@@ -346,18 +354,16 @@ impl TabBarState {
         };
         let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
         let number_of_tabs = tab_titles.len();
-
         let available_cells =
             title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.len());
         let tab_width_max = if config.use_fancy_tab_bar || available_cells >= titles_len {
             // We can render each title with its full width
-            usize::max_value()
+            usize::MAX
         } else {
             // We need to clamp the length to balance them out
             available_cells / number_of_tabs
         }
-        .min(config.tab_max_width);
-
+        .min(config_tab_max_width);
         let mut line = Line::with_width(0, SEQ_ZERO);
 
         let mut x = 0;
@@ -400,9 +406,10 @@ impl TabBarState {
         }
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
-            let tab_title_len = tab_title.len.min(tab_width_max);
+            // The title is allowed to grow to the max size of the computed tab width
+            let tab_title_max_len = tab_title.len.max(tab_width_max).min(tab_width_max);
             let active = tab_idx == active_tab_no;
-            let hover = !active && is_tab_hover(mouse_x, x, tab_title_len);
+            let hover = !active && is_tab_hover(mouse_x, x, tab_title_max_len);
 
             // Recompute the title so that it factors in both the hover state
             // and the adjusted maximum tab width based on available space.
@@ -412,7 +419,7 @@ impl TabBarState {
                 pane_info,
                 config,
                 hover,
-                tab_title_len,
+                tab_title_max_len,
             );
 
             let cell_attrs = if active {

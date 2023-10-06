@@ -239,6 +239,7 @@ pub struct Element {
     pub max_width: Option<Dimension>,
     pub min_width: Option<Dimension>,
     pub min_height: Option<Dimension>,
+    pub fill_width: bool,
 }
 
 impl Element {
@@ -262,6 +263,7 @@ impl Element {
             max_width: None,
             min_width: None,
             min_height: None,
+            fill_width: false,
         }
     }
 
@@ -689,8 +691,8 @@ impl super::TermWindow {
                 let mut block_pixel_height: f32 = 0.;
                 let mut computed_kids = vec![];
                 let mut max_x: f32 = 0.;
-                let mut float_width: f32 = 0.;
                 let mut y_coord: f32 = 0.;
+                let mut filled_layout_contexts = Vec::new();
 
                 for child in kids {
                     if child.display == DisplayType::Block {
@@ -713,40 +715,39 @@ impl super::TermWindow {
                             context.bounds.max_y() - (context.bounds.min_y() + y_coord),
                         ),
                     };
-                    let kid = self.compute_element(
-                        &LayoutContext {
-                            bounds,
-                            gl_state: context.gl_state,
-                            height: context.height,
-                            metrics: context.metrics,
-                            width: DimensionContext {
-                                dpi: context.width.dpi,
-                                pixel_cell: context.width.pixel_cell,
-                                pixel_max: max_width,
-                            },
-                            zindex: context.zindex + element.zindex,
+                    let layout_context = LayoutContext {
+                        bounds,
+                        gl_state: context.gl_state,
+                        height: context.height,
+                        metrics: context.metrics,
+                        width: DimensionContext {
+                            dpi: context.width.dpi,
+                            pixel_cell: context.width.pixel_cell,
+                            pixel_max: max_width,
                         },
-                        child,
-                    )?;
+                        zindex: context.zindex + element.zindex,
+                    };
+                    let kid = self.compute_element(&layout_context, child)?;
                     match child.float {
-                        Float::Right => {
-                            float_width += float_width.max(kid.bounds.width());
-                        }
                         Float::None => {
                             block_pixel_width += kid.bounds.width();
                             max_x = max_x.max(block_pixel_width);
                         }
+                        // Float right is taken care of below
+                        _ => {}
+                    }
+                    if child.fill_width {
+                        filled_layout_contexts.push(layout_context);
                     }
                     block_pixel_height = block_pixel_height.max(kid.bounds.height());
-
                     computed_kids.push(kid);
                 }
 
                 // Respect min-width
                 max_x = max_x.max(min_width);
 
-                let mut float_max_x = (max_x + float_width).min(max_width);
-
+                // Right floated things start at the right edge, and move left as needed
+                let mut float_max_x = max_width;
                 let pixel_height = (y_coord + block_pixel_height).max(min_height);
 
                 for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
@@ -770,6 +771,63 @@ impl super::TermWindow {
                             ));
                         }
                         VerticalAlign::Top => {}
+                    }
+                }
+
+                // We have to compute fill after all elements have been floated
+                if filled_layout_contexts.len() > 0 {
+                    // This mechanism assumes that we don't mix float right and
+                    // fill width elements and try to have it work That is, we
+                    // assume all float right elements are all the way to the
+                    // right, in a row, and are not marked to be filled
+                    let mut available_min_right_x = context.bounds.max_x();
+                    let mut static_element_size = 0.;
+                    for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
+                        // Subtract out the space from non-filling, non right-floating elements
+                        if !child.fill_width {
+                            match child.float {
+                                Float::Right => {
+                                    available_min_right_x =
+                                        available_min_right_x.min(kid.bounds.min_x());
+                                }
+                                Float::None => {
+                                    static_element_size += kid.bounds.width();
+                                }
+                            }
+                        }
+                    }
+                    let mut current_kid = 0;
+
+                    // We only fill from the leftmost point to the leftmost point of the first float right element.
+                    // We assume we have all the space not taken up by non-filled elements.
+                    let available_space = available_min_right_x - static_element_size;
+                    // Evenly distribute remaining space
+                    let new_width = available_space / filled_layout_contexts.len() as f32;
+                    // We know there is at least one kid or we would not be in this loop
+                    let mut new_origin = computed_kids.first().unwrap().bounds.origin.x;
+                    for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
+                        let old_bounds = kid.bounds;
+                        if child.fill_width {
+                            // Recompute
+                            let layout_context = &mut filled_layout_contexts[current_kid];
+                            current_kid = current_kid + 1;
+                            layout_context.width = DimensionContext {
+                                dpi: context.width.dpi,
+                                pixel_cell: context.width.pixel_cell,
+                                pixel_max: max_width,
+                            };
+                            layout_context.bounds = euclid::rect(
+                                new_origin,
+                                old_bounds.origin.y,
+                                new_width,
+                                old_bounds.height(),
+                            );
+                            let new_kid = self.compute_element(layout_context, child)?;
+                            *kid = new_kid;
+                        } else {
+                            kid.translate(euclid::vec2(new_origin - old_bounds.origin.x, 0.));
+                        }
+                        new_origin = kid.bounds.max_x();
                     }
                 }
 

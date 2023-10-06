@@ -126,7 +126,12 @@ impl crate::TermWindow {
                         bottom: Dimension::Cells(0.),
                     })
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
-                    .colors(bar_colors.clone()),
+                    .colors(bar_colors.clone())
+                    .float(if item.item == TabBarItem::LeftStatus {
+                        Float::None
+                    } else {
+                        Float::Right
+                    }),
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
@@ -301,9 +306,11 @@ impl crate::TermWindow {
                 _ => 0.,
             })
             .sum();
+
         let max_tab_width = ((self.dimensions.pixel_width as f32 / num_tabs)
             - (1.5 * metrics.cell_size.width as f32))
             .max(0.);
+        let min_tab_width = 0.;
 
         // Reserve space for the native titlebar buttons
         if self
@@ -338,7 +345,12 @@ impl crate::TermWindow {
                 }
                 TabBarItem::Tab { tab_idx, active } => {
                     let mut elem = item_to_elem(item);
-                    elem.max_width = Some(Dimension::Pixels(max_tab_width));
+                    elem.min_width = Some(Dimension::Pixels(min_tab_width));
+                    if self.config.tab_bar_fill {
+                        elem.fill_width = true;
+                    } else {
+                        elem.max_width = Some(Dimension::Pixels(max_tab_width));
+                    }
                     elem.content = match elem.content {
                         ElementContent::Text(_) => unreachable!(),
                         ElementContent::Poly { .. } => unreachable!(),
@@ -442,8 +454,10 @@ impl crate::TermWindow {
             Dimension::Cells(0.5)
         };
 
+        let mut new_children = left_eles;
+        new_children.append(&mut right_eles);
         children.push(
-            Element::new(&font, ElementContent::Children(left_eles))
+            Element::new(&font, ElementContent::Children(new_children))
                 .vertical_align(VerticalAlign::Bottom)
                 .colors(bar_colors.clone())
                 .padding(BoxDimension {
@@ -453,11 +467,6 @@ impl crate::TermWindow {
                     bottom: Dimension::Cells(0.),
                 })
                 .zindex(1),
-        );
-        children.push(
-            Element::new(&font, ElementContent::Children(right_eles))
-                .colors(bar_colors.clone())
-                .float(Float::Right),
         );
 
         let content = ElementContent::Children(children);
