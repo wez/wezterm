@@ -277,6 +277,8 @@ details.
   bar at the bottom of the window instead of the top
 * [tab_max_width](lua/config/tab_max_width.md) sets the maximum width, measured in cells,
   of a given tab when using retro tab mode.
+* [tab_bar_fill](lua/config/tab_bar_fill.md) sets the fancy tab bar to fill
+  the width of the title bar.
 
 #### Native (Fancy) Tab Bar appearance
 
