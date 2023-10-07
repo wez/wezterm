@@ -599,6 +599,9 @@ pub struct Config {
     #[dynamic(default)]
     pub force_reverse_video_cursor: bool,
 
+    #[dynamic(default)]
+    pub force_reverse_video_selection: bool,
+
     /// Specifies the default cursor style.  various escape sequences
     /// can override the default style in different situations (eg:
     /// an editor can change it depending on the mode), but this value
